@@ -1,7 +1,8 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import * as assetListEventModule from '#/events/assetListEvent'
+import type * as assetListEventModule from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
 import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -56,7 +57,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     onInput={event => {
                         if (event.currentTarget.files != null) {
                             dispatchAssetListEvent({
-                                type: assetListEventModule.AssetListEventType.uploadFiles,
+                                type: AssetListEventType.uploadFiles,
                                 parentKey: directoryKey ?? rootDirectoryId,
                                 parentId: directoryId ?? rootDirectoryId,
                                 files: Array.from(event.currentTarget.files),
@@ -84,7 +85,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         input.addEventListener('input', () => {
                             if (input.files != null) {
                                 dispatchAssetListEvent({
-                                    type: assetListEventModule.AssetListEventType.uploadFiles,
+                                    type: AssetListEventType.uploadFiles,
                                     parentKey: directoryKey ?? rootDirectoryId,
                                     parentId: directoryId ?? rootDirectoryId,
                                     files: Array.from(input.files),
@@ -104,7 +105,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     doAction={() => {
                         unsetModal()
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.newProject,
+                            type: AssetListEventType.newProject,
                             parentKey: directoryKey ?? rootDirectoryId,
                             parentId: directoryId ?? rootDirectoryId,
                             templateId: null,
@@ -120,7 +121,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     doAction={() => {
                         unsetModal()
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.newFolder,
+                            type: AssetListEventType.newFolder,
                             parentKey: directoryKey ?? rootDirectoryId,
                             parentId: directoryId ?? rootDirectoryId,
                         })
@@ -136,8 +137,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                             <NewDataConnectorModal
                                 doCreate={(name, value) => {
                                     dispatchAssetListEvent({
-                                        type: assetListEventModule.AssetListEventType
-                                            .newDataConnector,
+                                        type: AssetListEventType.newDataConnector,
                                         parentKey: directoryKey ?? rootDirectoryId,
                                         parentId: directoryId ?? rootDirectoryId,
                                         name,

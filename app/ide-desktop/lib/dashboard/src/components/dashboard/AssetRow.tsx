@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
-import * as assetEvent from '#/events/assetEvent'
-import * as assetListEvent from '#/events/assetListEvent'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as hooks from '#/hooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
@@ -21,7 +21,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
-import * as visibilityModule from '#/utilities/visibility'
+import Visibility, * as visibilityModule from '#/utilities/visibility'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import type * as tableRow from '#/components/TableRow'
@@ -85,9 +85,7 @@ export default function AssetRow(props: AssetRowProps) {
     const [item, setItem] = React.useState(rawItem)
     const dragOverTimeoutHandle = React.useRef<number | null>(null)
     const asset = item.item
-    const [insertionVisibility, setInsertionVisibility] = React.useState(
-        visibilityModule.Visibility.visible
-    )
+    const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
         object.merge(initialRowState, { setVisibility: setInsertionVisibility })
     )
@@ -104,7 +102,7 @@ export default function AssetRow(props: AssetRowProps) {
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     React.useEffect(() => {
-        if (selected && insertionVisibility !== visibilityModule.Visibility.visible) {
+        if (selected && insertionVisibility !== Visibility.visible) {
             setSelected(false)
         }
     }, [selected, insertionVisibility, /* should never change */ setSelected])
@@ -136,7 +134,7 @@ export default function AssetRow(props: AssetRowProps) {
                 toastAndLog(`Could not copy '${asset.title}'`, error)
                 // Delete the new component representing the asset that failed to insert.
                 dispatchAssetListEvent({
-                    type: assetListEvent.AssetListEventType.delete,
+                    type: AssetListEventType.delete,
                     key: item.key,
                 })
             }
@@ -163,7 +161,7 @@ export default function AssetRow(props: AssetRowProps) {
             const nonNullNewParentId = newParentId ?? rootDirectoryId
             try {
                 dispatchAssetListEvent({
-                    type: assetListEvent.AssetListEventType.move,
+                    type: AssetListEventType.move,
                     newParentKey: nonNullNewParentKey,
                     newParentId: nonNullNewParentId,
                     key: item.key,
@@ -190,7 +188,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
-                    type: assetListEvent.AssetListEventType.move,
+                    type: AssetListEventType.move,
                     newParentKey: item.directoryKey,
                     newParentId: item.directoryId,
                     key: item.key,
@@ -217,10 +215,10 @@ export default function AssetRow(props: AssetRowProps) {
     }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
 
     const doDelete = React.useCallback(async () => {
-        setInsertionVisibility(visibilityModule.Visibility.hidden)
+        setInsertionVisibility(Visibility.hidden)
         if (asset.type === backendModule.AssetType.directory) {
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.closeFolder,
+                type: AssetListEventType.closeFolder,
                 id: asset.id,
                 // This is SAFE, as this asset is already known to be a directory.
                 // eslint-disable-next-line no-restricted-syntax
@@ -229,7 +227,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         try {
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.willDelete,
+                type: AssetListEventType.willDelete,
                 key: item.key,
             })
             if (
@@ -250,11 +248,11 @@ export default function AssetRow(props: AssetRowProps) {
             }
             await backend.deleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.delete,
+                type: AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
-            setInsertionVisibility(visibilityModule.Visibility.visible)
+            setInsertionVisibility(Visibility.visible)
             toastAndLog(
                 errorModule.tryGetMessage(error)?.slice(0, -1) ??
                     `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
@@ -270,15 +268,15 @@ export default function AssetRow(props: AssetRowProps) {
 
     const doRestore = React.useCallback(async () => {
         // Visually, the asset is deleted from the Trash view.
-        setInsertionVisibility(visibilityModule.Visibility.hidden)
+        setInsertionVisibility(Visibility.hidden)
         try {
             await backend.undoDeleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.delete,
+                type: AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
-            setInsertionVisibility(visibilityModule.Visibility.visible)
+            setInsertionVisibility(Visibility.visible)
             toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
@@ -292,53 +290,53 @@ export default function AssetRow(props: AssetRowProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific `NameColumn` files.
-            case assetEvent.AssetEventType.newProject:
-            case assetEvent.AssetEventType.newFolder:
-            case assetEvent.AssetEventType.uploadFiles:
-            case assetEvent.AssetEventType.newDataConnector:
-            case assetEvent.AssetEventType.openProject:
-            case assetEvent.AssetEventType.closeProject:
-            case assetEvent.AssetEventType.cancelOpeningAllProjects: {
+            case AssetEventType.newProject:
+            case AssetEventType.newFolder:
+            case AssetEventType.uploadFiles:
+            case AssetEventType.newDataConnector:
+            case AssetEventType.openProject:
+            case AssetEventType.closeProject:
+            case AssetEventType.cancelOpeningAllProjects: {
                 break
             }
-            case assetEvent.AssetEventType.copy: {
+            case AssetEventType.copy: {
                 if (event.ids.has(item.key)) {
                     await doCopyOnBackend(event.newParentId)
                 }
                 break
             }
-            case assetEvent.AssetEventType.cut: {
+            case AssetEventType.cut: {
                 if (event.ids.has(item.key)) {
-                    setInsertionVisibility(visibilityModule.Visibility.faded)
+                    setInsertionVisibility(Visibility.faded)
                 }
                 break
             }
-            case assetEvent.AssetEventType.cancelCut: {
+            case AssetEventType.cancelCut: {
                 if (event.ids.has(item.key)) {
-                    setInsertionVisibility(visibilityModule.Visibility.visible)
+                    setInsertionVisibility(Visibility.visible)
                 }
                 break
             }
-            case assetEvent.AssetEventType.move: {
+            case AssetEventType.move: {
                 if (event.ids.has(item.key)) {
-                    setInsertionVisibility(visibilityModule.Visibility.visible)
+                    setInsertionVisibility(Visibility.visible)
                     await doMove(event.newParentKey, event.newParentId)
                 }
                 break
             }
-            case assetEvent.AssetEventType.delete: {
+            case AssetEventType.delete: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
                 }
                 break
             }
-            case assetEvent.AssetEventType.restore: {
+            case AssetEventType.restore: {
                 if (event.ids.has(item.key)) {
                     await doRestore()
                 }
                 break
             }
-            case assetEvent.AssetEventType.download: {
+            case AssetEventType.download: {
                 if (event.ids.has(item.key)) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -347,7 +345,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.downloadSelected: {
+            case AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -356,10 +354,10 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.removeSelf: {
+            case AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === asset.id && user != null) {
-                    setInsertionVisibility(visibilityModule.Visibility.hidden)
+                    setInsertionVisibility(Visibility.hidden)
                     try {
                         await backend.createPermission({
                             action: null,
@@ -367,17 +365,17 @@ export default function AssetRow(props: AssetRowProps) {
                             userSubjects: [user.id],
                         })
                         dispatchAssetListEvent({
-                            type: assetListEvent.AssetListEventType.delete,
+                            type: AssetListEventType.delete,
                             key: item.key,
                         })
                     } catch (error) {
-                        setInsertionVisibility(visibilityModule.Visibility.visible)
+                        setInsertionVisibility(Visibility.visible)
                         toastAndLog(null, error)
                     }
                 }
                 break
             }
-            case assetEvent.AssetEventType.temporarilyAddLabels: {
+            case AssetEventType.temporarilyAddLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === labels &&
@@ -390,7 +388,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case assetEvent.AssetEventType.temporarilyRemoveLabels: {
+            case AssetEventType.temporarilyRemoveLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY &&
@@ -403,7 +401,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case assetEvent.AssetEventType.addLabels: {
+            case AssetEventType.addLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -428,7 +426,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.removeLabels: {
+            case AssetEventType.removeLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -451,7 +449,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.deleteLabel: {
+            case AssetEventType.deleteLabel: {
                 setAsset(oldAsset => {
                     // The IIFE is required to prevent TypeScript from narrowing this value.
                     let found = (() => false)()
@@ -504,9 +502,7 @@ export default function AssetRow(props: AssetRowProps) {
                             isDraggedOver ? 'selected' : ''
                         }`}
                         {...props}
-                        hidden={
-                            hidden || insertionVisibility === visibilityModule.Visibility.hidden
-                        }
+                        hidden={hidden || insertionVisibility === Visibility.hidden}
                         onContextMenu={(innerProps, event) => {
                             if (allowContextMenu) {
                                 event.preventDefault()
@@ -593,7 +589,7 @@ export default function AssetRow(props: AssetRowProps) {
                                     true
                                 )
                                 dispatchAssetEvent({
-                                    type: assetEvent.AssetEventType.move,
+                                    type: AssetEventType.move,
                                     newParentKey: directoryKey,
                                     newParentId: directoryId,
                                     ids: new Set(payload.map(dragItem => dragItem.key)),
@@ -601,30 +597,28 @@ export default function AssetRow(props: AssetRowProps) {
                             }
                         }}
                     />
-                    {selected &&
-                        allowContextMenu &&
-                        insertionVisibility !== visibilityModule.Visibility.hidden && (
-                            // This is a copy of the context menu, since the context menu registers keyboard
-                            // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
-                            // the entire context menu (once for the keyboard actions, once for the JSX).
-                            <AssetContextMenu
-                                hidden
-                                innerProps={{
-                                    key,
-                                    item,
-                                    setItem,
-                                    state,
-                                    rowState,
-                                    setRowState,
-                                }}
-                                event={{ pageX: 0, pageY: 0 }}
-                                eventTarget={null}
-                                doCopy={doCopy}
-                                doCut={doCut}
-                                doPaste={doPaste}
-                                doDelete={doDelete}
-                            />
-                        )}
+                    {selected && allowContextMenu && insertionVisibility !== Visibility.hidden && (
+                        // This is a copy of the context menu, since the context menu registers keyboard
+                        // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
+                        // the entire context menu (once for the keyboard actions, once for the JSX).
+                        <AssetContextMenu
+                            hidden
+                            innerProps={{
+                                key,
+                                item,
+                                setItem,
+                                state,
+                                rowState,
+                                setRowState,
+                            }}
+                            event={{ pageX: 0, pageY: 0 }}
+                            eventTarget={null}
+                            doCopy={doCopy}
+                            doCut={doCut}
+                            doPaste={doPaste}
+                            doDelete={doDelete}
+                        />
+                    )}
                 </>
             )
         }

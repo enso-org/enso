@@ -1,4 +1,5 @@
 /** @file Events related to changes in the asset list. */
+import type AssetListEventType from '#/events/AssetListEventType'
 import type * as backend from '#/services/backend'
 
 import type * as spinner from '#/components/Spinner'
@@ -12,19 +13,9 @@ declare module '#/hooks/eventHooks' {
     }
 }
 
-/** Possible changes to the file list. */
-export enum AssetListEventType {
-    newFolder = 'new-folder',
-    newProject = 'new-project',
-    uploadFiles = 'upload-files',
-    newDataConnector = 'new-data-connector',
-    closeFolder = 'close-folder',
-    copy = 'copy',
-    move = 'move',
-    willDelete = 'will-delete',
-    delete = 'delete',
-    removeSelf = 'remove-self',
-}
+// ======================
+// === AssetListEvent ===
+// ======================
 
 /** Properties common to all asset list events. */
 interface AssetListBaseEvent<Type extends AssetListEventType> {

@@ -1,14 +1,5 @@
 /** @file Types related to pasting. */
-
-// =================
-// === PasteType ===
-// =================
-
-/** The type of operation that should be triggered on paste. */
-export enum PasteType {
-    copy = 'copy',
-    move = 'move',
-}
+import type PasteType from '#/utilities/PasteType'
 
 // =================
 // === PasteData ===

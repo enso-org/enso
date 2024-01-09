@@ -4,7 +4,7 @@ import * as React from 'react'
 import Plus2Icon from 'enso-assets/plus2.svg'
 
 import * as hooks from '#/hooks'
-import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -44,7 +44,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        category !== categorySwitcherUtils.Category.trash &&
+        category !== Category.trash &&
         (self?.permission === permissions.PermissionAction.own ||
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(

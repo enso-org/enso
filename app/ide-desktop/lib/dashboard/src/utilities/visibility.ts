@@ -8,7 +8,7 @@
 // ==================
 
 /** The state of an item being synced to a remote server. */
-export enum Visibility {
+enum Visibility {
     /** The item is present. */
     visible = 'visible',
     /** The item will be inserted, but the backend request has not yet finished,
@@ -17,6 +17,10 @@ export enum Visibility {
     /** The item will be deleted, but the backend request has not yet finished. */
     hidden = 'hidden',
 }
+
+// This is REQUIRED, as `export default enum` is invalid syntax.
+// eslint-disable-next-line no-restricted-syntax
+export default Visibility
 
 // =================
 // === Constants ===

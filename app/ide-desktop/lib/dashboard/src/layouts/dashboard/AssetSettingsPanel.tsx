@@ -5,7 +5,7 @@ import PenIcon from 'enso-assets/pen.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
 import * as hooks from '#/hooks'
-import type * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
+import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
 import * as authProvider from '#/providers/AuthProvider'
@@ -33,7 +33,7 @@ export interface AssetSettingsPanelRequiredProps {
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
     supportsLocalBackend: boolean
     page: pageSwitcher.Page
-    category: categorySwitcherUtils.Category
+    category: Category
     isHelpChatOpen: boolean
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>

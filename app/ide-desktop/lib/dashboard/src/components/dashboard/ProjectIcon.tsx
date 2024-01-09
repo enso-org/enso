@@ -7,7 +7,8 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as assetEvent from '#/events/assetEvent'
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
 import * as hooks from '#/hooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -235,29 +236,29 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case assetEvent.AssetEventType.newFolder:
-            case assetEvent.AssetEventType.uploadFiles:
-            case assetEvent.AssetEventType.newDataConnector:
-            case assetEvent.AssetEventType.copy:
-            case assetEvent.AssetEventType.cut:
-            case assetEvent.AssetEventType.cancelCut:
-            case assetEvent.AssetEventType.move:
-            case assetEvent.AssetEventType.delete:
-            case assetEvent.AssetEventType.restore:
-            case assetEvent.AssetEventType.download:
-            case assetEvent.AssetEventType.downloadSelected:
-            case assetEvent.AssetEventType.removeSelf:
-            case assetEvent.AssetEventType.temporarilyAddLabels:
-            case assetEvent.AssetEventType.temporarilyRemoveLabels:
-            case assetEvent.AssetEventType.addLabels:
-            case assetEvent.AssetEventType.removeLabels:
-            case assetEvent.AssetEventType.deleteLabel: {
+            case AssetEventType.newFolder:
+            case AssetEventType.uploadFiles:
+            case AssetEventType.newDataConnector:
+            case AssetEventType.copy:
+            case AssetEventType.cut:
+            case AssetEventType.cancelCut:
+            case AssetEventType.move:
+            case AssetEventType.delete:
+            case AssetEventType.restore:
+            case AssetEventType.download:
+            case AssetEventType.downloadSelected:
+            case AssetEventType.removeSelf:
+            case AssetEventType.temporarilyAddLabels:
+            case AssetEventType.temporarilyRemoveLabels:
+            case AssetEventType.addLabels:
+            case AssetEventType.removeLabels:
+            case AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
                 // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
                 // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEvent.AssetEventType.openProject: {
+            case AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     if (!event.runInBackground && !isRunningInBackground) {
                         setShouldOpenWhenReady(false)
@@ -273,14 +274,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.closeProject: {
+            case AssetEventType.closeProject: {
                 if (event.id === item.id) {
                     setShouldOpenWhenReady(false)
                     void closeProject(false)
                 }
                 break
             }
-            case assetEvent.AssetEventType.cancelOpeningAllProjects: {
+            case AssetEventType.cancelOpeningAllProjects: {
                 if (!isRunningInBackground) {
                     setShouldOpenWhenReady(false)
                     onSpinnerStateChange?.(null)
@@ -293,7 +294,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.newProject: {
+            case AssetEventType.newProject: {
                 if (event.placeholderId === key) {
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {

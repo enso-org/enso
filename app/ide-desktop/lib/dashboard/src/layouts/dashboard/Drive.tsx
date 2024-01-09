@@ -4,14 +4,16 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
-import * as assetEvent from '#/events/assetEvent'
-import * as assetListEvent from '#/events/assetListEvent'
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import type * as assetListEvent from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as hooks from '#/hooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
-import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
@@ -98,9 +100,7 @@ export default function Drive(props: DriveProps) {
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
-        () =>
-            localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
-            categorySwitcherUtils.Category.home
+        () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
@@ -151,7 +151,7 @@ export default function Drive(props: DriveProps) {
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
-                    type: assetListEvent.AssetListEventType.uploadFiles,
+                    type: AssetListEventType.uploadFiles,
                     parentKey: rootDirectoryId,
                     parentId: rootDirectoryId,
                     files,
@@ -173,7 +173,7 @@ export default function Drive(props: DriveProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.newProject,
+                type: AssetListEventType.newProject,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
                 templateId: templateId ?? null,
@@ -185,7 +185,7 @@ export default function Drive(props: DriveProps) {
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: assetListEvent.AssetListEventType.newFolder,
+            type: AssetListEventType.newFolder,
             parentKey: rootDirectoryId,
             parentId: rootDirectoryId,
         })
@@ -229,7 +229,7 @@ export default function Drive(props: DriveProps) {
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
-                    type: assetEvent.AssetEventType.deleteLabel,
+                    type: AssetEventType.deleteLabel,
                     labelName: value,
                 })
                 setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
@@ -252,7 +252,7 @@ export default function Drive(props: DriveProps) {
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
             dispatchAssetListEvent({
-                type: assetListEvent.AssetListEventType.newDataConnector,
+                type: AssetListEventType.newDataConnector,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
                 name,
@@ -267,7 +267,7 @@ export default function Drive(props: DriveProps) {
             if (
                 modalRef.current == null &&
                 page === pageSwitcher.Page.drive &&
-                category === categorySwitcherUtils.Category.home &&
+                category === Category.home &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -405,7 +405,7 @@ export default function Drive(props: DriveProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
-                            type: assetListEvent.AssetListEventType.uploadFiles,
+                            type: AssetListEventType.uploadFiles,
                             parentKey: rootDirectoryId,
                             parentId: rootDirectoryId,
                             files: Array.from(event.dataTransfer.files),

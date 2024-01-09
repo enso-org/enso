@@ -1,4 +1,5 @@
 /** @file Events related to changes in asset state. */
+import type AssetEventType from '#/events/AssetEventType'
 import type * as backendModule from '#/services/backend'
 
 import type * as spinner from '#/components/Spinner'
@@ -15,31 +16,6 @@ declare module '#/hooks/eventHooks' {
 // ==================
 // === AssetEvent ===
 // ==================
-
-/** Possible types of asset state change. */
-export enum AssetEventType {
-    newProject = 'new-project',
-    newFolder = 'new-folder',
-    uploadFiles = 'upload-files',
-    newDataConnector = 'new-data-connector',
-    openProject = 'open-project',
-    closeProject = 'close-project',
-    cancelOpeningAllProjects = 'cancel-opening-all-projects',
-    copy = 'copy',
-    cut = 'cut',
-    cancelCut = 'cancel-cut',
-    move = 'move',
-    delete = 'delete',
-    restore = 'restore',
-    download = 'download',
-    downloadSelected = 'download-selected',
-    removeSelf = 'remove-self',
-    temporarilyAddLabels = 'temporarily-add-labels',
-    temporarilyRemoveLabels = 'temporarily-remove-labels',
-    addLabels = 'add-labels',
-    removeLabels = 'remove-labels',
-    deleteLabel = 'delete-label',
-}
 
 /** Properties common to all asset state change events. */
 interface AssetBaseEvent<Type extends AssetEventType> {

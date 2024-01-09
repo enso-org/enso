@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import * as assetEvent from '#/events/assetEvent'
-import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
+import AssetEventType from '#/events/AssetEventType'
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -44,7 +44,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        category !== categorySwitcherUtils.Category.trash &&
+        category !== Category.trash &&
         (self?.permission === permissions.PermissionAction.own ||
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
@@ -81,7 +81,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
                                     dispatchAssetEvent({
-                                        type: assetEvent.AssetEventType.removeSelf,
+                                        type: AssetEventType.removeSelf,
                                         id: asset.id,
                                     })
                                 }}

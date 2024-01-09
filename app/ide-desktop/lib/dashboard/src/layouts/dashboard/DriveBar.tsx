@@ -7,8 +7,9 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as assetEvent from '#/events/assetEvent'
-import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -24,7 +25,7 @@ import Button from '#/components/Button'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    category: categorySwitcherUtils.Category
+    category: Category
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
     doCreateDataConnector: (name: string, value: string) => void
@@ -48,8 +49,7 @@ export default function DriveBar(props: DriveBarProps) {
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isHomeCategory =
-        category === categorySwitcherUtils.Category.home ||
-        backend.type === backendModule.BackendType.local
+        category === Category.home || backend.type === backendModule.BackendType.local
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -155,17 +155,17 @@ export default function DriveBar(props: DriveBarProps) {
                     />
                     <Button
                         active={
-                            category !== categorySwitcherUtils.Category.trash &&
+                            category !== Category.trash &&
                             backend.type === backendModule.BackendType.local
                         }
                         disabled={
-                            category === categorySwitcherUtils.Category.trash ||
+                            category === Category.trash ||
                             backend.type !== backendModule.BackendType.local
                         }
                         image={DataDownloadIcon}
                         alt="Download Files"
                         error={
-                            category === categorySwitcherUtils.Category.trash
+                            category === Category.trash
                                 ? 'You cannot download files from Trash.'
                                 : 'Not implemented yet.'
                         }
@@ -174,7 +174,7 @@ export default function DriveBar(props: DriveBarProps) {
                             event.stopPropagation()
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEvent.AssetEventType.downloadSelected,
+                                type: AssetEventType.downloadSelected,
                             })
                         }}
                     />

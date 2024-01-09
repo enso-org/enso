@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as assetEvent from '#/events/assetEvent'
-import * as assetListEvent from '#/events/assetListEvent'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as hooks from '#/hooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -18,7 +18,7 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as validation from '#/utilities/validation'
-import * as visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
@@ -102,43 +102,43 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEvent.AssetEventType.newFolder:
-            case assetEvent.AssetEventType.newDataConnector:
-            case assetEvent.AssetEventType.openProject:
-            case assetEvent.AssetEventType.closeProject:
-            case assetEvent.AssetEventType.cancelOpeningAllProjects:
-            case assetEvent.AssetEventType.copy:
-            case assetEvent.AssetEventType.cut:
-            case assetEvent.AssetEventType.cancelCut:
-            case assetEvent.AssetEventType.move:
-            case assetEvent.AssetEventType.delete:
-            case assetEvent.AssetEventType.restore:
-            case assetEvent.AssetEventType.download:
-            case assetEvent.AssetEventType.downloadSelected:
-            case assetEvent.AssetEventType.removeSelf:
-            case assetEvent.AssetEventType.temporarilyAddLabels:
-            case assetEvent.AssetEventType.temporarilyRemoveLabels:
-            case assetEvent.AssetEventType.addLabels:
-            case assetEvent.AssetEventType.removeLabels:
-            case assetEvent.AssetEventType.deleteLabel: {
+            case AssetEventType.newFolder:
+            case AssetEventType.newDataConnector:
+            case AssetEventType.openProject:
+            case AssetEventType.closeProject:
+            case AssetEventType.cancelOpeningAllProjects:
+            case AssetEventType.copy:
+            case AssetEventType.cut:
+            case AssetEventType.cancelCut:
+            case AssetEventType.move:
+            case AssetEventType.delete:
+            case AssetEventType.restore:
+            case AssetEventType.download:
+            case AssetEventType.downloadSelected:
+            case AssetEventType.removeSelf:
+            case AssetEventType.temporarilyAddLabels:
+            case AssetEventType.temporarilyRemoveLabels:
+            case AssetEventType.addLabels:
+            case AssetEventType.removeLabels:
+            case AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
                 // are handled by `AssetRow`.
                 break
             }
-            case assetEvent.AssetEventType.newProject: {
+            case AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
                 if (asset.id === event.placeholderId) {
-                    rowState.setVisibility(visibility.Visibility.faded)
+                    rowState.setVisibility(Visibility.faded)
                     try {
                         const createdProject = await backend.createProject({
                             parentDirectoryId: asset.parentId,
                             projectName: asset.title,
                             projectTemplateName: event.templateId,
                         })
-                        rowState.setVisibility(visibility.Visibility.visible)
+                        rowState.setVisibility(Visibility.visible)
                         setAsset(
                             object.merge(asset, {
                                 id: createdProject.projectId,
@@ -148,14 +148,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             })
                         )
                         dispatchAssetEvent({
-                            type: assetEvent.AssetEventType.openProject,
+                            type: AssetEventType.openProject,
                             id: createdProject.projectId,
                             shouldAutomaticallySwitchPage: true,
                             runInBackground: false,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: assetListEvent.AssetListEventType.delete,
+                            type: AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Error creating new project', error)
@@ -163,10 +163,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
                 break
             }
-            case assetEvent.AssetEventType.uploadFiles: {
+            case AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
-                    rowState.setVisibility(visibility.Visibility.faded)
+                    rowState.setVisibility(Visibility.faded)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
                             let id: string
@@ -192,7 +192,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 backendModule.ProjectId(id),
                                 null
                             )
-                            rowState.setVisibility(visibility.Visibility.visible)
+                            rowState.setVisibility(Visibility.visible)
                             setAsset(
                                 object.merge(asset, {
                                     title: listedProject.packageName,
@@ -215,7 +215,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             if (project == null) {
                                 throw new Error('The uploaded file was not a project.')
                             } else {
-                                rowState.setVisibility(visibility.Visibility.visible)
+                                rowState.setVisibility(Visibility.visible)
                                 setAsset(
                                     object.merge(asset, {
                                         title,
@@ -228,7 +228,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         }
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: assetListEvent.AssetListEventType.delete,
+                            type: AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Could not upload project', error)
@@ -255,14 +255,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
-                        type: assetEvent.AssetEventType.openProject,
+                        type: AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
                     dispatchAssetEvent({
-                        type: assetEvent.AssetEventType.openProject,
+                        type: AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: false,
                         runInBackground: true,

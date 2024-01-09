@@ -4,8 +4,8 @@ import * as React from 'react'
 import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import * as assetEvent from '#/events/assetEvent'
-import * as assetListEvent from '#/events/assetListEvent'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as hooks from '#/hooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -15,7 +15,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
-import * as visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -71,47 +71,47 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEvent.AssetEventType.newProject:
-            case assetEvent.AssetEventType.uploadFiles:
-            case assetEvent.AssetEventType.newDataConnector:
-            case assetEvent.AssetEventType.openProject:
-            case assetEvent.AssetEventType.closeProject:
-            case assetEvent.AssetEventType.cancelOpeningAllProjects:
-            case assetEvent.AssetEventType.copy:
-            case assetEvent.AssetEventType.cut:
-            case assetEvent.AssetEventType.cancelCut:
-            case assetEvent.AssetEventType.move:
-            case assetEvent.AssetEventType.delete:
-            case assetEvent.AssetEventType.restore:
-            case assetEvent.AssetEventType.download:
-            case assetEvent.AssetEventType.downloadSelected:
-            case assetEvent.AssetEventType.removeSelf:
-            case assetEvent.AssetEventType.temporarilyAddLabels:
-            case assetEvent.AssetEventType.temporarilyRemoveLabels:
-            case assetEvent.AssetEventType.addLabels:
-            case assetEvent.AssetEventType.removeLabels:
-            case assetEvent.AssetEventType.deleteLabel: {
+            case AssetEventType.newProject:
+            case AssetEventType.uploadFiles:
+            case AssetEventType.newDataConnector:
+            case AssetEventType.openProject:
+            case AssetEventType.closeProject:
+            case AssetEventType.cancelOpeningAllProjects:
+            case AssetEventType.copy:
+            case AssetEventType.cut:
+            case AssetEventType.cancelCut:
+            case AssetEventType.move:
+            case AssetEventType.delete:
+            case AssetEventType.restore:
+            case AssetEventType.download:
+            case AssetEventType.downloadSelected:
+            case AssetEventType.removeSelf:
+            case AssetEventType.temporarilyAddLabels:
+            case AssetEventType.temporarilyRemoveLabels:
+            case AssetEventType.addLabels:
+            case AssetEventType.removeLabels:
+            case AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to directories.
                 // `deleteMultiple`, `restoreMultiple`, `download`,
                 // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEvent.AssetEventType.newFolder: {
+            case AssetEventType.newFolder: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Cannot create folders on the local drive')
                     } else {
-                        rowState.setVisibility(visibility.Visibility.faded)
+                        rowState.setVisibility(Visibility.faded)
                         try {
                             const createdDirectory = await backend.createDirectory({
                                 parentId: asset.parentId,
                                 title: asset.title,
                             })
-                            rowState.setVisibility(visibility.Visibility.visible)
+                            rowState.setVisibility(Visibility.visible)
                             setAsset(object.merge(asset, createdDirectory))
                         } catch (error) {
                             dispatchAssetListEvent({
-                                type: assetListEvent.AssetListEventType.delete,
+                                type: AssetListEventType.delete,
                                 key: item.key,
                             })
                             toastAndLog('Could not create new folder', error)
