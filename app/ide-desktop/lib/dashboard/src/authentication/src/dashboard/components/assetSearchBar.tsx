@@ -182,7 +182,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     setAreSuggestionsVisible(false)
                 }
             }}
-            className="group search-bar absolute flex items-center text-primary rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2"
+            className="group search-bar relative md:absolute flex items-center text-primary rounded-full md:-translate-x-1/2 gap-2.5 md:left-1/2 h-8 w-98.25 min-w-31.5 px-2"
         >
             <img src={FindIcon} className="relative z-1 opacity-80" />
             <input
@@ -206,7 +206,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 <div className="relative padding h-8"></div>
                 {areSuggestionsVisible && (
                     <div className="relative flex flex-col gap-2">
-                        {/* Tags (`name:`, `modified:`) */}
+                        {/* Tags (`name:`, `modified:`, etc.) */}
                         <div className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto">
                             {assetQuery.AssetQuery.tagNames.flatMap(entry => {
                                 const [key, tag] = entry
