@@ -20,7 +20,7 @@ import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BaseFixedWidthVector;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.IntVector;
-import org.enso.interpreter.arrow.ArrowParser;
+import org.enso.interpreter.arrow.LogicalLayout;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -145,7 +145,7 @@ public class VerifyArrowTest {
 
   @Test
   public void castInt() {
-    var typeLength = ArrowParser.LogicalLayout.Int32;
+    var typeLength = LogicalLayout.Int32;
     var testValues = new Object[] {3, 1, 5, 3};
     try (BufferAllocator allocator = new RootAllocator();
         BaseFixedWidthVector intVector =
@@ -195,7 +195,7 @@ public class VerifyArrowTest {
       assertEquals(12, int32Array.getArrayElement(10).asInt());
     }
 
-    typeLength = ArrowParser.LogicalLayout.Int64;
+    typeLength = LogicalLayout.Int64;
     testValues = new Object[] {(long) 3, null, (long) 5, (long) 3};
     try (BufferAllocator allocator = new RootAllocator();
         BaseFixedWidthVector vector =
@@ -220,7 +220,7 @@ public class VerifyArrowTest {
   }
 
   private BaseFixedWidthVector allocateFixedLengthVector(
-      BufferAllocator allocator, Object[] testValues, ArrowParser.LogicalLayout unit) {
+      BufferAllocator allocator, Object[] testValues, LogicalLayout unit) {
     var valueCount = 0;
     switch (unit) {
       case Int32:

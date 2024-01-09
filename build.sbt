@@ -663,8 +663,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
-      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
+      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "io.circe"           %% "circe-yaml"       % circeYamlVersion,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
       "commons-io"          % "commons-io"       % commonsIoVersion
@@ -1494,7 +1494,8 @@ lazy val `runtime-language-arrow` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided"
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
       )
     )
 

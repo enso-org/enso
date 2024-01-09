@@ -1,7 +1,7 @@
 package org.enso.interpreter.arrow.node;
 
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.arrow.ArrowParser;
+import org.enso.interpreter.arrow.LogicalLayout;
 import org.enso.interpreter.arrow.runtime.ArrowCastToFixedSizeArrayFactory;
 
 public class ArrowCastFixedSizeNode extends Node {
@@ -10,7 +10,7 @@ public class ArrowCastFixedSizeNode extends Node {
     return new ArrowCastFixedSizeNode();
   }
 
-  public Object execute(ArrowParser.LogicalLayout layoutType) {
+  public Object execute(LogicalLayout layoutType) {
     return new ArrowCastToFixedSizeArrayFactory(layoutType);
   }
 }

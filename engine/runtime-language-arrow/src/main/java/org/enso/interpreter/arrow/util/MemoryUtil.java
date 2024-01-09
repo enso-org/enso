@@ -15,9 +15,9 @@ public class MemoryUtil {
       byteBufferConstr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
       byteBufferConstr.setAccessible(true);
     } catch (NoSuchMethodException e) {
-      System.err.println(
-          "Unable to find a constructor for ByteBuffer created directly from a memory address: "
-              + e.getMessage());
+      throw new ExceptionInInitializerError(
+          new IllegalStateException(
+              "Unable to find a constructor for ByteBuffer created directly from a memory addres"));
     } finally {
       if (buffer != null) {
         buffer.clear();
@@ -36,11 +36,7 @@ public class MemoryUtil {
     if (byteBufferConstr != null) {
       try {
         return (ByteBuffer) byteBufferConstr.newInstance(address, capacity);
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
     }

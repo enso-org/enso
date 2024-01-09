@@ -3,7 +3,6 @@ package org.enso.interpreter.arrow;
 import com.oracle.truffle.api.source.Source;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.enso.interpreter.arrow.runtime.SizeInBytes;
 
 public final class ArrowParser {
 
@@ -62,31 +61,6 @@ public final class ArrowParser {
 
   private static final Pattern ARRAY_PATTERN = Pattern.compile("new\\[(.+)\\]");
   private static final Pattern CAST_PATTERN = Pattern.compile("cast\\[(.+)\\]");
-
-  public enum PhysicalLayout {
-    Primitive,
-    VariableSizeBinary
-  }
-
-  public enum LogicalLayout implements SizeInBytes {
-    Date32(32),
-    Date64(64),
-    Int8(8),
-    Int16(16),
-    Int32(32),
-    Int64(64);
-
-    private final int bits;
-
-    LogicalLayout(int bits) {
-      this.bits = bits;
-    }
-
-    @Override
-    public int sizeInBytes() {
-      return bits / 8;
-    }
-  }
 
   public enum Mode {
     Allocate,

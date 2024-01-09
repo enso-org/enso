@@ -13,15 +13,15 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import org.enso.interpreter.arrow.ArrowParser;
+import org.enso.interpreter.arrow.LogicalLayout;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
 @ExportLibrary(InteropLibrary.class)
 public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
 
-  private final ArrowParser.LogicalLayout logicalLayout;
+  private final LogicalLayout logicalLayout;
 
-  public ArrowCastToFixedSizeArrayFactory(ArrowParser.LogicalLayout logicalLayout) {
+  public ArrowCastToFixedSizeArrayFactory(LogicalLayout logicalLayout) {
     this.logicalLayout = logicalLayout;
   }
 
@@ -30,12 +30,12 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
     return true;
   }
 
-  public ArrowParser.LogicalLayout getLayout() {
+  public LogicalLayout getLayout() {
     return logicalLayout;
   }
 
   @ExportMessage
-  @ImportStatic(ArrowParser.LogicalLayout.class)
+  @ImportStatic(LogicalLayout.class)
   static class Instantiate {
     @Specialization(guards = "receiver.getLayout() == Date32")
     static Object doDate32(
@@ -137,7 +137,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static String unknownLayoutMessage(ArrowParser.LogicalLayout layout) {
+    private static String unknownLayoutMessage(LogicalLayout layout) {
       return "unknown layout: " + layout.toString();
     }
   }
