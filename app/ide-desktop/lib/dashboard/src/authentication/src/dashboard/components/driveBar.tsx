@@ -47,9 +47,8 @@ export default function DriveBar(props: DriveBarProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-    const isHomeCategory =
-        category === categorySwitcher.Category.home ||
-        backend.type === backendModule.BackendType.local
+    const isCloud = backend.type === backendModule.BackendType.remote
+    const isHomeCategory = category === categorySwitcher.Category.home || !isCloud
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -151,14 +150,8 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={
-                            category !== categorySwitcher.Category.trash &&
-                            backend.type === backendModule.BackendType.local
-                        }
-                        disabled={
-                            category === categorySwitcher.Category.trash ||
-                            backend.type !== backendModule.BackendType.local
-                        }
+                        active={category !== categorySwitcher.Category.trash && !isCloud}
+                        disabled={category === categorySwitcher.Category.trash || isCloud}
                         image={DataDownloadIcon}
                         error={
                             category === categorySwitcher.Category.trash

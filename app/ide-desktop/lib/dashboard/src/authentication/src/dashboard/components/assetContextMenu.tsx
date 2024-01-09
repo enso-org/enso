@@ -336,6 +336,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
+                    disabled={isCloud}
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
                         dispatchAssetEvent({
