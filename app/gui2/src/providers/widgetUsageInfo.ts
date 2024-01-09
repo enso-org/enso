@@ -1,4 +1,5 @@
 import { createContextStore } from '@/providers'
+import type { PortId } from '@/providers/portInfo'
 import type { WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
 import { identity } from '@vueuse/core'
 
@@ -15,27 +16,18 @@ interface WidgetUsageInfo {
    * An object which is used to distinguish between distinct nodes in a widget tree. When selecting
    * a widget type for an input value with the same `usageKey` as in parent widget, the widget types
    * that were previously used for this input value are not considered for selection. The key is
-   * determined by the widget input's method defined on {@link GetUsageKey} symbol key. When no such
-   * method is defined, the input value itself is used as the key.
+   * determined by {@link usageKeyForInput} method - currently it's just the widget's port Id.
    */
   usageKey: unknown
   /** All widget types that were rendered so far using the same AST node. */
   previouslyUsed: Set<WidgetComponent<any>>
+  updateHandler: (value: unknown, origin: PortId) => void
   nesting: number
 }
 
 /**
- * A symbol key used for defining a widget input method's usage key. A method with this key can be
- * declared for widget input types that are not unique by themselves, but are just a thin wrapper
- * around another input value, and don't want to be considered as a completely separate entity for
- * the purposes of widget type selection.
+ * Get usage key for given input. See {@link WidgetUsageInfo} for details.
  */
-export const GetUsageKey = Symbol('GetUsageKey')
-
 export function usageKeyForInput(widget: WidgetInput): unknown {
-  if (GetUsageKey in widget && typeof widget[GetUsageKey] === 'function') {
-    return widget[GetUsageKey]()
-  } else {
-    return widget
-  }
+  return widget.portId
 }

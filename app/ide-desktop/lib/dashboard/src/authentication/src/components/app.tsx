@@ -143,6 +143,7 @@ export default function App(props: AppProps) {
                 draggable={false}
                 toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
                 transition={toastify.Zoom}
+                limit={3}
             />
             <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />

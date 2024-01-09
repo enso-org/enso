@@ -1018,7 +1018,7 @@ type Column
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing : Column
     is_nothing self =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is null"]
+        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Math

@@ -16,9 +16,9 @@ import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
@@ -89,9 +89,9 @@ export class BindingsDb {
   private static rangeMappings(
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
-    const bindingIdToRange = new Map<ExprId, ContentRange>()
+  ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<ExprId, SourceRange>] {
+    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(IdMap.keyForRange)
+    const bindingIdToRange = new Map<ExprId, SourceRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
       bindingRanges.add(binding)
@@ -153,8 +153,8 @@ export class GraphDb {
     if (entry.pattern == null) return []
     const ports = new Set<ExprId>()
     entry.pattern.visitRecursive((ast) => {
-      if (this.bindings.bindings.has(ast.astId)) {
-        ports.add(ast.astId)
+      if (this.bindings.bindings.has(ast.exprId)) {
+        ports.add(ast.exprId)
         return false
       }
       return true
@@ -253,7 +253,7 @@ export class GraphDb {
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
-      const nodeId = newNode.rootSpan.astId
+      const nodeId = newNode.rootSpan.exprId
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = getMeta(nodeId)
       currentNodeIds.add(nodeId)
@@ -321,7 +321,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bindingId = pattern.astId
+    const bindingId = pattern.exprId
     this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node

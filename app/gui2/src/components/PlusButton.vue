@@ -1,5 +1,5 @@
 <template>
-  <div class="circle-plus">
+  <div class="PlusButton">
     <div class="vertical"></div>
     <div class="horizontal"></div>
   </div>
@@ -8,7 +8,7 @@
 <script setup lang="ts"></script>
 
 <style scoped>
-.circle-plus {
+.PlusButton {
   position: absolute;
   bottom: 10px;
   left: 10px;
@@ -18,11 +18,11 @@
   background-color: white;
 }
 
-.circle-plus:hover {
+.PlusButton:hover {
   background: rgb(230, 230, 255);
 }
 
-.circle-plus:active {
+.PlusButton:active {
   background: rgb(158, 158, 255);
 }
 

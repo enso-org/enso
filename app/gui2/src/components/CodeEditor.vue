@@ -38,8 +38,8 @@ const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
 const executionContextDiagnostics = computed(() =>
-  projectStore.module
-    ? lsDiagnosticsToCMDiagnostics(projectStore.module.doc.getCode(), projectStore.diagnostics)
+  projectStore.module && graphStore.moduleCode
+    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleCode, projectStore.diagnostics)
     : [],
 )
 
@@ -54,8 +54,8 @@ const expressionUpdatesDiagnostics = computed(() => {
     if (!update) continue
     const node = nodeMap.get(id)
     if (!node) continue
-    if (!node.rootSpan.astExtended) continue
-    const [from, to] = node.rootSpan.astExtended.span()
+    if (!node.rootSpan.span) continue
+    const [from, to] = node.rootSpan.span
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
@@ -85,9 +85,10 @@ watchEffect(() => {
   const awareness = projectStore.awareness.internal
   extensions: [yCollab(yText, awareness, { undoManager }), ...]
    */
+  if (!graphStore.moduleCode) return
   editorView.setState(
     EditorState.create({
-      doc: module.doc.getCode(),
+      doc: graphStore.moduleCode,
       extensions: [
         minimalSetup,
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
@@ -101,10 +102,7 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (
-              node.rootSpan.astExtended &&
-              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
-            ) {
+            if (node.rootSpan.span && rangeEncloses(node.rootSpan.span, astSpan)) {
               foundNode = id
               break
             }

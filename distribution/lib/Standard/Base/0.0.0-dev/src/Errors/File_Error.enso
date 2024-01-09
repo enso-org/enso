@@ -5,7 +5,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
-import project.System.File_Format.File_For_Read
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.File_Format.File_Format
 
 polyglot java import java.io.FileNotFoundException
@@ -37,7 +37,7 @@ type File_Error
     IO_Error (file : File | Nothing) (message : Text)
 
     ## Indicates that the given file's type is not supported.
-    Unsupported_Type (file : File_For_Read)
+    Unsupported_Type (file : File_Format_Metadata)
 
     ## Indicates that the given type cannot be serialized to the provided file
        format.

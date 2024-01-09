@@ -21,7 +21,6 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
-import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
@@ -36,7 +35,6 @@ polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.enso_cloud.EnsoKeyValuePair
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
@@ -118,22 +116,9 @@ type HTTP
                     boundary = body_publisher_and_boundary.second
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
                     all_headers = headers + boundary_header_list
-                    mapped_headers = all_headers.map on_problems=No_Wrap.Value h-> case h.value of
-                        _ : Enso_Secret -> EnsoKeyValuePair.ofSecret h.name h.value.id
-                        _ -> EnsoKeyValuePair.ofText h.name h.value
+                    mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
 
-                    # Get uri and resolve query arguments
-                    uri_args = case req.uri of
-                        _ : Text -> [req.uri.to_uri, []]
-                        _ : URI -> [req.uri, []]
-                        _ : URI_With_Query ->
-                            mapped_arguments = req.uri.parameters.map arg-> case arg.second of
-                                _ : Enso_Secret -> EnsoKeyValuePair.ofSecret arg.first arg.second.id
-                                _ : Text -> EnsoKeyValuePair.ofText arg.first arg.second
-                                _ -> Error.throw (Illegal_Argument.Error "Invalid query argument type - all values must be Vector or Pair.")
-                            [req.uri.uri, mapped_arguments]
-
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder uri_args.first.internal_uri uri_args.second mapped_headers)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _-> ""
                         message = if body.is_empty then Nothing else body
@@ -141,16 +126,16 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             HTTP.new.request request
 
     ## PRIVATE
        Static helper for post-like methods
-    post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
+    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request

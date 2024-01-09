@@ -1,11 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
-
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -23,7 +21,6 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
-
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
 @Warmup(iterations = 3)
@@ -37,21 +34,20 @@ public class StringBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(IOAccess.ALL)
-      .allowAllAccess(true)
-      .option(
-              RuntimeOptions.LOG_LEVEL,
-              Level.WARNING.getName()
-      )
-      .logHandler(System.err)
-      .option(
-        "enso.languageHomeOverride",
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
+    var ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .option(
+                "enso.languageHomeOverride",
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
 
-    var code ="""
+    var code =
+        """
         from Standard.Base import all
 
         all_length v = v.fold 0 (sum -> str -> sum + str.length)
@@ -66,7 +62,7 @@ public class StringBenchmarks {
     var module = ctx.eval(src);
 
     this.self = module.invokeMember("get_associated_type");
-    Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
+    Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     var repeat = 2000;
     var length = 1000;
@@ -88,4 +84,3 @@ public class StringBenchmarks {
     matter.consume(result);
   }
 }
-

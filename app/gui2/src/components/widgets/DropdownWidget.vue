@@ -72,7 +72,7 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 .Dropdown {
   position: absolute;
   top: 100%;
-  margin-top: 4px;
+  margin-top: 8px;
   height: 136px;
 }
 

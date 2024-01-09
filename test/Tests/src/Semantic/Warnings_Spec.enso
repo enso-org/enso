@@ -221,7 +221,7 @@ spec = Test.group "Dataflow Warnings" <|
         errored_3 = Panic.recover Any throw_a_bar
         mapped_3 = map_odd_warnings_and_errors errored_3
         mapped_3.catch . should_equal "bar"
-        mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
+        mapped_3.stack_trace.first.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
 
     Test.specify "should allow to detach warnings, selectively" <|

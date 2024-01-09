@@ -168,7 +168,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textopenfile) */
   openTextFile(path: Path): Promise<response.OpenTextFile> {
-    return this.request('text/openFile', { path })
+    return this.request<response.OpenTextFile>('text/openFile', { path })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textclosefile) */
