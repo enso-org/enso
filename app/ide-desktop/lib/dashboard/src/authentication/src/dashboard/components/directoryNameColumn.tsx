@@ -13,6 +13,7 @@ import type * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as object from '../../object'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as visibility from '../visibility'
@@ -40,7 +41,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             numberOfSelectedItems,
             assetEvents,
             dispatchAssetListEvent,
-            topLevelAssets,
             nodeMap,
             doToggleDirectoryExpansion,
         },
@@ -50,26 +50,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
-    const [isHovered, setIsHovered] = React.useState(false)
-    const [shouldAnimate, setShouldAnimate] = React.useState(false)
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`DirectoryNameColumn` can only display directory assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
-
-    React.useEffect(() => {
-        if (isHovered) {
-            // Delay adding animation CSS attributes, to prevent animations for
-            // the initial hover.
-            requestAnimationFrame(() => {
-                setShouldAnimate(true)
-            })
-        } else {
-            setShouldAnimate(false)
-        }
-    }, [isHovered])
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -91,6 +77,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
+            case assetEventModule.AssetEventType.copy:
             case assetEventModule.AssetEventType.cut:
             case assetEventModule.AssetEventType.cancelCut:
             case assetEventModule.AssetEventType.move:
@@ -121,10 +108,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 title: asset.title,
                             })
                             rowState.setVisibility(visibility.Visibility.visible)
-                            setAsset({
-                                ...asset,
-                                ...createdDirectory,
-                            })
+                            setAsset(object.merge(asset, createdDirectory))
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
@@ -141,15 +125,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+            className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
-            onMouseEnter={() => {
-                setIsHovered(true)
-            }}
-            onMouseLeave={() => {
-                setIsHovered(false)
-            }}
             onKeyDown={event => {
                 if (rowState.isEditingName && event.key === 'Enter') {
                     event.stopPropagation()
@@ -161,10 +139,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
+                    setRowState(object.merger({ isEditingName: true }))
                 } else if (eventModule.isDoubleClick(event)) {
                     if (!rowState.isEditingName) {
                         // This must be processed on the next tick, otherwise it will be overridden
@@ -177,27 +152,21 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            {isHovered ? (
-                <SvgMask
-                    src={TriangleDownIcon}
-                    className={`cursor-pointer h-4 w-4 m-1 ${
-                        shouldAnimate ? 'transition-transform duration-300' : ''
-                    } ${item.children != null ? '' : '-rotate-90'}`}
-                    onClick={event => {
-                        event.stopPropagation()
-                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-                    }}
-                />
-            ) : (
-                <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
-            )}
+            <SvgMask
+                src={TriangleDownIcon}
+                className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
+                    item.children != null ? '' : '-rotate-90'
+                }`}
+                onClick={event => {
+                    event.stopPropagation()
+                    doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                }}
+            />
+            <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
             <EditableSpan
                 editable={rowState.isEditingName}
                 checkSubmittable={newTitle =>
-                    (item.directoryKey != null
-                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
-                        : topLevelAssets.current
-                    ).every(
+                    (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
                         child =>
                             // All siblings,
                             child.key === item.key ||
@@ -208,25 +177,19 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     )
                 }
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
+                        setAsset(object.merger({ title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(object.merger({ title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                 }}
                 className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'

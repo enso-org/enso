@@ -3,10 +3,12 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetListEvent from '../events/assetListEvent'
 import type * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as object from '../../object'
 import * as permissions from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
@@ -42,11 +44,9 @@ export interface AssetContextMenuProps {
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
     doDelete: () => void
+    doCopy: () => void
     doCut: () => void
-    doPaste: (
-        newParentKey: backendModule.AssetId | null,
-        newParentId: backendModule.DirectoryId | null
-    ) => void
+    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
@@ -56,11 +56,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { category, hasCopyData, dispatchAssetEvent, dispatchAssetListEvent },
+            state: { category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
         eventTarget,
+        doCopy,
         doCut,
         doPaste,
         doDelete,
@@ -96,12 +97,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
+                setItem(oldItem =>
+                    oldItem.with({
+                        item: valueOrUpdater(oldItem.item),
+                    })
+                )
             } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+                setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
             }
         },
         [/* should never change */ setItem]
@@ -229,10 +231,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }
                         action={shortcuts.KeyboardAction.rename}
                         doAction={() => {
-                            setRowState(oldRowState => ({
-                                ...oldRowState,
-                                isEditingName: true,
-                            }))
+                            setRowState(object.merger({ isEditingName: true }))
                             unsetModal()
                         }}
                     />
@@ -308,31 +307,30 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled
+                    disabled={!isCloud}
                     action={shortcuts.KeyboardAction.duplicate}
                     doAction={() => {
-                        // TODO: Add server endpoint for local backend.
-                        // No backend support yet.
+                        unsetModal()
+                        dispatchAssetListEvent({
+                            type: assetListEvent.AssetListEventType.copy,
+                            newParentId: item.directoryId,
+                            newParentKey: item.directoryKey,
+                            items: [asset],
+                        })
                     }}
                 />
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.copy}
-                        doAction={() => {
-                            // No backend support yet.
-                        }}
+                        doAction={doCopy}
                     />
                 )}
                 {isCloud && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.cut}
-                        doAction={() => {
-                            unsetModal()
-                            doCut()
-                        }}
+                        doAction={doCut}
                     />
                 )}
                 <MenuEntry
@@ -345,13 +343,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         })
                     }}
                 />
-                {asset.type === backendModule.AssetType.directory && hasCopyData && (
+                {hasPasteData && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.paste}
                         doAction={() => {
-                            unsetModal()
-                            doPaste(item.key, asset.id)
+                            const [directoryKey, directoryId] =
+                                item.item.type === backendModule.AssetType.directory
+                                    ? [item.key, item.item.id]
+                                    : [item.directoryKey, item.directoryId]
+                            doPaste(directoryKey, directoryId)
                         }}
                     />
                 )}
@@ -359,7 +360,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             {category === categorySwitcher.Category.home && (
                 <GlobalContextMenu
                     hidden={hidden}
-                    hasCopyData={hasCopyData}
+                    hasCopyData={hasPasteData}
                     directoryKey={
                         // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                         // eslint-disable-next-line no-restricted-syntax
