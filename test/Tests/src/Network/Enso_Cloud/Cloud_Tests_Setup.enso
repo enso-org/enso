@@ -25,6 +25,17 @@ type Cloud_Tests_Setup
         Cloud_Tests_Setup.Cloud _ _ -> "Mock cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is NOT defined, as they would interfere with other cloud tests."
         _ -> "Cloud tests run only if ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
 
+    httpbin_pending self =
+        if Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL" . is_nothing . not then Nothing else
+            "This test requires the ENSO_HTTP_TEST_HTTPBIN_URL environment variable to be defined."
+
+    httpbin_uri self -> URI =
+        base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+        if base_url.is_nothing then
+            Panic.throw (Illegal_State.Error "ENSO_HTTP_TEST_HTTPBIN_URL environment variable is not defined.")
+        with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        URI.from with_slash
+
     is_mock self -> Boolean = case self of
         Cloud_Tests_Setup.Mock _ _ -> True
         _ -> False
