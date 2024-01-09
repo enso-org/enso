@@ -1079,7 +1079,7 @@ object BindingsMap {
         Some(this)
 
       /** @inheritdoc */
-      override def toAbstract: Abstract =
+      override lazy val toAbstract: Abstract =
         ModuleReference.Abstract(module.getName)
 
       /** @inheritdoc */

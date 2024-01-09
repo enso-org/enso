@@ -19,6 +19,12 @@ make_delimiter_selector : Widget
 make_delimiter_selector =
     make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], '_', ['Custom', "'?'"]]
 
+ ## PRIVATE
+      Creates a Single_Choice Widget for file read delimiters.
+make_file_read_delimiter_selector : Widget
+make_file_read_delimiter_selector =
+        make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{none}', "''"], '_', ['Custom', "'?'"]]
+
 ## PRIVATE
    Creates a Single_Choice Widget for parsing dates.
 make_date_format_selector : Date -> Widget

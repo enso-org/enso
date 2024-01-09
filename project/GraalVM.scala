@@ -87,9 +87,19 @@ object GraalVM {
     "org.graalvm.tools" % "insight-tool" % version
   )
 
+  val espressoPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+    Seq(
+      "org.graalvm.espresso" % "espresso-language"                      % version,
+      "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
+      "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
+    )
+  } else {
+    Seq()
+  }
+
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs ++ insightPkgs
 
-  val langsPkgs = jsPkgs ++ pythonPkgs
+  val langsPkgs = jsPkgs ++ pythonPkgs ++ espressoPkgs
 
   /** Augments a state transition to do GraalVM version check.
     *

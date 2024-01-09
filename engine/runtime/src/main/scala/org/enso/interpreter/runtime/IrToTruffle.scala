@@ -713,24 +713,24 @@ class IrToTruffle(
   // ==========================================================================
 
   private def extractAscribedType(
-    name: Name,
+    comment: String,
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
       ReadArgumentCheckNode.oneOf(
-        name,
-        u.operands.map(extractAscribedType(name, _)).asJava
+        comment,
+        u.operands.map(extractAscribedType(comment, _)).asJava
       )
     case i: `type`.Set.Intersection =>
       ReadArgumentCheckNode.allOf(
-        name,
-        extractAscribedType(name, i.left),
-        extractAscribedType(name, i.right)
+        comment,
+        extractAscribedType(comment, i.left),
+        extractAscribedType(comment, i.right)
       )
-    case p: Application.Prefix => extractAscribedType(name, p.function)
+    case p: Application.Prefix => extractAscribedType(comment, p.function)
     case _: Tpe.Function =>
       ReadArgumentCheckNode.build(
-        name,
+        comment,
         context.getTopScope().getBuiltins().function()
       )
     case t => {
@@ -740,7 +740,7 @@ class IrToTruffle(
                 .Resolution(BindingsMap.ResolvedType(mod, tpe))
             ) =>
           ReadArgumentCheckNode.build(
-            name,
+            comment,
             asScope(
               mod
                 .unsafeAsModule()
@@ -753,7 +753,7 @@ class IrToTruffle(
                 .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
             ) =>
           ReadArgumentCheckNode.meta(
-            name,
+            comment,
             asScope(
               mod
                 .unsafeAsModule()
@@ -768,7 +768,8 @@ class IrToTruffle(
   private def checkAsTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
-    arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
+    val comment = "`" + arg.name.name + "`"
+    arg.ascribedType.map(extractAscribedType(comment, _)).getOrElse(null)
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -1074,9 +1075,11 @@ class IrToTruffle(
       ir match {
         case _: Expression.Binding =>
         case _ =>
-          val types = ir.getMetadata(TypeSignatures)
+          val types: Option[TypeSignatures.Signature] =
+            ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
-            val checkNode = extractAscribedType(null, tpe.signature);
+            val checkNode =
+              extractAscribedType(tpe.comment.orNull, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
                 ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)

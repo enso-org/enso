@@ -1,15 +1,16 @@
-import AppRoot from '@/App.vue'
+import App from '@/App.vue'
 import '@/assets/main.css'
-import type { StringConfig } from '@/main'
+import type { ApplicationConfig } from '@/util/config'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
 export function mountProjectApp(rootProps: {
-  config: StringConfig | null
+  config: ApplicationConfig
   accessToken: string | null
   metadata?: object | undefined
+  unrecognizedOptions: string[]
 }) {
-  const app = createApp(AppRoot, rootProps)
+  const app = createApp(App, rootProps)
   app.use(createPinia())
   app.mount('#app')
   return app

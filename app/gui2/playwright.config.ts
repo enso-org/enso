@@ -82,7 +82,10 @@ export default defineConfig({
   // },
   // ],
   webServer: {
-    command: 'E2E=true vite build && vite preview',
+    env: {
+      E2E: 'true',
+    },
+    command: 'vite build && vite preview',
     port: 4173,
     // We use our special, mocked version of server, thus do not want to re-use user's one.
     reuseExistingServer: false,

@@ -142,17 +142,25 @@ export const MODIFIERS =
  * keys. */
 const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
 
-/** Whether the modifiers match the event's modifier key states. */
-export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+/** Whether `event` may trigger a shortcut. */
+export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent) {
+    return event.ctrlKey || event.metaKey || event.altKey
+}
+
+/** Whether `event.key` is a key used in text editing. */
+export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
     // Allow `alt` key to be pressed in case it is being used to enter special characters.
     return (
-        !event.ctrlKey &&
-        !event.shiftKey &&
-        !event.metaKey &&
-        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
-            event.key === 'Backspace' ||
-            event.key === 'Delete')
+        !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
+        event.key === 'Backspace' ||
+        event.key === 'Delete'
     )
+}
+
+/** Whether `event` will produce text. This excludes shortcuts, as they do not produce text. */
+export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+    // Allow `alt` key to be pressed in case it is being used to enter special characters.
+    return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
 
 // =============================

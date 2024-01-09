@@ -184,3 +184,12 @@ export function makeLocal(
   assert(isQualifiedName(returnType))
   return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
 }
+
+export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
+  return {
+    name,
+    reprType: type,
+    isSuspended: false,
+    hasDefault: false,
+  }
+}

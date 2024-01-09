@@ -32,7 +32,7 @@ import java.util.function.Function;
  *
  * @param <T>
  */
-public abstract class Persistance<T> {
+public abstract class Persistance<T> implements Cloneable {
   final Class<T> clazz;
   final boolean includingSubclasses;
   final int id;
@@ -63,6 +63,14 @@ public abstract class Persistance<T> {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
+  }
+
+  final Persistance<?> newClone() {
+    try {
+      return (Persistance<?>) clone();
+    } catch (CloneNotSupportedException ex) {
+      throw raise(RuntimeException.class, ex);
+    }
   }
 
   protected abstract void writeObject(T obj, Output out) throws IOException;

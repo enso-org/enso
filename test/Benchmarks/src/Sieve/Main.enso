@@ -4,6 +4,7 @@ from Standard.Test import Bench
 
 import project.Sieve.Sieve_Original
 import project.Sieve.Sieve_Ascribed
+import project.Sieve.Sieve_Ascribed_With_Return_Checks
 import project.Sieve.Sieve_Without_Types
 import project.Sieve.Sieve_Java_Script
 
@@ -23,6 +24,8 @@ collect_benches = Bench.build builder->
             assert_prime <| Sieve_Original.compute_nth_prime 100000
         group_builder.specify "Ascribed" <|
             assert_prime <| Sieve_Ascribed.compute_nth_prime 100000
+        group_builder.specify "Ascribed_With_Return_Checks" <|
+            assert_prime <| Sieve_Ascribed_With_Return_Checks.compute_nth_prime 100000
         group_builder.specify "Without_Types" <|
             assert_prime <| Sieve_Without_Types.compute_nth_prime 100000
         group_builder.specify "Java_Script_File" <|

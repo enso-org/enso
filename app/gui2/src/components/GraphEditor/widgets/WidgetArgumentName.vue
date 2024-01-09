@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Ast } from '@/util/ast'
+import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
+import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -10,8 +12,10 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    props.input instanceof ArgumentAst &&
-    (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
+    !WidgetInput.isAst(props.input) ||
+    portInfo == null ||
+    !portInfo.connected ||
+    (portInfo.portId as string) !== (props.input.value.exprId as string)
   )
 })
 
@@ -20,34 +24,48 @@ const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
+function hasKnownArgumentName(input: WidgetInput): input is WidgetInput & {
+  value: Ast.Ast | string | undefined
+  [ArgumentInfoKey]: { info: SuggestionEntryArgument }
+} {
+  return !WidgetInput.isToken(input) && input[ArgumentInfoKey]?.info != null
+}
+
+export const widgetDefinition = defineWidget(hasKnownArgumentName, {
   priority: 1000,
-  score: (props) =>
-    props.input.info != null &&
-    (props.input instanceof ArgumentPlaceholder ||
-      (props.nesting < 2 && props.input.kind === ApplicationKind.Prefix))
-      ? Score.Perfect
-      : Score.Mismatch,
+  score: (props) => {
+    const isPlaceholder = !(props.input.value instanceof Ast.Ast)
+    const isTopArg =
+      props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
+    return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
+  },
 })
 </script>
 
 <template>
-  <span class="WidgetArgumentName" :class="{ placeholder, primary }">
+  <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="value">{{ props.input.info!.name }}</span
-      ><NodeWidget :input="props.input" />
+      <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
+      ><NodeWidget :input="props.input" allowEmpty />
     </template>
-    <template v-else>{{ props.input.info!.name }}</template>
-  </span>
+    <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
+  </div>
 </template>
 
 <style scoped>
-.placeholder,
-.value {
-  color: rgb(255 255 255 / 0.5);
+.WidgetArgumentName {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
-.value {
+.placeholder,
+.name {
+  color: rgb(255 255 255 / 0.5);
   margin-right: 8px;
+
+  &:last-child {
+    margin-right: 0px;
+  }
 }
 </style>

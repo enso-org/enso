@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Network.HTTP.Header.Header
@@ -15,6 +16,8 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
+import project.System.File_Format.Infer
+import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
 from project.Network.HTTP.Response_Body import decode_format_selector
 
@@ -75,9 +78,7 @@ type Response
 
     ## Get the response content type.
     content_type : Text | Nothing
-    content_type self =
-        content_type_optional = self.internal_http_response.headers.firstValue "Content-Type"
-        if content_type_optional.isPresent then content_type_optional.get else Nothing
+    content_type self = self.get_header "Content-Type"
 
     ## GROUP Metadata
        Get the response content length in bytes.
@@ -85,10 +86,8 @@ type Response
        If the header is not present will return Nothing.
     content_length : Integer | Nothing
     content_length self =
-        content_length_optional = self.internal_http_response.headers.firstValue "Content-Length"
-        if content_length_optional.isPresent.not then Nothing else
-            length_text = content_length_optional.get
-            Integer.parse length_text
+        length_text = self.get_header "Content-Length"
+        length_text.if_not_nothing <| Integer.parse length_text
 
     ## Get the response body.
 
@@ -100,7 +99,9 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = self.body_object.if_nothing (Response_Body.new self.internal_http_response.body self.content_type self.uri)
+    body self = self.body_object.if_nothing <|
+        metadata = resolve_file_metadata_for_response self
+        Response_Body.new self.internal_http_response.body metadata self.uri
 
     ## Get the response status code.
 
@@ -127,14 +128,24 @@ type Response
     ## ALIAS parse as text
        GROUP Conversions
        Decodes the body to a Text value.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding -> Text
-    decode_as_text self encoding=Encoding.utf_8 =
+    decode_as_text : Encoding|Infer -> Text
+    decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
        Decodes the body as JSON.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
 
        > Example
          Convert a response from JSON.
@@ -143,8 +154,8 @@ type Response
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    decode_as_json self encoding=Encoding.utf_8 =
+    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 
     ## PRIVATE
@@ -162,3 +173,28 @@ type Response
         type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
+
+    ## PRIVATE
+    get_header : Text -> Any -> Text | Any
+    get_header self name:Text ~if_missing=Nothing =
+        java_optional = self.internal_http_response.headers.firstValue name
+        if java_optional.isPresent then java_optional.get else if_missing
+
+## PRIVATE
+resolve_file_metadata_for_response : Response -> File_Format_Metadata
+resolve_file_metadata_for_response response =
+    uri_as_text = response.uri.to_text
+    guessed_filename = filename_from_content_disposition (response.get_header "Content-Disposition") . if_nothing <|
+        last_path_segment = uri_as_text.take (Text_Sub_Range.After_Last "/")
+        ## Heuristic: If the last path segment contains a dot, it is likely a filename,
+           otherwise it is too unlikely + lack of extension will not help our guessing anyway,
+           so we can discard it.
+        if last_path_segment.contains "." then last_path_segment else Nothing
+    File_Format_Metadata.Value path=uri_as_text name=guessed_filename content_type=response.content_type
+
+## PRIVATE
+filename_from_content_disposition : Text | Nothing -> Text | Nothing
+filename_from_content_disposition content_disposition =
+    content_disposition.if_not_nothing <|
+        match = 'filename="(.*)"'.to_regex.match content_disposition
+        match.if_not_nothing <| match.get 1

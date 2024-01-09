@@ -44,7 +44,7 @@ type Test
                         Nothing ->
                             # This is the root group - print report and save it to the test suite:
                             Test_Reporter.print_report r config suite.builder
-                            new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
+                            new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder suite.skipped_groups
                             State.put Test_Suite new_suite
                         Spec.Value parent_name parent_behaviors ->
                             # We add our nested group name to each behavior
@@ -55,6 +55,8 @@ type Test
                             State.put Spec new_spec
                 reason ->
                     Test_Reporter.report_pending_group name reason config suite.builder
+                    new_suite = Test_Suite.Value suite.config suite.specs suite.builder suite.skipped_groups+1
+                    State.put Test_Suite new_suite
 
     ## Specifies a single behavior, described by `self`.
 

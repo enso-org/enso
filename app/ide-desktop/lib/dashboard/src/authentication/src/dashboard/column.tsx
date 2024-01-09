@@ -12,6 +12,7 @@ import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from './events/assetEvent'
+import * as assetQuery from '../assetQuery'
 import type * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backendModule from './backend'
@@ -301,14 +302,11 @@ function LabelsColumn(props: AssetColumnProps) {
                 .map(label => (
                     <Label
                         key={label}
+                        title="Right click to remove label."
                         color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
                         active={!temporarilyRemovedLabels.has(label)}
                         disabled={temporarilyRemovedLabels.has(label)}
-                        className={
-                            temporarilyRemovedLabels.has(label)
-                                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
-                                : ''
-                        }
+                        negated={temporarilyRemovedLabels.has(label)}
                         onContextMenu={event => {
                             event.preventDefault()
                             event.stopPropagation()
@@ -357,9 +355,7 @@ function LabelsColumn(props: AssetColumnProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             setQuery(oldQuery =>
-                                oldQuery.labels.includes(label)
-                                    ? oldQuery.delete({ labels: [label] })
-                                    : oldQuery.add({ labels: [label] })
+                                assetQuery.toggleLabel(oldQuery, label, event.shiftKey)
                             )
                         }}
                     >

@@ -12,14 +12,12 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
-import sbt.librarymanagement.DependencyFilter
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
 import JPMSPlugin.autoImport.*
 
 import java.io.File
-import scala.collection.mutable.ListBuffer
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -272,7 +270,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -318,7 +315,7 @@ lazy val enso = (project in file("."))
     `std-image`,
     `std-table`,
     `std-aws`,
-    `simple-httpbin`,
+    `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
@@ -528,13 +525,6 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 // === Internal Libraries =====================================================
 // ============================================================================
 
-lazy val logger = (project in file("lib/scala/logger"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= scalaCompiler
-  )
-
 lazy val `syntax-definition` =
   project in file("lib/scala/syntax/definition")
 
@@ -561,10 +551,9 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"   %% "cats-core"      % catsVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
-      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
+      "org.typelevel"  %% "cats-core"  % catsVersion,
+      "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
@@ -907,7 +896,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
-      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
+      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test,
+      "junit"                       % "junit"               % junitVersion             % Test,
+      "com.github.sbt"              % "junit-interface"     % junitIfVersion           % Test,
+      "org.hamcrest"                % "hamcrest-all"        % hamcrestVersion          % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1016,7 +1008,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1207,8 +1199,13 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= "-ea" +: benchOnlyOptions
 )
 
+/** Explicitly provide `application-test.conf` as the resource that should be used for
+  * parsing the logging configuration. Explicitly setting `config.resource` prevents
+  * the potential conflicts with other *.conf files.
+  */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider"
+  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dconfig.resource=application-test.conf"
 )
 
 lazy val `polyglot-api` = project
@@ -1298,13 +1295,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
-      // org.bouncycastle is a module required by `org.enso.runtime` module.
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"      % slf4jVersion,
-          "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcprov-jdk18on" % "1.76"
+          "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1373,7 +1366,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .settings(
     Test / compile := (Test / compile)
-      .dependsOn(LocalProject("enso") / updateLibraryManifests)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
       .value,
     Test / envVars ++= Map(
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
@@ -1535,6 +1528,28 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
+    // Explicitly provide javafmt task for the custom Benchmark configuration.
+    // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
+    // is not able to register this task on its own.
+    Benchmark / javafmt := {
+      val streamz = streams.value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = streamz.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter(sD, iF, eF, streamz, cache, options)
+    },
+    Benchmark / javafmtCheck := {
+      val streamz = streams.value
+      val baseDir = (ThisBuild / baseDirectory).value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = (javafmt / streams).value.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
+    },
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1542,7 +1557,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
@@ -1556,7 +1571,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
       "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
-      "org.typelevel"       %% "cats-core"               % catsVersion,
       "junit"                % "junit"                   % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
@@ -1657,7 +1671,10 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    )
+    ),
+    Test / compile := (Test / compile)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1684,27 +1701,6 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-aws` / Compile / packageBin)
       .value
   )
-  .settings(
-    bench := (Benchmark / test)
-      .tag(Exclusive)
-      .dependsOn(
-        // runtime.jar fat jar needs to be assembled as it is used in the
-        // benchmarks. This dependency is here so that `runtime/bench` works
-        // after clean build.
-        LocalProject("runtime-fat-jar") / assembly
-      )
-      .value,
-    benchOnly := Def.inputTaskDyn {
-      import complete.Parsers.spaceDelimited
-      val name = spaceDelimited("<name>").parsed match {
-        case List(name) => name
-        case _          => throw new IllegalArgumentException("Expected one argument.")
-      }
-      Def.task {
-        (Benchmark / testOnly).toTask(" -- -z " + name).value
-      }
-    }.evaluated
-  )
   /** Benchmark settings */
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
@@ -1717,7 +1713,37 @@ lazy val runtime = (project in file("engine/runtime"))
       (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
     (Benchmark / javaOptions) ++= benchOnlyOptions,
     Benchmark / fork := true,
-    Benchmark / parallelExecution := false
+    Benchmark / parallelExecution := false,
+    // This ensures that the full class-path of runtime-fat-jar is put on
+    // class-path of the Java compiler (and thus the benchmark annotation processor).
+    (Benchmark / compile / unmanagedClasspath) ++=
+      (LocalProject(
+        "runtime-fat-jar"
+      ) / Compile / fullClasspath).value,
+    bench := (Benchmark / test)
+      .tag(Exclusive)
+      .dependsOn(
+        // runtime.jar fat jar needs to be assembled as it is used in the
+        // benchmarks. This dependency is here so that `runtime/bench` works
+        // after clean build.
+        LocalProject("runtime-fat-jar") / assembly
+      )
+      .value,
+    (Benchmark / testOnly) := (Benchmark / testOnly)
+      .dependsOn(
+        LocalProject("runtime-fat-jar") / assembly
+      )
+      .evaluated,
+    benchOnly := Def.inputTaskDyn {
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _          => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (Benchmark / testOnly).toTask(" -- -z " + name).value
+      }
+    }.evaluated
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
@@ -1748,7 +1774,12 @@ lazy val `runtime-parser` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      )
+      ),
+      (Compile / logManager) :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        )
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
@@ -1889,14 +1920,7 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
-        // clash with packages in org.bouncycastle.jdk18 modules
-        val bouncyCastleJdk5 = Seq(
-          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
-        )
-        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
+        val pkgsToExclude = JPMSUtils.componentModules
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -2118,8 +2142,7 @@ lazy val launcher = project
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
       .evaluated,
-    Test / fork := true,
-    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
+    Test / fork := true
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
@@ -2491,9 +2514,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"      % "polyglot"                % graalMavenPackagesVersion,
-      "org.apache.httpcomponents" % "httpclient"              % httpComponentsVersion,
-      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2901,13 +2923,13 @@ val stdBitsProjects =
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
-lazy val `simple-httpbin` = project
-  .in(file("tools") / "simple-httpbin")
+lazy val `http-test-helper` = project
+  .in(file("tools") / "http-test-helper")
   .settings(
     customFrgaalJavaCompilerSettings(targetJdk = "21"),
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
-    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons"        % "commons-text" % commonsTextVersion,

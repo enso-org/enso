@@ -5,7 +5,7 @@ import { Vec2 } from '@/util/data/vec2'
 export function nodeFromAst(ast: Ast.Ast): Node {
   if (ast instanceof Ast.Assignment) {
     return {
-      outerExprId: ast.astId,
+      outerExprId: ast.exprId,
       pattern: ast.pattern ?? undefined,
       rootSpan: ast.expression ?? ast,
       position: Vec2.Zero,
@@ -13,7 +13,7 @@ export function nodeFromAst(ast: Ast.Ast): Node {
     }
   } else {
     return {
-      outerExprId: ast.astId,
+      outerExprId: ast.exprId,
       pattern: undefined,
       rootSpan: ast,
       position: Vec2.Zero,

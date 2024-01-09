@@ -7,6 +7,7 @@ import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
@@ -133,6 +134,13 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.ends_with(a, b);
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.TEXT_LENGTH) {
+          @Override
+          protected long doOperation(String a) {
+            return Text_Utils.grapheme_length(a);
           }
         });
     t.add(
