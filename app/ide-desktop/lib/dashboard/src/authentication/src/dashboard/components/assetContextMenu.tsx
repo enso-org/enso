@@ -24,6 +24,7 @@ import ContextMenu from './contextMenu'
 import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
+import ManageLabelsModal from './manageLabelsModal'
 import ManagePermissionsModal from './managePermissionsModal'
 import MenuEntry from './menuEntry'
 
@@ -51,20 +52,11 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-    const {
-        hidden = false,
-        innerProps: {
-            item,
-            setItem,
-            state: { category, hasCopyData, dispatchAssetEvent, dispatchAssetListEvent },
-            setRowState,
-        },
-        event,
-        eventTarget,
-        doCut,
-        doPaste,
-        doDelete,
-    } = props
+    const { hidden = false, innerProps, event, eventTarget, doCut, doPaste, doDelete } = props
+    const { item, setItem, state, setRowState } = innerProps
+    const { category, hasCopyData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { doCreateLabel } = state
+
     const logger = loggerProvider.useLogger()
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -296,10 +288,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.label}
                         doAction={() => {
-                            // No backend support yet.
+                            setModal(
+                                <ManageLabelsModal
+                                    item={asset}
+                                    setItem={setAsset}
+                                    allLabels={labels}
+                                    doCreateLabel={doCreateLabel}
+                                    eventTarget={eventTarget}
+                                />
+                            )
                         }}
                     />
                 )}
