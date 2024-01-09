@@ -293,6 +293,12 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
+    /** Copy an arbitrary asset to another directory. Not yet implemented in the backend.
+     * @throws {Error} Always. */
+    override copyAsset(): Promise<backend.CopyAssetResponse> {
+        throw new Error('Cannot copy assets in local backend yet.')
+    }
+
     /** Return a list of engine versions. */
     override async listVersions(params: backend.ListVersionsRequestParams) {
         const engineVersions = await this.projectManager.listAvailableEngineVersions()

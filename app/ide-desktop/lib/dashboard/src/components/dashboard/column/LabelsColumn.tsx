@@ -11,6 +11,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import type * as backendModule from '#/services/backend'
 import * as assetQuery from '#/utilities/assetQuery'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -48,14 +49,14 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                object.merge(oldItem, {
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
@@ -102,19 +103,15 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                                                     oldLabel => oldLabel === label
                                                 ) === true
                                                     ? oldAsset2
-                                                    : {
-                                                          ...oldAsset2,
+                                                    : object.merge(oldAsset2, {
                                                           labels: [
                                                               ...(oldAsset2.labels ?? []),
                                                               label,
                                                           ],
-                                                      }
+                                                      })
                                             )
                                         })
-                                    return {
-                                        ...oldAsset,
-                                        labels: newLabels,
-                                    }
+                                    return object.merge(oldAsset, { labels: newLabels })
                                 })
                             }
                             setModal(

@@ -12,6 +12,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import type * as backendModule from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
 import Button from '#/components/Button'
@@ -87,10 +88,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         setIsEditingDescription(false)
         if (description !== item.item.description) {
             const oldDescription = item.item.description
-            setItem(oldItem => ({
-                ...oldItem,
-                item: { ...oldItem.item, description },
-            }))
+            setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
             try {
                 await backend.updateAsset(
                     item.item.id,
@@ -99,10 +97,11 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 )
             } catch (error) {
                 toastAndLog('Could not edit asset description')
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: { ...oldItem.item, description: oldDescription },
-                }))
+                setItem(oldItem =>
+                    oldItem.with({
+                        item: object.merge(oldItem.item, { description: oldDescription }),
+                    })
+                )
             }
         }
     }

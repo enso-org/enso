@@ -9,6 +9,7 @@ import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import type * as backendModule from '#/services/backend'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -39,7 +40,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )
@@ -49,27 +49,19 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                object.merge(oldItem, {
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
     return (
-        <div
-            className="flex items-center gap-1"
-            onMouseEnter={() => {
-                setIsHovered(true)
-            }}
-            onMouseLeave={() => {
-                setIsHovered(false)
-            }}
-        >
+        <div className="flex items-center gap-1">
             {(asset.permissions ?? []).map(user => (
                 <PermissionDisplay key={user.user.pk} action={user.permission}>
                     {user.user.user_name}
@@ -77,7 +69,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
+                    className="h-4 w-4 invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
                     onClick={event => {
                         event.stopPropagation()
                         setModal(

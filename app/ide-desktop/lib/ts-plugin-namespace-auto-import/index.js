@@ -5,7 +5,10 @@ module.exports = function init() {
     /** Turn a module name into a valid identifier.
      * @param {string} name - module name */
     const normalizeModuleName = name => {
-        const result = name.replace(/^\W+|\W+(.?)/g, (_, a) => String(a ?? '').toUpperCase())
+        const intermediate = name.length === 0 ? '' : name[0].toLowerCase() + name.slice(1)
+        const result = intermediate.replace(/^\W+|\W+(.?)/g, (_, a) =>
+            String(a ?? '').toUpperCase()
+        )
         return NON_CONTEXTUAL_KEYWORDS.has(result) ? '_' + result : result
     }
 

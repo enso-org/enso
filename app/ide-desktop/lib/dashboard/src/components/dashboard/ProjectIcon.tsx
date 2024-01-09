@@ -17,6 +17,7 @@ import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
 import * as localStorageModule from '#/utilities/localStorage'
+import * as object from '#/utilities/object'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
@@ -90,25 +91,23 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 } else {
                     newState = stateOrUpdater
                 }
-                let newProjectState: backendModule.ProjectStateType = {
-                    ...oldItem.projectState,
-                    type: newState,
-                }
+                let newProjectState: backendModule.ProjectStateType = object.merge(
+                    oldItem.projectState,
+                    {
+                        type: newState,
+                    }
+                )
                 if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
                     // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
                     const { opened_by, ...newProjectState2 } = newProjectState
                     newProjectState = newProjectState2
                 } else if (organization != null) {
-                    newProjectState = {
-                        ...newProjectState,
+                    newProjectState = object.merge(newProjectState, {
                         // eslint-disable-next-line @typescript-eslint/naming-convention
                         opened_by: organization.email,
-                    }
+                    })
                 }
-                return {
-                    ...oldItem,
-                    projectState: newProjectState,
-                }
+                return object.merge(oldItem, { projectState: newProjectState })
             })
         },
         [organization, /* should never change */ setItem]
@@ -184,10 +183,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             } catch (error) {
                 const project = await backend.getProjectDetails(item.id, item.title)
-                setItem(oldItem => ({
-                    ...oldItem,
-                    projectState: project.state,
-                }))
+                setItem(object.merger({ projectState: project.state }))
                 toastAndLog(
                     errorModule.tryGetMessage(error)?.slice(0, -1) ??
                         `Could not open project '${item.title}'`
@@ -205,13 +201,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             /* should never change */ setItem,
         ]
     )
-
-    React.useEffect(() => {
-        setItem(oldItem => ({
-            ...oldItem,
-            projectState: { ...oldItem.projectState, type: state },
-        }))
-    }, [state, /* should never change */ setItem])
 
     React.useEffect(() => {
         if (toastId != null) {
@@ -249,6 +238,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEvent.AssetEventType.newFolder:
             case assetEvent.AssetEventType.uploadFiles:
             case assetEvent.AssetEventType.newDataConnector:
+            case assetEvent.AssetEventType.copy:
             case assetEvent.AssetEventType.cut:
             case assetEvent.AssetEventType.cancelCut:
             case assetEvent.AssetEventType.move:
@@ -264,7 +254,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEvent.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
                 // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-                // and`downloadSelected` are handled by `AssetRow`.
+                // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEvent.AssetEventType.openProject: {

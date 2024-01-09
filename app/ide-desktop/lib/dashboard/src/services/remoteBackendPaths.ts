@@ -47,6 +47,10 @@ export function updateAssetPath(assetId: backend.AssetId) {
 export function deleteAssetPath(assetId: backend.AssetId) {
     return `assets/${assetId}`
 }
+/** Relative HTTP path to the "copy asset" endpoint of the Cloud backend API. */
+export function copyAssetPath(assetId: backend.AssetId) {
+    return `assets/${assetId}/copy`
+}
 /** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
 export function updateDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`

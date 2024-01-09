@@ -11,6 +11,7 @@ import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as visibility from '#/utilities/visibility'
 
@@ -62,6 +63,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEvent.AssetEventType.openProject:
             case assetEvent.AssetEventType.closeProject:
             case assetEvent.AssetEventType.cancelOpeningAllProjects:
+            case assetEvent.AssetEventType.copy:
             case assetEvent.AssetEventType.cut:
             case assetEvent.AssetEventType.cancelCut:
             case assetEvent.AssetEventType.move:
@@ -94,10 +96,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             file
                         )
                         rowState.setVisibility(visibility.Visibility.visible)
-                        setAsset({
-                            ...asset,
-                            id: createdFile.id,
-                        })
+                        setAsset(object.merge(asset, { id: createdFile.id }))
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEvent.AssetListEventType.delete,
@@ -127,10 +126,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                     (selected ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
+                    setRowState(object.merger({ isEditingName: true }))
                 }
             }}
         >
@@ -138,25 +134,19 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
+                        setAsset(object.merger({ title: newTitle }))
                         try {
-                            await doRename(/* newTitle */)
+                            await doRename()
                         } catch {
-                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(object.merger({ title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                 }}
                 className="bg-transparent grow leading-170 h-6 py-px"
             >

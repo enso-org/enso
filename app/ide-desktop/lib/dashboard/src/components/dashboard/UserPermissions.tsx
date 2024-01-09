@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as hooks from '#/hooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as backendModule from '#/services/backend'
+import * as object from '#/utilities/object'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 
@@ -70,10 +71,9 @@ export default function UserPermissions(props: UserPermissionsProps) {
                 action={userPermissions.permission}
                 assetType={asset.type}
                 onChange={async permissions => {
-                    await doSetUserPermission({
-                        ...userPermissions,
-                        permission: permissions,
-                    })
+                    await doSetUserPermission(
+                        object.merge(userPermissions, { permission: permissions })
+                    )
                 }}
                 doDelete={() => {
                     doDelete(userPermissions.user)

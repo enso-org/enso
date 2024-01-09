@@ -28,6 +28,7 @@ import * as remoteBackendModule from '#/services/remoteBackend'
 import * as assetQuery from '#/utilities/assetQuery'
 import * as http from '#/utilities/http'
 import * as localStorageModule from '#/utilities/localStorage'
+import * as object from '#/utilities/object'
 import * as projectManager from '#/utilities/projectManager'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
@@ -89,6 +90,10 @@ export default function Dashboard(props: DashboardProps) {
             false
     )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
+    const rootDirectoryId = React.useMemo(
+        () => backend.rootDirectoryId(session.organization),
+        [backend, session.organization]
+    )
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -182,10 +187,9 @@ export default function Dashboard(props: DashboardProps) {
                                         savedProjectStartupInfo.projectAsset.id,
                                         savedProjectStartupInfo.projectAsset.title
                                     )
-                                    setProjectStartupInfo({
-                                        ...savedProjectStartupInfo,
-                                        project,
-                                    })
+                                    setProjectStartupInfo(
+                                        object.merge(savedProjectStartupInfo, { project })
+                                    )
                                     if (page === pageSwitcher.Page.editor) {
                                         setPage(page)
                                     }
@@ -209,10 +213,7 @@ export default function Dashboard(props: DashboardProps) {
                             savedProjectStartupInfo.projectAsset.id,
                             savedProjectStartupInfo.projectAsset.title
                         )
-                        setProjectStartupInfo({
-                            ...savedProjectStartupInfo,
-                            project,
-                        })
+                        setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                     })()
                 }
             }
@@ -350,13 +351,13 @@ export default function Dashboard(props: DashboardProps) {
         ) => {
             dispatchAssetListEvent({
                 type: assetListEvent.AssetListEventType.newProject,
-                parentKey: null,
-                parentId: null,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     const openEditor = React.useCallback(

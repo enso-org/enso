@@ -19,6 +19,7 @@ export enum AssetListEventType {
     uploadFiles = 'upload-files',
     newDataConnector = 'new-data-connector',
     closeFolder = 'close-folder',
+    copy = 'copy',
     move = 'move',
     willDelete = 'will-delete',
     delete = 'delete',
@@ -37,6 +38,7 @@ interface AssetListEvents {
     uploadFiles: AssetListUploadFilesEvent
     newDataConnector: AssetListNewDataConnectorEvent
     closeFolder: AssetListCloseFolderEvent
+    copy: AssetListCopyEvent
     move: AssetListMoveEvent
     willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
@@ -57,38 +59,30 @@ type SanityCheck<
 
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
-    /** `null` if and only if the parent directory is the root directory. */
-    parentKey: backend.DirectoryId | null
-    /** `null` if and only if the parent directory is the root directory. */
-    parentId: backend.DirectoryId | null
+    parentKey: backend.DirectoryId
+    parentId: backend.DirectoryId
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
-    /** `null` if and only if the parent directory is the root directory. */
-    parentKey: backend.DirectoryId | null
-    /** `null` if and only if the parent directory is the root directory. */
-    parentId: backend.DirectoryId | null
+    parentKey: backend.DirectoryId
+    parentId: backend.DirectoryId
     templateId: string | null
     onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
-    /** `null` if and only if the parent directory is the root directory. */
-    parentKey: backend.DirectoryId | null
-    /** `null` if and only if the parent directory is the root directory. */
-    parentId: backend.DirectoryId | null
+    parentKey: backend.DirectoryId
+    parentId: backend.DirectoryId
     files: File[]
 }
 
 /** A signal to create a new data connector. */
 interface AssetListNewDataConnectorEvent
     extends AssetListBaseEvent<AssetListEventType.newDataConnector> {
-    /** `null` if and only if the parent directory is the root directory. */
-    parentKey: backend.DirectoryId | null
-    /** `null` if and only if the parent directory is the root directory. */
-    parentId: backend.DirectoryId | null
+    parentKey: backend.DirectoryId
+    parentId: backend.DirectoryId
     name: string
     value: string
 }
@@ -99,17 +93,22 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
     key: backend.DirectoryId
 }
 
+/** A signal that files should be copied. */
+interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
+    newParentKey: backend.AssetId
+    newParentId: backend.DirectoryId
+    items: backend.AnyAsset[]
+}
+
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
     key: backend.AssetId
-    /** `null` if and only if the new parent directory is the root directory. */
-    newParentKey: backend.AssetId | null
-    /** `null` if and only if the new parent directory is the root directory. */
-    newParentId: backend.DirectoryId | null
+    newParentKey: backend.AssetId
+    newParentId: backend.DirectoryId
     item: backend.AnyAsset
 }
 
-/** A signal that a file will be deleted. */
+/** A signal that a file has been deleted. */
 interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
     key: backend.AssetId
 }

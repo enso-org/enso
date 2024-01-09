@@ -6,6 +6,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
+import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 import ColorPicker from '#/components/ColorPicker'
@@ -60,13 +61,16 @@ export default function ManageLabelsModal<
     const setLabels = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
             setLabelsRaw(valueOrUpdater)
-            setItem(oldItem => {
-                if (typeof valueOrUpdater === 'function') {
-                    return { ...oldItem, labels: valueOrUpdater(oldItem.labels ?? []) }
-                } else {
-                    return { ...oldItem, labels: valueOrUpdater }
-                }
-            })
+            setItem(oldItem =>
+                // This is SAFE, as the type of asset is not being changed.
+                // eslint-disable-next-line no-restricted-syntax
+                object.merge(oldItem, {
+                    labels:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.labels ?? []),
+                } as Partial<Asset>)
+            )
         },
         [/* should never change */ setItem]
     )

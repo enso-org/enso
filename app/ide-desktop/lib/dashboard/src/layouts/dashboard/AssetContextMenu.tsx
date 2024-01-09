@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
@@ -17,6 +18,7 @@ import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as http from '#/utilities/http'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
 
@@ -42,29 +44,25 @@ export interface AssetContextMenuProps {
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
     doDelete: () => void
+    doCopy: () => void
     doCut: () => void
-    doPaste: (
-        newParentKey: backendModule.AssetId | null,
-        newParentId: backendModule.DirectoryId | null
-    ) => void
+    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
     const {
         hidden = false,
-        innerProps: {
-            item,
-            setItem,
-            state: { category, hasCopyData, dispatchAssetEvent, dispatchAssetListEvent },
-            setRowState,
-        },
+        innerProps,
         event,
         eventTarget,
+        doCopy,
         doCut,
         doPaste,
         doDelete,
     } = props
+    const { item, setItem, state, setRowState } = innerProps
+    const { category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
     const logger = loggerProvider.useLogger()
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -96,12 +94,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
+                setItem(oldItem =>
+                    oldItem.with({
+                        item: valueOrUpdater(oldItem.item),
+                    })
+                )
             } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+                setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
             }
         },
         [/* should never change */ setItem]
@@ -228,10 +227,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }
                         action={shortcuts.KeyboardAction.rename}
                         doAction={() => {
-                            setRowState(oldRowState => ({
-                                ...oldRowState,
-                                isEditingName: true,
-                            }))
+                            setRowState(object.merger({ isEditingName: true }))
                             unsetModal()
                         }}
                     />
@@ -307,31 +303,30 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled
+                    disabled={!isCloud}
                     action={shortcuts.KeyboardAction.duplicate}
                     doAction={() => {
-                        // TODO: Add server endpoint for local backend.
-                        // No backend support yet.
+                        unsetModal()
+                        dispatchAssetListEvent({
+                            type: assetListEvent.AssetListEventType.copy,
+                            newParentId: item.directoryId,
+                            newParentKey: item.directoryKey,
+                            items: [asset],
+                        })
                     }}
                 />
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.copy}
-                        doAction={() => {
-                            // No backend support yet.
-                        }}
+                        doAction={doCopy}
                     />
                 )}
                 {isCloud && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.cut}
-                        doAction={() => {
-                            unsetModal()
-                            doCut()
-                        }}
+                        doAction={doCut}
                     />
                 )}
                 <MenuEntry
@@ -344,13 +339,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         })
                     }}
                 />
-                {asset.type === backendModule.AssetType.directory && hasCopyData && (
+                {hasPasteData && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.paste}
                         doAction={() => {
-                            unsetModal()
-                            doPaste(item.key, asset.id)
+                            const [directoryKey, directoryId] =
+                                item.item.type === backendModule.AssetType.directory
+                                    ? [item.key, item.item.id]
+                                    : [item.directoryKey, item.directoryId]
+                            doPaste(directoryKey, directoryId)
                         }}
                     />
                 )}
@@ -358,7 +356,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             {category === categorySwitcherUtils.Category.home && (
                 <GlobalContextMenu
                     hidden={hidden}
-                    hasCopyData={hasCopyData}
+                    hasCopyData={hasPasteData}
                     directoryKey={
                         // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                         // eslint-disable-next-line no-restricted-syntax

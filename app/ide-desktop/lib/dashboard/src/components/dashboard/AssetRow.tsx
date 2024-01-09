@@ -13,10 +13,13 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
+import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as errorModule from '#/utilities/error'
 import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as visibilityModule from '#/utilities/visibility'
 
@@ -70,6 +73,7 @@ export default function AssetRow(props: AssetRowProps) {
         dispatchAssetListEvent,
         setAssetSettingsPanelProps,
         doToggleDirectoryExpansion,
+        doCopy,
         doCut,
         doPaste,
     } = state
@@ -84,18 +88,17 @@ export default function AssetRow(props: AssetRowProps) {
     const [insertionVisibility, setInsertionVisibility] = React.useState(
         visibilityModule.Visibility.visible
     )
-    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() => ({
-        ...initialRowState,
-        setVisibility: setInsertionVisibility,
-    }))
+    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+        object.merge(initialRowState, { setVisibility: setInsertionVisibility })
+    )
     const visibility = visibilities.get(key) ?? insertionVisibility
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
     React.useEffect(() => {
-        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
-        // parent.
+        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
+        // re - rendering the parent.
         rawItem.item = asset
     }, [asset, rawItem])
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
@@ -106,26 +109,72 @@ export default function AssetRow(props: AssetRowProps) {
         }
     }, [selected, insertionVisibility, /* should never change */ setSelected])
 
+    const doCopyOnBackend = React.useCallback(
+        async (newParentId: backendModule.DirectoryId | null) => {
+            try {
+                setAsset(oldAsset =>
+                    object.merge(oldAsset, {
+                        title: oldAsset.title + ' (copy)',
+                        labels: [],
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                    })
+                )
+                const copiedAsset = await backend.copyAsset(
+                    asset.id,
+                    newParentId ?? backend.rootDirectoryId(organization),
+                    asset.title,
+                    null
+                )
+                setAsset(
+                    // This is SAFE, as the type of the copied asset is guaranteed to be the same
+                    // as the type of the original asset.
+                    // eslint-disable-next-line no-restricted-syntax
+                    object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
+                )
+            } catch (error) {
+                toastAndLog(`Could not copy '${asset.title}'`, error)
+                // Delete the new component representing the asset that failed to insert.
+                dispatchAssetListEvent({
+                    type: assetListEvent.AssetListEventType.delete,
+                    key: item.key,
+                })
+            }
+        },
+        [
+            backend,
+            organization,
+            user,
+            asset,
+            item.key,
+            /* should never change */ setAsset,
+            /* should never change */ toastAndLog,
+            /* should never change */ dispatchAssetListEvent,
+        ]
+    )
+
     const doMove = React.useCallback(
         async (
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
-            // The asset is effectivly being deleted from the current position, and created at the new
-            // position, from the viewpoint of the asset list.
+            const rootDirectoryId = backend.rootDirectoryId(organization)
+            const nonNullNewParentKey = newParentKey ?? rootDirectoryId
+            const nonNullNewParentId = newParentId ?? rootDirectoryId
             try {
                 dispatchAssetListEvent({
                     type: assetListEvent.AssetListEventType.move,
-                    newParentKey,
-                    newParentId,
+                    newParentKey: nonNullNewParentKey,
+                    newParentId: nonNullNewParentId,
                     key: item.key,
                     item: asset,
                 })
-                setItem(oldItem => ({
-                    ...oldItem,
-                    directoryKey: newParentKey,
-                    directoryId: newParentId,
-                }))
+                setItem(oldItem =>
+                    oldItem.with({
+                        directoryKey: nonNullNewParentKey,
+                        directoryId: nonNullNewParentId,
+                    })
+                )
                 await backend.updateAsset(
                     asset.id,
                     {
@@ -136,11 +185,9 @@ export default function AssetRow(props: AssetRowProps) {
                 )
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
-                setItem(oldItem => ({
-                    ...oldItem,
-                    directoryKey: item.directoryKey,
-                    directoryId: item.directoryId,
-                }))
+                setItem(oldItem =>
+                    oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
+                )
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
                     type: assetListEvent.AssetListEventType.move,
@@ -254,6 +301,12 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEvent.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
+            case assetEvent.AssetEventType.copy: {
+                if (event.ids.has(item.key)) {
+                    await doCopyOnBackend(event.newParentId)
+                }
+                break
+            }
             case assetEvent.AssetEventType.cut: {
                 if (event.ids.has(item.key)) {
                     setInsertionVisibility(visibilityModule.Visibility.faded)
@@ -330,11 +383,10 @@ export default function AssetRow(props: AssetRowProps) {
                     oldRowState.temporarilyAddedLabels === labels &&
                     oldRowState.temporarilyRemovedLabels === set.EMPTY
                         ? oldRowState
-                        : {
-                              ...oldRowState,
+                        : object.merge(oldRowState, {
                               temporarilyAddedLabels: labels,
                               temporarilyRemovedLabels: set.EMPTY,
-                          }
+                          })
                 )
                 break
             }
@@ -344,11 +396,10 @@ export default function AssetRow(props: AssetRowProps) {
                     oldRowState.temporarilyAddedLabels === set.EMPTY &&
                     oldRowState.temporarilyRemovedLabels === labels
                         ? oldRowState
-                        : {
-                              ...oldRowState,
+                        : object.merge(oldRowState, {
                               temporarilyAddedLabels: set.EMPTY,
                               temporarilyRemovedLabels: labels,
-                          }
+                          })
                 )
                 break
             }
@@ -356,7 +407,7 @@ export default function AssetRow(props: AssetRowProps) {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
-                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
                 )
                 const labels = asset.labels
                 if (
@@ -367,11 +418,11 @@ export default function AssetRow(props: AssetRowProps) {
                         ...(labels ?? []),
                         ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
                     ]
-                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    setAsset(object.merger({ labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        setAsset(object.merger({ labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -381,7 +432,7 @@ export default function AssetRow(props: AssetRowProps) {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
-                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
                 )
                 const labels = asset.labels
                 if (
@@ -390,11 +441,11 @@ export default function AssetRow(props: AssetRowProps) {
                     [...event.labelNames].some(label => labels.includes(label))
                 ) {
                     const newLabels = labels.filter(label => !event.labelNames.has(label))
-                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    setAsset(object.merger({ labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        setAsset(object.merger({ labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -413,7 +464,7 @@ export default function AssetRow(props: AssetRowProps) {
                                 return true
                             }
                         }) ?? null
-                    return found ? { ...oldAsset, labels } : oldAsset
+                    return found ? object.merge(oldAsset, { labels }) : oldAsset
                 })
                 break
             }
@@ -425,9 +476,21 @@ export default function AssetRow(props: AssetRowProps) {
         setRowState(oldRowState =>
             oldRowState.temporarilyAddedLabels === set.EMPTY
                 ? oldRowState
-                : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
         )
     }, [])
+
+    const onDragOver = (event: React.DragEvent<Element>) => {
+        const directoryKey =
+            item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+        const payload = drag.ASSET_ROWS.lookup(event)
+        if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+            event.preventDefault()
+            if (item.item.type === backendModule.AssetType.directory) {
+                setIsDraggedOver(true)
+            }
+        }
+    }
 
     switch (asset.type) {
         case backendModule.AssetType.directory:
@@ -458,6 +521,7 @@ export default function AssetRow(props: AssetRowProps) {
                                                 ? event.target
                                                 : event.currentTarget
                                         }
+                                        doCopy={doCopy}
                                         doCut={doCut}
                                         doPaste={doPaste}
                                         doDelete={doDelete}
@@ -471,7 +535,7 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
-                        onDragEnter={() => {
+                        onDragEnter={event => {
                             if (dragOverTimeoutHandle.current != null) {
                                 window.clearTimeout(dragOverTimeoutHandle.current)
                             }
@@ -485,19 +549,12 @@ export default function AssetRow(props: AssetRowProps) {
                                     )
                                 }, DRAG_EXPAND_DELAY_MS)
                             }
+                            // Required because `dragover` does not fire on `mouseenter`.
+                            onDragOver(event)
                         }}
                         onDragOver={event => {
                             props.onDragOver?.(event)
-                            if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                if (
-                                    payload != null &&
-                                    payload.every(innerItem => innerItem.key !== item.key)
-                                ) {
-                                    event.preventDefault()
-                                    setIsDraggedOver(true)
-                                }
-                            }
+                            onDragOver(event)
                         }}
                         onDragEnd={event => {
                             clearDragState()
@@ -517,22 +574,30 @@ export default function AssetRow(props: AssetRowProps) {
                         onDrop={event => {
                             props.onDrop?.(event)
                             clearDragState()
-                            if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                if (
-                                    payload != null &&
-                                    payload.every(innerItem => innerItem.key !== item.key)
-                                ) {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    unsetModal()
-                                    dispatchAssetEvent({
-                                        type: assetEvent.AssetEventType.move,
-                                        newParentKey: item.key,
-                                        newParentId: item.item.id,
-                                        ids: new Set(payload.map(dragItem => dragItem.key)),
-                                    })
-                                }
+                            const [directoryKey, directoryId, directoryTitle] =
+                                item.item.type === backendModule.AssetType.directory
+                                    ? [item.key, item.item.id, asset.title]
+                                    : [item.directoryKey, item.directoryId, null]
+                            const payload = drag.ASSET_ROWS.lookup(event)
+                            if (
+                                payload != null &&
+                                payload.every(innerItem => innerItem.key !== directoryKey)
+                            ) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                unsetModal()
+                                doToggleDirectoryExpansion(
+                                    directoryId,
+                                    directoryKey,
+                                    directoryTitle,
+                                    true
+                                )
+                                dispatchAssetEvent({
+                                    type: assetEvent.AssetEventType.move,
+                                    newParentKey: directoryKey,
+                                    newParentId: directoryId,
+                                    ids: new Set(payload.map(dragItem => dragItem.key)),
+                                })
                             }
                         }}
                     />
@@ -554,6 +619,7 @@ export default function AssetRow(props: AssetRowProps) {
                                 }}
                                 event={{ pageX: 0, pageY: 0 }}
                                 eventTarget={null}
+                                doCopy={doCopy}
                                 doCut={doCut}
                                 doPaste={doPaste}
                                 doDelete={doDelete}

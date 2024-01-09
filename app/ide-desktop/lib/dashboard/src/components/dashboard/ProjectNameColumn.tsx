@@ -14,6 +14,7 @@ import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as validation from '#/utilities/validation'
@@ -46,7 +47,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
-            topLevelAssets,
             nodeMap,
             doOpenManually,
             doOpenIde,
@@ -107,6 +107,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEvent.AssetEventType.openProject:
             case assetEvent.AssetEventType.closeProject:
             case assetEvent.AssetEventType.cancelOpeningAllProjects:
+            case assetEvent.AssetEventType.copy:
             case assetEvent.AssetEventType.cut:
             case assetEvent.AssetEventType.cancelCut:
             case assetEvent.AssetEventType.move:
@@ -138,14 +139,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             projectTemplateName: event.templateId,
                         })
                         rowState.setVisibility(visibility.Visibility.visible)
-                        setAsset({
-                            ...asset,
-                            id: createdProject.projectId,
-                            projectState: {
-                                ...projectState,
-                                type: backendModule.ProjectState.placeholder,
-                            },
-                        })
+                        setAsset(
+                            object.merge(asset, {
+                                id: createdProject.projectId,
+                                projectState: object.merge(projectState, {
+                                    type: backendModule.ProjectState.placeholder,
+                                }),
+                            })
+                        )
                         dispatchAssetEvent({
                             type: assetEvent.AssetEventType.openProject,
                             id: createdProject.projectId,
@@ -192,18 +193,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 null
                             )
                             rowState.setVisibility(visibility.Visibility.visible)
-                            setAsset({
-                                ...asset,
-                                title: listedProject.packageName,
-                                id: backendModule.ProjectId(id),
-                            })
+                            setAsset(
+                                object.merge(asset, {
+                                    title: listedProject.packageName,
+                                    id: backendModule.ProjectId(id),
+                                })
+                            )
                         } else {
                             const fileName = asset.title
                             const title = backendModule.stripProjectExtension(asset.title)
-                            setAsset({
-                                ...asset,
-                                title,
-                            })
+                            setAsset(object.merge(asset, { title }))
                             const createdFile = await backend.uploadFile(
                                 {
                                     fileId: null,
@@ -217,12 +216,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 throw new Error('The uploaded file was not a project.')
                             } else {
                                 rowState.setVisibility(visibility.Visibility.visible)
-                                setAsset({
-                                    ...asset,
-                                    title,
-                                    id: project.projectId,
-                                    projectState: project.state,
-                                })
+                                setAsset(
+                                    object.merge(asset, {
+                                        title,
+                                        id: project.projectId,
+                                        projectState: project.state,
+                                    })
+                                )
                                 return
                             }
                         }
@@ -273,10 +273,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
+                    setRowState(object.merger({ isEditingName: true }))
                 }
             }}
         >
@@ -287,7 +284,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     keyProp={item.key}
                     // This is a workaround for a temporary bad state in the backend causing the
                     // `projectState` key to be absent.
-                    item={{ ...asset, projectState }}
+                    item={object.merge(asset, { projectState })}
                     setItem={setAsset}
                     assetEvents={assetEvents}
                     doOpenManually={doOpenManually}
@@ -302,10 +299,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             <EditableSpan
                 editable={rowState.isEditingName}
                 checkSubmittable={newTitle =>
-                    (item.directoryKey != null
-                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
-                        : topLevelAssets.current
-                    ).every(
+                    (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
                         child =>
                             // All siblings,
                             child.key === item.key ||
@@ -316,25 +310,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     )
                 }
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
+                        setAsset(object.merger({ title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(object.merger({ title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(object.merger({ isEditingName: false }))
                 }}
                 {...(backend.type === backendModule.BackendType.local
                     ? {

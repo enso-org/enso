@@ -9,6 +9,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
+import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
 
 import Autocomplete from '#/components/Autocomplete'
@@ -90,7 +91,9 @@ export default function ManagePermissionsModal<
     )
 
     React.useEffect(() => {
-        setItem(oldItem => ({ ...oldItem, permissions }))
+        // This is SAFE, as the type of asset is not being changed.
+        // eslint-disable-next-line no-restricted-syntax
+        setItem(object.merger({ permissions } as Partial<Asset>))
     }, [permissions, /* should never change */ setItem])
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
