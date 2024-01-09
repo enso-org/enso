@@ -71,6 +71,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         let newQuery = query
         if (wasQueryModified) {
             const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
+            console.log('???', selectedIndex, suggestion, query, newQuery)
             if (suggestion != null) {
                 newQuery = suggestion.addToQuery(baseQuery.current)
                 setQuery(newQuery)
@@ -218,6 +219,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
+                                                  setSelectedIndex(null)
                                                   setQuery(
                                                       assetQuery.AssetQuery.fromString(
                                                           `${query.toString()} ${tag}:`
@@ -250,6 +252,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         negated={negated}
                                         onClick={event => {
                                             setWasQueryModified(true)
+                                            setSelectedIndex(null)
                                             setQuery(oldQuery =>
                                                 assetQuery.toggleLabel(
                                                     oldQuery,
