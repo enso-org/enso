@@ -25,6 +25,7 @@ use crate::project::ProcessWrapper;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
+use ide_ci::define_env_var;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::sbt;
@@ -524,25 +525,35 @@ impl RunContext {
         }
 
 
-        if build_native_runner {
+        for enso_java in [None, Some("espresso"), None] {
+            define_env_var! {
+                ENSO_JAVA, String;
+            }
             let factorial_input = "6";
             let factorial_expected_output = "720";
-            let output = Command::new(&self.repo_root.runner)
-                .args([
-                    "--run",
-                    self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-                    factorial_input,
-                ])
-                .set_env(
-                    ENSO_DATA_DIRECTORY,
-                    self.repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
-                )?
-                .run_stdout()
-                .await?;
-            ensure!(
-                output.contains(factorial_expected_output),
-                "Native runner output does not contain expected result."
-            );
+            if build_native_runner {
+                let output = Command::new(&self.repo_root.runner)
+                    .args([
+                        "--run",
+                        self.repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
+                        factorial_input,
+                    ])
+                    .set_env_opt(ENSO_JAVA, enso_java)?
+                    .set_env(
+                        ENSO_DATA_DIRECTORY,
+                        self.repo_root
+                            .built_distribution
+                            .enso_engine_triple
+                            .engine_package
+                            .as_path(),
+                    )?
+                    .run_stdout()
+                    .await?;
+                ensure!(
+                    output.contains(factorial_expected_output),
+                    "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
+                );
+            }
         }
 
 
