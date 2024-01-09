@@ -1,9 +1,13 @@
 package org.enso.shttp.cloud_mock;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.enso.shttp.HttpMethod;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 public class SecretsHandler implements CloudHandler {
 
@@ -63,24 +67,32 @@ public class SecretsHandler implements CloudHandler {
     }
   }
 
-  private void createSecret(CloudExchange exchange) {
-    // TODO actual JSON parsing needed {"secretName": ?, "secretValue": ?}
+  private void createSecret(CloudExchange exchange) throws IOException {
+    JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
+    String name = root.get("secretName").asText();
+    String value = root.get("secretValue").asText();
+    String parentId = ROOT;
+    String secretId = "secret-" + UUID.randomUUID();
+    accessRoot(parentId).put(secretId, new Secret(name, value));
+    exchange.sendResponse(200, "");
   }
 
   private void listSecrets(CloudExchange exchange) throws IOException {
     // TODO currently the cloud API does not seem to handle a parent_id parameter, so we always rely on ROOT
     String parentId = ROOT;
-    // FIXME this is AWFUL, we need actual JSON support:
-    StringBuilder response = new StringBuilder("{\n");
-    response.append("  \"secrets\": [\n");
-    for (var entry : accessRoot(parentId).entrySet()) {
-      String id = entry.getKey();
-      String name = entry.getValue().name;
-      response.append("    {\"id\":\"").append(id).append("\",\"name\":\"").append(name).append("\"},\n");
+    ListSecretsResponse response = new ListSecretsResponse(
+        accessRoot(parentId).entrySet().stream()
+            .map(entry ->
+                new ListSecretsResponse.Element(entry.getKey(), entry.getValue().name)
+            ).toList()
+    );
+    String asJson = jsonMapper.writeValueAsString(response);
+    exchange.sendResponse(200, asJson);
+  }
+
+  private record ListSecretsResponse(List<Element> secrets) {
+    public record Element(String id, String name) {
     }
-    response.append("  ]\n");
-    response.append("}\n");
-    exchange.sendResponse(200, response.toString());
   }
 
   private void getSecret(String id, CloudExchange exchange) throws IOException {
@@ -115,4 +127,6 @@ public class SecretsHandler implements CloudHandler {
   private HashMap<String, Secret> accessRoot(String rootId) {
     return mapping.computeIfAbsent(rootId, k -> new HashMap<>());
   }
+
+  private final ObjectMapper jsonMapper = new ObjectMapper();
 }
