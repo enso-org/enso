@@ -9,7 +9,7 @@ import * as shortcuts from '../shortcuts'
 
 import ContextMenu from './contextMenu'
 import MenuEntry from './menuEntry'
-import NewDataConnectorModal from './newDataConnectorModal'
+import UpsertSecretModal from './upsertSecretModal'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -130,7 +130,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     action={shortcuts.KeyboardAction.newDataConnector}
                     doAction={() => {
                         setModal(
-                            <NewDataConnectorModal
+                            <UpsertSecretModal
                                 doCreate={(name, value) => {
                                     dispatchAssetListEvent({
                                         type: assetListEventModule.AssetListEventType

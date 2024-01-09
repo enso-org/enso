@@ -16,7 +16,7 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as categorySwitcher from './categorySwitcher'
 import Button from './button'
-import NewDataConnectorModal from './newDataConnectorModal'
+import UpsertSecretModal from './upsertSecretModal'
 
 // ================
 // === DriveBar ===
@@ -115,7 +115,13 @@ export default function DriveBar(props: DriveBarProps) {
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
-                                setModal(<NewDataConnectorModal doCreate={doCreateDataConnector} />)
+                                setModal(
+                                    <UpsertSecretModal
+                                        id={null}
+                                        name={null}
+                                        doCreate={doCreateDataConnector}
+                                    />
+                                )
                             }}
                         />
                     )}

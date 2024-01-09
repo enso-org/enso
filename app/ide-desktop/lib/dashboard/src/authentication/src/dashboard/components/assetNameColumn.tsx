@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 
 import type * as column from '../column'
-import ConnectorNameColumn from './connectorNameColumn'
+import SecretNameColumn from './secretNameColumn'
 import DirectoryNameColumn from './directoryNameColumn'
 import FileNameColumn from './fileNameColumn'
 import ProjectNameColumn from './projectNameColumn'
@@ -30,7 +30,7 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
             return <FileNameColumn {...props} />
         }
         case backendModule.AssetType.secret: {
-            return <ConnectorNameColumn {...props} />
+            return <SecretNameColumn {...props} />
         }
         case backendModule.AssetType.specialLoading:
         case backendModule.AssetType.specialEmpty: {

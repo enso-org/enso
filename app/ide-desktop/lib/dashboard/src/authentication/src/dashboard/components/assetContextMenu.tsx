@@ -27,6 +27,7 @@ import GlobalContextMenu from './globalContextMenu'
 import ManageLabelsModal from './manageLabelsModal'
 import ManagePermissionsModal from './managePermissionsModal'
 import MenuEntry from './menuEntry'
+import UpsertSecretModal from './upsertSecretModal'
 
 // ========================
 // === AssetContextMenu ===
@@ -67,13 +68,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         permission => permission.user.user_email === organization?.email
     )
     const isCloud = backend.type === backendModule.BackendType.remote
-    const ownsThisAsset =
-        backend.type === backendModule.BackendType.local ||
-        self?.permission === permissions.PermissionAction.own
+    const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
     const managesThisAsset =
-        backend.type === backendModule.BackendType.local ||
-        ownsThisAsset ||
-        self?.permission === permissions.PermissionAction.admin
+        ownsThisAsset || self?.permission === permissions.PermissionAction.admin
+    const canEditThisAsset =
+        managesThisAsset || self?.permission === permissions.PermissionAction.edit
     const isRunningProject =
         asset.type === backendModule.AssetType.project &&
         backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
@@ -226,6 +225,31 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                 isEditingName: true,
                             }))
                             unsetModal()
+                        }}
+                    />
+                )}
+                {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.edit}
+                        doAction={() => {
+                            setModal(
+                                <UpsertSecretModal
+                                    id={asset.id}
+                                    name={asset.title}
+                                    doCreate={async (_name, value) => {
+                                        try {
+                                            await backend.updateSecret(
+                                                asset.id,
+                                                { value },
+                                                asset.title
+                                            )
+                                        } catch (error) {
+                                            toastAndLog(null, error)
+                                        }
+                                    }}
+                                />
+                            )
                         }}
                     />
                 )}

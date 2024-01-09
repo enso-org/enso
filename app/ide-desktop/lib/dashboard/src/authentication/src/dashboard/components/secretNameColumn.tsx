@@ -11,24 +11,26 @@ import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as modalProvider from '../../providers/modal'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as visibility from '../visibility'
 
 import type * as column from '../column'
 import EditableSpan from './editableSpan'
+import UpsertSecretModal from './upsertSecretModal'
 
 // =====================
 // === ConnectorName ===
 // =====================
 
-/** Props for a {@link ConnectorNameColumn}. */
-export interface ConnectorNameColumnProps extends column.AssetColumnProps {}
+/** Props for a {@link SecretNameColumn}. */
+export interface SecretNameColumnProps extends column.AssetColumnProps {}
 
 /** The icon and name of a {@link backendModule.SecretAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
-export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
+export default function SecretNameColumn(props: SecretNameColumnProps) {
     const {
         item,
         setItem,
@@ -38,12 +40,13 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
         setRowState,
     } = props
     const toastAndLog = hooks.useToastAndLog()
+    const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.secret) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`ConnectorNameColumn` can only display data connector assets.')
+        throw new Error('`SecretNameColumn` can only display secrets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
@@ -128,6 +131,21 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
                         ...oldRowState,
                         isEditingName: true,
                     }))
+                } else if (eventModule.isDoubleClick(event)) {
+                    event.stopPropagation()
+                    setModal(
+                        <UpsertSecretModal
+                            id={asset.id}
+                            name={asset.title}
+                            doCreate={async (_name, value) => {
+                                try {
+                                    await backend.updateSecret(asset.id, { value }, asset.title)
+                                } catch (error) {
+                                    toastAndLog(null, error)
+                                }
+                            }}
+                        />
+                    )
                 }
             }}
         >

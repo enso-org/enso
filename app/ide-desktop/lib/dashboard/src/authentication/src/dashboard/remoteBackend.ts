@@ -588,7 +588,7 @@ export class RemoteBackend extends backendModule.Backend {
         title: string | null
     ): Promise<void> {
         const path = remoteBackendPaths.updateSecretPath(secretId)
-        const response = await this.post(path, body)
+        const response = await this.put(path, body)
         if (!responseIsSuccessful(response)) {
             const name = title != null ? `'${title}'` : `with ID '${secretId}'`
             return this.throw(`Could not update secret ${name}.`)

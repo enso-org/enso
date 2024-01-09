@@ -2,29 +2,33 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
+import type * as backend from '../backend'
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
 
-// =============================
-// === NewDataConnectorModal ===
-// =============================
+// =========================
+// === UpsertSecretModal ===
+// =========================
 
-/** Props for a {@link NewDataConnectorModal}. */
-export interface NewDataConnectorModalProps {
+/** Props for a {@link UpsertSecretModal}. */
+export interface UpsertSecretModalProps {
+    id: backend.SecretId | null
+    name: string | null
     doCreate: (name: string, value: string) => void
 }
 
-/** A modal for confirming the deletion of an asset. */
-export default function NewDataConnectorModal(props: NewDataConnectorModalProps) {
-    const { doCreate } = props
+/** A modal for creating and editing a secret. */
+export default function UpsertSecretModal(props: UpsertSecretModalProps) {
+    const { id, name: nameRaw, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [name, setName] = React.useState('')
+    const [name, setName] = React.useState(nameRaw ?? '')
     const [value, setValue] = React.useState('')
+    const isNameEditable = nameRaw == null
     const canSubmit = Boolean(name && value)
 
     const onSubmit = () => {
@@ -58,13 +62,17 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                     onSubmit()
                 }}
             >
-                <h1 className="relative text-sm font-semibold">New Secret</h1>
+                <h1 className="relative text-sm font-semibold">
+                    {id != null ? 'Edit Secret' : 'New Secret'}
+                </h1>
                 <div className="relative flex">
                     <div className="w-12 h-6 py-1">Name</div>
                     <input
                         autoFocus
-                        placeholder="Enter the name of the data connector"
-                        className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
+                        disabled={!isNameEditable}
+                        placeholder="Enter the name of the secret"
+                        className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
+                        value={name}
                         onInput={event => {
                             setName(event.currentTarget.value)
                         }}
@@ -73,7 +81,7 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                 <div className="relative flex">
                     <div className="w-12 h-6 py-1">Value</div>
                     <input
-                        placeholder="Enter the value of the data connector"
+                        placeholder="Enter the value of the secret"
                         className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
                         onInput={event => {
                             setValue(event.currentTarget.value)
