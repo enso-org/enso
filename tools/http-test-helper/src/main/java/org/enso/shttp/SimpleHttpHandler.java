@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 public abstract class SimpleHttpHandler implements HttpHandler {
-  private final boolean logRequests = true;
+  private final boolean logRequests = false;
 
   @Override
   public final void handle(HttpExchange exchange) throws IOException {

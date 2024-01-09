@@ -70,9 +70,9 @@ public class SecretsHandler implements CloudHandler {
 
   private void createSecret(CloudExchange exchange) throws IOException {
     JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
-    String name = root.get("secretName").asText();
-    String value = root.get("secretValue").asText();
-    String parentId = ROOT;
+    String name = root.get("name").asText();
+    String value = root.get("value").asText();
+    String parentId = root.has("parentDirectoryId") ? root.get("parentDirectoryId").asText() : ROOT;
     String secretId = "secret-" + UUID.randomUUID();
     accessRoot(parentId).put(secretId, new Secret(name, value));
     exchange.sendResponse(200, "");
