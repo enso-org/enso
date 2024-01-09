@@ -1,9 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 spec =
     ## To run this test locally:
@@ -310,11 +313,29 @@ spec =
             uri2.fragment . should_equal "FRAG"
             uri2.to_text . should_equal "https://example.com/path#FRAG"
 
-        Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
-            Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
+        cloud_setup = Cloud_Tests_Setup.prepare
+        cloud_setup.with_prepared_environment <|
+            Test.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+                secret1 = Enso_Secret.create "my_test_secret-4" "My Very Secret Value"
+                secret1.should_succeed
+                Panic.with_finalizer secret1.delete <|
+                    s2 = "Another Secret Value containing Emoji 😊❤️ and ąęś AND [a=b]:[b=c][d=e]++++!?&->#...__(){}@///\\\|%%%100*^, ]]] ==> <br>a"
+                    secret2 = Enso_Secret.create "my_test_secret-5" s2
+                    secret2.should_succeed
+                    Panic.with_finalizer secret2.delete <|
+                        uri = (cloud_setup.httpbin_uri / "get")
+                            . add_query_argument "arg1" secret1
+                            . add_query_argument "arg2" "plain value"
+                            . add_query_argument "arg3" secret2
 
-        Test.specify "should correctly handle user/password set as secret" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
-            Error.throw "TODO: test user/password set as secret"
+                        uri.to_text . should_equal (cloud_setup.httpbin_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
+                        uri.raw_query . should_fail_with Enso_Secret_Error
+
+                        response = uri.fetch
+                        decode_query_params response . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
+
+            Test.specify "should correctly handle user/password set as secret" pending=("TODO") <|
+                Error.throw "TODO: test user/password set as secret"
 
 main = Test_Suite.run_main spec
 
