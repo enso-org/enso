@@ -71,3 +71,23 @@ type Cloud_Tests_Setup
                     Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
     test_token -> Text = "TEST-ENSO-TOKEN-caffee"
+
+## PRIVATE
+   A helper method that retries the action a few times, to allow tests that may fail due to propagation delays to pass.
+   This is needed, because after creating a secret, there is a slight delay before it shows up within `list`.
+   To make tests robust, we add this retry logic.
+with_retries ~action =
+    # Delays are in seconds
+    sleep_time = 0.1
+    total_sleep_delay = 10
+
+    max_iterations = total_sleep_delay / sleep_time
+    go i =
+        Panic.catch Any action caught_panic->
+            # If the iterations are exhausted, we rethrow the panic.
+            if i > max_iterations then Panic.throw caught_panic else
+                if i % 10 == 0 then
+                    IO.println "Still failing after "+i.to_text+" retries."
+                Thread.sleep (1000*sleep_time . floor)
+                @Tail_Call go (i+1)
+    go 1
