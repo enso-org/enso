@@ -1683,6 +1683,7 @@ lazy val runtime = (project in file("engine/runtime"))
       )
     },
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
+      "--add-opens=java.base/java.nio=org.enso.runtime",
       "--add-opens=java.base/java.nio=ALL-UNNAMED"
     )
   )
