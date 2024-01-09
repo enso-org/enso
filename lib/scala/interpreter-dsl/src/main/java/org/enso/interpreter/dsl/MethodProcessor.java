@@ -615,10 +615,10 @@ public class MethodProcessor
             "      "
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " = withWarnings.getValue();");
-        out.println(
-            "      gatheredWarnings ="
-                + " gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode,"
-                + " false));");
+        out.print(
+            """
+            gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode, false));
+      """);
         out.println("    }");
       }
       return true;
