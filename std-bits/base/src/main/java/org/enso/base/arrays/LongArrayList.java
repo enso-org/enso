@@ -52,7 +52,10 @@ public class LongArrayList {
       lastIndex = index;
       storageIndex = getStorageIndex(index);
       if (storageIndex >= backingStorage.size()) {
-        backingStorage.add(new long[backingStorage.get(backingStorage.size() - 1).length * (storageIndex == 1 ? 1 : 2)]);
+        backingStorage.add(
+            new long
+                [backingStorage.get(backingStorage.size() - 1).length
+                    * (storageIndex == 1 ? 1 : 2)]);
       }
     } finally {
       lock.unlock();
@@ -66,7 +69,8 @@ public class LongArrayList {
     long[] result = new long[lastIndex + 1];
     for (int i = 0; i < backingStorage.size(); i++) {
       long[] store = backingStorage.get(i);
-      int toCopy = i < backingStorage.size() - 1 ? store.length : lastIndex - (i == 0 ? 0 : store.length);
+      int toCopy =
+          i < backingStorage.size() - 1 ? store.length : lastIndex - (i == 0 ? 0 : store.length);
       System.arraycopy(store, 0, result, i == 0 ? 0 : store.length, toCopy);
     }
     return result;
