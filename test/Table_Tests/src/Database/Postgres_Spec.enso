@@ -29,6 +29,9 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
+import enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
 postgres_specific_spec connection db_name setup =
     Test.group "[PostgreSQL] Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
@@ -587,6 +590,16 @@ table_spec =
 
             Transaction_Spec.spec connection "[PostgreSQL] "
             Upload_Spec.spec connection_builder "[PostgreSQL] "
+
+            cloud_setup = Cloud_Tests_Setup.prepare
+            cloud_setup.with_prepared_environment <| Test.group "[PostgreSQL] Secrets in connection settings" <|
+                Test.specify "should allow to set up a connection with the password passed as a secret" <|
+                    secret_password = Enso_Secret.create "my_postgres_password" db_password
+                    secret_password.should_succeed
+                    Panic.with_finalizer secret_password.delete <| with_retries <|
+                        connection = Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Secret db_user secret_password))
+                        connection.should_succeed
+                        connection.tables . should_be_a Table
 
 create_connection_builder =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"

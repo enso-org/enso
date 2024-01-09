@@ -359,12 +359,13 @@ spec =
                         . set_user_info secret1 "pass"
                     uri2.to_text . should_equal ("https://__SECRET__:pass@example.com/")
 
-                    uri3 = (cloud_setup.httpbin_uri / "get")
-                        . set_user_info "my_user" secret1
-                    r1 = uri3.fetch
-                    # The user info shall be turned into a header:
-                    base64 = (Base64.getEncoder.encodeToString ("my_user:My Password".bytes Encoding.utf_8))
-                    r1.headers.at "Authorization" . should_equal "Basic "+base64
+                    with_retries <|
+                        uri3 = (cloud_setup.httpbin_uri / "get")
+                            . set_user_info "my_user" secret1
+                        r1 = uri3.fetch
+                        # The user info shall be turned into a header:
+                        base64 = (Base64.getEncoder.encodeToString ("my_user:My Password".bytes Encoding.utf_8))
+                        r1.headers.at "Authorization" . should_equal "Basic "+base64
 
             # TODO what to do about HTTPS/HTTP???
             Test.specify "does not allow secrets in non-https requests" <|
