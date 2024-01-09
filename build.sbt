@@ -497,6 +497,7 @@ val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
+val apacheArrowVersion      = "14.0.1"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -1493,7 +1494,7 @@ lazy val `runtime-language-arrow` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided"
       )
     )
 
@@ -1586,7 +1587,9 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
-      "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test,
+      "org.apache.arrow"     % "arrow-vector"            % apacheArrowVersion        % Test,
+      "org.apache.arrow"     % "arrow-memory-netty"      % apacheArrowVersion        % Test
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
@@ -1679,7 +1682,9 @@ lazy val runtime = (project in file("engine/runtime"))
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
-    Test / javaOptions ++= testLogProviderOptions
+    Test / javaOptions ++= testLogProviderOptions ++ Seq(
+      "--add-opens=java.base/java.nio=ALL-UNNAMED"
+    )
   )
   .settings(
     Test / fork := true,

@@ -110,7 +110,13 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
       }
       var size = interop.asInt(args[1]);
       var targetSize = size * unit.sizeInBytes();
-      ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
+      ByteBuffer buffer = null;
+      try {
+        buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
+      } catch (Throwable ex) {
+        ex.printStackTrace();
+        throw ex;
+      }
       buffer.order(ByteOrder.LITTLE_ENDIAN);
       if (args.length == 3) {
         if (!interop.isNumber(args[2]) || !interop.fitsInLong(args[2])) {
