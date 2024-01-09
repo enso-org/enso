@@ -131,7 +131,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                         onClick={event => {
                             event.preventDefault()
                             event.stopPropagation()
-                            setQuery(oldQuery => 
+                            setQuery(oldQuery =>
                                 assetQuery.toggleLabel(oldQuery, label, event.shiftKey)
                             )
                         }}

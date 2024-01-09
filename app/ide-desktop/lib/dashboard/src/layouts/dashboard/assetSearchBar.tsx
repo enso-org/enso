@@ -2,10 +2,11 @@
 import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
-import * as assetQuery from '#/utilities/assetQuery'
+
 import type * as backend from '#/services/backend'
-import * as shortcuts from '#/utilities/shortcuts'
 import * as array from '#/utilities/array'
+import * as assetQuery from '#/utilities/assetQuery'
+import * as shortcuts from '#/utilities/shortcuts'
 
 import Label from '#/components/dashboard/Label'
 
