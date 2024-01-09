@@ -13,7 +13,6 @@ import * as download from '../../download'
 import * as drag from '../drag'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
-import * as identity from '../identity'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
 import * as set from '../set'
@@ -401,7 +400,8 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case assetEventModule.AssetEventType.deleteLabel: {
                 setAsset(oldAsset => {
-                    let found = identity.identity<boolean>(false)
+                    // The IIFE is required to prevent TypeScript from narrowing this value.
+                    let found = (() => false)()
                     const labels =
                         oldAsset.labels?.filter(label => {
                             if (label === event.labelName) {
