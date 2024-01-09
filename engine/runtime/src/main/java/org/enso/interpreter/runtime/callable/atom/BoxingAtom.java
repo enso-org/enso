@@ -13,7 +13,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 public class BoxingAtom extends Atom {
   private final Object[] fields;
 
-  public BoxingAtom(AtomConstructor constructor, Object... fields) {
+  BoxingAtom(AtomConstructor constructor, Object... fields) {
     super(constructor);
     this.fields = fields;
   }
