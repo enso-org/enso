@@ -525,7 +525,7 @@ impl RunContext {
         }
 
 
-        for enso_java in [None, Some("espresso"), None] {
+        for enso_java in [None, Some("espresso")] {
             let factorial_input = "6";
             let factorial_expected_output = "720";
             if build_native_runner {
