@@ -172,13 +172,14 @@ public class LazyAtomFieldTest extends TestBase {
             + typeDefinition
             + """
 
-      main ignore =
+      create ignore =
         fbl = Num.new
         f = fbl.num
         n = fbl.num
         [ f, n ]
       """;
-    var tupple = evalCode(code, "main");
+    var create = evalCode(code, "create");
+    var tupple = create.execute(0);
 
     assertEquals("Two values", 2, tupple.getArraySize());
     var first = tupple.getArrayElement(0).asInt();
