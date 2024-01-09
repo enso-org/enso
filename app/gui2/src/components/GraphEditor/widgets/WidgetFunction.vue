@@ -162,10 +162,10 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         return true
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      edit.takeAndReplaceRef(argApp.appTree.exprId, (appTree) =>
+      const newAppTree = edit.takeAndReplaceRef(argApp.appTree.exprId, (appTree) =>
         Ast.App.new(appTree, name, newArg, edit),
       )
-      props.onUpdate(argApp.appTree, argApp.appTree.exprId)
+      props.onUpdate(newAppTree, argApp.appTree.exprId)
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
@@ -191,46 +191,37 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         // Since the update of this kind can affect following arguments, it may be necessary to
         // replace the AST for multiple levels of application.
 
-        // The unmodified LHS subtree of the subtree that is being replaced.
-        let innerBound: Ast.Ast | undefined
-        // The top level of the subtree that is being replaced.
-        let outerBound = argApp.appTree
-        const edit = outerBound.module.edit()
-        // The levels of the application tree to apply to `innerBound` to yield the new `outerBound` expression.
+        const edit = argApp.appTree.module.edit()
         const newArgs: { name: string | null; value: Ast.Owned<Ast.Ast> }[] = []
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
-        for (let innerApp of app.iterApplications()) {
-          if (innerApp === argApp) {
+        for (let innerApp of [...app.iterApplications()]) {
+          if (innerApp.appTree.exprId === argApp.appTree.exprId) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
-            innerBound = argApp.appTree.function
-            break
+            const appId = argApp.appTree.exprId
+            const newFunction = edit.take(argApp.appTree.function.exprId)?.node
+            props.onUpdate(newFunction, argApp.appTree.exprId)
+            return true
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
             const infoName = innerApp.argument.argInfo?.name ?? null
             if (newArgs.length || (!innerApp.appTree.argumentName && infoName)) {
               // Positional arguments following the deleted argument must all be rewritten to named.
-              newArgs.unshift({
-                name: infoName,
-                value: edit.take(innerApp.appTree.argument.exprId)!.node,
+              edit.takeAndReplaceValue(innerApp.appTree.exprId, (app) => {
+                assert(app instanceof Ast.App)
+                const func = edit.take(app.function.exprId)?.node
+                const arg = edit.take(app.argument.exprId)?.node
+                assert(!!func)
+                assert(!!arg)
+                return Ast.App.new(func, infoName, arg, edit)
               })
             } else {
               // We haven't reached the subtree that needs to be modified yet.
-              outerBound = innerApp.appTree
             }
           }
         }
-        assert(innerBound !== undefined)
-        let newAst = innerBound
-        for (const arg of newArgs) {
-          newAst = edit.takeAndReplaceRef(newAst.exprId, (newAst) =>
-            Ast.App.new(newAst, arg.name, arg.value, edit),
-          )
-        }
-        props.onUpdate(newAst, outerBound.exprId)
-        return true
       } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
         /* Case: Removing placeholder value. */
         // Do nothing. The argument already doesn't exist, so there is nothing to update.

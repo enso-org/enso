@@ -174,12 +174,19 @@ export class MutableModule implements Module {
     if (!node) return
     return { node, placeholder }
   }
-  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
-    const node = this.get(target)
-    assert(!!node)
-    const node_ = asOwned(node!)
-    const replacement = wrap(node_)
-    this.replaceRef(target, replacement)
+  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Owned<Ast> {
+    const taken = this.take(target)
+    assert(!!taken)
+    const replacement = wrap(taken.node)
+    this.replaceRef(taken.placeholder.exprId, replacement)
+    return replacement
+  }
+
+  takeAndReplaceValue(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Owned<Ast> {
+    const taken = this.take(target)
+    assert(!!taken)
+    const replacement = wrap(taken.node)
+    this.replaceValue(taken.placeholder.exprId, replacement)
     return replacement
   }
 
