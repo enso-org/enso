@@ -19,13 +19,13 @@ use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::paths::ENSO_DATA_DIRECTORY;
+use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
-use ide_ci::define_env_var;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::sbt;
