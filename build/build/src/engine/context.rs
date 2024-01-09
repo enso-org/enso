@@ -526,9 +526,6 @@ impl RunContext {
 
 
         for enso_java in [None, Some("espresso"), None] {
-            define_env_var! {
-                ENSO_JAVA, String;
-            }
             let factorial_input = "6";
             let factorial_expected_output = "720";
             if build_native_runner {

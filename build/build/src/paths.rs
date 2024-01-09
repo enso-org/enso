@@ -33,6 +33,7 @@ ide_ci::define_env_var! {
     /// If Enso-specific assertions should be enabled.
     ENSO_ENABLE_ASSERTIONS, String;
 
+    /// Can be set to `"espresso"` to enable Espresso interpreter support.
     ENSO_JAVA, String;
 }
 
