@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 
 import project.Connection.Database
 import project.Connection.SQLite_Details.SQLite_Details
@@ -12,16 +12,19 @@ type SQLite_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> SQLite_Format | Nothing
-    for_file_read file:File_For_Read =
+    for_read : File_Format_Metadata -> SQLite_Format | Nothing
+    for_read file:File_Format_Metadata =
         expected_header = magic_header_string
         got_header = file.read_first_bytes expected_header.length
         if got_header == expected_header then SQLite_Format.For_File else
             ## To allow for reading a SQLite file by extension if we cannot read the file header.
-            if got_header.is_nothing.not then Nothing else case file.extension of
-                ".db" -> SQLite_Format.For_File
-                ".sqlite" -> SQLite_Format.For_File
-                _ -> Nothing
+               If we were able to read the header and it is invalid - we do not try the extension,
+               because later the read will fail anyway due to bad format.
+            if got_header.is_nothing.not then Nothing else
+                case file.guess_extension of
+                    ".db" -> SQLite_Format.For_File
+                    ".sqlite" -> SQLite_Format.For_File
+                    _ -> Nothing
 
     ## PRIVATE
        If the File_Format supports writing to the file, return a configured instance.
@@ -31,14 +34,6 @@ type SQLite_Format
             ".db" -> SQLite_Format.For_File
             ".sqlite" -> SQLite_Format.For_File
             _ -> Nothing
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> SQLite_Format | Nothing
-    for_web content_type uri =
-        ## Currently not loading SQLite files automatically.
-        _ = [content_type, uri]
-        Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

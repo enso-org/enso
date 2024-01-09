@@ -4,12 +4,12 @@ import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { ForcePort, injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
@@ -69,12 +69,12 @@ const randomUuid = uuidv4() as PortId
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
-  return portIdOfInput(props.input) ?? (`RAND-${randomUuid}` as PortId)
+  return props.input.portId
 })
 
-const innerWidget = computed(() =>
-  props.input instanceof ForcePort ? props.input.inner : props.input,
-)
+const innerWidget = computed(() => {
+  return { ...props.input, forcePort: false }
+})
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
@@ -110,55 +110,37 @@ function updateRect() {
 </script>
 
 <script lang="ts">
-function portIdOfInput(input: unknown): PortId | undefined {
-  return input instanceof AnyWidget
-    ? input.portId
-    : input instanceof ForcePort && input.inner.ast != null
-    ? (input.inner.ast.exprId as string as PortId)
-    : input instanceof ArgumentPlaceholder || input instanceof ArgumentAst
-    ? input.portId
-    : undefined
-}
-
-export const widgetDefinition = defineWidget(
-  [ForcePort, AnyWidget.matchAst, ArgumentAst, ArgumentPlaceholder],
-  {
-    priority: 0,
-    score: (props, _db) => {
-      const portInfo = injectPortInfo(true)
-      const ast =
-        props.input instanceof ArgumentPlaceholder
-          ? undefined
-          : props.input instanceof ForcePort
-          ? props.input.inner.ast
-          : props.input.ast
-      if (portInfo != null && portInfo.portId === ast?.exprId) {
-        return Score.Mismatch
-      }
-
-      if (
-        props.input instanceof ForcePort ||
-        props.input instanceof ArgumentAst ||
-        props.input instanceof ArgumentPlaceholder
-      )
-        return Score.Perfect
-
-      if (
-        props.input.ast instanceof Ast.Invalid ||
-        props.input.ast instanceof Ast.BodyBlock ||
-        props.input.ast instanceof Ast.Group ||
-        props.input.ast instanceof Ast.NumericLiteral ||
-        props.input.ast instanceof Ast.OprApp ||
-        props.input.ast instanceof Ast.UnaryOprApp ||
-        props.input.ast instanceof Ast.Wildcard ||
-        props.input.ast instanceof Ast.TextLiteral
-      )
-        return Score.Perfect
-
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 0,
+  score: (props, _db) => {
+    const portInfo = injectPortInfo(true)
+    const value = props.input.value
+    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.exprId) {
       return Score.Mismatch
-    },
+    }
+
+    if (
+      props.input.forcePort ||
+      WidgetInput.isPlaceholder(props.input) ||
+      props.input[ArgumentInfoKey] != undefined
+    )
+      return Score.Perfect
+
+    if (
+      props.input.value instanceof Ast.Invalid ||
+      props.input.value instanceof Ast.BodyBlock ||
+      props.input.value instanceof Ast.Group ||
+      props.input.value instanceof Ast.NumericLiteral ||
+      props.input.value instanceof Ast.OprApp ||
+      props.input.value instanceof Ast.UnaryOprApp ||
+      props.input.value instanceof Ast.Wildcard ||
+      props.input.value instanceof Ast.TextLiteral
+    )
+      return Score.Perfect
+
+    return Score.Mismatch
   },
-)
+})
 </script>
 
 <template>

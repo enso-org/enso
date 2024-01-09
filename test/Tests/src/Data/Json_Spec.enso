@@ -164,6 +164,20 @@ spec =
             obj1 . should_not_equal <| JS_Object.from_pairs [["a", 43], ["b", 123]]
             obj1 . should_not_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",3]]]]
 
+        Test.specify "should be able to set values" <|
+            obj = JS_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
+            obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
+            obj.set_value "foo" "asdf" . to_json . should_equal '{"foo":"asdf","baz":"quux"}'
+            obj.set_value "baz" "zxcv" . to_json . should_equal '{"foo":"bar","baz":"zxcv"}'
+            obj.set_value "abc" "def" . to_json . should_equal '{"foo":"bar","baz":"quux","abc":"def"}'
+
+        Test.specify "set_value does not modify the original object" <|
+            obj = JS_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
+            obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
+            modified = obj.set_value "foo" "asdf"
+            modified.to_json . should_equal '{"foo":"asdf","baz":"quux"}'
+            obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
+
     Test.group "JSON" <|
         Test.specify "should allow getting object fields" <|
             object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'

@@ -3,8 +3,9 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
+import org.enso.logger.ReportLogsOnFailure
 
-class SessionManagementTest extends BaseServerTest {
+class SessionManagementTest extends BaseServerTest with ReportLogsOnFailure {
 
   "A server" when {
 

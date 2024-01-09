@@ -17,6 +17,7 @@ import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSearchBar from './assetSearchBar'
 import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
@@ -44,6 +45,9 @@ export interface DriveProps {
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    labels: backendModule.Label[]
+    setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
@@ -71,6 +75,7 @@ export default function Drive(props: DriveProps) {
         queuedAssetEvents,
         query,
         setQuery,
+        setSuggestions,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
@@ -88,7 +93,6 @@ export default function Drive(props: DriveProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const { modal } = modalProvider.useModal()
     const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
@@ -98,7 +102,6 @@ export default function Drive(props: DriveProps) {
             categorySwitcher.Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-    // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
         new Set<backendModule.LabelName>()
@@ -107,12 +110,17 @@ export default function Drive(props: DriveProps) {
         () => new Map(labels.map(label => [label.value, label])),
         [labels]
     )
+    const rootDirectoryId = React.useMemo(
+        () => backend.rootDirectoryId(organization),
+        [backend, organization]
+    )
+    const isCloud = backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
-        if (modal != null) {
+        if (modalRef.current != null) {
             setIsFileBeingDragged(false)
         }
-    }, [modal])
+    }, [/* should never change */ modalRef])
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -133,7 +141,7 @@ export default function Drive(props: DriveProps) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend, organization?.isEnabled])
+    }, [backend, organization?.isEnabled, /* should never change */ setLabels])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -143,13 +151,19 @@ export default function Drive(props: DriveProps) {
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentKey: null,
-                    parentId: null,
+                    parentKey: rootDirectoryId,
+                    parentId: rootDirectoryId,
                     files,
                 })
             }
         },
-        [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
+        [
+            backend,
+            organization,
+            rootDirectoryId,
+            toastAndLog,
+            /* should never change */ dispatchAssetListEvent,
+        ]
     )
 
     const doCreateProject = React.useCallback(
@@ -159,22 +173,22 @@ export default function Drive(props: DriveProps) {
         ) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newProject,
-                parentKey: null,
-                parentId: null,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
             type: assetListEventModule.AssetListEventType.newFolder,
-            parentKey: null,
-            parentId: null,
+            parentKey: rootDirectoryId,
+            parentId: rootDirectoryId,
         })
-    }, [/* should never change */ dispatchAssetListEvent])
+    }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
 
     const doCreateLabel = React.useCallback(
         async (value: string, color: backendModule.LChColor) => {
@@ -204,13 +218,13 @@ export default function Drive(props: DriveProps) {
                     new Set([...labelNames].filter(labelName => labelName !== newLabelName))
             )
         },
-        [backend, /* should never change */ toastAndLog]
+        [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
     )
 
     const doDeleteLabel = React.useCallback(
         async (id: backendModule.TagId, value: backendModule.LabelName) => {
             setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-            setQuery(oldQuery => oldQuery.delete({ labels: [value] }))
+            setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
@@ -230,6 +244,7 @@ export default function Drive(props: DriveProps) {
             /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
+            /* should never change */ setLabels,
         ]
     )
 
@@ -237,13 +252,13 @@ export default function Drive(props: DriveProps) {
         (name: string, value: string) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newDataConnector,
-                parentKey: null,
-                parentId: null,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
                 name,
                 value,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     React.useEffect(() => {
@@ -357,6 +372,7 @@ export default function Drive(props: DriveProps) {
                     setQuery={setQuery}
                     category={category}
                     allLabels={allLabels}
+                    setSuggestions={setSuggestions}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     deletedLabelNames={deletedLabelNames}
@@ -375,9 +391,7 @@ export default function Drive(props: DriveProps) {
                     isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
             </div>
-            {isFileBeingDragged &&
-            organization != null &&
-            backend.type === backendModule.BackendType.remote ? (
+            {isFileBeingDragged && organization != null && isCloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
                     onDragLeave={() => {
@@ -391,8 +405,8 @@ export default function Drive(props: DriveProps) {
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentKey: null,
-                            parentId: null,
+                            parentKey: rootDirectoryId,
+                            parentId: rootDirectoryId,
                             files: Array.from(event.dataTransfer.files),
                         })
                     }}

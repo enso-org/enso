@@ -330,6 +330,18 @@ export interface UpdatedDirectory {
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
 
+/** The subset of asset fields returned by the "copy asset" endpoint. */
+export interface CopiedAsset {
+    id: AssetId
+    parentId: DirectoryId
+    title: string
+}
+
+/** The type returned from the "copy asset" endpoint. */
+export interface CopyAssetResponse {
+    asset: CopiedAsset
+}
+
 /** Possible filters for the "list directory" endpoint. */
 export enum FilterBy {
     all = 'All',
@@ -490,6 +502,25 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
+export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link DirectoryAsset} representing the root directory for the organization,
+ * with all irrelevant fields initialized to default values. */
+export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
+    return {
+        type: AssetType.directory,
+        title: '(root)',
+        id: directoryId,
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: DirectoryId(''),
+        permissions: [],
+        projectState: null,
+        labels: [],
+        description: null,
+    }
+}
+
 /** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
  * values. */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
@@ -505,9 +536,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         description: null,
     }
 }
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
 
 /** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
  * values. */
@@ -537,6 +565,46 @@ export type AnyAsset =
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
+}
+
+/** Creates a new placeholder asset id for the given asset type. */
+export function createPlaceholderAssetId<Type extends AssetType>(
+    type: Type,
+    id?: string
+): IdType[Type] {
+    // This is required so that TypeScript can check the `switch` for exhaustiveness.
+    const assetType: AssetType = type
+    id ??= uniqueString.uniqueString()
+    let result: AssetId
+    switch (assetType) {
+        case AssetType.directory: {
+            result = DirectoryId(id)
+            break
+        }
+        case AssetType.project: {
+            result = ProjectId(id)
+            break
+        }
+        case AssetType.file: {
+            result = FileId(id)
+            break
+        }
+        case AssetType.secret: {
+            result = SecretId(id)
+            break
+        }
+        case AssetType.specialLoading: {
+            result = LoadingAssetId(id)
+            break
+        }
+        case AssetType.specialEmpty: {
+            result = EmptyAssetId(id)
+            break
+        }
+    }
+    // This is SAFE, just too complex for TypeScript to correctly typecheck.
+    // eslint-disable-next-line no-restricted-syntax
+    return result as IdType[Type]
 }
 
 // These are functions, and so their names should be camelCase.
@@ -797,6 +865,13 @@ export abstract class Backend {
     abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Restore an arbitrary asset from the trash. */
     abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
+    /** Copy an arbitrary asset to another directory. */
+    abstract copyAsset(
+        assetId: AssetId,
+        parentDirectoryId: DirectoryId,
+        title: string | null,
+        parentDirectoryTitle: string | null
+    ): Promise<CopyAssetResponse>
     /** Return a list of projects belonging to the current user. */
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */

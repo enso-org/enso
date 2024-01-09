@@ -12,6 +12,7 @@ import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from './events/assetEvent'
+import * as assetQuery from '../assetQuery'
 import type * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backendModule from './backend'
@@ -19,6 +20,7 @@ import * as backendProvider from '../providers/backend'
 import * as dateTime from './dateTime'
 import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
+import * as object from '../object'
 import * as permissions from './permissions'
 import * as shortcuts from './shortcuts'
 import * as sorting from './sorting'
@@ -184,7 +186,6 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )
@@ -194,27 +195,19 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                oldItem.with({
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
     return (
-        <div
-            className="flex items-center gap-1"
-            onMouseEnter={() => {
-                setIsHovered(true)
-            }}
-            onMouseLeave={() => {
-                setIsHovered(false)
-            }}
-        >
+        <div className="group flex items-center gap-1">
             {(asset.permissions ?? []).map(user => (
                 <PermissionDisplay key={user.user.pk} action={user.permission}>
                     {user.user.user_name}
@@ -222,7 +215,7 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
+                    className="h-4 w-4 invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
@@ -275,14 +268,14 @@ function LabelsColumn(props: AssetColumnProps) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                oldItem.with({
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
@@ -301,14 +294,11 @@ function LabelsColumn(props: AssetColumnProps) {
                 .map(label => (
                     <Label
                         key={label}
+                        title="Right click to remove label."
                         color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
                         active={!temporarilyRemovedLabels.has(label)}
                         disabled={temporarilyRemovedLabels.has(label)}
-                        className={
-                            temporarilyRemovedLabels.has(label)
-                                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
-                                : ''
-                        }
+                        negated={temporarilyRemovedLabels.has(label)}
                         onContextMenu={event => {
                             event.preventDefault()
                             event.stopPropagation()
@@ -327,13 +317,12 @@ function LabelsColumn(props: AssetColumnProps) {
                                                     oldLabel => oldLabel === label
                                                 ) === true
                                                     ? oldAsset2
-                                                    : {
-                                                          ...oldAsset2,
+                                                    : object.merge(oldAsset2, {
                                                           labels: [
                                                               ...(oldAsset2.labels ?? []),
                                                               label,
                                                           ],
-                                                      }
+                                                      })
                                             )
                                         })
                                     return {
@@ -357,9 +346,7 @@ function LabelsColumn(props: AssetColumnProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             setQuery(oldQuery =>
-                                oldQuery.labels.includes(label)
-                                    ? oldQuery.delete({ labels: [label] })
-                                    : oldQuery.add({ labels: [label] })
+                                assetQuery.toggleLabel(oldQuery, label, event.shiftKey)
                             )
                         }}
                     >
