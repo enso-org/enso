@@ -386,13 +386,22 @@ test('Insert new expression', () => {
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
 
-test('Modify subexpression', () => {
+type SimpleModule = {
+  root: Ast.BodyBlock
+  assignment: Ast.Assignment
+}
+function simpleModule(): SimpleModule {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root.module, 'main')!
   expect(main).not.toBeNull()
   const assignment: Ast.Assignment = main.statements().next().value
   expect(assignment).toBeInstanceOf(Ast.Assignment)
+  return { root, assignment }
+}
+
+test('Modify subexpression', () => {
+  const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
@@ -406,12 +415,7 @@ test('Modify subexpression', () => {
 })
 
 test('Replace subexpression', () => {
-  const code = 'main =\n    text1 = "foo"\n'
-  const root = Ast.parseBlock(code)
-  const main = Ast.functionBlock(root.module, 'main')!
-  expect(main).not.toBeNull()
-  const assignment: Ast.Assignment = main.statements().next().value
-  expect(assignment).toBeInstanceOf(Ast.Assignment)
+  const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
@@ -423,6 +427,21 @@ test('Replace subexpression', () => {
   expect(edit.get(assignment_.expression!.exprId)?.code()).toBe("'bar'")
   const printed = root.code(edit)
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
+})
+
+test('Change ID of node', () => {
+  const { root, assignment } = simpleModule()
+  expect(assignment.expression).not.toBeNull()
+  const edit = root.module.edit()
+  const expression = edit.takeValue(assignment.expression!.exprId)!
+  expect(expression.code()).toBe('"foo"')
+  edit.replaceRef(assignment.expression!.exprId, expression)
+  const assignment_ = edit.get(assignment.exprId)!
+  assert(assignment_ instanceof Ast.Assignment)
+  expect(assignment_.expression!.exprId).not.toBe(assignment.expression!.exprId)
+  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe('"foo"')
+  const printed = root.code(edit)
+  expect(printed).toEqual('main =\n    text1 = "foo"\n')
 })
 
 test('Delete expression', () => {

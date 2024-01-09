@@ -373,9 +373,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot commit edit: No module root.`)
       return
     }
-    const ast = edit.get(root)
-    if (!ast) return
-    const printed = Ast.print(ast.exprId, edit)
+    const printed = Ast.print(root, edit)
     const module_ = proj.module
     if (!module_) return
     if (moduleDirty) {

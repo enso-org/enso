@@ -1,5 +1,5 @@
 import * as RawAst from '@/generated/ast'
-import { assert } from '@/util/assert'
+import { assert, assertEqual } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { Opt } from '@/util/data/opt'
@@ -126,39 +126,34 @@ export class MutableModule implements Module {
 
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
   replaceRef(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
-    const old_ = this.get(target)
-    const old = old_ ? asOwned(old_) : undefined
+    const old = this.get(target)
     if (!old || replacement.exprId === target) {
-      this.replaceValue(target, replacement)
+      return this.replaceValue(target, replacement)
     } else {
       assert(!!old.parent)
       const parentSomewhere = this.get(old.parent)
-      if (!parentSomewhere) {
-        this.splice(replacement)
-        return old
-      }
-      this.splice(parentSomewhere)
-      const parent = this.nodes.get(old.parent)
-      assert(!!parent)
-      if (parent) {
-        let foundChildInParent = false
-        for (const child of parent.concreteChildren()) {
-          if (!(child.node instanceof Token)) {
-            if (child.node === target) {
-              child.node = makeChild(this, replacement, parent.exprId)
-              foundChildInParent = true
-              break
-            }
-          }
+      assert(!!parentSomewhere)
+      const parent = this.splice(parentSomewhere)
+      let foundChildInParent = false
+      for (const child of parent.concreteChildren()) {
+        if (child.node === target) {
+          child.node = makeChild(this, replacement, parent.exprId)
+          foundChildInParent = true
+          break
         }
-        assert(foundChildInParent)
-        for (const child of parent.concreteChildren()) assert(child.node !== target)
       }
+      assert(foundChildInParent)
+      for (const child of parent.concreteChildren()) assert(child.node !== target)
+      const old_ = this.splice(old)
+      old_.parent = undefined
+      return asOwned(old_)
     }
-    return old
   }
-  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.) */
-  replaceValue(target: AstId, replacement: Owned<Ast>) {
+
+  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
+   *  Returns the old value, with a new (unreferenced) ID.
+   */
+  replaceValue(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
     const old = this.get(target)
     replacement.parent = old?.parent
     if (replacement.exprId !== target || replacement.module !== this) {
@@ -166,7 +161,17 @@ export class MutableModule implements Module {
     } else {
       this.nodes.set(target, replacement)
     }
+    if (replacement.module === this && replacement.exprId !== target)
+      this.nodes.delete(replacement.exprId)
+    if (old) {
+      const old_ = this.splice(old, newAstId())
+      old_.parent = undefined
+      return asOwned(old_)
+    } else {
+      return undefined
+    }
   }
+
   /** Replace the parent of `target`'s reference to it with a reference to a new placeholder object. Return `target`. */
   take(target: AstId): { node: Owned<Ast>; placeholder: Wildcard } | undefined {
     const placeholder = Wildcard.new(this)
@@ -175,12 +180,11 @@ export class MutableModule implements Module {
     return { node, placeholder }
   }
 
-  takeValue(target: AstId): { node: Owned<Ast>; placeholder: Ast } | undefined {
-    const placeholder = Wildcard.new(this)
-    const old = this.splice(this.get(target), placeholder.exprId)
-    if (old) old.parent = undefined
-    this.replaceValue(target, placeholder)
-    return { node: asOwned(old), placeholder: this.get(target)! }
+  /** Replace the value assigned to the given ID with a placeholder.
+   *  Returns the removed value, with a new unreferenced ID.
+   **/
+  takeValue(target: AstId): Owned<Ast> | undefined {
+    return this.replaceValue(target, Wildcard.new(this))
   }
 
   takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
@@ -191,21 +195,29 @@ export class MutableModule implements Module {
     return replacement
   }
 
+  takeAndReplaceValue(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
+    const taken = this.takeValue(target)
+    assert(!!taken)
+    const replacement = wrap(taken)
+    this.replaceValue(target, replacement)
+    return this.get(target)!
+  }
+
   /** Copy the given node and all its descendants into this module. */
   splice(ast: Ast, id?: AstId): Ast
   splice(ast: Ast | null, id?: AstId): Ast | null
   splice(ast: Ast | undefined, id?: AstId): Ast | undefined
   splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
     if (!ast) return ast
-    ast.parent
-    if (ast.module === this && !id) return ast
     const id_ = id ?? ast.exprId
+    if (ast.module === this && this.nodes.get(id_) === ast) return ast
     const ast_ = ast.cloneWithId(this, id_)
     for (const child of ast_.concreteChildren()) {
       if (!(child.node instanceof Token)) {
         const childInForeignModule = ast.module.get(child.node)
         assert(childInForeignModule !== null)
-        this.splice(childInForeignModule)
+        const child_ = this.splice(childInForeignModule)
+        child_.parent = id_
       }
     }
     this.nodes.set(id_, ast_)
@@ -405,9 +417,15 @@ export abstract class Ast {
         info.tokens.set(span, child.node.exprId)
         code += tokenCode
       } else {
-        code += module_
-          .get(child.node)!
-          .printSubtree(info, offset + code.length, parentIndent, moduleOverride)
+        const childNode = module_.get(child.node)
+        assert(childNode != null)
+        code += childNode.printSubtree(info, offset + code.length, parentIndent, moduleOverride)
+        // Extra structural validation.
+        assertEqual(childNode.exprId, child.node)
+        if (childNode.parent !== this.exprId) {
+          console.error(`Inconsistent parent pointer (expected ${this.exprId})`, childNode)
+        }
+        assertEqual(childNode.parent, this.exprId)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -1051,11 +1069,11 @@ export class Assignment extends Ast {
 export class BodyBlock extends Ast {
   private readonly lines_: RawBlockLine[]
 
-  // FIXME
   static new(lines: BlockLine[], module?: MutableModule) {
     const module_ = module ?? MutableModule.Transient()
-    const rawLines = lines.map((line) => lineToRaw(line, module_))
-    return asOwned(new BodyBlock(module_, undefined, rawLines))
+    const id = newAstId()
+    const rawLines = lines.map((line) => lineToRaw(line, module_, id))
+    return asOwned(new BodyBlock(module_, id, rawLines))
   }
 
   lines(): BlockLine[] {
@@ -1076,7 +1094,8 @@ export class BodyBlock extends Ast {
 
   push(module: MutableModule, node: Ast) {
     const line = { expression: autospaced(makeChild(module, node, this.exprId)) }
-    new BodyBlock(module, this.exprId, [...this.lines_, line])
+    const edited = new BodyBlock(module, this.exprId, [...this.lines_, line])
+    edited.parent = this.parent
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
@@ -1086,7 +1105,8 @@ export class BodyBlock extends Ast {
       expression: unspaced(makeChild(module, node, this.exprId)),
     }))
     const after = this.lines_.slice(index)
-    new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
+    const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
+    edited.parent = this.parent
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1128,9 +1148,10 @@ export class BodyBlock extends Ast {
         }
         const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
         code += validIndent ? line.expression.whitespace : blockIndent
-        code += module_
-          .get(line.expression.node)!
-          .printSubtree(info, offset + code.length, blockIndent, moduleOverride)
+        const lineNode = module_.get(line.expression.node)!
+        assertEqual(lineNode.exprId, line.expression.node)
+        assertEqual(lineNode.parent, this.exprId)
+        code += lineNode.printSubtree(info, offset + code.length, blockIndent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -1167,14 +1188,13 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   }
 }
 
-function lineToRaw(line: BlockLine, module: MutableModule): RawBlockLine {
-  const expression = module.splice(line.expression?.node)
+function lineToRaw(line: BlockLine, module: MutableModule, block: AstId): RawBlockLine {
   return {
     newline: line.newline,
-    expression: expression
+    expression: line.expression
       ? {
           whitespace: line.expression?.whitespace,
-          node: expression.exprId,
+          node: makeChild(module, line.expression.node, block),
         }
       : null,
   }

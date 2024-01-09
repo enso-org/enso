@@ -14,7 +14,7 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
-import { assert } from '@/util/assert'
+import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
   ArgumentApplication,
@@ -157,10 +157,9 @@ function handleArgUpdate(update: UpdatePayload): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      const oldAppTree = edit.takeValue(app.appTree.exprId)
-      assert(oldAppTree != null)
-      const newAppTree = Ast.App.new(oldAppTree.node, name, newArg, edit)
-      edit.replaceValue(oldAppTree.placeholder.exprId, newAppTree)
+      edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
+        Ast.App.new(oldAppTree, name, newArg, edit),
+      )
       props.onUpdate({ type: 'edit', edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
@@ -202,14 +201,12 @@ function handleArgUpdate(update: UpdatePayload): boolean {
         // replace the AST for multiple levels of application.
 
         const edit = argApp.appTree.module.edit()
-        const newArgs: { name: string | null; value: Ast.Owned<Ast.Ast> }[] = []
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
         for (let innerApp of [...app.iterApplications()]) {
           if (innerApp.appTree.exprId === argApp.appTree.exprId) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
-            const appId = argApp.appTree.exprId
             const newFunction = edit.take(argApp.appTree.function.exprId)?.node
             assert(newFunction != undefined)
             edit.replaceRef(argApp.appTree.exprId, newFunction)
@@ -219,23 +216,17 @@ function handleArgUpdate(update: UpdatePayload): boolean {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
             const infoName = innerApp.argument.argInfo?.name ?? null
-            if (newArgs.length || (!innerApp.appTree.argumentName && infoName)) {
-              // Positional arguments following the deleted argument must all be rewritten to named.
-              edit.takeAndReplaceRef(innerApp.appTree.exprId, (app) => {
-                assert(app instanceof Ast.App)
-                const func = edit.take(app.function.exprId)?.node
-                const arg = edit.take(app.argument.exprId)?.node
-                assert(!!func)
-                assert(!!arg)
-                return Ast.App.new(func, infoName, arg, edit)
-              })
-              props.onUpdate({ type: 'edit', edit })
-              return true
-            } else {
-              // We haven't reached the subtree that needs to be modified yet.
+            // Positional arguments following the deleted argument must all be rewritten to named.
+            if (infoName && !innerApp.appTree.argumentName) {
+              const func = edit.take(innerApp.appTree.function.exprId)?.node
+              const arg = edit.take(innerApp.appTree.argument.exprId)?.node
+              assert(!!func)
+              assert(!!arg)
+              edit.replaceValue(innerApp.appTree.exprId, Ast.App.new(func, infoName, arg, edit))
             }
           }
         }
+        assertUnreachable()
       } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
         /* Case: Removing placeholder value. */
         // Do nothing. The argument already doesn't exist, so there is nothing to update.
