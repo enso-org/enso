@@ -16,10 +16,22 @@ type Suite_Builder
 
     ## Add a group to the builder.
     group : Text -> (Group_Builder -> Any) -> Nothing
-    group self (name:Text) fn =
+    group self (name:Text) (fn : (Group_Builder -> Any)) =
+        self.group_with_setup name (_ -> Nothing) fn
+
+    ## Add a group with a setup function to the builder. The setup function is invoked
+       before every spec and the arguments are provided to the spec. To use the arguments
+       from Group.setup function, use `Group_Builder.specify_with_args` method.
+
+      Arguments:
+      - setup_fn: Function that takes no arguments and provides a value that will be fed into
+                  every test. This function will be invoked before every test.
+
+    group_with_setup : Text -> (Nothing -> Any) -> (Group_Builder -> Any) -> Nothing
+    group_with_setup self (name : Text) (~setup_fn : Any) (build_fn : (Group_Builder -> Any)) =
         b = Vector.new_builder
-        fn (Group_Builder.Impl b)
-        self.builder.append <| Group.Impl name b.to_vector
+        build_fn (Group_Builder.Impl b has_setup=True)
+        self.builder.append <| Group.Impl name (_ -> setup_fn) b.to_vector
 
 
 type Suite

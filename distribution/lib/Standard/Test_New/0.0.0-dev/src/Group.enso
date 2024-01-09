@@ -6,17 +6,31 @@ polyglot java import java.lang.StringBuilder
 
 type Group_Builder
     ## PRIVATE
-    Impl builder
+    Impl builder has_setup=False
 
     ## Specifies a single test.
-    specify : Text -> (Nothing | Text) -> (Nothing -> Any) -> Nothing
-    specify self name ~code pending=Nothing =
+
+       Arguments:
+       - code: A thunk that takes no arguments.
+       - pending: Contains a reason for why the test should be ignored. If Nothing, the test
+                  is not ignored.
+    specify self (name : Text) (~code : Any) (pending : (Text | Nothing) = Nothing) =
         self.builder.append <| Spec.Impl name (_ -> code) pending
-        Nothing
+
+    ## Specifies a single test that takes arguments from Group.setup
+
+       Arguments:
+       - code: Spec function that takes arguments provided by Group.setup method.
+    specify_with_args self (name : Text) (code : (Any -> Any)) (pending : (Text | Nothing) = Nothing) =
+        case self.has_setup of
+            False ->
+                Panic.throw ("specify_with_args can only be used on a group that was created via Group.group_with_setup")
+            True ->
+                self.builder.append <| Spec.Impl name code pending
 
 
 type Group
-    Impl (name : Text) (specs : Vector Spec)
+    Impl (name : Text) (setup : (Nothing -> Any)) (specs : Vector Spec)
 
     to_text self =
         sb = StringBuilder.new

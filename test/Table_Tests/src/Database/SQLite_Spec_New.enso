@@ -94,6 +94,16 @@ create_inmem_connection =
     Database.connect (SQLite In_Memory)
 
 
+setup =
+    enso_project.data.create_directory
+    file = enso_project.data / "transient" / "sqlite_test.db"
+    file.delete_if_exists
+    connection = Database.connect (SQLite file)
+    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+    connection.close
+    Data.Impl file connection
+
+
 suite =
     Test.build suite_builder->
         in_file_prefix = "[SQLite File] "
@@ -102,11 +112,10 @@ suite =
         in_memory_prefix = "[SQLite In-Memory] "
         sqlite_spec suite_builder (_-> create_inmem_connection) in_memory_prefix
 
-        suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
-            data = Data.create
+        suite_builder.group_with_setup "SQLite_Format should allow connecting to SQLite files" setup group_builder->
 
-            group_builder.specify "should recognise a SQLite database file" <|
-                Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
+            group_builder.specify_with_args "should recognise a SQLite database file" args->
+                Auto_Detect.get_reading_format args.file . should_be_a SQLite_Format
 
             group_builder.specify 'should not duplicate warnings' <|
                 c = Database.connect (SQLite In_Memory)
@@ -116,4 +125,6 @@ suite =
                 Warning.get_all t2 . length . should_equal 1
 
 main =
-    suite.group_names
+    suite.print_all
+    regex = Regex.compile "(should recognise a SQLite database file|should not duplicate warnings)"
+    suite.run_with_filter spec_filter=regex
