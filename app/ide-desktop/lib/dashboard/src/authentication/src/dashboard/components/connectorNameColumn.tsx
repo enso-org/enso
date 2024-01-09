@@ -87,16 +87,13 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
                     } else {
                         rowState.setVisibility(visibility.Visibility.faded)
                         try {
-                            const createdSecret = await backend.createSecret({
+                            const id = await backend.createSecret({
                                 parentDirectoryId: asset.parentId,
-                                secretName: asset.title,
-                                secretValue: event.value,
+                                name: asset.title,
+                                value: event.value,
                             })
                             rowState.setVisibility(visibility.Visibility.visible)
-                            setAsset({
-                                ...asset,
-                                id: createdSecret.id,
-                            })
+                            setAsset({ ...asset, id })
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
