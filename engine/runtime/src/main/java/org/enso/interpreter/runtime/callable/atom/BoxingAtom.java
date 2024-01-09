@@ -7,7 +7,7 @@ import com.oracle.truffle.api.library.ExportMessage;
  * A version of {@link org.enso.interpreter.runtime.callable.atom.Atom} that stores its fields in an
  * array of objects. This will be slow most of the time, and is the fallback version of {@link
  * org.enso.interpreter.runtime.callable.atom.Atom}. For a better optimized version, see {@link
- * org.enso.interpreter.runtime.callable.atom.unboxing.UnboxingAtom}.
+ * org.enso.interpreter.runtime.callable.atom.UnboxingAtom}.
  */
 @ExportLibrary(StructsLibrary.class)
 public class BoxingAtom extends Atom {

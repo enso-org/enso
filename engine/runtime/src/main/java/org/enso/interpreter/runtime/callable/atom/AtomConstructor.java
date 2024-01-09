@@ -24,7 +24,6 @@ import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -256,11 +255,11 @@ public final class AtomConstructor implements EnsoObject {
     return constructorFunction;
   }
 
-  public Layout[] getUnboxingLayouts() {
+  final Layout[] getUnboxingLayouts() {
     return unboxingLayouts;
   }
 
-  public Layout getBoxedLayout() {
+  final Layout getBoxedLayout() {
     return boxedLayout;
   }
 

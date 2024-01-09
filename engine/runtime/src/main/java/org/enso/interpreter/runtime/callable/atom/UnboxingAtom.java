@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom.unboxing;
+package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
@@ -8,9 +8,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 /**
  * This is a common superclass for atoms that know their arity and are able to unbox some fields.
