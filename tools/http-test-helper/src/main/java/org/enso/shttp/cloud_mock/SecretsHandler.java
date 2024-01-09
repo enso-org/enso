@@ -75,7 +75,8 @@ public class SecretsHandler implements CloudHandler {
     String parentId = root.has("parentDirectoryId") ? root.get("parentDirectoryId").asText() : ROOT;
     String secretId = "secret-" + UUID.randomUUID();
     accessRoot(parentId).put(secretId, new Secret(name, value));
-    exchange.sendResponse(200, "");
+    String asJson = jsonMapper.writeValueAsString(secretId);
+    exchange.sendResponse(200, asJson);
   }
 
   private void listSecrets(CloudExchange exchange) throws IOException {
