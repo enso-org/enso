@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -51,7 +50,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-      return super.fillMissing(arg, commonType, problemAggregator);
+    return super.fillMissing(arg, commonType, problemAggregator);
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
