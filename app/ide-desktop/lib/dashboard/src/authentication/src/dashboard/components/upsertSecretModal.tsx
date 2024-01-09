@@ -28,6 +28,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
     const [name, setName] = React.useState(nameRaw ?? '')
     const [value, setValue] = React.useState('')
+    const isCreatingSecret = id == null
     const isNameEditable = nameRaw == null
     const canSubmit = Boolean(name && value)
 
@@ -63,7 +64,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                 }}
             >
                 <h1 className="relative text-sm font-semibold">
-                    {id != null ? 'Edit Secret' : 'New Secret'}
+                    {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
                 </h1>
                 <div className="relative flex">
                     <div className="w-12 h-6 py-1">Name</div>
@@ -94,7 +95,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                         type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                     >
-                        Create
+                        {isCreatingSecret ? 'Create' : 'Update'}
                     </button>
                     <button
                         type="button"
