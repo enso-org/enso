@@ -78,6 +78,8 @@ export default function Drive(props: DriveProps) {
         queuedAssetEvents,
         query,
         setQuery,
+        labels,
+        setLabels,
         setSuggestions,
         projectStartupInfo,
         assetListEvents,
@@ -102,7 +104,6 @@ export default function Drive(props: DriveProps) {
     const [category, setCategory] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
     )
-    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
         new Set<backendModule.LabelName>()
