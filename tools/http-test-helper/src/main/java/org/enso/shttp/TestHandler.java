@@ -61,7 +61,7 @@ public class TestHandler extends SimpleHttpHandler {
           }
           response
               .append("    \"")
-              .append(formatHeaderKey(entry.getKey()))
+              .append(entry.getKey())
               .append("\": ")
               .append(formatHeaderValues(entry.getValue()));
         }
@@ -153,17 +153,6 @@ public class TestHandler extends SimpleHttpHandler {
       return matcher.group(1);
     } else {
       return null;
-    }
-  }
-
-  private String formatHeaderKey(String key) {
-    int idx = key.indexOf('-');
-    if (idx != -1 && key.length() >= idx) {
-      return key.substring(0, idx + 1)
-          + key.substring(idx + 1, idx + 2).toUpperCase()
-          + key.substring(idx + 2);
-    } else {
-      return key;
     }
   }
 

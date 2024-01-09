@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.enso.shttp.HttpMethod;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -101,8 +102,8 @@ public class SecretsHandler implements CloudHandler {
     if (secret == null) {
       exchange.sendResponse(404, "Secret not found: " + id);
     } else {
-      // TODO escape
-      exchange.sendResponse(200, '"' + secret.value + '"');
+      String encoded = java.util.Base64.getEncoder().encodeToString(secret.value.getBytes(StandardCharsets.UTF_8));
+      exchange.sendResponse(200, '"' + encoded + '"');
     }
   }
 
