@@ -10,6 +10,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 import java.io.File
@@ -19,7 +20,10 @@ import java.time.{Clock, LocalDate}
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-class VcsManagerTest extends BaseServerTest with FlakySpec {
+class VcsManagerTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override def mkConfig: Config = {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()

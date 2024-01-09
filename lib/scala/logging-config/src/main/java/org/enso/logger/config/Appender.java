@@ -10,7 +10,7 @@ import org.slf4j.event.Level;
  * to do with the recorded log events
  */
 public abstract sealed class Appender
-    permits FileAppender, SocketAppender, SentryAppender, ConsoleAppender {
+    permits ConsoleAppender, FileAppender, MemoryAppender, SentryAppender, SocketAppender {
 
   /**
    * Returns the name of the appender
@@ -37,6 +37,8 @@ public abstract sealed class Appender
           return SentryAppender.parse(config);
         case ConsoleAppender.appenderName:
           return ConsoleAppender.parse(config);
+        case MemoryAppender.appenderName:
+          return MemoryAppender.parse(config);
         default:
           return null;
       }

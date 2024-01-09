@@ -171,7 +171,7 @@ export enum ProjectManagerEvents {
  *
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
-export class ProjectManager extends EventTarget {
+export class ProjectManager {
     private static instance: ProjectManager
     protected id = 0
     protected resolvers = new Map<number, (value: never) => void>()
@@ -180,7 +180,6 @@ export class ProjectManager extends EventTarget {
 
     /** Create a {@link ProjectManager} */
     private constructor(protected readonly connectionUrl: string) {
-        super()
         const firstConnectionStartMs = Number(new Date())
         let lastConnectionStartMs = 0
         let justErrored = false

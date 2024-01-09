@@ -16,6 +16,7 @@ import * as config from '../../config'
 import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
+import * as object from '../../object'
 
 import * as pageSwitcher from './pageSwitcher'
 import Twemoji from './twemoji'
@@ -318,7 +319,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                                         oldThreads.map(thread =>
                                             thread.id !== threadId
                                                 ? thread
-                                                : { ...thread, title: newTitle }
+                                                : object.merge(thread, { title: newTitle })
                                         )
                                     )
                                     sendMessage({
@@ -545,17 +546,14 @@ export default function Chat(props: ChatProps) {
                     }
                     case chat.ChatMessageDataType.serverEditedMessage: {
                         setMessages(
-                            messages.map(otherMessage => {
-                                if (otherMessage.id !== message.id) {
-                                    return otherMessage
-                                } else {
-                                    return {
-                                        ...otherMessage,
-                                        content: message.content,
-                                        editedTimestamp: message.timestamp,
-                                    }
-                                }
-                            })
+                            messages.map(otherMessage =>
+                                otherMessage.id !== message.id
+                                    ? otherMessage
+                                    : object.merge(otherMessage, {
+                                          content: message.content,
+                                          editedTimestamp: message.timestamp,
+                                      })
+                            )
                         )
                         break
                     }
@@ -751,10 +749,9 @@ export default function Chat(props: ChatProps) {
                                 setMessages(oldMessages =>
                                     oldMessages.map(oldMessage =>
                                         oldMessage.id === message.id
-                                            ? {
-                                                  ...message,
+                                            ? object.merge(message, {
                                                   reactions: [...oldMessage.reactions, reaction],
-                                              }
+                                              })
                                             : oldMessage
                                     )
                                 )
@@ -768,12 +765,11 @@ export default function Chat(props: ChatProps) {
                                 setMessages(oldMessages =>
                                     oldMessages.map(oldMessage =>
                                         oldMessage.id === message.id
-                                            ? {
-                                                  ...message,
+                                            ? object.merge(message, {
                                                   reactions: oldMessage.reactions.filter(
                                                       oldReaction => oldReaction !== reaction
                                                   ),
-                                              }
+                                              })
                                             : oldMessage
                                     )
                                 )

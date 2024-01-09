@@ -5,6 +5,7 @@ import io.circe.literal._
 import org.enso.languageserver.event.{BufferClosed, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.session.JsonSession
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
 import org.enso.text.editing.model
@@ -12,10 +13,12 @@ import org.enso.text.editing.model
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-
 import scala.concurrent.duration._
 
-class TextOperationsTest extends BaseServerTest with FlakySpec {
+class TextOperationsTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override def isFileWatcherEnabled = true
 

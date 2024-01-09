@@ -7,6 +7,7 @@ export default vitestConfig.mergeConfig(
     viteConfig,
     vitestConfig.defineConfig({
         test: {
+            environment: 'jsdom',
             exclude: ['**/*.spec.{ts,tsx}'],
             root: url.fileURLToPath(new URL('./', import.meta.url)),
             restoreMocks: true,

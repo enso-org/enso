@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
+import org.enso.logger.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -13,7 +14,11 @@ import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.jdk.CollectionConverters._
 
-class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
+class FileSystemSpec
+    extends AnyWordSpecLike
+    with Matchers
+    with Effects
+    with ReportLogsOnFailure {
 
   import FileSystemApi._
 

@@ -1,5 +1,5 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
-import type * as test from '@playwright/test'
+import * as test from '@playwright/test'
 
 // =================
 // === Constants ===
@@ -194,6 +194,11 @@ export function locateCutButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
 }
 
+/** Find a "paste" button (if any) on the current page. */
+export function locatePasteButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
+}
+
 /** Find a "download" button (if any) on the current page. */
 export function locateDownloadButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Download' }).getByText('Download')
@@ -222,6 +227,26 @@ export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
 /** Find a "new label" button (if any) on the current page. */
 export function locateNewLabelButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'new label' }).getByText('new label')
+}
+
+/** Find a "new folder" icon (if any) on the current page. */
+export function locateNewFolderIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('New Folder')
+}
+
+/** Find a "new data connector" icon (if any) on the current page. */
+export function locateNewDataConnectorIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('New Data Connector')
+}
+
+/** Find a "upload files" icon (if any) on the current page. */
+export function locateUploadFilesIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Upload Files')
+}
+
+/** Find a "download files" icon (if any) on the current page. */
+export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Download Files')
 }
 
 // === Container locators ===
@@ -288,6 +313,37 @@ export function locateLabelsPanel(page: test.Locator | test.Page) {
 export function locateLabelsList(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('labels-list')
+}
+
+// ===============================
+// === Visual layout utilities ===
+// ===============================
+
+/** Get the left side of the bounding box of an asset row. The locator MUST be for an asset row.
+ * DO NOT assume the left side of the outer container will change. This means that it is NOT SAFE
+ * to do anything with the returned values other than comparing them. */
+export function getAssetRowLeftPx(locator: test.Locator) {
+    return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
+}
+
+// ==========================
+// === Keyboard utilities ===
+// ==========================
+
+/** Press a key, replace the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+ * on all other platforms. */
+export async function press(page: test.Page, keyOrShortcut: string) {
+    if (/\bMod\b/.test(keyOrShortcut)) {
+        let userAgent = ''
+        await test.test.step('Detect browser OS', async () => {
+            userAgent = await page.evaluate(() => navigator.userAgent)
+        })
+        // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
+        const ctrlKey = /macOS/.test(userAgent) ? 'Meta' : 'Control'
+        await page.keyboard.press(keyOrShortcut.replace(/\bMod\b/g, ctrlKey))
+    } else {
+        await page.keyboard.press(keyOrShortcut)
+    }
 }
 
 // =============

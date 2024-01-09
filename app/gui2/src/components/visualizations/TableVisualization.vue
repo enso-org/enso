@@ -57,32 +57,25 @@ interface UnknownTable {
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
 }
+
+declare module 'ag-grid-enterprise' {
+  // These type parameters are defined on the original interface.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface AbstractColDef<TData, TValue> {
+    field: string
+  }
+}
 </script>
 
 <script setup lang="ts">
+import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
-import type {
-  ColDef,
-  ColumnResizedEvent,
-  GridOptions,
-  HeaderValueGetterParams,
-} from '@ag-grid-community/core'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
+import type { ColumnResizedEvent } from 'ag-grid-community'
+import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, reactive, ref, watchEffect, type Ref } from 'vue'
-const [
-  { ClientSideRowModelModule },
-  { RangeSelectionModule },
-  { Grid, ModuleRegistry },
-  { LicenseManager },
-] = await Promise.all([
-  import('@ag-grid-community/client-side-row-model'),
-  import('@ag-grid-enterprise/range-selection'),
-  import('@ag-grid-community/core'),
-  import('@ag-grid-enterprise/core'),
-])
-
-ModuleRegistry.registerModules([ClientSideRowModelModule, RangeSelectionModule])
+const { Grid, LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -97,6 +90,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,

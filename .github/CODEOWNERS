@@ -28,7 +28,7 @@ Cargo.toml
 /app/gui/ @MichaelMauderer @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
 /app/gui/view/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
 /app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
-/app/gui2/
+/app/gui2/ @Frizi @farmaazon @MichaelMauderer @vitvakatu @kazcw
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
