@@ -525,10 +525,10 @@ impl RunContext {
         }
 
 
-        for enso_java in [None, Some("espresso")] {
+        if build_native_runner {
             let factorial_input = "6";
             let factorial_expected_output = "720";
-            if build_native_runner {
+            for enso_java in [None, Some("espresso")] {
                 let output = Command::new(&self.repo_root.runner)
                     .args([
                         "--run",
