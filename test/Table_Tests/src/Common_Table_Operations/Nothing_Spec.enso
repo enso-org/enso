@@ -10,6 +10,14 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    IO.println 'AAA NS'
 
-    Test.group prefix+"Equality" <|
+    Test.group prefix+"Equalityasdfasdf" <|
         Test.specify "== Respects Nothing" <|
+            scalars = [12, 12.3, "twelve"]
+            scalars.map x->
+                t0 = table_builder [["x", [x, Nothing]]]
+                c0 = t0.at "x" == Nothing
+                IO.println 'AAA'
+                IO.println c0
+                c0.to_vector . should_equal [Nothing, Nothing]
