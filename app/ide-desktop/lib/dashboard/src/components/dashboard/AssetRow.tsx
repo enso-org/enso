@@ -16,7 +16,6 @@ import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as errorModule from '#/utilities/error'
-import * as identity from '#/utilities/identity'
 import * as indent from '#/utilities/indent'
 import * as set from '#/utilities/set'
 import * as visibilityModule from '#/utilities/visibility'
@@ -403,7 +402,8 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case assetEvent.AssetEventType.deleteLabel: {
                 setAsset(oldAsset => {
-                    let found = identity.identity<boolean>(false)
+                    // The IIFE is required to prevent TypeScript from narrowing this value.
+                    let found = (() => false)()
                     const labels =
                         oldAsset.labels?.filter(label => {
                             if (label === event.labelName) {

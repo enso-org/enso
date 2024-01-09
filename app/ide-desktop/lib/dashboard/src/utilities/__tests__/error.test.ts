@@ -7,11 +7,14 @@ import * as error from '#/utilities/error'
 // === Tests ===
 // =============
 
-v.test('tryGetMessage', () => {
-    const message = 'A custom error message.'
-    v.expect(error.tryGetMessage<unknown>(new Error(message))).toBe(message)
-    v.expect(error.tryGetMessage<unknown>({ message: 'a' })).toBe('a')
-    v.expect(error.tryGetMessage<unknown>(message)).toBeNull()
-    v.expect(error.tryGetMessage<unknown>({})).toBeNull()
-    v.expect(error.tryGetMessage<unknown>(null)).toBeNull()
+const MESSAGE = 'A custom error message.'
+
+v.test.each([
+    { errorObject: new Error(MESSAGE), message: MESSAGE },
+    { errorObject: { message: 'a' }, message: 'a' },
+    { errorObject: MESSAGE, message: null },
+    { errorObject: {}, message: null },
+    { errorObject: null, message: null },
+])('`error.tryGetMessage`', ({ errorObject, message }) => {
+    v.expect(error.tryGetMessage<unknown>(errorObject)).toBe(message)
 })

@@ -2,9 +2,13 @@ package org.enso.languageserver.websocket.json
 
 import java.nio.file.{Files, Paths}
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
-class ReceivesTreeUpdatesHandlerTest extends BaseServerTest with FlakySpec {
+class ReceivesTreeUpdatesHandlerTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override val isFileWatcherEnabled = true
 

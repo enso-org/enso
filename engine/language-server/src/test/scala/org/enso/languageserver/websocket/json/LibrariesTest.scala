@@ -19,6 +19,7 @@ import org.enso.librarymanager.published.repository.{
   ExampleRepository,
   LibraryManifest
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
@@ -26,7 +27,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest extends BaseServerTest {
+class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val libraryRepositoryPort: Int = 47308
 
   private val exampleRepo = new ExampleRepository(
