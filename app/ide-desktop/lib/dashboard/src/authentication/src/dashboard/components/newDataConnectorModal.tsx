@@ -58,7 +58,7 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                     onSubmit()
                 }}
             >
-                <h1 className="relative text-sm font-semibold">New Data Connector</h1>
+                <h1 className="relative text-sm font-semibold">New Secret</h1>
                 <div className="relative flex">
                     <div className="w-12 h-6 py-1">Name</div>
                     <input

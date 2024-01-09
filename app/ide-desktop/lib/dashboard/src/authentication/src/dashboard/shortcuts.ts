@@ -501,7 +501,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
     [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
     [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
-    [KeyboardAction.newDataConnector]: { name: 'New Data Connector', icon: AddConnectorIcon },
+    [KeyboardAction.newDataConnector]: { name: 'New Secret', icon: AddConnectorIcon },
     // These should not appear in any context menus.
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
