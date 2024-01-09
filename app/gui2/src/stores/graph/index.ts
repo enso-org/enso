@@ -244,14 +244,9 @@ export const useGraphStore = defineStore('graph', () => {
     setExpressionContent(node.rootSpan.exprId, content)
   }
 
-  function setExpression(id: ExprId, content: Ast.Ast) {
+  function setExpression(id: ExprId, content: Ast.Owned<Ast.Ast>) {
     const edit = astModule.edit()
-    edit.set(Ast.asNodeId(id), content)
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot update node: No module root.`)
-      return
-    }
+    edit.replaceValue(Ast.asNodeId(id), content)
     commitEdit(edit)
   }
 
@@ -420,6 +415,7 @@ export const useGraphStore = defineStore('graph', () => {
     nodeRects,
     vizRects,
     methodAst,
+    astModule,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,

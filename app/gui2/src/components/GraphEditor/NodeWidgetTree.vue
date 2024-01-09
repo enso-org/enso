@@ -33,19 +33,21 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(value: unknown, origin: PortId) {
-  // TODO: Implement proper AST-based update.
   if (!isUuid(origin)) {
     console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+  } else if (value instanceof Ast.Ast) {
+    const edit =
+      value.module.root() === graph.astModule ? value.module.edit() : graph.astModule.edit()
+    edit.replaceRef(origin as Ast.AstId, value as Ast.Owned<Ast.Ast>)
+    graph.commitEdit(edit)
   } else if (typeof value === 'string') {
     graph.setExpressionContent(origin, value)
-  } else if (value instanceof Ast.Ast) {
-    graph.setExpression(origin, value)
   } else if (value == null) {
     graph.setExpressionContent(origin, '_')
   } else {
     console.error(`[UPDATE ${origin}] Invalid value:`, value)
   }
-  // No matter if its a succes or not, this handler is always considered to have handled the update,
+  // No matter if it's a success or not, this handler is always considered to have handled the update,
   // since it is guaranteed to be the last handler in the chain.
   return true
 }

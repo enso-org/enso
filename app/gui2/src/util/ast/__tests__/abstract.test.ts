@@ -1,3 +1,4 @@
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import * as fs from 'fs'
 import { expect, test } from 'vitest'
@@ -385,7 +386,7 @@ test('Insert new expression', () => {
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
 
-test('Replace expression content', () => {
+test('Modify subexpression', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root.module, 'main')!
@@ -396,8 +397,30 @@ test('Replace expression content', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  edit.set(assignment.expression!.exprId, newValue)
+  const oldExprId = assignment.expression!.exprId
+  edit.replaceValue(assignment.expression!.exprId, newValue)
+  expect(assignment.expression!.exprId).toBe(oldExprId)
   expect(edit.get(assignment.expression!.exprId)?.code()).toBe("'bar'")
+  const printed = root.code(edit)
+  expect(printed).toEqual("main =\n    text1 = 'bar'\n")
+})
+
+test('Replace subexpression', () => {
+  const code = 'main =\n    text1 = "foo"\n'
+  const root = Ast.parseBlock(code)
+  const main = Ast.functionBlock(root.module, 'main')!
+  expect(main).not.toBeNull()
+  const assignment: Ast.Assignment = main.statements().next().value
+  expect(assignment).toBeInstanceOf(Ast.Assignment)
+  expect(assignment.expression).not.toBeNull()
+  const edit = root.module.edit()
+  const newValue = Ast.TextLiteral.new('bar', edit)
+  expect(newValue.code()).toBe("'bar'")
+  edit.replaceRef(assignment.expression!.exprId, newValue)
+  const assignment_ = edit.get(assignment.exprId)!
+  assert(assignment_ instanceof Ast.Assignment)
+  expect(assignment_.expression!.exprId).toBe(newValue.exprId)
+  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe("'bar'")
   const printed = root.code(edit)
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })

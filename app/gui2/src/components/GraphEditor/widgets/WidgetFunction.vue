@@ -143,17 +143,29 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      const edit = argApp.appTree.module.edit()
-      let newArg: Ast.Ast | undefined
-      if (value instanceof Ast.Ast) newArg = value
-      else if (typeof value === 'string') newArg = Ast.parse(value, edit)
-      if (!newArg) {
+      let edit: Ast.MutableModule
+      let newArg: Ast.Owned<Ast.Ast>
+      if (value instanceof Ast.Ast) {
+        if (value.module.root() === graph.astModule) {
+          edit = value.module.edit()
+          newArg = edit.take(value.exprId)!.node
+        } else {
+          edit = graph.astModule.edit()
+          edit.splice(value)
+          newArg = edit.take(value.exprId)!.node
+        }
+      } else if (typeof value === 'string') {
+        edit = argApp.appTree.module.edit()
+        newArg = Ast.parse(value, edit)
+      } else {
         console.error(`Don't know how to put this in a tree`, value)
         return true
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      const ast = Ast.App.new(argApp.appTree, name, newArg, edit)
-      props.onUpdate(ast, argApp.appTree.exprId)
+      edit.takeAndReplaceRef(argApp.appTree.exprId, (appTree) =>
+        Ast.App.new(appTree, name, newArg, edit),
+      )
+      props.onUpdate(argApp.appTree, argApp.appTree.exprId)
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
@@ -183,8 +195,9 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         let innerBound: Ast.Ast | undefined
         // The top level of the subtree that is being replaced.
         let outerBound = argApp.appTree
+        const edit = outerBound.module.edit()
         // The levels of the application tree to apply to `innerBound` to yield the new `outerBound` expression.
-        const newArgs: { name: string | null; value: Ast.Ast }[] = []
+        const newArgs: { name: string | null; value: Ast.Owned<Ast.Ast> }[] = []
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
         for (let innerApp of app.iterApplications()) {
@@ -201,7 +214,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
               // Positional arguments following the deleted argument must all be rewritten to named.
               newArgs.unshift({
                 name: infoName,
-                value: innerApp.appTree.argument,
+                value: edit.take(innerApp.appTree.argument.exprId)!.node,
               })
             } else {
               // We haven't reached the subtree that needs to be modified yet.
@@ -210,9 +223,12 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
           }
         }
         assert(innerBound !== undefined)
-        const edit = outerBound.module.edit()
         let newAst = innerBound
-        for (const arg of newArgs) newAst = Ast.App.new(newAst, arg.name, arg.value, edit)
+        for (const arg of newArgs) {
+          newAst = edit.takeAndReplaceRef(newAst.exprId, (newAst) =>
+            Ast.App.new(newAst, arg.name, arg.value, edit),
+          )
+        }
         props.onUpdate(newAst, outerBound.exprId)
         return true
       } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
