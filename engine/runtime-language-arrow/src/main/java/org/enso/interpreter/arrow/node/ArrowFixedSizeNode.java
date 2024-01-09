@@ -6,7 +6,7 @@ import org.enso.interpreter.arrow.runtime.ArrowFixedSizeArrayFactory;
 
 public class ArrowFixedSizeNode extends Node {
 
-  static ArrowFixedSizeNode build() {
+  static ArrowFixedSizeNode create() {
     return new ArrowFixedSizeNode();
   }
 

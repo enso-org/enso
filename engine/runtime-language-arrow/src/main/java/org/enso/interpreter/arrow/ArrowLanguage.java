@@ -33,7 +33,7 @@ public class ArrowLanguage extends TruffleLanguage<ArrowContext> {
   protected CallTarget parse(ParsingRequest request) {
     ArrowParser.Result code = ArrowParser.parse(request.getSource());
     if (code != null) {
-      ArrowEvalNode node = ArrowEvalNode.build(this, code);
+      ArrowEvalNode node = ArrowEvalNode.create(this, code);
       return node.getCallTarget();
     } else {
       throw new IllegalArgumentException(

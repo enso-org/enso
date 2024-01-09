@@ -10,10 +10,10 @@ import org.enso.interpreter.arrow.ArrowParser;
 public class ArrowEvalNode extends RootNode {
   private final ArrowParser.Result code;
 
-  @Child private ArrowFixedSizeNode fixedPhysicalLayout = ArrowFixedSizeNode.build();
-  @Child private ArrowCastFixedSizeNode castToFixedPhysicalLayout = ArrowCastFixedSizeNode.build();
+  @Child private ArrowFixedSizeNode fixedPhysicalLayout = ArrowFixedSizeNode.create();
+  @Child private ArrowCastFixedSizeNode castToFixedPhysicalLayout = ArrowCastFixedSizeNode.create();
 
-  public static ArrowEvalNode build(ArrowLanguage language, ArrowParser.Result code) {
+  public static ArrowEvalNode create(ArrowLanguage language, ArrowParser.Result code) {
     return new ArrowEvalNode(language, code);
   }
 
