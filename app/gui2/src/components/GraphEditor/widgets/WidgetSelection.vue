@@ -68,7 +68,7 @@ function toggleDropdownWidget() {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  props.onUpdate(selectedValue.value, props.input.portId)
+  props.onUpdate({ type: 'set', value: selectedValue.value, origin: props.input.portId })
   showDropdownWidget.value = false
 })
 </script>

@@ -174,19 +174,20 @@ export class MutableModule implements Module {
     if (!node) return
     return { node, placeholder }
   }
-  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Owned<Ast> {
+
+  takeValue(target: AstId): { node: Owned<Ast>; placeholder: Ast } | undefined {
+    const placeholder = Wildcard.new(this)
+    const old = this.splice(this.get(target), placeholder.exprId)
+    if (old) old.parent = undefined
+    this.replaceValue(target, placeholder)
+    return { node: asOwned(old), placeholder: this.get(target)! }
+  }
+
+  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
     const taken = this.take(target)
     assert(!!taken)
     const replacement = wrap(taken.node)
     this.replaceRef(taken.placeholder.exprId, replacement)
-    return replacement
-  }
-
-  takeAndReplaceValue(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Owned<Ast> {
-    const taken = this.take(target)
-    assert(!!taken)
-    const replacement = wrap(taken.node)
-    this.replaceValue(taken.placeholder.exprId, replacement)
     return replacement
   }
 
@@ -196,6 +197,7 @@ export class MutableModule implements Module {
   splice(ast: Ast | undefined, id?: AstId): Ast | undefined
   splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
     if (!ast) return ast
+    ast.parent
     if (ast.module === this && !id) return ast
     const id_ = id ?? ast.exprId
     const ast_ = ast.cloneWithId(this, id_)
