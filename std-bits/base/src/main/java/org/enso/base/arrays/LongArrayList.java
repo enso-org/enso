@@ -64,7 +64,7 @@ public class LongArrayList {
 
   public long[] toArray() {
     long[] result = new long[lastIndex + 1];
-    for (int i = 0; i <= backingStorage.size(); i++) {
+    for (int i = 0; i < backingStorage.size(); i++) {
       long[] store = backingStorage.get(i);
       int toCopy = i < backingStorage.size() - 1 ? store.length : lastIndex - (i == 0 ? 0 : store.length);
       System.arraycopy(store, 0, result, i == 0 ? 0 : store.length, toCopy);
