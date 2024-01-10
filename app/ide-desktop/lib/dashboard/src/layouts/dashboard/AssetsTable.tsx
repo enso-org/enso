@@ -581,14 +581,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                 nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
             )
         const terms = assetQuery.AssetQuery.terms(query.query)
-        const lastTerm = terms[terms.length - 1]
-        const lastTermValues = lastTerm?.values ?? []
-        const shouldOmitNames = terms.some(term => term.tag === 'name')
-        if (lastTermValues.length !== 0) {
+        const term =
+            terms.find(otherTerm => otherTerm.values.length === 0) ?? terms[terms.length - 1]
+        const termValues = term?.values ?? []
+        const shouldOmitNames = terms.some(otherTerm => otherTerm.tag === 'name')
+        if (termValues.length !== 0) {
             setSuggestions(shouldOmitNames ? [] : allVisible())
         } else {
-            const negative = lastTerm?.tag?.startsWith('-') ?? false
-            switch (lastTerm?.tag ?? null) {
+            const negative = term?.tag?.startsWith('-') ?? false
+            switch (term?.tag ?? null) {
                 case null:
                 case '':
                 case '-':

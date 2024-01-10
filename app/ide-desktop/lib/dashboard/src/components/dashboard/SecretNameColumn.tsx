@@ -6,7 +6,9 @@ import ConnectorIcon from 'enso-assets/connector.svg'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as hooks from '#/hooks'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -23,22 +25,23 @@ import EditableSpan from '#/components/EditableSpan'
 // === ConnectorName ===
 // =====================
 
-/** Props for a {@link ConnectorNameColumn}. */
-export interface ConnectorNameColumnProps extends column.AssetColumnProps {}
+/** Props for a {@link SecretNameColumn}. */
+export interface SecretNameColumnProps extends column.AssetColumnProps {}
 
 /** The icon and name of a {@link backendModule.SecretAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
-export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
+export default function SecretNameColumn(props: SecretNameColumnProps) {
     const { item, setItem, selected, state, rowState, setRowState } = props
     const { assetEvents, dispatchAssetListEvent } = state
     const toastAndLog = hooks.useToastAndLog()
+    const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.secret) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`ConnectorNameColumn` can only display data connector assets.')
+        throw new Error('`SecretNameColumn` can only display secrets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
@@ -83,13 +86,13 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
                     } else {
                         rowState.setVisibility(Visibility.faded)
                         try {
-                            const createdSecret = await backend.createSecret({
+                            const id = await backend.createSecret({
                                 parentDirectoryId: asset.parentId,
-                                secretName: asset.title,
-                                secretValue: event.value,
+                                name: asset.title,
+                                value: event.value,
                             })
                             rowState.setVisibility(Visibility.visible)
-                            setAsset(object.merger({ id: createdSecret.id }))
+                            setAsset(object.merger({ id }))
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: AssetListEventType.delete,
@@ -121,6 +124,21 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(object.merger({ isEditingName: true }))
+                } else if (eventModule.isDoubleClick(event)) {
+                    event.stopPropagation()
+                    setModal(
+                        <UpsertSecretModal
+                            id={asset.id}
+                            name={asset.title}
+                            doCreate={async (_name, value) => {
+                                try {
+                                    await backend.updateSecret(asset.id, { value }, asset.title)
+                                } catch (error) {
+                                    toastAndLog(null, error)
+                                }
+                            }}
+                        />
+                    )
                 }
             }}
         >

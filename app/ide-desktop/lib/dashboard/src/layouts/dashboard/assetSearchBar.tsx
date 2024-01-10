@@ -40,6 +40,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
     const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
     const [wasQueryModified, setWasQueryModified] = React.useState(false)
+    const [wasQueryTyped, setWasQueryTyped] = React.useState(false)
     const [isShiftPressed, setIsShiftPressed] = React.useState(false)
     const rootRef = React.useRef<HTMLLabelElement>(null)
     const searchRef = React.useRef<HTMLInputElement>(null)
@@ -49,6 +50,15 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             baseQuery.current = query
         }
     }, [isTabbing, isShiftPressed, query])
+
+    React.useEffect(() => {
+        if (!wasQueryTyped) {
+            baseQuery.current = query
+            if (searchRef.current != null) {
+                searchRef.current.value = query.toString()
+            }
+        }
+    }, [wasQueryTyped, query])
 
     React.useEffect(() => {
         if (!isTabbing && !isShiftPressed) {
@@ -62,9 +72,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     }, [areSuggestionsVisible])
 
     React.useEffect(() => {
-        if (selectedIndex == null) {
+        if (!wasQueryModified && selectedIndex == null) {
             setQuery(baseQuery.current)
         }
+        // `wasQueryModified` MUST NOT be a dependency, as it is always set to `false` immediately
+        // after it is set to true.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedIndex, /* should never change */ setQuery])
 
     React.useEffect(() => {
@@ -182,7 +195,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     setAreSuggestionsVisible(false)
                 }
             }}
-            className="group search-bar absolute flex items-center text-primary rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2"
+            className="group search-bar relative flex items-center text-primary rounded-full gap-2.5 h-8 grow max-w-98.25 xl:max-w-screen-1/3 px-2"
         >
             <img src={FindIcon} className="relative z-1 opacity-80" />
             <input
@@ -190,7 +203,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 type="search"
                 size={1}
                 placeholder="Type to search for projects, data connectors, users, and more."
-                className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px"
+                className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
                 onFocus={() => {
                     if (!wasQueryModified) {
                         setSelectedIndex(null)
@@ -199,6 +212,18 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 onChange={event => {
                     if (!wasQueryModified) {
                         setQuery(assetQuery.AssetQuery.fromString(event.target.value))
+                        setWasQueryTyped(true)
+                    }
+                }}
+                onKeyDown={event => {
+                    if (
+                        event.key === 'Enter' &&
+                        !event.shiftKey &&
+                        !event.altKey &&
+                        !event.metaKey &&
+                        !event.ctrlKey
+                    ) {
+                        setQuery(query.clone())
                     }
                 }}
             />
@@ -206,7 +231,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 <div className="relative padding h-8"></div>
                 {areSuggestionsVisible && (
                     <div className="relative flex flex-col gap-2">
-                        {/* Tags (`name:`, `modified:`) */}
+                        {/* Tags (`name:`, `modified:`, etc.) */}
                         <div className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto">
                             {assetQuery.AssetQuery.tagNames.flatMap(entry => {
                                 const [key, tag] = entry
@@ -218,11 +243,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
-                                                  setQuery(
-                                                      assetQuery.AssetQuery.fromString(
-                                                          `${query.toString()} ${tag}:`
-                                                      )
-                                                  )
+                                                  setSelectedIndex(null)
+                                                  setQuery(oldQuery => {
+                                                      const newQuery = oldQuery.add({ [key]: [[]] })
+                                                      baseQuery.current = newQuery
+                                                      return newQuery
+                                                  })
                                               }}
                                           >
                                               {tag}:
@@ -250,13 +276,16 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         negated={negated}
                                         onClick={event => {
                                             setWasQueryModified(true)
-                                            setQuery(oldQuery =>
-                                                assetQuery.toggleLabel(
+                                            setSelectedIndex(null)
+                                            setQuery(oldQuery => {
+                                                const newQuery = assetQuery.toggleLabel(
                                                     oldQuery,
                                                     label.value,
                                                     event.shiftKey
                                                 )
-                                            )
+                                                baseQuery.current = newQuery
+                                                return newQuery
+                                            })
                                         }}
                                     >
                                         {label.value}
@@ -283,6 +312,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                             : ''
                                     }`}
                                     onClick={event => {
+                                        setSelectedIndex(null)
                                         setWasQueryModified(true)
                                         setQuery(
                                             selectedIndices.has(index)
@@ -303,6 +333,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                                         : [...selectedIndices, index]
                                                 )
                                             )
+                                        } else {
+                                            setAreSuggestionsVisible(false)
                                         }
                                     }}
                                 >

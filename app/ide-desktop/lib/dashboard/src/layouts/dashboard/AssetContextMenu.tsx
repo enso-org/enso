@@ -9,7 +9,9 @@ import * as hooks from '#/hooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
+import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
@@ -51,10 +53,12 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-    const { hidden = false, innerProps, event, eventTarget, doCopy, doCut, doPaste } = props
-    const { doDelete } = props
+    const { innerProps, event, eventTarget, doCopy, doCut, doPaste, doDelete } = props
+    const { hidden = false } = props
     const { item, setItem, state, setRowState } = innerProps
-    const { category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { doCreateLabel } = state
+
     const logger = loggerProvider.useLogger()
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -65,13 +69,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         permission => permission.user.user_email === organization?.email
     )
     const isCloud = backend.type === backendModule.BackendType.remote
-    const ownsThisAsset =
-        backend.type === backendModule.BackendType.local ||
-        self?.permission === permissions.PermissionAction.own
+    const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
     const managesThisAsset =
-        backend.type === backendModule.BackendType.local ||
-        ownsThisAsset ||
-        self?.permission === permissions.PermissionAction.admin
+        ownsThisAsset || self?.permission === permissions.PermissionAction.admin
+    const canEditThisAsset =
+        managesThisAsset || self?.permission === permissions.PermissionAction.edit
     const isRunningProject =
         asset.type === backendModule.AssetType.project &&
         backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
@@ -224,6 +226,31 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
+                {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.edit}
+                        doAction={() => {
+                            setModal(
+                                <UpsertSecretModal
+                                    id={asset.id}
+                                    name={asset.title}
+                                    doCreate={async (_name, value) => {
+                                        try {
+                                            await backend.updateSecret(
+                                                asset.id,
+                                                { value },
+                                                asset.title
+                                            )
+                                        } catch (error) {
+                                            toastAndLog(null, error)
+                                        }
+                                    }}
+                                />
+                            )
+                        }}
+                    />
+                )}
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
@@ -283,10 +310,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.label}
                         doAction={() => {
-                            // No backend support yet.
+                            setModal(
+                                <ManageLabelsModal
+                                    item={asset}
+                                    setItem={setAsset}
+                                    allLabels={labels}
+                                    doCreateLabel={doCreateLabel}
+                                    eventTarget={eventTarget}
+                                />
+                            )
                         }}
                     />
                 )}
@@ -323,6 +357,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
+                    disabled={isCloud}
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
                         dispatchAssetEvent({

@@ -56,17 +56,15 @@ export default function TopBar(props: TopBarProps) {
             {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
                 <BackendSwitcher setBackendType={setBackendType} />
             )}
-            <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
-                <>
+                <div className="flex-1 flex flex-wrap justify-around">
                     <AssetSearchBar
                         query={query}
                         setQuery={setQuery}
                         labels={labels}
                         suggestions={suggestions}
                     />
-                    <div className="grow" />
-                </>
+                </div>
             )}
             {!isSettingsPanelVisible && (
                 <div className="flex gap-2">

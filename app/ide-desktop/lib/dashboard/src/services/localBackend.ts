@@ -234,9 +234,9 @@ export class LocalBackend extends backend.Backend {
 
     /** Change the name of a project.
      * @throws An error if the JSON-RPC call fails. */
-    override async projectUpdate(
+    override async updateProject(
         projectId: backend.ProjectId,
-        body: backend.ProjectUpdateRequestBody
+        body: backend.UpdateProjectRequestBody
     ): Promise<backend.UpdatedProject> {
         if (body.ami != null) {
             throw new Error('Cannot change project AMI on local backend.')
@@ -392,6 +392,11 @@ export class LocalBackend extends backend.Backend {
 
     /** Invalid operation. */
     override createSecret() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
+    override updateSecret() {
         return this.invalidOperation()
     }
 
