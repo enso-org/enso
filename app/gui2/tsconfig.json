@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "../ide-desktop/lib/dashboard/src/authentication/tsconfig.json"
+      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
     },
     {
       "path": "./tsconfig.node.json"
