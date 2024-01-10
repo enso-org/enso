@@ -81,7 +81,7 @@ case object SectionsToBinOp extends IRPass {
     )
 
     ir.transformExpressions { case sec: Section =>
-      desugarSections(sec, freshNameSupply)
+      desugarSections(sec, freshNameSupply, inlineContext)
     }
   }
 
@@ -97,7 +97,8 @@ case object SectionsToBinOp extends IRPass {
     */
   private def desugarSections(
     section: Section,
-    freshNameSupply: FreshNameSupply
+    freshNameSupply: FreshNameSupply,
+    inlineContext: InlineContext
   ): Expression = {
     section match {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
@@ -145,9 +146,11 @@ case object SectionsToBinOp extends IRPass {
           )
 
         } else {
+          val newArg = arg.mapExpressions(runExpression(_, inlineContext))
+
           Application.Prefix(
             function             = op,
-            arguments            = List(arg),
+            arguments            = List(newArg),
             hasDefaultsSuspended = false,
             location             = loc,
             passData,
@@ -265,9 +268,11 @@ case object SectionsToBinOp extends IRPass {
             loc
           )
         } else {
+          val newArg = arg.mapExpressions(runExpression(_, inlineContext))
+
           val opCall = Application.Prefix(
             function             = op,
-            arguments            = List(leftCallArg, arg),
+            arguments            = List(leftCallArg, newArg),
             hasDefaultsSuspended = false,
             location             = None,
             passData,

@@ -246,21 +246,6 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-lang3-3.12.0`.
 
 
-'bcpkix-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the project-manager.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk15on-1.70`.
-
-
-'bcprov-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the project-manager.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk15on-1.70`.
-
-
-'bcutil-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the project-manager.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk15on-1.70`.
-
-
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.

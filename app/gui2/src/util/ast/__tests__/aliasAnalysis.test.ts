@@ -28,7 +28,7 @@
 import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import { IdMap, type ContentRange } from 'shared/yjsModel'
+import { IdMap, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 /** The type of annotation. */
@@ -54,9 +54,9 @@ class Annotation {
 /** Parse annotations from the annotated code. See the file-top comment for the syntax. */
 function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
-  annotations: MappedKeyMap<ContentRange, Annotation>
+  annotations: MappedKeyMap<SourceRange, Annotation>
 } {
-  const annotations = new MappedKeyMap<ContentRange, Annotation>(IdMap.keyForRange)
+  const annotations = new MappedKeyMap<SourceRange, Annotation>(IdMap.keyForRange)
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
@@ -90,7 +90,7 @@ function parseAnnotations(annotatedCode: string): {
 
       const start = offset - accumulatedOffset
       const end = start + name.length
-      const range: ContentRange = [start, end]
+      const range: SourceRange = [start, end]
 
       const annotation = new Annotation(kind, id)
       accumulatedOffset += match.length - name.length
@@ -113,10 +113,10 @@ function parseAnnotations(annotatedCode: string): {
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
   /** The expected aliases. */
-  readonly expectedAliases = new MappedKeyMap<ContentRange, ContentRange[]>(IdMap.keyForRange)
+  readonly expectedAliases = new MappedKeyMap<SourceRange, SourceRange[]>(IdMap.keyForRange)
 
   /** The expected unresolved symbols. */
-  readonly expectedUnresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
+  readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
 
   /**
    * @param code The code of the program to be tested, without annotations.
@@ -128,7 +128,7 @@ class TestCase {
     const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
 
     const testCase = new TestCase(unannotatedCode)
-    const prefixBindings = new Map<number, ContentRange>()
+    const prefixBindings = new Map<number, SourceRange>()
 
     for (const [range, annotation] of annotations) {
       if (annotation.kind === AnnotationType.Binding) {
@@ -157,11 +157,11 @@ class TestCase {
     return testCase
   }
 
-  repr(range: ContentRange): string {
+  repr(range: SourceRange): string {
     return this.code.substring(range[0], range[1])
   }
 
-  prettyPrint(range: ContentRange): string {
+  prettyPrint(range: SourceRange): string {
     return `${this.repr(range)}@[${range}]`
   }
 
@@ -224,7 +224,7 @@ test('Annotations parsing', () => {
   expect(unannotatedCode).toBe(expectedUnannotatedCode)
   expect(annotations.size).toBe(7)
   const validateAnnotation = (
-    range: ContentRange,
+    range: SourceRange,
     kind: AnnotationType,
     prefix: number,
     identifier: string,

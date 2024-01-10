@@ -6,11 +6,11 @@ import { isResult, mapOk } from '@/util/data/result'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
 import * as map from 'lib0/map'
-import type { ContentRange } from 'shared/yjsModel'
+import type { SourceRange } from 'shared/yjsModel'
 
 export { Ast, RawAst, RawAstExtended }
 
-export type HasAstRange = ContentRange | RawAst.Tree | RawAst.Token
+export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 
 export function parseEnso(code: string): RawAst.Tree {
   const blob = parse(code)
@@ -116,7 +116,7 @@ function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst
 
 export function findAstWithRange(
   root: RawAst.Tree | RawAst.Token,
-  range: ContentRange,
+  range: SourceRange,
 ): RawAst.Tree | RawAst.Token | undefined {
   for (const child of childrenAstNodes(root)) {
     const [begin, end] = parsedTreeOrTokenRange(child)
@@ -165,19 +165,19 @@ export function visitRecursive(
  * @returns Object with `start` and `end` properties; index of first character in the `node`
  *   and first character _not_ being in the `node`.
  */
-export function parsedTreeRange(tree: RawAst.Tree): ContentRange {
+export function parsedTreeRange(tree: RawAst.Tree): SourceRange {
   const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
   const end = start + tree.childrenLengthInCodeParsed
   return [start, end]
 }
 
-export function parsedTokenRange(token: RawAst.Token): ContentRange {
+export function parsedTokenRange(token: RawAst.Token): SourceRange {
   const start = token.startInCodeBuffer
   const end = start + token.lengthInCodeBuffer
   return [start, end]
 }
 
-export function parsedTreeOrTokenRange(node: HasAstRange): ContentRange {
+export function parsedTreeOrTokenRange(node: HasAstRange): SourceRange {
   if (RawAst.Tree.isInstance(node)) return parsedTreeRange(node)
   else if (RawAst.Token.isInstance(node)) return parsedTokenRange(node)
   else return node

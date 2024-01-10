@@ -3,6 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.ActorSystem
 import akka.testkit._
 import com.miguno.akka.testing.VirtualTime
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ProjectRenamed,
@@ -26,7 +27,8 @@ class ProjectRenameActionSpec
     with Matchers
     with BeforeAndAfterAll
     with MockitoSugar
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   "A project rename action" should "delegate request to the Language Server" taggedAs Flaky in new TestCtx {
     //given

@@ -304,7 +304,7 @@ function applyArgumentsUpdate(
           const nameUpdate = applyPropertyUpdate('name', arg, update)
           if (!nameUpdate.ok) return nameUpdate
           const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
-            arg.type = type
+            arg.reprType = type
           })
           if (!typeUpdate.ok) return typeUpdate
           const isSuspendedUpdate = applyPropertyUpdate('isSuspended', arg, update)

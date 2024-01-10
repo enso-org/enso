@@ -67,7 +67,7 @@ test.each([
   },
 ])('modify', ({ prefixes: lines, modifications, source, target }) => {
   const prefixes = Prefixes.FromLines(lines as any)
-  const sourceAst = Ast.parseExpression(source)
+  const sourceAst = Ast.parse(source)
   const edit = sourceAst.module.edit()
   const modificationAsts = Object.fromEntries(
     Object.entries(modifications).map(([k, v]) => [

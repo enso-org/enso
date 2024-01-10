@@ -162,12 +162,43 @@ spec setup =
                 (x && y).to_vector . should_equal [True, False, False]
                 (x || y.not).to_vector . should_equal [True, True, True]
 
-        Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
-            t = table_builder [["X", [True, False, True]]]
-            x = t.at "X"
-            nulls = [Nothing, Nothing, Nothing, Nothing]
-            (x && Nothing).to_vector . should_equal nulls
-            (x || Nothing).to_vector . should_equal nulls
+        Test.specify "should handle nulls correctly in not" <|
+            t = table_builder [["A", [True, False, Nothing]]]
+            a = t.at "A"
+            a_not = a.not
+            a_not.to_vector . should_equal [False, True, Nothing]
+
+        Test.specify "should handle nulls correctly in &&" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a && True).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a && Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, False, False, False, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not && True).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a_not && Nothing).to_vector . should_equal [False, False, False, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a && b).to_vector . should_equal [True, False, Nothing, False, False, False, Nothing, False, Nothing]
+            (a_not && b).to_vector . should_equal [False, False, False, True, False, Nothing, Nothing, False, Nothing]
+
+        Test.specify "should handle nulls correctly in ||" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a || False).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a || Nothing).to_vector . should_equal [True, True, True, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a_not || False).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not || Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, True, True, True, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a || b).to_vector . should_equal [True, True, True, True, False, Nothing, True, Nothing, Nothing]
+            (a_not || b).to_vector . should_equal [True, False, Nothing, True, True, True, True, Nothing, Nothing]
 
         Test.specify "should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [True, False, Nothing]]]
@@ -295,6 +326,32 @@ spec setup =
             actual = t.fill_nothing ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+        
+        Test.specify "should allow to fill_nothing from larger string and expands type to fit" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
+            actual = t.fill_nothing ["col0"] "ABCDE"
+            actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
+            if setup.is_database.not then
+                actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
+
+        Test.specify "should allow to fill_nothing from an empty string" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
+            actual = t.fill_nothing ["col0", "col1"] ""
+            actual.at "col0" . to_vector . should_equal ["0", "", "4", "5", "", ""]
+            actual.at "col1" . to_vector . should_equal ["", "200", "", "400", "500", ""]
+
+        Test.specify "should allow to fill_nothing a fixed width from an empty string" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] ""
+            actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]  
+            actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+        
+        Test.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] "   "
+            actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]  
+            if setup.is_database.not then
+                actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
         Test.specify "should allow to fill_nothing from other columns" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]

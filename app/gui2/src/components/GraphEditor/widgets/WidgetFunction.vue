@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
-import type { PortId } from '@/providers/portInfo'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+  type UpdatePayload,
+} from '@/providers/widgetRegistry'
+import {
+  argsWidgetConfigurationSchema,
+  functionCallConfiguration,
+} from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import {
+  ArgumentApplication,
+  ArgumentApplicationKey,
+  ArgumentAst,
+  ArgumentPlaceholder,
+  getAccessOprSubject,
+  interpretCall,
+} from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -19,32 +34,42 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.exprId),
+    callId: computed(() => props.input.value.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  const input: Ast.Ast = props.input
-  return graph.db.getMethodCallInfo(input.exprId)
+  return graph.db.getMethodCallInfo(props.input.value.exprId)
 })
 
 const interpreted = computed(() => {
-  return ArgumentApplication.Interpret(props.input, methodCallInfo.value == null)
+  return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
 const application = computed(() => {
   const call = interpreted.value
-  if (!call) return props.input
+  if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
     call,
-    noArgsCall,
-    info?.methodCall,
-    info?.suggestion,
+    {
+      noArgsCall,
+      appMethodCall: info?.methodCall,
+      suggestion: info?.suggestion,
+      widgetCfg: widgetConfiguration.value,
+    },
     !info?.staticallyApplied,
   )
+})
+
+const innerInput = computed(() => {
+  if (application.value instanceof ArgumentApplication) {
+    return application.value.toWidgetInput()
+  } else {
+    return props.input
+  }
 })
 
 const escapeString = (str: string): string => {
@@ -53,19 +78,26 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentExprId = computed<Opt<ExprId>>(() => {
-  const analyzed = ArgumentApplication.Interpret(props.input, true)
+const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+  const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.exprId
   } else {
-    return analyzed.args[0]?.argument.exprId
+    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const selfArgument =
+      knownArguments?.[0]?.name === 'self'
+        ? getAccessOprSubject(analyzed.func)
+        : analyzed.args[0]?.argument
+    return selfArgument?.exprId
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-  const tree = props.input
-  const expressionId = selfArgumentExprId.value
-  const astId = tree.exprId
+  // If we inherit dynamic config, there is no point in attaching visualization.
+  if (props.input.dynamicConfig) return null
+
+  const expressionId = selfArgumentAstId.value
+  const astId = props.input.value.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -86,11 +118,12 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
   if (data != null && data.ok) {
-    const parseResult = widgetConfigurationSchema.safeParse(data.value)
+    const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
-      return parseResult.data
+      return functionCallConfiguration(parseResult.data)
     } else {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
@@ -101,15 +134,13 @@ const widgetConfiguration = computed(() => {
 /**
  * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
  * handling deletions of arguments and rewriting the applications to named as appropriate.
- *
- * FIXME: This method has to be rewritten usign AST manipulation instead of string concatenation
- * once AST updates are implemented. Depends on #8367
  */
-function handleArgUpdate(value: unknown, origin: PortId): boolean {
+function handleArgUpdate(update: UpdatePayload): boolean {
   const app = application.value
-  if (app instanceof ArgumentApplication) {
+  if (update.type === 'set' && app instanceof ArgumentApplication) {
+    const { value, origin } = update
     // Find the updated argument by matching origin port/expression with the appropriate argument.
-    // We are insterested only in updates at the top level of the argument AST. Updates from nested
+    // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
     const argApp = [...app.iterApplications()].find(
       (app) => 'portId' in app.argument && app.argument.portId === origin,
@@ -118,13 +149,18 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      const codeToInsert = value instanceof Ast.Ast ? value.repr() : value
-      const argCode = argApp.argument.insertAsNamed
-        ? `${argApp.argument.info.name}=${codeToInsert}`
-        : codeToInsert
-
-      // FIXME[#8367]: Create proper application AST instead of concatenating strings.
-      props.onUpdate(`${argApp.appTree.repr()} ${argCode}`, argApp.appTree.exprId)
+      let edit = graph.astModule.edit()
+      let newArg: Ast.Owned<Ast.Ast>
+      if (value instanceof Ast.Ast) {
+        newArg = value
+      } else {
+        newArg = Ast.parse(value, edit)
+      }
+      const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
+      edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
+        Ast.App.new(oldAppTree, name, newArg, edit),
+      )
+      props.onUpdate({ type: 'edit', edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
@@ -134,53 +170,59 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 
         // Named argument can always be removed immediately. Replace the whole application with its
         // target, effectively removing the argument from the call.
-        props.onUpdate(argApp.appTree.function, argApp.appTree.exprId)
+        const edit = graph.astModule.edit()
+        const func = edit.take(argApp.appTree.function.exprId)
+        assert(func != null)
+        props.onUpdate({
+          type: 'set',
+          value: func.node,
+          origin: argApp.appTree.exprId,
+        })
         return true
       } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
         /* Case: Removing infix application. */
 
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
-          props.onUpdate(argApp.appTree.lhs, argApp.appTree.exprId)
+          const edit = graph.astModule.edit()
+          const lhs = edit.take(argApp.appTree.lhs.exprId)
+          assert(lhs != null)
+          props.onUpdate({
+            type: 'set',
+            value: lhs.node,
+            origin: argApp.appTree.exprId,
+          })
         }
         return true
       } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
         /* Case: Removing positional prefix argument. */
 
-        // Since the update of this kind can affect following arguments, it is necessary to
-        // construct the new AST for the whole application in order to update it. Because we lack
-        // the ability to do AST manipulation directly, we are forced to do it by string operations.
-        // FIXME[#8367]: Edit application AST instead of concatenating strings.
-        let newRepr = ''
+        // Since the update of this kind can affect following arguments, it may be necessary to
+        // replace the AST for multiple levels of application.
 
+        const edit = argApp.appTree.module.edit()
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
-        for (let innerApp of app.iterApplications()) {
-          if (innerApp === argApp) {
+        for (let innerApp of [...app.iterApplications()]) {
+          if (innerApp.appTree.exprId === argApp.appTree.exprId) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
-            newRepr = `${argApp.appTree.function.repr().trimEnd()} ${newRepr.trimStart()}`
-            // Perform the actual update, since we already have the whole new application code
-            // collected.
-            props.onUpdate(newRepr, app.appTree.exprId)
+            const newFunction = edit.take(argApp.appTree.function.exprId)?.node
+            assert(newFunction != undefined)
+            edit.replaceRef(argApp.appTree.exprId, newFunction)
+            props.onUpdate({ type: 'edit', edit })
             return true
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
-            const argRepr = innerApp.appTree
-              .repr()
-              .substring(innerApp.appTree.function.repr().length)
-              .trim()
-            if (
-              innerApp.argument instanceof ArgumentAst &&
-              innerApp.appTree.argumentName == null &&
-              innerApp.argument.info != null
-            ) {
-              // Positional arguments following the deleted argument must all be rewritten to named.
-              newRepr = `${innerApp.argument.info.name}=${argRepr} ${newRepr.trimStart()}`
-            } else {
-              // All other arguments are copied as-is.
-              newRepr = `${argRepr} ${newRepr.trimStart()}`
+            const infoName = innerApp.argument.argInfo?.name ?? null
+            // Positional arguments following the deleted argument must all be rewritten to named.
+            if (infoName && !innerApp.appTree.argumentName) {
+              const func = edit.take(innerApp.appTree.function.exprId)?.node
+              const arg = edit.take(innerApp.appTree.argument.exprId)?.node
+              assert(!!func)
+              assert(!!arg)
+              edit.replaceValue(innerApp.appTree.exprId, Ast.App.new(func, infoName, arg, edit))
             }
           }
         }
@@ -199,10 +241,12 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
+export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
-    const ast = props.input
+    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+    const ast = props.input.value
     if (ast.exprId == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 
@@ -224,5 +268,5 @@ export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
 </script>
 
 <template>
-  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" @update="handleArgUpdate" />
+  <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>

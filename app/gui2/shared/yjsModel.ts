@@ -168,7 +168,6 @@ export class DistributedModule {
 }
 
 export type SourceRange = readonly [start: number, end: number]
-export type RelativeRange = readonly [start: number, end: number]
 
 export class IdMap {
   private readonly rangeToExpr: Map<string, ExprId>
@@ -231,6 +230,32 @@ export class IdMap {
     }
     return true
   }
+
+  validate() {
+    const uniqueValues = new Set(this.rangeToExpr.values())
+    if (uniqueValues.size < this.rangeToExpr.size) {
+      console.warn(`Duplicate UUID in IdMap`)
+    }
+  }
+
+  clone(): IdMap {
+    return new IdMap(this.entries())
+  }
+
+  // Debugging.
+  compare(other: IdMap) {
+    console.info(`IdMap.compare -------`)
+    const allKeys = new Set<string>()
+    for (const key of this.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of other.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of allKeys) {
+      const mine = this.rangeToExpr.get(key)
+      const yours = other.rangeToExpr.get(key)
+      if (mine !== yours) {
+        console.info(`IdMap.compare[${key}]: ${mine} -> ${yours}`)
+      }
+    }
+  }
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
@@ -238,22 +263,19 @@ export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
-/** A range represented as start and end indices. */
-export type ContentRange = [start: number, end: number]
-
-export function rangeEquals(a: ContentRange, b: ContentRange): boolean {
+export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
 }
 
-export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
+export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
 }
 
-export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
+export function rangeIntersects(a: SourceRange, b: SourceRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
 }
 
 /** Whether the given range is before the other range. */
-export function rangeIsBefore(a: ContentRange, b: ContentRange): boolean {
+export function rangeIsBefore(a: SourceRange, b: SourceRange): boolean {
   return a[1] <= b[0]
 }

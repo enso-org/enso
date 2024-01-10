@@ -3,10 +3,11 @@ package org.enso.languageserver.websocket.json
 import org.enso.distribution.DistributionManager
 import org.enso.languageserver.profiling.ProfilingManager
 import org.enso.languageserver.runtime.RuntimeConnector
+import org.enso.logger.ReportLogsOnFailure
 
 import java.nio.file.Files
 
-class ProfilingManagerTest extends BaseServerTest {
+class ProfilingManagerTest extends BaseServerTest with ReportLogsOnFailure {
 
   private val json = ProfilingJsonMessages
 

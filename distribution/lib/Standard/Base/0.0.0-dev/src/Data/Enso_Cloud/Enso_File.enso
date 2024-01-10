@@ -16,8 +16,7 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
 import project.System.File.File_Access.File_Access
-import project.System.File_Format.File_For_Read
-import project.System.File_Format.File_Format_Metadata
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -219,4 +218,4 @@ Enso_Asset_Type.from (that:Text) = case that of
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
 
 ## PRIVATE
-File_For_Read.from (that:Enso_File) = File_For_Read.Value that.uri that.name that.extension
+File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)

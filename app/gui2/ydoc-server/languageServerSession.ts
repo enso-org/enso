@@ -8,10 +8,8 @@ import { Checksum, FileEdit, Path, response } from '../shared/languageServerType
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
 import {
   DistributedProject,
-  ExprId,
   IdMap,
   ModuleDoc,
-  SourceRange,
   type NodeMetadata,
   type Uuid,
 } from '../shared/yjsModel'
@@ -22,6 +20,7 @@ import {
   translateVisualizationFromFile,
 } from './edits'
 import * as fileFormat from './fileFormat'
+import { deserializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
@@ -475,21 +474,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   private syncFileContents(content: string, version: Checksum) {
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = preParseContent(content)
-      const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 
-      const idMap = new IdMap()
-      for (const [{ index, size }, id] of idMapMeta) {
-        const start = index.value
-        const end = index.value + size.value
-        const range: SourceRange = [start, end]
-        if (typeof start !== 'number' || typeof end !== 'number') {
-          console.error(`Invalid range for id ${id}:`, range)
-          continue
-        }
-        idMap.insertKnownId(range, id as ExprId)
-      }
+      const idMap = idMapJson ? deserializeIdMap(idMapJson) : new IdMap()
       this.doc.setIdMap(idMap)
 
       const keysToDelete = new Set(this.doc.metadata.keys())

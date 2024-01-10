@@ -63,6 +63,7 @@ import project.Network.Enso_Cloud.Enso_Cloud_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
+import project.Network.Http.Http_Auto_Parse_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
@@ -107,6 +108,7 @@ main = Test_Suite.run_main <|
     Http_Header_Spec.spec
     Http_Request_Spec.spec
     Http_Spec.spec
+    Http_Auto_Parse_Spec.spec
     Enso_Cloud_Spec.spec
     Import_Loop_Spec.spec
     Interval_Spec.spec
