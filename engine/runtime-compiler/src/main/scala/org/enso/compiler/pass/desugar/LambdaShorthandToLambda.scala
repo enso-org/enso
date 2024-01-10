@@ -412,7 +412,7 @@ case object LambdaShorthandToLambda extends IRPass {
             )
 
         val lambdaArg = DefinitionArgument.Specified(
-          scrutineeName.copy(id = IR.randomId),
+          scrutineeName.copy(id = null),
           None,
           None,
           suspended = false,
