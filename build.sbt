@@ -663,8 +663,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
+      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
       "io.circe"           %% "circe-yaml"       % circeYamlVersion,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
       "commons-io"          % "commons-io"       % commonsIoVersion
@@ -1261,7 +1261,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"         % "truffle-api"          % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
       "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
       "org.bouncycastle"            % "bcpkix-jdk18on"       % "1.76"                    % Test,
