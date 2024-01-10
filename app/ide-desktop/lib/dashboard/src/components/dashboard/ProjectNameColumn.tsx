@@ -70,7 +70,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     const doRename = async (newName: string) => {
         try {
-            await backend.projectUpdate(
+            await backend.updateProject(
                 asset.id,
                 {
                     ami: null,

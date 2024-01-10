@@ -57,6 +57,7 @@ export enum KeyboardAction {
     close = 'close',
     uploadToCloud = 'upload-to-cloud',
     rename = 'rename',
+    edit = 'edit',
     snapshot = 'snapshot',
     moveToTrash = 'move-to-trash',
     moveAllToTrash = 'move-all-to-trash',
@@ -435,6 +436,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.close]: [],
     [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
+    [KeyboardAction.edit]: [keybind(KeyboardAction.edit, [CTRL], 'E')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
     [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], DELETE)],
     [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
@@ -480,6 +482,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
         icon: CloudToIcon,
     },
     [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
+    [KeyboardAction.edit]: { name: 'Edit', icon: PenIcon },
     [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
     [KeyboardAction.moveToTrash]: {
         name: 'Move To Trash',
@@ -526,10 +529,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     },
     [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
     [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
-    [KeyboardAction.newDataConnector]: {
-        name: 'New Data Connector',
-        icon: AddConnectorIcon,
-    },
+    [KeyboardAction.newDataConnector]: { name: 'New Secret', icon: AddConnectorIcon },
     // These should not appear in any context menus.
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },

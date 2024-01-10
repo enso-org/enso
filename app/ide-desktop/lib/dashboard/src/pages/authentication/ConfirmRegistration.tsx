@@ -16,6 +16,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 const REGISTRATION_QUERY_PARAMS = {
     verificationCode: 'verification_code',
     email: 'email',
+    redirectUrl: 'redirect_url',
 } as const
 
 // ===========================
@@ -29,7 +30,7 @@ export default function ConfirmRegistration() {
     const location = hooks.useLocation()
     const navigate = hooks.useNavigate()
 
-    const { verificationCode, email } = parseUrlSearchParams(location.search)
+    const { verificationCode, email, redirectUrl } = parseUrlSearchParams(location.search)
 
     React.useEffect(() => {
         if (email == null || verificationCode == null) {
@@ -38,7 +39,11 @@ export default function ConfirmRegistration() {
             void (async () => {
                 try {
                     await auth.confirmSignUp(email, verificationCode)
-                    navigate(appUtils.LOGIN_PATH + location.search.toString())
+                    if (redirectUrl != null) {
+                        window.location.href = redirectUrl
+                    } else {
+                        navigate(appUtils.LOGIN_PATH + location.search.toString())
+                    }
                 } catch (error) {
                     logger.error('Error while confirming sign-up', error)
                     toastify.toast.error(
@@ -61,5 +66,6 @@ function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const verificationCode = query.get(REGISTRATION_QUERY_PARAMS.verificationCode)
     const email = query.get(REGISTRATION_QUERY_PARAMS.email)
-    return { verificationCode, email }
+    const redirectUrl = query.get(REGISTRATION_QUERY_PARAMS.redirectUrl)
+    return { verificationCode, email, redirectUrl }
 }

@@ -10,7 +10,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -42,8 +42,8 @@ export default function DriveBar(props: DriveBarProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-    const isHomeCategory =
-        category === Category.home || backend.type === backendModule.BackendType.local
+    const isCloud = backend.type === backendModule.BackendType.remote
+    const isHomeCategory = category === Category.home || !isCloud
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -112,7 +112,13 @@ export default function DriveBar(props: DriveBarProps) {
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
-                                setModal(<NewDataConnectorModal doCreate={doCreateDataConnector} />)
+                                setModal(
+                                    <UpsertSecretModal
+                                        id={null}
+                                        name={null}
+                                        doCreate={doCreateDataConnector}
+                                    />
+                                )
                             }}
                         />
                     )}
@@ -148,14 +154,8 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={
-                            category !== Category.trash &&
-                            backend.type === backendModule.BackendType.local
-                        }
-                        disabled={
-                            category === Category.trash ||
-                            backend.type !== backendModule.BackendType.local
-                        }
+                        active={category !== Category.trash && !isCloud}
+                        disabled={category === Category.trash || isCloud}
                         image={DataDownloadIcon}
                         alt="Download Files"
                         error={
