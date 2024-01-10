@@ -34,15 +34,8 @@ export interface LabelsProps {
 
 /** A list of selectable labels. */
 export default function Labels(props: LabelsProps) {
-    const {
-        labels,
-        query,
-        setQuery,
-        doCreateLabel,
-        doDeleteLabel,
-        newLabelNames,
-        deletedLabelNames,
-    } = props
+    const { labels, query, setQuery, doCreateLabel, doDeleteLabel, newLabelNames } = props
+    const { deletedLabelNames } = props
     const currentLabels = query.labels
     const currentNegativeLabels = query.negativeLabels
     const { setModal } = modalProvider.useSetModal()

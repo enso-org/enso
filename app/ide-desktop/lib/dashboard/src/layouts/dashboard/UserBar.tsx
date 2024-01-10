@@ -32,16 +32,8 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-    const {
-        supportsLocalBackend,
-        page,
-        isHelpChatOpen,
-        setIsHelpChatOpen,
-        projectAsset,
-        setProjectAsset,
-        doRemoveSelf,
-        onSignOut,
-    } = props
+    const { supportsLocalBackend, page, isHelpChatOpen, setIsHelpChatOpen } = props
+    const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
     const { organization } = authProvider.useNonPartialUserSession()
     const { setModal, updateModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()

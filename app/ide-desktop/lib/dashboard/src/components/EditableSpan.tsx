@@ -35,7 +35,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         onCancel,
         inputPattern,
         inputTitle,
-        ...passthroughProps
+        ...passthrough
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [isSubmittable, setIsSubmittable] = React.useState(true)
@@ -89,7 +89,7 @@ export default function EditableSpan(props: EditableSpanProps) {
                                   setIsSubmittable(checkSubmittable(event.currentTarget.value))
                               },
                           })}
-                    {...passthroughProps}
+                    {...passthrough}
                 />
                 {isSubmittable && (
                     <button type="submit" className="mx-0.5">
@@ -109,6 +109,6 @@ export default function EditableSpan(props: EditableSpanProps) {
             </form>
         )
     } else {
-        return <span {...passthroughProps}>{children}</span>
+        return <span {...passthrough}>{children}</span>
     }
 }

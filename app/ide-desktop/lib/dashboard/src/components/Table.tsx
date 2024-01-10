@@ -95,29 +95,14 @@ export type TableProps<
 export default function Table<T, State = never, RowState = never, Key extends string = string>(
     props: TableProps<T, State, RowState, Key>
 ) {
-    const {
-        rowComponent: RowComponent = TableRow,
-        scrollContainerRef,
-        headerRowRef,
-        footer,
-        items,
-        filter,
-        getKey,
-        selectedKeys: rawSelectedKeys,
-        setSelectedKeys: rawSetSelectedKeys,
-        columns,
-        isLoading,
-        placeholder,
-        onContextMenu,
-        draggableRows,
-        onDragLeave,
-        onRowDragStart,
-        onRowDrag,
-        onRowDragOver,
-        onRowDragEnd,
-        onRowDrop,
-        ...rowProps
-    } = props
+    const { rowComponent: RowComponent = TableRow, scrollContainerRef, headerRowRef } = props
+    const { footer, items, filter, getKey } = props
+    const { selectedKeys: rawSelectedKeys, setSelectedKeys: rawSetSelectedKeys, columns } = props
+    const { isLoading, placeholder, onContextMenu, draggableRows, onDragLeave } = props
+    const { onRowDragStart, onRowDrag, onRowDragOver, onRowDragEnd, onRowDrop } = props
+    const { className, initialRowState, state } = props
+    const rowProps = { className, initialRowState, state }
+
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may

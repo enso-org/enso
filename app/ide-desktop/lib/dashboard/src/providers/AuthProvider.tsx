@@ -184,14 +184,8 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-    const {
-        shouldStartInOfflineMode,
-        supportsLocalBackend,
-        authService,
-        onAuthenticated,
-        children,
-        projectManagerUrl,
-    } = props
+    const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
+    const { children, projectManagerUrl } = props
     const logger = loggerProvider.useLogger()
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()

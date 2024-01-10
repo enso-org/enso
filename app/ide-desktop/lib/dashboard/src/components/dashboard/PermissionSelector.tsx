@@ -46,18 +46,8 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-    const {
-        showDelete = false,
-        disabled = false,
-        typeSelectorYOffsetPx,
-        error,
-        selfPermission,
-        action: actionRaw,
-        assetType,
-        className,
-        onChange,
-        doDelete,
-    } = props
+    const { showDelete = false, disabled = false, typeSelectorYOffsetPx, error } = props
+    const { selfPermission, action: actionRaw, assetType, className, onChange, doDelete } = props
     const [action, setActionRaw] = React.useState(actionRaw)
     const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
     const permission = permissionsModule.FROM_PERMISSION_ACTION[action]

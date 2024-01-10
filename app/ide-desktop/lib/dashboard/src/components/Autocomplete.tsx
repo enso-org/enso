@@ -73,25 +73,9 @@ export type AutocompleteProps<T> = (
 
 /** A select menu with a dropdown. */
 export default function Autocomplete<T>(props: AutocompleteProps<T>) {
-    const {
-        multiple,
-        type = 'text',
-        inputRef: rawInputRef,
-        placeholder,
-        values,
-        setValues,
-        text,
-        setText,
-        autoFocus,
-        items,
-        itemToKey,
-        itemToString,
-        itemsToString,
-        matches,
-        className,
-        inputClassName,
-        optionsClassName,
-    } = props
+    const { multiple, type = 'text', inputRef: rawInputRef, placeholder, values, setValues } = props
+    const { text, setText, autoFocus, items, itemToKey, itemToString, itemsToString } = props
+    const { matches, className, inputClassName, optionsClassName } = props
     const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const valuesSet = React.useMemo(() => new Set(values), [values])

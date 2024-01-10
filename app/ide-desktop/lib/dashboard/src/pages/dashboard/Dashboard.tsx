@@ -52,12 +52,8 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const {
-        supportsLocalBackend,
-        appRunner,
-        initialProjectName: rawInitialProjectName,
-        projectManagerUrl,
-    } = props
+    const { supportsLocalBackend, appRunner, initialProjectName: rawInitialProjectName } = props
+    const { projectManagerUrl } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()

@@ -32,21 +32,9 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-    const {
-        item,
-        setItem,
-        selected,
-        setSelected,
-        state: {
-            numberOfSelectedItems,
-            assetEvents,
-            dispatchAssetListEvent,
-            nodeMap,
-            doToggleDirectoryExpansion,
-        },
-        rowState,
-        setRowState,
-    } = props
+    const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
+    const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
+    const { doToggleDirectoryExpansion } = state
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()

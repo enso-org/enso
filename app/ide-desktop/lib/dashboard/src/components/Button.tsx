@@ -20,16 +20,8 @@ export interface ButtonProps {
 
 /** A styled button. */
 export default function Button(props: ButtonProps) {
-    const {
-        active = false,
-        disabled = false,
-        disabledOpacityClassName,
-        image,
-        alt,
-        error,
-        className,
-        onClick,
-    } = props
+    const { active = false, disabled = false, disabledOpacityClassName, image, alt, error } = props
+    const { className, onClick } = props
 
     return (
         <SvgMask

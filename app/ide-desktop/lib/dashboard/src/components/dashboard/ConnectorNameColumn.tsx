@@ -30,14 +30,8 @@ export interface ConnectorNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
 export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
-    const {
-        item,
-        setItem,
-        selected,
-        state: { assetEvents, dispatchAssetListEvent },
-        rowState,
-        setRowState,
-    } = props
+    const { item, setItem, selected, state, rowState, setRowState } = props
+    const { assetEvents, dispatchAssetListEvent } = state
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()

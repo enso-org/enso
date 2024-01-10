@@ -20,14 +20,9 @@ export interface UserPermissionsProps {
 
 /** A user and their permissions for a specific asset. */
 export default function UserPermissions(props: UserPermissionsProps) {
-    const {
-        asset,
-        self,
-        isOnlyOwner,
-        userPermission: initialUserPermission,
-        setUserPermission: outerSetUserPermission,
-        doDelete,
-    } = props
+    const { asset, self, isOnlyOwner, doDelete } = props
+    const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } =
+        props
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)

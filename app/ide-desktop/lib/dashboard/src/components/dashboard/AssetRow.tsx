@@ -53,30 +53,12 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-    const {
-        keyProp: key,
-        item: rawItem,
-        initialRowState,
-        hidden,
-        selected,
-        isSoleSelectedItem,
-        setSelected,
-        allowContextMenu,
-        onContextMenu,
-        state,
-        columns,
-    } = props
-    const {
-        visibilities,
-        assetEvents,
-        dispatchAssetEvent,
-        dispatchAssetListEvent,
-        setAssetSettingsPanelProps,
-        doToggleDirectoryExpansion,
-        doCopy,
-        doCut,
-        doPaste,
-    } = state
+    const { keyProp: key, item: rawItem, initialRowState, hidden, selected } = props
+    const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
+    const { columns } = props
+    const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+
     const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()

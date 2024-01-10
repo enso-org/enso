@@ -36,14 +36,8 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const {
-        category,
-        doCreateProject,
-        doCreateDirectory,
-        doCreateDataConnector,
-        doUploadFiles,
-        dispatchAssetEvent,
-    } = props
+    const { category, doCreateProject, doCreateDirectory, doCreateDataConnector } = props
+    const { doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()

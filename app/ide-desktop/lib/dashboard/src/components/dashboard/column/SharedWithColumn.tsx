@@ -33,11 +33,9 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-    const {
-        item: { item: asset },
-        setItem,
-        state: { category, dispatchAssetEvent },
-    } = props
+    const { item, setItem, state } = props
+    const { category, dispatchAssetEvent } = state
+    const asset = item.item
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
     const self = asset.permissions?.find(

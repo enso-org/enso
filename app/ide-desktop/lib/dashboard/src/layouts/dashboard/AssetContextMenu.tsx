@@ -51,16 +51,8 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-    const {
-        hidden = false,
-        innerProps,
-        event,
-        eventTarget,
-        doCopy,
-        doCut,
-        doPaste,
-        doDelete,
-    } = props
+    const { hidden = false, innerProps, event, eventTarget, doCopy, doCut, doPaste } = props
+    const { doDelete } = props
     const { item, setItem, state, setRowState } = innerProps
     const { category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
     const logger = loggerProvider.useLogger()

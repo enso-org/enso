@@ -29,12 +29,10 @@ import MenuEntry from '#/components/MenuEntry'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-    const {
-        item: { item: asset },
-        setItem,
-        state: { category, labels, setQuery, deletedLabelNames, doCreateLabel },
-        rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
-    } = props
+    const { item, setItem, state, rowState } = props
+    const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
+    const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
+    const asset = item.item
     const session = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()

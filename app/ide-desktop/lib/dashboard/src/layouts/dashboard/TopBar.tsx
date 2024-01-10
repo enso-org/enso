@@ -41,26 +41,10 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-    const {
-        supportsLocalBackend,
-        page,
-        setPage,
-        projectAsset,
-        setProjectAsset,
-        isEditorDisabled,
-        setBackendType,
-        isHelpChatOpen,
-        setIsHelpChatOpen,
-        query,
-        setQuery,
-        labels,
-        suggestions,
-        canToggleSettingsPanel,
-        isSettingsPanelVisible,
-        setIsSettingsPanelVisible,
-        doRemoveSelf,
-        onSignOut,
-    } = props
+    const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
+    const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+    const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
+    const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
 
     return (
         <div

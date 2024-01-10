@@ -70,30 +70,13 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-    const {
-        supportsLocalBackend,
-        hidden,
-        page,
-        initialProjectName,
-        queuedAssetEvents,
-        query,
-        setQuery,
-        labels,
-        setLabels,
-        setSuggestions,
-        projectStartupInfo,
-        assetListEvents,
-        dispatchAssetListEvent,
-        assetEvents,
-        dispatchAssetEvent,
-        setAssetSettingsPanelProps,
-        doOpenEditor,
-        doCloseEditor,
-        loadingProjectManagerDidFail,
-        isListingRemoteDirectoryWhileOffline,
-        isListingLocalDirectoryAndWillFail,
-        isListingRemoteDirectoryAndWillFail,
-    } = props
+    const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
+    const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
+    const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
+    const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
+    const { loadingProjectManagerDidFail, isListingRemoteDirectoryWhileOffline } = props
+    const { isListingLocalDirectoryAndWillFail, isListingRemoteDirectoryAndWillFail } = props
+
     const navigate = hooks.useNavigate()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()

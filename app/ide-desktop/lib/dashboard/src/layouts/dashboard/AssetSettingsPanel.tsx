@@ -46,21 +46,9 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
-    const {
-        item: rawItem,
-        setItem: rawSetItem,
-        supportsLocalBackend,
-        page,
-        category,
-        isHelpChatOpen,
-        setIsHelpChatOpen,
-        setIsSettingsPanelVisible,
-        dispatchAssetEvent,
-        projectAsset,
-        setProjectAsset,
-        doRemoveSelf,
-        onSignOut,
-    } = props
+    const { item: rawItem, setItem: rawSetItem, supportsLocalBackend, page, category } = props
+    const { isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
+    const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
     const [item, innerSetItem] = React.useState(rawItem)
     const [isEditingDescription, setIsEditingDescription] = React.useState(false)
     const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)

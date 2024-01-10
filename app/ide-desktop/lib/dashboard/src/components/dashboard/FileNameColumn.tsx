@@ -30,14 +30,8 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-    const {
-        item,
-        setItem,
-        selected,
-        state: { assetEvents, dispatchAssetListEvent },
-        rowState,
-        setRowState,
-    } = props
+    const { item, setItem, selected, state, rowState, setRowState } = props
+    const { assetEvents, dispatchAssetListEvent } = state
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()

@@ -39,17 +39,8 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-    const {
-        active = false,
-        disabled = false,
-        hidden,
-        image,
-        name,
-        iconClassName,
-        onClick,
-        onDragOver,
-        onDrop,
-    } = props
+    const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
+    const { onDragOver, onDrop } = props
     return (
         <div
             className={`group flex items-center rounded-full gap-2 h-8 px-2 ${

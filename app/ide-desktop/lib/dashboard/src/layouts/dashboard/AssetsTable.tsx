@@ -340,29 +340,15 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-    const {
-        query,
-        setQuery,
-        category,
-        allLabels,
-        setSuggestions,
-        deletedLabelNames,
-        initialProjectName,
-        projectStartupInfo,
-        queuedAssetEvents: rawQueuedAssetEvents,
-        assetListEvents,
-        dispatchAssetListEvent,
-        setAssetSettingsPanelProps,
-        assetEvents,
-        dispatchAssetEvent,
-        doOpenIde,
-        doCloseIde: rawDoCloseIde,
-        doCreateLabel,
-        loadingProjectManagerDidFail,
-        isListingRemoteDirectoryWhileOffline,
-        isListingLocalDirectoryAndWillFail,
-        isListingRemoteDirectoryAndWillFail,
-    } = props
+    const { query, setQuery, category, allLabels, setSuggestions, deletedLabelNames } = props
+    const { initialProjectName, projectStartupInfo } = props
+    const { queuedAssetEvents: rawQueuedAssetEvents } = props
+    const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
+    const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
+    const { doCreateLabel, loadingProjectManagerDidFail } = props
+    const { isListingRemoteDirectoryWhileOffline, isListingLocalDirectoryAndWillFail } = props
+    const { isListingRemoteDirectoryAndWillFail } = props
+
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()

@@ -36,23 +36,9 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-    const {
-        item,
-        setItem,
-        selected,
-        rowState,
-        setRowState,
-        state: {
-            numberOfSelectedItems,
-            assetEvents,
-            dispatchAssetEvent,
-            dispatchAssetListEvent,
-            nodeMap,
-            doOpenManually,
-            doOpenIde,
-            doCloseIde,
-        },
-    } = props
+    const { item, setItem, selected, rowState, setRowState, state } = props
+    const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()

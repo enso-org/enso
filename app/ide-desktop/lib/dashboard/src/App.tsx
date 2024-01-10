@@ -136,14 +136,8 @@ export default function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const {
-        logger,
-        supportsLocalBackend,
-        isAuthenticationDisabled,
-        shouldShowDashboard,
-        onAuthenticated,
-        projectManagerUrl,
-    } = props
+    const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
+    const { onAuthenticated, projectManagerUrl } = props
     const navigate = hooks.useNavigate()
     if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.

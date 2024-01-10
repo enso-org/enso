@@ -241,18 +241,9 @@ interface InternalChatHeaderProps {
 
 /** The header bar for a {@link Chat}. Includes the title, close button, and threads list. */
 function ChatHeader(props: InternalChatHeaderProps) {
-    const {
-        threads,
-        setThreads,
-        threadId,
-        threadTitle,
-        setThreadTitle,
-        switchThread,
-        sendMessage,
-        doClose,
-    } = props
+    const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
+    const { switchThread, sendMessage, doClose } = props
     const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
-
     // These will never be `null` as their values are set immediately.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const titleInputRef = React.useRef<HTMLInputElement>(null!)
