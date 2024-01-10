@@ -4,10 +4,11 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 
 import type * as column from '../column'
-import SecretNameColumn from './secretNameColumn'
+
 import DirectoryNameColumn from './directoryNameColumn'
 import FileNameColumn from './fileNameColumn'
 import ProjectNameColumn from './projectNameColumn'
+import SecretNameColumn from './secretNameColumn'
 
 // =================
 // === AssetName ===
