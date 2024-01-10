@@ -5,12 +5,12 @@ import * as assetQuery from '../assetQuery'
 
 v.test.each([
     { query: '' },
-    { query: 'name:' },
-    { query: '-name:' },
-    { query: 'label:' },
-    { query: '-label:' },
-    { query: 'owner:' },
-    { query: '-owner:' },
+    { query: 'name:', names: [[]] },
+    { query: '-name:', negativeNames: [[]] },
+    { query: 'label:', labels: [[]] },
+    { query: '-label:', negativeLabels: [[]] },
+    { query: 'owner:', owners: [[]] },
+    { query: '-owner:', negativeOwners: [[]] },
     { query: '"', keywords: [['']] },
     { query: '""', keywords: [['']] },
     { query: 'a', keywords: [['a']] },

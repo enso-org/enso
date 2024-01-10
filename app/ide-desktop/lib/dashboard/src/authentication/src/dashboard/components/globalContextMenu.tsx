@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as assetListEventModule from '../events/assetListEvent'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
@@ -18,10 +19,7 @@ export interface GlobalContextMenuProps {
     directoryKey: backendModule.DirectoryId | null
     directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doPaste: (
-        newParentKey: backendModule.AssetId | null,
-        newParentId: backendModule.DirectoryId | null
-    ) => void
+    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
 }
 
 /** A context menu available everywhere in the directory. */
@@ -34,8 +32,13 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         dispatchAssetListEvent,
         doPaste,
     } = props
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
+    const rootDirectoryId = React.useMemo(
+        () => backend.rootDirectoryId(organization),
+        [backend, organization]
+    )
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
     return (
@@ -54,8 +57,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         if (event.currentTarget.files != null) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.uploadFiles,
-                                parentKey: directoryKey,
-                                parentId: directoryId,
+                                parentKey: directoryKey ?? rootDirectoryId,
+                                parentId: directoryId ?? rootDirectoryId,
                                 files: Array.from(event.currentTarget.files),
                             })
                             unsetModal()
@@ -82,8 +85,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                             if (input.files != null) {
                                 dispatchAssetListEvent({
                                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                                    parentKey: directoryKey,
-                                    parentId: directoryId,
+                                    parentKey: directoryKey ?? rootDirectoryId,
+                                    parentId: directoryId ?? rootDirectoryId,
                                     files: Array.from(input.files),
                                 })
                                 unsetModal()
@@ -102,8 +105,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         unsetModal()
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.newProject,
-                            parentKey: directoryKey,
-                            parentId: directoryId,
+                            parentKey: directoryKey ?? rootDirectoryId,
+                            parentId: directoryId ?? rootDirectoryId,
                             templateId: null,
                             onSpinnerStateChange: null,
                         })
@@ -118,8 +121,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         unsetModal()
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.newFolder,
-                            parentKey: directoryKey,
-                            parentId: directoryId,
+                            parentKey: directoryKey ?? rootDirectoryId,
+                            parentId: directoryId ?? rootDirectoryId,
                         })
                     }}
                 />
@@ -135,8 +138,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                                     dispatchAssetListEvent({
                                         type: assetListEventModule.AssetListEventType
                                             .newDataConnector,
-                                        parentKey: directoryKey,
-                                        parentId: directoryId,
+                                        parentKey: directoryKey ?? rootDirectoryId,
+                                        parentId: directoryId ?? rootDirectoryId,
                                         name,
                                         value,
                                     })
@@ -152,7 +155,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     action={shortcuts.KeyboardAction.paste}
                     doAction={() => {
                         unsetModal()
-                        doPaste(null, null)
+                        doPaste(rootDirectoryId, rootDirectoryId)
                     }}
                 />
             )}

@@ -2,11 +2,15 @@ package org.enso.languageserver.websocket.json
 
 import java.io.File
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
-class FileNotificationsTest extends BaseServerTest with FlakySpec {
+class FileNotificationsTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   def file(name: String): File = new File(testContentRoot.file, name)
 
