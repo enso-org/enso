@@ -1,9 +1,8 @@
-package org.enso.interpreter.test;
+package org.enso.interpreter.arrow;
 
 import static org.junit.Assert.*;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -12,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.apache.arrow.memory.BufferAllocator;
@@ -20,8 +18,6 @@ import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BaseFixedWidthVector;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.IntVector;
-import org.enso.interpreter.arrow.LogicalLayout;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -42,19 +38,11 @@ public class VerifyArrowTest {
         Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowIO(IOAccess.ALL)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.FINEST.getName())
             .logHandler(handler)
             .out(System.out)
             .err(System.err)
             .allowAllAccess(true)
             .build();
-    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
-    var fourtyTwo =
-        ctx.eval("enso", "mul x y = x * y").invokeMember("eval_expression", "mul").execute(6, 7);
-    assertEquals(42, fourtyTwo.asInt());
   }
 
   @AfterClass

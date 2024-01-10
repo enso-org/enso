@@ -1490,14 +1490,46 @@ lazy val `runtime-language-epb` =
 
 lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
-      libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
-      )
+      libraryDependencies ++= GraalVM.modules ++ Seq(
+        "junit"            % "junit"              % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
+        "org.slf4j"        % "slf4j-nop"          % slf4jVersion       % Test,
+        "org.slf4j"        % "slf4j-api"          % slf4jVersion       % Test,
+        "org.apache.arrow" % "arrow-vector"       % apacheArrowVersion % Test,
+        "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
+      ),
+      modulePath := {
+        val updateReport = (Test / update).value
+        JPMSUtils.filterModulesFromUpdate(
+          updateReport,
+          GraalVM.modules,
+          streams.value.log,
+          shouldContainAll = true
+        ) ++ Seq(
+          (LocalProject(
+            "runtime-language-arrow"
+          ) / Compile / productDirectories).value.head
+        )
+      },
+      Test / patchModules := {
+        val testClassesDir = (Test / productDirectories).value.head
+        Map("org.enso.interpreter.arrow" -> Seq(testClassesDir))
+      },
+      Test / addModules := Seq("org.enso.interpreter.arrow"),
+      Test / javaOptions ++= testLogProviderOptions ++ Seq(
+        "--add-opens=java.base/java.nio=org.enso.interpreter.arrow",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED"
+      ),
+      Test / addReads := {
+        Map("org.enso.interpreter.arrow" -> Seq("ALL-UNNAMED"))
+      },
+      Test / javaOptions ++= testLogProviderOptions
     )
+    .dependsOn(`logging-service-logback` % "test->test")
 
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`
@@ -1588,9 +1620,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
-      "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test,
-      "org.apache.arrow"     % "arrow-vector"            % apacheArrowVersion        % Test,
-      "org.apache.arrow"     % "arrow-memory-netty"      % apacheArrowVersion        % Test
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
@@ -1683,10 +1713,7 @@ lazy val runtime = (project in file("engine/runtime"))
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
-    Test / javaOptions ++= testLogProviderOptions ++ Seq(
-      "--add-opens=java.base/java.nio=org.enso.runtime",
-      "--add-opens=java.base/java.nio=ALL-UNNAMED"
-    )
+    Test / javaOptions ++= testLogProviderOptions
   )
   .settings(
     Test / fork := true,
@@ -2810,6 +2837,7 @@ lazy val `std-aws` = project
  * `org.enso.launcher.workarounds.ReplacementStatics` using
  * `org.enso.launcher.workarounds.Unsafe` which gives access to
  * `sun.misc.Unsafe` which contains a low-level function corresponding to the
+ * required "release fence".
  * required "release fence".
  *
  * To allow for that substitution, the launcher code requires annotations from
