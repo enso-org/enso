@@ -2,12 +2,16 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration.DurationInt
 
-class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
+class EngineManagementApiSpec
+    extends BaseServerSpec
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   "engine/*" must {
     "report no installed engines by default" in {

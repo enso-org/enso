@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import type { PortId } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
@@ -13,6 +13,7 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
   ArgumentApplication,
+  ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
@@ -28,25 +29,25 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.ast.exprId),
+    callId: computed(() => props.input.value.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.ast.exprId)
+  return graph.db.getMethodCallInfo(props.input.value.exprId)
 })
 
 const interpreted = computed(() => {
-  return interpretCall(props.input.ast, methodCallInfo.value == null)
+  return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
 const application = computed(() => {
   const call = interpreted.value
-  if (!call) return props.input
+  if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
-  const application = ArgumentApplication.FromInterpretedWithInfo(
+  return ArgumentApplication.FromInterpretedWithInfo(
     call,
     {
       noArgsCall,
@@ -56,9 +57,14 @@ const application = computed(() => {
     },
     !info?.staticallyApplied,
   )
-  return application instanceof ArgumentApplication
-    ? application
-    : AnyWidget.Ast(application, props.input.dynamicConfig, props.input.argInfo)
+})
+
+const innerInput = computed(() => {
+  if (application.value instanceof ArgumentApplication) {
+    return application.value.toWidgetInput()
+  } else {
+    return props.input
+  }
 })
 
 const escapeString = (str: string): string => {
@@ -68,7 +74,7 @@ const escapeString = (str: string): string => {
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
 const selfArgumentAstId = computed<Opt<ExprId>>(() => {
-  const analyzed = interpretCall(props.input.ast, true)
+  const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.exprId
   } else {
@@ -86,7 +92,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   if (props.input.dynamicConfig) return null
 
   const expressionId = selfArgumentAstId.value
-  const astId = props.input.ast.exprId
+  const astId = props.input.value.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -223,10 +229,12 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget.matchFunctionCall, {
+export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
-    const ast = props.input.ast
+    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+    const ast = props.input.value
     if (ast.exprId == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 
@@ -248,5 +256,5 @@ export const widgetDefinition = defineWidget(AnyWidget.matchFunctionCall, {
 </script>
 
 <template>
-  <NodeWidget :input="application" @update="handleArgUpdate" />
+  <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>

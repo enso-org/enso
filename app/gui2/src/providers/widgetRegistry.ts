@@ -2,104 +2,107 @@ import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
+import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
-/**
- * A WidgetInput variant meant to match wide range of "general" widgets.
- *
- * Any widget which wants to work in different contexts (inside function calls, constructors, list
- * elements) should match with this, using provided information.
- *
- * When your widget want to display some non-specific subwidget (like WidgetVector which displays
- * elements of any type), this should be provided as their input, passing as much information as
- * possible.
- */
-export class AnyWidget {
-  constructor(
-    /** A port id to refer when updating changes */
-    public portId: PortId,
-    /**
-     * Ast represented by widget. May be not defined if widget is a placeholder for
-     * not-yet-written argument
-     */
-    public ast: Ast.Ast | undefined,
-    /** Configuration retrieved from the backend */
-    public dynamicConfig?: WidgetConfiguration | undefined,
-    /** The information about argument of some function call, which this widget is setting (if any) */
-    public argInfo?: SuggestionEntryArgument | undefined,
-  ) {}
-
-  static Ast(
-    ast: Ast.Ast,
-    dynamicConfig?: WidgetConfiguration | undefined,
-    argInfo?: SuggestionEntryArgument | undefined,
-  ) {
-    return new AnyWidget(ast.exprId, ast, dynamicConfig, argInfo)
+export namespace WidgetInput {
+  export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
+    return {
+      portId: ast.exprId,
+      value: ast,
+    }
   }
 
-  isPlaceholder() {
-    return this.ast == null
+  export function valueRepr(input: WidgetInput): string | undefined {
+    if (typeof input.value === 'string') return input.value
+    else return input.value?.code()
   }
 
-  static matchPlaceholder(input: WidgetInput): input is AnyWidget & { ast: undefined } {
-    return input instanceof AnyWidget && input.isPlaceholder()
-  }
-
-  static matchAst(input: WidgetInput): input is AnyWidget & { ast: Ast.Ast } {
-    return input instanceof AnyWidget && !input.isPlaceholder()
-  }
-
-  static matchFunctionCall(
+  /** Check if input is placeholder, i.e. it does not represent any Ast node. */
+  export function isPlaceholder(
     input: WidgetInput,
-  ): input is AnyWidget & { ast: Ast.App | Ast.Ident | Ast.OprApp } {
+  ): input is WidgetInput & { value: string | undefined } {
+    return input.value == null || typeof input.value === 'string'
+  }
+
+  /** Match input against a specific AST node type. */
+  export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+    return (input: WidgetInput): input is WidgetInput & { value: T } =>
+      input.value instanceof nodeType
+  }
+
+  export function isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Ast } {
+    return input.value instanceof Ast.Ast
+  }
+
+  /** Rule out token inputs. */
+  export function isAstOrPlaceholder(
+    input: WidgetInput,
+  ): input is WidgetInput & { value: Ast.Ast | string | undefined } {
+    return isPlaceholder(input) || isAst(input)
+  }
+
+  export function isToken(input: WidgetInput): input is WidgetInput & { value: Ast.Token } {
+    return input.value instanceof Ast.Token
+  }
+
+  export function isFunctionCall(
+    input: WidgetInput,
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.OprApp } {
     return (
-      input instanceof AnyWidget &&
-      (input.ast instanceof Ast.App ||
-        input.ast instanceof Ast.Ident ||
-        input.ast instanceof Ast.OprApp)
+      input.value instanceof Ast.App ||
+      input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.OprApp
     )
   }
 }
-declare const AnyWidgetKey: unique symbol
 
 /**
- * A type representing any kind of input that can have a widget attached to it. It is defined as an
- * interface to allow for extension by widgets themselves. The actual input received by the widget
- * will always be one of the types defined in this interface. The key of each property is used as a
- * key for the discriminated union, so it should be unique.
+ * Widget instance input.
  *
- * Declare new widget input types by declaring a new unique symbol key, then extending this
- * interface with a new property with that key and a value of the new input type.
+ * This input is first used to decide which widget should be instantiated, then by the widget
+ * instance to show proper value.
+ *
+ * This interface can be extended by specific widgets to add their data to be propagated to
+ * subwidgets - to avoid breaking other widgets, additional property should be optional indexed
+ * by symbols, for example:
  *
  * ```ts
- * declare const MyCustomInputTypeKey: unique symbol;
+ * export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
+ * export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
  * declare module '@/providers/widgetRegistry' {
- *   export interface WidgetInputTypes {
- *     [MyCustomInputTypeKey]: MyCustomInputType
+ *   export interface WidgetInput {
+ *     [ArgumentApplicationKey]?: ArgumentApplication
+ *     [ArgumentInfoKey]?: {
+ *       appKind: ApplicationKind
+ *       info: SuggestionEntryArgument | undefined
+ *     }
  *   }
  * }
  * ```
- *
- * All declared widget input types must have unique symbols, and all values must be objects.
- * Declarations that do not follow these rules will be ignored or will cause type errors.
  */
-export interface WidgetInputTypes {
-  [AnyWidgetKey]: AnyWidget
+export interface WidgetInput {
+  /**
+   * Port identification. See {@link PortId}
+   *
+   * Also, used as usage key (see {@link usageKeyForInput})
+   */
+  portId: PortId
+  /**
+   * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
+   * code. If string, it may be e.g. a default value of an argument.
+   */
+  value: Ast.Ast | Ast.Token | string | undefined
+  /** An expected type which widget should set. */
+  expectedType?: Typename | undefined
+  /** Configuration provided by engine. */
+  dynamicConfig?: WidgetConfiguration | undefined
+  /** Force the widget to be a connectible port. */
+  forcePort?: boolean
 }
-
-/**
- * An union of all possible widget input types. A collection of all correctly declared value types
- * on the extendable {@link WidgetInputTypes} interface.
- *
- * From the defined input types, it accepts only keys that are declared as symbols and have values
- * that are objects. If your extension of {@link WidgetInputTypes} does not appear in this union,
- * check if you have followed those rules.
- */
-export type WidgetInput = Extract<WidgetInputTypes[keyof WidgetInputTypes & symbol], object>
 
 /**
  * Description of how well a widget matches given input. Used to determine which widget should be
@@ -145,20 +148,16 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
   } as const
 }
 
-/**
- * A class which instances have type `T`. Accepts classes that have a private constructors, such as
- * `Ast` or `ArgumentPlaceholder`.
- */
-type Class<T extends WidgetInput> = Function & { prototype: T }
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
-type InputMatcher<T extends WidgetInput> = InputMatcherFn<T> | Class<T>
+type InputMatcherSymbol<T extends WidgetInput> = symbol & keyof T
+type InputMatcher<T extends WidgetInput> = InputMatcherSymbol<T> | InputMatcherFn<T>
 
 type InputTy<M> = M extends (infer T)[]
   ? InputTy<T>
   : M extends InputMatcherFn<infer T>
   ? T
-  : M extends Class<infer T>
-  ? T
+  : M extends symbol & keyof WidgetInput
+  ? WidgetInput & { [S in M]: Required<WidgetInput>[S] }
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {
@@ -230,12 +229,12 @@ function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
 
 /**
  *
- * @param matchInputs Filter the widget input type to only accept specific types of input. The
+ * @param matchInputs Filter the widget input to only accept specific types of input. The
  * declared widget props will depend on the type of input accepted by this filter. Only widgets that
  * pass this filter will be scored and potentially used.
  *
- * The filter can be a type guard function `(input: WidgetInput) => input is MyType`, a class
- * constructor `MyType`, or an array combining any of the above. When an array is provided, the
+ * The filter can be a type guard function `(input: WidgetInput) => input is MyType`, a symbol representing
+ * required property `MySymbol`, or an array combining any of the above. When an array is provided, the
  * widget will match if any of the filters in the array match.
  */
 export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
@@ -264,12 +263,11 @@ function makeInputMatcher<T extends WidgetInput>(
   if (Array.isArray(matcher)) {
     const matchers = matcher.map(makeInputMatcher)
     return (input: WidgetInput): input is T => matchers.some((f) => f(input))
-  } else if (Object.getOwnPropertyDescriptor(matcher, 'prototype')?.writable === false) {
-    // A function with an existing non-writable prototype is a class constructor.
-    return (input: WidgetInput): input is T => input instanceof matcher
   } else if (typeof matcher === 'function') {
     // When matcher is a function with assignable prototype, it must be a type guard.
     return matcher as (input: WidgetInput) => input is T
+  } else if (typeof matcher === 'symbol') {
+    return (input: WidgetInput): input is T => matcher in input
   } else {
     throw new Error('Invalid widget input matcher definiton: ' + matcher)
   }

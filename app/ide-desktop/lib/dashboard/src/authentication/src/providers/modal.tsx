@@ -9,27 +9,27 @@ import * as React from 'react'
 /** The type of a modal. */
 export type Modal = JSX.Element
 
-/** State contained in a `SetModalContext`. */
-interface SetModalContextType {
+/** State contained in a `ModalStaticContext`. */
+interface ModalStaticContextType {
     setModal: React.Dispatch<React.SetStateAction<Modal | null>>
+    modalRef: React.RefObject<Modal>
 }
 
 /** State contained in a `ModalContext`. */
 interface ModalContextType {
     modal: Modal | null
-    modalRef: React.RefObject<Modal>
 }
 
 const ModalContext = React.createContext<ModalContextType>({
     modal: null,
-    modalRef: { current: null },
 })
 
-const SetModalContext = React.createContext<SetModalContextType>({
+const ModalStaticContext = React.createContext<ModalStaticContextType>({
     setModal: () => {
         // Ignored. This default value will never be used as `ModalProvider` always provides
         // its own value.
     },
+    modalRef: { current: null },
 })
 
 /** Props for a {@link ModalProvider}. */
@@ -48,26 +48,31 @@ export function ModalProvider(props: ModalProviderProps) {
     // This is NOT for optimization purposes - this is for debugging purposes,
     // so that a change of `modal` does not trigger VDOM changes everywhere in the page.
     const setModalProvider = React.useMemo(
-        () => <SetModalProvider setModal={setModal}>{children}</SetModalProvider>,
+        () => (
+            <ModalStaticProvider setModal={setModal} modalRef={modalRef}>
+                {children}
+            </ModalStaticProvider>
+        ),
         [children]
     )
-    return (
-        <ModalContext.Provider value={{ modal, modalRef }}>
-            {setModalProvider}
-        </ModalContext.Provider>
-    )
+    return <ModalContext.Provider value={{ modal }}>{setModalProvider}</ModalContext.Provider>
 }
 
 /** Props for a {@link ModalProvider}. */
-interface InternalSetModalProviderProps extends React.PropsWithChildren {
+interface InternalModalStaticProviderProps extends React.PropsWithChildren {
     setModal: React.Dispatch<React.SetStateAction<Modal | null>>
+    modalRef: React.RefObject<Modal>
 }
 
 /** A React provider containing a function to set the currently active modal. */
-function SetModalProvider(props: InternalSetModalProviderProps) {
-    const { setModal, children } = props
+function ModalStaticProvider(props: InternalModalStaticProviderProps) {
+    const { setModal, modalRef, children } = props
 
-    return <SetModalContext.Provider value={{ setModal }}>{children}</SetModalContext.Provider>
+    return (
+        <ModalStaticContext.Provider value={{ setModal, modalRef }}>
+            {children}
+        </ModalStaticContext.Provider>
+    )
 }
 
 /** A React context hook exposing the currently active modal, if one is currently visible. */
@@ -79,13 +84,13 @@ export function useModal() {
 /** A React context hook exposing the currently active modal (if one is currently visible) as a ref.
  */
 export function useModalRef() {
-    const { modalRef } = React.useContext(ModalContext)
+    const { modalRef } = React.useContext(ModalStaticContext)
     return { modalRef }
 }
 
 /** A React context hook exposing functions to set and unset the currently active modal. */
 export function useSetModal() {
-    const { setModal: setModalRaw } = React.useContext(SetModalContext)
+    const { setModal: setModalRaw } = React.useContext(ModalStaticContext)
     const setModal: (modal: Modal) => void = setModalRaw
     const updateModal: (updater: (modal: Modal | null) => Modal | null) => void = setModalRaw
     const unsetModal = React.useCallback(() => {

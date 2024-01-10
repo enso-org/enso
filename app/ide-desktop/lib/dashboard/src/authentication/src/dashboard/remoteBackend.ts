@@ -10,6 +10,7 @@ import * as config from '../config'
 import * as errorModule from '../error'
 import type * as http from '../http'
 import type * as loggerProvider from '../providers/logger'
+import * as object from '../object'
 import * as remoteBackendPaths from './remoteBackendPaths'
 
 // =================
@@ -158,12 +159,13 @@ export class RemoteBackend extends backendModule.Backend {
     override rootDirectoryId(
         user: backendModule.UserOrOrganization | null
     ): backendModule.DirectoryId {
+        if (user != null && !user.id.startsWith('organization-')) {
+            this.logger.error(`User ID '${user.id}' does not start with 'organization-'`)
+        }
         return backendModule.DirectoryId(
             // `user` is only null when the user is offline, in which case the remote backend cannot
             // be accessed anyway.
-            user != null
-                ? user.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
-                : ''
+            user?.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`) ?? ''
         )
     }
 
@@ -261,22 +263,19 @@ export class RemoteBackend extends backendModule.Backend {
             }
         } else {
             return (await response.json()).assets
-                .map(
-                    asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a
-                        // newtype.
+                .map(asset =>
+                    object.merge(asset, {
                         // eslint-disable-next-line no-restricted-syntax
-                        ({
-                            ...asset,
-                            type: asset.id.match(/^(.+?)-/)?.[1],
-                        }) as backendModule.AnyAsset
+                        type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
+                    })
                 )
-                .map(asset => ({
-                    ...asset,
-                    permissions: [...(asset.permissions ?? [])].sort(
-                        backendModule.compareUserPermissions
-                    ),
-                }))
+                .map(asset =>
+                    object.merge(asset, {
+                        permissions: [...(asset.permissions ?? [])].sort(
+                            backendModule.compareUserPermissions
+                        ),
+                    })
+                )
         }
     }
 
@@ -363,6 +362,31 @@ export class RemoteBackend extends backendModule.Backend {
             )
         } else {
             return
+        }
+    }
+
+    /** Copy an arbitrary asset to another directory.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async copyAsset(
+        assetId: backendModule.AssetId,
+        parentDirectoryId: backendModule.DirectoryId,
+        title: string | null,
+        parentDirectoryTitle: string | null
+    ): Promise<backendModule.CopyAssetResponse> {
+        const response = await this.post<backendModule.CopyAssetResponse>(
+            remoteBackendPaths.copyAssetPath(assetId),
+            { parentDirectoryId }
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to copy ${title != null ? `'${title}'` : `asset with ID '${assetId}'`} to ${
+                    parentDirectoryTitle != null
+                        ? `'${parentDirectoryTitle}'`
+                        : `directory with ID '${parentDirectoryId}'`
+                }.`
+            )
+        } else {
+            return await response.json()
         }
     }
 

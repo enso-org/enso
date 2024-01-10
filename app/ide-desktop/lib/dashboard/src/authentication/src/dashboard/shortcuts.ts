@@ -69,10 +69,12 @@ export enum KeyboardAction {
     label = 'label',
     duplicate = 'duplicate',
     copy = 'copy',
+    copyAll = 'copy-all',
     cut = 'cut',
     cutAll = 'cut-all',
     cancelCut = 'cancel-cut',
     paste = 'paste',
+    pasteAll = 'paste-all',
     download = 'download',
     uploadFiles = 'upload-files',
     uploadProjects = 'upload-projects',
@@ -142,17 +144,25 @@ export const MODIFIERS =
  * keys. */
 const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
 
-/** Whether the modifiers match the event's modifier key states. */
-export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+/** Whether `event` may trigger a shortcut. */
+export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent) {
+    return event.ctrlKey || event.metaKey || event.altKey
+}
+
+/** Whether `event.key` is a key used in text editing. */
+export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
     // Allow `alt` key to be pressed in case it is being used to enter special characters.
     return (
-        !event.ctrlKey &&
-        !event.shiftKey &&
-        !event.metaKey &&
-        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
-            event.key === 'Backspace' ||
-            event.key === 'Delete')
+        !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
+        event.key === 'Backspace' ||
+        event.key === 'Delete'
     )
+}
+
+/** Whether `event` will produce text. This excludes shortcuts, as they do not produce text. */
+export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+    // Allow `alt` key to be pressed in case it is being used to enter special characters.
+    return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
 
 // =============================
@@ -439,10 +449,12 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
     [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
+    [KeyboardAction.copyAll]: [keybind(KeyboardAction.copyAll, [CTRL], 'C')],
     [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
     [KeyboardAction.cutAll]: [keybind(KeyboardAction.cutAll, [CTRL], 'X')],
     [KeyboardAction.cancelCut]: [keybind(KeyboardAction.cancelCut, [], 'Escape')],
     [KeyboardAction.paste]: [keybind(KeyboardAction.paste, [CTRL], 'V')],
+    [KeyboardAction.pasteAll]: [keybind(KeyboardAction.pasteAll, [CTRL], 'V')],
     [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
     [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
     [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
@@ -485,9 +497,11 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
     [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
     [KeyboardAction.copy]: { name: 'Copy', icon: CopyIcon },
+    [KeyboardAction.copyAll]: { name: 'Copy All', icon: CopyIcon },
     [KeyboardAction.cut]: { name: 'Cut', icon: ScissorsIcon },
     [KeyboardAction.cutAll]: { name: 'Cut All', icon: ScissorsIcon },
     [KeyboardAction.paste]: { name: 'Paste', icon: PasteIcon },
+    [KeyboardAction.pasteAll]: { name: 'Paste All', icon: PasteIcon },
     [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
     [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
     [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },

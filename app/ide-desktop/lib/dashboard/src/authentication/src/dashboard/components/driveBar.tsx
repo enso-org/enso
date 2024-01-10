@@ -100,6 +100,7 @@ export default function DriveBar(props: DriveBarProps) {
                             disabled={!isHomeCategory}
                             error="You can only create a new folder in Home."
                             image={AddFolderIcon}
+                            alt="New Folder"
                             disabledOpacityClassName="opacity-20"
                             onClick={() => {
                                 unsetModal()
@@ -113,6 +114,7 @@ export default function DriveBar(props: DriveBarProps) {
                             disabled={!isHomeCategory}
                             error="You can only create a new data connector in Home."
                             image={AddConnectorIcon}
+                            alt="New Data Connector"
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
@@ -144,6 +146,7 @@ export default function DriveBar(props: DriveBarProps) {
                         disabled={!isHomeCategory}
                         error="You can only upload files to Home."
                         image={DataUploadIcon}
+                        alt="Upload Files"
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
                             unsetModal()
@@ -160,6 +163,7 @@ export default function DriveBar(props: DriveBarProps) {
                             backend.type !== backendModule.BackendType.local
                         }
                         image={DataDownloadIcon}
+                        alt="Download Files"
                         error={
                             category === categorySwitcher.Category.trash
                                 ? 'You cannot download files from Trash.'

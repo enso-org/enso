@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   functionCallConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
@@ -20,7 +20,7 @@ interface Tag {
 }
 
 const staticTags = computed<Tag[]>(() => {
-  const tags = props.input.argInfo?.tagValues
+  const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
   return tags.map((tag) => {
     const qualifiedName = tryQualifiedName(tag)
@@ -50,7 +50,7 @@ const selectedTag = computed(() =>
   selectedIndex.value != null ? tags.value[selectedIndex.value] : undefined,
 )
 const selectedValue = computed(() => {
-  if (selectedTag.value == null) return props.input.argInfo?.defaultValue ?? ''
+  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
   return selectedTag.value.value ?? selectedTag.value.label
 })
 const innerWidgetInput = computed(() => {
@@ -58,25 +58,7 @@ const innerWidgetInput = computed(() => {
   const parameters = selectedTag.value.parameters
   if (!parameters) return props.input
   const config = functionCallConfiguration(parameters)
-  if (props.input instanceof AnyWidget)
-    return new AnyWidget(props.input.portId, props.input.ast, config, props.input.argInfo)
-  else if (props.input instanceof ArgumentAst)
-    return new ArgumentAst(
-      props.input.ast,
-      props.input.index,
-      props.input.argInfo,
-      props.input.kind,
-      config,
-    )
-  else
-    return new ArgumentPlaceholder(
-      props.input.callId,
-      props.input.index,
-      props.input.argInfo,
-      props.input.kind,
-      props.input.insertAsNamed,
-      config,
-    )
+  return { ...props.input, dynamicConfig: config }
 })
 const showDropdownWidget = ref(false)
 
@@ -92,11 +74,11 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([AnyWidget, ArgumentAst, ArgumentPlaceholder], {
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 999,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
-    if (props.input.argInfo?.tagValues != null) return Score.Perfect
+    if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
     return Score.Mismatch
   },
 })

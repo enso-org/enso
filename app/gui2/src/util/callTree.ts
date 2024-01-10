@@ -1,5 +1,5 @@
 import type { PortId } from '@/providers/portInfo'
-import { AnyWidget, type WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
@@ -39,8 +39,14 @@ export class ArgumentPlaceholder {
     return new ArgumentPlaceholder(callId, index, info, kind, insertAsNamed, cfg)
   }
 
-  toAnyWidget(): AnyWidget {
-    return new AnyWidget(this.portId, undefined, this.dynamicConfig, this.argInfo)
+  toWidgetInput(): WidgetInput {
+    return {
+      portId: this.portId,
+      value: this.argInfo.defaultValue,
+      expectedType: this.argInfo.reprType,
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind },
+      dynamicConfig: this.dynamicConfig,
+    }
   }
 
   get portId(): PortId {
@@ -69,18 +75,18 @@ export class ArgumentAst {
     return new ArgumentAst(ast, index, info, kind, cfg)
   }
 
-  toAnyWidget(): AnyWidget {
-    return new AnyWidget(this.portId, this.ast, this.dynamicConfig, this.argInfo)
+  toWidgetInput(): WidgetInput {
+    return {
+      portId: this.portId,
+      value: this.ast,
+      expectedType: this.argInfo?.reprType,
+      [ArgumentInfoKey]: { appKind: this.kind, info: this.argInfo },
+      dynamicConfig: this.dynamicConfig,
+    }
   }
 
   get portId(): PortId {
     return this.ast.exprId
-  }
-
-  static matchWithArgInfo(
-    input: WidgetInput,
-  ): input is ArgumentAst & { argInfo: SuggestionEntryArgument } {
-    return input instanceof ArgumentAst && input.argInfo != null
   }
 }
 
@@ -301,6 +307,17 @@ export class ArgumentApplication {
       current = current.target
     }
   }
+
+  toWidgetInput(): WidgetInput {
+    return {
+      portId:
+        this.argument instanceof ArgumentAst
+          ? this.appTree.exprId
+          : (`app:${this.argument.portId}` as PortId),
+      value: this.appTree,
+      [ArgumentApplicationKey]: this,
+    }
+  }
 }
 
 const unknownArgInfoNamed = (name: string) => ({
@@ -318,13 +335,14 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
   return opr != null && opr.code() === '.'
 }
 
-declare const ArgumentApplicationKey: unique symbol
-declare const ArgumentAstKey: unique symbol
-declare const ArgumentPlaceholderKey: unique symbol
+export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
+export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
 declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [ArgumentApplicationKey]: ArgumentApplication
-    [ArgumentPlaceholderKey]: ArgumentPlaceholder
-    [ArgumentAstKey]: ArgumentAst
+  export interface WidgetInput {
+    [ArgumentApplicationKey]?: ArgumentApplication
+    [ArgumentInfoKey]?: {
+      appKind: ApplicationKind
+      info: SuggestionEntryArgument | undefined
+    }
   }
 }

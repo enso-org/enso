@@ -280,8 +280,8 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
             scores_float = [float(score.text.strip()) for score in scores]
             if len(scores_float) > 1:
                 logging.warning(f"More than one score for benchmark {label}, "
-                                f"using the best one (the smallest one).")
-            label_score_dict[label] = min(scores_float)
+                                f"using the last one (the newest one).")
+            label_score_dict[label] = scores_float[len(scores_float) - 1]
     return JobReport(
         label_score_dict=label_score_dict,
         bench_run=bench_run
