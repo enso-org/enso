@@ -40,6 +40,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
     const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
     const [wasQueryModified, setWasQueryModified] = React.useState(false)
+    const [wasQueryTyped, setWasQueryTyped] = React.useState(false)
     const [isShiftPressed, setIsShiftPressed] = React.useState(false)
     const rootRef = React.useRef<HTMLLabelElement>(null)
     const searchRef = React.useRef<HTMLInputElement>(null)
@@ -49,6 +50,15 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             baseQuery.current = query
         }
     }, [isTabbing, isShiftPressed, query])
+
+    React.useEffect(() => {
+        if (!wasQueryTyped) {
+            baseQuery.current = query
+            if (searchRef.current != null) {
+                searchRef.current.value = query.toString()
+            }
+        }
+    }, [wasQueryTyped, query])
 
     React.useEffect(() => {
         if (!isTabbing && !isShiftPressed) {
@@ -202,6 +212,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 onChange={event => {
                     if (!wasQueryModified) {
                         setQuery(assetQuery.AssetQuery.fromString(event.target.value))
+                        setWasQueryTyped(true)
                     }
                 }}
             />
