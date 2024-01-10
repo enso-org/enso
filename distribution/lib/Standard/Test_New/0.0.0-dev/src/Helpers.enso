@@ -29,35 +29,32 @@ run_specs_from_group : Vector Spec -> Text -> Vector Test_Result
 run_specs_from_group (specs : Vector Spec) (group : Group) =
     if specs.not_empty then
         IO.println <| "Running tests in group '" + group.name + "'..."
-    specs.map spec->
+    test_results = specs.map spec->
         IO.println <| "  Running spec '" + spec.name + "'..."
-        pair = run_spec spec group.setup
+        pair = run_spec spec
         spec_res = pair.second
         time_taken = pair.first
         Test_Result.Impl group.name spec.name spec_res time_taken
+    # Invoke the teardown of the group
+    group.teardown Nothing
+    test_results
+
 
 ## PRIVATE
-   Runs a single test spec.
-
-   Arguments:
-   - setup_fn: Either Nothing or a function that returns arguments that should be passed
-                   to the spec test. Alias for `before_each`.
-run_spec : Spec -> (Nothing -> Any) -> Pair Duration Spec_Result
-run_spec (spec : Spec) (setup_fn : (Nothing -> Any)) =
+run_spec : Spec -> Pair Duration Spec_Result
+run_spec (spec : Spec) =
     pair = case spec.pending of
-        Nothing ->
-            spec_args = setup_fn Nothing
-            Duration.time_execution <|
-                State.run Clue Nothing (execute_spec_code spec.code spec_args)
+        Nothing -> Duration.time_execution <|
+            State.run Clue Nothing (execute_spec_code spec.code)
         reason -> Pair.new Duration.zero (Spec_Result.Pending reason)
     pair
 
 
 ## PRIVATE
-execute_spec_code : (Nothing -> Any) -> Any -> Spec_Result
-execute_spec_code spec_code spec_args =
+execute_spec_code : (Nothing -> Any) -> Spec_Result
+execute_spec_code spec_code =
     recovery = Panic.recover Any <|
-        result = spec_code spec_args
+        result = spec_code Nothing
         result.catch Any err->
             Panic.throw (Finished_With.Error err result.get_stack_trace_text)
         Nothing
@@ -70,6 +67,7 @@ execute_spec_code spec_code spec_args =
                 Spec_Result.Failure (Test.enrich_message_with_clue ("An unexpected error was returned: " + err.to_text)) details=stack_trace_text
             _ -> Spec_Result.Failure (Test.enrich_message_with_clue ("An unexpected panic was thrown: " + ex.to_text)) details=maybeExc.get_stack_trace_text
     result
+
 
 ## PRIVATE
 
