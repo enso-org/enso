@@ -4,8 +4,10 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { tryGetIndex } from '@/util/data/array'
+import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { MethodCall } from 'shared/languageServerTypes'
+import { assert } from './assert'
+import { mapOr } from './data/opt'
 
 export const enum ApplicationKind {
   Prefix,
@@ -189,7 +191,6 @@ export class ArgumentApplication {
     stripSelfArgument: boolean,
   ) {
     const { noArgsCall, suggestion, widgetCfg } = callInfo
-    const kind = ApplicationKind.Prefix
     const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
@@ -211,72 +212,107 @@ export class ArgumentApplication {
       notAppliedOriginally.has(i),
     )
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    // TODO[Frizi]: Rewrite following section to make the placeholder insert position behave better.
-    // It should match old GUI, but additionally take into account partially applied functions.
-    // Reference: `resolve_argument_positions` from app/gui/language/span-tree/src/generate.rs
-    // chain_args -> interpreted.args
-    // application.next_argument_name/take_next_argument -> argumentsLeftToMatch
-    //
-
-    const prefixArgsToDisplay: Array<{
+    const resolvedArgs: Array<{
       appTree: Ast.Ast
       argument: ArgumentAst | ArgumentPlaceholder
     }> = []
 
-    function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
-      let canInsertPositional = true
-      while (argumentsLeftToMatch[0] != null && argumentsLeftToMatch[0] < index) {
-        const argIndex = argumentsLeftToMatch.shift()
-        const argInfo = tryGetIndex(knownArguments, argIndex)
-        if (argIndex != null && argInfo != null) {
-          prefixArgsToDisplay.push({
-            appTree,
-            argument: ArgumentPlaceholder.WithRetrievedConfig(
-              callId,
-              argIndex,
-              argInfo,
-              ApplicationKind.Prefix,
-              !canInsertPositional,
-              widgetCfg,
-            ),
-          })
-
-          canInsertPositional = false
-        }
-      }
+    function nextArgumentName() {
+      return tryGetIndex(knownArguments, argumentsLeftToMatch[0])?.name
     }
 
-    for (const realArg of interpreted.args) {
-      if (realArg.argName == null) {
-        const argIndex = argumentsLeftToMatch.shift()
-        if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree.function)
-        prefixArgsToDisplay.push({
-          appTree: realArg.appTree,
+    function takeNextArgument() {
+      const index = argumentsLeftToMatch.shift()
+      const info = tryGetIndex(knownArguments, index)
+      return index != null && info != null ? { index, info } : undefined
+    }
+
+    function takeNamedArgument(name: string) {
+      const takeIdx = argumentsLeftToMatch.findIndex(
+        (id) => tryGetIndex(knownArguments, id)?.name === name,
+      )
+      const index = argumentsLeftToMatch.splice(takeIdx, 1)[0]
+      const info = tryGetIndex(knownArguments, index)
+      return index != null && info != null ? { index, info } : undefined
+    }
+
+    function putBackArgument(index: number) {
+      argumentsLeftToMatch.unshift(index)
+    }
+
+    const lastPositionalArgIndex = findLastIndex(interpreted.args, (arg) => arg.argName == null)
+
+    let placeholderAlreadyInserted = false
+
+    console.log('argumentsLeftToMatch', [...argumentsLeftToMatch])
+    let nextArgument: ReturnType<typeof takeNextArgument>
+
+    // Always insert a placeholder for the missing argument at the first position that is legal
+    // and don't invalidate further named arguments, treating the named arguments at correct
+    // position as if they were positional. foo a b c [d]
+    for (let position = 0; position < interpreted.args.length; ++position) {
+      const arg = interpreted.args[position]
+      assert(!!arg)
+      console.log('arg', arg)
+      const pastPositionalArguments = mapOr(lastPositionalArgIndex, true, (i) => position > i)
+
+      if (pastPositionalArguments && arg.argName != null && arg.argName !== nextArgumentName()) {
+        // Named argument that is not in its natural position, and there are no more
+        // positional arguments to emit in the chain. At this point placeholders can be
+        // inserted. We need to figure out which placeholders can be inserted before
+        // emitting this named argument.
+
+        // all remaining arguments must be named, as we are past all positional arguments.
+        const remainingArguments = interpreted.args.slice(position)
+        console.log('remainingArguments', remainingArguments)
+
+        // For each subsequent argument in its current natural position, insert a
+        // placeholder. Do that only if the argument is not defined further in the chain.
+        while ((nextArgument = takeNextArgument())) {
+          const { index, info } = nextArgument
+          const isDefinedFurther = remainingArguments.some((arg) => arg.argName === info.name)
+          if (isDefinedFurther) {
+            putBackArgument(index)
+            break
+          } else {
+            resolvedArgs.push({
+              appTree: arg.appTree,
+              argument: ArgumentPlaceholder.WithRetrievedConfig(
+                callId,
+                index,
+                info,
+                ApplicationKind.Prefix,
+                !placeholderAlreadyInserted,
+                widgetCfg,
+              ),
+            })
+            placeholderAlreadyInserted = true
+          }
+        }
+
+        // Finally, we want to emit the named argument and remove it from the list of
+        // remaining known params.
+        const { index, info } = takeNamedArgument(arg.argName) ?? {}
+        resolvedArgs.push({
+          appTree: arg.appTree,
           argument: ArgumentAst.WithRetrievedConfig(
-            realArg.argument,
-            argIndex,
-            tryGetIndex(knownArguments, argIndex),
-            kind,
+            arg.argument,
+            index,
+            info ?? unknownArgInfoNamed(arg.argName),
+            ApplicationKind.Prefix,
             widgetCfg,
           ),
         })
       } else {
-        // When name is present, we need to find the argument with the same name in the list of
-        // known arguments.
-        const name = realArg.argName
-        const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
-        const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
-
-        if (argIndex != null && foundIdx === 0)
-          insertPlaceholdersUpto(argIndex, realArg.appTree.function)
-        prefixArgsToDisplay.push({
-          appTree: realArg.appTree,
+        const argument = arg.argName == null ? takeNextArgument() : takeNamedArgument(arg.argName)
+        const { index, info } = argument ?? {}
+        resolvedArgs.push({
+          appTree: arg.appTree,
           argument: ArgumentAst.WithRetrievedConfig(
-            realArg.argument,
-            argIndex,
-            tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name),
-            kind,
+            arg.argument,
+            index,
+            info ?? (arg.argName != null ? unknownArgInfoNamed(arg.argName) : undefined),
+            ApplicationKind.Prefix,
             widgetCfg,
           ),
         })
@@ -284,13 +320,26 @@ export class ArgumentApplication {
     }
 
     const outerApp = interpreted.args[interpreted.args.length - 1]?.appTree ?? interpreted.func
-    insertPlaceholdersUpto(Infinity, outerApp)
+    // If there are any remaining known parameters, they must be inserted as trailing placeholders.
+    while ((nextArgument = takeNextArgument())) {
+      const { index, info } = nextArgument
+      resolvedArgs.push({
+        appTree: outerApp,
+        argument: ArgumentPlaceholder.WithRetrievedConfig(
+          callId,
+          index,
+          info,
+          ApplicationKind.Prefix,
+          placeholderAlreadyInserted,
+          widgetCfg,
+        ),
+      })
+      placeholderAlreadyInserted = true
+    }
 
-    //
-    // End of section to rewrite
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+    console.log('resolvedArgs', resolvedArgs)
 
-    return prefixArgsToDisplay.reduce(
+    return resolvedArgs.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
         new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
       interpreted.func,

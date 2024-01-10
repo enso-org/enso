@@ -55,3 +55,13 @@ export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean
 export function arrayEquals<T>(a: T[], b: T[]): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
 }
+
+/**
+ * Return the rightmost index of an array element that passes the predicate. Returns `undefined` if
+ * no such element has been found.
+ */
+export function findLastIndex<T>(array: T[], pred: (elem: T) => boolean): number | undefined {
+  for (let i = array.length - 1; i >= 0; --i) {
+    if (pred(array[i]!)) return i
+  }
+}
