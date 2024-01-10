@@ -10,7 +10,7 @@ test.test.beforeEach(actions.mockAll)
 // =============
 
 test.test('login screen', async ({ page }) => {
-await page.goto('/')
+    await page.goto('/')
 
     // Invalid email
     await actions.locateEmailInput(page).fill('invalid email')
