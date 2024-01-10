@@ -120,7 +120,7 @@ type HTTP
 
                     response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
-                        body = response.body.decode_as_text.catch Any err->""
+                        body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
                         Error.throw (HTTP_Error.Status_Error response.code message response.uri)
 
