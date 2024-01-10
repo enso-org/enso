@@ -3,8 +3,8 @@ import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as esbuild from 'esbuild'
 import chalk from 'chalk'
+import * as esbuild from 'esbuild'
 
 import * as bundler from './esbuild-config'
 
@@ -20,18 +20,20 @@ const HTTP_STATUS_OK = 200
 // `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
-const OPTS = bundler.bundlerOptions({ outputPath: '/', devMode: process.env.DEV_MODE !== 'false' })
+const OPTS = bundler.bundlerOptions({
+    outputPath: '/',
+    devMode: process.env.DEV_MODE !== 'false',
+})
 OPTS.define['REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
-    path.resolve(THIS_PATH, 'src', 'index.ts'),
+    path.resolve(THIS_PATH, 'src', 'entrypoint.ts'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.minify = false
 OPTS.write = false
 OPTS.loader['.html'] = 'copy'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
-;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 const REQUIRE = module.default.createRequire(import.meta.url)
 OPTS.plugins.push({
     name: 'react-dom-profiling',
