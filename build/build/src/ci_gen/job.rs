@@ -290,19 +290,6 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PackageOldIde;
-impl JobArchetype for PackageOldIde {
-    fn job(&self, os: OS) -> Job {
-        plain_job_customized(
-            &os,
-            "Package Old IDE",
-            "ide build --wasm-source current-ci-run --backend-source current-ci-run",
-            with_packaging_steps(os),
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct PackageNewIde;
 impl JobArchetype for PackageNewIde {
     fn job(&self, os: OS) -> Job {
