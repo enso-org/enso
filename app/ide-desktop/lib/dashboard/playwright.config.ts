@@ -9,7 +9,7 @@ import * as test from '@playwright/test'
 /* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/strict-boolean-expressions */
 
 export default test.defineConfig({
-    testDir: './test-e2e',
+    testDir: './e2e',
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     timeout: 10000,
@@ -42,8 +42,8 @@ export default test.defineConfig({
         },
     },
     webServer: {
-        command: 'npx tsx test-server.ts',
+        command: 'npm run dev:e2e',
         port: 8080,
-        reuseExistingServer: false,
+        reuseExistingServer: !process.env.CI,
     },
 })
