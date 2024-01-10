@@ -14,10 +14,14 @@ const value = computed({
     if (props.input.value instanceof Ast.Ast) {
       const node = getRawBoolNode(props.input.value)
       if (node != null) {
-        props.onUpdate(value ? 'True' : 'False', node.exprId)
+        props.onUpdate({ type: 'set', value: value ? 'True' : 'False', origin: node.exprId })
       }
     } else {
-      props.onUpdate(value ? 'Boolean.True' : 'Boolean.False', props.input.portId)
+      props.onUpdate({
+        type: 'set',
+        value: value ? 'Boolean.True' : 'Boolean.False',
+        origin: props.input.portId,
+      })
     }
   },
 })
