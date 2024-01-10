@@ -14,10 +14,9 @@ pub mod labels {
 
 /// Check if this is a "big memory" machine.
 ///
-/// We arbitrarily classify machines into big and not-big. Our self-hosted runners are big, while
-/// github-hosted runners are not-big.
+/// Our self-hosted runners are big memory machines, but the GitHub-hosted ones are not.
 ///
-/// Certain CI operations are only performed on big machines, as are too memory-intensive.
+/// Certain CI operations are only performed on big machines, as they require a lot of memory.
 pub fn big_memory_machine() -> bool {
     let github_hosted_macos_memory = 15_032_385;
     let mut system = sysinfo::System::new();
