@@ -134,6 +134,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     doAction={() => {
                         setModal(
                             <UpsertSecretModal
+                                id={null}
+                                name={null}
                                 doCreate={(name, value) => {
                                     dispatchAssetListEvent({
                                         type: assetListEventModule.AssetListEventType
