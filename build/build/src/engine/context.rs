@@ -526,31 +526,15 @@ impl RunContext {
 
 
         if build_native_runner {
-            let factorial_input = "6";
-            let factorial_expected_output = "720";
-            for enso_java in [None, Some("espresso")] {
-                let output = Command::new(&self.repo_root.runner)
-                    .args([
-                        "--run",
-                        self.repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
-                        factorial_input,
-                    ])
-                    .set_env_opt(ENSO_JAVA, enso_java)?
-                    .set_env(
-                        ENSO_DATA_DIRECTORY,
-                        self.repo_root
-                            .built_distribution
-                            .enso_engine_triple
-                            .engine_package
-                            .as_path(),
-                    )?
-                    .run_stdout()
-                    .await?;
-                ensure!(
-                    output.contains(factorial_expected_output),
-                    "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
-                );
-            }
+            runner_sanity_test(&self.repo_root, None).await?;
+            ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
+            let enso_java = "espresso";
+            sbt.command()?
+                .env(ENSO_JAVA, enso_java)
+                .arg("engine-runner/buildNativeImage")
+                .run_ok()
+                .await?;
+            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
 
@@ -681,4 +665,31 @@ pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
         );
     }
     upload_result
+}
+
+/// Run the native runner and check if it produces the expected output on a simple test.
+pub async fn runner_sanity_test(
+    repo_root: &crate::paths::generated::RepoRoot,
+    enso_java: Option<&str>,
+) -> Result {
+    let factorial_input = "6";
+    let factorial_expected_output = "720";
+    let output = Command::new(&repo_root.runner)
+        .args([
+            "--run",
+            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
+            factorial_input,
+        ])
+        .set_env_opt(ENSO_JAVA, enso_java)?
+        .set_env(
+            ENSO_DATA_DIRECTORY,
+            repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
+        )?
+        .run_stdout()
+        .await?;
+    ensure!(
+        output.contains(factorial_expected_output),
+        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
+    );
+    Ok(())
 }
