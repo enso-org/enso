@@ -244,7 +244,6 @@ export class ArgumentApplication {
 
     let placeholderAlreadyInserted = false
 
-    console.log('argumentsLeftToMatch', [...argumentsLeftToMatch])
     let nextArgument: ReturnType<typeof takeNextArgument>
 
     // Always insert a placeholder for the missing argument at the first position that is legal
@@ -253,7 +252,6 @@ export class ArgumentApplication {
     for (let position = 0; position < interpreted.args.length; ++position) {
       const arg = interpreted.args[position]
       assert(!!arg)
-      console.log('arg', arg)
       const pastPositionalArguments = mapOr(lastPositionalArgIndex, true, (i) => position > i)
 
       if (pastPositionalArguments && arg.argName != null && arg.argName !== nextArgumentName()) {
@@ -264,7 +262,6 @@ export class ArgumentApplication {
 
         // all remaining arguments must be named, as we are past all positional arguments.
         const remainingArguments = interpreted.args.slice(position)
-        console.log('remainingArguments', remainingArguments)
 
         // For each subsequent argument in its current natural position, insert a
         // placeholder. Do that only if the argument is not defined further in the chain.
@@ -336,8 +333,6 @@ export class ArgumentApplication {
       })
       placeholderAlreadyInserted = true
     }
-
-    console.log('resolvedArgs', resolvedArgs)
 
     return resolvedArgs.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>

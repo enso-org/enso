@@ -11,10 +11,12 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, Module, Owned } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
+import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import type { Result } from '@/util/data/result.ts'
@@ -420,6 +422,69 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  // node_to_be_before: node::Id,
+  // node_to_be_after: node::Id,
+
+  /**
+   * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
+   * relative order is already correct.
+   *
+   * Additionally all nodes dependent on the `beforeNodeId` that end up being before its new line
+   * are also moved after it, keeping their order.
+   */
+  function ensureCorrectNodeOrder(sourceNodeId: ExprId, targetNodeId: ExprId) {
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const body = methodAst.value?.body
+    assert(sourceExpr != null)
+    assert(targetExpr != null)
+    assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
+
+    const lines = body.lines()
+    const sourceIdx = lines.findIndex((line) => line.expression?.node.exprId === sourceExpr)
+    const targetIdx = lines.findIndex((line) => line.expression?.node.exprId === targetExpr)
+
+    assert(sourceIdx != null)
+    assert(targetIdx != null)
+
+    // If source is placed after its new target, the nodes needs to be reordered.
+    if (sourceIdx > targetIdx) {
+      // Find all transitive dependencies of the moved target node.
+      const deps = db.dependantNodes(targetNodeId)
+
+      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      // Include the new target itself in the set of lines that must be placed after source node.
+      dependantLines.add(targetExpr)
+
+      // Check if the source depends on target. If that's the case, the edge we are trying to make
+      // creates a circular dependency. Reordering doesn't make any sense in that case.
+      if (dependantLines.has(sourceExpr)) {
+        return 'circular'
+      }
+
+      // Pick subset of lines to reorder, i.e. lines between and including target and source.
+      const linesToSort = lines.splice(targetIdx, sourceIdx - targetIdx + 1)
+
+      // Split those lines into two buckets, whether or not they depend on the target.
+      const [linesAfter, linesBefore] = partition(linesToSort, (line) =>
+        dependantLines.has(line.expression?.node.exprId),
+      )
+
+      // Recombine all lines after splitting, keeping existing dependants below the target.
+      lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
+
+      // Finally apply the reordered lines into the body block as AST edit.
+      const edit = astModule.edit()
+      const ownedBody = edit.take(body.exprId)
+      assert(ownedBody != null)
+      edit.replaceValue(ownedBody.placeholder.exprId, Ast.BodyBlock.new(lines, edit))
+      commitEdit(edit)
+      return true
+    } else {
+      return false
+    }
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -442,6 +507,7 @@ export const useGraphStore = defineStore('graph', () => {
     moduleRoot,
     createNode,
     deleteNode,
+    ensureCorrectNodeOrder,
     setNodeContent,
     setExpression,
     setExpressionContent,

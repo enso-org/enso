@@ -65,3 +65,21 @@ export function findLastIndex<T>(array: T[], pred: (elem: T) => boolean): number
     if (pred(array[i]!)) return i
   }
 }
+
+/**
+ * Split array into two arrays based on predicate.
+ *
+ * The predicate passed to `partition` can return true, or false. `partition` returns a pair, all of
+ * the elements for which it returned true, and all of the elements for which it returned false.
+ */
+export function partition<T>(array: T[], pred: (elem: T) => boolean): [T[], T[]] {
+  const truthy: T[] = []
+  const falsy: T[] = []
+
+  for (const element of array) {
+    const target = pred(element) ? truthy : falsy
+    target.push(element)
+  }
+
+  return [truthy, falsy]
+}
