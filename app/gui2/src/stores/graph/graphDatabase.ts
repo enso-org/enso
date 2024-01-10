@@ -8,7 +8,6 @@ import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
-import type { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
@@ -22,7 +21,7 @@ import {
   type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { reactive, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 export interface BindingInfo {
   identifier: string
@@ -112,8 +111,6 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<ExprId, Node>()
-  nodeRects = reactive(new Map<ExprId, Rect>())
-  vizRects = reactive(new Map<ExprId, Rect>())
   private bindings = new BindingsDb()
 
   constructor(
@@ -140,15 +137,7 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
-      for (const usage of info.usages) {
-        const targetNode = db.getExpressionNodeId(usage)
-        // Display only connections to existing targets and different than source node.
-        if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage]
-      }
-    }
-    return Array.from(allTargets(this))
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
   /** Same as {@link GraphDb.connections}, but also includes connections without source node,
@@ -156,15 +145,21 @@ export class GraphDb {
    */
   allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
-      for (const usage of info.usages) {
-        const targetNode = db.getExpressionNodeId(usage)
-        if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage]
-      }
-    }
-    return Array.from(allTargets(this))
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
+
+  private *connectionsFromBindings(
+    info: BindingInfo,
+    alias: ExprId,
+    srcNode: ExprId | undefined,
+  ): Generator<[ExprId, ExprId]> {
+    for (const usage of info.usages) {
+      const targetNode = this.getExpressionNodeId(usage)
+      // Display only connections to existing targets and different than source node.
+      if (targetNode == null || targetNode === srcNode) continue
+      yield [alias, usage]
+    }
+  }
 
   /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
   nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -323,7 +318,7 @@ export class GraphDb {
 
     for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
-        this.deleteNode(nodeId)
+        this.nodeIdToNode.delete(nodeId)
       }
     }
 
@@ -332,12 +327,6 @@ export class GraphDb {
       this.bindings.readFunctionAst(functionAst)
     }
     return currentNodeIds
-  }
-
-  private deleteNode(nodeId: ExprId) {
-    this.nodeIdToNode.delete(nodeId)
-    this.nodeRects.delete(nodeId)
-    this.vizRects.delete(nodeId)
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {

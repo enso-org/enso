@@ -161,8 +161,8 @@ export function performCollapse(
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
       if (astId === astIdToReplace) {
-        const ast = collapsedCallAst(info, collapsedName, edit)
-        refactored.push({ expression: { node: ast.exprId } })
+        const newAst = collapsedCallAst(info, collapsedName, edit)
+        refactored.push({ expression: { node: newAst.exprId } })
       }
     } else {
       refactored.push({ expression: { node: ast.exprId } })
@@ -176,7 +176,7 @@ export function performCollapse(
   new Ast.BodyBlock(edit, functionBlock.exprId, refactored)
 
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed)
+  const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
   return edit
 }

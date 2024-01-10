@@ -891,15 +891,17 @@ export class Function extends Ast {
     name: string,
     args: Ast[],
     exprs: Ast[],
-    id?: AstId | undefined,
+    trailingNewline?: boolean,
   ): Function {
-    const exprs_ = exprs.map((expr) => ({ expression: { node: expr } }))
+    const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
+    if (trailingNewline) {
+      exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
+    }
     const body = BodyBlock.new(exprs_, module)
-    body.addTrailingNewline(module)
     const args_ = args.map((arg) => [{ node: arg.exprId }])
     const ident = { node: Ident.new(module, name).exprId }
     const equals = { node: Token.new('=') }
-    return new Function(module, id, ident, args_, equals, { node: body.exprId })
+    return new Function(module, undefined, ident, args_, equals, { node: body.exprId })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -982,13 +984,6 @@ export class BodyBlock extends Ast {
   constructor(module: MutableModule, id: AstId | undefined, lines: RawBlockLine[]) {
     super(module, id, RawAst.Tree.Type.BodyBlock)
     this.lines_ = lines
-  }
-
-  addTrailingNewline(module: MutableModule) {
-    new BodyBlock(module, this.exprId, [
-      ...this.lines_,
-      { newline: { node: Token.new('\n') }, expression: null },
-    ])
   }
 
   push(module: MutableModule, node: Ast) {

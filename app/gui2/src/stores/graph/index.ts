@@ -62,6 +62,8 @@ export const useGraphStore = defineStore('graph', () => {
   const astModule: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
   let moduleDirty = false
+  const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
@@ -301,9 +303,9 @@ export const useGraphStore = defineStore('graph', () => {
   function updateNodeRect(nodeId: ExprId, rect: Rect) {
     if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(nodeId)) {
       const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: [...db.nodeRects.entries()]
+        nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([id, rect]) => db.vizRects.get(id) ?? rect),
+          .map(([id, rect]) => vizRects.get(id) ?? rect),
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
@@ -311,15 +313,20 @@ export const useGraphStore = defineStore('graph', () => {
       })
       const node = db.nodeIdToNode.get(nodeId)
       metadata.value?.set(nodeId, { x: position.x, y: -position.y, vis: node?.vis ?? null })
-      db.nodeRects.set(nodeId, new Rect(position, rect.size))
+      nodeRects.set(nodeId, new Rect(position, rect.size))
     } else {
-      db.nodeRects.set(nodeId, rect)
+      nodeRects.set(nodeId, rect)
     }
   }
 
   function updateVizRect(id: ExprId, rect: Rect | undefined) {
-    if (rect) db.vizRects.set(id, rect)
-    else db.vizRects.delete(id)
+    if (rect) vizRects.set(id, rect)
+    else vizRects.delete(id)
+  }
+
+  function unregisterNodeRect(id: ExprId) {
+    nodeRects.delete(id)
+    vizRects.delete(id)
   }
 
   function addPortInstance(id: PortId, instance: PortViewInstance) {
@@ -419,6 +426,9 @@ export const useGraphStore = defineStore('graph', () => {
     edges,
     currentNodeIds,
     moduleCode,
+    nodeRects,
+    vizRects,
+    unregisterNodeRect,
     methodAst,
     editAst,
     createEdgeFromOutput,

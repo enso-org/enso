@@ -131,7 +131,7 @@ export function mouseDictatedPlacement(
 
 /** The new node should appear at the average position of selected nodes.
  *
- * If the desired place is already occupied, it should be moved down to the closest free space.
+ * If the desired place is already occupied by non-selected node, it should be moved down to the closest free space.
  *
  * Specifically, this code, in order:
  * - calculates the average position of selected nodes
@@ -149,13 +149,22 @@ export function averagePositionPlacement(
   let totalPosition = new Vec2(0, 0)
   let selectedNodeRectsCount = 0
   for (const rect of selectedNodeRects) {
-    totalPosition = totalPosition.add(rect.center())
+    totalPosition = totalPosition.add(rect.pos)
     selectedNodeRectsCount++
   }
   const initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
+  const nonSelectedNodeRects = []
+  outer: for (const rect of nodeRects) {
+    for (const sel of selectedNodeRects) {
+      if (sel.equals(rect)) {
+        continue outer
+      }
+    }
+    nonSelectedNodeRects.push(rect)
+  }
   let top = initialPosition.y
   const initialRect = new Rect(initialPosition, nodeSize)
-  const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
+  const nodeRectsSorted = Array.from(nonSelectedNodeRects).sort((a, b) => a.top - b.top)
   for (const rect of nodeRectsSorted) {
     if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
       if (rect.top - (top + nodeSize.y) < verticalGap) {
