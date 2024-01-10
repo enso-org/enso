@@ -215,8 +215,6 @@ export class AssetQuery {
         toAdd: string[][] | null,
         toRemove: string[][] | null
     ) {
-        toAdd = toAdd?.filter(term => term.length !== 0) ?? null
-        toRemove = toRemove?.filter(term => term.length !== 0) ?? null
         toAdd = toAdd?.length === 0 ? null : toAdd
         toRemove = toRemove?.length === 0 ? null : toRemove
         if (toAdd == null && (toRemove == null || original.length === 0)) {

@@ -244,11 +244,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               onClick={() => {
                                                   setWasQueryModified(true)
                                                   setSelectedIndex(null)
-                                                  setQuery(
-                                                      assetQuery.AssetQuery.fromString(
-                                                          `${query.toString()} ${tag}:`
-                                                      )
-                                                  )
+                                                  setQuery(oldQuery => {
+                                                      const newQuery = oldQuery.add({ [key]: [[]] })
+                                                      baseQuery.current = newQuery
+                                                      return newQuery
+                                                  })
                                               }}
                                           >
                                               {tag}:
@@ -277,13 +277,15 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         onClick={event => {
                                             setWasQueryModified(true)
                                             setSelectedIndex(null)
-                                            setQuery(oldQuery =>
-                                                assetQuery.toggleLabel(
+                                            setQuery(oldQuery => {
+                                                const newQuery = assetQuery.toggleLabel(
                                                     oldQuery,
                                                     label.value,
                                                     event.shiftKey
                                                 )
-                                            )
+                                                baseQuery.current = newQuery
+                                                return newQuery
+                                            })
                                         }}
                                     >
                                         {label.value}
@@ -310,6 +312,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                             : ''
                                     }`}
                                     onClick={event => {
+                                        setSelectedIndex(null)
                                         setWasQueryModified(true)
                                         setQuery(
                                             selectedIndices.has(index)
@@ -330,6 +333,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                                         : [...selectedIndices, index]
                                                 )
                                             )
+                                        } else {
+                                            setAreSuggestionsVisible(false)
                                         }
                                     }}
                                 >
