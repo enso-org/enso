@@ -90,6 +90,8 @@ export interface UserOrOrganization {
     id: UserOrOrganizationId
     name: string
     email: EmailAddress
+    /** A URL. */
+    profilePicture: string | null
     /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
      * `usersMe` will not work. */
     isEnabled: boolean
@@ -836,6 +838,10 @@ export abstract class Backend {
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
     abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+    /** Delete the current user. */
+    abstract deleteUser(): Promise<void>
+    /** Upload a new profile picture for the current user. */
+    abstract uploadUserPicture(file: Blob): Promise<void>
     /** Invite a new user to the organization by email. */
     abstract inviteUser(body: InviteUserRequestBody): Promise<void>
     /** Adds a permission for a specific user on a specific asset. */
@@ -896,7 +902,7 @@ export abstract class Backend {
     /** Return a list of files accessible by the current user. */
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
-    abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
+    abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
     /** Create a secret environment variable. */
     abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */

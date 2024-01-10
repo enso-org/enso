@@ -194,6 +194,27 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Delete the current user. */
+    override async deleteUser(): Promise<void> {
+        const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)
+        if (!responseIsSuccessful(response)) {
+            return this.throw('Could not delete user.')
+        } else {
+            return
+        }
+    }
+
+    /** Upload a new profile picture for the current user. */
+    override async uploadUserPicture(file: Blob): Promise<void> {
+        const path = remoteBackendPaths.UPLOAD_USER_PICTURE_PATH
+        const response = await this.postBinary(path, file)
+        if (!responseIsSuccessful(response)) {
+            return this.throw('Could not upload user profile picture.')
+        } else {
+            return
+        }
+    }
+
     /** Invite a new user to the organization by email. */
     override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
         const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
@@ -559,7 +580,7 @@ export class RemoteBackend extends backendModule.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async uploadFile(
         params: backendModule.UploadFileRequestParams,
-        body: Blob
+        file: Blob
     ): Promise<backendModule.FileInfo> {
         const response = await this.postBinary<backendModule.FileInfo>(
             remoteBackendPaths.UPLOAD_FILE_PATH +
@@ -573,7 +594,7 @@ export class RemoteBackend extends backendModule.Backend {
                         : {}),
                     /* eslint-enable @typescript-eslint/naming-convention */
                 }).toString(),
-            body
+            file
         )
         if (!responseIsSuccessful(response)) {
             let suffix = '.'

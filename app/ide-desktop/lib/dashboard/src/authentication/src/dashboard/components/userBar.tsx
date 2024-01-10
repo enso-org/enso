@@ -22,6 +22,7 @@ import UserMenu from './userMenu'
 export interface UserBarProps {
     supportsLocalBackend: boolean
     page: pageSwitcher.Page
+    setPage: (page: pageSwitcher.Page) => void
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     projectAsset: backendModule.ProjectAsset | null
@@ -35,6 +36,7 @@ export default function UserBar(props: UserBarProps) {
     const {
         supportsLocalBackend,
         page,
+        setPage,
         isHelpChatOpen,
         setIsHelpChatOpen,
         projectAsset,
@@ -92,6 +94,7 @@ export default function UserBar(props: UserBarProps) {
                     updateModal(oldModal =>
                         oldModal?.type === UserMenu ? null : (
                             <UserMenu
+                                setPage={setPage}
                                 supportsLocalBackend={supportsLocalBackend}
                                 onSignOut={onSignOut}
                             />
@@ -100,7 +103,7 @@ export default function UserBar(props: UserBarProps) {
                 }}
             >
                 <img
-                    src={DefaultUserIcon}
+                    src={organization?.profilePicture ?? DefaultUserIcon}
                     alt="Open user menu"
                     height={28}
                     width={28}
@@ -109,6 +112,13 @@ export default function UserBar(props: UserBarProps) {
                     }}
                 />
             </button>
+            <div className="hidden">
+                <UserMenu
+                    setPage={setPage}
+                    supportsLocalBackend={supportsLocalBackend}
+                    onSignOut={onSignOut}
+                />
+            </div>
         </div>
     )
 }

@@ -33,6 +33,7 @@ import ChatPlaceholder from './chatPlaceholder'
 import Drive from './drive'
 import Editor from './editor'
 import Home from './home'
+import Settings from './settings'
 import TheModal from './theModal'
 import TopBar from './topBar'
 
@@ -62,7 +63,7 @@ export default function Dashboard(props: DashboardProps) {
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modalRef } = modalProvider.useModalRef()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { updateModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
@@ -262,7 +263,9 @@ export default function Dashboard(props: DashboardProps) {
     }, [isAssetSettingsPanelVisible, /* should never change */ localStorage])
 
     React.useEffect(() => {
-        localStorage.set(localStorageModule.LocalStorageKey.page, page)
+        if (page !== pageSwitcher.Page.settings) {
+            localStorage.set(localStorageModule.LocalStorageKey.page, page)
+        }
     }, [page, /* should never change */ localStorage])
 
     React.useEffect(() => {
@@ -312,14 +315,37 @@ export default function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
             [shortcutsModule.KeyboardAction.closeModal]: () => {
-                unsetModal()
+                updateModal(oldModal => {
+                    if (oldModal == null) {
+                        queueMicrotask(() => {
+                            setPage(oldPage => {
+                                if (oldPage !== pageSwitcher.Page.settings) {
+                                    return oldPage
+                                } else {
+                                    return (
+                                        localStorage.get(localStorageModule.LocalStorageKey.page) ??
+                                        pageSwitcher.Page.drive
+                                    )
+                                }
+                            })
+                        })
+                        return oldModal
+                    } else {
+                        return null
+                    }
+                })
                 if (modalRef.current == null) {
                     // eslint-disable-next-line no-restricted-syntax
                     return false
                 }
             },
         })
-    }, [shortcuts, /* should never change */ modalRef, /* should never change */ unsetModal])
+    }, [
+        shortcuts,
+        /* should never change */ modalRef,
+        /* should never change */ localStorage,
+        /* should never change */ updateModal,
+    ])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
@@ -484,6 +510,7 @@ export default function Dashboard(props: DashboardProps) {
                         projectStartupInfo={projectStartupInfo}
                         appRunner={appRunner}
                     />
+                    {page === pageSwitcher.Page.settings && <Settings />}
                     {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
                     {isHelpChatVisible && session.accessToken != null ? (
                         <Chat

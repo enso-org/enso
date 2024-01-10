@@ -8,6 +8,7 @@ import * as appInfo from '../../appInfo'
 import * as auth from '../../authentication/providers/auth'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
+import * as pageSwitcher from './pageSwitcher'
 import * as shortcuts from '../shortcuts'
 
 import ChangePasswordModal from './changePasswordModal'
@@ -20,13 +21,14 @@ import Modal from './modal'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+    setPage: (page: pageSwitcher.Page) => void
     supportsLocalBackend: boolean
     onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-    const { supportsLocalBackend, onSignOut } = props
+    const { setPage, supportsLocalBackend, onSignOut } = props
     const navigate = hooks.useNavigate()
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
@@ -52,7 +54,11 @@ export default function UserMenu(props: UserMenuProps) {
                 {organization != null ? (
                     <>
                         <div className="flex items-center gap-3 px-1">
-                            <img src={DefaultUserIcon} height={28} width={28} />
+                            <img
+                                src={organization.profilePicture ?? DefaultUserIcon}
+                                height={28}
+                                width={28}
+                            />
                             <span className="leading-170 h-6 py-px">{organization.name}</span>
                         </div>
                         <div className="flex flex-col">
@@ -82,6 +88,14 @@ export default function UserMenu(props: UserMenuProps) {
                                     }}
                                 />
                             )}
+                            <MenuEntry
+                                action={shortcuts.KeyboardAction.settings}
+                                paddingClassName="p-1"
+                                doAction={() => {
+                                    unsetModal()
+                                    setPage(pageSwitcher.Page.settings)
+                                }}
+                            />
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signOut}
                                 paddingClassName="p-1"
