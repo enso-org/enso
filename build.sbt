@@ -1689,7 +1689,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
-      "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
+      "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
     Test / compile := (Test / compile)
       .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
