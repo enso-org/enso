@@ -343,6 +343,31 @@ export class AssetQuery {
         }
     }
 
+    /** Create an identical copy of this query. Useful to force a React refresh. */
+    clone() {
+        return new AssetQuery(
+            this.query,
+            this.keywords,
+            this.negativeKeywords,
+            this.names,
+            this.negativeNames,
+            this.labels,
+            this.negativeLabels,
+            this.types,
+            this.negativeTypes,
+            this.extensions,
+            this.negativeExtensions,
+            this.descriptions,
+            this.negativeDescriptions,
+            this.modifieds,
+            this.negativeModifieds,
+            this.owners,
+            this.negativeOwners,
+            this.nos,
+            this.negativeNos
+        )
+    }
+
     /** Return a new {@link AssetQuery} with the specified keys overwritten,
      * or itself if there are no keys to overwrite. */
     withUpdates(updates: Partial<AssetQueryData>) {

@@ -215,6 +215,17 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                         setWasQueryTyped(true)
                     }
                 }}
+                onKeyDown={event => {
+                    if (
+                        event.key === 'Enter' &&
+                        !event.shiftKey &&
+                        !event.altKey &&
+                        !event.metaKey &&
+                        !event.ctrlKey
+                    ) {
+                        setQuery(query.clone())
+                    }
+                }}
             />
             <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
                 <div className="relative padding h-8"></div>
