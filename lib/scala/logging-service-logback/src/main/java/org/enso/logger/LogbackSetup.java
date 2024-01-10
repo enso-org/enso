@@ -151,7 +151,8 @@ public final class LogbackSetup extends LoggerSetup {
       }
       final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
       encoder.setPattern(appenderConfig.getPattern());
-      env.finalizeEncoder(encoder);
+      encoder.setContext(env.ctx);
+      encoder.start();
 
       FileAppender<ILoggingEvent> fileAppender;
 
@@ -210,6 +211,13 @@ public final class LogbackSetup extends LoggerSetup {
   @Override
   public boolean setupConsoleAppender(Level logLevel) {
     LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
+    var consoleAppender = getConsoleAppender(env.ctx, config);
+    env.finalizeAppender(consoleAppender);
+    return true;
+  }
+
+  private ch.qos.logback.core.Appender<ILoggingEvent> getConsoleAppender(
+      LoggerContext ctx, LoggingServiceConfig config) {
     org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
     final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
     try {
@@ -222,13 +230,34 @@ public final class LogbackSetup extends LoggerSetup {
       e.printStackTrace();
       encoder.setPattern(Appender.defaultPattern);
     }
-    env.finalizeEncoder(encoder);
+    encoder.setContext(ctx);
+    encoder.start();
 
     ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
     consoleAppender.setName("enso-console");
     consoleAppender.setEncoder(encoder);
+    return consoleAppender;
+  }
 
-    env.finalizeAppender(consoleAppender);
+  @Override
+  public boolean setupMemoryAppender(Level logLevel) {
+    LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
+    org.enso.logger.config.MemoryAppender appenderConfig = config.getMemoryAppender();
+    ch.qos.logback.core.Appender<ILoggingEvent> target;
+    switch (appenderConfig.getTarget()) {
+      case org.enso.logger.config.ConsoleAppender.appenderName:
+        target = getConsoleAppender(env.ctx, config);
+        break;
+      default:
+        target = null;
+    }
+    if (target == null) {
+      throw new RuntimeException("unsupported appender " + appenderConfig.getTarget());
+    }
+    target.setContext(env.ctx);
+    target.start();
+    var memoryAppender = new MemoryAppender(target);
+    env.finalizeAppender(memoryAppender);
     return true;
   }
 
@@ -307,11 +336,6 @@ public final class LogbackSetup extends LoggerSetup {
 
   private record LoggerAndContext(
       Level level, LoggerContext ctx, Logger logger, Filter<ILoggingEvent> filter) {
-
-    void finalizeEncoder(ch.qos.logback.core.encoder.Encoder<ILoggingEvent> encoder) {
-      encoder.setContext(ctx);
-      encoder.start();
-    }
 
     void finalizeAppender(ch.qos.logback.core.Appender<ILoggingEvent> appender) {
       if (filter == null) {

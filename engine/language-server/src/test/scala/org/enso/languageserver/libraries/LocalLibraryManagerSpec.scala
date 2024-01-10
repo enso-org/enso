@@ -5,6 +5,7 @@ import akka.testkit._
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.PackageManager
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +21,8 @@ class LocalLibraryManagerSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with WithTemporaryDirectory {
+    with WithTemporaryDirectory
+    with ReportLogsOnFailure {
 
   val Timeout: FiniteDuration = 10.seconds
 

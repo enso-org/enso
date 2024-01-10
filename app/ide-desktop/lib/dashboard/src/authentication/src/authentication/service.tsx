@@ -4,6 +4,7 @@
 import * as amplify from '@aws-amplify/auth'
 
 import * as common from 'enso-common'
+import * as detect from 'enso-common/src/detect'
 
 import * as app from '../components/app'
 import * as auth from './config'
@@ -153,7 +154,8 @@ function loadAmplifyConfig(
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
-
+    }
+    if (detect.isOnElectron()) {
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
         setDeepLinkHandler(logger, navigate)

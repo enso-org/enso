@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.scalatest.concurrent.Futures
@@ -30,7 +31,8 @@ class ContentRootManagerSpec
     with Inside
     with EitherValue
     with OptionValues
-    with WithTemporaryDirectory {
+    with WithTemporaryDirectory
+    with ReportLogsOnFailure {
 
   var rootManager: ContentRootManagerWrapper = _
   var rootActor: ActorRef                    = _

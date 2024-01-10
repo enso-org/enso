@@ -1,4 +1,4 @@
-// Fixes and extensions for dependencies' type definitions.
+// Fixes and extensions for D3's type definitions.
 
 import type { BaseType, Selection } from 'd3'
 
@@ -11,15 +11,5 @@ declare module 'd3' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ScaleSequential<Output, Unknown = never> {
     ticks(): number[]
-  }
-}
-
-import '@ag-grid-community/core'
-
-declare module '@ag-grid-community/core' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface AbstractColDef<TData, TValue> {
-    field: string
   }
 }
