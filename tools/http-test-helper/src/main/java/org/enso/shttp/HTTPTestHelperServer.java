@@ -1,13 +1,10 @@
 package org.enso.shttp;
 
-import com.sun.net.httpserver.*;
-
+import com.sun.net.httpserver.SimpleFileServer;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
@@ -15,8 +12,6 @@ import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
-
-import javax.net.ssl.SSLContext;
 
 public class HTTPTestHelperServer {
 
