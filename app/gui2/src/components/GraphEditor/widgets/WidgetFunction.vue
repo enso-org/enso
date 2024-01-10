@@ -46,6 +46,18 @@ const interpreted = computed(() => {
   return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
+const selfArgumentPreapplied = computed(() => {
+  const info = methodCallInfo.value
+  if (info?.staticallyApplied) return false
+  const analyzed = interpreted.value
+  if (analyzed.kind !== 'prefix') return false
+  const subject = getAccessOprSubject(analyzed.func)
+  if (!subject) return false
+  const funcType = info?.methodCall.methodPointer.definedOnType
+  const subjectInfo = graph.db.getExpressionInfo(subject.exprId)
+  return funcType != null && subjectInfo?.typename !== `${funcType}.type`
+})
+
 const application = computed(() => {
   const call = interpreted.value
   if (!call) return null
@@ -60,7 +72,7 @@ const application = computed(() => {
       suggestion: info?.suggestion,
       widgetCfg: widgetConfiguration.value,
     },
-    !info?.staticallyApplied,
+    selfArgumentPreapplied.value,
   )
 })
 
@@ -84,10 +96,12 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
     return analyzed.lhs?.exprId
   } else {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      knownArguments?.[0]?.name === 'self'
-        ? getAccessOprSubject(analyzed.func)
-        : analyzed.args[0]?.argument
+      hasSelfArgument && !selfArgumentPreapplied.value
+        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+
     return selfArgument?.exprId
   }
 })
@@ -161,7 +175,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
+      edit.takeAndReplaceValue(argApp.appTree.exprId, (oldAppTree) =>
         Ast.App.new(oldAppTree, name, newArg, edit),
       )
       props.onUpdate({ edit })

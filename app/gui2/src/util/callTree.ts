@@ -188,14 +188,11 @@ export class ArgumentApplication {
     callInfo: CallInfo,
     stripSelfArgument: boolean,
   ) {
-    const { noArgsCall, appMethodCall, suggestion, widgetCfg } = callInfo
+    const { noArgsCall, suggestion, widgetCfg } = callInfo
     const kind = ApplicationKind.Prefix
     const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
-    const notAppliedArguments = appMethodCall?.notAppliedArguments ?? []
-    const placeholdersToInsert = notAppliedArguments.slice()
-    const notAppliedSet = new Set(notAppliedArguments)
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
 
     // when this is a method application with applied 'self', the subject of the access operator is
@@ -210,9 +207,17 @@ export class ArgumentApplication {
     const notAppliedOriginally = new Set(
       noArgsCall?.notAppliedArguments ?? allPossiblePrefixArguments,
     )
-    const argumentsLeftToMatch = allPossiblePrefixArguments.filter(
-      (i) => !notAppliedSet.has(i) && notAppliedOriginally.has(i),
+    const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
+      notAppliedOriginally.has(i),
     )
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // TODO[Frizi]: Rewrite following section to make the placeholder insert position behave better.
+    // It should match old GUI, but additionally take into account partially applied functions.
+    // Reference: `resolve_argument_positions` from app/gui/language/span-tree/src/generate.rs
+    // chain_args -> interpreted.args
+    // application.next_argument_name/take_next_argument -> argumentsLeftToMatch
+    //
 
     const prefixArgsToDisplay: Array<{
       appTree: Ast.Ast
@@ -221,8 +226,8 @@ export class ArgumentApplication {
 
     function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
       let canInsertPositional = true
-      while (placeholdersToInsert[0] != null && placeholdersToInsert[0] < index) {
-        const argIndex = placeholdersToInsert.shift()
+      while (argumentsLeftToMatch[0] != null && argumentsLeftToMatch[0] < index) {
+        const argIndex = argumentsLeftToMatch.shift()
         const argInfo = tryGetIndex(knownArguments, argIndex)
         if (argIndex != null && argInfo != null) {
           prefixArgsToDisplay.push({
@@ -280,6 +285,10 @@ export class ArgumentApplication {
 
     const outerApp = interpreted.args[interpreted.args.length - 1]?.appTree ?? interpreted.func
     insertPlaceholdersUpto(Infinity, outerApp)
+
+    //
+    // End of section to rewrite
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     return prefixArgsToDisplay.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
