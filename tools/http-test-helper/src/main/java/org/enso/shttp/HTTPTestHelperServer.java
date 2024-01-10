@@ -49,7 +49,8 @@ public class HTTPTestHelperServer {
     }
   }
 
-  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot) throws URISyntaxException {
+  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot)
+      throws URISyntaxException {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
@@ -64,7 +65,8 @@ public class HTTPTestHelperServer {
     setupFileServer(server, projectRoot);
   }
 
-  private static void setupFileServer(HybridHTTPServer server, Path projectRoot) throws URISyntaxException {
+  private static void setupFileServer(HybridHTTPServer server, Path projectRoot)
+      throws URISyntaxException {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));

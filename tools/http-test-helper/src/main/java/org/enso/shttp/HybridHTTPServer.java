@@ -1,7 +1,6 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.*;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -19,7 +18,8 @@ public class HybridHTTPServer {
   private final Path keyStorePath;
   private volatile boolean isRunning;
 
-  public HybridHTTPServer(String hostname, int port, int sslPort, Path keyStorePath) throws IOException {
+  public HybridHTTPServer(String hostname, int port, int sslPort, Path keyStorePath)
+      throws IOException {
     this.keyStorePath = keyStorePath;
     InetSocketAddress address = new InetSocketAddress(hostname, port);
     server = HttpServer.create(address, 0);
@@ -69,24 +69,34 @@ public class HybridHTTPServer {
       Files.delete(keyStorePath);
     }
 
-    int result = (new ProcessBuilder()).command("keytool", "-genkey", "-alias", "test-key", "-keyalg", "RSA", "-keystore", keyStorePath.toString(), "-storepass", password, "-keypass", password, "-dname", "CN=localhost", "-validity", "365", "-keysize", "2048").inheritIO().start().waitFor();
-    if (result != 0) {
+    int exitCode =
+        (new ProcessBuilder())
+            .command(
+                "keytool",
+                "-genkey",
+                "-alias",
+                "test-key",
+                "-keyalg",
+                "RSA",
+                "-keystore",
+                keyStorePath.toAbsolutePath().normalize().toString(),
+                "-storepass",
+                password,
+                "-keypass",
+                password,
+                "-dname",
+                "CN=localhost",
+                "-validity",
+                "365",
+                "-keysize",
+                "2048")
+            .inheritIO()
+            .start()
+            .waitFor();
+    if (exitCode != 0) {
       throw new RuntimeException("Failed to generate keystore");
     }
     keyStore.load(Files.newInputStream(keyStorePath), password.toCharArray());
-
-    /*keyStore.load(null, null);
-
-    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-    keyPairGenerator.initialize(2048);
-    KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-    Certificate[] chain = new Certificate[] {
-
-    };
-    keyStore.setKeyEntry("test-key", keyPair.getPrivate(), password, chain);
-
-    keyStore.store(Files.newOutputStream(Path.of("test-keystore.jks")), password);*/
     return keyStore;
   }
 
