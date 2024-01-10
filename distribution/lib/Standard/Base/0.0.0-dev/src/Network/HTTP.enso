@@ -91,7 +91,7 @@ type HTTP
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error
+    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error | Illegal_Argument
     request self req error_on_failure_code=True =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
@@ -103,7 +103,7 @@ type HTTP
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
             Panic.catch JException handler=handler
 
-        Panic.recover Any <| handle_request_error <| check_output_context <|
+        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
             headers = resolve_headers req
             headers.if_not_error <|
                 body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body

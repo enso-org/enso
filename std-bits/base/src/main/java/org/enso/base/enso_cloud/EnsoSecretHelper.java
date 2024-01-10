@@ -84,6 +84,19 @@ public class EnsoSecretHelper {
     URI resolvedURI = resolveURI(uri);
     URI renderedURI = uri.render();
 
+    boolean hasSecrets =
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().isSecret());
+    if (hasSecrets) {
+      if (resolvedURI.getScheme() == null) {
+        throw new IllegalArgumentException("The URI must have a scheme.");
+      }
+
+      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+        throw new IllegalArgumentException(
+            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
+      }
+    }
+
     builder.uri(resolvedURI);
 
     // Resolve the header arguments.
