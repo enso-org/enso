@@ -24,9 +24,11 @@ public class HTTPTestHelperServer {
     String host = args[0];
     HybridHTTPServer server = null;
     try {
+      Path projectRoot = findProjectRoot();
+      Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
       int port = Integer.parseInt(args[1]);
-      server = new HybridHTTPServer(host, port, port + 1);
-      setupEndpoints(server);
+      server = new HybridHTTPServer(host, port, port + 1, keyStorePath);
+      setupEndpoints(server, projectRoot);
 
       final HybridHTTPServer server1 = server;
       SignalHandler stopServerHandler =
@@ -47,7 +49,7 @@ public class HTTPTestHelperServer {
     }
   }
 
-  private static void setupEndpoints(HybridHTTPServer server) throws URISyntaxException {
+  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot) throws URISyntaxException {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
@@ -59,19 +61,10 @@ public class HTTPTestHelperServer {
     server.addHandler("/crash", new CrashingTestHandler());
     CloudRoot cloudRoot = new CloudRoot();
     server.addHandler(cloudRoot.prefix, cloudRoot);
-    setupFileServer(server);
+    setupFileServer(server, projectRoot);
   }
 
-  private static void setupFileServer(HybridHTTPServer server) throws URISyntaxException {
-    Path myRuntimeJar =
-        Path.of(
-                HTTPTestHelperServer.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI())
-            .toAbsolutePath();
-    Path projectRoot = findProjectRoot(myRuntimeJar);
+  private static void setupFileServer(HybridHTTPServer server, Path projectRoot) throws URISyntaxException {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
@@ -88,6 +81,18 @@ public class HTTPTestHelperServer {
 
       return findProjectRoot(parent);
     }
+  }
+
+  private static Path findProjectRoot() throws URISyntaxException {
+    Path myRuntimeJar =
+        Path.of(
+                HTTPTestHelperServer.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI())
+            .toAbsolutePath();
+    return findProjectRoot(myRuntimeJar);
   }
 
   private static final String pathToWWW = "tools/http-test-helper/www-files";

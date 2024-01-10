@@ -4,7 +4,6 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-
 import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
@@ -15,10 +14,8 @@ public class CloudRoot extends HandlerWithTokenAuth {
     return "TEST-ENSO-TOKEN-caffee";
   }
 
-  private final CloudHandler[] handlers = new CloudHandler[] {
-      new UsersHandler(),
-      new SecretsHandler()
-  };
+  private final CloudHandler[] handlers =
+      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {

@@ -2,13 +2,12 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.enso.shttp.HttpMethod;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import org.enso.shttp.HttpMethod;
 
 public class SecretsHandler implements CloudHandler {
 
@@ -26,7 +25,8 @@ public class SecretsHandler implements CloudHandler {
     try {
       method = HttpMethod.valueOf(exchange.getHttpExchange().getRequestMethod());
     } catch (IllegalArgumentException e) {
-      exchange.sendResponse(400, "Invalid method: " + exchange.getHttpExchange().getRequestMethod());
+      exchange.sendResponse(
+          400, "Invalid method: " + exchange.getHttpExchange().getRequestMethod());
       return;
     }
 
@@ -45,7 +45,8 @@ public class SecretsHandler implements CloudHandler {
     }
   }
 
-  private void handleSecretSpecific(HttpMethod method, String name, CloudExchange exchange) throws IOException {
+  private void handleSecretSpecific(HttpMethod method, String name, CloudExchange exchange)
+      throws IOException {
     switch (method) {
       case DELETE:
         deleteSecret(name, exchange);
@@ -80,21 +81,21 @@ public class SecretsHandler implements CloudHandler {
   }
 
   private void listSecrets(CloudExchange exchange) throws IOException {
-    // TODO currently the cloud API does not seem to handle a parent_id parameter, so we always rely on ROOT
+    // TODO currently the cloud API does not seem to handle a parent_id parameter, so we always rely
+    // on ROOT
     String parentId = ROOT;
-    ListSecretsResponse response = new ListSecretsResponse(
-        accessRoot(parentId).entrySet().stream()
-            .map(entry ->
-                new ListSecretsResponse.Element(entry.getKey(), entry.getValue().name)
-            ).toList()
-    );
+    ListSecretsResponse response =
+        new ListSecretsResponse(
+            accessRoot(parentId).entrySet().stream()
+                .map(
+                    entry -> new ListSecretsResponse.Element(entry.getKey(), entry.getValue().name))
+                .toList());
     String asJson = jsonMapper.writeValueAsString(response);
     exchange.sendResponse(200, asJson);
   }
 
   private record ListSecretsResponse(List<Element> secrets) {
-    public record Element(String id, String name) {
-    }
+    public record Element(String id, String name) {}
   }
 
   private void getSecret(String id, CloudExchange exchange) throws IOException {
@@ -103,7 +104,9 @@ public class SecretsHandler implements CloudHandler {
     if (secret == null) {
       exchange.sendResponse(404, "Secret not found: " + id);
     } else {
-      String encoded = java.util.Base64.getEncoder().encodeToString(secret.value.getBytes(StandardCharsets.UTF_8));
+      String encoded =
+          java.util.Base64.getEncoder()
+              .encodeToString(secret.value.getBytes(StandardCharsets.UTF_8));
       exchange.sendResponse(200, '"' + encoded + '"');
     }
   }
@@ -120,8 +123,7 @@ public class SecretsHandler implements CloudHandler {
 
   private static final String ROOT = "<//root//>";
 
-  private record Secret(String name, String value) {
-  }
+  private record Secret(String name, String value) {}
 
   // <root> -> <secret_id> -> <secret_value>
   private HashMap<String, HashMap<String, Secret>> mapping = new HashMap<>();
