@@ -665,6 +665,11 @@ export interface CreateUserRequestBody {
     organizationId: UserOrOrganizationId | null
 }
 
+/** HTTP request body for the "update user" endpoint. */
+export interface UpdateUserRequestBody {
+    name: string | null
+}
+
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
     organizationId: UserOrOrganizationId
@@ -838,10 +843,12 @@ export abstract class Backend {
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
     abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+    /** Change the username of the current user. */
+    abstract updateUser(body: UpdateUserRequestBody): Promise<void>
     /** Delete the current user. */
     abstract deleteUser(): Promise<void>
     /** Upload a new profile picture for the current user. */
-    abstract uploadUserPicture(file: Blob): Promise<void>
+    abstract uploadUserPicture(file: Blob): Promise<string>
     /** Invite a new user to the organization by email. */
     abstract inviteUser(body: InviteUserRequestBody): Promise<void>
     /** Adds a permission for a specific user on a specific asset. */

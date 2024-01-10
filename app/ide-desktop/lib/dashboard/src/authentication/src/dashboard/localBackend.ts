@@ -46,6 +46,7 @@ export class LocalBackend extends backend.Backend {
     override rootDirectoryId(): backend.DirectoryId {
         return backend.DirectoryId('')
     }
+
     /** Return a list of assets in a directory.
      * @throws An error if the JSON-RPC call fails. */
     override async listDirectory(): Promise<backend.AnyAsset[]> {
@@ -341,6 +342,11 @@ export class LocalBackend extends backend.Backend {
 
     /** Invalid operation. */
     override createUser() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
+    override updateUser() {
         return this.invalidOperation()
     }
 

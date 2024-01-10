@@ -543,6 +543,7 @@ export default function Dashboard(props: DashboardProps) {
                             key={assetSettingsPanelProps.item.item.id}
                             {...assetSettingsPanelProps}
                             page={page}
+                            setPage={setPage}
                             category={categorySwitcher.Category.home}
                             isHelpChatOpen={isHelpChatOpen}
                             setIsHelpChatOpen={setIsHelpChatOpen}

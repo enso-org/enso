@@ -194,6 +194,21 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Change the username of the current user. */
+    override async updateUser(body: backendModule.UpdateUserRequestBody): Promise<void> {
+        const path = remoteBackendPaths.CREATE_USER_PATH
+        const response = await this.put(path, body)
+        if (!responseIsSuccessful(response)) {
+            if (body.name != null) {
+                return this.throw('Could not change username.')
+            } else {
+                return this.throw('Could not update user.')
+            }
+        } else {
+            return
+        }
+    }
+
     /** Delete the current user. */
     override async deleteUser(): Promise<void> {
         const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)
@@ -205,13 +220,13 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Upload a new profile picture for the current user. */
-    override async uploadUserPicture(file: Blob): Promise<void> {
+    override async uploadUserPicture(file: Blob): Promise<string> {
         const path = remoteBackendPaths.UPLOAD_USER_PICTURE_PATH
-        const response = await this.postBinary(path, file)
+        const response = await this.postBinary<string>(path, file)
         if (!responseIsSuccessful(response)) {
             return this.throw('Could not upload user profile picture.')
         } else {
-            return
+            return await response.json()
         }
     }
 

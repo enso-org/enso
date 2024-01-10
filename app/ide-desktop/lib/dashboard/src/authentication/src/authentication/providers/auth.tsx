@@ -22,6 +22,7 @@ import * as localBackend from '../../dashboard/localBackend'
 import * as localStorageModule from '../../dashboard/localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
+import * as object from '../../object'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 import LoadingScreen from '../components/loadingScreen'
@@ -137,6 +138,7 @@ interface AuthContextType {
      *
      * If the user has not signed in, the session will be `null`. */
     session: UserSession | null
+    setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
 }
 
 // Eslint doesn't like headings.
@@ -204,6 +206,28 @@ export function AuthProvider(props: AuthProviderProps) {
     const [initialized, setInitialized] = React.useState(false)
     const [userSession, setUserSession] = React.useState<UserSession | null>(null)
     const toastId = React.useId()
+
+    const setOrganization = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backendModule.UserOrOrganization>) => {
+            setUserSession(oldUserSession => {
+                if (
+                    oldUserSession == null ||
+                    !('organization' in oldUserSession) ||
+                    oldUserSession.organization == null
+                ) {
+                    return oldUserSession
+                } else {
+                    return object.merge(oldUserSession, {
+                        organization:
+                            typeof valueOrUpdater !== 'function'
+                                ? valueOrUpdater
+                                : valueOrUpdater(oldUserSession.organization),
+                    })
+                }
+            })
+        },
+        []
+    )
 
     const goOfflineInternal = React.useCallback(() => {
         setInitialized(true)
@@ -573,6 +597,7 @@ export function AuthProvider(props: AuthProviderProps) {
         changePassword: withLoadingToast(changePassword),
         signOut,
         session: userSession,
+        setOrganization,
     }
 
     return (

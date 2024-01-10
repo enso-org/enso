@@ -7,6 +7,7 @@ import * as authProvider from '../../../authentication/providers/auth'
 import * as backendProvider from '../../../providers/backend'
 import * as hooks from '../../../hooks'
 import * as modalProvider from '../../../providers/modal'
+import * as object from '../../../object'
 
 import ConfirmDeleteUserModal from '../confirmDeleteUserModal'
 
@@ -45,7 +46,7 @@ function InfoEntry(props: InternalInfoEntryProps) {
     return (
         <div className="flex gap-4.75">
             <span className="leading-5 w-12 h-8 py-1.25">{name}</span>
-            <span className="font-bold leading-5 h-8 py-1.25">{value}</span>
+            <span className="grow font-bold leading-5 h-8 py-1.25">{value}</span>
         </div>
     )
 }
@@ -57,22 +58,47 @@ function InfoEntry(props: InternalInfoEntryProps) {
 /** Settings tab for viewing and editing account information. */
 export default function AccountSettingsTab() {
     const toastAndLog = hooks.useToastAndLog()
+    const { setOrganization } = authProvider.useAuth()
     const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
+    const nameInputRef = React.useRef<HTMLInputElement>(null)
 
-    const doSubmit = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const doUpdateName = async () => {
+        const oldName = organization?.name ?? ''
+        const newName = nameInputRef.current?.value ?? ''
+        if (newName === oldName) {
+            return
+        } else {
+            try {
+                await backend.updateUser({ name: newName })
+                setOrganization(object.merger({ name: newName }))
+            } catch (error) {
+                toastAndLog(null, error)
+                if (nameInputRef.current) {
+                    nameInputRef.current.value = organization?.name ?? ''
+                }
+            }
+            return
+        }
+    }
+
+    const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const image = event.target.files?.[0]
         if (image == null) {
             toastAndLog('Could not upload a new profile picture because no image was found')
         } else {
             try {
-                await backend.uploadUserPicture(image)
+                const url = await backend.uploadUserPicture(image)
+                setOrganization(oldOrganization =>
+                    object.merge(oldOrganization, { profilePicture: url })
+                )
             } catch (error) {
                 toastAndLog(null, error)
             }
         }
-        // Reset selected files.
+        // Reset selected files, otherwise the file input will do nothing if the same file is
+        // selected again. While technically not undesired behavior, it is unintuitive for the user.
         event.target.value = ''
     }
 
@@ -84,7 +110,36 @@ export default function AccountSettingsTab() {
                     <div className="flex flex-col">
                         <InfoEntry>
                             <Name>Name</Name>
-                            <Value>{organization?.name ?? ''}</Value>
+                            <Value>
+                                <input
+                                    ref={nameInputRef}
+                                    className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                                    key={organization?.name}
+                                    type="text"
+                                    size={1}
+                                    defaultValue={organization?.name ?? ''}
+                                    onBlur={doUpdateName}
+                                    onKeyDown={event => {
+                                        switch (event.key) {
+                                            case 'Escape': {
+                                                event.stopPropagation()
+                                                event.currentTarget.value = organization?.name ?? ''
+                                                event.currentTarget.blur()
+                                                break
+                                            }
+                                            case 'Enter': {
+                                                event.stopPropagation()
+                                                event.currentTarget.blur()
+                                                break
+                                            }
+                                            case 'Tab': {
+                                                event.currentTarget.blur()
+                                                break
+                                            }
+                                        }
+                                    }}
+                                />
+                            </Value>
                         </InfoEntry>
                         <InfoEntry>
                             <Name>Email</Name>
@@ -113,7 +168,12 @@ export default function AccountSettingsTab() {
             <div className="flex flex-col gap-2.5">
                 <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
                 <label className="cursor-pointer rounded-full h-32 w-32 hover:bg-frame transition-colors">
-                    <input type="file" className="hidden" accept="image/*" onChange={doSubmit} />
+                    <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={doUploadUserPicture}
+                    />
                     <img
                         src={organization?.profilePicture ?? DefaultUserIcon}
                         className="w-full h-full"
