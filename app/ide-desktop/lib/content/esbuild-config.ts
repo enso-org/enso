@@ -107,7 +107,7 @@ export function bundlerOptions(args: Arguments) {
             '.ttf': 'copy',
         },
         entryPoints: [
-            pathModule.resolve(THIS_PATH, 'src', 'index.ts'),
+            pathModule.resolve(THIS_PATH, 'src', 'entrypoint.ts'),
             pathModule.resolve(THIS_PATH, 'src', 'index.html'),
             pathModule.resolve(THIS_PATH, 'src', 'run.js'),
             pathModule.resolve(THIS_PATH, 'src', 'style.css'),

@@ -2,7 +2,7 @@
  * {@link RemoteLogger} provides a convenient way to manage remote logging with access token authorization. */
 
 import * as app from 'ensogl-runner/src/runner'
-import * as authConfig from '../../dashboard/src/authentication/src/config'
+import * as authConfig from '../../dashboard/src/utilities/config'
 
 const logger = app.log.logger
 
@@ -50,14 +50,12 @@ export async function remoteLog(
     metadata: unknown
 ): Promise<void> {
     try {
-        const headers: HeadersInit = new Headers()
-        headers.set('Content-Type', 'application/json')
-        headers.set('Authorization', `Bearer ${accessToken}`)
-        const response = await fetch(REMOTE_LOG_URL, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ message, metadata }),
-        })
+        const headers: HeadersInit = [
+            ['Content-Type', 'application/json'],
+            ['Authorization', `Bearer ${accessToken}`],
+        ]
+        const body = JSON.stringify({ message, metadata })
+        const response = await fetch(REMOTE_LOG_URL, { method: 'POST', headers, body })
         if (!response.ok) {
             const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
             try {

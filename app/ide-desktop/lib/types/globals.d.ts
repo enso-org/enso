@@ -1,6 +1,8 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
+/// <reference types="vite/client" />
+
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
@@ -65,13 +67,6 @@ declare global {
         enso?: AppRunner & Enso
         backendApi?: BackendApi
         authenticationApi: AuthenticationApi
-    }
-
-    // Documentation is already inherited.
-    /** */
-    interface Object {
-        /** Log self and return self. Only available in development mode. */
-        $d$: <T>(this: T, message?: string) => T
     }
 
     namespace NodeJS {
