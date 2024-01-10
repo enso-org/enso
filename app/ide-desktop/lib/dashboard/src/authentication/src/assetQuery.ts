@@ -480,16 +480,12 @@ export function toggleLabel(query: AssetQuery, label: string, fromLastTerm = fal
             )
         }
     } else {
-        console.log('e', newQuery)
         newQuery = newQuery.delete({ negativeLabels: [[label]] })
         if (newQuery === query) {
-            console.log('f', newQuery)
             newQuery = newQuery.delete({ labels: [[label]] })
-            console.log('g', newQuery)
             newQuery = newQuery.add(
                 newQuery === query ? { labels: [[label]] } : { negativeLabels: [[label]] }
             )
-            console.log('h', newQuery)
         }
     }
     return newQuery

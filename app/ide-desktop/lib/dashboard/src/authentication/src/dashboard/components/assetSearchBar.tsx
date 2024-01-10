@@ -62,16 +62,18 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     }, [areSuggestionsVisible])
 
     React.useEffect(() => {
-        if (selectedIndex == null) {
+        if (!wasQueryModified && selectedIndex == null) {
             setQuery(baseQuery.current)
         }
+        // `wasQueryModified` MUST NOT be a dependency, as it is always set to `false` immediately
+        // after it is set to true.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedIndex, /* should never change */ setQuery])
 
     React.useEffect(() => {
         let newQuery = query
         if (wasQueryModified) {
             const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
-            console.log('???', selectedIndex, suggestion, query, newQuery)
             if (suggestion != null) {
                 newQuery = suggestion.addToQuery(baseQuery.current)
                 setQuery(newQuery)
