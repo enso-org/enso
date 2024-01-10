@@ -289,6 +289,7 @@ export default function Drive(props: DriveProps) {
             <div className="flex flex-col gap-4 text-base text-center">
                 Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
                 <a
+                    role="button"
                     className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
                     href="https://enso.org/pricing"
                 >

@@ -362,8 +362,6 @@ export async function mockApi({ page }: MockParams) {
                 await route.fallback()
             }
         })
-
-        await page.goto('/')
     })
 
     return {

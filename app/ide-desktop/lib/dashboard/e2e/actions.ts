@@ -100,8 +100,8 @@ export function locateChangePasswordButton(page: test.Locator | test.Page) {
 }
 
 /** Find a "sign out" button (if any) on the current page. */
-export function locateSignOutButton(page: test.Locator | test.Page) {
-    return page.getByRole('button', { name: 'Sign out' }).getByText('Sign out')
+export function locateLogoutButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Logout' }).getByText('Logout')
 }
 
 /** Find a "set username" button (if any) on the current page. */
