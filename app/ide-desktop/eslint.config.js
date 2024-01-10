@@ -30,11 +30,11 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|validator.+'
-const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
+    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|validator.+'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
+const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -88,10 +88,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `:matches(ImportDefaultSpecifier[local.name=/^${NAME}/i], ImportNamespaceSpecifier > Identifier[name=/^${NAME}/i])`,
         message: `Don't prefix modules with \`${NAME}\``,
-    },
-    {
-        selector: 'ExportAllDeclaration',
-        message: 'No re-exports',
     },
     {
         selector: 'TSTypeLiteral',
@@ -299,7 +295,6 @@ export default [
                     ],
                 },
             ],
-            'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-properties': [
                 'error',
@@ -516,10 +511,6 @@ export default [
                     property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
-                {
-                    property: '$d$',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
             ],
         },
     },
@@ -557,10 +548,6 @@ export default [
                 {
                     object: 'hooks',
                     property: 'useDebugCallback',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: '$d$',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
