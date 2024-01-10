@@ -36,6 +36,12 @@ type Cloud_Tests_Setup
         with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         URI.from with_slash
 
+    httpbin_secure_uri self -> URI =
+        # TODO we could extend URI to allow easier override of scheme/port, for now we use a hack:
+        uri = self.httpbin_uri
+        new_text = uri.to_text.replace "http://" "https://" . replace (":"+uri.port.to_text) (":"+(uri.port+1).to_text)
+        URI.from new_text
+
     is_mock self -> Boolean = case self of
         Cloud_Tests_Setup.Mock _ _ -> True
         _ -> False
