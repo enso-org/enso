@@ -31,8 +31,15 @@ const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
 // === mockApi ===
 // ===============
 
+/** Parameters for {@link mockApi}. */
+interface MockParams {
+    page: test.Page
+}
+
 /** Add route handlers for the mock API to a page. */
-export async function mockApi(page: test.Page) {
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockApi({ page }: MockParams) {
     // eslint-disable-next-line no-restricted-syntax
     const defaultEmail = 'email@example.com' as backend.EmailAddress
     const defaultUsername = 'user name'
@@ -355,6 +362,8 @@ export async function mockApi(page: test.Page) {
                 await route.fallback()
             }
         })
+
+        await page.goto('/')
     })
 
     return {

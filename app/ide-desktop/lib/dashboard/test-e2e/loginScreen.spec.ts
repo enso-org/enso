@@ -3,14 +3,13 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
+test.test.beforeEach(actions.mockAll)
+
 // =============
 // === Tests ===
 // =============
 
 test.test('login screen', async ({ page }) => {
-    // Screenshot omitted - it is already taken by `loginLogout.spec.ts`.
-    await page.goto('/')
-
     // Invalid email
     await actions.locateEmailInput(page).fill('invalid email')
     test.expect(

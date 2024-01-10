@@ -2,13 +2,10 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-import * as api from './api'
+
+test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('drive view', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     // Drive view
     // Initially, the table contains the header row and the placeholder row.
     await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)

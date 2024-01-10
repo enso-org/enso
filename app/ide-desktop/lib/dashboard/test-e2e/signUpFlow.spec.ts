@@ -2,14 +2,13 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-import * as apiModule from './api'
 
 // =============
 // === Tests ===
 // =============
 
 test.test('sign up flow', async ({ page }) => {
-    const api = await apiModule.mockApi(page)
+    const api = await actions.mockApi({ page })
     api.setCurrentUser(null)
     await page.goto('/')
 

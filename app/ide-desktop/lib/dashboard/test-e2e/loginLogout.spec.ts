@@ -2,15 +2,15 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-import * as api from './api'
+
+// Do not login in setup, because this test needs to test login.
+test.test.beforeEach(actions.mockAll)
 
 // =============
 // === Tests ===
 // =============
 
 test.test('login and logout', async ({ page }) => {
-    await api.mockApi(page)
-
     // After sign in
     await actions.login(page)
     await test.expect(actions.locateDriveView(page)).toBeVisible()

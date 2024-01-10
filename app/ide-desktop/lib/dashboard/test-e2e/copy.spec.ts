@@ -2,13 +2,10 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
-import * as api from './api'
+
+test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('copy', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     await actions.locateNewFolderIcon(page).click()
@@ -34,10 +31,6 @@ test.test('copy', async ({ page }) => {
 })
 
 test.test('copy (keyboard)', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     await actions.locateNewFolderIcon(page).click()
@@ -60,10 +53,6 @@ test.test('copy (keyboard)', async ({ page }) => {
 })
 
 test.test('move', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     await actions.locateNewFolderIcon(page).click()
@@ -89,10 +78,6 @@ test.test('move', async ({ page }) => {
 })
 
 test.test('move (drag)', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     await actions.locateNewFolderIcon(page).click()
@@ -111,10 +96,6 @@ test.test('move (drag)', async ({ page }) => {
 })
 
 test.test('move (keyboard)', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     await actions.locateNewFolderIcon(page).click()
@@ -137,10 +118,6 @@ test.test('move (keyboard)', async ({ page }) => {
 })
 
 test.test('duplicate', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     const assetRows = actions.locateAssetsTableRows(page)
@@ -157,10 +134,6 @@ test.test('duplicate', async ({ page }) => {
 })
 
 test.test('duplicate (keyboard)', async ({ page }) => {
-    await api.mockApi(page)
-    await actions.mockDate(page)
-    await actions.login(page)
-
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
     const assetRows = actions.locateAssetsTableRows(page)

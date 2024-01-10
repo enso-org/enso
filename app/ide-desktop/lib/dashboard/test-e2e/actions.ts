@@ -1,6 +1,8 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import * as api from './api'
+
 // =================
 // === Constants ===
 // =================
@@ -374,8 +376,15 @@ export async function login(
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
+/** Parameters for {@link mockDate}. */
+interface MockParams {
+    page: test.Page
+}
+
 /** Replace `Date` with a version that returns a fixed time. */
-export async function mockDate(page: test.Page) {
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+async function mockDate({ page }: MockParams) {
     // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
     await page.addInitScript(`{
         Date = class extends Date {
@@ -391,4 +400,36 @@ export async function mockDate(page: test.Page) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
+}
+
+// ===============
+// === mockApi ===
+// ===============
+
+// This is a function, even though it does not use function syntax.
+// eslint-disable-next-line no-restricted-syntax
+export const mockApi = api.mockApi
+
+// ===============
+// === mockAll ===
+// ===============
+
+/** Set up all mocks, without logging in. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockAll({ page }: MockParams) {
+    await mockApi({ page })
+    await mockDate({ page })
+}
+
+// =======================
+// === mockAllAndLogin ===
+// =======================
+
+/** Set up all mocks, and log in with dummy credentials. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockAllAndLogin({ page }: MockParams) {
+    await mockAll({ page })
+    await login(page)
 }
