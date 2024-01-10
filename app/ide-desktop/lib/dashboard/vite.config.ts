@@ -25,6 +25,14 @@ export default vite.defineConfig({
             '#': url.fileURLToPath(new URL('./src', import.meta.url)),
         },
     },
+    build: {
+        rollupOptions: {
+            input: {
+                main: url.fileURLToPath(new URL('./index.html', import.meta.url)),
+                '404': url.fileURLToPath(new URL('./404.html', import.meta.url)),
+            },
+        },
+    },
     define: {
         IS_VITE: JSON.stringify(true),
         REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${SERVER_PORT}`),
