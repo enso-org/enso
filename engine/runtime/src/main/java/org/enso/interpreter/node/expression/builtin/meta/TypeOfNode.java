@@ -139,6 +139,8 @@ public abstract class TypeOfNode extends Node {
         return builtins.number().getInteger();
       } else if (interop.fitsInDouble(value)) {
         return builtins.number().getFloat();
+      } else if (interop.fitsInBigInteger(value)) {
+        return builtins.number().getInteger();
       } else {
         return EnsoContext.get(this).getBuiltins().number().getNumber();
       }
