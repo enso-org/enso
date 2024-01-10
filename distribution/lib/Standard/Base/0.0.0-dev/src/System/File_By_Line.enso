@@ -75,16 +75,33 @@ type File_By_Line
     to_vector : Vector Text
     to_vector self = self.map x->x
 
+    ## Performs an action on each line.
+
+       Arguments
+       - function: The action to perform on each line.
+    each : (Text -> Any) -> Nothing
+    each self function =
+        new_function _ t = function t
+        self.each_with_index new_function
+
+    ## Performs an action on each line.
+
+       Arguments
+       - function: The action to perform on each line.
+    each_with_index : (Integer -> Text -> Any) -> Nothing
+    each_with_index self function =
+        limit = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
+        for_each_lines self 0 limit function
+
     ## Transforms each line in the file and returns the result as a vector.
 
        Arguments
        - action: The action to perform on each line.
     map : (Text -> Any) -> Vector Any
     map self action =
-        limit = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         builder = Vector.new_builder
         wrapped_action t = builder.append (action t)
-        for_each_lines self 0 limit wrapped_action
+        self.each wrapped_action
         builder.to_vector
 
     ## Skips the specified number of lines.
@@ -170,20 +187,17 @@ file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_
     file_length = raf.length
     raf.seek start_position
 
-    do_step i = case raf.getFilePointer >= file_length of
-        True ->
-            if end_at.is_nothing.not then i.up_to end_at . each (_->(row_map.add raf.getFilePointer))
-            Nothing
-        False ->
-            if i < row_map.getSize then raf.seek (row_map.get i)
-            collect = filter.is_nothing.not || action.is_nothing.not
-            bytes = file_read_line raf collect
-            text = if collect.not then Nothing else Text.from_bytes bytes encoding
-            valid = i < row_map.getSize || filter.is_nothing || (filter text)
-            if valid.not then @Tail_Call do_step i else
-                if i+1 >= row_map.getSize then row_map.add raf.getFilePointer
-                action.if_not_nothing (action text)
-                if end_at.is_nothing || i+1<=end_at then @Tail_Call do_step (i+1)
+    do_step i = if raf.getFilePointer >= file_length then Nothing else
+        if i < row_map.getSize then raf.seek (row_map.get i)
+        collect = filter.is_nothing.not || action.is_nothing.not
+        bytes = file_read_line raf collect
+        text = if collect.not then Nothing else Text.from_bytes bytes encoding
+        valid = i < row_map.getSize || filter.is_nothing || (filter text)
+        if valid.not then @Tail_Call do_step i else
+            if i%100000==0 then File_By_Line.log "Scanned line: "+(i.to_text)
+            if i+1 >= row_map.getSize then row_map.add raf.getFilePointer
+            action.if_not_nothing (action i text)
+            if end_at.is_nothing || i+1<=end_at then @Tail_Call do_step (i+1)
 
     if end_at.is_nothing || start_at<end_at then do_step start_at
 
