@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -14,9 +13,7 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
@@ -46,17 +43,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public TextType getType() {
     return type;
-  }
-
-  @Override
-  public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-    if (arg.isString()) {
-      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
-      return fillMissingHelper(arg, new StringBuilder(size(), newType));
-    } else {
-      return super.fillMissing(arg, commonType, problemAggregator);
-    }
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
