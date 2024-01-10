@@ -42,6 +42,7 @@ export async function mockApi(page: test.Page) {
         email: defaultEmail,
         name: defaultUsername,
         id: defaultOrganizationId,
+        profilePicture: null,
         isEnabled: true,
     }
     let currentUser: backend.UserOrOrganization | null = defaultUser
@@ -301,6 +302,7 @@ export async function mockApi(page: test.Page) {
                         email: body.userEmail,
                         name: body.userName,
                         id: body.organizationId ?? defaultUser.id,
+                        profilePicture: null,
                         isEnabled: false,
                     }
                     await route.fulfill({ json: currentUser })
