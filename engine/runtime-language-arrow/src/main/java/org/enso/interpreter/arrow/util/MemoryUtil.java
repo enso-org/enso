@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.util;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -15,6 +16,7 @@ public class MemoryUtil {
       byteBufferConstr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
       byteBufferConstr.setAccessible(true);
     } catch (NoSuchMethodException e) {
+      CompilerDirectives.transferToInterpreter();
       throw new ExceptionInInitializerError(
           new IllegalStateException(
               "Unable to find a constructor for ByteBuffer created directly from a memory addres"));
@@ -37,10 +39,13 @@ public class MemoryUtil {
       try {
         return (ByteBuffer) byteBufferConstr.newInstance(address, capacity);
       } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        CompilerDirectives.transferToInterpreter();
         throw new RuntimeException(e);
       }
+    } else {
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException(
+          "constructor for a ByteBuffer created from a memory address is missing");
     }
-    throw new RuntimeException(
-        "constructor for a ByteBuffer created from a memory address is missing");
   }
 }

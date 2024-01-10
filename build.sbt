@@ -1261,6 +1261,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"         % "truffle-api"          % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
       "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
       "org.bouncycastle"            % "bcpkix-jdk18on"       % "1.76"                    % Test,
@@ -1687,9 +1688,6 @@ lazy val runtime = (project in file("engine/runtime"))
           "runtime-language-epb"
         ) / Compile / productDirectories).value ++
         (LocalProject(
-          "runtime-language-arrow"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
         (LocalProject("refactoring-utils") / Compile / productDirectories).value
@@ -1925,7 +1923,6 @@ lazy val `runtime-fat-jar` =
             inProjects(
               LocalProject("runtime"),
               LocalProject("runtime-language-epb"),
-              LocalProject("runtime-language-arrow"),
               LocalProject("runtime-instrument-common"),
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
@@ -1996,7 +1993,6 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
-    .dependsOn(`runtime-language-arrow`)
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]
@@ -2837,7 +2833,6 @@ lazy val `std-aws` = project
  * `org.enso.launcher.workarounds.ReplacementStatics` using
  * `org.enso.launcher.workarounds.Unsafe` which gives access to
  * `sun.misc.Unsafe` which contains a low-level function corresponding to the
- * required "release fence".
  * required "release fence".
  *
  * To allow for that substitution, the launcher code requires annotations from
