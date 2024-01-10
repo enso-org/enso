@@ -82,8 +82,8 @@ function isMatch_(
 }
 
 type PlaceholderRef = {
-  ref: Ast.NodeChild<Ast.AstId>,
-  parent: Ast.AstId,
+  ref: Ast.NodeChild<Ast.AstId>
+  parent: Ast.AstId
 }
 
 function placeholders(ast: Ast.Ast, placeholder: string, outIn?: PlaceholderRef[]) {
