@@ -24,6 +24,7 @@ import {
   getAccessOprSubject,
   interpretCall,
 } from '@/util/callTree'
+import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -182,6 +183,25 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
+
+      // HACK: Temporarily modify expression info to include the deleted argument on a list, so it
+      // immediately appears back as a placeholder after deletion, before the engine respones.
+      // The engine will soon send another expression update, overwriting this change anyway.
+      //
+      // This update is unfortunately not saved in the undo stack. Undoing and redoing the edit will
+      // still cause the placeholder to glitch out temporarily, but this is good enough for now.
+      // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
+      // saved in the undo transaction.
+      const deletedArgIdx = argApp.argument.index
+      if (deletedArgIdx != null) {
+        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
+        if (notAppliedArguments != null) {
+          const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
+          // Insert the deleted argument back to the method info. This directly modifies observable
+          // data in `ComputedValueRegistry`. That's on purpose.
+          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+        }
+      }
 
       if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
         /* Case: Removing named prefix argument. */

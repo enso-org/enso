@@ -273,13 +273,13 @@ export class ArgumentApplication {
             break
           } else {
             resolvedArgs.push({
-              appTree: arg.appTree,
+              appTree: arg.appTree.function,
               argument: ArgumentPlaceholder.WithRetrievedConfig(
                 callId,
                 index,
                 info,
                 ApplicationKind.Prefix,
-                !placeholderAlreadyInserted,
+                placeholderAlreadyInserted,
                 widgetCfg,
               ),
             })
