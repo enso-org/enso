@@ -7,9 +7,9 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
-import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
+import AssetPanel from '#/layouts/dashboard/AssetPanel'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import Chat, * as chat from '#/layouts/dashboard/Chat'
 import ChatPlaceholder from '#/layouts/dashboard/ChatPlaceholder'
@@ -80,12 +80,10 @@ export default function Dashboard(props: DashboardProps) {
     const [assetListEvents, dispatchAssetListEvent] =
         eventHooks.useEvent<assetListEvent.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-    const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
-        React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
-    const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
-        () =>
-            localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ??
-            false
+    const [assetPanelProps, setAssetPanelProps] =
+        React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+    const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.isAssetPanelVisible) ?? false
     )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
     const rootDirectoryId = React.useMemo(
@@ -251,10 +249,10 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         localStorage.set(
-            localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible,
-            isAssetSettingsPanelVisible
+            localStorageModule.LocalStorageKey.isAssetPanelVisible,
+            isAssetPanelVisible
         )
-    }, [isAssetSettingsPanelVisible, /* should never change */ localStorage])
+    }, [isAssetPanelVisible, /* should never change */ localStorage])
 
     React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.page, page)
@@ -431,11 +429,9 @@ export default function Dashboard(props: DashboardProps) {
                         setQuery={setQuery}
                         labels={labels}
                         suggestions={suggestions}
-                        canToggleSettingsPanel={assetSettingsPanelProps != null}
-                        isSettingsPanelVisible={
-                            isAssetSettingsPanelVisible && assetSettingsPanelProps != null
-                        }
-                        setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                        canToggleSettingsPanel={assetPanelProps != null}
+                        isSettingsPanelVisible={isAssetPanelVisible && assetPanelProps != null}
+                        setIsSettingsPanelVisible={setIsAssetPanelVisible}
                         doRemoveSelf={doRemoveSelf}
                         onSignOut={() => {
                             if (page === pageSwitcher.Page.editor) {
@@ -464,7 +460,7 @@ export default function Dashboard(props: DashboardProps) {
                         dispatchAssetListEvent={dispatchAssetListEvent}
                         assetEvents={assetEvents}
                         dispatchAssetEvent={dispatchAssetEvent}
-                        setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+                        setAssetPanelProps={setAssetPanelProps}
                         doCreateProject={doCreateProject}
                         doOpenEditor={openEditor}
                         doCloseEditor={closeEditor}
@@ -500,21 +496,19 @@ export default function Dashboard(props: DashboardProps) {
                 </div>
                 <div
                     className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
-                        isAssetSettingsPanelVisible && assetSettingsPanelProps != null
-                            ? 'min-w-120'
-                            : 'min-w-0'
+                        isAssetPanelVisible && assetPanelProps != null ? 'min-w-120' : 'min-w-0'
                     }`}
                 >
-                    {assetSettingsPanelProps && (
-                        <AssetSettingsPanel
+                    {assetPanelProps && (
+                        <AssetPanel
                             supportsLocalBackend={supportsLocalBackend}
-                            key={assetSettingsPanelProps.item.item.id}
-                            {...assetSettingsPanelProps}
+                            key={assetPanelProps.item.item.id}
+                            {...assetPanelProps}
                             page={page}
                             category={Category.home}
                             isHelpChatOpen={isHelpChatOpen}
                             setIsHelpChatOpen={setIsHelpChatOpen}
-                            setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                            setIsSettingsPanelVisible={setIsAssetPanelVisible}
                             dispatchAssetEvent={dispatchAssetEvent}
                             projectAsset={projectStartupInfo?.projectAsset ?? null}
                             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}

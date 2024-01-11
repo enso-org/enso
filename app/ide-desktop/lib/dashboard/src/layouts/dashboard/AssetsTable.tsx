@@ -10,8 +10,8 @@ import AssetListEventType from '#/events/AssetListEventType'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
@@ -263,8 +263,8 @@ export interface AssetsTableState {
     dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
     assetEvents: assetEvent.AssetEvent[]
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    setAssetSettingsPanelProps: React.Dispatch<
-        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    setAssetPanelProps: React.Dispatch<
+        React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
     >
     nodeMap: Readonly<
         React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
@@ -324,8 +324,8 @@ export interface AssetsTableProps {
     dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
     assetEvents: assetEvent.AssetEvent[]
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    setAssetSettingsPanelProps: React.Dispatch<
-        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    setAssetPanelProps: React.Dispatch<
+        React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
     >
     doOpenIde: (
         project: backendModule.ProjectAsset,
@@ -346,7 +346,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { initialProjectName, projectStartupInfo } = props
     const { queuedAssetEvents: rawQueuedAssetEvents } = props
     const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-    const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
+    const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
     const { doCreateLabel, loadingProjectManagerDidFail } = props
     const { isListingRemoteDirectoryWhileOffline, isListingLocalDirectoryAndWillFail } = props
     const { isListingRemoteDirectoryAndWillFail } = props
@@ -1087,9 +1087,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         if (selectedKeys.size !== 1) {
-            setAssetSettingsPanelProps(null)
+            setAssetPanelProps(null)
         }
-    }, [selectedKeys.size, /* should never change */ setAssetSettingsPanelProps])
+    }, [selectedKeys.size, /* should never change */ setAssetPanelProps])
 
     const directoryListAbortControllersRef = React.useRef(
         new Map<backendModule.DirectoryId, AbortController>()
@@ -1741,7 +1741,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
-            setAssetSettingsPanelProps,
+            setAssetPanelProps: setAssetPanelProps,
             nodeMap: nodeMapRef,
             doToggleDirectoryExpansion,
             doOpenManually,
@@ -1771,7 +1771,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCopy,
             doCut,
             doPaste,
-            /* should never change */ setAssetSettingsPanelProps,
+            /* should never change */ setAssetPanelProps,
             /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,

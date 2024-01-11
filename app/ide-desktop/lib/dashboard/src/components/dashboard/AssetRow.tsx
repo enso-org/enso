@@ -58,7 +58,7 @@ export default function AssetRow(props: AssetRowProps) {
     const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
     const { columns } = props
     const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-    const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+    const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
     const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -190,9 +190,9 @@ export default function AssetRow(props: AssetRowProps) {
 
     React.useEffect(() => {
         if (isSoleSelectedItem) {
-            setAssetSettingsPanelProps({ item, setItem })
+            setAssetPanelProps({ item, setItem })
         }
-    }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
+    }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
 
     const doDelete = React.useCallback(async () => {
         setInsertionVisibility(Visibility.hidden)

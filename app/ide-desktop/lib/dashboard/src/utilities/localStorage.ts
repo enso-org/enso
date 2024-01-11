@@ -17,7 +17,7 @@ export enum LocalStorageKey {
     page = 'page',
     backendType = 'backend-type',
     extraColumns = 'extra-columns',
-    isAssetSettingsPanelVisible = 'is-asset-settings-panel-visible',
+    isAssetPanelVisible = 'is-asset-panel-visible',
     projectStartupInfo = 'project-startup-info',
     driveCategory = 'drive-category',
     loginRedirect = 'login-redirect',
@@ -28,7 +28,7 @@ interface LocalStorageData {
     [LocalStorageKey.page]: pageSwitcher.Page
     [LocalStorageKey.backendType]: backend.BackendType
     [LocalStorageKey.extraColumns]: columnUtils.ExtraColumn[]
-    [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
+    [LocalStorageKey.isAssetPanelVisible]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
     [LocalStorageKey.driveCategory]: Category
     [LocalStorageKey.loginRedirect]: string
@@ -41,7 +41,7 @@ const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
     [LocalStorageKey.page]: false,
     [LocalStorageKey.backendType]: false,
     [LocalStorageKey.extraColumns]: false,
-    [LocalStorageKey.isAssetSettingsPanelVisible]: false,
+    [LocalStorageKey.isAssetPanelVisible]: false,
     [LocalStorageKey.projectStartupInfo]: true,
     [LocalStorageKey.driveCategory]: false,
     [LocalStorageKey.loginRedirect]: true,
@@ -80,9 +80,9 @@ export class LocalStorage {
                     LocalStorageKey.extraColumns
                 ].filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
             }
-            if (LocalStorageKey.isAssetSettingsPanelVisible in savedValues) {
-                this.values[LocalStorageKey.isAssetSettingsPanelVisible] = Boolean(
-                    savedValues[LocalStorageKey.isAssetSettingsPanelVisible]
+            if (LocalStorageKey.isAssetPanelVisible in savedValues) {
+                this.values[LocalStorageKey.isAssetPanelVisible] = Boolean(
+                    savedValues[LocalStorageKey.isAssetPanelVisible]
                 )
             }
             if (LocalStorageKey.driveCategory in savedValues) {
