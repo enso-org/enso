@@ -456,7 +456,7 @@ export default [
                 'error',
                 ...RESTRICTED_SYNTAXES,
                 {
-                    selector: '[declare=true]',
+                    selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
                 },
                 {

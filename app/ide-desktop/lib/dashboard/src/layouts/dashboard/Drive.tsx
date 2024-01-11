@@ -23,12 +23,29 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
+import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as github from '#/utilities/github'
-import * as localStorageModule from '#/utilities/localStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as spinner from '#/components/Spinner'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+    /** */
+    interface LocalStorageData {
+        driveCategory: Category
+    }
+}
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+    tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
+})
 
 // =============
 // === Drive ===
@@ -86,7 +103,7 @@ export default function Drive(props: DriveProps) {
     const { modalRef } = modalProvider.useModalRef()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
-        () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
+        () => localStorage.get('driveCategory') ?? Category.home
     )
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(

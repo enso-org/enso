@@ -27,15 +27,65 @@ import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
+import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/assetQuery'
 import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as projectManager from '#/utilities/projectManager'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 import TheModal from '#/components/dashboard/TheModal'
 import type * as spinner from '#/components/Spinner'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+    /** */
+    interface LocalStorageData {
+        isAssetPanelVisible: boolean
+        page: pageSwitcher.Page
+        projectStartupInfo: backendModule.ProjectStartupInfo
+    }
+}
+
+LocalStorage.registerKey('isAssetPanelVisible', {
+    tryParse: value => (value === true ? value : null),
+})
+
+const PAGES = Object.values(pageSwitcher.Page)
+LocalStorage.registerKey('page', {
+    tryParse: value => (array.includes(PAGES, value) ? value : null),
+})
+
+const BACKEND_TYPES = Object.values(backendModule.BackendType)
+LocalStorage.registerKey('projectStartupInfo', {
+    isUserSpecific: true,
+    tryParse: value => {
+        if (typeof value !== 'object' || value == null) {
+            return null
+        } else if (!('accessToken' in value) || typeof value.accessToken !== 'string') {
+            return null
+        } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
+            return null
+        } else if (!('project' in value) || !('projectAsset' in value)) {
+            return null
+        } else {
+            return {
+                // These type assertions are UNSAFE, however correctly type-checking these
+                // would be very complicated.
+                // eslint-disable-next-line no-restricted-syntax
+                project: value.project as backendModule.Project,
+                // eslint-disable-next-line no-restricted-syntax
+                projectAsset: value.projectAsset as backendModule.ProjectAsset,
+                backendType: value.backendType,
+                accessToken: value.accessToken,
+            }
+        }
+    },
+})
 
 // =================
 // === Dashboard ===
@@ -67,7 +117,7 @@ export default function Dashboard(props: DashboardProps) {
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(
-        () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+        () => localStorage.get('page') ?? pageSwitcher.Page.drive
     )
     const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
@@ -83,7 +133,7 @@ export default function Dashboard(props: DashboardProps) {
     const [assetPanelProps, setAssetPanelProps] =
         React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
     const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
-        () => localStorage.get(localStorageModule.LocalStorageKey.isAssetPanelVisible) ?? false
+        () => localStorage.get('isAssetPanelVisible') ?? false
     )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
     const rootDirectoryId = React.useMemo(
@@ -121,15 +171,12 @@ export default function Dashboard(props: DashboardProps) {
         let currentBackend = backend
         if (
             supportsLocalBackend &&
-            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
-                backendModule.BackendType.local
+            localStorage.get('backendType') === backendModule.BackendType.local
         ) {
             currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
-        const savedProjectStartupInfo = localStorage.get(
-            localStorageModule.LocalStorageKey.projectStartupInfo
-        )
+        const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
         if (rawInitialProjectName != null) {
             if (page === pageSwitcher.Page.editor) {
                 setPage(pageSwitcher.Page.drive)
@@ -235,12 +282,9 @@ export default function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         if (initialized) {
             if (projectStartupInfo != null) {
-                localStorage.set(
-                    localStorageModule.LocalStorageKey.projectStartupInfo,
-                    projectStartupInfo
-                )
+                localStorage.set('projectStartupInfo', projectStartupInfo)
             } else {
-                localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+                localStorage.delete('projectStartupInfo')
             }
         }
         // `initialized` is NOT a dependency.
@@ -248,14 +292,11 @@ export default function Dashboard(props: DashboardProps) {
     }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
-        localStorage.set(
-            localStorageModule.LocalStorageKey.isAssetPanelVisible,
-            isAssetPanelVisible
-        )
+        localStorage.set('isAssetPanelVisible', isAssetPanelVisible)
     }, [isAssetPanelVisible, /* should never change */ localStorage])
 
     React.useEffect(() => {
-        localStorage.set(localStorageModule.LocalStorageKey.page, page)
+        localStorage.set('page', page)
     }, [page, /* should never change */ localStorage])
 
     React.useEffect(() => {

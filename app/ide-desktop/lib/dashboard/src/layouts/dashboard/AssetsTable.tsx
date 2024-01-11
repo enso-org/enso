@@ -26,7 +26,7 @@ import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
-import * as localStorageModule from '#/utilities/localStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
@@ -50,6 +50,25 @@ import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
 import MenuEntry from '#/components/MenuEntry'
 import Table from '#/components/Table'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+    /** */
+    interface LocalStorageData {
+        extraColumns: columnUtils.ExtraColumn[]
+    }
+}
+
+LocalStorage.registerKey('extraColumns', {
+    tryParse: value => {
+        const possibleColumns = Array.isArray(value) ? value : []
+        const values = possibleColumns.filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
+        return values.length === 0 ? null : values
+    },
+})
 
 // =================
 // === Constants ===
@@ -1032,7 +1051,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     React.useEffect(() => {
-        const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
+        const savedExtraColumns = localStorage.get('extraColumns')
         if (savedExtraColumns != null) {
             setExtraColumns(new Set(savedExtraColumns))
         }
@@ -1078,10 +1097,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         if (initialized) {
-            localStorage.set(
-                localStorageModule.LocalStorageKey.extraColumns,
-                Array.from(extraColumns)
-            )
+            localStorage.set('extraColumns', Array.from(extraColumns))
         }
     }, [extraColumns, initialized, /* should never change */ localStorage])
 

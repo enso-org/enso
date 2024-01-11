@@ -24,7 +24,6 @@ import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
 import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
 
 // =================
 // === Constants ===
@@ -475,11 +474,9 @@ export default function AuthProvider(props: AuthProviderProps) {
                         pending: MESSAGES.setUsernameLoading,
                     }
                 )
-                const redirectTo = localStorage.get(
-                    localStorageModule.LocalStorageKey.loginRedirect
-                )
+                const redirectTo = localStorage.get('loginRedirect')
                 if (redirectTo != null) {
-                    localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+                    localStorage.delete('loginRedirect')
                     location.href = redirectTo
                 } else {
                     navigate(appUtils.DASHBOARD_PATH)
@@ -644,9 +641,9 @@ export function SemiProtectedLayout() {
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        const redirectTo = localStorage.get('loginRedirect')
         if (redirectTo != null) {
-            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            localStorage.delete('loginRedirect')
             location.href = redirectTo
             return
         } else {
@@ -671,9 +668,9 @@ export function GuestLayout() {
     if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        const redirectTo = localStorage.get('loginRedirect')
         if (redirectTo != null) {
-            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            localStorage.delete('loginRedirect')
             location.href = redirectTo
             return
         } else {

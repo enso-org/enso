@@ -4,8 +4,6 @@ import type * as backend from '#/services/backend'
 
 import type * as spinner from '#/components/Spinner'
 
-// This is required, to whitelist this event.
-// eslint-disable-next-line no-restricted-syntax
 declare module '#/hooks/eventHooks' {
     /** A map containing all known event types. */
     export interface KnownEventsMap {

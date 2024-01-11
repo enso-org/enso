@@ -3,8 +3,25 @@
 import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import type * as backendModule from '#/services/backend'
-import * as localStorageModule from '#/utilities/localStorage'
+import * as backendModule from '#/services/backend'
+import * as array from '#/utilities/array'
+import LocalStorage from '#/utilities/LocalStorage'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+    /** */
+    interface LocalStorageData {
+        backendType: backendModule.BackendType
+    }
+}
+
+const BACKEND_TYPES = Object.values(backendModule.BackendType)
+LocalStorage.registerKey('backendType', {
+    tryParse: value => (array.includes(BACKEND_TYPES, value) ? value : null),
+})
 
 // ======================
 // === BackendContext ===
@@ -39,7 +56,7 @@ export default function BackendProvider(props: BackendProviderProps) {
     const setBackend = React.useCallback(
         (newBackend: backendModule.Backend) => {
             setBackendWithoutSavingType(newBackend)
-            localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
+            localStorage.set('backendType', newBackend.type)
         },
         [/* should never change */ localStorage]
     )

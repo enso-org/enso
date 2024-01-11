@@ -18,7 +18,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
 import * as object from '#/utilities/object'
 
 import Spinner, * as spinner from '#/components/Spinner'
@@ -320,7 +319,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const closeProject = async (triggerOnClose = true) => {
         if (triggerOnClose) {
             onClose()
-            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+            localStorage.delete('projectStartupInfo')
         }
         setToastId(null)
         setShouldOpenWhenReady(false)

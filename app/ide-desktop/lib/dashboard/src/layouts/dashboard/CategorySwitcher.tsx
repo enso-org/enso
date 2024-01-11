@@ -13,7 +13,6 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as drag from '#/utilities/drag'
-import * as localStorageModule from '#/utilities/localStorage'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -113,7 +112,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
 
     React.useEffect(() => {
-        localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)
+        localStorage.set('driveCategory', category)
     }, [category, /* should never change */ localStorage])
 
     return (
