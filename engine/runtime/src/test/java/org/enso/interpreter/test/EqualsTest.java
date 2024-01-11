@@ -208,6 +208,32 @@ public class EqualsTest extends TestBase {
   }
 
   @Test
+  public void testDoubleEqualsJavaBigInteger() {
+    long value = Long.MIN_VALUE;
+    double javaNumber = Math.pow(value, 10);
+    var hostNumber = unwrapValue(context, context.asValue(BigInteger.valueOf(value).pow(10)));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(javaNumber + " == " + hostNumber, equalsNode.execute(javaNumber, hostNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testJavaBigIntegerEqualsDoubleEquals() {
+    long value = Long.MIN_VALUE;
+    double javaNumber = Math.pow(value, 10);
+    var hostNumber = unwrapValue(context, context.asValue(BigInteger.valueOf(value).pow(10)));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(hostNumber + " == " + javaNumber, equalsNode.execute(hostNumber, javaNumber));
+          return null;
+        });
+  }
+
+  @Test
   public void testVectorsEquality() {
     Object ensoVector =
         unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base import all"));
