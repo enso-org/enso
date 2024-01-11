@@ -28,7 +28,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean isInstantiable() {
+  public boolean isExecutable() {
     return true;
   }
 
@@ -38,7 +38,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
 
   @ExportMessage
   @ImportStatic(LogicalLayout.class)
-  static class Instantiate {
+  static class Execute {
     @Specialization(guards = "receiver.getLayout() == Date32")
     static Object doDate32(
         ArrowCastToFixedSizeArrayFactory receiver,

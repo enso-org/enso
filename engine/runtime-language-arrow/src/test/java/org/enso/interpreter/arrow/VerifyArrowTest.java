@@ -141,7 +141,7 @@ public class VerifyArrowTest {
       var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
       assertNotNull(int32Constr);
       Value int32Array =
-          int32Constr.newInstance(
+          int32Constr.execute(
               intVector.getDataBufferAddress(),
               intVector.getDataBuffer().capacity() / typeLength.sizeInBytes());
 
@@ -162,7 +162,7 @@ public class VerifyArrowTest {
       var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
       assertNotNull(int32Constr);
       Value int32Array =
-          int32Constr.newInstance(
+          int32Constr.execute(
               intVector.getDataBufferAddress(),
               intVector.getDataBuffer().capacity() / typeLength.sizeInBytes(),
               intVector.getValidityBufferAddress());
@@ -191,7 +191,7 @@ public class VerifyArrowTest {
       var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
       assertNotNull(int32Constr);
       Value int32Array =
-          int32Constr.newInstance(
+          int32Constr.execute(
               vector.getDataBufferAddress(),
               vector.getDataBuffer().capacity() / typeLength.sizeInBytes(),
               vector.getValidityBufferAddress());
