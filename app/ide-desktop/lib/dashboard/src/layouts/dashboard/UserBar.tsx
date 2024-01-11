@@ -78,6 +78,7 @@ export default function UserBar(props: UserBarProps) {
                 </button>
             )}
             <button
+                className="select-none"
                 onClick={event => {
                     event.stopPropagation()
                     updateModal(oldModal =>

@@ -78,7 +78,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
     return (
         <>
-            {' '}
             <div className="flex flex-col items-start gap-1">
                 <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
                     Description

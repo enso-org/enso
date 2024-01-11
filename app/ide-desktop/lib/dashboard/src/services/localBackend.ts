@@ -365,6 +365,11 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
+    /** Invalid operation. */
+    override listAssetVersions() {
+        return this.invalidOperation()
+    }
+
     /** Return `void`. This function should never need to be called. */
     override updateAsset() {
         return Promise.resolve()

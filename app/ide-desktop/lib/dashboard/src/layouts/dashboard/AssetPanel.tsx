@@ -3,10 +3,11 @@ import * as React from 'react'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetProperties from '#/layouts/dashboard/AssetProperties'
+import AssetVersions from '#/layouts/dashboard/AssetVersions'
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import type * as backendModule from '#/services/backend'
+import * as backend from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
@@ -40,8 +41,8 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    projectAsset: backendModule.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+    projectAsset: backend.ProjectAsset | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
     doRemoveSelf: () => void
     onSignOut: () => void
 }
@@ -62,20 +63,23 @@ export default function AssetPanel(props: AssetPanelProps) {
             }}
         >
             <div className="flex">
-                <button
-                    className={`rounded-full leading-5 px-2 hover:bg-frame transition-colors ${
-                        tab !== AssetPanelTab.versions ? '' : 'bg-frame'
-                    }`}
-                    onClick={() => {
-                        setTab(oldTab =>
-                            oldTab === AssetPanelTab.versions
-                                ? AssetPanelTab.properties
-                                : AssetPanelTab.versions
-                        )
-                    }}
-                >
-                    Versions
-                </button>
+                {item.item.type !== backend.AssetType.secret &&
+                    item.item.type !== backend.AssetType.directory && (
+                        <button
+                            className={`rounded-full leading-5 px-2 select-none hover:bg-frame transition-colors ${
+                                tab !== AssetPanelTab.versions ? '' : 'bg-frame'
+                            }`}
+                            onClick={() => {
+                                setTab(oldTab =>
+                                    oldTab === AssetPanelTab.versions
+                                        ? AssetPanelTab.properties
+                                        : AssetPanelTab.versions
+                                )
+                            }}
+                        >
+                            Versions
+                        </button>
+                    )}
                 {/* Spacing. */}
                 <div className="grow" />
                 <div className="flex gap-2">
@@ -104,6 +108,7 @@ export default function AssetPanel(props: AssetPanelProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             )}
+            <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
         </div>
     )
 }
