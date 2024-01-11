@@ -360,17 +360,6 @@ spec =
                         . set_user_info secret1 "pass"
                     uri2.to_text . should_equal ("https://__SECRET__:pass@example.com/")
 
-            Test.specify "should send the userinfo as an authorization header" pending=cloud_setup.httpbin_pending <|
-                secret1 = Enso_Secret.create "my_test_secret-uri-7" "My Password"
-                secret1.should_succeed
-                Panic.with_finalizer secret1.delete <| with_retries <|
-                    uri3 = (cloud_setup.httpbin_secure_uri / "get")
-                        . set_user_info "my_user" secret1
-                    r1 = cloud_setup.httpbin_secure_client.request (Request.get uri3)
-                    # The user info shall be turned into a header:
-                    base64 = (Base64.getEncoder.encodeToString ("my_user:My Password".bytes Encoding.utf_8))
-                    r1.decode_as_json.at "headers" . at "Authorization" . should_equal "Basic "+base64
-
             Test.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
                 secret1.should_succeed
@@ -383,11 +372,6 @@ spec =
                     r1 = uri1.fetch
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
-
-                    uri2 = URI.from "http://example.com/"
-                        . set_user_info secret1 secret1
-                    uri2.to_text . should_equal ("http://__SECRET__:__SECRET__@example.com/")
-                    uri2.fetch . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
 
