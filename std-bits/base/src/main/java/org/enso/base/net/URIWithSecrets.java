@@ -10,8 +10,8 @@ import org.graalvm.collections.Pair;
  * A structure representing a URI that contains parts which may need to be updated once data from
  * secrets is resolved.
  *
- * <p>The query parameters are stored separately, because they may contain secrets and
- * will only be resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
+ * <p>The query parameters are stored separately, because they may contain secrets and will only be
+ * resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
  */
 public record URIWithSecrets(URI baseUri, List<Pair<String, HideableValue>> queryParameters) {
 

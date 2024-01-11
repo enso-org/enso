@@ -1,4 +1,4 @@
- package org.enso.base.enso_cloud;
+package org.enso.base.enso_cloud;
 
 import java.io.IOException;
 import java.net.URI;
