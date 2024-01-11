@@ -56,7 +56,9 @@ export default function TopBar(props: TopBarProps) {
             {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
                 <BackendSwitcher setBackendType={setBackendType} />
             )}
-            {page !== pageSwitcher.Page.editor && (
+            {page === pageSwitcher.Page.editor ? (
+                <div className="flex-1" />
+            ) : (
                 <div className="flex-1 flex flex-wrap justify-around">
                     <AssetSearchBar
                         query={query}
