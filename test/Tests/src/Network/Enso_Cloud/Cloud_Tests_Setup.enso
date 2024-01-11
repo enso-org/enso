@@ -4,6 +4,9 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Test.Test_Environment
 
 polyglot java import java.lang.Thread
+polyglot java import java.security.KeyStore
+polyglot java import javax.net.ssl.SSLContext
+polyglot java import javax.net.ssl.TrustManagerFactory
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
 type Cloud_Tests_Setup
@@ -42,6 +45,23 @@ type Cloud_Tests_Setup
         uri = self.httpbin_uri
         new_text = uri.to_text.replace "http://" "https://" . replace (":"+uri.port.to_text) (":"+(uri.port+1).to_text)
         URI.from new_text
+
+    ## Returns a HTTP instance configured to be able to 'talk' with our test server over HTTPS.
+       The test server uses a self-signed certificate, so it needs to be trusted manually.
+    httpbin_secure_client self -> HTTP =
+        password = "test-password"
+        key_store_location = enso_project.root / ".." / ".." / "tools" / "http-test-helper" / "target" / "keystore.jks"
+        key_store = KeyStore.getInstance "JKS"
+        key_store_location.with_input_stream [File_Access.Read] input_stream->
+            input_stream.with_java_stream java_stream->
+                key_store.load java_stream password.char_vector
+
+        trust_manager_factory = TrustManagerFactory.getInstance TrustManagerFactory.getDefaultAlgorithm
+        trust_manager_factory.init key_store
+
+        ssl_context = SSLContext.getInstance "TLS"
+        ssl_context.init Nothing trust_manager_factory.getTrustManagers Nothing
+        HTTP.new.set_custom_ssl_context ssl_context
 
     is_mock self -> Boolean = case self of
         Cloud_Tests_Setup.Mock _ _ -> True
