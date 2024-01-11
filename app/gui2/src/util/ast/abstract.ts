@@ -1253,33 +1253,6 @@ export class Wildcard extends Ast {
   }
 }
 
-// interface RawItem {
-//   separator: NodeChild<Token>
-//   item: NodeChild<AstId>
-// }
-//
-// interface Item {
-//   separator: NodeChild<Token>
-//   item: NodeChild<Ast>
-// }
-//
-// function itemFromRaw(raw: RawItem, module: Module) {
-//   return {
-//     separator: raw.separator,
-//     item: {
-//       whitespace: raw.item.whitespace,
-//       node: raw.item.node,
-//     },
-//   }
-// }
-//
-// export class Array extends Ast {
-//   private readonly left_: NodeChild<Token>
-//   private readonly first: NodeChild<AstId>
-//   private readonly rest: RawItem[]
-//   private readonly right: NodeChild<Token>
-// }
-
 export class RawCode extends Ast {
   private readonly code_: NodeChild
 
