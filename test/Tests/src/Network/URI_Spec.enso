@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Request.Request
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -344,8 +345,8 @@ spec =
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
                         with_retries <|
-                            response = uri.fetch
-                            decode_query_params response . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
+                            response = cloud_setup.httpbin_secure_client.request (Request.get uri)
+                            decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
             Test.specify "should correctly handle user/password set as secret" pending=cloud_setup.pending <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-6" "My Password"
@@ -365,10 +366,10 @@ spec =
                 Panic.with_finalizer secret1.delete <| with_retries <|
                     uri3 = (cloud_setup.httpbin_secure_uri / "get")
                         . set_user_info "my_user" secret1
-                    r1 = uri3.fetch
+                    r1 = cloud_setup.httpbin_secure_client.request (Request.get uri3)
                     # The user info shall be turned into a header:
                     base64 = (Base64.getEncoder.encodeToString ("my_user:My Password".bytes Encoding.utf_8))
-                    r1.headers.at "Authorization" . should_equal "Basic "+base64
+                    r1.decode_as_json.at "headers" . at "Authorization" . should_equal "Basic "+base64
 
             Test.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
