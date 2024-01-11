@@ -787,6 +787,24 @@ object Main {
     runMain(mainModule, Some(file), additionalArgs)
   }
 
+  /** If the stack trace ends with `Assertion_Error`, drops the internal assertion frames.
+    */
+  private def dropAssertionError(
+    stack: List[PolyglotException#StackFrame]
+  ): List[PolyglotException#StackFrame] = {
+    if (
+      stack.size > 1 && stack(0).getRootName.contains("Panic.throw") && stack(
+        1
+      ).getRootName.contains("Runtime.assert")
+    ) {
+      stack
+        .slice(1, stack.size)
+        .dropWhile(_.getRootName.contains("Runtime.assert"))
+    } else {
+      stack
+    }
+  }
+
   private def printPolyglotException(
     exception: PolyglotException,
     relativeTo: Option[File]
@@ -795,7 +813,8 @@ object Main {
     val dropInitJava = fullStack.reverse
       .dropWhile(_.getLanguage.getId != LanguageInfo.ID)
       .reverse
-    val msg: String = HostEnsoUtils.findExceptionMessage(exception)
+    val dropAssertError = dropAssertionError(dropInitJava)
+    val msg: String     = HostEnsoUtils.findExceptionMessage(exception)
     println(s"Execution finished with an error: ${msg}")
     def printFrame(frame: PolyglotException#StackFrame): Unit = {
       val langId =
@@ -840,10 +859,10 @@ object Main {
     }
     if (exception.isSyntaxError()) {
       // no stack
-    } else if (dropInitJava.isEmpty) {
+    } else if (dropAssertError.isEmpty) {
       fullStack.foreach(printFrame)
     } else {
-      dropInitJava.foreach(printFrame)
+      dropAssertError.foreach(printFrame)
     }
   }
 
