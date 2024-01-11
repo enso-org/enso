@@ -158,7 +158,10 @@ public abstract class EqualsNode extends Node {
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return self == interop.asDouble(other);
+      if (interop.fitsInDouble(other)) {
+        return self == interop.asDouble(other);
+      }
+      return self == interop.asBigInteger(other).doubleValue();
     } catch (UnsupportedMessageException ex) {
       return false;
     }
@@ -179,7 +182,7 @@ public abstract class EqualsNode extends Node {
       Object self,
       double other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    return iop.fitsInDouble(self) && asBigInteger(iop, self).doubleValue() == other;
+    return asBigInteger(iop, self).doubleValue() == other;
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
