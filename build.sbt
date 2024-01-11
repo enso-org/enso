@@ -1520,16 +1520,14 @@ lazy val `runtime-language-arrow` =
         Map("org.enso.interpreter.arrow" -> Seq(testClassesDir))
       },
       Test / addModules := Seq("org.enso.interpreter.arrow"),
-      Test / javaOptions ++= testLogProviderOptions ++ Seq(
+      Test / javaOptions ++= Seq(
         "--add-opens=java.base/java.nio=org.enso.interpreter.arrow",
         "--add-opens=java.base/java.nio=ALL-UNNAMED"
       ),
       Test / addReads := {
         Map("org.enso.interpreter.arrow" -> Seq("ALL-UNNAMED"))
-      },
-      Test / javaOptions ++= testLogProviderOptions
+      }
     )
-    .dependsOn(`logging-service-logback` % "test->test")
 
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`

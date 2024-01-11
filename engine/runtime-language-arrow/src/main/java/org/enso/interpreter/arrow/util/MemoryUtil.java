@@ -5,7 +5,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 
-public class MemoryUtil {
+public final class MemoryUtil {
 
   private static Constructor<?> byteBufferConstr = null;
 
@@ -26,6 +26,8 @@ public class MemoryUtil {
       }
     }
   }
+
+  private MemoryUtil() {}
 
   /**
    * Create a ByteBuffer directly from a (allocated) memory address and its size without copying.
