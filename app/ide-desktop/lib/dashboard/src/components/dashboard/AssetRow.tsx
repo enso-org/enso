@@ -511,6 +511,11 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
+                        onDragStart={event => {
+                            if (rowState.isEditingName) {
+                                event.preventDefault()
+                            }
+                        }}
                         onDragEnter={event => {
                             if (dragOverTimeoutHandle.current != null) {
                                 window.clearTimeout(dragOverTimeoutHandle.current)
