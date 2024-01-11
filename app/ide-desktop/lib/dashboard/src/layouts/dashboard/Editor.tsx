@@ -1,9 +1,9 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendModule from '#/services/backend'
 import * as load from '#/utilities/load'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 // =================
 // === Constants ===
