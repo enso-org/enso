@@ -207,11 +207,33 @@ export const useGraphStore = defineStore('graph', () => {
     const edit = astModule.edit()
     if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
-    const functionBlock = Ast.functionBlock(astModule, currentFunc)
-    if (!functionBlock) {
+    const method = Ast.findModuleMethod(astModule, currentFunc)
+    if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
+
+    let functionBlock: Ast.BodyBlock
+
+    if (method.body instanceof Ast.BodyBlock) {
+      functionBlock = method.body
+    } else if (method.body != null) {
+      functionBlock = edit.takeAndReplaceRef(method.body.exprId, (node) => {
+        return Ast.BodyBlock.new([{ expression: { node } }], edit)
+      })
+    } else {
+      const newMethod: Ast.Function = edit.takeAndReplaceValue(method.exprId, (func) => {
+        assert(func instanceof Ast.Function)
+        assert(func.name != null)
+        const name = edit.take(func.name.exprId)?.node
+        assert(name != null)
+        const body = Ast.BodyBlock.new([], edit)
+        return Ast.Function.new(edit, name, func.argNodes(), body)
+      })
+      assert(newMethod.body instanceof Ast.BodyBlock)
+      functionBlock = newMethod.body
+    }
+
     const rhs = Ast.parse(expression, edit)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)

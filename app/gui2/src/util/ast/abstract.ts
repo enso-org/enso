@@ -125,7 +125,7 @@ export class MutableModule implements Module {
   }
 
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
-  replaceRef(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
+  replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
     if (!old || replacement.exprId === target) {
       return this.replaceValue(target, replacement)
@@ -153,7 +153,7 @@ export class MutableModule implements Module {
   /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
    *  Returns the old value, with a new (unreferenced) ID.
    */
-  replaceValue(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
+  replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
     replacement.parent = old?.parent
     if (replacement.exprId !== target || replacement.module !== this) {
@@ -187,7 +187,7 @@ export class MutableModule implements Module {
     return this.replaceValue(target, Wildcard.new(this))
   }
 
-  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
+  takeAndReplaceRef<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
     const taken = this.take(target)
     assert(!!taken)
     const replacement = wrap(taken.node)
@@ -195,12 +195,12 @@ export class MutableModule implements Module {
     return replacement
   }
 
-  takeAndReplaceValue(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
+  takeAndReplaceValue<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
     const taken = this.takeValue(target)
     assert(!!taken)
     const replacement = wrap(taken)
     this.replaceValue(target, replacement)
-    return this.get(target)!
+    return this.get(target)! as T
   }
 
   /** Copy the given node and all its descendants into this module. */
@@ -986,6 +986,31 @@ export class Function extends Ast {
   private readonly args_: FunctionArgument[]
   private readonly equals_: NodeChild<Token>
   private readonly body_: NodeChild<AstId> | null
+
+  static new(
+    module: MutableModule,
+    name: Owned<Ast>,
+    args: FunctionArgument[],
+    body: Owned<Ast> | null,
+  ): Owned<Function> {
+    const id = newAstId()
+    return asOwned(
+      new Function(
+        module,
+        id,
+        unspaced(makeChild(module, name, id)),
+        args.map((arg) =>
+          arg.map((child) => ({
+            ...child,
+            node: child.node instanceof Ast ? makeChild(module, child.node, id) : child.node,
+          })),
+        ),
+        undefined,
+        body != null ? unspaced(makeChild(module, body, id)) : null,
+      ),
+    )
+  }
+
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
   //  here and in `rawChildren` (and indirectly, `print`).
   get name(): Ast | null {
@@ -994,6 +1019,11 @@ export class Function extends Ast {
   get body(): Ast | null {
     return this.body_ ? this.module.get(this.body_.node) : null
   }
+
+  argNodes(): FunctionArgument[] {
+    return [...this.args_]
+  }
+
   *bodyExpressions(): IterableIterator<Ast> {
     const body = this.body_ ? this.module.get(this.body_.node) : null
     if (body instanceof BodyBlock) {
@@ -1007,13 +1037,14 @@ export class Function extends Ast {
     id: AstId | undefined,
     name: NodeChild<AstId>,
     args: FunctionArgument[],
-    equals: NodeChild<Token>, // Edits (#8367): NodeChild<Tok> | undefined
+    equals: NodeChild<Token> | undefined, // Edits (#8367): NodeChild<Tok> | undefined
     body: NodeChild<AstId> | null,
   ) {
     super(module, id, RawAst.Tree.Type.Function)
     this.name_ = name
     this.args_ = args
-    this.equals_ = equals
+    this.equals_ = equals ?? spaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator))
+
     this.body_ = body
     setParent(module, this.exprId, ...this.concreteChildren())
   }
