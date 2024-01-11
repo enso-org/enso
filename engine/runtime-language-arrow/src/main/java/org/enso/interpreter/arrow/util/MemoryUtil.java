@@ -1,21 +1,28 @@
 package org.enso.interpreter.arrow.util;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 
 public final class MemoryUtil {
 
-  private static Constructor<?> byteBufferConstr = null;
+  private static MethodHandle byteBufferConstr;
 
   static {
     ByteBuffer buffer = null;
     try {
       buffer = ByteBuffer.allocateDirect(1);
-      byteBufferConstr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
-      byteBufferConstr.setAccessible(true);
+      Constructor<?> constr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
+      constr.setAccessible(true);
+      byteBufferConstr = MethodHandles.lookup().unreflectConstructor(constr);
     } catch (NoSuchMethodException e) {
+      CompilerDirectives.transferToInterpreter();
+      throw new ExceptionInInitializerError(
+          new IllegalStateException(
+              "Unable to find a constructor for ByteBuffer created directly from a memory addres"));
+    } catch (IllegalAccessException e) {
       CompilerDirectives.transferToInterpreter();
       throw new ExceptionInInitializerError(
           new IllegalStateException(
@@ -39,8 +46,8 @@ public final class MemoryUtil {
   public static ByteBuffer directBuffer(long address, long capacity) {
     if (byteBufferConstr != null) {
       try {
-        return (ByteBuffer) byteBufferConstr.newInstance(address, capacity);
-      } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        return (ByteBuffer) byteBufferConstr.invoke(address, capacity);
+      } catch (Throwable e) {
         CompilerDirectives.transferToInterpreter();
         throw new RuntimeException(e);
       }

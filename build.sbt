@@ -1492,6 +1492,8 @@ lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      crossPaths := false,
+      autoScalaLibrary := false,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       libraryDependencies ++= GraalVM.modules ++ Seq(
