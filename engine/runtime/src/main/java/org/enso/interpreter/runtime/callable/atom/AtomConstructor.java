@@ -161,7 +161,8 @@ public final class AtomConstructor implements EnsoObject {
     }
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
-        MethodRootNode.build(language, localScope, definitionScope, instantiateBlock, section, type, name);
+        MethodRootNode.build(
+            language, localScope, definitionScope, instantiateBlock, section, type, name);
     RootCallTarget callTarget = rootNode.getCallTarget();
     return new Function(callTarget, null, new FunctionSchema(annotations, args));
   }
