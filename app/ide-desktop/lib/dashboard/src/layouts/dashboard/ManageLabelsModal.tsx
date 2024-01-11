@@ -1,7 +1,7 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -39,7 +39,7 @@ export default function ManageLabelsModal<
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
     const [query, setQuery] = React.useState('')
     const [color, setColor] = React.useState<backendModule.LChColor | null>(null)

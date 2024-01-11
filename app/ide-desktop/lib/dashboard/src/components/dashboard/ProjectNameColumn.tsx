@@ -5,7 +5,8 @@ import NetworkIcon from 'enso-assets/network.svg'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -39,7 +40,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const { item, setItem, selected, rowState, setRowState, state } = props
     const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
     const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -86,7 +87,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
     }
 
-    hooks.useEventHandler(assetEvents, async event => {
+    eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case AssetEventType.newFolder:
             case AssetEventType.newDataConnector:

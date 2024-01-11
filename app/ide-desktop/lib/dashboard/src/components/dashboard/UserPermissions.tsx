@@ -1,7 +1,7 @@
 /** @file A user and their permissions for a specific asset. */
 import * as React from 'react'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
@@ -24,7 +24,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
     const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } =
         props
     const { backend } = backendProvider.useBackend()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
 
     React.useEffect(() => {

@@ -6,7 +6,7 @@ import * as reactDom from 'react-dom'
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 
 import * as appUtils from '#/appUtils'
-import * as hooks from '#/hooks'
+import * as navigateHooks from '#/hooks/navigateHooks'
 import * as chat from '#/layouts/dashboard/Chat'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as loggerProvider from '#/providers/LoggerProvider'
@@ -24,7 +24,7 @@ export interface ChatPlaceholderProps {
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
     const { page, isOpen, doClose } = props
     const logger = loggerProvider.useLogger()
-    const navigate = hooks.useNavigate()
+    const navigate = navigateHooks.useNavigate()
     const [right, setTargetRight] = animations.useInterpolateOverTime(
         animations.interpolationFunctionEaseInOut,
         chat.ANIMATION_DURATION_MS,

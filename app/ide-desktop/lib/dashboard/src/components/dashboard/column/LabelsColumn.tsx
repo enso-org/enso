@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,7 +36,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     const session = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
