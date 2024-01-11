@@ -161,7 +161,7 @@ public abstract class EqualsNode extends Node {
       if (interop.fitsInDouble(other)) {
         return self == interop.asDouble(other);
       }
-      var otherBig = asBigInteger(interop, other);
+      var otherBig = interop.asBigInteger(other);
       return self == asDouble(otherBig);
     } catch (UnsupportedMessageException ex) {
       return false;
