@@ -561,17 +561,17 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (category === Category.trash) {
             setCanDownloadFiles(false)
         } else if (!isCloud) {
-            setCanDownloadFiles(pasteData != null)
+            setCanDownloadFiles(selectedKeys.size !== 0)
         } else {
             setCanDownloadFiles(
-                pasteData != null &&
-                    Array.from(pasteData.data).every(id => {
-                        const node = nodeMapRef.current.get(id)
-                        return node
+                selectedKeys.size !== 0 &&
+                    Array.from(selectedKeys).every(key => {
+                        const node = nodeMapRef.current.get(key)
+                        return node?.item.type === backendModule.AssetType.file
                     })
             )
         }
-    }, [category, pasteData, isCloud, /* should never change */ setCanDownloadFiles])
+    }, [category, selectedKeys, isCloud, /* should never change */ setCanDownloadFiles])
 
     React.useEffect(() => {
         const nodeToSuggestion = (
