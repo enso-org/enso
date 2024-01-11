@@ -19,8 +19,6 @@ import { useObserveYjs } from '@/util/crdt'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result.ts'
-import { Ok } from '@/util/data/result.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
@@ -239,17 +237,20 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit)
   }
 
-  function deleteNode(id: ExprId) {
-    const node = db.nodeIdToNode.get(id)
-    if (!node) return
-    proj.module?.doc.metadata.delete(node.outerExprId)
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot delete node: No module root.`)
-      return
-    }
+  function deleteNodes(ids: ExprId[]) {
     const edit = astModule.edit()
-    edit.delete(node.outerExprId)
+    for (const id of ids) {
+      const node = db.nodeIdToNode.get(id)
+      if (!node) return
+      proj.module?.doc.metadata.delete(node.outerExprId)
+      nodeRects.delete(id)
+      const root = moduleRoot.value
+      if (!root) {
+        console.error(`BUG: Cannot delete node: No module root.`)
+        return
+      }
+      edit.delete(node.outerExprId)
+    }
     commitEdit(edit)
   }
 
@@ -506,7 +507,7 @@ export const useGraphStore = defineStore('graph', () => {
     clearUnconnected,
     moduleRoot,
     createNode,
-    deleteNode,
+    deleteNodes,
     ensureCorrectNodeOrder,
     setNodeContent,
     setExpression,
