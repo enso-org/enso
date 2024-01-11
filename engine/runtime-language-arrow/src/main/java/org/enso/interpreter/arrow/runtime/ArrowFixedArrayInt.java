@@ -14,7 +14,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayInt implements TruffleObject {
   private final int size;
-  private final ByteBufferProxy buffer;
+  private final ByteBufferDirect buffer;
 
   private final IntUnit unit;
 
@@ -24,7 +24,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     this.buffer = allocateBuffer(size * this.unit.sizeInBytes(), size);
   }
 
-  public ArrowFixedArrayInt(ByteBufferProxy buffer, IntUnit unit)
+  public ArrowFixedArrayInt(ByteBufferDirect buffer, IntUnit unit)
       throws UnsupportedMessageException {
     this.size = buffer.capacity() / unit.sizeInBytes();
     this.unit = unit;
@@ -191,7 +191,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private ByteBufferProxy allocateBuffer(int sizeInBytes, int size) {
+  private ByteBufferDirect allocateBuffer(int sizeInBytes, int size) {
     return new ByteBufferDirect(sizeInBytes, size);
   }
 

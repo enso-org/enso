@@ -20,7 +20,7 @@ import java.time.ZonedDateTime;
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayDate implements TruffleObject {
   private final int size;
-  private final ByteBufferProxy buffer;
+  private final ByteBufferDirect buffer;
 
   private final DateUnit unit;
 
@@ -30,7 +30,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     this.buffer = allocateBuffer(size * unit.sizeInBytes(), size);
   }
 
-  public ArrowFixedArrayDate(ByteBufferProxy buffer, DateUnit unit)
+  public ArrowFixedArrayDate(ByteBufferDirect buffer, DateUnit unit)
       throws UnsupportedMessageException {
     this.size = buffer.capacity() / unit.sizeInBytes();
     this.unit = unit;
@@ -208,7 +208,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private static ByteBufferProxy allocateBuffer(int sizeInBytes, int size) {
+  private static ByteBufferDirect allocateBuffer(int sizeInBytes, int size) {
     return new ByteBufferDirect(sizeInBytes, size);
   }
 

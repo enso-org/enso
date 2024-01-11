@@ -100,7 +100,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static ByteBufferProxy pointer(Object[] args, InteropLibrary interop, SizeInBytes unit)
+    private static ByteBufferDirect pointer(Object[] args, InteropLibrary interop, SizeInBytes unit)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       if (args.length < 2) {
         throw ArityException.create(2, 3, args.length);
@@ -116,8 +116,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
 
       var size = interop.asInt(args[1]);
       var targetSize = size * unit.sizeInBytes();
-      ByteBuffer buffer = null;
-      buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
+      ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
       buffer.order(ByteOrder.LITTLE_ENDIAN);
       if (args.length == 3) {
         if (!interop.isNumber(args[2]) || !interop.fitsInLong(args[2])) {
