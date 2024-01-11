@@ -103,7 +103,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 const copiedAsset = await backend.copyAsset(
                     asset.id,
-                    newParentId ?? backend.rootDirectoryId(organization),
+                    newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
                     asset.title,
                     null
                 )
@@ -139,7 +139,7 @@ export default function AssetRow(props: AssetRowProps) {
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
-            const rootDirectoryId = backend.rootDirectoryId(organization)
+            const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
             const nonNullNewParentKey = newParentKey ?? rootDirectoryId
             const nonNullNewParentId = newParentId ?? rootDirectoryId
             try {
@@ -158,10 +158,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 await backend.updateAsset(
                     asset.id,
-                    {
-                        parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization),
-                        description: null,
-                    },
+                    { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
                     asset.title
                 )
             } catch (error) {

@@ -97,8 +97,8 @@ export default function Drive(props: DriveProps) {
         [labels]
     )
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const isCloud = backend.type === backendModule.BackendType.remote
 

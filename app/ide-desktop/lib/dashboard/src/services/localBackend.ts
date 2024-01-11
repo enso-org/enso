@@ -42,10 +42,6 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Return the root directory id for the given user. */
-    override rootDirectoryId(): backend.DirectoryId {
-        return backend.DirectoryId('')
-    }
     /** Return a list of assets in a directory.
      * @throws An error if the JSON-RPC call fails. */
     override async listDirectory(): Promise<backend.AnyAsset[]> {

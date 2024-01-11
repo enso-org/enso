@@ -369,8 +369,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
         const rootParentDirectoryId = backendModule.DirectoryId('')

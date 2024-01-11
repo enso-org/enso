@@ -89,8 +89,8 @@ export default function Dashboard(props: DashboardProps) {
     )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(session.organization),
-        [backend, session.organization]
+        () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [session.organization]
     )
 
     const isListingLocalDirectoryAndWillFail =
@@ -142,7 +142,7 @@ export default function Dashboard(props: DashboardProps) {
                     if (
                         currentBackend.type === backendModule.BackendType.remote &&
                         savedProjectStartupInfo.projectAsset.parentId ===
-                            backend.rootDirectoryId(session.organization)
+                            session.organization.rootDirectoryId
                     ) {
                         // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
                         setPage(pageSwitcher.Page.drive)
