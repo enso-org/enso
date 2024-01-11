@@ -167,49 +167,18 @@ spec =
                 . add_query_argument "a" "d"
             decode_query_params uri.fetch . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
-        Test.specify "should allow to set user info for the authority part of the URI" <|
-            uri1 = URI.parse "http://example.com"
-            uri2 = uri1.set_user_info "my_user" "my_password"
-
-            uri2.to_text . should_equal "http://my_user:my_password@example.com"
-            uri2.user_info . should_equal "my_user:my_password"
-            uri2.authority . should_equal "my_user:my_password@example.com"
-
-            uri3 = URI.parse "https://start:pass@example.org:1234/path"
-            uri4 = uri3.set_user_info "new_user" "new_password"
-            uri4.to_text . should_equal "https://new_user:new_password@example.org:1234/path"
-            uri4.user_info . should_equal "new_user:new_password"
-            uri4.raw_user_info . should_equal "new_user:new_password"
-            uri4.authority . should_equal "new_user:new_password@example.org:1234"
-            uri4.raw_authority . should_equal "new_user:new_password@example.org:1234"
-            uri4.path . should_equal "/path"
-
-        Test.specify "should allow non-standard characters in the user info" <|
-            uri1 = URI.parse "http://X:Y@example.com"
-            uri2 = uri1.set_user_info "ąęć@x" "ś🚧: @"
-            uri2.to_text . should_equal "http://%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
-            uri2.user_info . should_equal "ąęć@x:ś🚧: @"
-            uri2.raw_user_info . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40"
-            uri2.authority . should_equal "ąęć@x:ś🚧: @@example.com"
-            uri2.raw_authority . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
-
-        Test.specify "will not allow to set username containing a colon" <|
-            uri1 = URI.parse "http://example.com"
-            uri2 = uri1.set_user_info "a:b" "c"
-            uri2.should_fail_with Illegal_Argument
-
         Test.specify "should allow to get properties of a URI with added query arguments and user info" <|
             base_uri = URI.parse "https://example.com/path?a=b#FRAG"
-            uri1 = base_uri . add_query_argument "c" "d" . set_user_info "U" "P" . add_query_argument "e" "f"
+            uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
 
             uri1.should_be_a URI
             uri1.scheme.should_equal "https"
-            uri1.user_info.should_equal "U:P"
+            uri1.user_info.should_equal Nothing
             uri1.host.should_equal "example.com"
             uri1.path.should_equal "/path"
             uri1.query.should_equal "a=b&c=d&e=f"
             uri1.fragment.should_equal "FRAG"
-            uri1.should_equal (URI.parse "https://U:P@example.com/path?a=b&c=d&e=f#FRAG")
+            uri1.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f#FRAG")
 
         Test.specify "should allow the / syntax for extending the path on an URI" <|
             uri0 = URI.parse "https://example.com"
@@ -347,18 +316,6 @@ spec =
                         with_retries <|
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
-
-            Test.specify "should correctly handle user/password set as secret" pending=cloud_setup.pending <|
-                secret1 = Enso_Secret.create "my_test_secret-uri-6" "My Password"
-                secret1.should_succeed
-                Panic.with_finalizer secret1.delete <|
-                    uri1 = URI.from "https://example.com/"
-                        . set_user_info "my_user" secret1
-                    uri1.to_text . should_equal ("https://my_user:__SECRET__@example.com/")
-
-                    uri2 = URI.from "https://example.com/"
-                        . set_user_info secret1 "pass"
-                    uri2.to_text . should_equal ("https://__SECRET__:pass@example.com/")
 
             Test.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
