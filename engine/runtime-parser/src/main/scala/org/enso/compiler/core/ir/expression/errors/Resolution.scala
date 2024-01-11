@@ -75,7 +75,7 @@ sealed case class Resolution(
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = null
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

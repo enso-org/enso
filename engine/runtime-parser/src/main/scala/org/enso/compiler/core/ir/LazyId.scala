@@ -19,5 +19,8 @@ trait LazyId { self: IR =>
     _id
   }
 
-  def id_=(id: UUID @Identifier) = _id = id
+  def id_=(id: UUID @Identifier) = {
+    assert(_id == null)
+    _id = id
+  }
 }
