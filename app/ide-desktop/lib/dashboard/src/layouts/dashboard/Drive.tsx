@@ -83,6 +83,7 @@ export default function Drive(props: DriveProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
+    const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
@@ -326,6 +327,7 @@ export default function Drive(props: DriveProps) {
                 </h1>
                 <DriveBar
                     category={category}
+                    canDownloadFiles={canDownloadFiles}
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
@@ -355,6 +357,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     setQuery={setQuery}
+                    setCanDownloadFiles={setCanDownloadFiles}
                     category={category}
                     allLabels={allLabels}
                     setSuggestions={setSuggestions}
