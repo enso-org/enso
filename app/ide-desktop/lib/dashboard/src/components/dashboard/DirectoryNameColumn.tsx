@@ -6,7 +6,8 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
@@ -35,7 +36,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
     const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
     const { doToggleDirectoryExpansion } = state
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
@@ -57,7 +58,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
     }
 
-    hooks.useEventHandler(assetEvents, async event => {
+    eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case AssetEventType.newProject:
             case AssetEventType.uploadFiles:

@@ -5,7 +5,8 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as authProvider from '#/providers/AuthProvider'
@@ -62,7 +63,7 @@ export default function AssetRow(props: AssetRowProps) {
     const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
     const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -102,7 +103,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 const copiedAsset = await backend.copyAsset(
                     asset.id,
-                    newParentId ?? backend.rootDirectoryId(organization),
+                    newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
                     asset.title,
                     null
                 )
@@ -138,7 +139,7 @@ export default function AssetRow(props: AssetRowProps) {
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
-            const rootDirectoryId = backend.rootDirectoryId(organization)
+            const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
             const nonNullNewParentKey = newParentKey ?? rootDirectoryId
             const nonNullNewParentId = newParentId ?? rootDirectoryId
             try {
@@ -157,10 +158,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 await backend.updateAsset(
                     asset.id,
-                    {
-                        parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization),
-                        description: null,
-                    },
+                    { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
                     asset.title
                 )
             } catch (error) {
@@ -269,7 +267,7 @@ export default function AssetRow(props: AssetRowProps) {
         /* should never change */ toastAndLog,
     ])
 
-    hooks.useEventHandler(assetEvents, async event => {
+    eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific `NameColumn` files.
             case AssetEventType.newProject:

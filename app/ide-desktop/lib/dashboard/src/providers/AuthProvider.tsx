@@ -14,7 +14,6 @@ import * as gtag from 'enso-common/src/gtag'
 import * as appUtils from '#/appUtils'
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
-import * as hooks from '#/hooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -692,7 +691,7 @@ export function GuestLayout() {
 /** A React context hook returning the user session
  * for a user that has not yet completed registration. */
 export function usePartialUserSession() {
-    return hooks.useOutletContext<PartialUserSession>()
+    return router.useOutletContext<PartialUserSession>()
 }
 
 // ================================
@@ -701,5 +700,5 @@ export function usePartialUserSession() {
 
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
-    return hooks.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+    return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }

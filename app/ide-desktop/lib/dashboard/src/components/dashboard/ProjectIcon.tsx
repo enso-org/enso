@@ -9,7 +9,8 @@ import StopIcon from 'enso-assets/stop.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -81,7 +82,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -234,7 +235,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [onSpinnerStateChange])
 
-    hooks.useEventHandler(assetEvents, event => {
+    eventHooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case AssetEventType.newFolder:
             case AssetEventType.uploadFiles:

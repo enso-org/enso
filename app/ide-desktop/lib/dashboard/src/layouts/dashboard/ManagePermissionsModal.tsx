@@ -4,7 +4,8 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as hooks from '#/hooks'
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -53,7 +54,7 @@ export default function ManagePermissionsModal<
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
@@ -103,7 +104,7 @@ export default function ManagePermissionsModal<
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
         throw new Error('Cannot share assets on the local backend.')
     } else {
-        const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
+        const listedUsers = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
             () =>
                 listedUsers.filter(

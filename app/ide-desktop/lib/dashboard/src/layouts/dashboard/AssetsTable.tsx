@@ -7,7 +7,9 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
@@ -354,7 +356,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
@@ -367,8 +369,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
         const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -901,7 +903,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend, category])
 
-    hooks.useAsyncEffect(
+    asyncEffectHooks.useAsyncEffect(
         null,
         async signal => {
             switch (backend.type) {
@@ -1278,7 +1280,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [rootDirectoryId]
     )
 
-    hooks.useEventHandler(assetListEvents, event => {
+    eventHooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case AssetListEventType.newFolder: {
                 const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
