@@ -6,7 +6,7 @@ import {
   WidgetInput,
   defineWidget,
   widgetProps,
-  type UpdatePayload,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
@@ -135,7 +135,7 @@ const widgetConfiguration = computed(() => {
  * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
  * handling deletions of arguments and rewriting the applications to named as appropriate.
  */
-function handleArgUpdate(update: UpdatePayload): boolean {
+function handleArgUpdate(update: WidgetUpdate): boolean {
   const app = application.value
   if (update.portUpdate && app instanceof ArgumentApplication) {
     const {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
-import { WidgetInput, type UpdatePayload } from '@/providers/widgetRegistry'
+import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { assertNever } from '@/util/assert'
@@ -32,7 +32,7 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
-function handleWidgetUpdates(update: UpdatePayload) {
+function handleWidgetUpdates(update: WidgetUpdate) {
   console.log('Widget Update: ', update)
   if (update.portUpdate) {
     const {

@@ -1,6 +1,6 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
-import type { UpdatePayload } from '@/providers/widgetRegistry'
+import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
@@ -45,7 +45,7 @@ export class PortViewInstance {
   constructor(
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: ExprId,
-    public onUpdate: (update: UpdatePayload) => void,
+    public onUpdate: (update: WidgetUpdate) => void,
   ) {}
 }
 

@@ -130,8 +130,17 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
-// TODO[ao]: explain
-export interface UpdatePayload {
+/**
+ * Information about widget update.
+ *
+ * When widget want's to change its value, it should emit this with `portUpdate` set (as their
+ * port may not represent any existing AST node) with `edit` containing any additional modifications
+ * (like inserting necessary imports).
+ *
+ * The handlers interested in a specific port update should apply it using received edit. The edit
+ * is committed in {@link NodeWidgetTree}.
+ */
+export interface WidgetUpdate {
   edit: MutableModule
   portUpdate?: {
     value: Owned<Ast.Ast> | string | undefined
@@ -153,7 +162,7 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     nesting: { type: Number, required: true },
     onUpdate: {
-      type: Function as PropType<(update: UpdatePayload) => void>,
+      type: Function as PropType<(update: WidgetUpdate) => void>,
       required: true,
     },
   } as const
