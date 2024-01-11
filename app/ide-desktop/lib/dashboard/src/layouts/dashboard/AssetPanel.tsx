@@ -7,8 +7,11 @@ import AssetVersions from '#/layouts/dashboard/AssetVersions'
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/backend'
+import * as array from '#/utilities/array'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
+import LocalStorage from '#/utilities/LocalStorage'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
@@ -21,6 +24,22 @@ enum AssetPanelTab {
     properties = 'properties',
     versions = 'versions',
 }
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+    /** */
+    interface LocalStorageData {
+        assetPanelTab: AssetPanelTab
+    }
+}
+
+const TABS = Object.values(AssetPanelTab)
+LocalStorage.registerKey('assetPanelTab', {
+    tryParse: value => (array.includes(TABS, value) ? value : null),
+})
 
 // ==================
 // === AssetPanel ===
@@ -53,7 +72,14 @@ export default function AssetPanel(props: AssetPanelProps) {
     const { isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
     const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
-    const [tab, setTab] = React.useState(AssetPanelTab.properties)
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const [tab, setTab] = React.useState(
+        () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
+    )
+
+    React.useEffect(() => {
+        localStorage.set('assetPanelTab', tab)
+    }, [tab, /* should never change */ localStorage])
 
     return (
         <div
