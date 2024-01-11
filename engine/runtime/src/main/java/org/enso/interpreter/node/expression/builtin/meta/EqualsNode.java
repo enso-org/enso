@@ -161,10 +161,16 @@ public abstract class EqualsNode extends Node {
       if (interop.fitsInDouble(other)) {
         return self == interop.asDouble(other);
       }
-      return self == interop.asBigInteger(other).doubleValue();
+      var otherBig = asBigInteger(interop, other);
+      return self == asDouble(otherBig);
     } catch (UnsupportedMessageException ex) {
       return false;
     }
+  }
+
+  @TruffleBoundary
+  private static double asDouble(BigInteger big) {
+    return big.doubleValue();
   }
 
   @Specialization(guards = {"isBigInteger(iop, self)", "isBigInteger(iop, other)"})
