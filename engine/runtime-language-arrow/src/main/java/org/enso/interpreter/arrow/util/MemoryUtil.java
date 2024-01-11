@@ -17,16 +17,10 @@ public final class MemoryUtil {
       Constructor<?> constr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
       constr.setAccessible(true);
       byteBufferConstr = MethodHandles.lookup().unreflectConstructor(constr);
-    } catch (NoSuchMethodException e) {
+    } catch (NoSuchMethodException | IllegalAccessException e) {
       CompilerDirectives.transferToInterpreter();
       throw new ExceptionInInitializerError(
-          new IllegalStateException(
-              "Unable to find a constructor for ByteBuffer created directly from a memory addres"));
-    } catch (IllegalAccessException e) {
-      CompilerDirectives.transferToInterpreter();
-      throw new ExceptionInInitializerError(
-          new IllegalStateException(
-              "Unable to find a constructor for ByteBuffer created directly from a memory addres"));
+          "Unable to find a constructor for ByteBuffer created directly from a memory address");
     } finally {
       if (buffer != null) {
         buffer.clear();

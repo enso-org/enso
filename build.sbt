@@ -1523,8 +1523,8 @@ lazy val `runtime-language-arrow` =
       },
       Test / addModules := Seq("org.enso.interpreter.arrow"),
       Test / javaOptions ++= Seq(
-        "--add-opens=java.base/java.nio=org.enso.interpreter.arrow",
-        "--add-opens=java.base/java.nio=ALL-UNNAMED"
+        "--add-opens=java.base/java.nio=org.enso.interpreter.arrow", // DirectByteBuffer in MemoryUtil init is in-accessible
+        "--add-opens=java.base/java.nio=ALL-UNNAMED"                 // Tests use Apache Arrow
       ),
       Test / addReads := {
         Map("org.enso.interpreter.arrow" -> Seq("ALL-UNNAMED"))
