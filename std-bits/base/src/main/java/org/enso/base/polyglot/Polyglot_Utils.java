@@ -1,5 +1,6 @@
 package org.enso.base.polyglot;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.graalvm.polyglot.Value;
@@ -34,11 +35,11 @@ public class Polyglot_Utils {
     if (item.isException()) {
       throw new WrappedDataflowError(item);
     }
-    if (item.fitsInLong()) {
+    var ret = item.as(Object.class);
+    if (ret instanceof BigInteger && item.fitsInLong()) {
       return item.asLong();
     }
-
-    return item.as(Object.class);
+    return ret;
   }
 
   /**
