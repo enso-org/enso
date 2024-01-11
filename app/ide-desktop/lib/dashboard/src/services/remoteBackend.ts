@@ -560,6 +560,25 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Return details for a project.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async getFileDetails(
+        fileId: backendModule.FileId,
+        title: string | null
+    ): Promise<backendModule.FileDetails> {
+        const path = remoteBackendPaths.getFileDetailsPath(fileId)
+        const response = await this.get<backendModule.FileDetails>(path)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not get details of project ${
+                    title != null ? `'${title}'` : `with ID '${fileId}'`
+                }.`
+            )
+        } else {
+            return await response.json()
+        }
+    }
+
     /** Create a secret environment variable.
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createSecret(
