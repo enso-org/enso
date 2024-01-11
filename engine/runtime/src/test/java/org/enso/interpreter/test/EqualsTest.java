@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -176,6 +177,32 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           assertTrue(equalsNode.execute(ensoDateTime, javaDateTime));
+          return null;
+        });
+  }
+
+  @Test
+  public void testDoubleEqualsEnsoBigInteger() {
+    long value = Long.MIN_VALUE;
+    double javaNumber = Math.pow(value, 10);
+    var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(javaNumber + " == " + ensoNumber, equalsNode.execute(javaNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testEnsoBigIntegerEqualsDoubleEquals() {
+    long value = Long.MIN_VALUE;
+    double javaNumber = Math.pow(value, 10);
+    var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(ensoNumber + " == " + javaNumber, equalsNode.execute(ensoNumber, javaNumber));
           return null;
         });
   }
