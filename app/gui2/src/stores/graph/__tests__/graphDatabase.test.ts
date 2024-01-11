@@ -61,4 +61,6 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.connections.lookup(id03))).toEqual([id09])
   // expect(db.getOutputPortIdentifier(id02)).toBe('a')
   expect(db.getOutputPortIdentifier(id03)).toBe('node1')
+  expect(Array.from(db.dependantNodes(id04))).toEqual([id08])
+  expect(Array.from(db.dependantNodes(id08))).toEqual([])
 })
