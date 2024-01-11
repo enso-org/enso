@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Runtime import assert
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -14,7 +15,7 @@ from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
 from Standard.Test_New import all
 
-import project.Database.Common.Default_Ordering_Spec_New
+import project.Database.Common.Common_Spec_New
 import project.Database.Helpers.Name_Generator
 
 ##
@@ -68,54 +69,67 @@ import project.Database.Helpers.Name_Generator
                 do_round -1.2222222222222235 15 . should_equal -1.222222222222223
 
 
-sqlite_spec suite_builder connection_func prefix =
-    Default_Ordering_Spec_New.add_default_ordering_specs suite_builder prefix connection_func
+sqlite_spec suite_builder prefix connection_provider =
+    Common_Spec_New.add_common_specs suite_builder prefix connection_provider
 
-type Data
-    Impl ~file ~connection_file
+
+type Inmem_Connection
+    Impl ~connection
 
     create =
-        Data.Impl create_file create_file_connection
+        Inmem_Connection.Impl Inmem_Connection.create_connection
 
-# Must be run only in suite
-create_file =
-    enso_project.data.create_directory
-    file = enso_project.data / "transient" / "sqlite_test.db"
-    file.delete_if_exists
-    file
+    create_connection =
+        IO.println <| "    SQLite_Spec_New.Inmem_Connection.create_connection"
+        Database.connect (SQLite In_Memory)
 
-create_file_connection =
-    file = create_file
-    connection = Database.connect (SQLite file)
-    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-    connection
-
-create_inmem_connection =
-    Database.connect (SQLite In_Memory)
+    teardown self = Nothing
 
 
-setup =
-    enso_project.data.create_directory
-    file = enso_project.data / "transient" / "sqlite_test.db"
-    file.delete_if_exists
-    connection = Database.connect (SQLite file)
-    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-    connection.close
-    Data.Impl file connection
+type File_Connection
+    Impl ~file
 
+    create =
+        File_Connection.Impl File_Connection.create_file
+
+    create_file =
+        IO.println <| "    SQLite_Spec_New.File_Connection.create_file"
+        transient_dir = enso_project.data / "transient"
+        assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
+        file = transient_dir / "sqlite_test.db"
+        IO.println <| "    SQLite_Spec_New.File_Connection.create_file: file.exists = " + file.exists.to_text
+        if file.exists.not then Panic.throw "Assertion error"
+        assert file.exists.not
+        connection = Database.connect (SQLite file)
+        connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        connection.close
+        assert file.exists
+        file
+
+    connection self =
+        Database.connect (SQLite self.file)
+
+    teardown self =
+        IO.println <| "    SQLite_Spec_New.File_Connection.teardown"
+        assert self.file.exists
+        self.file.delete
 
 suite =
     Test.build suite_builder->
         in_file_prefix = "[SQLite File] "
-        sqlite_spec suite_builder (_-> create_file_connection) in_file_prefix
+        sqlite_spec suite_builder in_file_prefix File_Connection.create
 
         in_memory_prefix = "[SQLite In-Memory] "
-        sqlite_spec suite_builder (_-> create_inmem_connection) in_memory_prefix
+        sqlite_spec suite_builder in_memory_prefix Inmem_Connection.create
 
-        suite_builder.group_with_setup "SQLite_Format should allow connecting to SQLite files" setup group_builder->
+        suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
+            data = File_Connection.create
 
-            group_builder.specify_with_args "should recognise a SQLite database file" args->
-                Auto_Detect.get_reading_format args.file . should_be_a SQLite_Format
+            group_builder.teardown <|
+                data.teardown
+
+            group_builder.specify "should recognise a SQLite database file" <|
+                Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
 
             group_builder.specify 'should not duplicate warnings' <|
                 c = Database.connect (SQLite In_Memory)
@@ -125,6 +139,9 @@ suite =
                 Warning.get_all t2 . length . should_equal 1
 
 main =
+    IO.println <| "=============="
     suite.print_all
-    regex = Regex.compile "(should recognise a SQLite database file|should not duplicate warnings)"
-    suite.run_with_filter spec_filter=regex
+    IO.println <| "=============="
+    group_filter = "Connection.query"
+    spec_filter = "should allow to access a Table by name"
+    suite.run_with_filter group_filter spec_filter
