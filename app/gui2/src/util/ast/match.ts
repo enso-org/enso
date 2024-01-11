@@ -44,7 +44,8 @@ export class Pattern {
     for (const matched of placeholders(ast, this.placeholder)) {
       const replacement = subtrees.shift()
       if (replacement === undefined) break
-      matched.node = replacement
+      edit.get(replacement)!.parent = matched.parent
+      matched.ref.node = replacement
     }
     return ast
   }
@@ -80,7 +81,12 @@ function isMatch_(
   return true
 }
 
-function placeholders(ast: Ast.Ast, placeholder: string, outIn?: Ast.NodeChild<Ast.AstId>[]) {
+type PlaceholderRef = {
+  ref: Ast.NodeChild<Ast.AstId>
+  parent: Ast.AstId
+}
+
+function placeholders(ast: Ast.Ast, placeholder: string, outIn?: PlaceholderRef[]) {
   const out = outIn ?? []
   for (const child of ast.concreteChildren()) {
     if (!(child.node instanceof Ast.Token)) {
@@ -88,7 +94,7 @@ function placeholders(ast: Ast.Ast, placeholder: string, outIn?: Ast.NodeChild<A
       const nodeChild = child as Ast.NodeChild<Ast.AstId>
       const subtree = ast.module.get(child.node)!
       if (subtree instanceof Ast.Ident && subtree.code() === placeholder) {
-        out.push(nodeChild)
+        out.push({ ref: nodeChild, parent: ast.exprId })
       } else {
         placeholders(subtree, placeholder, out)
       }

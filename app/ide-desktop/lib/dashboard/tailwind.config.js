@@ -93,7 +93,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
                 62: '15.5rem',
                 70: '17.5rem',
                 83.5: '20.875rem',
-                98.25: '24.5625rem',
                 112.5: '28.125rem',
                 115.25: '28.8125rem',
                 120: '30rem',
@@ -109,6 +108,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
                 80: '20rem',
                 96: '24rem',
                 120: '30rem',
+            },
+            maxWidth: {
+                98.25: '24.5625rem',
+                'screen-1/3': '33.333333vw',
             },
             opacity: {
                 '1/3': '.33333333',

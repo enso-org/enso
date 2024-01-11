@@ -7,6 +7,7 @@ import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.searcher.sql.{SchemaVersion, SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{FlakySpec, ToScalaFutureConversions}
 import org.scalatest.BeforeAndAfterAll
@@ -16,7 +17,6 @@ import org.sqlite.SQLiteException
 
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -27,7 +27,8 @@ class RepoInitializationSpec
     with Matchers
     with BeforeAndAfterAll
     with ToScalaFutureConversions
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   import system.dispatcher
 

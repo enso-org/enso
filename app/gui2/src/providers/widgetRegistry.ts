@@ -4,6 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { MutableModule, type Owned } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -128,6 +129,10 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
+export type UpdatePayload =
+  | { type: 'set'; value: Owned<Ast.Ast> | string | undefined; origin: PortId }
+  | { type: 'edit'; edit: MutableModule }
+
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
@@ -142,7 +147,7 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     nesting: { type: Number, required: true },
     onUpdate: {
-      type: Function as PropType<(value: unknown | undefined, origin: PortId) => void>,
+      type: Function as PropType<(update: UpdatePayload) => void>,
       required: true,
     },
   } as const

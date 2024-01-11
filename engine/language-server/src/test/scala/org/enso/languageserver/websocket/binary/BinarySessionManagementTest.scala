@@ -1,7 +1,6 @@
 package org.enso.languageserver.websocket.binary
 
 import java.util.UUID
-
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
@@ -13,9 +12,13 @@ import org.enso.languageserver.websocket.binary.factory.{
   InboundMessageFactory,
   SessionInitFactory
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
-class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
+class BinarySessionManagementTest
+    extends BaseBinaryServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   implicit private val decoder: BinaryDecoder[OutboundMessage] =
     OutboundMessageDecoder
