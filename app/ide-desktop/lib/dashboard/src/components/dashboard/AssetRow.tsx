@@ -72,6 +72,7 @@ export default function AssetRow(props: AssetRowProps) {
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
         object.merge(initialRowState, { setVisibility: setInsertionVisibility })
     )
+    const isCloud = backend.type === backendModule.BackendType.remote
     const visibility = visibilities.get(key) ?? insertionVisibility
 
     React.useEffect(() => {
@@ -512,7 +513,7 @@ export default function AssetRow(props: AssetRowProps) {
                         initialRowState={rowState}
                         setRowState={setRowState}
                         onDragStart={event => {
-                            if (rowState.isEditingName) {
+                            if (rowState.isEditingName || !isCloud) {
                                 event.preventDefault()
                             }
                         }}
