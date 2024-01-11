@@ -2,6 +2,7 @@ import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
+import type { RequiredImport } from '@/stores/graph/imports.ts'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule, type Owned } from '@/util/ast/abstract.ts'
@@ -129,9 +130,14 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
-export type UpdatePayload =
-  | { type: 'set'; value: Owned<Ast.Ast> | string | undefined; origin: PortId }
-  | { type: 'edit'; edit: MutableModule }
+// TODO[ao]: explain
+export interface UpdatePayload {
+  edit: MutableModule
+  portUpdate?: {
+    value: Owned<Ast.Ast> | string | undefined
+    origin: PortId
+  }
+}
 
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
