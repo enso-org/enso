@@ -14,8 +14,7 @@ import org.graalvm.collections.Pair;
  *
  * <p>This is the common entry point for building a URI with or without secrets.
  */
-public record URISchematic(
-    URI baseUri, List<Pair<String, String>> queryParameters) {
+public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters) {
   public URI build() throws URISyntaxException {
     StringBuilder authorityBuilder = new StringBuilder();
     if (baseUri.getRawUserInfo() != null) {
