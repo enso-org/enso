@@ -155,20 +155,6 @@ export class RemoteBackend extends backendModule.Backend {
         throw new Error(message)
     }
 
-    /** Return the root directory id for the given user. */
-    override rootDirectoryId(
-        user: backendModule.UserOrOrganization | null
-    ): backendModule.DirectoryId {
-        if (user != null && !user.id.startsWith('organization-')) {
-            this.logger.error(`User ID '${user.id}' does not start with 'organization-'`)
-        }
-        return backendModule.DirectoryId(
-            // `user` is only null when the user is offline, in which case the remote backend cannot
-            // be accessed anyway.
-            user?.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`) ?? ''
-        )
-    }
-
     /** Return a list of all users in the same organization. */
     override async listUsers(): Promise<backendModule.SimpleUser[]> {
         const path = remoteBackendPaths.LIST_USERS_PATH

@@ -31,8 +31,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote

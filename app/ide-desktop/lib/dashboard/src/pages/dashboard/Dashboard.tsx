@@ -6,7 +6,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
@@ -78,8 +78,8 @@ export default function Dashboard(props: DashboardProps) {
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
-        hooks.useEvent<assetListEvent.AssetListEvent>()
-    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEvent.AssetEvent>()
+        eventHooks.useEvent<assetListEvent.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
     const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
@@ -89,8 +89,8 @@ export default function Dashboard(props: DashboardProps) {
     )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(session.organization),
-        [backend, session.organization]
+        () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [session.organization]
     )
 
     const isListingLocalDirectoryAndWillFail =
@@ -142,7 +142,7 @@ export default function Dashboard(props: DashboardProps) {
                     if (
                         currentBackend.type === backendModule.BackendType.remote &&
                         savedProjectStartupInfo.projectAsset.parentId ===
-                            backend.rootDirectoryId(session.organization)
+                            session.organization.rootDirectoryId
                     ) {
                         // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
                         setPage(pageSwitcher.Page.drive)
@@ -220,7 +220,7 @@ export default function Dashboard(props: DashboardProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    hooks.useEventHandler(assetEvents, event => {
+    eventHooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case AssetEventType.openProject: {
                 openProjectAbortController?.abort()

@@ -4,7 +4,7 @@ import * as React from 'react'
 import PenIcon from 'enso-assets/pen.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
@@ -55,7 +55,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const [description, setDescription] = React.useState('')
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const setItem = React.useCallback(
         (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
             innerSetItem(valueOrUpdater)
