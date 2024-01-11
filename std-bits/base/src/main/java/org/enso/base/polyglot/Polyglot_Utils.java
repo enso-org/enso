@@ -7,7 +7,8 @@ import org.graalvm.polyglot.Value;
 public class Polyglot_Utils {
   /**
    * Converts a polyglot Value ensuring that various date/time types are converted to the correct
-   * type.
+   * type. The conversion checks if a {@link java.math.BigInteger} fits into {@code long} and if so,
+   * it converts it to {@code long}.
    */
   public static Object convertPolyglotValue(Value item) {
     if (item == null) {
@@ -32,6 +33,9 @@ public class Polyglot_Utils {
 
     if (item.isException()) {
       throw new WrappedDataflowError(item);
+    }
+    if (item.fitsInLong()) {
+      return item.asLong();
     }
 
     return item.as(Object.class);
