@@ -767,6 +767,9 @@ public final class ExecutionService {
     public static int[] collectNotAppliedArguments(Function function) {
       FunctionSchema functionSchema = function.getSchema();
       Object[] preAppliedArguments = function.getPreAppliedArguments();
+      if (preAppliedArguments == null) {
+        preAppliedArguments = new Object[functionSchema.getArgumentsCount()];
+      }
       boolean isStatic = preAppliedArguments[0] instanceof Type;
       int selfArgumentPosition = isStatic ? -1 : 0;
       int[] notAppliedArguments = new int[functionSchema.getArgumentsCount()];
