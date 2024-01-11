@@ -9,9 +9,7 @@ import Standard.Test.Extensions
 foreign js js_check = """
     return (4 == 2 + 2)
 
-on_ci = if Environment.get "ENSO_RUNNER_CONTAINER_NAME" . is_nothing . not then Nothing else "Not in CI"
-
-spec = Test.group "Asserts" pending=on_ci <|
+spec = Test.group "Asserts" <|
     Test.specify "should be enabled on the CI" <|
         p = Panic.catch Assertion_Error (Runtime.assert False) err->
             err.payload
