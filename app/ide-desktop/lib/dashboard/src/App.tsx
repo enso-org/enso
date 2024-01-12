@@ -42,7 +42,7 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 import * as authServiceModule from '#/authentication/service'
-import * as hooks from '#/hooks'
+import * as navigateHooks from '#/hooks/navigateHooks'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
@@ -138,7 +138,7 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
     const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
     const { onAuthenticated, projectManagerUrl } = props
-    const navigate = hooks.useNavigate()
+    const navigate = navigateHooks.useNavigate()
     if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate

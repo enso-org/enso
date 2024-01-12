@@ -133,7 +133,7 @@ export class MutableModule implements Module {
       assert(!!old.parent)
       const parentSomewhere = this.get(old.parent)
       assert(!!parentSomewhere)
-      const parent = this.splice(parentSomewhere)
+      const parent = this.spliceShallow(parentSomewhere)
       let foundChildInParent = false
       for (const child of parent.concreteChildren()) {
         if (child.node === target) {
@@ -144,7 +144,7 @@ export class MutableModule implements Module {
       }
       assert(foundChildInParent)
       for (const child of parent.concreteChildren()) assert(child.node !== target)
-      const old_ = this.splice(old)
+      const old_ = this.spliceShallow(old)
       old_.parent = undefined
       return asOwned(old_)
     }
@@ -222,6 +222,12 @@ export class MutableModule implements Module {
     }
     this.nodes.set(id_, ast_)
     return ast_
+  }
+
+  spliceShallow(ast: Ast): Ast {
+    const cloned = ast.cloneWithId(this, ast.exprId)
+    this.nodes.set(ast.exprId, cloned)
+    return cloned
   }
 
   getExtended(id: AstId): RawAstExtended | undefined {

@@ -8,7 +8,8 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
@@ -77,12 +78,13 @@ export default function Drive(props: DriveProps) {
     const { loadingProjectManagerDidFail, isListingRemoteDirectoryWhileOffline } = props
     const { isListingLocalDirectoryAndWillFail, isListingRemoteDirectoryAndWillFail } = props
 
-    const navigate = hooks.useNavigate()
+    const navigate = navigateHooks.useNavigate()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { modalRef } = modalProvider.useModalRef()
-    const toastAndLog = hooks.useToastAndLog()
+    const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
@@ -96,8 +98,8 @@ export default function Drive(props: DriveProps) {
         [labels]
     )
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -327,6 +329,7 @@ export default function Drive(props: DriveProps) {
                 </h1>
                 <DriveBar
                     category={category}
+                    canDownloadFiles={canDownloadFiles}
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
@@ -356,6 +359,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     setQuery={setQuery}
+                    setCanDownloadFiles={setCanDownloadFiles}
                     category={category}
                     allLabels={allLabels}
                     setSuggestions={setSuggestions}

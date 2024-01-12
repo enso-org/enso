@@ -5,7 +5,7 @@ import * as toast from 'react-toastify'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
@@ -63,7 +63,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const asset = item.item
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
@@ -357,9 +357,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled={isCloud}
+                    disabled={isCloud && asset.type !== backendModule.AssetType.file}
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
+                        unsetModal()
                         dispatchAssetEvent({
                             type: AssetEventType.download,
                             ids: new Set([asset.id]),
