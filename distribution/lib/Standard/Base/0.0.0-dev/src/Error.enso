@@ -148,7 +148,7 @@ type Error
     unwrap error_value =
         Panic.catch No_Such_Conversion handler=_->error_value <|
             wrapped_error = Wrapped_Error.from error_value
-            Error.unwrap wrapped_error.inner_error
+            @Tail_Call Error.unwrap wrapped_error.inner_error
 
     ## Transforms an error.
 
