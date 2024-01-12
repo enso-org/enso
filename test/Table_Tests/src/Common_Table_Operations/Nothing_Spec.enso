@@ -17,10 +17,17 @@ spec setup =
     table_builder = setup.table_builder
 
     js_object = JS_Object.from_pairs [["a", 10], ["b", 20]]
-    values = [[True, Value_Type.Boolean], [My_Type.Value "1", Value_Type.Mixed], [js_object, Value_Type.Mixed]]
-            + [["twelve", Value_Type.Char], [12, Value_Type.Integer], [9223372036854775807, Value_Type.Integer], [12.3, Value_Type.Float]]
-            + [[Date.new 2024 1 3, Value_Type.Date], [Date_Time.new 2024 1 3 2 30 10, Value_Type.Date_Time]]
-            + [[Time_Of_Day.new 2 30 10, Value_Type.Time], [[1], Value_Type.Mixed]]
+    values = [[True, Value_Type.Boolean]]
+           + [[My_Type.Value "1", Value_Type.Mixed]]
+           + [[js_object, Value_Type.Mixed]]
+           + [["twelve", Value_Type.Char]]
+           + [[12, Value_Type.Integer]]
+           + [[9223372036854775807, Value_Type.Integer]]
+           + [[12.3, Value_Type.Float]]
+           + [[Date.new 2024 1 3, Value_Type.Date]]
+           + [[Date_Time.new 2024 1 3 2 30 10, Value_Type.Date_Time]]
+           + [[Time_Of_Day.new 2 30 10, Value_Type.Time]]
+           + [[[1], Value_Type.Mixed]]
 
     Test.group prefix+"Comparisons" <|
         operations = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
