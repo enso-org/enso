@@ -15,10 +15,7 @@ import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
-import org.enso.compiler.pass.resolve.GlobalNames$;
-import org.enso.compiler.pass.resolve.TypeNames$;
-import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.compiler.pass.resolve.TypeSignatures$;
+import org.enso.compiler.pass.resolve.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -48,6 +45,7 @@ public final class TypeInference implements IRPass {
     List<IRPass> passes = List.of(
         BindingAnalysis$.MODULE$,
         TypeNames$.MODULE$,
+        Patterns$.MODULE$,
         TypeSignatures$.MODULE$
     );
     return CollectionConverters.asScala(passes).toList();
@@ -107,9 +105,17 @@ public final class TypeInference implements IRPass {
         var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping);
         yield lambda.copy(lambda.arguments(), newBody, lambda.location(), lambda.canBeTCO(), lambda.passData(), lambda.diagnostics(), lambda.id());
       }
-//      case Case.Expr caseExpr -> {
-//
-//      }
+      case Case.Expr caseExpr -> {
+        var newScrutinee = analyzeExpression(caseExpr.scrutinee(), inlineContext, localBindingsTyping);
+        List<Case.Branch> newBranches = CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream().map((branch) -> {
+          // TODO we probably need to copy localBindingsTyping here, to ensure independent typing of branches
+          var myBranchLocalBindingsTyping = localBindingsTyping;
+          registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
+          var newExpression = analyzeExpression(branch.expression(), inlineContext, myBranchLocalBindingsTyping);
+          return branch.copy(branch.pattern(), newExpression, branch.terminalBranch(), branch.location(), branch.passData(), branch.diagnostics(), branch.id());
+        }).toList();
+        yield caseExpr.copy(newScrutinee, CollectionConverters$.MODULE$.asScala(newBranches).toSeq(), caseExpr.isNested(), caseExpr.location(), caseExpr.passData(), caseExpr.diagnostics(), caseExpr.id());
+      }
       default -> ir.mapExpressions(
           (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
       );
@@ -222,6 +228,7 @@ public final class TypeInference implements IRPass {
                   }
                 })
                 .toList();
+        log("type propagation", caseExpr, "case branches: " + innerTypes);
         setInferredType(caseExpr, new InferredType(TypeRepresentation.buildSimplifiedSumType(innerTypes)));
       }
       default -> {
@@ -241,6 +248,21 @@ public final class TypeInference implements IRPass {
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
     log("registerBinding " + binding.showCode() + ": registered " + def.id() + " as " + type);
+  }
+
+  private void registerPattern(Pattern pattern, LocalBindingsTyping localBindingsTyping) {
+    switch (pattern) {
+      case Pattern.Type typePattern -> {
+        var type = resolveTypeExpression(typePattern.tpe());
+        registerBinding(typePattern.name(), type, localBindingsTyping);
+      }
+      case Pattern.Constructor constructorPattern -> {
+        for (var innerPattern : CollectionConverters$.MODULE$.asJava(constructorPattern.fields())) {
+          registerPattern(innerPattern, localBindingsTyping);
+        }
+      }
+      default -> {}
+    }
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
@@ -450,6 +472,13 @@ public final class TypeInference implements IRPass {
       case Name.Literal name -> {
         Optional<BindingsMap.Resolution> resolutionOptional =
             getOptionalMetadata(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+
+        if (resolutionOptional.isEmpty()) {
+          // As fallback, try getting from the Patterns pass.
+          resolutionOptional =
+              getOptionalMetadata(name, Patterns$.MODULE$, BindingsMap.Resolution.class);
+        }
+
         if (resolutionOptional.isPresent()) {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
           yield TypeRepresentation.fromQualifiedName(target.qualifiedName());

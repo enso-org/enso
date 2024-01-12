@@ -480,6 +480,27 @@ public class TypeInferenceTest extends CompilerTest {
 
   @Ignore("TODO")
   @Test
+  public void inferEqualityBoundsFromCaseLiteral() throws Exception {
+    final URI uri = new URI("memory://inferEqualityBoundsFromCaseLiteral.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x =
+                  y = case x of
+                    1 -> x
+                    "foo" -> x
+                  y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    var sumType = new TypeRepresentation.SumType(List.of(TypeRepresentation.INTEGER, TypeRepresentation.TEXT));
+    assertEquals(sumType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  @Ignore("TODO")
+  @Test
   public void inferEqualityBoundsFromCaseEdgeCase() throws Exception {
     // This test ensures that the equality bound from _:Other_Type is only applicable in its branch and does not 'leak' to other branches.
     final URI uri = new URI("memory://inferEqualityBoundsFromCaseEdgeCase.enso");
