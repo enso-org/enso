@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -394,6 +395,9 @@ class ValuesGenerator {
       collect.add(ctx.asValue((float) Math.PI));
       collect.add(ctx.asValue((double) Math.E));
       collect.add(ctx.asValue(Double.NaN));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40)));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue()));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue() + 1.0));
     }
 
     for (var v : collect) {

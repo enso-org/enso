@@ -11,7 +11,7 @@ const value = computed({
     return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
-    props.onUpdate(value.toString(), props.input.portId)
+    props.onUpdate({ type: 'set', value: value.toString(), origin: props.input.portId })
   },
 })
 </script>
