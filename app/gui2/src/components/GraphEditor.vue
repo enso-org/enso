@@ -273,7 +273,7 @@ const graphBindingsHandler = graphBindings.handler({
         return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
       })
     } catch (err) {
-      console.log(`Error while collapsing, this is not normal. ${err}`)
+      console.log('Error while collapsing, this is not normal.', err)
     }
   },
   enterNode() {

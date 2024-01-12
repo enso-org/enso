@@ -1025,15 +1025,16 @@ export class Function extends Ast {
     exprs: Ast[],
     trailingNewline?: boolean,
   ): Function {
+    const id = newAstId()
     const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
     if (trailingNewline) {
       exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
     }
     const body = BodyBlock.new(exprs_, module)
-    const args_ = args.map((arg) => [{ node: arg.exprId }])
+    const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
     const ident = { node: Ident.new(module, name).exprId }
     const equals = { node: Token.new('=') }
-    return new Function(module, undefined, ident, args_, equals, { node: body.exprId })
+    return new Function(module, id, ident, args_, equals, { node: body.exprId })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {

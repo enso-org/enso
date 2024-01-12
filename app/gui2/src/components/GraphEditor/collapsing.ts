@@ -162,10 +162,10 @@ export function performCollapse(
       collapsed.push(ast)
       if (astId === astIdToReplace) {
         const newAst = collapsedCallAst(info, collapsedName, edit)
-        refactored.push({ expression: { node: newAst.exprId } })
+        refactored.push({ expression: { node: newAst } })
       }
     } else {
-      refactored.push({ expression: { node: ast.exprId } })
+      refactored.push({ expression: { node: ast } })
     }
   }
   const outputIdentifier = info.extracted.output?.identifier
@@ -173,7 +173,9 @@ export function performCollapse(
     collapsed.push(Ast.Ident.new(edit, outputIdentifier))
   }
   // Update the definiton of refactored function.
-  new Ast.BodyBlock(edit, functionBlock.exprId, refactored)
+  const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
+  edit.replaceRef(functionBlock.exprId, refactoredBlock)
+  // new Ast.BodyBlock(edit, functionBlock.exprId, refactored)
 
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed, true)
