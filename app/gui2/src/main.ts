@@ -1,8 +1,8 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
-import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
+import * as dashboard from 'enso-dashboard'
 import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
@@ -106,7 +106,7 @@ function main() {
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
   const initialProjectName = config.startup.project || null
 
-  runDashboard({
+  dashboard.run({
     appRunner,
     logger: console,
     supportsLocalBackend: !IS_CLOUD_BUILD,

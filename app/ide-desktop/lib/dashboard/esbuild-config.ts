@@ -10,18 +10,17 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import type * as esbuild from 'esbuild'
 import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
-
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as tailwindConfig from './tailwind.config'
 import * as utils from '../../utils'
+import * as tailwindConfig from './tailwind.config'
 
 // =================
 // === Constants ===
@@ -67,7 +66,9 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
             )
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
                 const content = await fs.readFile(loadArgs.path, 'utf8')
-                const result = await cssProcessor.process(content, { from: loadArgs.path })
+                const result = await cssProcessor.process(content, {
+                    from: loadArgs.path,
+                })
                 return {
                     contents: result.content,
                     loader: 'css',
@@ -117,6 +118,9 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
+        alias: {
+            '#': './src',
+        },
         define: {
             // We are defining constants, so it should be `CONSTANT_CASE`.
             /* eslint-disable @typescript-eslint/naming-convention */

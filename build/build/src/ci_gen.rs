@@ -452,19 +452,8 @@ pub fn gui() -> Result<Workflow> {
     //     job.needs.insert(job::BuildBackend::key(PRIMARY_OS));
     // });
 
-    // Because WASM upload happens only for the Linux build, all other platforms needs to depend on
-    // it.
-    let wasm_job_linux = workflow.add(OS::Linux, job::BuildWasm);
     for os in TARGETED_SYSTEMS {
-        if os != OS::Linux {
-            // Linux was already added above.
-            let _wasm_job = workflow.add(os, job::BuildWasm);
-        }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        workflow.add_customized(os, job::PackageOldIde, |job| {
-            job.needs.insert(wasm_job_linux.clone());
-            job.needs.insert(project_manager_job.clone());
-        });
         workflow.add_customized(os, job::PackageNewIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
