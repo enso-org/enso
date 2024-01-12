@@ -8,7 +8,7 @@ import java.util.UUID
 trait LazyId { self: IR =>
   private[this] var _id: UUID @Identifier = null
 
-  override def id: UUID @Identifier = {
+  protected def id: UUID @Identifier = {
     _id
   }
 
