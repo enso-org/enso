@@ -11,6 +11,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.GlobalNames$;
@@ -130,9 +131,25 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private record LocalBindingsTyping(Map<Integer, TypeRepresentation> knownBindings) {
+  private static class LocalBindingsTyping {
+    private final Map<AliasAnalysis.Graph, Map<Integer, TypeRepresentation>> map = new HashMap<>();
     public static LocalBindingsTyping create() {
-      return new LocalBindingsTyping(new HashMap<>());
+      return new LocalBindingsTyping();
+    }
+
+    private Map<Integer, TypeRepresentation> accessGraph(AliasAnalysis.Graph graph) {
+      return map.computeIfAbsent(graph, (g) -> new HashMap<>());
+    }
+
+    TypeRepresentation getBindingType(AliasAnalysis.Graph graph, int id) {
+      return accessGraph(graph).get(id);
+    }
+
+    void registerBindingType(AliasAnalysis.Graph graph, int id, TypeRepresentation type) {
+      var previous = accessGraph(graph).put(id, type);
+      if (previous != null) {
+        throw new IllegalStateException("Duplicate binding " + id + " in graph " + graph);
+      }
     }
   }
 
@@ -188,24 +205,24 @@ public final class TypeInference implements IRPass {
     }
 
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
-    localBindingsTyping.knownBindings.put(def.id(), type);
+    localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
     log("registerBinding", binding, "registered " + def.id() + " as " + type);
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
     // This should reproduce IrToTruffle::processName logic
-    var occurrence = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(literalName);
+    var occurrenceMetadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(literalName);
     Optional<BindingsMap.Resolution> global =
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-    var localLink = occurrence.graph().defLinkFor(occurrence.id());
+    var localLink = occurrenceMetadata.graph().defLinkFor(occurrenceMetadata.id());
     if (localLink.isDefined() && global.isPresent()) {
-      log("processName", literalName, "BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrence);
+      log("processName", literalName, "BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrenceMetadata);
     }
 
     boolean isLocalReference = localLink.isDefined();
     if (isLocalReference) {
       int target = localLink.get().target();
-      TypeRepresentation type = localBindingsTyping.knownBindings.get(target);
+      TypeRepresentation type = localBindingsTyping.getBindingType(occurrenceMetadata.graph(), target);
       log("processName", literalName, "local reference to " + target + " --> type: " + type);
       if (type != null) {
         setInferredType(literalName, new InferredType(type));
