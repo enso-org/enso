@@ -47,17 +47,17 @@ spec setup =
                 value = triple.at 0
                 expected_value_type = triple.at 2
 
-                Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
+                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
                     t0 = table_builder [["x", [value, Nothing]]]
                     c0 = operation (t0.at "x") Nothing
                     c0.to_vector . should_equal [Nothing, Nothing]
 
-                Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing column" <|
+                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+operation_name+" Nothing column" <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
                     c0 = operation (t0.at "x") (t0.at "n")
                     c0.to_vector . should_equal [Nothing, Nothing]
 
-                Test.specify "Binary op: Nothing column "+expected_value_type.to_text+" "+operation_name <|
+                Test.specify "Correctly handle Nothing in: Nothing column "+operation_name+" "+expected_value_type.to_text <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
                     c0 = operation (t0.at "n") (t0.at "x")
                     c0.to_vector . should_equal [Nothing, Nothing]
@@ -68,23 +68,23 @@ spec setup =
             expected_value_type = triple.at 2
             t0 = table_builder [["x", [value, Nothing]], ["y", [value, Nothing]], ["n", [Nothing, Nothing]]]
 
-            Test.specify "Nothing column between "+expected_value_type.to_text+" and "+expected_value_type.to_text <|
+            Test.specify "Correctly handle Nothing in: Nothing column between "+expected_value_type.to_text+" and "+expected_value_type.to_text <|
                 c0 = t0.at "n" . between (t0.at "x") (t0.at "y")
                 c0.to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify expected_value_type.to_text+" between Nothing column and "+expected_value_type.to_text <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" between Nothing column and "+expected_value_type.to_text <|
                 c0 = t0.at "x" . between (t0.at "n") (t0.at "y")
                 c0.to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing column" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing column" <|
                 c0 = t0.at "x" . between (t0.at "y") (t0.at "n")
                 c0.to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify expected_value_type.to_text+" between Nothing value and "+expected_value_type.to_text <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" between Nothing value and "+expected_value_type.to_text <|
                 c0 = t0.at "x" . between Nothing (t0.at "y")
                 c0.to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing value" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing value" <|
                 c0 = t0.at "x" . between (t0.at "y") Nothing
                 c0.to_vector . should_equal [Nothing, Nothing]
 
@@ -93,10 +93,15 @@ spec setup =
             value = triple.at 0
             expected_value_type = triple.at 2
 
-            Test.specify expected_value_type.to_text+".is_nothing" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_nothing" <|
                 t0 = table_builder [["x", [value, Nothing]]]
                 c0 = t0.at "x" . is_nothing
                 c0.to_vector . should_equal [False, True]
+
+    Test.group prefix+"not" <|
+        Test.specify "Correctly handle Nothing in .not" <|
+            t0 = table_builder [["x", [True, False, Nothing]]]
+            t0.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
     Test.group prefix+"is_in" <|
         values.map triple->
@@ -105,14 +110,14 @@ spec setup =
             expected_value_type = triple.at 2
             t0 = table_builder [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["n", [Nothing, Nothing]]]
 
-            Test.specify expected_value_type.to_text+".is_in Column (returning True)" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Column (returning True)" <|
                 t0.at "x" . is_in (t0.at "x") . to_vector . should_equal [True, Nothing]
 
-            Test.specify expected_value_type.to_text+".is_in Column (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Column (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y") . to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify expected_value_type.to_text+".is_in Vector (returning True)" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Vector (returning True)" <|
                 t0.at "x" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [True, Nothing]
 
-            Test.specify expected_value_type.to_text+".is_in Vector (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Vector (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
