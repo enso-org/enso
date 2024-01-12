@@ -35,10 +35,14 @@ most_specific_value_type value use_smallest=False =
                 True -> Value_Type.Decimal precision=Nothing scale=0
         text : Text     ->
             length = text.length
-            # Not using Char size=0 for empty strings, because that would be an invalid value.
-            case use_smallest && length > 0 of
-                True  -> Value_Type.Char size=text.length variable_length=False
+            case use_smallest of
                 False -> Value_Type.Char size=Nothing variable_length=True
+                True -> 
+                    case length > 0 of
+                        True  -> Value_Type.Char size=length variable_length=False
+                        # Not using Char size=0 for empty strings, because that would be an invalid value.
+                        False -> Value_Type.Char size=1 variable_length=True
+                
         ## TODO [RW] once we add Enso Native Object Type Value Type, we probably
            want to prefer it over Mixed
         _               -> Value_Type.Mixed
