@@ -616,6 +616,43 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals("x3 should not contain any warnings", List.of(), getImmediateDiagnostics(x3.expression()));
   }
 
+  @Ignore("TODO")
+  @Test
+  public void globalMethodTypes() throws Exception {
+    final URI uri = new URI("memory://globalMethodTypes.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                  
+                lit = 42
+                ctor = My_Type.Value 42
+                const -> My_Type = My_Type.Value 23
+                check (x : My_Type) = x
+
+                foo =
+                    x1 = lit
+                    x2 = ctor
+                    x3 = const
+                    x4 = check
+                    x5 = check const
+                    [x1, x2, x3, x4, x5]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = TypeRepresentation.fromQualifiedName("globalMethodTypes.My_Type");
+
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(foo, "x1").expression()));
+    assertEquals(myType, getInferredType(findAssignment(foo, "x2").expression()));
+    assertEquals(myType, getInferredType(findAssignment(foo, "x3").expression()));
+    assertEquals(new TypeRepresentation.ArrowType(myType, myType), getInferredType(findAssignment(foo, "x4").expression()));
+    assertEquals(myType, getInferredType(findAssignment(foo, "x5").expression()));
+  }
+
   private List<Diagnostic> getImmediateDiagnostics(IR ir) {
     return CollectionConverters.asJava(ir.diagnostics().toList());
   }
