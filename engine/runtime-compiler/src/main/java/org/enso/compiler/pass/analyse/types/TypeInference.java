@@ -4,16 +4,15 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.compiler.pass.analyse.AliasAnalysis;
-import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
+import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
@@ -181,29 +180,23 @@ public final class TypeInference implements IRPass {
   }
 
   private void registerBinding(Expression.Binding binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
-    var metadata =
-        getMetadata(binding, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+    var metadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(binding);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
       log("registerBinding", binding, "missing occurrence in graph for " + metadata);
       return;
     }
 
-    if (!(occurrence.get() instanceof AliasAnalysis.Graph.Occurrence.Def def)) {
-      log("registerBinding", binding, "occurrence is not a definition: " + occurrence.get());
-      return;
-    }
-
+    var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.knownBindings.put(def.id(), type);
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
     // This should reproduce IrToTruffle::processName logic
-    AliasAnalysis.Info.Occurrence occurrence =
-        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+    var occurrence = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(literalName);
     Optional<BindingsMap.Resolution> global =
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-    Option<AliasAnalysis.Graph.Link> localLink = occurrence.graph().defLinkFor(occurrence.id());
+    var localLink = occurrence.graph().defLinkFor(occurrence.id());
     if (localLink.isDefined() && global.isPresent()) {
       log("processName", literalName, "BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrence);
     }
