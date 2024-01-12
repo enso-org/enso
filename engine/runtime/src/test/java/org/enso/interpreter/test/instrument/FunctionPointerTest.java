@@ -160,5 +160,12 @@ public class FunctionPointerTest extends TestBase {
     assertEquals("ConstructorPointer", c.moduleName().toString());
     assertEquals("ConstructorPointer.X", c.typeName().toString());
     assertEquals("Run", c.functionName());
+
+    var d = FunctionPointer.fromAtomConstructor((AtomConstructor) rawRes);
+    assertNotNull("We should get a pointer from " + rawRes, d);
+
+    assertEquals("ConstructorPointer", d.moduleName().toString());
+    assertEquals("ConstructorPointer.X", d.typeName().toString());
+    assertEquals("Run", d.functionName());
   }
 }
