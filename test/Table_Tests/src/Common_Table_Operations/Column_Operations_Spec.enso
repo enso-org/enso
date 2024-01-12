@@ -349,6 +349,22 @@ spec setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
         
+        Test.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+            t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
+            fillBlank = t.fill_nothing ["col0"] ""
+            fillOneSpace = t.fill_nothing ["col0"] " "
+            fillTwoSpaces = t.fill_nothing ["col0"] "  "
+            fillBlank.at "col0" . to_vector . should_equal ["a", "", " "]
+            fillOneSpace.at "col0" . to_vector . should_equal ["a", " ", " "]
+            fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "  ", " "]
+            case setup.test_selection.length_restricted_text_columns of
+                True -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                    fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
+                False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                    fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+        
         Test.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
