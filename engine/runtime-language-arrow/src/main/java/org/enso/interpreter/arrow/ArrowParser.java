@@ -8,30 +8,7 @@ public final class ArrowParser {
 
   private ArrowParser() {}
 
-  public static class Result {
-
-    private final PhysicalLayout physicalLayout;
-    private final LogicalLayout logicalLayout;
-    private final Mode mode;
-
-    private Result(PhysicalLayout physicalLayout, LogicalLayout logicalLayout, Mode mode) {
-      this.physicalLayout = physicalLayout;
-      this.logicalLayout = logicalLayout;
-      this.mode = mode;
-    }
-
-    public PhysicalLayout getPhysicalLayout() {
-      return physicalLayout;
-    }
-
-    public LogicalLayout getLogicalLayout() {
-      return logicalLayout;
-    }
-
-    public Mode getMode() {
-      return mode;
-    }
-  }
+  public record Result(PhysicalLayout physicalLayout, LogicalLayout logicalLayout, Mode mode) {}
 
   public static Result parse(Source source) {
     String src = source.getCharacters().toString();

@@ -44,10 +44,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   @ImportStatic(IntUnit.class)
   static class ReadArrayElement {
     @Specialization(guards = "receiver.getUnit() == Byte1")
-    public static Object doByte(
-        ArrowFixedArrayInt receiver,
-        long index,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+    public static Object doByte(ArrowFixedArrayInt receiver, long index)
         throws UnsupportedMessageException {
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
@@ -57,10 +54,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte2")
-    public static Object doShort(
-        ArrowFixedArrayInt receiver,
-        long index,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+    public static Object doShort(ArrowFixedArrayInt receiver, long index)
         throws UnsupportedMessageException {
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
@@ -70,10 +64,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte4")
-    public static Object doInt(
-        ArrowFixedArrayInt receiver,
-        long index,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+    public static Object doInt(ArrowFixedArrayInt receiver, long index)
         throws UnsupportedMessageException {
 
       if (receiver.buffer.isNull((int) index)) {
@@ -84,10 +75,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte8")
-    public static Object doLong(
-        ArrowFixedArrayInt receiver,
-        long index,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+    public static Object doLong(ArrowFixedArrayInt receiver, long index)
         throws UnsupportedMessageException {
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();

@@ -23,10 +23,10 @@ public class ArrowEvalNode extends RootNode {
   }
 
   public Object execute(VirtualFrame frame) {
-    return switch (code.getPhysicalLayout()) {
-      case Primitive -> switch (code.getMode()) {
-        case Allocate -> fixedPhysicalLayout.execute(code.getLogicalLayout());
-        case Cast -> castToFixedPhysicalLayout.execute(code.getLogicalLayout());
+    return switch (code.physicalLayout()) {
+      case Primitive -> switch (code.mode()) {
+        case Allocate -> fixedPhysicalLayout.execute(code.logicalLayout());
+        case Cast -> castToFixedPhysicalLayout.execute(code.logicalLayout());
       };
       default -> throw CompilerDirectives.shouldNotReachHere("unsupported physical layout");
     };

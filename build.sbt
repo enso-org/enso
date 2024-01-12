@@ -1523,10 +1523,10 @@ lazy val `runtime-language-arrow` =
         val testClassesDir = (Test / productDirectories).value.head
         Map(javaModuleName.value -> Seq(testClassesDir))
       },
-      Test / addModules := Seq("org.enso.interpreter.arrow"),
+      Test / addModules := Seq(javaModuleName.value),
       Test / javaOptions ++= Seq(
-        "--add-opens=java.base/java.nio=org.enso.interpreter.arrow", // DirectByteBuffer in MemoryUtil init is in-accessible
-        "--add-opens=java.base/java.nio=ALL-UNNAMED"                 // Tests use Apache Arrow
+        s"--add-opens=java.base/java.nio=${javaModuleName.value}", // DirectByteBuffer in MemoryUtil init is in-accessible
+        "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
       ),
       Test / addReads := {
         Map(javaModuleName.value -> Seq("ALL-UNNAMED"))

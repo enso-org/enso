@@ -2,7 +2,6 @@ package org.enso.interpreter.arrow;
 
 import static org.junit.Assert.*;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -28,8 +27,6 @@ import org.junit.Test;
 public class VerifyArrowTest {
   private static Context ctx;
   private static Handler handler;
-
-  private static final InteropLibrary interop = InteropLibrary.getUncached();
 
   @BeforeClass
   public static void initEnsoContext() {
