@@ -11,6 +11,7 @@
 //! `HKEY_CLASSES_ROOT` is a merged view of these two keys.
 
 use crate::prelude::*;
+use winreg::enums::*;
 
 use crate::win::registry::create_subkey;
 

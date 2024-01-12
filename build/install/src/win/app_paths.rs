@@ -6,6 +6,7 @@
 //! See https://docs.microsoft.com/en-us/windows/win32/shell/app-registration
 
 use crate::prelude::*;
+use winreg::enums::*;
 
 
 

@@ -1,8 +1,6 @@
-use enso_build::prelude::*;
+use ide_ci::prelude::*;
 
-use enso_install::config::APPLICATION_EXECUTABLE;
-use enso_install::config::APPLICATION_SHORTCUT_NAME;
-use enso_install::config::APPLICATION_UNINSTALL_KEY;
+
 
 pub fn register_file_association(executable_path: impl AsRef<Path>) -> Result {
     let enso_file_type = enso_install::win::prog_id::FileType {
@@ -50,27 +48,31 @@ pub fn register_url_protocol(executable_path: &Path, protocol: &str) -> Result {
 }
 
 pub fn register_uninstaller(
-    app_pretty_name: &str,
+    config: &Config,
     install_directory: &Path,
     uninstaller_path: &Path,
 ) -> Result {
     let mut uninstall_info = enso_install::win::uninstall::UninstallInfo::new(
-        app_pretty_name,
+        &config.pretty_name,
         uninstaller_path.as_str(),
     );
     uninstall_info.install_location = Some(install_directory.display().to_string());
     uninstall_info.install_date = Some(chrono::Local::now().to_string());
-    uninstall_info.publisher = Some(enso_install::config::PUBLISHER_NAME.to_string());
+    uninstall_info.publisher = Some(config.publisher.clone());
     uninstall_info.display_icon = Some(uninstaller_path.display().to_string());
-    uninstall_info.display_version = Some(enso_install::config::VERSION.to_string());
-    uninstall_info.write_to_registry(APPLICATION_UNINSTALL_KEY)?;
+    uninstall_info.display_version = Some(config.version.to_string());
+    uninstall_info.write_to_registry(&config.uninstall_key)?;
     Ok(())
 }
 
 /// Install Enso.
 ///
 /// The archive payload is binary data of the tar.gz archive that contains the Enso app.
-pub fn install(install_location: impl AsRef<Path>, archive_payload: &[u8]) -> Result {
+pub fn install(
+    install_location: impl AsRef<Path>,
+    archive_payload: &[u8],
+    config: &Config,
+) -> Result {
     let install_location = install_location.as_ref();
     info!("Removing old installation files (if present).");
     ide_ci::fs::reset_dir(&install_location)?;
@@ -78,7 +80,7 @@ pub fn install(install_location: impl AsRef<Path>, archive_payload: &[u8]) -> Re
     let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
         Some(install_location.join(path_in_archive))
     };
-    let executable_location = install_location.join(APPLICATION_EXECUTABLE);
+    let executable_location = install_location.join(&config.executable_filename);
 
     // Extract the files.
     let decoder = flate2::read::GzDecoder::new(archive_payload);
@@ -89,8 +91,10 @@ pub fn install(install_location: impl AsRef<Path>, archive_payload: &[u8]) -> Re
     info!("Registering file types.");
     register_file_association(&executable_location)?;
 
-    info!("Registering URL protocol.");
-    register_url_protocol(&executable_location, "enso")?;
+    for protocol in &config.url_protocols {
+        info!("Registering URL protocol '{protocol}'.");
+        register_url_protocol(&executable_location, protocol)?;
+    }
 
     info!("Registering the application path.");
     let app_paths_info = enso_install::win::app_paths::AppPathInfo::new(&executable_location);
@@ -98,20 +102,77 @@ pub fn install(install_location: impl AsRef<Path>, archive_payload: &[u8]) -> Re
 
     info!("Registering the uninstaller.");
     register_uninstaller(
-        enso_install::config::APPLICATION_PRETTY_NAME,
+        &config,
         install_location,
         &install_location.join("enso-uninstaller.exe"),
     )?;
 
     info!("Creating Start Menu entry.");
     enso_install::win::shortcut::Location::Menu
-        .create_shortcut(APPLICATION_SHORTCUT_NAME, &executable_location)?;
+        .create_shortcut(&config.shortcut_name, &executable_location)?;
 
     info!("Creating Desktop shortcut.");
     enso_install::win::shortcut::Location::Desktop
-        .create_shortcut(APPLICATION_SHORTCUT_NAME, &executable_location)?;
+        .create_shortcut(&config.shortcut_name, &executable_location)?;
 
 
     info!("Installation complete.");
     Ok(())
+}
+
+/// All the configuration and constants needed to build the installer.
+pub struct Config {
+    /// E.g. `Enso.exe`.
+    pub executable_filename: PathBuf,
+
+    /// E.g. `New Byte Order sp. z o.o.`.
+    pub publisher: String,
+
+    /// E.g. `Enso`.
+    pub pretty_name: String,
+
+    /// E.g. `Enso`.
+    ///
+    /// Used for entries in the Start Menu and Desktop.
+    pub shortcut_name: String,
+
+    /// The name of the registry key where uninstall information is stored, e.g. `Enso`.
+    ///
+    /// The key is located under
+    /// `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall`.
+    pub uninstall_key: String,
+
+    /// Version of the application.
+    pub version: Version,
+
+    /// The URL protocols that will be registered for the application, e.g. `enso`.
+    pub url_protocols: Vec<String>,
+
+    /// File associations.
+    pub file_associations:
+        Vec<(enso_install::win::prog_id::FileType, enso_install::win::prog_id::FileExtension)>,
+}
+
+
+pub fn fill_config() -> Result<Config> {
+    let electron = enso_install_config::sanitized_electron_builder_config()?;
+
+    let executable_filename = electron.product_name.with_executable_extension();
+    let publisher = enso_install::config::PUBLISHER_NAME.to_string();
+    let pretty_name = electron.product_name.clone();
+    let shortcut_name = pretty_name.clone();
+    let uninstall_key = pretty_name.clone();
+    let version = electron.extra_metadata.version.clone();
+    let url_protocols = electron.protocols.iter().flat_map(|p| &p.schemes).map_into().collect();
+    let file_associations = default();
+    Ok(Config {
+        executable_filename,
+        publisher,
+        pretty_name,
+        shortcut_name,
+        uninstall_key,
+        version,
+        url_protocols,
+        file_associations,
+    })
 }

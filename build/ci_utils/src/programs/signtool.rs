@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+
+
 /// The hash algorithms that can be used for signing.
 #[derive(Clone, Copy, Debug)]
 pub enum HashAlgorithm {

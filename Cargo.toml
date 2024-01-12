@@ -15,6 +15,7 @@ members = [
   "build/macros/proc-macro",
   "build/ci-gen",
   "build/install",
+  "build/install/config",
   "build/install/installer",
   "build/install/uninstaller",
   "build/intellij-run-config-gen",
@@ -88,6 +89,7 @@ debug-assertions = true
 # with the core development team. Thank you!
 
 chrono = { version = "0.4.31", features = ["serde"] }
+clap = { version = "3.2.25", features = ["derive", "env", "wrap_help"] }
 console-subscriber = "0.1.8"
 directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }

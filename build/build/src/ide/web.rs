@@ -7,8 +7,11 @@ use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::IsArtifact;
 use crate::project::ProcessWrapper;
+use crate::version::ENSO_VERSION;
 
 use anyhow::Context;
+use enso_install_config::INSTALLER_NAME;
+use enso_install_config::UNINSTALLER_NAME;
 use futures_util::future::try_join3;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
@@ -62,10 +65,6 @@ pub mod env {
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
-        /// Path to the JSON dump of the electron-builder configuration.
-        ///
-        /// Written when running `electron-builder`. Used by the `enso-installer` on Windows. On other platforms it may serve debugging purposes.
-        ENSO_BUILD_ELECTRON_BUILDER_CONFIG, PathBuf;
     }
 
     // === Electron Builder ===
@@ -381,7 +380,7 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
-        let client_build = self
+        let _client_build = self
             .npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
@@ -426,7 +425,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
-            .set_env(env::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
+            .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist")
@@ -439,13 +438,15 @@ impl IdeDesktop {
         if build_windows_enso_install {
             Cargo
                 .cmd()?
-                .set_env(env::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
+                .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
                 .current_dir(&self.repo_root)
                 .apply(&cargo::Command::Build)
                 .try_applying(&icons)?
                 .arg("--release")
                 .arg("--package")
                 .arg("enso-uninstaller")
+                .arg("-Z")
+                .arg("unstable-options")
                 .arg("--out-dir")
                 .arg(output_path)
                 .run_ok()
@@ -456,7 +457,7 @@ impl IdeDesktop {
                     warn!("Failed to create code signing certificate from the environment: {e:?}");
                 });
 
-            let uninstaller_source = output_path.join("enso-uninstaller.exe");
+            let uninstaller_source = output_path.join(UNINSTALLER_NAME).with_executable_extension();
             if let Ok(certificate) = code_signing_certificate.as_ref() {
                 certificate.sign(&uninstaller_source).await?;
             }
@@ -471,7 +472,8 @@ impl IdeDesktop {
                 .current_dir(&self.repo_root)
                 .apply(&cargo::Command::Build)
                 .try_applying(&icons)?
-                .env("ENSO_INSTALL_ARCHIVE_PATH", &archive_path)
+                .set_env(enso_install_config::ENSO_INSTALL_ARCHIVE_PATH, &archive_path)?
+                .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
                 .arg("--release")
                 .arg("--package")
                 .arg("enso-installer")
@@ -481,16 +483,19 @@ impl IdeDesktop {
                 .arg(output_path)
                 .run_ok()
                 .await?;
-            let installer_path = output_path.join("enso-installer.exe");
+            let installer_path = output_path.join(INSTALLER_NAME).with_executable_extension();
+            let installer_desired_filename = format!("enso-win-{}.exe", ENSO_VERSION.get()?);
+            let installer_desired_path = output_path.join(&installer_desired_filename);
+            ide_ci::fs::tokio::remove_file_if_exists(&installer_desired_path).await?;
+            ide_ci::fs::tokio::rename(&installer_path, &installer_desired_path).await?;
             if let Ok(certificate) = code_signing_certificate.as_ref() {
-                certificate.sign(&installer_path).await?;
+                certificate.sign(&installer_desired_path).await?;
             }
-            let out_dirname = output_path.try_file_name()?;
-            let artifact_name = format!("enso-win-{}-installer.exe", out_dirname.to_string_lossy());
-            if ide_ci::actions::workflow::is_in_env() {
-                ide_ci::actions::artifacts::upload_single_file(&installer_path, artifact_name)
-                    .await?;
-            }
+            // let artifact_name = format!("enso-win-{}.exe", ENSO_VERSION.get()?);
+            // if ide_ci::actions::workflow::is_in_env() {
+            //     ide_ci::actions::artifacts::upload_single_file(&installer_desired_path,
+            // artifact_name)         .await?;
+            // }
         }
 
         Ok(())

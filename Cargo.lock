@@ -932,9 +932,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.23"
+version = "3.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
+checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
 dependencies = [
  "atty",
  "bitflags 1.3.2",
@@ -950,9 +950,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.18"
+version = "3.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
+checksum = "ae6371b8bdc8b7d3959e9cf7b22d4435ef3e79e138688421ec654acf8c81b008"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -1461,7 +1461,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e37adbef02511efe61ff835c8e30d8d5c6a00e4688184512d831a371f2615466"
 dependencies = [
  "anyhow",
- "clap 3.2.23",
+ "clap 3.2.25",
  "dataview 1.0.1",
  "fs-err",
  "msvc-demangler",
@@ -1680,7 +1680,7 @@ dependencies = [
  "byte-unit",
  "bytes",
  "chrono",
- "clap 3.2.23",
+ "clap 3.2.25",
  "derivative",
  "derive_more",
  "dirs",
@@ -1688,6 +1688,7 @@ dependencies = [
  "enso-build-macros-lib",
  "enso-enso-font",
  "enso-font",
+ "enso-install-config",
  "ensogl-pack",
  "futures",
  "futures-util",
@@ -1750,7 +1751,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "byte-unit",
- "clap 3.2.23",
+ "clap 3.2.25",
  "derivative",
  "enso-build",
  "enso-build-base",
@@ -2031,14 +2032,15 @@ dependencies = [
  "chrono",
  "dirs",
  "embed-resource",
- "enso-build",
  "enso-build-base",
+ "enso-install-config",
  "flate2",
  "ide-ci",
  "indicatif",
  "mslnk",
  "named-lock",
  "self-replace",
+ "serde_json",
  "strum",
  "tar",
  "tokio",
@@ -2048,14 +2050,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-install-config"
+version = "0.1.0"
+dependencies = [
+ "embed-resource",
+ "enso-build-base",
+ "ide-ci",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "enso-installer"
 version = "0.1.0"
 dependencies = [
  "chrono",
  "embed-resource",
- "enso-build",
  "enso-build-base",
  "enso-install",
+ "enso-install-config",
  "flate2",
  "ide-ci",
  "tar",
@@ -2439,6 +2452,7 @@ dependencies = [
  "enso-build",
  "enso-build-base",
  "enso-install",
+ "enso-install-config",
  "ide-ci",
  "self-replace",
  "tokio",
@@ -3988,7 +4002,7 @@ dependencies = [
  "byte-unit",
  "bytes",
  "chrono",
- "clap 3.2.23",
+ "clap 3.2.25",
  "data-encoding",
  "dependency_runner",
  "derivative",
@@ -4524,7 +4538,7 @@ dependencies = [
 name = "logstat"
 version = "0.1.0"
 dependencies = [
- "clap 3.2.23",
+ "clap 3.2.25",
  "enso-prelude",
  "lazy_static",
  "regex",
@@ -7604,7 +7618,7 @@ name = "wstest"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.1",
- "clap 3.2.23",
+ "clap 3.2.25",
  "either",
  "enso-prelude",
  "futures",

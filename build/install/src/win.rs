@@ -1,6 +1,10 @@
 //! Windows-specific code for the Enso installer.
 
+// === Non-Standard Linter Configuration ===
+#![allow(unsafe_code)]
+
 use crate::prelude::*;
+use winreg::enums::*;
 
 use std::ffi::c_void;
 #[cfg(windows)]
@@ -14,7 +18,6 @@ use windows::Win32::UI::Shell;
 // ==============
 
 pub mod app_paths;
-pub mod faux;
 pub mod prog_id;
 pub mod registry;
 pub mod resource;
@@ -46,6 +49,14 @@ pub fn desktop() -> Result<PathBuf> {
 pub fn start_menu_programs() -> Result<PathBuf> {
     known_folder(Shell::FOLDERID_Programs)
         .context("Failed to get the local user's Start Menu programs directory path.")
+}
+
+/// The directory intended for the installation of user-specific non-roaming applications.
+///
+/// E.g. `C:\Users\username\AppData\Local\Programs`.
+pub fn user_program_files() -> Result<PathBuf> {
+    known_folder(Shell::FOLDERID_UserProgramFiles)
+        .context("Failed to get the local user's Program Files directory path.")
 }
 
 /// Query WinAPI for the path of a known folder.

@@ -91,7 +91,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 // ======================================
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
-export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
+export function createElectronBuilderConfig(passedArgs: Arguments) {
     let version = BUILD_INFO.version
     if (
         passedArgs.target === 'msi' ||
@@ -233,15 +233,15 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             sign: false,
         },
         afterAllArtifactBuild: computeHashes,
-        afterPack: ctx => {
+        afterPack: (context: electronBuilder.AfterPackContext) => {
             if (passedArgs.platform === electronBuilder.Platform.MAC) {
                 // Make the subtree writable, so we can sign the binaries.
                 // This is needed because GraalVM distribution comes with read-only binaries.
-                childProcess.execFileSync('chmod', ['-R', 'u+w', ctx.appOutDir])
+                childProcess.execFileSync('chmod', ['-R', 'u+w', context.appOutDir])
             }
         },
 
-        afterSign: async context => {
+        afterSign: async (context: electronBuilder.AfterPackContext) => {
             // Notarization for macOS.
             if (
                 passedArgs.platform === electronBuilder.Platform.MAC &&
@@ -286,6 +286,14 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
     }
 }
 
+async function dumpConfiguration(configPath: string, config: electronBuilder.Configuration) {
+    const configCopy = JSON.parse(JSON.stringify(config))
+    configCopy.publisherName = common.COMPANY_NAME
+    configCopy.fileAssociations[0].progId = 'Enso.Source'
+    const jsonConfig = JSON.stringify(configCopy, null, 2)
+    await fs.writeFile(configPath, jsonConfig)
+}
+
 /** Build the IDE package with Electron Builder. */
 export async function buildPackage(passedArgs: Arguments) {
     // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it
@@ -297,16 +305,20 @@ export async function buildPackage(passedArgs: Arguments) {
     // failing because of that.
     await fs.mkdir('node_modules', { recursive: true })
 
+    const config = createElectronBuilderConfig(passedArgs)
     const cliOpts: electronBuilder.CliOptions = {
-        config: createElectronBuilderConfig(passedArgs),
+        config,
         targets: passedArgs.platform.createTarget(),
     }
 
     // Write the configuration to a JSON file for debugging purposes.
-    const configPath = `${passedArgs.ideDist}/electron-builder-config.yaml`
+    // If `ENSO_BUILD_ELECTRON_BUILDER_CONFIG` is set, we will write the configuration to the
+    // specified path. Otherwise, we will write it to the default path.
+    const configPath =
+        process.env['ENSO_BUILD_ELECTRON_BUILDER_CONFIG'] ??
+        `${passedArgs.ideDist}/electron-builder-config.yaml`
     console.log(`Writing configuration to ${configPath}`)
-    const configContents = JSON.stringify(cliOpts.config, null, 2)
-    await fs.writeFile(configPath, configContents)
+    await dumpConfiguration(configPath, config)
 
     console.log('Building with configuration:', cliOpts)
     const result = await electronBuilder.build(cliOpts)

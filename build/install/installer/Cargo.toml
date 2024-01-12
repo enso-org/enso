@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 chrono = { workspace = true }
 enso-build-base = { path = "../../base" }
-enso-build = { path = "../../build" }
 enso-install = { path = ".." }
+enso-install-config = { path = "../config" }
 flate2 = { workspace = true }
 ide-ci = { path = "../../ci_utils" }
 tar = { workspace = true }
@@ -19,3 +19,5 @@ windows = { workspace = true }
 
 [build-dependencies]
 embed-resource = "2.4.0"
+ide-ci = { path = "../../ci_utils" }
+enso-install-config = { path = "../config" }

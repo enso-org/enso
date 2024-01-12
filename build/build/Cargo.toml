@@ -13,7 +13,7 @@ base64 = "0.13.0"
 bytes = { workspace = true }
 byte-unit = { workspace = true }
 chrono = { workspace = true }
-clap = { version = "3.1.5", features = ["derive", "env", "wrap_help"] }
+clap = { workspace = true }
 derivative = { workspace = true }
 derive_more = { workspace = true }
 dirs = { workspace = true }
@@ -24,6 +24,7 @@ handlebars = "4.3.5"
 enso-build-base = { path = "../base" }
 enso-enso-font = { path = "../../lib/rust/enso-font" }
 enso-font = { path = "../../lib/rust/font" }
+enso-install-config = { path = "../install/config" }
 ensogl-pack = { path = "../../lib/rust/ensogl/pack" }
 ide-ci = { path = "../ci_utils" }
 mime = "0.3.16"

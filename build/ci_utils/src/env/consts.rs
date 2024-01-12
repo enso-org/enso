@@ -1,5 +1,3 @@
-// use crate::prelude::*;
-
 /// File extension for Windows shortcut files including the dot.
 pub const SHORTCUT_EXTENSION: &str = ".lnk";
 

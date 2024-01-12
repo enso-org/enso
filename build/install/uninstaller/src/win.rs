@@ -1,6 +1,6 @@
 use enso_install::prelude::*;
 
-use enso_install::config::APPLICATION_SHORTCUT_NAME;
+
 
 pub const FAILED_TO_ACQUIRE_LOCK: &str =
     "Failed to acquire file lock. Is another instance of the installer or uninstaller running?";
@@ -16,12 +16,11 @@ fn parent_directory() -> Result<PathBuf> {
 
 /// Delete the uninstaller executable.
 ///
-/// This uses the `self_replace` crate to delete the executable on Windows. Thanks to this, we can
-///
-/// delete the executable even if it is currently running.
+/// This uses the [`self_replace`] crate to delete the executable on Windows. Running executable
+/// cannot be deleted on Windows using the ordinary means.
 ///
 /// This must be invoked before deleting the install directory, if the uninstaller is located in the
-/// install directory.
+/// install directory. Otherwise, the executable makes the directory non-deletable.
 fn self_delete(parent_path: &Path) -> Result {
     self_replace::self_delete_outside_path(&parent_path).with_context(|| {
         format!(
@@ -54,18 +53,21 @@ pub async fn main() -> Result {
     let install_dir = parent_directory().unwrap();
 
     // Make sure that Enso.exe is in the same directory as this installer.
+    let executable_filename = enso_install::executable_filename();
+    let expected_executable = install_dir.join(&executable_filename);
+    let shortcut_name = enso_install::shortcut_name();
+
     ensure!(
-        install_dir.join(enso_install::config::APPLICATION_EXECUTABLE).exists(),
-        "Enso.exe not found in the presumed install directory: {}",
+        expected_executable.exists(),
+        "{} not found in the presumed install directory: {}",
+        executable_filename.display(),
         install_dir.display()
     );
 
     info!("Remove Add/Remove Programs entry.");
     handle_error(
         &mut errors,
-        enso_install::win::uninstall::remove_from_registry(
-            enso_install::config::APPLICATION_UNINSTALL_KEY,
-        ),
+        enso_install::win::uninstall::remove_from_registry(&enso_install::uninstall_key()),
     );
 
     info!("Removing self (uninstaller) executable.");
@@ -83,19 +85,19 @@ pub async fn main() -> Result {
     info!("Removing Start Menu entry.");
     handle_error(
         &mut errors,
-        enso_install::win::shortcut::Location::Menu.remove_shortcut(APPLICATION_SHORTCUT_NAME),
+        enso_install::win::shortcut::Location::Menu.remove_shortcut(shortcut_name),
     );
 
     info!("Removing Desktop shortcut.");
     handle_error(
         &mut errors,
-        enso_install::win::shortcut::Location::Desktop.remove_shortcut(APPLICATION_SHORTCUT_NAME),
+        enso_install::win::shortcut::Location::Desktop.remove_shortcut(shortcut_name),
     );
 
     if !errors.is_empty() {
         error!("Encountered {} errors.", errors.len());
         for error in errors {
-            error!(" * {}", error);
+            error!(" *** {error:?}");
         }
         error!("Uninstallation failed. Some files or registry entries may have been left behind.");
         bail!("Uninstallation failed.");

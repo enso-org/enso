@@ -1,5 +1,6 @@
 // === Features ===
 #![feature(default_free_fn)]
+#![feature(once_cell)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -9,38 +10,51 @@
 
 
 pub mod prelude {
-    pub use enso_build::prelude::*;
+    pub use ide_ci::prelude::*;
 
+    #[cfg(windows)]
+    pub use winreg::types::ToRegValue;
     #[cfg(windows)]
     pub use winreg::RegKey;
     #[cfg(windows)]
     pub use winreg::RegValue;
-    #[cfg(windows)]
-    pub use winreg::ToRegValue;
 }
 
+use enso_install_config::electron_builder;
 use prelude::*;
 
 #[cfg(windows)]
 pub mod win;
 
+pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config {
+    static CONFIG: std::sync::LazyLock<electron_builder::Config> = std::sync::LazyLock::new(|| {
+        let data = include_str!(env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG"));
+        serde_json::from_str(data).expect("Failed to parse the electron-builder config.")
+    });
+    &*CONFIG
+}
+
+/// The name of the Windows registry key where uninstall information is stored.
+///
+/// The key is located under
+/// `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall`.
+pub fn uninstall_key() -> &'static str {
+    &sanitized_electron_builder_config().product_name
+}
+
+/// The full filename (not path!) of the application executable, including the extension.
+pub fn executable_filename() -> PathBuf {
+    sanitized_electron_builder_config().product_name.with_executable_extension()
+}
+
+/// The name of the shortcut.
+///
+/// Used on Windows for Start Menu and Desktop shortcuts.
+pub fn shortcut_name() -> &'static str {
+    &sanitized_electron_builder_config().product_name
+}
+
 pub mod config {
-    /// The full filename of the application executable, including the extension.
-    pub const APPLICATION_EXECUTABLE: &str = "Enso.exe";
-
-    /// The name of the registry key where uninstall information is stored.
-    ///
-    /// The key is located under
-    /// `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall`.
-    pub const APPLICATION_UNINSTALL_KEY: &str = "Enso";
-
-    /// The name of the application as it appears in the Add/Remove Programs dialog.
-    pub const APPLICATION_PRETTY_NAME: &str = "Enso";
-
-
-    /// The name of shortcut that will be created in the Start Menu and on the Desktop.
-    pub const APPLICATION_SHORTCUT_NAME: &str = APPLICATION_PRETTY_NAME;
-
     /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Source File.
     pub const SOURCE_FILE_PROG_ID: &str = "Enso.Source";
 
@@ -52,11 +66,12 @@ pub mod config {
 
     /// The publisher name that will be displayed in the Add/Remove Programs dialog.
     pub const PUBLISHER_NAME: &str = "New Byte Order sp. z o.o.";
-
-    /// The version of the installed application.
-    pub const VERSION: &str = "2023.2.1-dev";
 }
 
+/// Acquire a named file lock.
+///
+/// The lock is to be used to ensure that only one instance of the (un)installer is running at a
+/// time.
 pub fn lock() -> Result<named_lock::NamedLock> {
     let name = env!("CARGO_PKG_NAME");
     let lock = named_lock::NamedLock::create(name)
