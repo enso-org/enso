@@ -2,10 +2,11 @@
  * email address. */
 import * as React from 'react'
 
+import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
-import * as hooks from '#/hooks'
+import * as navigateHooks from '#/hooks/navigateHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 
@@ -27,8 +28,8 @@ const REGISTRATION_QUERY_PARAMS = {
 export default function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const auth = authProvider.useAuth()
-    const location = hooks.useLocation()
-    const navigate = hooks.useNavigate()
+    const location = router.useLocation()
+    const navigate = navigateHooks.useNavigate()
 
     const { verificationCode, email, redirectUrl } = parseUrlSearchParams(location.search)
 

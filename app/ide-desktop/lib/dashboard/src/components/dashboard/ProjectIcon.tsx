@@ -11,7 +11,8 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import LogsModal from '#/layouts/dashboard/LogsModal'
 import * as authProvider from '#/providers/AuthProvider'
@@ -103,7 +104,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [shouldAnimate, setShouldAnimate] = React.useState(false)
     const state = asset.projectState.type
     const setState = React.useCallback(
@@ -269,7 +270,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [onSpinnerStateChange])
 
-    hooks.useEventHandler(assetEvents, event => {
+    eventHooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case AssetEventType.newFolder:
             case AssetEventType.uploadFiles:

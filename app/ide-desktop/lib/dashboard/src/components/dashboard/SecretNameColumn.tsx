@@ -5,7 +5,8 @@ import ConnectorIcon from 'enso-assets/connector.svg'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -34,7 +35,7 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
 export default function SecretNameColumn(props: SecretNameColumnProps) {
     const { item, setItem, selected, state, rowState, setRowState } = props
     const { assetEvents, dispatchAssetListEvent } = state
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -52,7 +53,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         await Promise.resolve(null)
     }
 
-    hooks.useEventHandler(assetEvents, async event => {
+    eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case AssetEventType.newProject:
             case AssetEventType.newFolder:

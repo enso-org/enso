@@ -42,10 +42,6 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Return the root directory id for the given user. */
-    override rootDirectoryId(): backend.DirectoryId {
-        return backend.DirectoryId('')
-    }
     /** Return a list of assets in a directory.
      * @throws An error if the JSON-RPC call fails. */
     override async listDirectory(): Promise<backend.AnyAsset[]> {
@@ -392,6 +388,11 @@ export class LocalBackend extends backend.Backend {
     /** Invalid operation. While project bundles can be uploaded to the Project Manager,
      * they are not uploaded as file assets, and hence do not return a {@link backend.FileInfo}. */
     override uploadFile() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
+    override getFileDetails() {
         return this.invalidOperation()
     }
 

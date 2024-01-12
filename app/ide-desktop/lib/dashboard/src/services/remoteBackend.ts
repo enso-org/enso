@@ -155,20 +155,6 @@ export class RemoteBackend extends backendModule.Backend {
         throw new Error(message)
     }
 
-    /** Return the root directory id for the given user. */
-    override rootDirectoryId(
-        user: backendModule.UserOrOrganization | null
-    ): backendModule.DirectoryId {
-        if (user != null && !user.id.startsWith('organization-')) {
-            this.logger.error(`User ID '${user.id}' does not start with 'organization-'`)
-        }
-        return backendModule.DirectoryId(
-            // `user` is only null when the user is offline, in which case the remote backend cannot
-            // be accessed anyway.
-            user?.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`) ?? ''
-        )
-    }
-
     /** Return a list of all users in the same organization. */
     override async listUsers(): Promise<backendModule.SimpleUser[]> {
         const path = remoteBackendPaths.LIST_USERS_PATH
@@ -587,6 +573,25 @@ export class RemoteBackend extends backendModule.Backend {
             } else {
                 return this.throw(`Could not upload file${suffix}`)
             }
+        } else {
+            return await response.json()
+        }
+    }
+
+    /** Return details for a project.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async getFileDetails(
+        fileId: backendModule.FileId,
+        title: string | null
+    ): Promise<backendModule.FileDetails> {
+        const path = remoteBackendPaths.getFileDetailsPath(fileId)
+        const response = await this.get<backendModule.FileDetails>(path)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not get details of project ${
+                    title != null ? `'${title}'` : `with ID '${fileId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
