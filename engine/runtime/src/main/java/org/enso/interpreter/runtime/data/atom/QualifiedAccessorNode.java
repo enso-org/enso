@@ -1,11 +1,10 @@
-package org.enso.interpreter.node.expression.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @NodeInfo(
     shortName = "get_cons",

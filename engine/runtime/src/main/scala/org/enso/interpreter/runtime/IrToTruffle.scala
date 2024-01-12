@@ -75,7 +75,7 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{
+import org.enso.interpreter.runtime.data.atom.{
   ConstantNode,
   QualifiedAccessorNode
 }
@@ -94,7 +94,7 @@ import org.enso.interpreter.node.{
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
-import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
+import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction

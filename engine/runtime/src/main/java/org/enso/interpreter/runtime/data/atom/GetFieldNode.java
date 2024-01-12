@@ -1,17 +1,15 @@
-package org.enso.interpreter.node.expression.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-public class GetFieldNode extends RootNode {
+public final class GetFieldNode extends RootNode {
   private final int index;
   private final String name;
   private final Type type;

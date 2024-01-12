@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
@@ -57,7 +57,7 @@ import com.oracle.truffle.api.nodes.Node;
  * </ul>
  */
 @ExportLibrary(StructsLibrary.class)
-public abstract class UnboxingAtom extends Atom {
+abstract class UnboxingAtom extends Atom {
   protected final Layout layout;
 
   protected UnboxingAtom(AtomConstructor constructor, Layout layout) {

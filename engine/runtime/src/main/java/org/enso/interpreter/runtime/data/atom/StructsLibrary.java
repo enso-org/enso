@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;

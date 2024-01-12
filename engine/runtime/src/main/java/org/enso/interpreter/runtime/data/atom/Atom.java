@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -40,7 +40,7 @@ public abstract class Atom implements EnsoObject {
    *
    * @param constructor the Atom's constructor
    */
-  protected Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor) {
     this.constructor = constructor;
   }
 

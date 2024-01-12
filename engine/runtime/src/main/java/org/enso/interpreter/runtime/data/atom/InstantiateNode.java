@@ -1,21 +1,16 @@
-package org.enso.interpreter.node.expression.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.NeverDefault;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.Layout;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -71,7 +66,7 @@ public abstract class InstantiateNode extends ExpressionNode {
   @ExplodeLoop
   Object doExecute(
       VirtualFrame frame,
-      @Cached(parameters = {"constructor"}) CreateInstanceNode createInstanceNode) {
+      @Cached(parameters = {"constructor"}) AtomNewInstanceNode createInstanceNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -103,15 +98,5 @@ public abstract class InstantiateNode extends ExpressionNode {
     } else {
       return createInstanceNode.execute(argumentValues);
     }
-  }
-
-  @ReportPolymorphism
-  public abstract static class CreateInstanceNode extends Node {
-    @NeverDefault
-    static CreateInstanceNode create(AtomConstructor constructor) {
-      return Layout.CreateUnboxedInstanceNode.create(constructor);
-    }
-
-    public abstract Object execute(Object[] arguments);
   }
 }

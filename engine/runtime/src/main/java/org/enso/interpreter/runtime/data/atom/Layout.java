@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
-import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
@@ -244,15 +243,15 @@ public class Layout {
    * reached, at which point it will fall back onto {@link AtomConstructor#getBoxedLayout()} for
    * data that does not fit the known layouts.
    */
-  public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
+  static class CreateUnboxedInstanceNode extends AtomNewInstanceNode {
     private static final UnboxingAtom.DirectCreateLayoutInstanceNode[] EMPTY =
         new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
     @Child UnboxingAtom.DirectCreateLayoutInstanceNode boxedLayout;
     @Children UnboxingAtom.DirectCreateLayoutInstanceNode[] unboxedLayouts;
-    private final int arity;
+    final int arity;
     private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
 
-    private final AtomConstructor constructor;
+    final AtomConstructor constructor;
 
     CreateUnboxedInstanceNode(AtomConstructor constructor) {
       this.constructor = constructor;
@@ -270,7 +269,7 @@ public class Layout {
 
     @Override
     @ExplodeLoop
-    public Object execute(Object[] arguments) {
+    public Atom execute(Object[] arguments) {
       var flags = computeFlags(arguments);
       if (flags == 0) {
         return boxedLayout.execute(arguments);

@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeFactory;
@@ -7,17 +7,17 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
-import org.enso.interpreter.runtime.callable.atom.UnboxingAtom.FieldGetterNode;
-import org.enso.interpreter.runtime.callable.atom.UnboxingAtom.FieldSetterNode;
+import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
+import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
 
 /**
- * A version of {@link org.enso.interpreter.runtime.callable.atom.Atom} that stores its fields in an
+ * A version of {@link org.enso.interpreter.runtime.data.atom.Atom} that stores its fields in an
  * array of objects. This will be slow most of the time, and is the fallback version of {@link
- * org.enso.interpreter.runtime.callable.atom.Atom}. For a better optimized version, see {@link
- * org.enso.interpreter.runtime.callable.atom.UnboxingAtom}.
+ * org.enso.interpreter.runtime.data.atom.Atom}. For a better optimized version, see {@link
+ * org.enso.interpreter.runtime.data.atom.UnboxingAtom}.
  */
 @ExportLibrary(StructsLibrary.class)
-public final class BoxingAtom extends Atom {
+final class BoxingAtom extends Atom {
   static final NodeFactory<? extends UnboxingAtom.InstantiatorNode> FACTORY =
       new InstantiatorFactory();
 
@@ -41,9 +41,13 @@ public final class BoxingAtom extends Atom {
 
   private final Object[] fields;
 
-  BoxingAtom(AtomConstructor constructor, Object... fields) {
+  private BoxingAtom(AtomConstructor constructor, Object... fields) {
     super(constructor);
     this.fields = fields;
+  }
+
+  static Atom singleton(AtomConstructor constructor) {
+    return new BoxingAtom(constructor);
   }
 
   @ExportMessage

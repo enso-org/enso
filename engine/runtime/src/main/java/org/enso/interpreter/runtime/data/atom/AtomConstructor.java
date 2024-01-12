@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -19,8 +19,6 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
-import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -120,7 +118,7 @@ public final class AtomConstructor implements EnsoObject {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     assert boxedLayout == null : "Don't initialize twice: " + this.name;
     if (args.length == 0) {
-      cachedInstance = new BoxingAtom(this);
+      cachedInstance = BoxingAtom.singleton(this);
     } else {
       cachedInstance = null;
     }
@@ -232,7 +230,9 @@ public final class AtomConstructor implements EnsoObject {
   // TODO [AA] Check where this can be called from user code.
   public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
-    return new BoxingAtom(this, arguments);
+    // XXX: don't allocate a node
+    var node = AtomNewInstanceNode.create(this);
+    return node.execute(arguments);
   }
 
   /**

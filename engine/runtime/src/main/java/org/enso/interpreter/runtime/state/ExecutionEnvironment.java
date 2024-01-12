@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.state;
 
 import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.Atom;
 
 public class ExecutionEnvironment {
 

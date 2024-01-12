@@ -3,7 +3,7 @@ package org.enso.interpreter.node.expression.builtin.error;
 import java.util.List;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.Atom;
 
 @BuiltinType
 public final class NumberParseError extends Builtin {
