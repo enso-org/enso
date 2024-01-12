@@ -274,6 +274,34 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   @Test
+  public void innerFunctionType() throws Exception {
+    final URI uri = new URI("memory://innerFunctionType.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                foo =
+                    f (x : My_Type) (y : My_Type) -> My_Type = My_Type.Value x.v+y.v
+                    
+                    f1 = f
+                    y = f (My_Type.Value 1) (My_Type.Value 2)
+                    [y, f1]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = TypeRepresentation.fromQualifiedName("innerFunctionType.My_Type");
+    var functionType = new TypeRepresentation.ArrowType(myType, new TypeRepresentation.ArrowType(myType, myType));
+    assertEquals(functionType, getInferredType(findAssignment(foo, "f1").expression()));
+
+    // and application
+    assertEquals(myType, getInferredType(findAssignment(foo, "y").expression()));
+  }
+
+  @Test
   public void zeroArgConstructor() throws Exception {
     final URI uri = new URI("memory://zeroArgConstructor.enso");
     final Source src =
