@@ -17,34 +17,35 @@ spec setup =
     table_builder = setup.table_builder
 
     js_object = JS_Object.from_pairs [["a", 10], ["b", 20]]
-    values = [[True, Value_Type.Boolean]]
-           + [[My_Type.Value "1", Value_Type.Mixed]]
-           + [[js_object, Value_Type.Mixed]]
-           + [["twelve", Value_Type.Char]]
-           + [[12, Value_Type.Integer]]
-           + [[9223372036854775807, Value_Type.Integer]]
-           + [[12.3, Value_Type.Float]]
-           + [[Date.new 2024 1 3, Value_Type.Date]]
-           + [[Date_Time.new 2024 1 3 2 30 10, Value_Type.Date_Time]]
-           + [[Time_Of_Day.new 2 30 10, Value_Type.Time]]
-           + [[[1], Value_Type.Mixed]]
+    js_object2 = JS_Object.from_pairs [["a", 100], ["b", 200]]
+    values = [[True, False, Value_Type.Boolean]]
+           + [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
+           + [[js_object, js_object2, Value_Type.Mixed]]
+           + [["twelve", "thirteen", Value_Type.Char]]
+           + [[12, 13, Value_Type.Integer]]
+           + [[9223372036854775807, 13, Value_Type.Integer]]
+           + [[12.3, 23.4, Value_Type.Float]]
+           + [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
+           + [[Date_Time.new 2024 1 3 2 30 10, Date_Time.new 2024 1 3 2 30 11, Value_Type.Date_Time]]
+           + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
+           + [[[1], [2], Value_Type.Mixed]]
 
     Test.group prefix+"Comparisons" <|
         operations = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
 
         Test.specify "Confirm expected types" <|
-            values.map pair->
-                value = pair.at 0
-                expected_value_type = pair.at 1
+            values.map triple->
+                value = triple.at 0
+                expected_value_type = triple.at 2
                 table_builder [["x", [value, Nothing]]] . at "x" . value_type . should_equal expected_value_type
 
         operations.map pair->
             operation_name = pair.at 0
             operation = pair.at 1
 
-            values.map pair->
-                value = pair.at 0
-                expected_value_type = pair.at 1
+            values.map triple->
+                value = triple.at 0
+                expected_value_type = triple.at 2
 
                 Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
                     t0 = table_builder [["x", [value, Nothing]]]
@@ -62,9 +63,9 @@ spec setup =
                     c0.to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"between" <|
-        values.map pair->
-            value = pair.at 0
-            expected_value_type = pair.at 1
+        values.map triple->
+            value = triple.at 0
+            expected_value_type = triple.at 2
             t0 = table_builder [["x", [value, Nothing]], ["y", [value, Nothing]], ["n", [Nothing, Nothing]]]
 
             Test.specify "Nothing column between "+expected_value_type.to_text+" and "+expected_value_type.to_text <|
@@ -88,11 +89,30 @@ spec setup =
                 c0.to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"is_nothing" <|
-        values.map pair->
-            value = pair.at 0
-            expected_value_type = pair.at 1
+        values.map triple->
+            value = triple.at 0
+            expected_value_type = triple.at 2
 
             Test.specify expected_value_type.to_text+".is_nothing" <|
                 t0 = table_builder [["x", [value, Nothing]]]
                 c0 = t0.at "x" . is_nothing
                 c0.to_vector . should_equal [False, True]
+
+    Test.group prefix+"is_in" <|
+        values.map triple->
+            value = triple.at 0
+            other_value = triple.at 1
+            expected_value_type = triple.at 2
+            t0 = table_builder [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["n", [Nothing, Nothing]]]
+
+            Test.specify expected_value_type.to_text+".is_in Column (returning True)" <|
+                t0.at "x" . is_in (t0.at "x") . to_vector . should_equal [True, Nothing]
+
+            Test.specify expected_value_type.to_text+".is_in Column (returning Nothing)" <|
+                t0.at "x" . is_in (t0.at "y") . to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify expected_value_type.to_text+".is_in Vector (returning True)" <|
+                t0.at "x" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [True, Nothing]
+
+            Test.specify expected_value_type.to_text+".is_in Vector (returning Nothing)" <|
+                t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
