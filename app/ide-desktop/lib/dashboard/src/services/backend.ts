@@ -95,6 +95,7 @@ export interface UserOrOrganization {
     /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
      * `usersMe` will not work. */
     isEnabled: boolean
+    rootDirectoryId: DirectoryId
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -211,10 +212,8 @@ export interface ProjectStartupInfo {
 
 /** Metadata describing an uploaded file. */
 export interface File {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_id: FileId
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_name: string | null
+    fileId: FileId
+    fileName: string | null
     path: S3FilePath
 }
 
@@ -225,6 +224,11 @@ export interface FileInfo {
     path: string
     id: FileId
     project: CreatedProject | null
+}
+
+/** All metadata related to a file. */
+export interface FileDetails {
+    file: File
 }
 
 /** A secret environment variable. */
@@ -707,9 +711,9 @@ export interface CreateProjectRequestBody {
     parentDirectoryId: DirectoryId | null
 }
 
-/** HTTP request body for the "project update" endpoint.
+/** HTTP request body for the "update project" endpoint.
  * Only updates of the `projectName` or `ami` are allowed. */
-export interface ProjectUpdateRequestBody {
+export interface UpdateProjectRequestBody {
     projectName: string | null
     ami: Ami | null
     ideVersion: VersionNumber | null
@@ -723,9 +727,14 @@ export interface OpenProjectRequestBody {
 
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
-    secretName: string
-    secretValue: string
+    name: string
+    value: string
     parentDirectoryId: DirectoryId | null
+}
+
+/** HTTP request body for the "update secret" endpoint. */
+export interface UpdateSecretRequestBody {
+    value: string
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -837,8 +846,6 @@ export function stripProjectExtension(name: string) {
 export abstract class Backend {
     abstract readonly type: BackendType
 
-    /** Return the root directory id for the given user. */
-    abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
@@ -889,9 +896,9 @@ export abstract class Backend {
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
     abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
-    /** Close the project identified by the given project ID. */
+    /** Close a project. */
     abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
-    /** Return project details for the specified project ID. */
+    /** Return project details. */
     abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
     /** Set a project to an open state. */
     abstract openProject(
@@ -899,9 +906,10 @@ export abstract class Backend {
         body: OpenProjectRequestBody | null,
         title: string | null
     ): Promise<void>
-    abstract projectUpdate(
+    /** Change the AMI or IDE version of a project. */
+    abstract updateProject(
         projectId: ProjectId,
-        body: ProjectUpdateRequestBody,
+        body: UpdateProjectRequestBody,
         title: string | null
     ): Promise<UpdatedProject>
     /** Return project memory, processor and storage usage. */
@@ -910,10 +918,18 @@ export abstract class Backend {
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
     abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
+    /** Return file details. */
+    abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
     /** Create a secret environment variable. */
-    abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
+    abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
     /** Return a secret environment variable. */
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
+    /** Change the value of a secret. */
+    abstract updateSecret(
+        secretId: SecretId,
+        body: UpdateSecretRequestBody,
+        title: string | null
+    ): Promise<void>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
     /** Create a label used for categorizing assets. */

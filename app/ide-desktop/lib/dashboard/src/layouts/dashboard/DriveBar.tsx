@@ -10,7 +10,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -26,6 +26,7 @@ import Button from '#/components/Button'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
     category: Category
+    canDownloadFiles: boolean
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
     doCreateDataConnector: (name: string, value: string) => void
@@ -36,14 +37,14 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const { category, doCreateProject, doCreateDirectory, doCreateDataConnector } = props
-    const { doUploadFiles, dispatchAssetEvent } = props
+    const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
+    const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-    const isHomeCategory =
-        category === Category.home || backend.type === backendModule.BackendType.local
+    const isCloud = backend.type === backendModule.BackendType.remote
+    const isHomeCategory = category === Category.home || !isCloud
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -112,7 +113,13 @@ export default function DriveBar(props: DriveBarProps) {
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
-                                setModal(<NewDataConnectorModal doCreate={doCreateDataConnector} />)
+                                setModal(
+                                    <UpsertSecretModal
+                                        id={null}
+                                        name={null}
+                                        doCreate={doCreateDataConnector}
+                                    />
+                                )
                             }}
                         />
                     )}
@@ -148,20 +155,14 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={
-                            category !== Category.trash &&
-                            backend.type === backendModule.BackendType.local
-                        }
-                        disabled={
-                            category === Category.trash ||
-                            backend.type !== backendModule.BackendType.local
-                        }
+                        active={canDownloadFiles}
+                        disabled={!canDownloadFiles}
                         image={DataDownloadIcon}
                         alt="Download Files"
                         error={
                             category === Category.trash
                                 ? 'You cannot download files from Trash.'
-                                : 'Not implemented yet.'
+                                : 'You currently can only download files.'
                         }
                         disabledOpacityClassName="opacity-20"
                         onClick={event => {

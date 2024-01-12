@@ -75,9 +75,17 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
+/** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
+export function getFileDetailsPath(fileId: backend.FileId) {
+    return `files/${fileId}`
+}
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
 export function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`
+}
+/** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
+export function updateSecretPath(secretId: backend.SecretId) {
+    return `s3cr3tz/${secretId}`
 }
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {

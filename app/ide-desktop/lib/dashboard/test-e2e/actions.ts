@@ -220,6 +220,11 @@ export function locateNewFolderButton(page: test.Locator | test.Page) {
 }
 
 /** Find a "new data connector" button (if any) on the current page. */
+export function locateNewSecretButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'New Secret' }).getByText('New Secret')
+}
+
+/** Find a "new data connector" button (if any) on the current page. */
 export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'New Data Connector' }).getByText('New Data Connector')
 }

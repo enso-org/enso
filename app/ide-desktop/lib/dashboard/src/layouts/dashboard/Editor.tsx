@@ -1,7 +1,7 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendModule from '#/services/backend'
 import * as load from '#/utilities/load'
 
@@ -39,7 +39,7 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
     const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
     React.useEffect(() => {

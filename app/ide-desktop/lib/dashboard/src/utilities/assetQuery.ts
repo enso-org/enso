@@ -215,8 +215,6 @@ export class AssetQuery {
         toAdd: string[][] | null,
         toRemove: string[][] | null
     ) {
-        toAdd = toAdd?.filter(term => term.length !== 0) ?? null
-        toRemove = toRemove?.filter(term => term.length !== 0) ?? null
         toAdd = toAdd?.length === 0 ? null : toAdd
         toRemove = toRemove?.length === 0 ? null : toRemove
         if (toAdd == null && (toRemove == null || original.length === 0)) {
@@ -341,6 +339,31 @@ export class AssetQuery {
             }
             return !changed ? null : newTerms
         }
+    }
+
+    /** Create an identical copy of this query. Useful to force a React refresh. */
+    clone() {
+        return new AssetQuery(
+            this.query,
+            this.keywords,
+            this.negativeKeywords,
+            this.names,
+            this.negativeNames,
+            this.labels,
+            this.negativeLabels,
+            this.types,
+            this.negativeTypes,
+            this.extensions,
+            this.negativeExtensions,
+            this.descriptions,
+            this.negativeDescriptions,
+            this.modifieds,
+            this.negativeModifieds,
+            this.owners,
+            this.negativeOwners,
+            this.nos,
+            this.negativeNos
+        )
     }
 
     /** Return a new {@link AssetQuery} with the specified keys overwritten,

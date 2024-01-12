@@ -7,7 +7,9 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
@@ -309,6 +311,7 @@ const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 export interface AssetsTableProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    setCanDownloadFiles: (canDownloadFiles: boolean) => void
     category: Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
     setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -340,8 +343,8 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-    const { query, setQuery, category, allLabels, setSuggestions, deletedLabelNames } = props
-    const { initialProjectName, projectStartupInfo } = props
+    const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
+    const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
     const { queuedAssetEvents: rawQueuedAssetEvents } = props
     const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
     const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
@@ -354,7 +357,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
@@ -367,8 +370,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
         const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -557,6 +560,22 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree, filter])
 
     React.useEffect(() => {
+        if (category === Category.trash) {
+            setCanDownloadFiles(false)
+        } else if (!isCloud) {
+            setCanDownloadFiles(selectedKeys.size !== 0)
+        } else {
+            setCanDownloadFiles(
+                selectedKeys.size !== 0 &&
+                    Array.from(selectedKeys).every(key => {
+                        const node = nodeMapRef.current.get(key)
+                        return node?.item.type === backendModule.AssetType.file
+                    })
+            )
+        }
+    }, [category, selectedKeys, isCloud, /* should never change */ setCanDownloadFiles])
+
+    React.useEffect(() => {
         const nodeToSuggestion = (
             node: assetTreeNode.AssetTreeNode,
             key: assetQuery.AssetQueryKey = 'names'
@@ -581,14 +600,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                 nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
             )
         const terms = assetQuery.AssetQuery.terms(query.query)
-        const lastTerm = terms[terms.length - 1]
-        const lastTermValues = lastTerm?.values ?? []
-        const shouldOmitNames = terms.some(term => term.tag === 'name')
-        if (lastTermValues.length !== 0) {
+        const term =
+            terms.find(otherTerm => otherTerm.values.length === 0) ?? terms[terms.length - 1]
+        const termValues = term?.values ?? []
+        const shouldOmitNames = terms.some(otherTerm => otherTerm.tag === 'name')
+        if (termValues.length !== 0) {
             setSuggestions(shouldOmitNames ? [] : allVisible())
         } else {
-            const negative = lastTerm?.tag?.startsWith('-') ?? false
-            switch (lastTerm?.tag ?? null) {
+            const negative = term?.tag?.startsWith('-') ?? false
+            switch (term?.tag ?? null) {
                 case null:
                 case '':
                 case '-':
@@ -900,7 +920,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend, category])
 
-    hooks.useAsyncEffect(
+    asyncEffectHooks.useAsyncEffect(
         null,
         async signal => {
             switch (backend.type) {
@@ -1277,7 +1297,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [rootDirectoryId]
     )
 
-    hooks.useEventHandler(assetListEvents, event => {
+    eventHooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case AssetListEventType.newFolder: {
                 const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []

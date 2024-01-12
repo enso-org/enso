@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -31,8 +31,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const rootDirectoryId = React.useMemo(
-        () => backend.rootDirectoryId(organization),
-        [backend, organization]
+        () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+        [organization]
     )
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
@@ -128,7 +128,9 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     action={shortcuts.KeyboardAction.newDataConnector}
                     doAction={() => {
                         setModal(
-                            <NewDataConnectorModal
+                            <UpsertSecretModal
+                                id={null}
+                                name={null}
                                 doCreate={(name, value) => {
                                     dispatchAssetListEvent({
                                         type: AssetListEventType.newDataConnector,
