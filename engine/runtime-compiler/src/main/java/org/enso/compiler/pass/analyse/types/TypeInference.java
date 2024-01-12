@@ -190,6 +190,8 @@ public final class TypeInference implements IRPass {
         }
       }
       case Literal l -> processLiteral(l);
+      case Application.Sequence sequence ->
+        setInferredType(sequence, new InferredType(TypeRepresentation.VECTOR));
       default -> {
         log("type propagation", ir, "UNKNOWN: " + ir.getClass().getCanonicalName());
       }
@@ -274,6 +276,7 @@ public final class TypeInference implements IRPass {
     setInferredType(literal, new InferredType(type));
   }
 
+  @SuppressWarnings("unchecked")
   private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
     if (arguments.isEmpty()) {
       log("WARNING processApplication", relatedIR, "unexpected - no arguments in a function application");
