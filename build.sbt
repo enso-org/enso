@@ -1505,6 +1505,7 @@ lazy val `runtime-language-arrow` =
         "org.apache.arrow" % "arrow-vector"       % apacheArrowVersion % Test,
         "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
       ),
+      javaModuleName := "org.enso.interpreter.arrow",
       modulePath := {
         val updateReport = (Test / update).value
         JPMSUtils.filterModulesFromUpdate(
@@ -1520,7 +1521,7 @@ lazy val `runtime-language-arrow` =
       },
       Test / patchModules := {
         val testClassesDir = (Test / productDirectories).value.head
-        Map("org.enso.interpreter.arrow" -> Seq(testClassesDir))
+        Map(javaModuleName.value -> Seq(testClassesDir))
       },
       Test / addModules := Seq("org.enso.interpreter.arrow"),
       Test / javaOptions ++= Seq(
@@ -1528,7 +1529,7 @@ lazy val `runtime-language-arrow` =
         "--add-opens=java.base/java.nio=ALL-UNNAMED"                 // Tests use Apache Arrow
       ),
       Test / addReads := {
-        Map("org.enso.interpreter.arrow" -> Seq("ALL-UNNAMED"))
+        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
       }
     )
 
