@@ -129,7 +129,7 @@ read_characters decoder n =
         transfer_codepoints _ =
             if buffer.hasRemaining.not then Nothing else
                 char = buffer.get
-                v.append char
+                v.append char.codepoints.first
                 @Tail_Call transfer_codepoints Nothing
         transfer_codepoints Nothing
         v.to_vector

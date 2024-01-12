@@ -7,14 +7,12 @@
   "include": [
     ".",
     "../content",
-    "../dashboard",
     "../types",
     "../../utils.ts",
     "../../../../build.json"
   ],
   "references": [
-    {
-      "path": "../../../gui2/tsconfig.server.json"
-    }
+    { "path": "../../../gui2/tsconfig.server.json" },
+    { "path": "../dashboard" }
   ]
 }

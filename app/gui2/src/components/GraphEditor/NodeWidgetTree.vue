@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
-import { type PortId } from '@/providers/portInfo'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput, type UpdatePayload } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
+import { assertNever } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { isUuid } from 'shared/yjsModel'
 import { computed, toRef } from 'vue'
@@ -32,20 +32,30 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
-function handleWidgetUpdates(value: unknown, origin: PortId) {
-  // TODO: Implement proper AST-based update.
-  if (!isUuid(origin)) {
-    console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
-  } else if (typeof value === 'string') {
-    graph.setExpressionContent(origin, value)
-  } else if (value instanceof Ast.Ast) {
-    graph.setExpression(origin, value)
-  } else if (value == null) {
-    graph.setExpressionContent(origin, '_')
+function handleWidgetUpdates(update: UpdatePayload) {
+  console.log('Widget Update: ', update)
+  if (update.type === 'edit') {
+    graph.commitEdit(update.edit)
+  } else if (update.type === 'set') {
+    const { value, origin } = update
+    if (!isUuid(origin)) {
+      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+    } else if (value instanceof Ast.Ast) {
+      const edit = graph.astModule.edit()
+      edit.replaceValue(origin as Ast.AstId, value)
+      graph.commitEdit(edit)
+    } else if (typeof value === 'string') {
+      graph.setExpressionContent(origin, value)
+    } else if (value == null) {
+      graph.setExpressionContent(origin, '_')
+    } else {
+      console.error(`[UPDATE ${origin}] Invalid value:`, value)
+    }
   } else {
-    console.error(`[UPDATE ${origin}] Invalid value:`, value)
+    assertNever(update)
   }
-  // No matter if its a succes or not, this handler is always considered to have handled the update,
+
+  // No matter if it's a success or not, this handler is always considered to have handled the update,
   // since it is guaranteed to be the last handler in the chain.
   return true
 }
