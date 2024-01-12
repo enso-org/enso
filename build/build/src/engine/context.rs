@@ -519,7 +519,7 @@ impl RunContext {
         }
 
 
-        if build_native_runner {
+        if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
             ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
