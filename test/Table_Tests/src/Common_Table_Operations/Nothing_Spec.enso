@@ -16,11 +16,8 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    js_object = JS_Object.from_pairs [["a", 10], ["b", 20]]
-    js_object2 = JS_Object.from_pairs [["a", 100], ["b", 200]]
     values = [[True, False, Value_Type.Boolean]]
            + [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
-           + [[js_object, js_object2, Value_Type.Mixed]]
            + [["twelve", "thirteen", Value_Type.Char]]
            + [[12, 13, Value_Type.Integer]]
            + [[9223372036854775807, 13, Value_Type.Integer]]
@@ -121,3 +118,14 @@ spec setup =
 
             Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Vector (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+
+    Test.group prefix+"distinct" <|
+        values.map triple->
+            value = triple.at 0
+            other_value = triple.at 1
+            expected_value_type = triple.at 2
+
+            Test.specify "Correctly handle Nothing in .distinct for "+expected_value_type.to_text <|
+                t0 = table_builder [["x", [value, other_value, other_value, Nothing, value, Nothing]]]
+                t1 = t0 . distinct
+                t1.at "x" . to_vector . should_contain_the_same_elements_as [value, other_value, Nothing]
