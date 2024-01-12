@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Table import all
+
 from Standard.Test import Test
 import Standard.Test.Extensions
 
@@ -7,17 +9,44 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main = run_default_backend spec
 
+type My_Type
+    Value x
+
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    IO.println 'AAA NS'
 
-    Test.group prefix+"Equalityasdfasdf" <|
-        Test.specify "== Respects Nothing" <|
-            scalars = [12, 12.3, "twelve"]
-            scalars.map x->
-                t0 = table_builder [["x", [x, Nothing]]]
-                c0 = t0.at "x" == Nothing
-                IO.println 'AAA'
-                IO.println c0
-                c0.to_vector . should_equal [Nothing, Nothing]
+    Test.group prefix+"Comparisons" <|
+        js_object = JS_Object.from_pairs [["a", 10], ["b", 20]]
+        values = [[True, Value_Type.Boolean], [My_Type.Value "1", Value_Type.Mixed], [js_object, Value_Type.Mixed]]
+                + [["twelve", Value_Type.Char], [12, Value_Type.Integer], [9223372036854775807, Value_Type.Integer], [12.3, Value_Type.Float]]
+                + [[Date.new 2024 1 3, Value_Type.Date], [Date_Time.new 2024 1 3 2 30 10, Value_Type.Date_Time]]
+                + [[Time_Of_Day.new 2 30 10, Value_Type.Time], [[1], Value_Type.Mixed]]
+                + [[Nothing, Value_Type.Mixed]]
+        operations = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
+
+        operations.map pair->
+            operation_name = pair.at 0
+            operation = pair.at 1
+
+            values.map pair->
+                value = pair.at 0
+                expected_value_type = pair.at 1
+
+                Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
+                    t0 = table_builder [["x", [value, Nothing]]]
+                    t0.at "x" . value_type . should_equal expected_value_type
+                    c0 = operation (t0.at "x") Nothing
+                    c0.to_vector . should_equal [Nothing, Nothing]
+
+                Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing column" <|
+                    t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
+                    t0.at "x" . value_type . should_equal expected_value_type
+                    c0 = operation (t0.at "x") (t0.at "n")
+                    c0.to_vector . should_equal [Nothing, Nothing]
+
+                Test.specify "Binary op: Nothing column "+expected_value_type.to_text+" "+operation_name <|
+                    t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
+                    t0.at "x" . value_type . should_equal expected_value_type
+                    c0 = operation (t0.at "n") (t0.at "x")
+                    c0.to_vector . should_equal [Nothing, Nothing]
