@@ -88,13 +88,12 @@ public class Layout {
       }
     }
     for (int i = 0; i < fieldGetterFactories.length; i++) {
+      if (args[i].isSuspended()) {
+        this.fieldGetterFactories[i] =
+            SuspendedFieldGetterNode.factory(fieldGetterFactories[i], fieldSetterFactories[i]);
+      }
       this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
       assert this.uncachedFieldGetters[i] != null;
-      if (args[i].isSuspended()) {
-        this.uncachedFieldGetters[i] =
-            SuspendedFieldGetterNode.build(
-                this.uncachedFieldGetters[i], this.uncachedFieldSetters[i]);
-      }
     }
   }
 
@@ -190,10 +189,6 @@ public class Layout {
     var getters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       getters[i] = fieldGetterFactories[i].createNode();
-      if (args[i].isSuspended()) {
-        var setterOrNull = buildSetter(i);
-        getters[i] = SuspendedFieldGetterNode.build(getters[i], setterOrNull);
-      }
     }
     return getters;
   }
@@ -204,9 +199,6 @@ public class Layout {
 
   public UnboxingAtom.FieldGetterNode buildGetter(int index) {
     var node = fieldGetterFactories[index].createNode();
-    if (args[index].isSuspended()) {
-      node = SuspendedFieldGetterNode.build(node, buildSetter(index));
-    }
     return node;
   }
 

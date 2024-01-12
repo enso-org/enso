@@ -53,10 +53,6 @@ public abstract class Atom implements EnsoObject {
     return constructor;
   }
 
-  private final Object[] getFields() {
-    return StructsLibrary.getUncached().getFields(this);
-  }
-
   public void setHashCode(int hashCode) {
     assert this.hashCode == null : "setHashCode must be called at most once";
     this.hashCode = hashCode;
@@ -71,12 +67,13 @@ public abstract class Atom implements EnsoObject {
       builder.append("...");
       return;
     }
-    boolean parensNeeded = shouldParen && getFields().length > 0;
+    boolean parensNeeded = shouldParen && constructor.getArity() > 0;
     if (parensNeeded) {
       builder.append("(");
     }
     builder.append(getConstructor().getName());
-    for (var obj : getFields()) {
+    for (var i = 0; i < constructor.getArity(); i++) {
+      var obj = StructsLibrary.getUncached().getField(this, i);
       builder.append(" ");
       if (obj instanceof Atom atom) {
         atom.toString(builder, true, depth - 1);
@@ -180,10 +177,11 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @ExplodeLoop
-  public Object readMember(String member) throws UnknownIdentifierException {
+  public Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
+      throws UnknownIdentifierException {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
-        return getFields()[i];
+        return structs.getField(this, i);
       }
     }
     throw UnknownIdentifierException.create(member);

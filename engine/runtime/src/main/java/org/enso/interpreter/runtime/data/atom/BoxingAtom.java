@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
  */
 @ExportLibrary(StructsLibrary.class)
 final class BoxingAtom extends Atom {
+  private static final Object[] NO_FIELDS = new Object[0];
   static final NodeFactory<? extends UnboxingAtom.InstantiatorNode> FACTORY =
       new InstantiatorFactory();
 
@@ -41,9 +42,14 @@ final class BoxingAtom extends Atom {
 
   private final Object[] fields;
 
-  private BoxingAtom(AtomConstructor constructor, Object... fields) {
+  private BoxingAtom(AtomConstructor constructor, Object[] fields) {
     super(constructor);
     this.fields = fields;
+  }
+
+  private BoxingAtom(AtomConstructor constructor) {
+    super(constructor);
+    this.fields = NO_FIELDS;
   }
 
   static Atom singleton(AtomConstructor constructor) {
@@ -83,6 +89,7 @@ final class BoxingAtom extends Atom {
   private static class InstantiatorNode extends UnboxingAtom.InstantiatorNode {
     @Override
     public Atom execute(AtomConstructor constructor, Layout layout, Object[] args) {
+      assert constructor.getBoxedLayout() == layout;
       return new BoxingAtom(constructor, args);
     }
   }
