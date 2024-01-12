@@ -24,6 +24,7 @@ import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.CollectionConverters$;
 
 import java.util.*;
 
@@ -94,9 +95,21 @@ public final class TypeInference implements IRPass {
 
   private Expression analyzeExpression(Expression ir, InlineContext inlineContext, LocalBindingsTyping localBindingsTyping) {
     // We first run the inner expressions, as most basic inference is propagating types in a bottom-up manner.
-    var mappedIr = ir.mapExpressions(
-        (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
-    );
+    var mappedIr = switch (ir) {
+      case Function.Lambda lambda -> {
+        for (var arg : CollectionConverters$.MODULE$.asJava(lambda.arguments())) {
+          if (arg.ascribedType().isDefined()) {
+            var type = resolveTypeExpression(arg.ascribedType().get());
+            registerBinding(arg, type, localBindingsTyping);
+          }
+        }
+        var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping);
+        yield lambda.copy(lambda.arguments(), newBody, lambda.location(), lambda.canBeTCO(), lambda.passData(), lambda.diagnostics(), lambda.id());
+      }
+      default -> ir.mapExpressions(
+          (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
+      );
+    };
 
     processTypePropagation(mappedIr, localBindingsTyping);
 
@@ -133,6 +146,7 @@ public final class TypeInference implements IRPass {
 
   private static class LocalBindingsTyping {
     private final Map<AliasAnalysis.Graph, Map<Integer, TypeRepresentation>> map = new HashMap<>();
+
     public static LocalBindingsTyping create() {
       return new LocalBindingsTyping();
     }
@@ -190,25 +204,24 @@ public final class TypeInference implements IRPass {
         }
       }
       case Literal l -> processLiteral(l);
-      case Application.Sequence sequence ->
-        setInferredType(sequence, new InferredType(TypeRepresentation.VECTOR));
+      case Application.Sequence sequence -> setInferredType(sequence, new InferredType(TypeRepresentation.VECTOR));
       default -> {
         log("type propagation", ir, "UNKNOWN: " + ir.getClass().getCanonicalName());
       }
     }
   }
 
-  private void registerBinding(Expression.Binding binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
+  private void registerBinding(IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
     var metadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(binding);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
-      log("registerBinding", binding, "missing occurrence in graph for " + metadata);
+      log("registerBinding " + binding.showCode() + ": missing occurrence in graph for " + metadata);
       return;
     }
 
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
-    log("registerBinding", binding, "registered " + def.id() + " as " + type);
+    log("registerBinding " + binding + ": registered " + def.id() + " as " + type);
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
