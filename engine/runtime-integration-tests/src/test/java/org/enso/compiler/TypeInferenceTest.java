@@ -220,7 +220,6 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(TypeRepresentation.FLOAT, getInferredType(findAssignment(f.body(), "z").expression()));
   }
 
-  @Ignore("TODO resolving local bindings/arguments")
   @Test
   public void bindingsFlow() throws Exception {
     final URI uri = new URI("memory://bindingsFlow.enso");

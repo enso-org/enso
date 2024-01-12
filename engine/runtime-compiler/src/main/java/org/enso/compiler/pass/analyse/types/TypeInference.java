@@ -20,17 +20,12 @@ import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.IntStream;
+import java.util.*;
 
 public final class TypeInference implements IRPass {
   public static final TypeInference INSTANCE = new TypeInference();
@@ -94,12 +89,16 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
+    return analyzeExpression(ir, inlineContext, LocalBindingsTyping.create());
+  }
+
+  private Expression analyzeExpression(Expression ir, InlineContext inlineContext, LocalBindingsTyping localBindingsTyping) {
     // We first run the inner expressions, as most basic inference is propagating types in a bottom-up manner.
     var mappedIr = ir.mapExpressions(
-        (expression) -> runExpression(expression, inlineContext)
+        (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
     );
 
-    processTypePropagation(mappedIr);
+    processTypePropagation(mappedIr, localBindingsTyping);
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
@@ -132,9 +131,15 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processTypePropagation(Expression ir) {
+  private record LocalBindingsTyping(Map<Integer, TypeRepresentation> knownBindings) {
+    public static LocalBindingsTyping create() {
+      return new LocalBindingsTyping(new HashMap<>());
+    }
+  }
+
+  private void processTypePropagation(Expression ir, LocalBindingsTyping localBindingsTyping) {
     switch (ir) {
-      case Name.Literal l -> processName(l);
+      case Name.Literal l -> processName(l, localBindingsTyping);
       case Application.Force f -> {
         var innerType = getInferredType(f.target());
         if (innerType != null) {
@@ -151,7 +156,10 @@ public final class TypeInference implements IRPass {
         }
       }
       case Expression.Binding b -> {
-        // TODO propagate the type into scope somehow?
+        var innerType = getInferredType(b.expression());
+        if (innerType != null) {
+          registerBinding(b, innerType.type(), localBindingsTyping);
+        }
       }
       case Expression.Block b -> {
         var innerType = getInferredType(b.returnValue());
@@ -172,20 +180,41 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processName(Name.Literal literalName) {
-    // TODO need to reproduce IrToTruffle::processName logic
-    // TODO first iteration - just find the local bindings
+  private void registerBinding(Expression.Binding binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
+    var metadata =
+        getMetadata(binding, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+    var occurrence = metadata.graph().getOccurrence(metadata.id());
+    if (occurrence.isEmpty()) {
+      log("registerBinding", binding, "missing occurrence in graph for " + metadata);
+      return;
+    }
 
-//    AliasAnalysis.Info.Occurrence occurrence =
-//        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+    if (!(occurrence.get() instanceof AliasAnalysis.Graph.Occurrence.Def def)) {
+      log("registerBinding", binding, "occurrence is not a definition: " + occurrence.get());
+      return;
+    }
+
+    localBindingsTyping.knownBindings.put(def.id(), type);
+  }
+
+  private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
+    // This should reproduce IrToTruffle::processName logic
+    AliasAnalysis.Info.Occurrence occurrence =
+        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
     Optional<BindingsMap.Resolution> global =
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+    Option<AliasAnalysis.Graph.Link> localLink = occurrence.graph().defLinkFor(occurrence.id());
+    if (localLink.isDefined() && global.isPresent()) {
+      log("processName", literalName, "BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrence);
+    }
 
-    // TODO somehow correlate the occurrence with an argument or a local binding
-    // TODO how to get here type ascriptions from arguments?? do I need some state when traversing?
-    Object inLocalScope = null;
-    if (inLocalScope != null) {
-      log("processName", literalName, "local scope TODO");
+    boolean isLocalReference = localLink.isDefined();
+    if (isLocalReference) {
+      int target = localLink.get().target();
+      TypeRepresentation type = localBindingsTyping.knownBindings.get(target);
+      if (type != null) {
+        setInferredType(literalName, new InferredType(type));
+      }
     } else if (global.isPresent()) {
       BindingsMap.ResolvedName resolution = global.get().target();
       processGlobalName(literalName, resolution);
