@@ -32,6 +32,12 @@ spec setup =
     Test.group prefix+"Comparisons" <|
         operations = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
 
+        Test.specify "Confirm expected types" <|
+            values.map pair->
+                value = pair.at 0
+                expected_value_type = pair.at 1
+                table_builder [["x", [value, Nothing]]] . at "x" . value_type . should_equal expected_value_type
+
         operations.map pair->
             operation_name = pair.at 0
             operation = pair.at 1
@@ -42,21 +48,44 @@ spec setup =
 
                 Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
                     t0 = table_builder [["x", [value, Nothing]]]
-                    t0.at "x" . value_type . should_equal expected_value_type
                     c0 = operation (t0.at "x") Nothing
                     c0.to_vector . should_equal [Nothing, Nothing]
 
                 Test.specify "Binary op: "+expected_value_type.to_text+" "+operation_name+" Nothing column" <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
-                    t0.at "x" . value_type . should_equal expected_value_type
                     c0 = operation (t0.at "x") (t0.at "n")
                     c0.to_vector . should_equal [Nothing, Nothing]
 
                 Test.specify "Binary op: Nothing column "+expected_value_type.to_text+" "+operation_name <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
-                    t0.at "x" . value_type . should_equal expected_value_type
                     c0 = operation (t0.at "n") (t0.at "x")
                     c0.to_vector . should_equal [Nothing, Nothing]
+
+    Test.group prefix+"between" <|
+        values.map pair->
+            value = pair.at 0
+            expected_value_type = pair.at 1
+            t0 = table_builder [["x", [value, Nothing]], ["y", [value, Nothing]], ["n", [Nothing, Nothing]]]
+
+            Test.specify "Nothing column between "+expected_value_type.to_text+" and "+expected_value_type.to_text <|
+                c0 = t0.at "n" . between (t0.at "x") (t0.at "y")
+                c0.to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify expected_value_type.to_text+" between Nothing column and "+expected_value_type.to_text <|
+                c0 = t0.at "x" . between (t0.at "n") (t0.at "y")
+                c0.to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing column" <|
+                c0 = t0.at "x" . between (t0.at "y") (t0.at "n")
+                c0.to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify expected_value_type.to_text+" between Nothing value and "+expected_value_type.to_text <|
+                c0 = t0.at "x" . between Nothing (t0.at "y")
+                c0.to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify expected_value_type.to_text+" between "+expected_value_type.to_text+" and Nothing value" <|
+                c0 = t0.at "x" . between (t0.at "y") Nothing
+                c0.to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"is_nothing" <|
         values.map pair->
@@ -65,6 +94,5 @@ spec setup =
 
             Test.specify expected_value_type.to_text+".is_nothing" <|
                 t0 = table_builder [["x", [value, Nothing]]]
-                t0.at "x" . value_type . should_equal expected_value_type
                 c0 = t0.at "x" . is_nothing
                 c0.to_vector . should_equal [False, True]
