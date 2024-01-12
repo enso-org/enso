@@ -32,7 +32,7 @@ const value = computed({
   set(value) {
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    props.onUpdate(newCode, props.input.portId)
+    props.onUpdate({ type: 'set', value: newCode, origin: props.input.portId })
   },
 })
 

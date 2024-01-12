@@ -326,6 +326,32 @@ spec setup =
             actual = t.fill_nothing ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+        
+        Test.specify "should allow to fill_nothing from larger string and expands type to fit" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
+            actual = t.fill_nothing ["col0"] "ABCDE"
+            actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
+            if setup.is_database.not then
+                actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
+
+        Test.specify "should allow to fill_nothing from an empty string" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
+            actual = t.fill_nothing ["col0", "col1"] ""
+            actual.at "col0" . to_vector . should_equal ["0", "", "4", "5", "", ""]
+            actual.at "col1" . to_vector . should_equal ["", "200", "", "400", "500", ""]
+
+        Test.specify "should allow to fill_nothing a fixed width from an empty string" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] ""
+            actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]  
+            actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+        
+        Test.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] "   "
+            actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]  
+            if setup.is_database.not then
+                actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
         Test.specify "should allow to fill_nothing from other columns" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
