@@ -1,7 +1,10 @@
 package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -106,30 +109,9 @@ public abstract class InstantiateNode extends ExpressionNode {
   public abstract static class CreateInstanceNode extends Node {
     @NeverDefault
     static CreateInstanceNode create(AtomConstructor constructor) {
-      if (Layout.isAritySupported(constructor.getArity())) {
-        return Layout.CreateUnboxedInstanceNode.create(constructor);
-      } else {
-        return FallbackCreateInstanceNode.create(constructor);
-      }
+      return Layout.CreateUnboxedInstanceNode.create(constructor);
     }
 
     public abstract Object execute(Object[] arguments);
-  }
-
-  static class FallbackCreateInstanceNode extends CreateInstanceNode {
-    private final AtomConstructor constructor;
-
-    public static CreateInstanceNode create(AtomConstructor constructor) {
-      return new FallbackCreateInstanceNode(constructor);
-    }
-
-    FallbackCreateInstanceNode(AtomConstructor constructor) {
-      this.constructor = constructor;
-    }
-
-    @Override
-    public Object execute(Object[] arguments) {
-      return constructor.newInstance(arguments);
-    }
   }
 }

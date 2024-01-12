@@ -132,14 +132,18 @@ public class Layout {
     }
 
     var storageGetterFactories =
-        LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed);
+        isAritySupported(arity)
+            ? LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed)
+            : BoxingAtom.getFieldGetterNodeFactories(arity);
     var getterFactories = new NodeFactory[arity];
     for (int i = 0; i < arity; i++) {
       getterFactories[i] = storageGetterFactories[fieldToStorage[i]];
     }
 
     var storageSetterFactories =
-        LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed);
+        isAritySupported(arity)
+            ? LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed)
+            : BoxingAtom.getFieldSetterNodeFactories(arity);
     var setterFactories = new NodeFactory[arity];
     for (int i = 0; i < arity; i++) {
       var factory = storageSetterFactories[fieldToStorage[i]];
@@ -150,7 +154,10 @@ public class Layout {
       setterFactories[i] = factory;
     }
 
-    var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
+    var instantiatorFactory =
+        isAritySupported(arity)
+            ? LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed)
+            : BoxingAtom.FACTORY;
 
     return new Layout(
         typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory, args);
@@ -218,6 +225,8 @@ public class Layout {
    * data that does not fit the known layouts.
    */
   public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
+    private static final UnboxingAtom.DirectCreateLayoutInstanceNode[] EMPTY =
+        new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
     @Child UnboxingAtom.DirectCreateLayoutInstanceNode boxedLayout;
     @Children UnboxingAtom.DirectCreateLayoutInstanceNode[] unboxedLayouts;
     private final int arity;
@@ -231,7 +240,7 @@ public class Layout {
       this.boxedLayout =
           new UnboxingAtom.DirectCreateLayoutInstanceNode(
               constructor, constructor.getBoxedLayout());
-      unboxedLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
+      unboxedLayouts = EMPTY;
       updateFromConstructor();
     }
 
@@ -269,26 +278,32 @@ public class Layout {
     }
 
     void updateFromConstructor() {
-      var layouts = constructor.getUnboxingLayouts();
-      var newLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[layouts.length];
-      System.arraycopy(unboxedLayouts, 0, newLayouts, 0, unboxedLayouts.length);
-      for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
-        newLayouts[i] = new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
-      }
-      if (layouts.length == EnsoContext.get(this).getMaxUnboxingLayouts()) {
+      if (isAritySupported(arity)) {
+        var layouts = constructor.getUnboxingLayouts();
+        var newLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[layouts.length];
+        System.arraycopy(unboxedLayouts, 0, newLayouts, 0, unboxedLayouts.length);
+        for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
+          newLayouts[i] = new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
+        }
+        if (layouts.length == EnsoContext.get(this).getMaxUnboxingLayouts()) {
+          constructorAtCapacity = true;
+        }
+        unboxedLayouts = newLayouts;
+      } else {
         constructorAtCapacity = true;
       }
-      unboxedLayouts = newLayouts;
     }
 
     @ExplodeLoop
     long computeFlags(Object[] arguments) {
       long flags = 0;
-      for (int i = 0; i < arity; i++) {
-        if (arguments[i] instanceof Double) {
-          flags |= Flags.DOUBLE_MASK << (i * 2);
-        } else if (arguments[i] instanceof Long) {
-          flags |= Flags.LONG_MASK << (i * 2);
+      if (isAritySupported(arity)) {
+        for (int i = 0; i < arity; i++) {
+          if (arguments[i] instanceof Double) {
+            flags |= Flags.DOUBLE_MASK << (i * 2);
+          } else if (arguments[i] instanceof Long) {
+            flags |= Flags.LONG_MASK << (i * 2);
+          }
         }
       }
       return flags;

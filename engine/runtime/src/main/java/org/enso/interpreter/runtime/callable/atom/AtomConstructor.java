@@ -118,14 +118,13 @@ public final class AtomConstructor implements EnsoObject {
       Annotation[] annotations,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
+    assert boxedLayout == null : "Don't initialize twice: " + this.name;
     if (args.length == 0) {
       cachedInstance = new BoxingAtom(this);
     } else {
       cachedInstance = null;
     }
-    if (Layout.isAritySupported(args.length)) {
-      boxedLayout = Layout.create(args.length, 0, args);
-    }
+    boxedLayout = Layout.create(args.length, 0, args);
     this.constructorFunction =
         buildConstructorFunction(
             language, section, localScope, assignments, varReads, annotations, args);
