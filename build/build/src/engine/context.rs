@@ -302,23 +302,17 @@ impl RunContext {
         // If we have much memory, we can try building everything in a single batch. Reducing number
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
-        let github_hosted_macos_memory = 15_032_385;
-        let big_memory_machine = system.total_memory() > github_hosted_macos_memory;
-        // Windows native runner is not yet supported.
-        let build_native_runner =
-            self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
-
 
         // === Build project-manager distribution and native image ===
         debug!("Bulding project-manager distribution and Native Image");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
             }
-            if build_native_runner {
+            if self.config.build_native_runner {
                 tasks.push("engine-runner/buildNativeImage");
             }
 
@@ -413,7 +407,7 @@ impl RunContext {
 
         // === Run benchmarks ===
         debug!("Running benchmarks.");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
             // This just compiles benchmarks, not run them. At least we'll know that they can be
             // run. Actually running them, as part of this routine, would be too heavy.
