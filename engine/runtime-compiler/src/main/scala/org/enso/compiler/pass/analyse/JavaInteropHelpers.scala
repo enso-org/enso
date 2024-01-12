@@ -2,7 +2,10 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.core.{CompilerError, IR}
 
-/** This gathers helpers that allow to access AliasAnalysis metadata that normally fails to compile in Java. */
+/** This gathers helpers that allow to access AliasAnalysis metadata that normally fails to compile in Java.
+ *
+ * FIXME Later, we should remove this module by unnesting the nested classes, making them easily accessible from Java.
+ */
 object JavaInteropHelpers {
   def getAliasAnalysisOccurrenceMetadata(
     ir: IR
