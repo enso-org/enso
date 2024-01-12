@@ -407,44 +407,128 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
   }
 
-  @Ignore
   @Test
   public void commonCase() throws Exception {
     final URI uri = new URI("memory://commonCase.enso");
     final Source src =
         Source.newBuilder("enso", """
+                type My_Type
+                    Value v
                 f x =
                   y = case x of
-                    i : Integer -> i
-                    _ -> 0
+                    1 -> My_Type.Value 1
+                    2 -> My_Type.Value 20
+                    _ -> My_Type.Value 300
                   y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("commonCase.My_Type");
     var f = findStaticMethod(module, "f");
-    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
+    assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
 
-  @Ignore
   @Test
-  public void inferBoundsFromCase() throws Exception {
-    final URI uri = new URI("memory://inferBoundsFromCase.enso");
+  public void inferBoundsFromCaseAlias() throws Exception {
+    final URI uri = new URI("memory://inferBoundsFromCaseAlias.enso");
     final Source src =
         Source.newBuilder("enso", """
+                type My_Type
+                    Value v
                 f x =
                   y = case x of
-                    _ : Integer -> x
-                    _ -> 0
+                    i : My_Type -> i
+                    _ -> My_Type.Value 0
                   y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("inferBoundsFromCaseAlias.My_Type");
     var f = findStaticMethod(module, "f");
-    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
+    assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  /**
+   * This is more complex than inferBoundsFromCaseAlias, as it needs to add a type constraint only in one branch. We will need to ensure that we duplicate the local scopes in each branch to avoid bad sharing.
+   */
+  @Ignore("TODO")
+  @Test
+  public void inferEqualityBoundsFromCase() throws Exception {
+    final URI uri = new URI("memory://inferEqualityBoundsFromCase.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                f x =
+                  y = case x of
+                    _ : My_Type -> x
+                    _ -> My_Type.Value 42
+                  y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("inferEqualityBoundsFromCase.My_Type");
+    var f = findStaticMethod(module, "f");
+    assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void inferEqualityBoundsFromCaseEdgeCase() throws Exception {
+    // This test ensures that the equality bound from _:Other_Type is only applicable in its branch and does not 'leak' to other branches.
+    final URI uri = new URI("memory://inferEqualityBoundsFromCaseEdgeCase.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                f x =
+                  y = case x of
+                    _ : Other_Type -> My_Type.Value 42
+                    _ : My_Type -> x
+                  y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("inferEqualityBoundsFromCaseEdgeCase.My_Type");
+    var f = findStaticMethod(module, "f");
+    assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void sumTypeFromCase() throws Exception {
+    final URI uri = new URI("memory://sumTypeFromCase.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                f x =
+                  y = case x of
+                    1 -> My_Type.Value 42
+                    2 -> Other_Type.Value 23
+                  y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("sumTypeFromCase.My_Type");
+    var otherType = TypeRepresentation.fromQualifiedName("sumTypeFromCase.Other_Type");
+    var sumType = new TypeRepresentation.SumType(List.of(myType, otherType));
+    var f = findStaticMethod(module, "f");
+    assertEquals(sumType, getInferredType(findAssignment(f, "y").expression()));
   }
 
   @Ignore
