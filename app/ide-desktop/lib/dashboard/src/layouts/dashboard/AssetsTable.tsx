@@ -235,9 +235,7 @@ function insertArbitraryAssetTreeNodeChildren(
 
 const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
     [Category.recent]: null,
-    [Category.drafts]: null,
     [Category.home]: backendModule.FilterBy.active,
-    [Category.root]: null,
     [Category.trash]: backendModule.FilterBy.trashed,
 }
 

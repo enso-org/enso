@@ -139,6 +139,16 @@ export function locateLabelsPanelLabels(page: test.Locator | test.Page) {
     return locateLabelsPanel(page).getByRole('button')
 }
 
+/** Find a "home" button (if any) on the current page. */
+export function locateHomeButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Home' }).getByText('Home')
+}
+
+/** Find a "trash" button (if any) on the current page. */
+export function locateTrashButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Trash' }).getByText('Trash')
+}
+
 // === Context menu buttons ===
 
 /** Find an "open" button (if any) on the current page. */
@@ -169,6 +179,18 @@ export function locateMoveToTrashButton(page: test.Locator | test.Page) {
 /** Find a "move all to trash" button (if any) on the current page. */
 export function locateMoveAllToTrashButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Move All To Trash' }).getByText('Move All To Trash')
+}
+
+/** Find a "restore from trash" button (if any) on the current page. */
+export function locateRestoreFromTrashButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Restore From Trash' }).getByText('Restore From Trash')
+}
+
+/** Find a "restore all from trash" button (if any) on the current page. */
+export function locateRestoreAllFromTrashButton(page: test.Locator | test.Page) {
+    return page
+        .getByRole('button', { name: 'Restore All From Trash' })
+        .getByText('Restore All From Trash')
 }
 
 /** Find a "share" button (if any) on the current page. */
@@ -276,7 +298,7 @@ export function locateAssetsTable(page: test.Locator | test.Page) {
 
 /** Find assets table rows (if any) on the current page. */
 export function locateAssetsTableRows(page: test.Locator | test.Page) {
-    return locateAssetsTable(page).getByRole('row')
+    return locateAssetsTable(page).locator('tbody').getByRole('row')
 }
 
 /** Find a "change password" modal (if any) on the current page. */
@@ -338,11 +360,35 @@ export function getAssetRowLeftPx(locator: test.Locator) {
     return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
 
+// ============================
+// === expectPlaceholderRow ===
+// ============================
+
+/** A test assertion to confirm that there is only one row visible, and that row is the
+ * placeholder row displayed when there are no assets to show. */
+export async function expectPlaceholderRow(page: test.Page) {
+    const assetRows = locateAssetsTableRows(page)
+    await test.test.step('Expect placeholder row', async () => {
+        await test.expect(assetRows).toHaveCount(1)
+        await test.expect(assetRows).toHaveText(/You have no files/)
+    })
+}
+
+/** A test assertion to confirm that there is only one row visible, and that row is the
+ * placeholder row displayed when there are no assets in Trash. */
+export async function expectTrashPlaceholderRow(page: test.Page) {
+    const assetRows = locateAssetsTableRows(page)
+    await test.test.step('Expect trash placeholder row', async () => {
+        await test.expect(assetRows).toHaveCount(1)
+        await test.expect(assetRows).toHaveText(/Your trash is empty/)
+    })
+}
+
 // ==========================
 // === Keyboard utilities ===
 // ==========================
 
-/** Press a key, replace the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+/** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
  * on all other platforms. */
 export async function press(page: test.Page, keyOrShortcut: string) {
     if (/\bMod\b/.test(keyOrShortcut)) {

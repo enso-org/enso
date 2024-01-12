@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
-import RootIcon from 'enso-assets/root.svg'
-import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -27,8 +25,6 @@ interface InternalCategorySwitcherItemProps {
     active?: boolean
     /** When true, the button is not clickable. */
     disabled?: boolean
-    /** A title that is only shown when `disabled` is true. */
-    hidden: boolean
     image: string
     name: string
     iconClassName?: string
@@ -39,27 +35,28 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-    const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
+    const { active = false, disabled = false, image, name, iconClassName, onClick } = props
     const { onDragOver, onDrop } = props
     return (
-        <div
-            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${
-                hidden ? 'hidden' : ''
-            } ${active ? 'bg-frame-selected' : 'text-not-selected'} ${
-                disabled
-                    ? ''
-                    : 'hover:text-primary hover:bg-frame-selected cursor-pointer hover:opacity-100'
-            } ${!active && disabled ? 'cursor-not-allowed' : ''}`}
-            {...(disabled ? {} : { onClick, onDragOver, onDrop })}
+        <button
+            disabled={disabled}
+            className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-frame-selected transition-colors ${
+                active ? 'bg-frame-selected' : 'text-not-selected'
+            } ${disabled ? '' : 'hover:text-primary hover:bg-frame-selected hover:opacity-100'} ${
+                !active && disabled ? 'cursor-not-allowed' : ''
+            }`}
+            onClick={onClick}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
         >
             <SvgMask
                 src={image}
-                className={`${active ? 'text-icon-selected' : 'text-icon-not-selected'} ${
-                    disabled ? '' : 'group-hover:text-icon-selected'
+                className={`group-hover:text-icon-selected ${
+                    active ? 'text-icon-selected' : 'text-icon-not-selected'
                 } ${iconClassName ?? ''}`}
             />
             <span>{name}</span>
-        </div>
+        </button>
     )
 }
 
@@ -67,35 +64,17 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // === CategorySwitcher ===
 // ========================
 
-const CATEGORIES: Category[] = [
-    Category.recent,
-    Category.drafts,
-    Category.home,
-    Category.root,
-    Category.trash,
-]
-
-const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
-    [Category.recent]: false,
-    [Category.drafts]: true,
-    [Category.home]: false,
-    [Category.root]: true,
-    [Category.trash]: false,
-}
+const CATEGORIES: Category[] = [Category.recent, Category.home, Category.trash]
 
 const CATEGORY_ICONS: Record<Category, string> = {
     [Category.recent]: RecentIcon,
-    [Category.drafts]: TempIcon,
     [Category.home]: Home2Icon,
-    [Category.root]: RootIcon,
     [Category.trash]: Trash2Icon,
 }
 
 const CATEGORY_CLASS_NAMES: Record<Category, string> = {
     [Category.recent]: '-ml-0.5',
-    [Category.drafts]: '-ml-0.5',
     [Category.home]: '',
-    [Category.root]: '',
     [Category.trash]: '',
 } as const
 
@@ -128,7 +107,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     key={currentCategory}
                     active={category === currentCategory}
                     disabled={category === currentCategory}
-                    hidden={IS_NOT_YET_IMPLEMENTED[currentCategory]}
                     image={CATEGORY_ICONS[currentCategory]}
                     name={currentCategory}
                     iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}

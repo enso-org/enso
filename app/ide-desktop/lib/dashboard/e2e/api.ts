@@ -1,6 +1,8 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
+import * as permissions from '#/utilities/permissions'
+
 import * as backend from '../src/services/backend'
 import type * as remoteBackend from '../src/services/remoteBackend'
 import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
@@ -12,6 +14,8 @@ import * as uniqueString from '../src/utilities/uniqueString'
 // === Constants ===
 // =================
 
+/** The HTTP status code representing a response with an empty body. */
+const HTTP_STATUS_NO_CONTENT = 204
 /** The HTTP status code representing a bad request. */
 const HTTP_STATUS_BAD_REQUEST = 400
 /** The HTTP status code representing a URL that does not exist. */
@@ -62,10 +66,12 @@ export async function mockApi({ page }: MockParams) {
         assetMap.set(asset.id, asset)
     }
 
-    // This will be used in the future.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const deleteAsset = (assetId: backend.AssetId) => {
         deletedAssets.add(assetId)
+    }
+
+    const undeleteAsset = (assetId: backend.AssetId) => {
+        deletedAssets.delete(assetId)
     }
 
     await test.test.step('Mock API', async () => {
@@ -299,6 +305,39 @@ export async function mockApi({ page }: MockParams) {
 
         // === Other endpoints ===
         await page.route(
+            BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID),
+            async (route, request) => {
+                if (request.method() === 'DELETE') {
+                    const [, id] = request.url().match(/[/]assets[/]([^?]+)/) ?? []
+                    if (id != null) {
+                        // eslint-disable-next-line no-restricted-syntax
+                        deleteAsset(id as backend.AssetId)
+                    }
+                    await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.UNDO_DELETE_ASSET_PATH,
+            async (route, request) => {
+                if (request.method() === 'PATCH') {
+                    /** The type for the JSON request payload for this endpoint. */
+                    interface Body {
+                        assetId: backend.AssetId
+                    }
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: Body = await request.postDataJSON()
+                    undeleteAsset(body.assetId)
+                    await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
+        await page.route(
             BASE_URL + remoteBackendPaths.CREATE_USER_PATH + '*',
             async (route, request) => {
                 if (request.method() === 'POST') {
@@ -359,7 +398,19 @@ export async function mockApi({ page }: MockParams) {
                     labels: [],
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId,
-                    permissions: [],
+                    permissions: [
+                        {
+                            user: {
+                                pk: backend.Subject(''),
+                                /* eslint-disable @typescript-eslint/naming-convention */
+                                user_name: defaultUsername,
+                                user_email: defaultEmail,
+                                organization_id: defaultOrganizationId,
+                                /* eslint-enable @typescript-eslint/naming-convention */
+                            },
+                            permission: permissions.PermissionAction.own,
+                        },
+                    ],
                     projectState: null,
                     title,
                 })

@@ -6,37 +6,30 @@ import * as actions from './actions'
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('drive view', async ({ page }) => {
+    const assetRows = actions.locateAssetsTableRows(page)
     // Drive view
-    // Initially, the table contains the header row and the placeholder row.
-    await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
     await test.expect(actions.locateDriveView(page)).toBeVisible()
+    await actions.expectPlaceholderRow(page)
 
     // Assets table with one asset
     await actions.locateNewProjectButton(page).click()
     // The placeholder row becomes hidden.
-    await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
+    await test.expect(assetRows).toHaveCount(1)
     await test.expect(actions.locateAssetsTable(page)).toBeVisible()
 
     await actions.locateNewProjectButton(page).click()
-    await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(3)
+    await test.expect(assetRows).toHaveCount(2)
 
-    // These are guarded by the `not.toBeUndefined` below.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const firstAssetRow = (await actions.locateAssetsTableRows(page).all())[1]!
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const secondAssetRow = (await actions.locateAssetsTableRows(page).all())[2]!
-    test.expect(firstAssetRow).not.toBeUndefined()
-    test.expect(secondAssetRow).not.toBeUndefined()
     // The last opened project needs to be stopped, to remove the toast notification notifying the
     // user that project creation may take a while. Previously opened projects are stopped when the
     // new project is created.
-    await actions.locateStopProjectButton(secondAssetRow).click()
+    await actions.locateStopProjectButton(assetRows.nth(-1)).click()
 
     // Project context menu
-    await firstAssetRow.click({ button: 'right' })
+    await assetRows.nth(1).click({ button: 'right' })
     const contextMenu = actions.locateContextMenus(page)
     await test.expect(contextMenu).toBeVisible()
 
     await actions.locateMoveToTrashButton(contextMenu).click()
-    await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
+    await test.expect(assetRows).toHaveCount(1)
 })
