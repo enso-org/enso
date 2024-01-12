@@ -417,11 +417,8 @@ object ProgramExecutionSupport {
                 Api.FunctionSchema(methodPointer, notAppliedArguments)
               )
             case atomConstructor: AtomConstructor =>
-              val functionInfo = new FunctionPointer(
-                atomConstructor.getDefinitionScope.getModule.getName,
-                atomConstructor.getType.getQualifiedName,
-                atomConstructor.getName
-              )
+              val functionInfo =
+                FunctionPointer.fromAtomConstructor(atomConstructor)
               val notAppliedArguments = FunctionPointer
                 .collectNotAppliedArguments(
                   atomConstructor.getConstructorFunction

@@ -730,6 +730,14 @@ public final class ExecutionService {
   public record FunctionPointer(
       QualifiedName moduleName, QualifiedName typeName, String functionName) {
 
+    public static FunctionPointer fromAtomConstructor(AtomConstructor atomConstructor) {
+      QualifiedName moduleName = atomConstructor.getDefinitionScope().getModule().getName();
+      QualifiedName typeName = atomConstructor.getType().getQualifiedName();
+      String functionName = atomConstructor.getName();
+
+      return new FunctionPointer(moduleName, typeName, functionName);
+    }
+
     public static FunctionPointer fromFunction(Function function) {
       RootNode rootNode = function.getCallTarget().getRootNode();
 
