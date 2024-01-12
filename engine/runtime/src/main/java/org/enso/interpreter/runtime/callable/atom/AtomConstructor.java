@@ -124,7 +124,7 @@ public final class AtomConstructor implements EnsoObject {
     } else {
       cachedInstance = null;
     }
-    boxedLayout = Layout.create(args.length, 0, args);
+    boxedLayout = Layout.createBoxed(args);
     this.constructorFunction =
         buildConstructorFunction(
             language, section, localScope, assignments, varReads, annotations, args);

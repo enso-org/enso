@@ -108,7 +108,6 @@ public class Layout {
    * appropriate field reorderings and castings and select the correct atom subclass, together with
    * factories for getters, setters and instantiators.
    */
-  @SuppressWarnings("unchecked")
   public static Layout create(int arity, long typeFlags, ArgumentDefinition[] args) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
@@ -130,22 +129,43 @@ public class Layout {
         fieldToStorage[cur] = lastBoxed++;
       }
     }
+    return createNew(
+        isAritySupported(arity), fieldToStorage, typeFlags, numDouble, numLong, numBoxed, args);
+  }
 
+  static Layout createBoxed(ArgumentDefinition[] args) {
+    var arr = new int[args.length];
+    for (var i = 0; i < arr.length; i++) {
+      arr[i] = i;
+    }
+    return createNew(false, arr, 0, 0, 0, args.length, args);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Layout createNew(
+      boolean useUnboxed,
+      int[] fieldToStorage,
+      long typeFlags,
+      int numDouble,
+      int numLong,
+      int numBoxed,
+      ArgumentDefinition[] args) {
+    var numUnboxed = numDouble + numLong;
     var storageGetterFactories =
-        isAritySupported(arity)
+        useUnboxed
             ? LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed)
-            : BoxingAtom.getFieldGetterNodeFactories(arity);
-    var getterFactories = new NodeFactory[arity];
-    for (int i = 0; i < arity; i++) {
+            : BoxingAtom.getFieldGetterNodeFactories(fieldToStorage.length);
+    var getterFactories = new NodeFactory[fieldToStorage.length];
+    for (int i = 0; i < fieldToStorage.length; i++) {
       getterFactories[i] = storageGetterFactories[fieldToStorage[i]];
     }
 
     var storageSetterFactories =
-        isAritySupported(arity)
+        useUnboxed
             ? LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed)
-            : BoxingAtom.getFieldSetterNodeFactories(arity);
-    var setterFactories = new NodeFactory[arity];
-    for (int i = 0; i < arity; i++) {
+            : BoxingAtom.getFieldSetterNodeFactories(fieldToStorage.length);
+    var setterFactories = new NodeFactory[fieldToStorage.length];
+    for (int i = 0; i < fieldToStorage.length; i++) {
       var factory = storageSetterFactories[fieldToStorage[i]];
       var types = args[i].getCheckType();
       if (types != null && factory != null) {
@@ -155,7 +175,7 @@ public class Layout {
     }
 
     var instantiatorFactory =
-        isAritySupported(arity)
+        useUnboxed
             ? LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed)
             : BoxingAtom.FACTORY;
 
