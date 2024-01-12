@@ -98,6 +98,7 @@ const spanStart = computed(() => {
     :input="props.input"
     :nesting="nesting"
     :data-span-start="spanStart"
+    :data-port="props.input.portId"
     @update="updateHandler"
   />
   <span
