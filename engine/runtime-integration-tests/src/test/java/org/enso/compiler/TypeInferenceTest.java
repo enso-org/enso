@@ -525,7 +525,6 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
 
-  @Ignore("TODO")
   @Test
   public void sumTypeFromCase() throws Exception {
     final URI uri = new URI("memory://sumTypeFromCase.enso");

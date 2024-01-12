@@ -4,9 +4,7 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType, TypeRepresentation.AtomType, TypeRepresentation.IntersectionType, TypeRepresentation.SumType, TypeRepresentation.TopType, TypeRepresentation.TypeObject, TypeRepresentation.UnresolvedSymbol {
@@ -42,6 +40,24 @@ public sealed interface TypeRepresentation
     public String toString() {
       String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " | " + b).orElse("");
       return "(" + repr + ")";
+    }
+
+    private Set<TypeRepresentation> asSet() {
+      return new HashSet<>(types);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof SumType sumType) {
+        return asSet().equals(sumType.asSet());
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return asSet().hashCode();
     }
   }
 
