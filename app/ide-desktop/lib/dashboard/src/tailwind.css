@@ -168,18 +168,3 @@ body::before {
     pointer-events: none;
   }
 }
-
-.enso-dashboard .search-bar.search-bar {
-  @media screen and (max-width: 59rem) {
-    position: unset;
-    transform: unset;
-  }
-
-  @media screen and (min-width: 74rem) {
-    width: 33vw;
-
-    > input::placeholder {
-      text-align: center;
-    }
-  }
-}

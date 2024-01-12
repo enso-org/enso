@@ -18,6 +18,8 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_DATA_DIRECTORY;
+use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -300,23 +302,17 @@ impl RunContext {
         // If we have much memory, we can try building everything in a single batch. Reducing number
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
-        let github_hosted_macos_memory = 15_032_385;
-        let big_memory_machine = system.total_memory() > github_hosted_macos_memory;
-        // Windows native runner is not yet supported.
-        let build_native_runner =
-            self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
-
 
         // === Build project-manager distribution and native image ===
         debug!("Bulding project-manager distribution and Native Image");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
             }
-            if build_native_runner {
+            if self.config.build_native_runner {
                 tasks.push("engine-runner/buildNativeImage");
             }
 
@@ -411,7 +407,7 @@ impl RunContext {
 
         // === Run benchmarks ===
         debug!("Running benchmarks.");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
             // This just compiles benchmarks, not run them. At least we'll know that they can be
             // run. Actually running them, as part of this routine, would be too heavy.
@@ -523,24 +519,18 @@ impl RunContext {
         }
 
 
-        // if build_native_runner {
-        //     let factorial_input = "6";
-        //     let factorial_expected_output = "720";
-        //     let output = Command::new(&self.repo_root.runner)
-        //         .args([
-        //             "--run",
-        //
-        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-        //             factorial_input,
-        //         ])
-        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
-        //         .run_stdout()
-        //         .await?;
-        //     ensure!(
-        //         output.contains(factorial_expected_output),
-        //         "Native runner output does not contain expected result."
-        //     );
-        // }
+        if build_native_runner {
+            debug!("Building and testing native engine runners");
+            runner_sanity_test(&self.repo_root, None).await?;
+            ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
+            let enso_java = "espresso";
+            sbt.command()?
+                .env(ENSO_JAVA, enso_java)
+                .arg("engine-runner/buildNativeImage")
+                .run_ok()
+                .await?;
+            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
+        }
 
 
         // Verify License Packages in Distributions
@@ -670,4 +660,31 @@ pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
         );
     }
     upload_result
+}
+
+/// Run the native runner and check if it produces the expected output on a simple test.
+pub async fn runner_sanity_test(
+    repo_root: &crate::paths::generated::RepoRoot,
+    enso_java: Option<&str>,
+) -> Result {
+    let factorial_input = "6";
+    let factorial_expected_output = "720";
+    let output = Command::new(&repo_root.runner)
+        .args([
+            "--run",
+            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
+            factorial_input,
+        ])
+        .set_env_opt(ENSO_JAVA, enso_java)?
+        .set_env(
+            ENSO_DATA_DIRECTORY,
+            repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
+        )?
+        .run_stdout()
+        .await?;
+    ensure!(
+        output.contains(factorial_expected_output),
+        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
+    );
+    Ok(())
 }

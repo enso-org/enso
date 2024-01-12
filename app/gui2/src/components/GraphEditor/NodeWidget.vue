@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import type { PortId } from '@/providers/portInfo'
-import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
+import {
+  injectWidgetRegistry,
+  type UpdatePayload,
+  type WidgetInput,
+} from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
@@ -25,7 +28,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-type UpdateHandler = (value: unknown, origin: PortId) => boolean
+type UpdateHandler = (update: UpdatePayload) => boolean
 
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
@@ -53,9 +56,9 @@ const updateHandler = computed(() => {
     parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))
   if (props.onUpdate != null) {
     const localHandler = props.onUpdate
-    return (value: unknown, origin: PortId) => {
-      const handled = localHandler(value, origin)
-      if (!handled) nextHandler(value, origin)
+    return (payload: UpdatePayload) => {
+      const handled = localHandler(payload)
+      if (!handled) nextHandler(payload)
     }
   }
   return nextHandler

@@ -1,6 +1,5 @@
 import { createContextStore } from '@/providers'
-import type { PortId } from '@/providers/portInfo'
-import type { WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
+import type { UpdatePayload, WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
 import { identity } from '@vueuse/core'
 
 export { injectFn as injectWidgetUsageInfo, provideFn as provideWidgetUsageInfo }
@@ -21,7 +20,7 @@ interface WidgetUsageInfo {
   usageKey: unknown
   /** All widget types that were rendered so far using the same AST node. */
   previouslyUsed: Set<WidgetComponent<any>>
-  updateHandler: (value: unknown, origin: PortId) => void
+  updateHandler: (update: UpdatePayload) => void
   nesting: number
 }
 
