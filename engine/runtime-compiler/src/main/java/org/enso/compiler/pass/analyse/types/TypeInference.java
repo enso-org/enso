@@ -7,6 +7,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
@@ -106,6 +107,9 @@ public final class TypeInference implements IRPass {
         var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping);
         yield lambda.copy(lambda.arguments(), newBody, lambda.location(), lambda.canBeTCO(), lambda.passData(), lambda.diagnostics(), lambda.id());
       }
+//      case Case.Expr caseExpr -> {
+//
+//      }
       default -> ir.mapExpressions(
           (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
       );
@@ -205,6 +209,21 @@ public final class TypeInference implements IRPass {
       }
       case Literal l -> processLiteral(l);
       case Application.Sequence sequence -> setInferredType(sequence, new InferredType(TypeRepresentation.VECTOR));
+      case Case.Expr caseExpr -> {
+        List<TypeRepresentation> innerTypes =
+            CollectionConverters$.MODULE$.asJava(caseExpr.branches())
+                .stream()
+                .map(branch -> {
+                  var innerType = getInferredType(branch.expression());
+                  if (innerType != null) {
+                    return innerType.type();
+                  } else {
+                    return TypeRepresentation.UNKNOWN;
+                  }
+                })
+                .toList();
+        setInferredType(caseExpr, new InferredType(TypeRepresentation.buildSimplifiedSumType(innerTypes)));
+      }
       default -> {
         log("type propagation", ir, "UNKNOWN: " + ir.getClass().getCanonicalName());
       }
@@ -221,7 +240,7 @@ public final class TypeInference implements IRPass {
 
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
-    log("registerBinding " + binding + ": registered " + def.id() + " as " + type);
+    log("registerBinding " + binding.showCode() + ": registered " + def.id() + " as " + type);
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
@@ -442,7 +461,7 @@ public final class TypeInference implements IRPass {
 
       case Set.Union union -> {
         var operands = union.operands().map(this::resolveTypeExpression);
-        yield new TypeRepresentation.SumType(CollectionConverters.asJava(operands));
+        yield TypeRepresentation.buildSimplifiedSumType(CollectionConverters.asJava(operands));
       }
 
       case Set.Intersection intersection -> {

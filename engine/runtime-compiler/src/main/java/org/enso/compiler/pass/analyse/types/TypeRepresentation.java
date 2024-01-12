@@ -45,6 +45,12 @@ public sealed interface TypeRepresentation
     }
   }
 
+  static TypeRepresentation buildSimplifiedSumType(List<TypeRepresentation> types) {
+    var simplifier = new SumTypeSimplifier();
+    types.forEach(simplifier::traverse);
+    return simplifier.build();
+  }
+
   record IntersectionType(List<TypeRepresentation> types) implements TypeRepresentation {
     public IntersectionType {
       if (types.size() < 2) {
