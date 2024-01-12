@@ -97,9 +97,7 @@ type File_Connection
         transient_dir = enso_project.data / "transient"
         assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
         file = transient_dir / "sqlite_test.db"
-        IO.println <| "    SQLite_Spec_New.File_Connection.create_file: file.exists = " + file.exists.to_text
-        if file.exists.not then Panic.throw "Assertion error"
-        assert file.exists.not
+        if file.exists then Panic.throw "Assertion error: File should not exist"
         connection = Database.connect (SQLite file)
         connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         connection.close
