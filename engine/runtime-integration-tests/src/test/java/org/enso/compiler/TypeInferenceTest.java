@@ -207,7 +207,8 @@ public class TypeInferenceTest extends CompilerTest {
                     x = 42
                     y = "foo"
                     z = 1.5
-                    x.to_text + y + z.to_text
+                    w = [1, 2, 3]
+                    x.to_text + y + z.to_text + w.to_text
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -218,6 +219,7 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f.body(), "x").expression()));
     assertEquals(TypeRepresentation.TEXT, getInferredType(findAssignment(f.body(), "y").expression()));
     assertEquals(TypeRepresentation.FLOAT, getInferredType(findAssignment(f.body(), "z").expression()));
+    assertEquals(TypeRepresentation.VECTOR, getInferredType(findAssignment(f.body(), "w").expression()));
   }
 
   @Test
@@ -227,17 +229,11 @@ public class TypeInferenceTest extends CompilerTest {
         Source.newBuilder("enso", """
                 type My_Type
                     Value v
-                foo (x1 : My_Type) x2 x3 =
-                    y2 = (x2 : My_Type)
-                    
-                    z1 = x1
-                    z2 = y2
-                    
-                    w1 = z1
-                    w2 = z2
-                    
-                    w3 = x3
-                    [w1, w2, w3]
+                foo x =
+                    y = (x : My_Type)
+                    z = y
+                    w = z
+                    w
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -247,10 +243,34 @@ public class TypeInferenceTest extends CompilerTest {
 
     var myType = TypeRepresentation.fromQualifiedName("bindingsFlow.My_Type");
 
-    assertEquals(myType, getInferredType(findAssignment(foo, "w1").expression()));
-    assertEquals(myType, getInferredType(findAssignment(foo, "w2").expression()));
+    assertEquals(myType, getInferredType(findAssignment(foo, "w").expression()));
+  }
 
-    assertNoInferredType(findAssignment(foo, "w3").expression());
+  @Test
+  public void checkedArgumentTypes() throws Exception {
+    final URI uri = new URI("memory://checkedArgumentTypes.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                foo (x1 : My_Type) x2 =
+                    y1 = x1
+                    y2 = x2
+                    [y1, y2]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = TypeRepresentation.fromQualifiedName("checkedArgumentTypes.My_Type");
+
+    // Type from argument
+    assertEquals(myType, getInferredType(findAssignment(foo, "y1").expression()));
+
+    // No type
+    assertNoInferredType(findAssignment(foo, "y2").expression());
   }
 
   @Test

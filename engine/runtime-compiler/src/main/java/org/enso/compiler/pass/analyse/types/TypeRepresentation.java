@@ -97,6 +97,7 @@ public sealed interface TypeRepresentation
   TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
   TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
   TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
+  TypeRepresentation VECTOR = fromQualifiedName("Standard.Base.Data.Vector.Vector");
   TypeRepresentation ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.

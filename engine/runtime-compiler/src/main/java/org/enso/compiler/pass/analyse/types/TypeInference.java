@@ -189,6 +189,7 @@ public final class TypeInference implements IRPass {
 
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.knownBindings.put(def.id(), type);
+    log("registerBinding", binding, "registered " + def.id() + " as " + type);
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
@@ -205,6 +206,7 @@ public final class TypeInference implements IRPass {
     if (isLocalReference) {
       int target = localLink.get().target();
       TypeRepresentation type = localBindingsTyping.knownBindings.get(target);
+      log("processName", literalName, "local reference to " + target + " --> type: " + type);
       if (type != null) {
         setInferredType(literalName, new InferredType(type));
       }
@@ -480,5 +482,5 @@ public final class TypeInference implements IRPass {
   private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
 
   // FIXME this is a temporary simplification, because regular logs seem to not be displayed in tests
-  private static final boolean logToStdOut = false;
+  private static final boolean logToStdOut = true;
 }
