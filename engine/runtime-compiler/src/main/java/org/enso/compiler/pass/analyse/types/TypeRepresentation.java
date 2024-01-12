@@ -97,7 +97,7 @@ public sealed interface TypeRepresentation
   TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
   TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
   TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
-  TypeRepresentation ANY = new TypeRepresentation.TopType();
+  TypeRepresentation ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
@@ -107,11 +107,25 @@ public sealed interface TypeRepresentation
     String str = fqn.toString();
     if (str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any")) return ANY;
 
-    return new TypeRepresentation.AtomType(fqn);
+    return new AtomType(fqn);
   }
 
   static TypeRepresentation fromQualifiedName(String fqn) {
     QualifiedName qualifiedName = QualifiedName$.MODULE$.fromString(fqn);
     return fromQualifiedName(qualifiedName);
+  }
+
+  // This is needed because we are referring the BindingsMap... in TypeObject
+  // TODO maybe we should stop?
+  default TypeRepresentation toAbstract() {
+    return switch (this) {
+      case ArrowType arrowType -> new ArrowType(arrowType.argType.toAbstract(), arrowType.resultType.toAbstract());
+      case AtomType atomType -> atomType;
+      case IntersectionType intersectionType -> new IntersectionType(intersectionType.types.stream().map(TypeRepresentation::toAbstract).toList());
+      case SumType sumType -> new SumType(sumType.types.stream().map(TypeRepresentation::toAbstract).toList());
+      case TopType topType -> topType;
+      case TypeObject typeObject -> new TypeObject(typeObject.name, typeObject.shape);
+      case UnresolvedSymbol unresolvedSymbol -> unresolvedSymbol;
+    };
   }
 }

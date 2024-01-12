@@ -739,7 +739,7 @@ object BindingsMap {
     * @param members the member names
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
-  case class Type(
+  case class Type(// TODO if type can hold Cons->Argument->Expression, we need to make it have toAbstract
     override val name: String,
     params: Seq[String],
     members: Seq[Cons],
