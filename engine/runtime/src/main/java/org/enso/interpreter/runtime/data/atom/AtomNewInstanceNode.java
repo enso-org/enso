@@ -18,7 +18,7 @@ public abstract class AtomNewInstanceNode extends Node {
   @CompilerDirectives.TruffleBoundary
   @NeverDefault
   static AtomNewInstanceNode create(AtomConstructor constructor) {
-    return Layout.CreateUnboxedInstanceNode.create(constructor);
+    return AtomNewInstanceImplNode.create(constructor);
   }
 
   /**
