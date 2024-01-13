@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
@@ -11,32 +12,30 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
  * point it will fall back onto {@link AtomConstructor#getBoxedLayout()} for data that does not fit
  * the known layouts.
  */
-final class AtomNewInstanceImplNode extends AtomNewInstanceNode {
+final class AtomConstructorInstanceNode extends AtomNewInstanceNode {
 
   private static final int MAX_UNBOXING_LAYOUTS = 10;
-  private static final UnboxingAtom.DirectCreateLayoutInstanceNode[] EMPTY =
-      new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
-  @Child UnboxingAtom.DirectCreateLayoutInstanceNode boxedLayout;
-  @Children UnboxingAtom.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+  private static final AtomLayoutInstanceNode[] EMPTY = new AtomLayoutInstanceNode[0];
+  @Child AtomLayoutInstanceNode boxedLayout;
+  @Children AtomLayoutInstanceNode[] unboxedLayouts;
   final int arity;
   @CompilerDirectives.CompilationFinal private boolean constructorAtCapacity;
   final AtomConstructor constructor;
 
-  AtomNewInstanceImplNode(AtomConstructor constructor) {
+  AtomConstructorInstanceNode(AtomConstructor constructor) {
     this.constructor = constructor;
     this.arity = constructor.getArity();
-    this.boxedLayout =
-        new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, constructor.getBoxedLayout());
+    this.boxedLayout = new AtomLayoutInstanceNode(constructor, constructor.getBoxedLayout());
     unboxedLayouts = EMPTY;
     updateFromConstructor();
   }
 
-  public static AtomNewInstanceImplNode create(AtomConstructor constructor) {
-    return new AtomNewInstanceImplNode(constructor);
+  public static AtomConstructorInstanceNode create(AtomConstructor constructor) {
+    return new AtomConstructorInstanceNode(constructor);
   }
 
-  @Override
   @ExplodeLoop
+  @Override
   public Atom execute(Object[] arguments) {
     long flags = computeFlags(arguments);
     if (flags == 0) {
@@ -49,7 +48,7 @@ final class AtomNewInstanceImplNode extends AtomNewInstanceNode {
     }
     if (!constructorAtCapacity) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      org.enso.interpreter.runtime.data.atom.Layout[] layouts = constructor.getUnboxingLayouts();
+      var layouts = constructor.getUnboxingLayouts();
       if (layouts.length == this.unboxedLayouts.length) {
         // Layouts stored in this node are probably up-to-date; create a new one and try to
         // register it.
@@ -64,13 +63,13 @@ final class AtomNewInstanceImplNode extends AtomNewInstanceNode {
   }
 
   void updateFromConstructor() {
+    CompilerAsserts.neverPartOfCompilation();
     if (Layout.isAritySupported(arity)) {
-      org.enso.interpreter.runtime.data.atom.Layout[] layouts = constructor.getUnboxingLayouts();
-      org.enso.interpreter.runtime.data.atom.UnboxingAtom.DirectCreateLayoutInstanceNode[]
-          newLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[layouts.length];
+      var layouts = constructor.getUnboxingLayouts();
+      var newLayouts = new AtomLayoutInstanceNode[layouts.length];
       System.arraycopy(unboxedLayouts, 0, newLayouts, 0, unboxedLayouts.length);
       for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
-        newLayouts[i] = new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
+        newLayouts[i] = new AtomLayoutInstanceNode(constructor, layouts[i]);
       }
       if (layouts.length >= MAX_UNBOXING_LAYOUTS) {
         constructorAtCapacity = true;
@@ -82,7 +81,7 @@ final class AtomNewInstanceImplNode extends AtomNewInstanceNode {
   }
 
   @ExplodeLoop
-  long computeFlags(Object[] arguments) {
+  private long computeFlags(Object[] arguments) {
     long flags = 0;
     if (Layout.isAritySupported(arity)) {
       for (int i = 0; i < arity; i++) {
