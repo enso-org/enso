@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
@@ -10,8 +11,6 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Util
-
-polyglot java import java.util.Base64
 
 main = Test_Suite.run_main spec
 
@@ -75,7 +74,8 @@ spec =
 
         Test.specify "format detection based on Content-Type and Content-Disposition" <|
             content = 'A,B\n1,x\n3,y'
-            uri = URI.from (base_url_with_slash+"test_headers") . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content.bytes Encoding.utf_8))
+            uri = URI.from (base_url_with_slash+"test_headers")
+                . add_query_argument "base64_response_data" (Base_64.encode_text content)
             expected_table = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
 
             r0 = uri.fetch
