@@ -79,9 +79,21 @@ public final class TypeInference implements IRPass {
           log("\ndefinition " + def.getClass().getCanonicalName() + " - " + def.showCode());
         }
       }
-      return def.mapExpressions(
+      var mapped = def.mapExpressions(
           (expression) -> runExpression(expression, ctx)
       );
+
+      switch (def) {
+        case Method.Explicit b -> {
+          var inferredType = getInferredType(b.body());
+          if (inferredType != null) {
+            setInferredType(b, inferredType);
+          }
+        }
+        default -> {}
+      }
+
+      return mapped;
     });
 
     return ir.copy(ir.imports(), ir.exports(), mappedBindings, ir.location(), ir.passData(), ir.diagnostics(), ir.id());
@@ -453,9 +465,9 @@ public final class TypeInference implements IRPass {
     return new InferredType(arrowType);
   }
 
-  private void setInferredType(Expression expression, InferredType type) {
+  private void setInferredType(IR ir, InferredType type) {
     Objects.requireNonNull(type, "type must not be null");
-    expression.passData().update(this, type);
+    ir.passData().update(this, type);
   }
 
   private InferredType getInferredType(Expression expression) {

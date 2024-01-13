@@ -85,7 +85,6 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(myType, getInferredType(b.expression()));
   }
 
-  @Ignore("TODO resolving local bindings/arguments")
   @Test
   public void argChecks() throws Exception {
     final URI uri = new URI("memory://argChecks.enso");
@@ -109,12 +108,19 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-
     var myType = TypeRepresentation.fromQualifiedName("argChecks.My_Type");
-    assertEquals(myType, getInferredType(findAssignment(findStaticMethod(module, "f1"), "y1").expression()));
-    assertNoInferredType(findAssignment(findStaticMethod(module, "f2"), "y2").expression());
 
-    // TODO also checks for types of whole functions
+    var f1 = findStaticMethod(module, "f1");
+    var f2 = findStaticMethod(module, "f2");
+    var f3 = findStaticMethod(module, "f3");
+
+    assertEquals(myType, getInferredType(findAssignment(f1, "y1").expression()));
+    assertNoInferredType(findAssignment(f2, "y2").expression());
+
+    assertEquals(new TypeRepresentation.ArrowType(myType, myType), getInferredType(f1));
+    // f2 gets argument as Any, because the doc-signature is not checked
+    assertEquals(new TypeRepresentation.ArrowType(TypeRepresentation.ANY, myType), getInferredType(f2));
+    assertEquals(new TypeRepresentation.ArrowType(myType, myType), getInferredType(f3));
   }
 
   @Test
@@ -613,7 +619,108 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(List.of(new Warning.NotInvokable(x2.expression().location(), "Text")), getImmediateDiagnostics(x2.expression()));
 
     var x3 = findAssignment(foo, "x3");
-    assertEquals("x3 should not contain any warnings", List.of(), getImmediateDiagnostics(x3.expression()));
+    assertEquals("x3 should not contain any warnings", List.of(), getDescendantsDiagnostics(x3.expression()));
+  }
+
+  @Test
+  public void typeErrorFromAscription() throws Exception {
+    final URI uri = new URI("memory://typeErrorFromAscription.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                foo =
+                    x = My_Type.Value 12
+                    y = (x : Other_Type)
+                    y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var y = findAssignment(foo, "y");
+    assertEquals(List.of(new Warning.TypeMismatch(y.expression().location(), "Other_Type", "My_Type")), getImmediateDiagnostics(y.expression()));
+  }
+
+  @Test
+  public void typeErrorInLocalCall() throws Exception {
+    final URI uri = new URI("memory://typeErrorInLocalCall.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                foo =
+                    bar (x : Other_Type) = x
+                    y = My_Type.Value 10
+                    z = bar y
+                    z
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var z = findAssignment(foo, "z");
+    assertEquals(List.of(new Warning.TypeMismatch(z.expression().location(), "Other_Type", "My_Type")), getImmediateDiagnostics(z.expression()));
+  }
+
+  @Ignore
+  @Test
+  public void typeErrorInReturn() throws Exception {
+    final URI uri = new URI("memory://typeErrorInReturn.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                foo =
+                    x -> My_Type = 10
+                    x
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var x = findAssignment(foo, "x");
+    assertEquals(List.of(new Warning.TypeMismatch(x.expression().location(), "My_Type", "Integer")), getDescendantsDiagnostics(x.expression()));
+  }
+
+  @Test
+  public void noTypeErrorIfUnsure() throws Exception {
+    final URI uri = new URI("memory://notInvokable.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                foo unknown =
+                    bar (x : My_Type) = x
+                    baz -> My_Type = unknown
+                    y = bar unknown
+                    z = (unknown : My_Type)
+                    [y, z]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var y = findAssignment(foo, "y");
+    assertEquals("y should not contain any warnings", List.of(), getDescendantsDiagnostics(y.expression()));
+
+    var z = findAssignment(foo, "z");
+    assertEquals("z should not contain any warnings", List.of(), getDescendantsDiagnostics(z.expression()));
+
+    var baz = findAssignment(foo, "baz");
+    assertEquals("baz should not contain any warnings", List.of(), getDescendantsDiagnostics(baz.expression()));
   }
 
   @Ignore("TODO")
@@ -655,6 +762,10 @@ public class TypeInferenceTest extends CompilerTest {
 
   private List<Diagnostic> getImmediateDiagnostics(IR ir) {
     return CollectionConverters.asJava(ir.diagnostics().toList());
+  }
+
+  private List<Diagnostic> getDescendantsDiagnostics(IR ir) {
+    return CollectionConverters.asJava(ir.preorder().flatMap((node) -> node.diagnostics().toList()));
   }
 
   private Method findStaticMethod(Module module, String name) {
