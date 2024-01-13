@@ -139,6 +139,17 @@ public abstract class HashCodeNode extends Node {
     return bigInteger.getValue().hashCode();
   }
 
+  @Specialization(guards = {"!interop.fitsInLong(v)", "interop.fitsInBigInteger(v)"})
+  @TruffleBoundary
+  long hashCodeForBigInteger(
+      Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    try {
+      return interop.asBigInteger(v).hashCode();
+    } catch (UnsupportedMessageException ex) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
+    }
+  }
+
   @Specialization
   long hashCodeForAtomConstructor(AtomConstructor atomConstructor) {
     // AtomConstructors are singletons, we take system hash code explicitly.

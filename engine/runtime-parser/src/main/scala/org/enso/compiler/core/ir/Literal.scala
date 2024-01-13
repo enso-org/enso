@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -42,8 +41,8 @@ object Literal {
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Literal {
-    var id: UUID @Identifier = randomId
+  ) extends Literal
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -81,7 +80,7 @@ object Literal {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -169,8 +168,8 @@ object Literal {
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Literal {
-    var id: UUID @Identifier = randomId
+  ) extends Literal
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -206,7 +205,7 @@ object Literal {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

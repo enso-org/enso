@@ -1,7 +1,6 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 
 import java.util.UUID
@@ -49,8 +48,8 @@ object CallArgument {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends CallArgument
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -110,7 +109,7 @@ object CallArgument {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
