@@ -680,5 +680,5 @@ public final class TypeInference implements IRPass {
   private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
 
   // FIXME this is a temporary simplification, because regular logs seem to not be displayed in tests
-  private static final boolean logToStdOut = true;
+  private static final boolean logToStdOut = false;
 }
