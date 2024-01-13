@@ -90,7 +90,8 @@ public final class TypeInference implements IRPass {
             setInferredType(b, inferredType);
           }
         }
-        default -> {}
+        default -> {
+        }
       }
 
       return mapped;
@@ -158,7 +159,10 @@ public final class TypeInference implements IRPass {
         var previouslyInferredType = getInferredType(ir);
         if (previouslyInferredType != null) {
           log("type signature", ir, "overwriting previously inferred type " + previouslyInferredType.type());
-          // TODO in the future we could be checking for conflicts here and reporting a type error if the ascription and the inferred type are not compatible
+
+          TypeRepresentation expected = ascribedType;
+          TypeRepresentation provided = previouslyInferredType.type();
+          checkTypeCompatibility(ir, expected, provided);
         }
 
         setInferredType(ir, new InferredType(ascribedType));
@@ -273,7 +277,8 @@ public final class TypeInference implements IRPass {
           registerPattern(innerPattern, localBindingsTyping);
         }
       }
-      default -> {}
+      default -> {
+      }
     }
   }
 
@@ -370,7 +375,10 @@ public final class TypeInference implements IRPass {
 
     switch (functionType) {
       case TypeRepresentation.ArrowType arrowType -> {
-        // TODO we could check the argument type and emit warnings if it does not match the expected one
+        var argumentType = getInferredType(argument.value());
+        if (argumentType != null) {
+          checkTypeCompatibility(argument, arrowType.argType(), argumentType.type());
+        }
         return arrowType.resultType();
       }
 
@@ -533,6 +541,103 @@ public final class TypeInference implements IRPass {
     };
   }
 
+  enum TypeCompatibility {
+    /**
+     * Indicates that the provided type will always fit the expected type.
+     * <p>
+     * For example, `Integer` will always fit into `Any`.
+     */
+    ALWAYS_COMPATIBLE,
+
+    /**
+     * Indicates that the provided type will never fit the expected type.
+     * <p>
+     * For example, `Integer` will never fit into `Text` (if no conversions are in scope).
+     */
+    NEVER_COMPATIBLE,
+
+    /**
+     * Indicates that it is unknown whether the provided type will fit the expected type or not.
+     * <p>
+     * For example, a value of type `Any` may or may not fit into `Integer` - depending on the actual runtime value.
+     */
+    UNKNOWN
+  }
+
+  // TODO this should take into account conversion scope
+  private TypeCompatibility computeTypeCompatibility(TypeRepresentation expected, TypeRepresentation provided) {
+    // Exact type match is always OK.
+    if (expected.equals(provided)) {
+      return TypeCompatibility.ALWAYS_COMPATIBLE;
+    }
+
+    // If the expected type is Any, it will match any type.
+    if (expected.equals(TypeRepresentation.ANY)) {
+      return TypeCompatibility.ALWAYS_COMPATIBLE;
+    }
+
+    // If the expected type was _not_ Any, but provided type may be Any - the compatibility is unknown, as the value may be anything (good or bad).
+    if (provided.equals(TypeRepresentation.ANY)) {
+      return TypeCompatibility.UNKNOWN;
+    }
+
+    if (expected.equals(TypeRepresentation.NUMBER)) {
+      if (provided.equals(TypeRepresentation.INTEGER) || provided.equals(TypeRepresentation.FLOAT)) {
+        return TypeCompatibility.ALWAYS_COMPATIBLE;
+      }
+    }
+
+    if (expected instanceof TypeRepresentation.SumType) {
+      // TODO
+      return TypeCompatibility.UNKNOWN;
+    }
+
+    if (expected instanceof TypeRepresentation.IntersectionType) {
+      // TODO
+      return TypeCompatibility.UNKNOWN;
+    }
+
+    if (provided instanceof TypeRepresentation.SumType) {
+      // TODO
+      return TypeCompatibility.UNKNOWN;
+    }
+
+    if (provided instanceof TypeRepresentation.IntersectionType) {
+      // TODO
+      return TypeCompatibility.UNKNOWN;
+    }
+
+    if (expected instanceof TypeRepresentation.TypeObject && provided instanceof TypeRepresentation.TypeObject) {
+      // If both are type objects, but they were not == above, that means they are not compatible.
+      return TypeCompatibility.NEVER_COMPATIBLE;
+    }
+
+    if (expected instanceof TypeRepresentation.AtomType && provided instanceof TypeRepresentation.AtomType) {
+      // If both are atom types, but they were not == above, that means they are not compatible.
+      return TypeCompatibility.NEVER_COMPATIBLE;
+    }
+
+    if (isFunctionLike(expected) != isFunctionLike(provided)) {
+      // If we are matching a function-like type with a non-function-like type, they are not compatible.
+      // TODO later check: this may not work well with a function that has all-default arguments
+      return TypeCompatibility.NEVER_COMPATIBLE;
+    }
+
+    return TypeCompatibility.UNKNOWN;
+  }
+
+  private boolean isFunctionLike(TypeRepresentation type) {
+    return type instanceof TypeRepresentation.ArrowType || type instanceof TypeRepresentation.UnresolvedSymbol;
+  }
+
+  private void checkTypeCompatibility(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
+    TypeCompatibility compatibility = computeTypeCompatibility(expected, provided);
+    log("CHECK", relatedIr, provided + " <:< " + expected + " ==> " + compatibility);
+    if (compatibility == TypeCompatibility.NEVER_COMPATIBLE) {
+      relatedIr.diagnostics().add(new Warning.TypeMismatch(relatedIr.location(), expected.toString(), provided.toString()));
+    }
+  }
+
   private <T> Optional<T> getOptionalMetadata(IR ir, IRPass pass, Class<T> expectedType) {
     Option<ProcessingPass.Metadata> option = ir.passData().get(pass);
     if (option.isDefined()) {
@@ -556,12 +661,12 @@ public final class TypeInference implements IRPass {
     return optional.get();
   }
 
-  private void log(String prefix, Expression expression, String suffix) {
-    String name = expression.getClass().getCanonicalName();
+  private void log(String prefix, IR relatedIr, String suffix) {
+    String name = relatedIr.getClass().getCanonicalName();
     name = name.substring(name.indexOf("ir.") + 3);
 
     String suffixStr = suffix == null ? "" : " ==> " + suffix;
-    log(prefix + ": " + name + " - " + expression.showCode() + suffixStr);
+    log(prefix + ": " + name + " - " + relatedIr.showCode() + suffixStr);
   }
 
   private void log(String message) {

@@ -5,6 +5,7 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.PassConfiguration;
@@ -643,7 +644,8 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var y = findAssignment(foo, "y");
-    assertEquals(List.of(new Warning.TypeMismatch(y.expression().location(), "Other_Type", "My_Type")), getImmediateDiagnostics(y.expression()));
+    var typeError = new Warning.TypeMismatch(y.expression().location(), "Other_Type", "My_Type");
+    assertEquals(List.of(typeError), getDescendantsDiagnostics(y.expression()));
   }
 
   @Test
@@ -668,10 +670,14 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var z = findAssignment(foo, "z");
-    assertEquals(List.of(new Warning.TypeMismatch(z.expression().location(), "Other_Type", "My_Type")), getImmediateDiagnostics(z.expression()));
+    var arg = switch (z.expression()) {
+      case Application.Prefix app -> app.arguments().head();
+      default -> throw new AssertionError("Expected " + z.showCode() + " to be an application expression.");
+    };
+    var typeError = new Warning.TypeMismatch(arg.location(), "Other_Type", "My_Type");
+    assertEquals(List.of(typeError), getImmediateDiagnostics(arg));
   }
 
-  @Ignore
   @Test
   public void typeErrorInReturn() throws Exception {
     final URI uri = new URI("memory://typeErrorInReturn.enso");
@@ -690,7 +696,8 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var x = findAssignment(foo, "x");
-    assertEquals(List.of(new Warning.TypeMismatch(x.expression().location(), "My_Type", "Integer")), getDescendantsDiagnostics(x.expression()));
+    var typeError = new Warning.TypeMismatch(x.expression().location(), "My_Type", "Integer");
+    assertEquals(List.of(typeError), getDescendantsDiagnostics(x.expression()));
   }
 
   @Test
