@@ -83,7 +83,7 @@ public class EnsoSecretHelper {
     URI renderedURI = uri.render();
 
     boolean hasSecrets =
-        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().isSecret());
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
     if (hasSecrets) {
       if (resolvedURI.getScheme() == null) {
         throw new IllegalArgumentException("The URI must have a scheme.");

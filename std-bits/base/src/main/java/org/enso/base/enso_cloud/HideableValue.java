@@ -18,7 +18,7 @@ public sealed interface HideableValue permits HideableValue.Base64EncodeValue, H
     }
 
     @Override
-    public boolean isSecret() {
+    public boolean containsSecrets() {
       return true;
     }
   }
@@ -35,7 +35,7 @@ public sealed interface HideableValue permits HideableValue.Base64EncodeValue, H
     }
 
     @Override
-    public boolean isSecret() {
+    public boolean containsSecrets() {
       return false;
     }
   }
@@ -52,15 +52,15 @@ public sealed interface HideableValue permits HideableValue.Base64EncodeValue, H
     }
 
     @Override
-    public boolean isSecret() {
-      return left.isSecret() || right.isSecret();
+    public boolean containsSecrets() {
+      return left.containsSecrets() || right.containsSecrets();
     }
   }
 
   record Base64EncodeValue(HideableValue value) implements HideableValue {
     @Override
     public String render() {
-      if (value.isSecret()) {
+      if (value.containsSecrets()) {
         // If the value contains secrets, we cannot encode it so we render as 'pseudocode'
         return "base64(" + value.render() + ")";
       } else {
@@ -75,8 +75,8 @@ public sealed interface HideableValue permits HideableValue.Base64EncodeValue, H
     }
 
     @Override
-    public boolean isSecret() {
-      return value.isSecret();
+    public boolean containsSecrets() {
+      return value.containsSecrets();
     }
 
     public static String encode(String value) {
@@ -95,5 +95,5 @@ public sealed interface HideableValue permits HideableValue.Base64EncodeValue, H
    */
   String safeResolve() throws EnsoSecretAccessDenied;
 
-  boolean isSecret();
+  boolean containsSecrets();
 }
