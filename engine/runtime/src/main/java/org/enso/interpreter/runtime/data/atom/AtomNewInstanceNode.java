@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.nodes.Node;
@@ -14,6 +15,7 @@ public abstract class AtomNewInstanceNode extends Node {
    * @param constructor associated with the node
    * @return a new node with {@link #execute(java.lang.Object[])} method
    */
+  @CompilerDirectives.TruffleBoundary
   @NeverDefault
   static AtomNewInstanceNode create(AtomConstructor constructor) {
     return Layout.CreateUnboxedInstanceNode.create(constructor);
