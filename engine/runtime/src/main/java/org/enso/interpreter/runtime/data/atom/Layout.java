@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 /**
@@ -236,6 +235,7 @@ public class Layout {
    * data that does not fit the known layouts.
    */
   static class CreateUnboxedInstanceNode extends AtomNewInstanceNode {
+    private static final int MAX_UNBOXING_LAYOUTS = 10;
     private static final UnboxingAtom.DirectCreateLayoutInstanceNode[] EMPTY =
         new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
     @Child UnboxingAtom.DirectCreateLayoutInstanceNode boxedLayout;
@@ -296,7 +296,7 @@ public class Layout {
         for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
           newLayouts[i] = new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
         }
-        if (layouts.length == EnsoContext.get(this).getMaxUnboxingLayouts()) {
+        if (layouts.length >= MAX_UNBOXING_LAYOUTS) {
           constructorAtCapacity = true;
         }
         unboxedLayouts = newLayouts;
