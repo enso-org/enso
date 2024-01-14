@@ -9,7 +9,6 @@ import com.oracle.truffle.api.nodes.Node;
  * instance that can be understood based on the particular layout instance.
  */
 final class AtomLayoutInstanceNode extends Node {
-
   final Layout layout;
   final AtomConstructor constructor;
   @Children private ReadAtIndexNode[] argReaderNodes;
@@ -33,6 +32,24 @@ final class AtomLayoutInstanceNode extends Node {
       arguments[i] = argReaderNodes[i].execute(args);
     }
     return instantiator.execute(constructor, layout, arguments);
+  }
+
+  static Atom uncached(AtomConstructor cons, Layout layout, Object[] arguments) {
+    var node = layout.getInstantiatorFactory().getUncachedInstance();
+    if (cons.getBoxedLayout() == layout) {
+      return node.execute(cons, layout, arguments);
+    }
+    var newArgs = new Object[arguments.length];
+    var order = layout.getFieldToStorage();
+    for (int i = 0; i < order.length; i++) {
+      var v = arguments[i];
+      newArgs[order[i]] =
+          switch (v) {
+            case Double d -> Double.doubleToRawLongBits(d);
+            default -> v;
+          };
+    }
+    return node.execute(cons, layout, newArgs);
   }
 
   abstract static class ReadAtIndexNode extends Node {

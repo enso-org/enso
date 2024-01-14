@@ -23,6 +23,16 @@ public abstract class AtomNewInstanceNode extends Node {
   }
 
   /**
+   * Obtains unchached version of a node
+   *
+   * @return a new node with {@link #execute} method
+   */
+  @NeverDefault
+  public static AtomNewInstanceNode getUncached() {
+    return AtomNewInstanceNodeUncached.INSTANCE;
+  }
+
+  /**
    * Creates a new runtime instance of the Atom represented by this constructor.
    *
    * @param constructor the constructor to invoke

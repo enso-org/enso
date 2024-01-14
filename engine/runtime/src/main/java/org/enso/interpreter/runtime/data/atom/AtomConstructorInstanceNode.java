@@ -37,14 +37,27 @@ final class AtomConstructorInstanceNode extends Node {
     return new AtomConstructorInstanceNode(constructor);
   }
 
+  static Atom uncached(Node self, AtomConstructor cons, Object[] arguments) {
+    var arity = cons.getArity();
+    verifyArity(self, arity, arguments);
+    var boxedLayout = cons.getBoxedLayout();
+    var unboxedLayouts = cons.getUnboxingLayouts();
+    var flags = computeFlags(arity, arguments);
+    if (flags == 0) {
+      return AtomLayoutInstanceNode.uncached(cons, boxedLayout, arguments);
+    }
+    for (int i = 0; i < unboxedLayouts.length; i++) {
+      if (unboxedLayouts[i].inputFlags == flags) {
+        return AtomLayoutInstanceNode.uncached(cons, unboxedLayouts[i], arguments);
+      }
+    }
+    return AtomLayoutInstanceNode.uncached(cons, boxedLayout, arguments);
+  }
+
   @ExplodeLoop
   public Atom execute(Object[] arguments) {
-    if (arity != arguments.length) {
-      var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makeArityError(arity, arity, arguments.length);
-      throw new PanicException(err, this);
-    }
-    long flags = computeFlags(arguments);
+    verifyArity(this, arity, arguments);
+    long flags = computeFlags(arity, arguments);
     if (flags == 0) {
       return boxedLayout.execute(arguments);
     }
@@ -88,7 +101,7 @@ final class AtomConstructorInstanceNode extends Node {
   }
 
   @ExplodeLoop
-  private long computeFlags(Object[] arguments) {
+  private static long computeFlags(int arity, Object[] arguments) {
     long flags = 0;
     if (Layout.isAritySupported(arity)) {
       for (int i = 0; i < arity; i++) {
@@ -100,5 +113,13 @@ final class AtomConstructorInstanceNode extends Node {
       }
     }
     return flags;
+  }
+
+  private static void verifyArity(Node self, int arity, Object[] arguments) throws PanicException {
+    if (arity != arguments.length) {
+      var ctx = EnsoContext.get(self);
+      var err = ctx.getBuiltins().error().makeArityError(arity, arity, arguments.length);
+      throw new PanicException(err, self);
+    }
   }
 }

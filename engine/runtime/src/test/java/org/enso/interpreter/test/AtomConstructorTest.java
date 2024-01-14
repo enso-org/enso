@@ -38,18 +38,18 @@ public class AtomConstructorTest extends TestBase {
   @Test
   public void newInstance() {
     var code = """
-        type X
+        type NoPrime
             A a b c
         """;
     var module = ctx.eval("enso", code);
-    var xA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "X.A");
-    var raw = unwrapValue(ctx, xA);
+    var consA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "NoPrime.A");
+    var raw = unwrapValue(ctx, consA);
 
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
 
-    assertAtomFactory("AtomConstructor.newInstance", cons::newInstance);
-    assertLessArguments("AtomConstructor.newInstance", cons::newInstance);
+    assertAtomFactory("AtomConstructor.newInstance without priming", cons::newInstance, "Atom");
+    assertLessArguments("AtomConstructor.newInstance without priming", cons::newInstance);
   }
 
   @Test
@@ -67,55 +67,71 @@ public class AtomConstructorTest extends TestBase {
 
     var node = AtomNewInstanceNode.create();
     Function<Object[], Atom> factory = args -> node.execute(cons, args);
-    assertAtomFactory("AtomConstructor.newInstance", factory);
-    assertLessArguments("AtomConstructor.newInstance", factory);
+    assertAtomFactory("AtomNewInstanceNode.create", factory, "UnboxingAtom");
+    assertLessArguments("AtomNewInstanceNode.create", factory);
+
+    assertAtomFactory(
+        "AtomConstructor.newInstance with priming", cons::newInstance, "UnboxingAtom");
+    assertLessArguments("AtomConstructor.newInstance with priming", cons::newInstance);
   }
 
-  private static void assertAtomFactory(String msg, Function<Object[], Atom> factory) {
+  private static void assertAtomFactory(
+      String msg, Function<Object[], Atom> factory, String expectedSuperClassName) {
     var boxed = factory.apply(new Object[] {"a", "b", "c"});
     assertEquals(msg + " all texts", "BoxingAtom", boxed.getClass().getSimpleName());
     assertValues(msg, boxed, "a", "b", "c");
 
+    var layout_Atom_1_2 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_1_2";
+    var layout_Atom_2_1 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_2_1";
+    var layout_Atom_3_0 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_3_0";
+
     var long0 = factory.apply(new Object[] {1L, "b", "c"});
     assertEquals(
-        msg + " long first", "UnboxingAtom", long0.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long first", "Layout_Atom_1_2", long0.getClass().getSimpleName());
+        msg + " long first",
+        expectedSuperClassName,
+        long0.getClass().getSuperclass().getSimpleName());
+    assertEquals(msg + " long first", layout_Atom_1_2, long0.getClass().getSimpleName());
     assertValues(msg, long0, 1L, "b", "c");
 
     var long1 = factory.apply(new Object[] {"a", 2L, "c"});
     assertEquals(
-        msg + " long first", "UnboxingAtom", long1.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long second", "Layout_Atom_1_2", long1.getClass().getSimpleName());
+        msg + " long second",
+        expectedSuperClassName,
+        long1.getClass().getSuperclass().getSimpleName());
+    assertEquals(msg + " long second", layout_Atom_1_2, long1.getClass().getSimpleName());
     assertValues(msg, long1, "a", 2L, "c");
 
     var long2 = factory.apply(new Object[] {"a", "b", 3L});
     assertEquals(
-        msg + " long first", "UnboxingAtom", long2.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long third", "Layout_Atom_1_2", long2.getClass().getSimpleName());
+        msg + " long third",
+        expectedSuperClassName,
+        long2.getClass().getSuperclass().getSimpleName());
+    assertEquals(msg + " long third", layout_Atom_1_2, long2.getClass().getSimpleName());
     assertValues(msg, long2, "a", "b", 3L);
 
     var longDoubleText = factory.apply(new Object[] {1L, 2.0, "c"});
     assertEquals(
-        msg + " long first",
-        "UnboxingAtom",
+        msg + " long double",
+        expectedSuperClassName,
         longDoubleText.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long first", "Layout_Atom_2_1", longDoubleText.getClass().getSimpleName());
+    assertEquals(msg + " long double", layout_Atom_2_1, longDoubleText.getClass().getSimpleName());
     assertValues(msg, longDoubleText, 1L, 2.0, "c");
 
     var doubleTextLong = factory.apply(new Object[] {1.0, "b", 3L});
     assertEquals(
-        msg + " long first",
-        "UnboxingAtom",
+        msg + " double text long",
+        expectedSuperClassName,
         doubleTextLong.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long first", "Layout_Atom_2_1", doubleTextLong.getClass().getSimpleName());
+    assertEquals(
+        msg + " double text long", layout_Atom_2_1, doubleTextLong.getClass().getSimpleName());
     assertValues(msg, doubleTextLong, 1.0, "b", 3L);
 
     var longLongLong = factory.apply(new Object[] {1L, 2L, 3L});
     assertEquals(
-        msg + " long first",
-        "UnboxingAtom",
+        msg + " long long long",
+        expectedSuperClassName,
         longLongLong.getClass().getSuperclass().getSimpleName());
-    assertEquals(msg + " long first", "Layout_Atom_3_0", longLongLong.getClass().getSimpleName());
+    assertEquals(msg + " long first", layout_Atom_3_0, longLongLong.getClass().getSimpleName());
     assertValues(msg, longLongLong, 1L, 2L, 3L);
   }
 
