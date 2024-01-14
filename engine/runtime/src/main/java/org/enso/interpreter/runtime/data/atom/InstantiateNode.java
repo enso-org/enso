@@ -66,7 +66,7 @@ public abstract class InstantiateNode extends ExpressionNode {
   @ExplodeLoop
   Object doExecute(
       VirtualFrame frame,
-      @Cached(parameters = {"constructor"}) AtomNewInstanceNode createInstanceNode) {
+      @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();

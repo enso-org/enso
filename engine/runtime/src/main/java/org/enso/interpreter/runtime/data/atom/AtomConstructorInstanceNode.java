@@ -3,6 +3,9 @@ package org.enso.interpreter.runtime.data.atom;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * This acts as the main method of instantiating unboxing atoms throughout the system. It will try
@@ -12,7 +15,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
  * point it will fall back onto {@link AtomConstructor#getBoxedLayout()} for data that does not fit
  * the known layouts.
  */
-final class AtomConstructorInstanceNode extends AtomNewInstanceNode {
+final class AtomConstructorInstanceNode extends Node {
 
   private static final int MAX_UNBOXING_LAYOUTS = 10;
   private static final AtomLayoutInstanceNode[] EMPTY = new AtomLayoutInstanceNode[0];
@@ -35,8 +38,12 @@ final class AtomConstructorInstanceNode extends AtomNewInstanceNode {
   }
 
   @ExplodeLoop
-  @Override
   public Atom execute(Object[] arguments) {
+    if (arity != arguments.length) {
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeArityError(arity, arity, arguments.length);
+      throw new PanicException(err, this);
+    }
     long flags = computeFlags(arguments);
     if (flags == 0) {
       return boxedLayout.execute(arguments);

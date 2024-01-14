@@ -224,8 +224,8 @@ public final class AtomConstructor implements EnsoObject {
   public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
     // XXX: don't allocate a node
-    var node = AtomNewInstanceNode.create(this);
-    return node.execute(arguments);
+    var node = AtomNewInstanceNode.create();
+    return node.execute(this, arguments);
   }
 
   /**
