@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -33,53 +34,75 @@ final class AtomConstructorInstanceNode extends Node {
     updateFromConstructor();
   }
 
+  @NeverDefault
   public static AtomConstructorInstanceNode create(AtomConstructor constructor) {
     return new AtomConstructorInstanceNode(constructor);
   }
 
+  @CompilerDirectives.TruffleBoundary
   static Atom uncached(Node self, AtomConstructor cons, Object[] arguments) {
     var arity = cons.getArity();
     verifyArity(self, arity, arguments);
     var boxedLayout = cons.getBoxedLayout();
-    var unboxedLayouts = cons.getUnboxingLayouts();
-    var flags = computeFlags(arity, arguments);
-    if (flags == 0) {
+    WITH_UNBOXED:
+    for (; ; ) {
+      var unboxedLayouts = cons.getUnboxingLayouts();
+      var flags = computeFlags(arity, arguments);
+      if (flags == 0) {
+        return AtomLayoutInstanceNode.uncached(cons, boxedLayout, arguments);
+      }
+      for (int i = 0; i < unboxedLayouts.length; i++) {
+        if (unboxedLayouts[i].inputFlags == flags) {
+          return AtomLayoutInstanceNode.uncached(cons, unboxedLayouts[i], arguments);
+        }
+      }
+      if (unboxedLayouts.length < MAX_UNBOXING_LAYOUTS) {
+        var newLayout = boxedLayout.copy(flags);
+        cons.atomicallyAddLayout(newLayout, unboxedLayouts.length);
+        continue WITH_UNBOXED;
+      }
       return AtomLayoutInstanceNode.uncached(cons, boxedLayout, arguments);
     }
-    for (int i = 0; i < unboxedLayouts.length; i++) {
-      if (unboxedLayouts[i].inputFlags == flags) {
-        return AtomLayoutInstanceNode.uncached(cons, unboxedLayouts[i], arguments);
-      }
-    }
-    return AtomLayoutInstanceNode.uncached(cons, boxedLayout, arguments);
   }
 
   @ExplodeLoop
-  public Atom execute(Object[] arguments) {
-    verifyArity(this, arity, arguments);
-    long flags = computeFlags(arity, arguments);
-    if (flags == 0) {
-      return boxedLayout.execute(arguments);
-    }
+  private Atom cached(long flags, Object[] arguments) {
     for (int i = 0; i < unboxedLayouts.length; i++) {
       if (unboxedLayouts[i].layout.inputFlags == flags) {
         return unboxedLayouts[i].execute(arguments);
       }
     }
-    if (!constructorAtCapacity) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      var layouts = constructor.getUnboxingLayouts();
-      if (layouts.length == this.unboxedLayouts.length) {
-        // Layouts stored in this node are probably up-to-date; create a new one and try to
-        // register it.
-        // var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
-        var newLayout = boxedLayout.layout.copy(flags);
-        constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
-      }
-      updateFromConstructor();
-      return execute(arguments);
+    return null;
+  }
+
+  public final Atom execute(Object[] arguments) {
+    verifyArity(this, arity, arguments);
+    long flags = computeFlags(arity, arguments);
+    if (flags == 0) {
+      return boxedLayout.execute(arguments);
     }
-    return boxedLayout.execute(arguments);
+    WITH_UNBOXED:
+    for (; ; ) {
+      var atom = cached(flags, arguments);
+      if (atom != null) {
+        return atom;
+      } else {
+        if (!constructorAtCapacity) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          var layouts = constructor.getUnboxingLayouts();
+          if (layouts.length == this.unboxedLayouts.length) {
+            // Layouts stored in this node are probably up-to-date; create a new one and try to
+            // register it.
+            // var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
+            var newLayout = boxedLayout.layout.copy(flags);
+            constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
+          }
+          updateFromConstructor();
+          continue WITH_UNBOXED;
+        }
+        return boxedLayout.execute(arguments);
+      }
+    }
   }
 
   void updateFromConstructor() {

@@ -48,7 +48,7 @@ public class AtomConstructorTest extends TestBase {
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
 
-    assertAtomFactory("AtomConstructor.newInstance without priming", cons::newInstance, "Atom");
+    assertAtomFactory("AtomConstructor.newInstance without priming", cons::newInstance);
     assertLessArguments("AtomConstructor.newInstance without priming", cons::newInstance);
   }
 
@@ -67,23 +67,22 @@ public class AtomConstructorTest extends TestBase {
 
     var node = AtomNewInstanceNode.create();
     Function<Object[], Atom> factory = args -> node.execute(cons, args);
-    assertAtomFactory("AtomNewInstanceNode.create", factory, "UnboxingAtom");
+    assertAtomFactory("AtomNewInstanceNode.create", factory);
     assertLessArguments("AtomNewInstanceNode.create", factory);
 
-    assertAtomFactory(
-        "AtomConstructor.newInstance with priming", cons::newInstance, "UnboxingAtom");
+    assertAtomFactory("AtomConstructor.newInstance with priming", cons::newInstance);
     assertLessArguments("AtomConstructor.newInstance with priming", cons::newInstance);
   }
 
-  private static void assertAtomFactory(
-      String msg, Function<Object[], Atom> factory, String expectedSuperClassName) {
+  private static void assertAtomFactory(String msg, Function<java.lang.Object[], Atom> factory) {
     var boxed = factory.apply(new Object[] {"a", "b", "c"});
     assertEquals(msg + " all texts", "BoxingAtom", boxed.getClass().getSimpleName());
     assertValues(msg, boxed, "a", "b", "c");
 
-    var layout_Atom_1_2 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_1_2";
-    var layout_Atom_2_1 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_2_1";
-    var layout_Atom_3_0 = expectedSuperClassName.equals("Atom") ? "BoxingAtom" : "Layout_Atom_3_0";
+    var expectedSuperClassName = "UnboxingAtom";
+    var layout_Atom_1_2 = "Layout_Atom_1_2";
+    var layout_Atom_2_1 = "Layout_Atom_2_1";
+    var layout_Atom_3_0 = "Layout_Atom_3_0";
 
     var long0 = factory.apply(new Object[] {1L, "b", "c"});
     assertEquals(
