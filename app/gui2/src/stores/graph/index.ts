@@ -66,6 +66,17 @@ export const useGraphStore = defineStore('graph', () => {
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
 
+  const topLevel = computed(() => {
+    // The top level of the module is always a block.
+    const root = moduleRoot.value
+    const topLevel = root != null ? astModule.get(root) : null
+    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
+      return null
+    } else {
+      return topLevel
+    }
+  })
+
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
     if (!moduleCode.value) {
@@ -202,16 +213,14 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    const root = moduleRoot.value
-    if (!root) {
+    const topLevel_ = topLevel.value
+    if (!topLevel_) {
       console.error(`BUG: Cannot add node: No module root.`)
       return
     }
     const edit = astModule.edit()
     const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    // The top level of the module is always a block.
-    const topLevel = astModule.get(root)! as Ast.BodyBlock
-    if (importsToAdd) addImports(edit, topLevel, importsToAdd)
+    if (importsToAdd) addImports(edit, topLevel_, importsToAdd)
     const currentFunc = 'main'
     const functionBlock = Ast.functionBlock(astModule, currentFunc)
     if (!functionBlock) {
@@ -224,20 +233,10 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
-  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
-    const edit = cb(astModule)
-    commitEdit(edit)
-  }
-
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.doc.metadata.delete(node.outerExprId)
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot delete node: No module root.`)
-      return
-    }
     const edit = astModule.edit()
     edit.delete(node.outerExprId)
     commitEdit(edit)
@@ -268,8 +267,6 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
@@ -424,7 +421,6 @@ export const useGraphStore = defineStore('graph', () => {
     vizRects,
     unregisterNodeRect,
     methodAst,
-    editAst,
     astModule,
     createEdgeFromOutput,
     disconnectSource,
@@ -440,6 +436,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
+    topLevel,
     updateNodeRect,
     updateVizRect,
     addPortInstance,
