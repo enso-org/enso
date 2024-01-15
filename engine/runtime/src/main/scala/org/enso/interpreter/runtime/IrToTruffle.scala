@@ -874,7 +874,8 @@ class IrToTruffle(
   }
 
   private def generateReExportBindings(module: Module): Unit = {
-    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = constructor.getAccessorFunction()
+    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
+      constructor.getAccessorFunction()
 
     def mkTypeGetter(tp: Type): RuntimeFunction = {
       new RuntimeFunction(
