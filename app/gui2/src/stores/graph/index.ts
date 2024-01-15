@@ -19,7 +19,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
-import type { StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -49,6 +49,7 @@ export class PortViewInstance {
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
   const suggestionDb = useSuggestionDbStore()
+  console.log('graph store')
 
   proj.setObservedFileName('Main.enso')
 
@@ -96,6 +97,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   function updateState() {
+    console.log('update state')
     const module = proj.module
     if (!module) return
     const idMap_ = idMap.value
@@ -410,9 +412,14 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    db.mockExpressionUpdate(binding, update)
+  }
+
   return {
     transact,
     db: markRaw(db),
+    mockExpressionUpdate,
     imports,
     editedNodeInfo,
     unconnectedEdge,
