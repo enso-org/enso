@@ -52,13 +52,7 @@ public class EnsoSecretHelper {
           uri.queryParameters().stream()
               .map(p -> Pair.create(p.getLeft(), resolveValue(p.getRight())))
               .toList();
-      Pair<String, String> resolvedUserInfo =
-          uri.userInfo() == null
-              ? null
-              : Pair.create(
-                  resolveValue(uri.userInfo().username()), resolveValue(uri.userInfo().password()));
-      URISchematic resolvedSchematic =
-          new URISchematic(uri.baseUri(), resolvedQueryParameters, resolvedUserInfo);
+      URISchematic resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
       return resolvedSchematic.build();
     } catch (URISyntaxException e) {
       // Here we don't display the message of the exception to avoid risking it may leak any
