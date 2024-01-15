@@ -55,10 +55,10 @@ class ConfigSpec
     }
 
     "only require the name and use defaults for everything else" in {
-      val parsed = Config.fromYaml("name: FooBar").get
-      parsed.name shouldEqual "FooBar"
+      val parsed = Config.fromYaml("name: fooBar").get
+      parsed.name shouldEqual "fooBar"
       parsed.normalizedName shouldEqual None
-      parsed.moduleName shouldEqual "Foo_Bar"
+      parsed.moduleName shouldEqual "FooBar"
       parsed.edition shouldBe empty
     }
 

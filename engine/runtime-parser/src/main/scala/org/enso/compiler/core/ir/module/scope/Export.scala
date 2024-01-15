@@ -2,13 +2,13 @@ package org.enso.compiler.core.ir.module.scope
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyId,
   MetadataStorage,
   Name
 }
@@ -61,8 +61,8 @@ object Export {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with IRKind.Primitive
-      with Export {
-    var id: UUID @Identifier = randomId
+      with Export
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -118,7 +118,7 @@ object Export {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

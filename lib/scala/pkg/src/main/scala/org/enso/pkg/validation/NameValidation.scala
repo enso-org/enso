@@ -19,7 +19,8 @@ object NameValidation {
       else name
     val startingWithUppercase = starting.capitalize
     val onlyAlphanumeric      = startingWithUppercase.filter(isAllowedNameCharacter)
-    toUpperSnakeCase(onlyAlphanumeric)
+
+    onlyAlphanumeric
   }
 
   /** Validate the project name.
@@ -39,8 +40,6 @@ object NameValidation {
           ListSet(invalidCharacters: _*)
         )
       )
-    } else if (name != toUpperSnakeCase(name)) {
-      Left(InvalidNameError.ShouldBeUpperSnakeCase(toUpperSnakeCase(name)))
     } else {
       Right(name)
     }
@@ -52,35 +51,6 @@ object NameValidation {
     */
   private def isAllowedNameCharacter(char: Char): Boolean = {
     char.isLetterOrDigit || char == '_'
-  }
-
-  /** Takes a name containing letters, digits, and `_` characters and makes it
-    * a proper `Upper_Snake_Case` name.
-    *
-    * @param string the input string
-    * @return the transformed string
-    */
-  private def toUpperSnakeCase(string: String): String = {
-    val beginMarker = '#'
-    val chars       = string.toList
-    val charPairs   = (beginMarker :: chars).zip(chars)
-    charPairs
-      .map { case (previous, current) =>
-        if (previous == beginMarker) {
-          current.toString
-        } else if (previous.isLower && current.isUpper) {
-          s"_$current"
-        } else if (previous.isLetter && current.isDigit) {
-          s"_$current"
-        } else if (previous == '_' && current == '_') {
-          ""
-        } else if (previous.isDigit && current.isLetter) {
-          s"_${current.toUpper}"
-        } else {
-          current.toString
-        }
-      }
-      .mkString("")
   }
 
 }

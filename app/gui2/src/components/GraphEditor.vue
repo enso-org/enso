@@ -26,8 +26,8 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { bail } from '@/util/assert'
-import type { Ast } from '@/util/ast'
+import { assert, bail } from '@/util/assert'
+import { BodyBlock } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -35,7 +35,7 @@ import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -268,11 +268,12 @@ const graphBindingsHandler = graphBindings.handler({
       }
       graphStore.editAst((module) => {
         if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
-        const topLevel = module.get(graphStore.moduleRoot)! as Ast.BodyBlock
+        const topLevel = module.get(graphStore.moduleRoot)
+        assert(topLevel instanceof BodyBlock)
         return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
       })
     } catch (err) {
-      console.log(`Error while collapsing, this is not normal. ${err}`)
+      console.log('Error while collapsing, this is not normal.', err)
     }
   },
   enterNode() {
