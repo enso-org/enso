@@ -16,7 +16,7 @@ import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
-public class EnsoSecretHelper {
+public final class EnsoSecretHelper extends SecretValueResolver {
   /**
    * Gets the value of an HideableValue resolving secrets.
    *
