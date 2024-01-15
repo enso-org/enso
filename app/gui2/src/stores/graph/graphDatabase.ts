@@ -248,7 +248,6 @@ export class GraphDb {
 
     let currentNode: ExprId | undefined
     while ((currentNode = toVisit.pop())) {
-      currentNode
       const outputPorts = this.nodeOutputPorts.lookup(currentNode)
       for (const outputPort of outputPorts) {
         const connectedPorts = this.connections.lookup(outputPort)

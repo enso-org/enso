@@ -270,11 +270,6 @@ export const useGraphStore = defineStore('graph', () => {
       if (!node) return
       proj.module?.doc.metadata.delete(node.outerExprId)
       nodeRects.delete(id)
-      const root = moduleRoot.value
-      if (!root) {
-        console.error(`BUG: Cannot delete node: No module root.`)
-        return
-      }
       edit.delete(node.outerExprId)
     }
     commitEdit(edit)
