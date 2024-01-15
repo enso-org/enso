@@ -1213,8 +1213,9 @@ type Column
     text_left self n =
         Value_Type.expect_text self <|
             Value_Type.expect_integer n <|
+                n2 = n.max 0
                 new_name = self.naming_helper.function_name "text_left" [self, n]
-                self.make_binary_op "LEFT" n new_name
+                self.make_binary_op "LEFT" n2 new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1234,8 +1235,9 @@ type Column
     text_right self n =
         Value_Type.expect_text self <|
             Value_Type.expect_integer n <|
+                n2 = n.max 0
                 new_name = self.naming_helper.function_name "text_right" [self, n]
-                self.make_binary_op "RIGHT" n new_name           
+                self.make_binary_op "RIGHT" n2 new_name           
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

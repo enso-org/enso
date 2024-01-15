@@ -415,7 +415,7 @@ left = Base_Generator.lift_binary_op "LEFT" str-> n->
 
 ## PRIVATE
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
-    Builder.code "substr(" ++ str ++ ", -" ++ n ++ ")"
+    Builder.code "substr(" ++ str ++ ", -" ++ n ++ ", " ++ n ++ ")"
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
