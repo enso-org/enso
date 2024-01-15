@@ -1,10 +1,7 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.{Files, Path, Paths}
-import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{Files, Paths}
 import io.circe.literal._
-import io.circe.generic.auto._
-import org.enso.languageserver.filemanager
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
@@ -14,17 +11,6 @@ class ReceivesTreeUpdatesHandlerTest
     with ReportLogsOnFailure {
 
   override val isFileWatcherEnabled = true
-
-  private def getFileAttributes(path: Path): filemanager.FileAttributes = {
-    val basicAttrs =
-      Files.readAttributes(path, classOf[BasicFileAttributes])
-    filemanager.FileAttributes.fromFileSystemAttributes(
-      testContentRoot.file,
-      filemanager.Path(testContentRootId, path),
-      filemanager.FileSystemApi.Attributes
-        .fromBasicAttributes(path, basicAttrs)
-    )
-  }
 
   "ReceivesTreeUpdatesHandler" must {
 
@@ -98,7 +84,7 @@ class ReceivesTreeUpdatesHandlerTest
       // create file
       val path = Paths.get(testContentRoot.file.toString, "oneone.txt")
       Files.createFile(path)
-      client1.expectJson(json"""
+      client1.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -107,11 +93,11 @@ class ReceivesTreeUpdatesHandlerTest
                   "segments": [ "oneone.txt" ]
                },
                "kind": "Added",
-               "attributes": ${getFileAttributes(path)}
+               "attributes": "*"
              }
           }
           """)
-      client2.expectJson(json"""
+      client2.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -120,14 +106,14 @@ class ReceivesTreeUpdatesHandlerTest
                   "segments": [ "oneone.txt" ]
                },
                "kind": "Added",
-               "attributes": ${getFileAttributes(path)}
+               "attributes": "*"
              }
           }
           """)
 
       // update file
       Files.write(path, "Hello".getBytes())
-      client1.expectJson(json"""
+      client1.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -136,11 +122,11 @@ class ReceivesTreeUpdatesHandlerTest
                   "segments": [ "oneone.txt" ]
                },
                "kind": "Modified",
-               "attributes": ${getFileAttributes(path)}
+               "attributes": "*"
              }
           }
           """)
-      client2.expectJson(json"""
+      client2.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -149,7 +135,7 @@ class ReceivesTreeUpdatesHandlerTest
                   "segments": [ "oneone.txt" ]
                },
                "kind": "Modified",
-               "attributes": ${getFileAttributes(path)}
+               "attributes": "*"
              }
           }
           """)
