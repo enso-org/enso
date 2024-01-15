@@ -3,7 +3,8 @@ import * as React from 'react'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as hooks from '#/hooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
@@ -32,7 +33,7 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
 export default function FileNameColumn(props: FileNameColumnProps) {
     const { item, setItem, selected, state, rowState, setRowState } = props
     const { assetEvents, dispatchAssetListEvent } = state
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
@@ -49,7 +50,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         return await Promise.resolve(null)
     }
 
-    hooks.useEventHandler(assetEvents, async event => {
+    eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case AssetEventType.newProject:
             case AssetEventType.newFolder:

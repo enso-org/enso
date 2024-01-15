@@ -3,7 +3,6 @@ package `type`
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.Type.Info
 
 import java.util.UUID
@@ -48,8 +47,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -109,7 +108,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -171,8 +170,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -222,7 +221,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -276,8 +275,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -327,7 +326,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -381,8 +380,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -432,7 +431,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -483,8 +482,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -529,7 +528,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -581,8 +580,8 @@ object Set {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -632,7 +631,7 @@ object Set {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

@@ -52,8 +52,8 @@ public class Text_Utils {
    * @param str the string to convert
    * @return the UTF-16 character representation of the string.
    */
-  public static char[] get_chars(String str) {
-    return str.toCharArray();
+  public static int[] get_chars(String str) {
+    return str.chars().toArray();
   }
 
   /**

@@ -84,7 +84,7 @@
     enso.bundle.template:
     launcher-manifest.yaml:
   engine/:
-    runner-native/:
+    runner/:
       src/:
         test/:
           resources/:

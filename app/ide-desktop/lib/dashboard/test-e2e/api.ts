@@ -37,12 +37,13 @@ export async function mockApi(page: test.Page) {
     const defaultEmail = 'email@example.com' as backend.EmailAddress
     const defaultUsername = 'user name'
     const defaultOrganizationId = backend.UserOrOrganizationId('organization-placeholder id')
-    const defaultDirectoryId = backend.UserOrOrganizationId('directory-placeholder id')
+    const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
     const defaultUser: backend.UserOrOrganization = {
         email: defaultEmail,
         name: defaultUsername,
         id: defaultOrganizationId,
         isEnabled: true,
+        rootDirectoryId: defaultDirectoryId,
     }
     let currentUser: backend.UserOrOrganization | null = defaultUser
     const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
@@ -297,11 +298,16 @@ export async function mockApi(page: test.Page) {
                     // The type of the body sent by this app is statically known.
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const body: backend.CreateUserRequestBody = await request.postDataJSON()
+                    const id = body.organizationId ?? defaultUser.id
+                    const rootDirectoryId = backend.DirectoryId(
+                        id.replace(/^organization-/, 'directory-')
+                    )
                     currentUser = {
                         email: body.userEmail,
                         name: body.userName,
-                        id: body.organizationId ?? defaultUser.id,
+                        id,
                         isEnabled: false,
+                        rootDirectoryId,
                     }
                     await route.fulfill({ json: currentUser })
                 } else if (request.method() === 'GET') {

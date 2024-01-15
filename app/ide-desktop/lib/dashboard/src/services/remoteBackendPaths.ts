@@ -71,6 +71,10 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
+/** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
+export function getFileDetailsPath(fileId: backend.FileId) {
+    return `files/${fileId}`
+}
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
 export function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`

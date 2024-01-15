@@ -1,4 +1,5 @@
 import {
+  averagePositionPlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -444,6 +445,54 @@ describe('Mouse dictated placement', () => {
     expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
     expect(getHorizontalGap, 'Should not depend on `horizontalGap`').not.toHaveBeenCalled()
     expect(getVerticalGap, 'Should not depend on `verticalGap`').not.toHaveBeenCalled()
+  })
+})
+
+describe('Average position placement', () => {
+  function environment(selectedNodeRects: Rect[], nonSelectedNodeRects: Rect[]): Environment {
+    return {
+      screenBounds,
+      nodeRects: [...selectedNodeRects, ...nonSelectedNodeRects],
+      selectedNodeRects,
+      get mousePosition() {
+        return getMousePosition()
+      },
+    }
+  }
+
+  function options(): { horizontalGap: number; verticalGap: number } {
+    return {
+      get horizontalGap() {
+        return getHorizontalGap()
+      },
+      get verticalGap() {
+        return getVerticalGap()
+      },
+    }
+  }
+
+  test('One selected, no other nodes', () => {
+    const X = 1100
+    const Y = 700
+    const selectedNodeRects = [rectAt(X, Y)]
+    const result = averagePositionPlacement(nodeSize, environment(selectedNodeRects, []), options())
+    expect(result).toEqual({ position: new Vec2(X, Y), pan: undefined })
+  })
+
+  test('Multiple selected, no other nodes', () => {
+    const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
+    const result = averagePositionPlacement(nodeSize, environment(selectedNodeRects, []), options())
+    expect(result).toEqual({ position: new Vec2(1150, 700), pan: undefined })
+  })
+
+  test('Average position occupied', () => {
+    const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
+    const result = averagePositionPlacement(
+      nodeSize,
+      environment(selectedNodeRects, [rectAt(1150, 700)]),
+      options(),
+    )
+    expect(result).toEqual({ position: new Vec2(1150, 744), pan: undefined })
   })
 })
 

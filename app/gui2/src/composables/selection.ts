@@ -1,7 +1,7 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
 
 import { selectionMouseBindings } from '@/bindings'
-import { usePointer } from '@/composables/events'
+import { useEvent, usePointer } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
 import type { PortId } from '@/providers/portInfo.ts'
 import type { Rect } from '@/util/data/rect'
@@ -23,8 +23,19 @@ export function useSelection<T>(
   const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
   const hoveredNode = ref<ExprId>()
-  const hoveredPorts = reactive(new Set<PortId>())
-  const hoveredPort = computed(() => [...hoveredPorts].pop())
+  const hoveredPort = ref<PortId>()
+
+  useEvent(document, 'pointerover', (event) => {
+    if (event.target instanceof Element) {
+      const widgetPort = event.target.closest('.WidgetPort')
+      hoveredPort.value =
+        widgetPort instanceof HTMLElement &&
+        'port' in widgetPort.dataset &&
+        typeof widgetPort.dataset.port === 'string'
+          ? (widgetPort.dataset.port as PortId)
+          : undefined
+    }
+  })
 
   function readInitiallySelected() {
     initiallySelected.clear()
@@ -137,8 +148,6 @@ export function useSelection<T>(
     hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
-    addHoveredPort: (port: PortId) => hoveredPorts.add(port),
-    removeHoveredPort: (port: PortId) => hoveredPorts.delete(port),
   })
 }
 

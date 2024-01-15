@@ -135,7 +135,9 @@ public abstract class TypeOfNode extends Node {
         Object value,
         @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
-      if (interop.fitsInInt(value)) {
+      if (interop.fitsInLong(value)) {
+        return builtins.number().getInteger();
+      } else if (interop.fitsInBigInteger(value)) {
         return builtins.number().getInteger();
       } else if (interop.fitsInDouble(value)) {
         return builtins.number().getFloat();
