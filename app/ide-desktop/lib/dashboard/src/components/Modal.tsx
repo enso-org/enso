@@ -27,6 +27,7 @@ export default function Modal(props: ModalProps) {
 
     return (
         <div
+            data-testid="modal-background"
             style={style}
             // This MUST be z-3, unlike all other elements, because it MUST show above the IDE.
             className={`inset-0 z-3 ${

@@ -330,6 +330,12 @@ export function locateSamples(page: test.Locator | test.Page) {
     return locateSamplesList(page).getByRole('button')
 }
 
+/** Find a modal background (if any) on the current page. */
+export function locateModalBackground(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('modal-background')
+}
+
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
     // This is fine as this element is defined in `index.html`, rather than from React.

@@ -12,6 +12,12 @@ test.test('labels', async ({ page }) => {
     // "Create label" modal
     await actions.locateNewLabelButton(page).click()
     await test.expect(actions.locateNewLabelModal(page)).toBeVisible()
+    await page.press('body', 'Escape')
+    await test.expect(actions.locateNewLabelModal(page)).not.toBeVisible()
+    await actions.locateNewLabelButton(page).click()
+    await actions.locateModalBackground(page).click()
+    await test.expect(actions.locateNewLabelModal(page)).not.toBeVisible()
+    await actions.locateNewLabelButton(page).click()
 
     // "Create label" modal with name set
     await actions.locateNewLabelModalNameInput(page).fill('New Label')
