@@ -48,8 +48,10 @@ public class AtomConstructorTest extends TestBase {
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
 
-    assertAtomFactory("AtomConstructor.newInstance without priming", cons::newInstance);
-    assertLessArguments("AtomConstructor.newInstance without priming", cons::newInstance);
+    Function<Object[], Atom> factory =
+        args -> AtomNewInstanceNode.getUncached().newInstance(cons, args);
+    assertAtomFactory("AtomConstructor.newInstance without priming", factory);
+    assertLessArguments("AtomConstructor.newInstance without priming", factory);
   }
 
   @Test
@@ -66,12 +68,12 @@ public class AtomConstructorTest extends TestBase {
     var cons = (AtomConstructor) raw;
 
     var node = AtomNewInstanceNode.create();
-    Function<Object[], Atom> factory = args -> node.execute(cons, args);
+    Function<Object[], Atom> factory = args -> node.newInstance(cons, args);
     assertAtomFactory("AtomNewInstanceNode.create", factory);
     assertLessArguments("AtomNewInstanceNode.create", factory);
 
-    assertAtomFactory("AtomConstructor.newInstance with priming", cons::newInstance);
-    assertLessArguments("AtomConstructor.newInstance with priming", cons::newInstance);
+    assertAtomFactory("AtomConstructor.newInstance with priming", factory);
+    assertLessArguments("AtomConstructor.newInstance with priming", factory);
   }
 
   private static void assertAtomFactory(String msg, Function<java.lang.Object[], Atom> factory) {

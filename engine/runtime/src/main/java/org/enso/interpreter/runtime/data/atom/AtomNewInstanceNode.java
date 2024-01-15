@@ -46,7 +46,11 @@ public abstract class AtomNewInstanceNode extends Node {
    * @param arguments the runtime arguments to the constructor
    * @return a new instance of the atom represented by this constructor
    */
-  public abstract Atom execute(AtomConstructor constructor, Object[] arguments);
+  public final Atom newInstance(AtomConstructor constructor, Object... arguments) {
+    return execute(constructor, arguments);
+  }
+
+  abstract Atom execute(AtomConstructor constructor, Object[] arguments);
 
   @Specialization(
       limit = "3",
