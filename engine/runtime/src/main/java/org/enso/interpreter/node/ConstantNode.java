@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.data.atom;
+package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;

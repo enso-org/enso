@@ -75,10 +75,7 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.runtime.data.atom.{
-  ConstantNode,
-  QualifiedAccessorNode
-}
+import org.enso.interpreter.runtime.data.atom.{QualifiedAccessorNode}
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
@@ -88,6 +85,7 @@ import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   BaseNode,
   ClosureRootNode,
+  ConstantNode,
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
