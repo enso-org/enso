@@ -66,4 +66,10 @@ public abstract class AtomNewInstanceNode extends Node {
   static AtomConstructorInstanceNode createConstructorNode(AtomConstructor c) {
     return AtomConstructorInstanceNode.create(c);
   }
+
+  @Specialization
+  @CompilerDirectives.TruffleBoundary
+  Atom doSlow(AtomConstructor atom, Object[] arguments) {
+    return AtomConstructorInstanceNode.uncached(this, atom, arguments);
+  }
 }

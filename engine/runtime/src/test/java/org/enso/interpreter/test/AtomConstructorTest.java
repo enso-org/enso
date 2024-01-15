@@ -169,4 +169,30 @@ public class AtomConstructorTest extends TestBase {
       assertEquals(msg + " at " + i, values[i], v);
     }
   }
+
+  @Test
+  public void endlessConstructors() throws Exception {
+    var constructors = new AtomConstructor[100];
+    var sb = new StringBuilder();
+    sb.append("type T\n");
+    for (var i = 0; i < constructors.length; i++) {
+      sb.append("    V").append(i).append(" a\n");
+    }
+    var module = ctx.eval("enso", sb.toString());
+    for (var i = 0; i < constructors.length; i++) {
+      var c = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "T.V" + i);
+      constructors[i] = (AtomConstructor) unwrapValue(ctx, c);
+    }
+
+    var typeValue = ctx.asValue(constructors[0].getType());
+    var node = AtomNewInstanceNode.create();
+
+    for (var i = 0; i < constructors.length; i++) {
+      var atom = node.newInstance(constructors[i], i);
+      var atomValue = ctx.asValue(atom);
+      assertEquals("Value is of right type", typeValue, atomValue.getMetaObject());
+      var value = StructsLibrary.getUncached().getField(atom, 0);
+      assertEquals("The right value found", i, value);
+    }
+  }
 }
