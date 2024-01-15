@@ -127,11 +127,15 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
+      methodAst.value = methodAstInModule(astModule)
       if (methodAst.value) {
         currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
+  }
+
+  function methodAstInModule(mod: Module) {
+    return getExecutedMethodAst(mod, proj.executionContext.getStackTop(), db)
   }
 
   useObserveYjs(metadata, (event) => {
@@ -401,11 +405,17 @@ export const useGraphStore = defineStore('graph', () => {
   /**
    * Emit an value update to a port view under specific ID. Returns `true` if the port view is
    * registered and the update was emitted, or `false` otherwise.
+   *
+   * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
+   * Therefore the passed in `edit` should not be modified afterwards, as it is already committed.
    */
-  function updatePortValue(id: PortId, value: Owned<Ast.Ast> | undefined): boolean {
+  function updatePortValue(
+    edit: MutableModule,
+    id: PortId,
+    value: Owned<Ast.Ast> | undefined,
+  ): boolean {
     const update = getPortPrimaryInstance(id)?.onUpdate
     if (!update) return false
-    const edit = astModule.edit()
     update({ edit, portUpdate: { value, origin: id } })
     return true
   }
@@ -445,20 +455,24 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
-  // node_to_be_before: node::Id,
-  // node_to_be_after: node::Id,
+  function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
+    const edit = astModule.edit()
+    const metadataUpdates = scope(edit)
+    commitEdit(edit, metadataUpdates ?? undefined)
+  }
 
   /**
    * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
    * relative order is already correct.
    *
-   * Additionally all nodes dependent on the `beforeNodeId` that end up being before its new line
-   * are also moved after it, keeping their order.
+   * Additionally all nodes dependent on the `targetNodeId` that end up being before its new line
+   * are also moved after it, keeping their relative order.
    */
-  function ensureCorrectNodeOrder(sourceNodeId: ExprId, targetNodeId: ExprId) {
+  function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: ExprId, targetNodeId: ExprId) {
     const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
     const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
-    const body = methodAst.value?.body
+    const body = methodAstInModule(edit)?.body
+    console.log('body', body)
     assert(sourceExpr != null)
     assert(targetExpr != null)
     assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
@@ -497,11 +511,9 @@ export const useGraphStore = defineStore('graph', () => {
       lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
 
       // Finally apply the reordered lines into the body block as AST edit.
-      const edit = astModule.edit()
       const ownedBody = edit.take(body.exprId)
       assert(ownedBody != null)
       edit.replaceValue(ownedBody.placeholder.exprId, Ast.BodyBlock.new(lines, edit))
-      commitEdit(edit)
       return true
     } else {
       return false
@@ -532,7 +544,6 @@ export const useGraphStore = defineStore('graph', () => {
     deleteNodes,
     ensureCorrectNodeOrder,
     setNodeContent,
-    setExpression,
     setExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
@@ -548,6 +559,7 @@ export const useGraphStore = defineStore('graph', () => {
     setEditedNode,
     updateState,
     commitEdit,
+    editScope,
     addMissingImports,
   }
 })
@@ -570,7 +582,7 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: Ast.Ast,
+  astModule: Module,
   executionStackTop: StackItem,
   db: GraphDb,
 ): Ast.Function | undefined {
@@ -579,7 +591,7 @@ function getExecutedMethodAst(
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
+      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
@@ -587,7 +599,7 @@ function getExecutedMethodAst(
       if (!info) return undefined
       const ptr = info.methodCall?.methodPointer
       if (!ptr) return undefined
-      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
+      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
     }
   }
 }

@@ -6,6 +6,7 @@ import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
+import { createIterator, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -33,6 +34,8 @@ export interface Module {
   edit(): MutableModule
   apply(module: Module): void
   replace(editIn: Module): void
+  iterAllNodeIds(): IterableIterator<AstId>
+  iterAllNodes(): IterableIterator<Ast>
   root(): Module
 }
 
@@ -122,6 +125,46 @@ export class MutableModule implements Module {
     } else {
       return editedNode ?? this.base?.get(id) ?? null
     }
+  }
+
+  iterAllNodeIds(): IterableIterator<AstId> {
+    const parentIter = this.base?.iterAllNodeIds()
+    let parentDone = parentIter == null
+    const nodeIter = this.nodes.entries()
+    const editedVisited = new Set()
+    return createIterator(() => {
+      for (;;) {
+        if (!parentDone) {
+          const result = parentIter?.next()
+          if (result?.done) parentDone = true
+          else if (result?.value) {
+            const id = result.value
+            const edited = this.nodes.get(id)
+            if (edited !== undefined) editedVisited.add(id)
+            if (edited === null) continue
+            return result
+          }
+        } else {
+          const next = nodeIter.next()
+          if (next.done === true) return next
+          const [id, ast] = next.value
+          if (ast !== null && !editedVisited.has(id)) {
+            return {
+              done: false,
+              value: id,
+            }
+          }
+        }
+      }
+    })
+  }
+
+  iterAllNodes(): IterableIterator<Ast> {
+    return mapIterator(this.iterAllNodeIds(), (id) => {
+      const node = this.get(id)
+      assert(node != null)
+      return node
+    })
   }
 
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
@@ -1638,7 +1681,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
 
 export function moduleMethodNames(module: Module): Set<string> {
   const result = new Set<string>()
-  for (const node of module.raw.nodes.values()) {
+  for (const node of module.iterAllNodes()) {
     if (node instanceof Function && node.name) {
       result.add(node.name.code())
     }
@@ -1648,7 +1691,7 @@ export function moduleMethodNames(module: Module): Set<string> {
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
 export function findModuleMethod(module: Module, name: string): Function | null {
-  for (const node of module.raw.nodes.values()) {
+  for (const node of module.iterAllNodes()) {
     if (node instanceof Function) {
       if (node.name && node.name.code() === name) {
         return node

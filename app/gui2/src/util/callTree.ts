@@ -7,7 +7,6 @@ import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { assert } from './assert'
-import { mapOr } from './data/opt'
 
 export const enum ApplicationKind {
   Prefix,
@@ -217,17 +216,17 @@ export class ArgumentApplication {
       argument: ArgumentAst | ArgumentPlaceholder
     }> = []
 
-    function nextArgumentName() {
+    function nextArgumentNameInDefinition() {
       return tryGetIndex(knownArguments, argumentsLeftToMatch[0])?.name
     }
 
-    function takeNextArgument() {
+    function takeNextArgumentFromDefinition() {
       const index = argumentsLeftToMatch.shift()
       const info = tryGetIndex(knownArguments, index)
       return index != null && info != null ? { index, info } : undefined
     }
 
-    function takeNamedArgument(name: string) {
+    function takeNamedArgumentFromDefinition(name: string) {
       const takeIdx = argumentsLeftToMatch.findIndex(
         (id) => tryGetIndex(knownArguments, id)?.name === name,
       )
@@ -244,36 +243,42 @@ export class ArgumentApplication {
 
     let placeholderAlreadyInserted = false
 
-    let nextArgument: ReturnType<typeof takeNextArgument>
+    let nextArgDefinition: ReturnType<typeof takeNextArgumentFromDefinition>
 
     // Always insert a placeholder for the missing argument at the first position that is legal
-    // and don't invalidate further named arguments, treating the named arguments at correct
-    // position as if they were positional. foo a b c [d]
+    // and don't invalidate further positional arguments, treating the named arguments at correct
+    // position as if they were positional.
     for (let position = 0; position < interpreted.args.length; ++position) {
-      const arg = interpreted.args[position]
-      assert(!!arg)
-      const pastPositionalArguments = mapOr(lastPositionalArgIndex, true, (i) => position > i)
+      const argumentInCode = interpreted.args[position]
+      assert(!!argumentInCode)
+      const pastPositionalArguments = position > (lastPositionalArgIndex ?? -1)
 
-      if (pastPositionalArguments && arg.argName != null && arg.argName !== nextArgumentName()) {
+      if (
+        pastPositionalArguments &&
+        argumentInCode.argName != null &&
+        argumentInCode.argName !== nextArgumentNameInDefinition()
+      ) {
         // Named argument that is not in its natural position, and there are no more
         // positional arguments to emit in the chain. At this point placeholders can be
         // inserted. We need to figure out which placeholders can be inserted before
         // emitting this named argument.
 
         // all remaining arguments must be named, as we are past all positional arguments.
-        const remainingArguments = interpreted.args.slice(position)
+        const remainingAppliedArguments = interpreted.args.slice(position)
 
         // For each subsequent argument in its current natural position, insert a
         // placeholder. Do that only if the argument is not defined further in the chain.
-        while ((nextArgument = takeNextArgument())) {
-          const { index, info } = nextArgument
-          const isDefinedFurther = remainingArguments.some((arg) => arg.argName === info.name)
-          if (isDefinedFurther) {
+        while ((nextArgDefinition = takeNextArgumentFromDefinition())) {
+          const { index, info } = nextArgDefinition
+          const isAppliedFurther = remainingAppliedArguments.some(
+            (arg) => arg.argName === info.name,
+          )
+          if (isAppliedFurther) {
             putBackArgument(index)
             break
           } else {
             resolvedArgs.push({
-              appTree: arg.appTree.function,
+              appTree: argumentInCode.appTree.function,
               argument: ArgumentPlaceholder.WithRetrievedConfig(
                 callId,
                 index,
@@ -289,26 +294,32 @@ export class ArgumentApplication {
 
         // Finally, we want to emit the named argument and remove it from the list of
         // remaining known params.
-        const { index, info } = takeNamedArgument(arg.argName) ?? {}
+        const { index, info } = takeNamedArgumentFromDefinition(argumentInCode.argName) ?? {}
         resolvedArgs.push({
-          appTree: arg.appTree,
+          appTree: argumentInCode.appTree,
           argument: ArgumentAst.WithRetrievedConfig(
-            arg.argument,
+            argumentInCode.argument,
             index,
-            info ?? unknownArgInfoNamed(arg.argName),
+            info ?? unknownArgInfoNamed(argumentInCode.argName),
             ApplicationKind.Prefix,
             widgetCfg,
           ),
         })
       } else {
-        const argument = arg.argName == null ? takeNextArgument() : takeNamedArgument(arg.argName)
-        const { index, info } = argument ?? {}
+        const argumentFromDefinition =
+          argumentInCode.argName == null
+            ? takeNextArgumentFromDefinition()
+            : takeNamedArgumentFromDefinition(argumentInCode.argName)
+        const { index, info } = argumentFromDefinition ?? {}
         resolvedArgs.push({
-          appTree: arg.appTree,
+          appTree: argumentInCode.appTree,
           argument: ArgumentAst.WithRetrievedConfig(
-            arg.argument,
+            argumentInCode.argument,
             index,
-            info ?? (arg.argName != null ? unknownArgInfoNamed(arg.argName) : undefined),
+            info ??
+              (argumentInCode.argName != null
+                ? unknownArgInfoNamed(argumentInCode.argName)
+                : undefined),
             ApplicationKind.Prefix,
             widgetCfg,
           ),
@@ -318,8 +329,8 @@ export class ArgumentApplication {
 
     const outerApp = interpreted.args[interpreted.args.length - 1]?.appTree ?? interpreted.func
     // If there are any remaining known parameters, they must be inserted as trailing placeholders.
-    while ((nextArgument = takeNextArgument())) {
-      const { index, info } = nextArgument
+    while ((nextArgDefinition = takeNextArgumentFromDefinition())) {
+      const { index, info } = nextArgDefinition
       resolvedArgs.push({
         appTree: outerApp,
         argument: ArgumentPlaceholder.WithRetrievedConfig(

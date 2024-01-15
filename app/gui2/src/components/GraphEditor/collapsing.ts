@@ -135,29 +135,28 @@ const COLLAPSED_FUNCTION_NAME = 'collapsed'
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
-  module: Ast.Module,
+  edit: Ast.MutableModule,
   topLevel: Ast.BodyBlock,
   db: GraphDb,
   currentMethodName: string,
-): Ast.MutableModule {
-  const functionAst = Ast.findModuleMethod(module, currentMethodName)
+) {
+  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
   if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
     throw new Error(`Expected a collapsable function, found ${functionAst}.`)
   }
   const functionBlock = functionAst.body
-  const posToInsert = findInsertionPos(module, topLevel, currentMethodName)
-  const collapsedName = findSafeMethodName(module, COLLAPSED_FUNCTION_NAME)
+  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
+  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
   const collapsed = []
   const refactored = []
-  const edit = module.edit()
   const lines = functionBlock.lines()
   for (const line of lines) {
     const astId = line.expression?.node.exprId
-    const ast = astId != null ? module.get(astId) : null
+    const ast = astId != null ? edit.get(astId) : null
     if (ast == null) continue
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
@@ -180,7 +179,6 @@ export function performCollapse(
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
-  return edit
 }
 
 /** Prepare a method call expression for collapsed method. */
