@@ -333,7 +333,7 @@ export default function Drive(props: DriveProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
-                    doCreateDataConnector={doCreateDataConnector}
+                    doCreateSecret={doCreateDataConnector}
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>

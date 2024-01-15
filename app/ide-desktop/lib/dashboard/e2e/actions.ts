@@ -70,6 +70,16 @@ export function locateNewLabelModalColorButtons(page: test.Locator | test.Page) 
     )
 }
 
+/** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
+export function locateSecretNameInput(page: test.Locator | test.Page) {
+    return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+}
+
+/** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
+export function locateSecretValueInput(page: test.Locator | test.Page) {
+    return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+}
+
 // === Button locators ===
 
 /** Find a login button (if any) on the current page. */
@@ -243,7 +253,7 @@ export function locateNewFolderButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'New Folder' }).getByText('New Folder')
 }
 
-/** Find a "new data connector" button (if any) on the current page. */
+/** Find a "new secret" button (if any) on the current page. */
 export function locateNewSecretButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'New Secret' }).getByText('New Secret')
 }
@@ -268,9 +278,9 @@ export function locateNewFolderIcon(page: test.Locator | test.Page) {
     return page.getByAltText('New Folder')
 }
 
-/** Find a "new data connector" icon (if any) on the current page. */
-export function locateNewDataConnectorIcon(page: test.Locator | test.Page) {
-    return page.getByAltText('New Data Connector')
+/** Find a "new secret" icon (if any) on the current page. */
+export function locateNewSecretIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('New Secret')
 }
 
 /** Find a "upload files" icon (if any) on the current page. */
@@ -342,6 +352,12 @@ export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
 export function locateNewLabelModal(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('new-label-modal')
+}
+
+/** Find an "upsert secret" modal (if any) on the current page. */
+export function locateUpsertSecretModal(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('upsert-secret-modal')
 }
 
 /** Find a user menu (if any) on the current page. */

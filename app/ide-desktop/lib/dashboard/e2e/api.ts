@@ -382,6 +382,8 @@ export async function mockApi({ page }: MockParams) {
                     color: body.color,
                 }
                 await route.fulfill({ json })
+            } else {
+                await route.fallback()
             }
         })
         await page.route(BASE_URL + remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', async route => {

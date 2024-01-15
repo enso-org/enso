@@ -29,7 +29,7 @@ export interface DriveBarProps {
     canDownloadFiles: boolean
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
-    doCreateDataConnector: (name: string, value: string) => void
+    doCreateSecret: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -38,7 +38,7 @@ export interface DriveBarProps {
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
     const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
-    const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
+    const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -107,9 +107,9 @@ export default function DriveBar(props: DriveBarProps) {
                         <Button
                             active={isHomeCategory}
                             disabled={!isHomeCategory}
-                            error="You can only create a new data connector in Home."
+                            error="You can only create a secret in Home."
                             image={AddConnectorIcon}
-                            alt="New Data Connector"
+                            alt="New Secret"
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
@@ -117,7 +117,7 @@ export default function DriveBar(props: DriveBarProps) {
                                     <UpsertSecretModal
                                         id={null}
                                         name={null}
-                                        doCreate={doCreateDataConnector}
+                                        doCreate={doCreateSecret}
                                     />
                                 )
                             }}

@@ -47,6 +47,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
     return (
         <Modal centered className="bg-dim">
             <form
+                data-testid="upsert-secret-modal"
                 tabIndex={-1}
                 className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
                 onKeyDown={event => {
@@ -67,7 +68,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                 <h1 className="relative text-sm font-semibold">
                     {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
                 </h1>
-                <div className="relative flex">
+                <label className="relative flex">
                     <div className="w-12 h-6 py-1">Name</div>
                     <input
                         autoFocus
@@ -79,8 +80,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                             setName(event.currentTarget.value)
                         }}
                     />
-                </div>
-                <div className="relative flex">
+                </label>
+                <label className="relative flex">
                     <div className="w-12 h-6 py-1">Value</div>
                     <input
                         placeholder="Enter the value of the secret"
@@ -89,7 +90,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                             setValue(event.currentTarget.value)
                         }}
                     />
-                </div>
+                </label>
                 <div className="relative flex gap-2">
                     <button
                         disabled={!canSubmit}
