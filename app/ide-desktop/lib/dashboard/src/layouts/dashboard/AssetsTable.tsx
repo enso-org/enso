@@ -39,6 +39,7 @@ import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
 import AssetNameColumn from '#/components/dashboard/AssetNameColumn'
+import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -46,7 +47,6 @@ import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
 import Spinner, * as spinner from '#/components/Spinner'
-import type * as tableRow from '#/components/TableRow'
 
 // =================
 // === Constants ===
@@ -1735,15 +1735,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (
-            innerRowProps: tableRow.TableRowInnerProps<
-                assetTreeNode.AssetTreeNode,
-                AssetsTableState,
-                AssetRowState,
-                backendModule.AssetId
-            >,
-            event: React.MouseEvent
-        ) => {
+        (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
             const { key } = innerRowProps
             event.stopPropagation()
             const getNewlySelectedKeys = () => {
