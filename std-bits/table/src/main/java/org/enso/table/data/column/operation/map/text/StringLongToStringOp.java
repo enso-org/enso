@@ -11,13 +11,13 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
-public abstract class StringStringLongOp<T>
+public abstract class StringLongToStringOp
     extends BinaryMapOperation<String, SpecializedStorage<String>> {
-  public StringStringLongOp(String name) {
+  public StringLongToStringOp(String name) {
     super(name);
   }
 
-  protected abstract String doString(String a, Long b);
+  protected abstract String doOperation(String a, long b);
 
   @Override
   public Storage<?> runBinaryMap(
@@ -36,7 +36,7 @@ public abstract class StringStringLongOp<T>
         if (storage.isNa(i)) {
           newVals[i] = null;
         } else {
-          newVals[i] = doString(storage.getItem(i), argLong);
+          newVals[i] = doOperation(storage.getItem(i), argLong);
         }
 
         context.safepoint();
@@ -61,7 +61,7 @@ public abstract class StringStringLongOp<T>
         if (storage.isNa(i) || v.isNa(i)) {
           newVals[i] = null;
         } else {
-          newVals[i] = doString(storage.getItem(i), v.getItem(i));
+          newVals[i] = doOperation(storage.getItem(i), v.getItem(i));
         }
 
         context.safepoint();

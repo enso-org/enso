@@ -937,9 +937,10 @@ spec setup =
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
                 case setup.is_database of
                     False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                        resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
                     True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
-                        resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+                case setup.is_database of
+                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
         
         Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
