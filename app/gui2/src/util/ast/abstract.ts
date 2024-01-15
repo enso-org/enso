@@ -987,6 +987,7 @@ export class Function extends Ast {
   private readonly equals_: NodeChild<Token>
   private readonly body_: NodeChild<AstId> | null
 
+  /** @internal */
   static new(
     module: MutableModule,
     name: Owned<Ast>,
@@ -1011,6 +1012,25 @@ export class Function extends Ast {
     )
   }
 
+  static fromExprs(
+    module: MutableModule,
+    name: string,
+    args: Ast[],
+    exprs: Ast[],
+    trailingNewline?: boolean,
+  ): Function {
+    const id = newAstId()
+    const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
+    if (trailingNewline) {
+      exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
+    }
+    const body = BodyBlock.new(exprs_, module)
+    const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
+    const ident = { node: Ident.new(module, name).exprId }
+    const equals = { node: Token.new('=') }
+    return new Function(module, id, ident, args_, equals, { node: body.exprId })
+  }
+
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
   //  here and in `rawChildren` (and indirectly, `print`).
   get name(): Ast | null {
@@ -1032,6 +1052,8 @@ export class Function extends Ast {
       yield body
     }
   }
+
+  /** @internal */
   constructor(
     module: MutableModule,
     id: AstId | undefined,
@@ -1047,25 +1069,6 @@ export class Function extends Ast {
 
     this.body_ = body
     setParent(module, this.exprId, ...this.concreteChildren())
-  }
-
-  static new(
-    module: MutableModule,
-    name: string,
-    args: Ast[],
-    exprs: Ast[],
-    trailingNewline?: boolean,
-  ): Function {
-    const id = newAstId()
-    const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
-    if (trailingNewline) {
-      exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
-    }
-    const body = BodyBlock.new(exprs_, module)
-    const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
-    const ident = { node: Ident.new(module, name).exprId }
-    const equals = { node: Token.new('=') }
-    return new Function(module, id, ident, args_, equals, { node: body.exprId })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {

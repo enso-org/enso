@@ -39,7 +39,7 @@ interface Output {
 interface RefactoredInfo {
   /** The id of the refactored node. */
   id: ExprId
-  /** The pattern of the refactored node. Included for convinience, collapsing does not affect it. */
+  /** The pattern of the refactored node. Included for convenience, collapsing does not affect it. */
   pattern: string
   /** The list of necessary arguments for a call of the collapsed function. */
   arguments: Identifier[]
@@ -88,12 +88,13 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
   // If there is no output found so far, it means that none of our nodes is used outside
   // the extracted function. In such we will return value from arbitrarily chosen leaf.
   if (output == null) {
-    const arbitaryLeaf = set.first(leaves)
-    if (arbitaryLeaf == null) throw new Error('Cannot select the output node, no leaf nodes found.')
-    const outputNode = graphDb.nodeIdToNode.get(arbitaryLeaf)
-    if (outputNode == null) throw new Error(`The node with id ${arbitaryLeaf} not found.`)
+    const arbitraryLeaf = set.first(leaves)
+    if (arbitraryLeaf == null)
+      throw new Error('Cannot select the output node, no leaf nodes found.')
+    const outputNode = graphDb.nodeIdToNode.get(arbitraryLeaf)
+    if (outputNode == null) throw new Error(`The node with id ${arbitraryLeaf} not found.`)
     const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
-    output = { node: arbitaryLeaf, identifier }
+    output = { node: arbitraryLeaf, identifier }
   }
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
@@ -172,13 +173,12 @@ export function performCollapse(
   if (outputIdentifier != null) {
     collapsed.push(Ast.Ident.new(edit, outputIdentifier))
   }
-  // Update the definiton of refactored function.
+  // Update the definition of refactored function.
   const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
   edit.replaceRef(functionBlock.exprId, refactoredBlock)
-  // new Ast.BodyBlock(edit, functionBlock.exprId, refactored)
 
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed, true)
+  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
   return edit
 }
