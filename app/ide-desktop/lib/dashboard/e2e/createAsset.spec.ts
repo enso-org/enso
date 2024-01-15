@@ -30,6 +30,27 @@ test.test('create project', async ({ page }) => {
     await test.expect(actions.locateEditor(page)).toBeVisible()
 })
 
+test.test('upload file', async ({ page }) => {
+    const assetRows = actions.locateAssetsTableRows(page)
+
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await actions.locateUploadFilesIcon(page).click()
+    const fileChooser = await fileChooserPromise
+    const name = 'foo.txt'
+    const content = 'hello world'
+    await fileChooser.setFiles([
+        {
+            name,
+            buffer: Buffer.from(content),
+            mimeType: 'text/plain',
+        },
+    ])
+
+    await test.expect(assetRows).toHaveCount(1)
+    await test.expect(assetRows.nth(0)).toBeVisible()
+    await test.expect(assetRows.nth(0)).toHaveText(new RegExp('^' + name))
+})
+
 test.test('create secret', async ({ page }) => {
     const assetRows = actions.locateAssetsTableRows(page)
 
