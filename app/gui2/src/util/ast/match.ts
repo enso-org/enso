@@ -1,6 +1,6 @@
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
-import { assert } from '@/util/assert'
 
 export class Pattern {
   private readonly tokenTree: Ast.TokenTree
