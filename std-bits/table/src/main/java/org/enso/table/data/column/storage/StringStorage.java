@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -11,8 +10,8 @@ import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.operation.map.text.StringStringLongOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
@@ -132,16 +131,16 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
-        new GenericBinaryObjectMapOperation<>(Maps.TEXT_LEFT, Long.class, LongStorage.class) {
+        new StringStringLongOp(Maps.TEXT_LEFT) {
           @Override
-          protected String run(String a, Long b) {
+          protected String doString(String a, Long b) {
             return Text_Utils.take_prefix(a, b);
           }
         });
     t.add(
-        new GenericBinaryObjectMapOperation<>(Maps.TEXT_RIGHT, Long.class, LongStorage.class) {
+        new StringStringLongOp(Maps.TEXT_RIGHT) {
           @Override
-          protected String run(String a, Long b) {
+          protected String doString(String a, Long b) {
             return Text_Utils.take_suffix(a, b);
           }
         });

@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map;
 
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.error.UnexpectedTypeException;
@@ -28,9 +27,7 @@ public abstract class GenericBinaryObjectMapOperation<
   private final Class<ArgType> argTypeClass;
   private final Class<? extends ArgStorageType> argStorageTypeClass;
 
-  protected Builder createOutputBuilder(int size) {
-    return new ObjectBuilder(size);
-  }
+  protected abstract Builder createOutputBuilder(int size);
 
   protected abstract OutputType run(InputType value, ArgType other);
 
