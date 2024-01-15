@@ -601,6 +601,7 @@
   and `Is_Finite`.][8539]
 - [Added text_length to Column][8606]
 - [Added none delimiter option for Data.Read][8627]
+- [Added text_left and text_right to Column][8691]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -862,6 +863,7 @@
 [8564]: https://github.com/enso-org/enso/pull/8564
 [8606]: https://github.com/enso-org/enso/pull/8606
 [8627]: https://github.com/enso-org/enso/pull/8627
+[8691]: https://github.com/enso-org/enso/pull/8691
 
 #### Enso Compiler
 
