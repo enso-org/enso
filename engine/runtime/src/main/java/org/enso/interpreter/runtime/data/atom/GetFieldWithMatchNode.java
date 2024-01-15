@@ -13,8 +13,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-public final class GetFieldWithMatchNode extends RootNode {
-  public static class GetterPair {
+final class GetFieldWithMatchNode extends RootNode {
+  static class GetterPair {
     private final AtomConstructor target;
     private final int index;
 

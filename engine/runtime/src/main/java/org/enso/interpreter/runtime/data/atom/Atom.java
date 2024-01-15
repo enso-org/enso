@@ -62,6 +62,7 @@ public abstract class Atom implements EnsoObject {
     return hashCode;
   }
 
+  @CompilerDirectives.TruffleBoundary
   private void toString(StringBuilder builder, boolean shouldParen, int depth) {
     if (depth <= 0) {
       builder.append("...");
@@ -129,13 +130,13 @@ public abstract class Atom implements EnsoObject {
   }
 
   @ExportMessage
-  public boolean hasMembers() {
+  boolean hasMembers() {
     return true;
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public EnsoObject getMembers(boolean includeInternal) {
+  EnsoObject getMembers(boolean includeInternal) {
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
@@ -153,7 +154,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public boolean isMemberInvocable(String member) {
+  final boolean isMemberInvocable(String member) {
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null && members.contains(member)) {
@@ -166,7 +167,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @ExplodeLoop
-  public boolean isMemberReadable(String member) {
+  final boolean isMemberReadable(String member) {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return true;
@@ -177,7 +178,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @ExplodeLoop
-  public Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
+  final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
       throws UnknownIdentifierException {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
@@ -291,7 +292,7 @@ public abstract class Atom implements EnsoObject {
   }
 
   @ExportMessage
-  public Type getType() {
+  Type getType() {
     return getConstructor().getType();
   }
 

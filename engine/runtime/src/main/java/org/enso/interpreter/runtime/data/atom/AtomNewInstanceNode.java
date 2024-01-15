@@ -7,6 +7,13 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 
+/**
+ * Provides unified way to constructor {@link Atom} instances. Use {@link #getUncached()} to obtain
+ * a singleton instance of this node and then call {@link #execute(AtomConstructor, Object[])} to
+ * instiantiate an atom from its {@link AtomConstructor} and parameters passed to it. Use {@link
+ * #create()} to obtain a partial evaluation ready instance to be {@link Node#insert inserted} into
+ * AST hierarchy.
+ */
 @ReportPolymorphism
 public abstract class AtomNewInstanceNode extends Node {
   AtomNewInstanceNode() {}

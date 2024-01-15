@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-public final class GetFieldNode extends RootNode {
+final class GetFieldNode extends RootNode {
   private final int index;
   private final String name;
   private final Type type;
@@ -22,7 +22,7 @@ public final class GetFieldNode extends RootNode {
    * @param language the current language instance.
    * @param index the index this node should use for field lookup.
    */
-  public GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
+  GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
     super(language);
     this.index = index;
     this.type = type;

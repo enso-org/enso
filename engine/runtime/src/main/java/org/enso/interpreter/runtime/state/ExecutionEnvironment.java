@@ -53,7 +53,8 @@ public class ExecutionEnvironment {
   }
 
   private ExecutionEnvironment update(Atom context, boolean value) {
-    assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
+    assert context.getConstructor().getType()
+        == EnsoContext.get(null).getBuiltins().context().getType();
     int keyFound = -1;
     for (int i = 0; i < keys.length; i++) {
       if (keys[i].equals(context.getConstructor().getName())) {
