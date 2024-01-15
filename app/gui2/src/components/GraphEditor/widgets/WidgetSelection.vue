@@ -85,7 +85,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown="toggleDropdownWidget">
+  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
     <NodeWidget :input="innerWidgetInput" />
     <DropdownWidget
       v-if="showDropdownWidget"

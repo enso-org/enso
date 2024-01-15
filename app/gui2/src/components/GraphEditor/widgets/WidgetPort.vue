@@ -20,7 +20,6 @@ import {
   nextTick,
   onUpdated,
   proxyRefs,
-  ref,
   shallowRef,
   toRef,
   watch,
@@ -35,7 +34,7 @@ const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
-const isHovered = ref(false)
+const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
 
 const hasConnection = computed(
   () => graph.db.connections.reverseLookup(portId.value as ExprId).size > 0,
@@ -47,14 +46,6 @@ const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget
 
 const rootNode = shallowRef<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode, false)
-
-watchEffect((onCleanup) => {
-  if (selection != null && isHovered.value === true) {
-    const id = portId.value
-    selection.addHoveredPort(id)
-    onCleanup(() => selection.removeHoveredPort(id))
-  }
-})
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -155,8 +146,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     }"
     :data-id="portId"
     :data-h="randSlice"
-    @pointerenter="isHovered = true"
-    @pointerleave="isHovered = false"
   >
     <NodeWidget :input="innerWidget" />
   </div>
