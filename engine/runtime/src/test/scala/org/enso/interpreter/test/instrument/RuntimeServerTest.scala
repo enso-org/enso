@@ -1004,20 +1004,42 @@ class RuntimeServerTest
         contextId,
         id_x_0,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+        methodCall = Some(
+          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+              Vector(0, 1)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+              Vector(1)
+            )
+          )
+        )
       ),
       TestMessages.update(
         contextId,
         id_x_2,
-        "Enso_Test.Test.Main.T"
+        s"$moduleName.T",
+        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
       ),
       context.executionComplete(contextId)
     )

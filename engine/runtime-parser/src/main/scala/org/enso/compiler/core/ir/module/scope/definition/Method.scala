@@ -5,7 +5,6 @@ package definition
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -56,7 +55,8 @@ object Method {
     override val passData: MetadataStorage,
     override val diagnostics: DiagnosticStorage
   ) extends Method
-      with IRKind.Primitive {
+      with IRKind.Primitive
+      with LazyId {
     def this(
       methodReference: Name.MethodReference,
       body: Expression,
@@ -75,8 +75,7 @@ object Method {
       );
     }
 
-    var id: UUID @Identifier = randomId
-    lazy val body            = bodySeq.head
+    lazy val body = bodySeq.head
 
     /** Creates a copy of `this`.
       *
@@ -138,7 +137,7 @@ object Method {
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -242,8 +241,8 @@ object Method {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
-      with IRKind.Sugar {
-    var id: UUID @Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -311,7 +310,7 @@ object Method {
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -382,8 +381,8 @@ object Method {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -451,7 +450,7 @@ object Method {
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
     }
 

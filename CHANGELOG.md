@@ -1016,6 +1016,7 @@
 - [Export of non-existing symbols results in error][7960]
 - [Upgrade GraalVM to 23.1.0 JDK21][7991]
 - [Added opt-in type checks of return type][8502]
+- [Introduce Arrow language][8512]
 - [DataflowError.withoutTrace doesn't store stacktrace][8608]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -1168,6 +1169,7 @@
 [7960]: https://github.com/enso-org/enso/pull/7960
 [7991]: https://github.com/enso-org/enso/pull/7991
 [8502]: https://github.com/enso-org/enso/pull/8502
+[8512]: https://github.com/enso-org/enso/pull/8512
 [8608]: https://github.com/enso-org/enso/pull/8608
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
