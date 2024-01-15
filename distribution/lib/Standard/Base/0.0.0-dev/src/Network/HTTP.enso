@@ -35,6 +35,7 @@ polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
+polyglot java import javax.net.ssl.SSLContext
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
@@ -69,7 +70,7 @@ type HTTP
                 HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.Address "example.com" 8080)
     new : Duration -> Boolean -> Proxy -> HTTP_Version -> HTTP
     new (timeout:Duration=(Duration.new seconds=10)) (follow_redirects:Boolean=True) (proxy:Proxy=Proxy.System) (version:HTTP_Version=HTTP_Version.HTTP_2) =
-        HTTP.Value timeout follow_redirects proxy version
+        HTTP.Value timeout follow_redirects proxy version Nothing
 
     ## PRIVATE
        An HTTP client.
@@ -79,7 +80,10 @@ type HTTP
        - follow_redirects: Whether or not the client should follow redirects.
        - proxy: The proxy that the client should use, if any.
        - version: The HTTP version supported by the client.
-    Value timeout follow_redirects proxy version
+       - custom_ssl_context: A custom SSL context to use for requests, or
+         Nothing if the default should be used. For most use cases, it is
+         recommended to use the default.
+    Value timeout follow_redirects proxy version custom_ssl_context
 
     ## ADVANCED
        Sends a request using the HTTP client.
@@ -91,7 +95,7 @@ type HTTP
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error
+    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error | Illegal_Argument
     request self req error_on_failure_code=True =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
@@ -103,7 +107,7 @@ type HTTP
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
             Panic.catch JException handler=handler
 
-        Panic.recover Any <| handle_request_error <| check_output_context <|
+        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
             headers = resolve_headers req
             headers.if_not_error <|
                 body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body
@@ -120,7 +124,7 @@ type HTTP
 
                     response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
-                        body = response.body.decode_as_text.catch Any _-> ""
+                        body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
                         Error.throw (HTTP_Error.Status_Error response.code message response.uri)
 
@@ -159,7 +163,17 @@ type HTTP
             HTTP_Version.HTTP_1_1 -> builder.version HttpClient.Version.HTTP_1_1
             HTTP_Version.HTTP_2 -> builder.version HttpClient.Version.HTTP_2
 
+        if self.custom_ssl_context.is_nothing.not then
+            builder.sslContext self.custom_ssl_context
+
         builder.build
+
+    ## PRIVATE
+       ADVANCED
+       Create a copy of the HTTP client with a custom SSL context.
+    set_custom_ssl_context : SSLContext -> HTTP
+    set_custom_ssl_context self ssl_context =
+        HTTP.Value self.timeout self.follow_redirects self.proxy self.version ssl_context
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header

@@ -47,6 +47,14 @@ public record URIWithSecrets(
     }
   }
 
+  public boolean containsSecrets() {
+    if (userInfo != null && (userInfo.username().isSecret() || userInfo.password().isSecret())) {
+      return true;
+    }
+
+    return queryParameters.stream().anyMatch(p -> p.getRight().isSecret());
+  }
+
   private URISchematic makeSchematicForSafeResolve() {
     List<Pair<String, String>> resolvedParameters =
         queryParameters.stream()
