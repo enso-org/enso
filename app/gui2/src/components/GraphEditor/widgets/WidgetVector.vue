@@ -3,10 +3,12 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
 const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor'
@@ -32,7 +34,8 @@ const value = computed({
   set(value) {
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    props.onUpdate({ type: 'set', value: newCode, origin: props.input.portId })
+    const edit = graph.astModule.edit()
+    props.onUpdate({ edit, portUpdate: { value: newCode, origin: props.input.portId } })
   },
 })
 
