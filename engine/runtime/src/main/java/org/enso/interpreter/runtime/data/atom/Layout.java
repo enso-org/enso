@@ -17,12 +17,12 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
  * numbers of other nodes participating in this system.
  */
 @LayoutSpec(minFields = Layout.MIN_FIELDS, maxFields = Layout.MAX_FIELDS)
-public class Layout {
+class Layout {
   static final int MAX_FIELDS = 4;
   static final int MIN_FIELDS = 1;
 
   /** Helpers for reading compressed field data this layout holds. */
-  public static class Flags {
+  static final class Flags {
     public static final long DOUBLE_MASK = 0b10;
     public static final long ALL_DOUBLES_MASK = 0xAAAAAAAAAAAAAAAAL;
     public static final long LONG_MASK = 0b01;
