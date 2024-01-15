@@ -144,7 +144,7 @@ public final class StringStorage extends SpecializedStorage<String> {
             Maps.TEXT_RIGHT, String.class, StringStorage.class, Long.class, LongStorage.class) {
           @Override
           protected String run(String a, Long b) {
-            return Text_Utils.take_prefix(a, b);
+            return Text_Utils.take_suffix(a, b);
           }
         });
     t.add(
