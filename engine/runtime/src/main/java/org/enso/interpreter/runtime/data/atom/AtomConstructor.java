@@ -40,6 +40,7 @@ public final class AtomConstructor implements EnsoObject {
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
+  private @CompilerDirectives.CompilationFinal Function accessor;
 
   private final Lock layoutsLock = new ReentrantLock();
   private @CompilerDirectives.CompilationFinal Layout boxedLayout;
@@ -126,7 +127,7 @@ public final class AtomConstructor implements EnsoObject {
     this.constructorFunction =
         buildConstructorFunction(
             language, section, localScope, assignments, varReads, annotations, args);
-    generateQualifiedAccessor();
+    this.accessor = generateQualifiedAccessor(language);
     return this;
   }
 
@@ -163,10 +164,10 @@ public final class AtomConstructor implements EnsoObject {
     return new Function(callTarget, null, new FunctionSchema(annotations, args));
   }
 
-  private void generateQualifiedAccessor() {
-    QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = node.getCallTarget();
-    Function function =
+  private Function generateQualifiedAccessor(EnsoLanguage lang) {
+    var node = new QualifiedAccessorNode(lang, this);
+    var callTarget = node.getCallTarget();
+    var function =
         new Function(
             callTarget,
             null,
@@ -174,6 +175,7 @@ public final class AtomConstructor implements EnsoObject {
                 new ArgumentDefinition(
                     0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
+    return function;
   }
 
   /**
@@ -243,6 +245,30 @@ public final class AtomConstructor implements EnsoObject {
    */
   public Function getConstructorFunction() {
     return constructorFunction;
+  }
+
+  /**
+   * Gets the qualified accessor function of this constructor.
+   *
+   * @return the accessor function of this constructor.
+   */
+  public Function getAccessorFunction() {
+    return accessor;
+  }
+
+  /**
+   * Extracts constructor from given {@link #getAccessorFunction() accessor function}.
+   *
+   * @param fn the function to check
+   * @return associated constructor or {@code null} if the function isn't {@link
+   *     #getAccessorFunction() accessor function}.
+   */
+  public static AtomConstructor accessorFor(Function fn) {
+    if (fn.getCallTarget().getRootNode() instanceof QualifiedAccessorNode node) {
+      return node.getAtomConstructor();
+    } else {
+      return null;
+    }
   }
 
   final Layout[] getUnboxingLayouts() {
