@@ -189,7 +189,7 @@ base_dialect =
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive, length, left, right]
+    text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive, length]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
@@ -371,14 +371,6 @@ fold_case = lift_unary_op "FOLD_CASE" arg->
 ## PRIVATE
 length = lift_unary_op "LENGTH" str->
     Builder.code "length(" ++ str ++ ")"
-
-## PRIVATE
-left = lift_binary_op "LEFT" str-> n->
-    Builder.code "substr(" ++ str ++ ", 0, " ++ n ++ " + 1)"
-
-## PRIVATE
-right = lift_binary_op "RIGHT" str-> n->
-    Builder.code "substr(" ++ str ++ ", -" ++ n ++ ")"
 
 ## PRIVATE
 make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
