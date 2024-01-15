@@ -1209,7 +1209,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_left 5
-    text_left : Column
+    text_left : Column|Integer -> Column
     text_left self n =
         Value_Type.expect_text self <| Value_Type.expect_integer n <|
             n2 = n.max 0
@@ -1230,7 +1230,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_right 5
-    text_right : Column
+    text_right : Column|Integer -> Column
     text_right self n =
         Value_Type.expect_text self <| Value_Type.expect_integer n <|
             n2 = n.max 0
