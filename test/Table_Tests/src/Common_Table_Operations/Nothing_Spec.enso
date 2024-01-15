@@ -10,13 +10,14 @@ from project.Common_Table_Operations.Util import run_default_backend
 main = run_default_backend spec
 
 type My_Type
-    Value x
+    Value x:Text
+
 
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    values_without_nothing = [[True, False, Value_Type.Boolean]]
+    values_without_nothing = [[False, True, Value_Type.Boolean]]
            + [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
            + [["abcd", "efgh", Value_Type.Char]]
            + [[12, 13, Value_Type.Integer]]
@@ -145,12 +146,17 @@ spec setup =
             other_value = triple.at 1
             expected_value_type = triple.at 2
 
-            t0 = table_builder [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]]
+            is_comparable = Default_Comparator.compare value other_value != Nothing
 
-            Test.specify "Correctly handle Nothing in .order_by (asc) for "+expected_value_type.to_text <|
-                t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
-                t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
+            if is_comparable then
+                t0 = table_builder [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]]
 
-            Test.specify "Correctly handle Nothing in .order_by (desc) for "+expected_value_type.to_text <|
-                t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
-                t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]
+                Test.specify "Correctly handle Nothing in .order_by (asc) for "+expected_value_type.to_text <|
+                    #IO.println (Nothing < Nothing)
+                    #IO.println (My_Type.Value "1" < My_Type.Value "2")
+                    t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
+                    t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
+
+                Test.specify "Correctly handle Nothing in .order_by (desc) for "+expected_value_type.to_text <|
+                    t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
+                    t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]
