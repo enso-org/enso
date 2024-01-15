@@ -36,12 +36,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
             SpecializedStorage<LocalTime>,
             LocalTime,
             SpecializedStorage<LocalTime>,
-            Duration>(
-            Maps.SUB,
-            LocalTime.class,
-            TimeOfDayStorage.class,
-            LocalTime.class,
-            TimeOfDayStorage.class) {
+            Duration>(Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
           protected Duration run(LocalTime value, LocalTime other) {
             return Duration.between(other, value);

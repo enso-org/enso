@@ -41,12 +41,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
             SpecializedStorage<ZonedDateTime>,
             ZonedDateTime,
             SpecializedStorage<ZonedDateTime>,
-            Duration>(
-            Maps.SUB,
-            ZonedDateTime.class,
-            DateTimeStorage.class,
-            ZonedDateTime.class,
-            DateTimeStorage.class) {
+            Duration>(Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
           @Override
           protected Duration run(ZonedDateTime value, ZonedDateTime other) {
             return Duration.between(other, value);

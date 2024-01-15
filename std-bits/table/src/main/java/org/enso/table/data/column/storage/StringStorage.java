@@ -132,16 +132,14 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
-        new GenericBinaryObjectMapOperation<>(
-            Maps.TEXT_LEFT, String.class, StringStorage.class, Long.class, LongStorage.class) {
+        new GenericBinaryObjectMapOperation<>(Maps.TEXT_LEFT, Long.class, LongStorage.class) {
           @Override
           protected String run(String a, Long b) {
             return Text_Utils.take_prefix(a, b);
           }
         });
     t.add(
-        new GenericBinaryObjectMapOperation<>(
-            Maps.TEXT_RIGHT, String.class, StringStorage.class, Long.class, LongStorage.class) {
+        new GenericBinaryObjectMapOperation<>(Maps.TEXT_RIGHT, Long.class, LongStorage.class) {
           @Override
           protected String run(String a, Long b) {
             return Text_Utils.take_suffix(a, b);
