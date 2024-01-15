@@ -28,7 +28,7 @@ spec setup =
            + [[[1], [2], Value_Type.Mixed]]
 
     Test.group prefix+"Comparisons" <|
-        operations = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
+        comparisons = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
 
         Test.specify "Confirm expected types" <|
             values.map triple->
@@ -36,27 +36,27 @@ spec setup =
                 expected_value_type = triple.at 2
                 table_builder [["x", [value, Nothing]]] . at "x" . value_type . should_equal expected_value_type
 
-        operations.map pair->
-            operation_name = pair.at 0
-            operation = pair.at 1
+        comparisons.map pair->
+            comparison_name = pair.at 0
+            comparison = pair.at 1
 
             values.map triple->
                 value = triple.at 0
                 expected_value_type = triple.at 2
 
-                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+operation_name+" Nothing value" <|
+                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+comparison_name+" Nothing value" <|
                     t0 = table_builder [["x", [value, Nothing]]]
-                    c0 = operation (t0.at "x") Nothing
+                    c0 = comparison (t0.at "x") Nothing
                     c0.to_vector . should_equal [Nothing, Nothing]
 
-                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+operation_name+" Nothing column" <|
+                Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+" "+comparison_name+" Nothing column" <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
-                    c0 = operation (t0.at "x") (t0.at "n")
+                    c0 = comparison (t0.at "x") (t0.at "n")
                     c0.to_vector . should_equal [Nothing, Nothing]
 
-                Test.specify "Correctly handle Nothing in: Nothing column "+operation_name+" "+expected_value_type.to_text <|
+                Test.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+expected_value_type.to_text <|
                     t0 = table_builder [["x", [value, Nothing]], ["n", [Nothing, Nothing]]]
-                    c0 = operation (t0.at "n") (t0.at "x")
+                    c0 = comparison (t0.at "n") (t0.at "x")
                     c0.to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"between" <|
