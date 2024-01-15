@@ -1561,8 +1561,11 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk"  % "polyglot-tck"            % graalMavenPackagesVersion,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
