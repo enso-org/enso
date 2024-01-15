@@ -935,10 +935,10 @@ spec setup =
                 resRight.name . should_equal "text_right([strings], 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"] 
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
-                case setup.test_selection.length_restricted_text_columns of
-                    True -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                case setup.is_database of
+                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
                         resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    False -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
+                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
                         resRight . value_type . should_equal (Value_Type.Char variable_length=True)
         
         Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
