@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.util.concurrent.Semaphore;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -16,7 +17,8 @@ public class HybridHTTPServer {
   private final HttpServer server;
   private final HttpsServer sslServer;
   private final Path keyStorePath;
-  private volatile boolean isRunning;
+  private volatile boolean isStarted = false;
+  private final Semaphore stopNotification = new Semaphore(0, false);
 
   public HybridHTTPServer(String hostname, int port, int sslPort, Path keyStorePath)
       throws IOException {
@@ -101,6 +103,12 @@ public class HybridHTTPServer {
   }
 
   public void start() {
+    if (isStarted) {
+      throw new IllegalStateException("Server already started");
+    }
+
+    isStarted = true;
+
     try {
       setupSSL();
     } catch (Exception e) {
@@ -108,16 +116,14 @@ public class HybridHTTPServer {
     }
     server.start();
     sslServer.start();
-    isRunning = true;
 
     System.out.println("HTTP server started at " + server.getAddress());
     System.out.println("HTTPS server started at " + sslServer.getAddress());
 
     try {
-      while (isRunning) {
-        Thread.sleep(500);
-      }
+      stopNotification.acquire();
     } catch (InterruptedException e) {
+      System.out.println("Server interrupted.");
       e.printStackTrace();
     } finally {
       System.out.println("Finalizing HTTP server...");
@@ -129,7 +135,7 @@ public class HybridHTTPServer {
   }
 
   public void stop() {
-    isRunning = false;
+    stopNotification.release();
   }
 
   public void addHandler(String path, HttpHandler handler) {

@@ -33,7 +33,7 @@ public class HTTPTestHelperServer {
       final HybridHTTPServer server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
-            System.out.println("Stopping server... (interrupt)");
+            System.out.println("Stopping server... (SIG" + sig.getName() + ")");
             server1.stop();
           };
       for (String signalName : List.of("TERM", "INT")) {
@@ -65,8 +65,7 @@ public class HTTPTestHelperServer {
     setupFileServer(server, projectRoot);
   }
 
-  private static void setupFileServer(HybridHTTPServer server, Path projectRoot)
-      throws URISyntaxException {
+  private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
