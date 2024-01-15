@@ -2,8 +2,6 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
@@ -39,13 +37,16 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     t.add(DatePartExtractors.nanosecond());
     t.add(
         new GenericBinaryObjectMapOperation<
-            ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(
-            Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
-          @Override
-          protected Builder createOutputBuilder(int size) {
-            return new ObjectBuilder(size);
-          }
-
+            ZonedDateTime,
+            SpecializedStorage<ZonedDateTime>,
+            ZonedDateTime,
+            SpecializedStorage<ZonedDateTime>,
+            Duration>(
+            Maps.SUB,
+            ZonedDateTime.class,
+            DateTimeStorage.class,
+            ZonedDateTime.class,
+            DateTimeStorage.class) {
           @Override
           protected Duration run(ZonedDateTime value, ZonedDateTime other) {
             return Duration.between(other, value);
