@@ -49,12 +49,15 @@ import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
 import MenuEntry from '#/components/MenuEntry'
-import Table from '#/components/Table'
+import Spinner, * as spinner from '#/components/Spinner'
+import type * as tableRow from '#/components/TableRow'
 
 // =================
 // === Constants ===
 // =================
 
+/** The size of the loading spinner. */
+const LOADING_SPINNER_SIZE = 36
 /** The number of pixels the header bar should shrink when the extra column selector is visible. */
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** A value that represents that the first argument is less than the second argument, in a
@@ -383,6 +386,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
     })
     const isCloud = backend.type === backendModule.BackendType.remote
+    const placeholder =
+        category === Category.trash
+            ? TRASH_PLACEHOLDER
+            : query.query !== ''
+            ? QUERY_PLACEHOLDER
+            : PLACEHOLDER
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode>(assetTree)
@@ -1795,104 +1804,205 @@ export default function AssetsTable(props: AssetsTableProps) {
         ]
     )
 
-    return (
-        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
-            <div className="flex flex-col w-min min-w-full h-full">
-                {backend.type !== backendModule.BackendType.local && (
-                    <div className="sticky top-0 h-0">
-                        <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
-                            <div className="inline-flex gap-3">
-                                {columnUtils.EXTRA_COLUMNS.map(column => (
-                                    <Button
-                                        key={column}
-                                        active={extraColumns.has(column)}
-                                        image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
-                                        onClick={event => {
-                                            event.stopPropagation()
-                                            const newExtraColumns = new Set(extraColumns)
-                                            if (extraColumns.has(column)) {
-                                                newExtraColumns.delete(column)
-                                            } else {
-                                                newExtraColumns.add(column)
-                                            }
-                                            setExtraColumns(newExtraColumns)
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {hiddenContextMenu}
-                <Table<
-                    assetTreeNode.AssetTreeNode,
-                    AssetsTableState,
-                    AssetRowState,
-                    backendModule.AssetId
-                >
-                    scrollContainerRef={scrollContainerRef}
-                    headerRowRef={headerRowRef}
-                    footer={
-                        <div
-                            className="grow"
-                            onDragEnter={onDragOver}
-                            onDragOver={onDragOver}
-                            onDrop={event => {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                const filtered = payload?.filter(
-                                    item => item.asset.parentId !== rootDirectoryId
-                                )
-                                if (filtered != null && filtered.length > 0) {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    unsetModal()
-                                    dispatchAssetEvent({
-                                        type: AssetEventType.move,
-                                        newParentKey: rootDirectoryId,
-                                        newParentId: rootDirectoryId,
-                                        ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
-                                    })
-                                }
-                            }}
-                        />
+    const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
+    const [previouslySelectedKey, setPreviouslySelectedKey] =
+        React.useState<backendModule.AssetId | null>(null)
+    const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+    // This is required to prevent the table body from overlapping the table header, because
+    // the table header is transparent.
+    React.useEffect(() => {
+        const body = bodyRef.current
+        const scrollContainer = scrollContainerRef.current
+        if (body != null && scrollContainer != null) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                body.style.clipPath = `inset(${scrollContainer.scrollTop}px 0 0 0)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [/* should never change */ scrollContainerRef])
+
+    React.useEffect(() => {
+        const onDocumentClick = (event: MouseEvent) => {
+            if (
+                !shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditional,
+                    event
+                ) &&
+                !shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditionalRange,
+                    event
+                ) &&
+                selectedKeys.size !== 0
+            ) {
+                setSelectedKeys(new Set())
+            }
+        }
+        document.addEventListener('click', onDocumentClick)
+        return () => {
+            document.removeEventListener('click', onDocumentClick)
+        }
+    }, [selectedKeys, /* should never change */ setSelectedKeys, shortcuts])
+
+    React.useEffect(() => {
+        if (isLoading) {
+            // Ensure the spinner stays in the "initial" state for at least one frame,
+            // to ensure the CSS animation begins at the initial state.
+            requestAnimationFrame(() => {
+                setSpinnerState(spinner.SpinnerState.loadingFast)
+            })
+        } else {
+            setSpinnerState(spinner.SpinnerState.initial)
+        }
+    }, [isLoading])
+
+    const onRowClick = React.useCallback(
+        (
+            innerRowProps: tableRow.TableRowInnerProps<
+                assetTreeNode.AssetTreeNode,
+                AssetsTableState,
+                AssetRowState,
+                backendModule.AssetId
+            >,
+            event: React.MouseEvent
+        ) => {
+            const { key } = innerRowProps
+            event.stopPropagation()
+            const getNewlySelectedKeys = () => {
+                if (previouslySelectedKey == null) {
+                    return [key]
+                } else {
+                    const index1 = displayItems.findIndex(
+                        innerItem =>
+                            assetTreeNode.AssetTreeNode.getKey(innerItem) === previouslySelectedKey
+                    )
+                    const index2 = displayItems.findIndex(
+                        innerItem => assetTreeNode.AssetTreeNode.getKey(innerItem) === key
+                    )
+                    const selectedItems =
+                        index1 <= index2
+                            ? displayItems.slice(index1, index2 + 1)
+                            : displayItems.slice(index2, index1 + 1)
+                    return selectedItems.map(assetTreeNode.AssetTreeNode.getKey)
+                }
+            }
+            if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
+                setSelectedKeys(new Set(getNewlySelectedKeys()))
+            } else if (
+                shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditionalRange,
+                    event
+                )
+            ) {
+                setSelectedKeys(
+                    oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
+                )
+            } else if (
+                shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event)
+            ) {
+                setSelectedKeys(oldSelectedItems => {
+                    const newItems = new Set(oldSelectedItems)
+                    if (oldSelectedItems.has(key)) {
+                        newItems.delete(key)
+                    } else {
+                        newItems.add(key)
                     }
-                    rowComponent={AssetRow}
-                    items={displayItems}
-                    filter={node => visibilities.get(node.key) !== Visibility.hidden}
-                    isLoading={isLoading}
-                    state={state}
-                    initialRowState={INITIAL_ROW_STATE}
-                    getKey={assetTreeNode.AssetTreeNode.getKey}
-                    selectedKeys={selectedKeys}
-                    setSelectedKeys={setSelectedKeys}
-                    placeholder={
-                        category === Category.trash
-                            ? TRASH_PLACEHOLDER
-                            : query.query !== ''
-                            ? QUERY_PLACEHOLDER
-                            : PLACEHOLDER
-                    }
-                    columns={columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
-                        id: column,
-                        className: columnUtils.COLUMN_CSS_CLASS[column],
-                        heading: columnHeading.COLUMN_HEADING[column],
-                        render: columnModule.COLUMN_RENDERER[column],
-                    }))}
-                    onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        const modal = doRenderContextMenu(
-                            innerSelectedKeys,
-                            event,
-                            innerSetSelectedKeys,
-                            false
+                    return newItems
+                })
+            } else {
+                setSelectedKeys(new Set([key]))
+            }
+            setPreviouslySelectedKey(key)
+        },
+        [displayItems, previouslySelectedKey, shortcuts, /* should never change */ setSelectedKeys]
+    )
+
+    const columns = columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
+        id: column,
+        className: columnUtils.COLUMN_CSS_CLASS[column],
+        heading: columnHeading.COLUMN_HEADING[column],
+        render: columnModule.COLUMN_RENDERER[column],
+    }))
+
+    const headerRow = (
+        <tr ref={headerRowRef} className="sticky top-0">
+            {columns.map(column => {
+                // This is a React component, even though it does not contain JSX.
+                // eslint-disable-next-line no-restricted-syntax
+                const Heading = column.heading
+                return (
+                    <th key={column.id} className={`text-sm font-semibold ${column.className}`}>
+                        <Heading state={state} />
+                    </th>
+                )
+            })}
+        </tr>
+    )
+
+    const itemRows = isLoading ? (
+        <tr className="h-8">
+            <td colSpan={columns.length} className="bg-transparent">
+                <div className="grid justify-around w-full">
+                    <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
+                </div>
+            </td>
+        </tr>
+    ) : (
+        displayItems.map(item => {
+            const key = assetTreeNode.AssetTreeNode.getKey(item)
+            const isSelected = selectedKeys.has(key)
+            const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
+            return (
+                <AssetRow
+                    columns={columns}
+                    // The following two lines are safe; the type error occurs because a property
+                    // with a conditional type is being destructured.
+                    // eslint-disable-next-line no-restricted-syntax
+                    state={state as never}
+                    // eslint-disable-next-line no-restricted-syntax
+                    initialRowState={INITIAL_ROW_STATE as never}
+                    key={key}
+                    keyProp={key}
+                    item={item}
+                    hidden={visibilities.get(item.key) === Visibility.hidden}
+                    selected={isSelected}
+                    setSelected={selected => {
+                        setSelectedKeys(oldSelectedKeys =>
+                            set.withPresence(oldSelectedKeys, key, selected)
                         )
-                        if (modal != null) {
-                            setModal(modal)
+                    }}
+                    isSoleSelectedItem={isSoleSelectedItem}
+                    allowContextMenu={selectedKeys.size === 0 || !isSelected || isSoleSelectedItem}
+                    onClick={onRowClick}
+                    onContextMenu={(_innerProps, event) => {
+                        if (!isSelected) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setPreviouslySelectedKey(key)
+                            setSelectedKeys(new Set([key]))
                         }
                     }}
-                    draggableRows
-                    onRowDragStart={event => {
+                    draggable={true}
+                    onDragStart={event => {
+                        if (!selectedKeys.has(key)) {
+                            setPreviouslySelectedKey(key)
+                            setSelectedKeys(new Set([key]))
+                        }
+
                         setSelectedKeys(oldSelectedKeys => {
                             const nodes = assetTree
                                 .preorderTraversal()
@@ -1934,7 +2044,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             return oldSelectedKeys
                         })
                     }}
-                    onRowDragOver={(event, _, key) => {
+                    onDragOver={event => {
                         setSelectedKeys(oldSelectedKeys => {
                             const payload = drag.LABELS.lookup(event)
                             if (payload != null) {
@@ -1968,7 +2078,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             return oldSelectedKeys
                         })
                     }}
-                    onRowDragEnd={() => {
+                    onDragEnd={() => {
                         setSelectedKeys(oldSelectedKeys => {
                             window.setTimeout(() => {
                                 dispatchAssetEvent({
@@ -1980,7 +2090,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             return oldSelectedKeys
                         })
                     }}
-                    onRowDrop={(event, _, key) => {
+                    onDrop={event => {
                         setSelectedKeys(oldSelectedKeys => {
                             const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
                             const payload = drag.LABELS.lookup(event)
@@ -2020,26 +2130,109 @@ export default function AssetsTable(props: AssetsTableProps) {
                             return oldSelectedKeys
                         })
                     }}
-                    onDragLeave={event => {
-                        const payload = drag.LABELS.lookup(event)
-                        if (
-                            payload != null &&
-                            event.relatedTarget instanceof Node &&
-                            !event.currentTarget.contains(event.relatedTarget)
-                        ) {
-                            setSelectedKeys(oldSelectedKeys => {
-                                window.setTimeout(() => {
-                                    dispatchAssetEvent({
-                                        type: AssetEventType.temporarilyAddLabels,
-                                        ids: oldSelectedKeys,
-                                        labelNames: set.EMPTY,
-                                    })
-                                })
-                                return oldSelectedKeys
-                            })
-                        }
-                    }}
                 />
+            )
+        })
+    )
+
+    const table = (
+        <div
+            className="grow flex flex-col"
+            onContextMenu={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                const modal = doRenderContextMenu(selectedKeys, event, setSelectedKeys, false)
+                if (modal != null) {
+                    setModal(modal)
+                }
+            }}
+            onDragLeave={event => {
+                const payload = drag.LABELS.lookup(event)
+                if (
+                    payload != null &&
+                    event.relatedTarget instanceof Node &&
+                    !event.currentTarget.contains(event.relatedTarget)
+                ) {
+                    setSelectedKeys(oldSelectedKeys => {
+                        window.setTimeout(() => {
+                            dispatchAssetEvent({
+                                type: AssetEventType.temporarilyAddLabels,
+                                ids: oldSelectedKeys,
+                                labelNames: set.EMPTY,
+                            })
+                        })
+                        return oldSelectedKeys
+                    })
+                }
+            }}
+        >
+            <table className="rounded-rows table-fixed border-collapse">
+                <thead>{headerRow}</thead>
+                <tbody ref={bodyRef}>
+                    {itemRows}
+                    <tr className="h-8 hidden first:table-row">
+                        <td colSpan={columns.length} className="bg-transparent">
+                            {placeholder}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div
+                className="grow"
+                onDragEnter={onDragOver}
+                onDragOver={onDragOver}
+                onDrop={event => {
+                    const payload = drag.ASSET_ROWS.lookup(event)
+                    const filtered = payload?.filter(
+                        item => item.asset.parentId !== rootDirectoryId
+                    )
+                    if (filtered != null && filtered.length > 0) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        unsetModal()
+                        dispatchAssetEvent({
+                            type: AssetEventType.move,
+                            newParentKey: rootDirectoryId,
+                            newParentId: rootDirectoryId,
+                            ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
+                        })
+                    }
+                }}
+            />
+        </div>
+    )
+
+    return (
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+            <div className="flex flex-col w-min min-w-full h-full">
+                {backend.type !== backendModule.BackendType.local && (
+                    <div className="sticky top-0 h-0">
+                        <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
+                            <div className="inline-flex gap-3">
+                                {columnUtils.EXTRA_COLUMNS.map(column => (
+                                    <Button
+                                        key={column}
+                                        active={extraColumns.has(column)}
+                                        image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
+                                        onClick={event => {
+                                            event.stopPropagation()
+                                            const newExtraColumns = new Set(extraColumns)
+                                            if (extraColumns.has(column)) {
+                                                newExtraColumns.delete(column)
+                                            } else {
+                                                newExtraColumns.add(column)
+                                            }
+                                            setExtraColumns(newExtraColumns)
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {hiddenContextMenu}
+                {table}
             </div>
         </div>
     )
