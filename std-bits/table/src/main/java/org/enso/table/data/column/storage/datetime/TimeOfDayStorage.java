@@ -33,12 +33,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(DatePartExtractors.microsecond());
     t.add(DatePartExtractors.nanosecond());
     t.add(
-        new GenericBinaryObjectMapOperation<
-            LocalTime,
-            SpecializedStorage<LocalTime>,
-            LocalTime,
-            SpecializedStorage<LocalTime>,
-            Duration>(Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
+        new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
+            Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
             return new ObjectBuilder(size);

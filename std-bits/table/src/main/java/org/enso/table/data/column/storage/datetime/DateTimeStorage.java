@@ -39,11 +39,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     t.add(DatePartExtractors.nanosecond());
     t.add(
         new GenericBinaryObjectMapOperation<
-            ZonedDateTime,
-            SpecializedStorage<ZonedDateTime>,
-            ZonedDateTime,
-            SpecializedStorage<ZonedDateTime>,
-            Duration>(Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
+            ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(
+            Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
             return new ObjectBuilder(size);
