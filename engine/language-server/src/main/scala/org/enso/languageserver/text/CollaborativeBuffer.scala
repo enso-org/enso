@@ -349,8 +349,12 @@ class CollaborativeBuffer(
             )
           )
         case Left(failure) =>
-          logger.error("Failed to read file attributes for [{}]. {}", path, failure)
-       }
+          logger.error(
+            "Failed to read file attributes for [{}]. {}",
+            path,
+            failure
+          )
+      }
   }
 
   private def waitingOnReloadedContent(
@@ -396,7 +400,11 @@ class CollaborativeBuffer(
 
     case FileManagerProtocol.ReadFileWithAttributesResult(Left(FileNotFound)) =>
       clients.values.foreach {
-        _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed, None)
+        _.rpcController ! TextProtocol.FileEvent(
+          path,
+          FileEventKind.Removed,
+          None
+        )
       }
       replyTo ! ReloadedBuffer(path)
       timeoutCancellable.cancel()
