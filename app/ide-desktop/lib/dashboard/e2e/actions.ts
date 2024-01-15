@@ -283,12 +283,37 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Download Files')
 }
 
+// === Page locators ===
+
+/** Find a "home page" icon (if any) on the current page. */
+export function locateHomePageIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Go to home page')
+}
+
+/** Find a "drive page" icon (if any) on the current page. */
+export function locateDrivePageIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Go to drive page')
+}
+
+/** Find a "editor page" icon (if any) on the current page. */
+export function locateEditorPageIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Go to editor page')
+}
+
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
 export function locateDriveView(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('drive-view')
+}
+
+/** Find an editor container (if any) on the current page. */
+export function locateEditor(page: test.Page) {
+    // This is fine as this element is defined in `index.html`, rather than from React.
+    // Using `data-testid` may be more correct though.
+    // eslint-disable-next-line no-restricted-properties
+    return page.locator('#root')
 }
 
 /** Find an assets table (if any) on the current page. */

@@ -201,26 +201,28 @@ export async function mockApi({ page }: MockParams) {
         )
 
         // === Unimplemented endpoints ===
-
         await page.route(
             BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
             async route => {
                 await route.fulfill({
                     json: {
-                        organizationId: 'example organization id',
-                        projectId: 'example project id',
+                        /* eslint-disable @typescript-eslint/naming-convention */
+                        organizationId: defaultOrganizationId,
+                        projectId: backend.ProjectId('project-example id'),
                         name: 'example project name',
                         state: {
-                            type: 'OpenInProgress',
+                            type: backend.ProjectState.opened,
+                            volume_id: '',
+                            opened_by: defaultEmail,
                         },
                         packageName: 'Project_root',
-                        ideVersion: null,
-                        engineVersion: {
+                        ide_version: null,
+                        engine_version: {
                             value: '2023.2.1-nightly.2023.9.29',
-                            lifecycle: 'Development',
+                            lifecycle: backend.VersionLifecycle.development,
                         },
-                        openedBy: 'email@email.email',
-                    },
+                        /* eslint-enable @typescript-eslint/naming-convention */
+                    } satisfies backend.ProjectRaw,
                 })
             }
         )
