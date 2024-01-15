@@ -2,7 +2,7 @@ package org.enso.base.arrays;
 
 import java.util.Arrays;
 
-/** A helper to efficiently build an array of unboxed integers of arbitrary length. */
+/** A helper to efficiently build an array of unboxed longs of arbitrary length. */
 public class LongArrayList {
   private long[] backingStorage;
   private int lastIndex = -1;
@@ -11,12 +11,12 @@ public class LongArrayList {
     backingStorage = new long[32];
   }
 
-  //** Gets the number of elements in the list. */
+  // ** Gets the number of elements in the list. */
   public int getSize() {
     return lastIndex + 1;
   }
 
-  //** Gets an element from the list. */
+  // ** Gets an element from the list. */
   public long get(int index) {
     if (index > lastIndex) {
       throw new IndexOutOfBoundsException(index);
@@ -24,14 +24,14 @@ public class LongArrayList {
     return backingStorage[index];
   }
 
-  //** Gets an element from the list. */
+  // ** Gets an element from the list. */
   public long getOrLast(int index) {
-    return backingStorage[index > lastIndex ? lastIndex : index];
+    return backingStorage[Math.min(index, lastIndex)];
   }
 
-  //** Adds an element to the list. */
+  // ** Adds an element to the list. */
   public synchronized void add(long x) {
-    int index, storageIndex;
+    int index;
 
     index = lastIndex + 1;
     lastIndex = index;
