@@ -930,15 +930,15 @@ spec setup =
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left 3
-                resLeft.name . should_equal "text_left([strings])"
+                resLeft.name . should_equal "text_left([strings], 3)"
                 resRight = col.text_right 3
-                resRight.name . should_equal "text_right([strings])"
+                resRight.name . should_equal "text_right([strings], 3)"
 
                 case setup.is_database of
                     False -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "] # Grapheme Length
                     True -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
                 case setup.is_database of
-                    False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬👩‍🔬V", "afé", "ir."] # Grapheme Length
+                    False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
                     True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
 
         Test.specify "text_left and text_right should error on non-string columns" <|

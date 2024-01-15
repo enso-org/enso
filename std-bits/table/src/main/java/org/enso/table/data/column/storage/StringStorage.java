@@ -10,6 +10,7 @@ import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.operation.map.text.StringStringLongOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -127,6 +128,20 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected long doOperation(String a) {
             return Text_Utils.grapheme_length(a);
+          }
+        });
+    t.add(
+        new StringStringLongOp(Maps.TEXT_LEFT) {
+          @Override
+          protected String doString(String a, Long b) {
+            return Text_Utils.take_prefix(a, b);
+          }
+        });
+    t.add(
+        new StringStringLongOp(Maps.TEXT_RIGHT) {
+          @Override
+          protected String doString(String a, Long b) {
+            return Text_Utils.take_suffix(a, b);
           }
         });
     t.add(
