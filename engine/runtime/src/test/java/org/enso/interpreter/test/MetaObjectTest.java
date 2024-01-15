@@ -216,6 +216,29 @@ public class MetaObjectTest extends TestBase {
   }
 
   @Test
+  public void numbersAreEitherIntegerOrFloat() throws Exception {
+    var g = generator();
+    var sn =
+        ctx.eval(
+                "enso",
+                """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """)
+            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    for (var v : g.numbers()) {
+      var simpleName = sn.execute(v).asString();
+      var ok =
+          switch (simpleName) {
+            case "Integer", "Float" -> true;
+            default -> false;
+          };
+      assertTrue("Unexpected simple name for number: " + v + " is " + simpleName, ok);
+    }
+  }
+
+  @Test
   public void compareQualifiedAndSimpleTypeName() throws Exception {
     var g = generator();
     var sn =

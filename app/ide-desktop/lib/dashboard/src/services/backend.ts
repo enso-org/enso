@@ -210,10 +210,8 @@ export interface ProjectStartupInfo {
 
 /** Metadata describing an uploaded file. */
 export interface File {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_id: FileId
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_name: string | null
+    fileId: FileId
+    fileName: string | null
     path: S3FilePath
 }
 
@@ -224,6 +222,11 @@ export interface FileInfo {
     path: string
     id: FileId
     project: CreatedProject | null
+}
+
+/** All metadata related to a file. */
+export interface FileDetails {
+    file: File
 }
 
 /** A secret environment variable. */
@@ -880,9 +883,9 @@ export abstract class Backend {
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
     abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
-    /** Close the project identified by the given project ID. */
+    /** Close a project. */
     abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
-    /** Return project details for the specified project ID. */
+    /** Return project details. */
     abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
     /** Set a project to an open state. */
     abstract openProject(
@@ -902,6 +905,8 @@ export abstract class Backend {
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
     abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
+    /** Return file details. */
+    abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
     /** Create a secret environment variable. */
     abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
     /** Return a secret environment variable. */

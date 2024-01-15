@@ -1017,6 +1017,26 @@ export class Function extends Ast {
     this.body_ = body
     setParent(module, this.exprId, ...this.concreteChildren())
   }
+
+  static new(
+    module: MutableModule,
+    name: string,
+    args: Ast[],
+    exprs: Ast[],
+    trailingNewline?: boolean,
+  ): Function {
+    const id = newAstId()
+    const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
+    if (trailingNewline) {
+      exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
+    }
+    const body = BodyBlock.new(exprs_, module)
+    const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
+    const ident = { node: Ident.new(module, name).exprId }
+    const equals = { node: Token.new('=') }
+    return new Function(module, id, ident, args_, equals, { node: body.exprId })
+  }
+
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.name_
     for (const arg of this.args_) yield* arg
@@ -1580,6 +1600,16 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
       }
     }),
   ]
+}
+
+export function moduleMethodNames(module: Module): Set<string> {
+  const result = new Set<string>()
+  for (const node of module.raw.nodes.values()) {
+    if (node instanceof Function && node.name) {
+      result.add(node.name.code())
+    }
+  }
+  return result
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.

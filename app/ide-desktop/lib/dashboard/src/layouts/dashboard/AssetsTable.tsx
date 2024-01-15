@@ -311,6 +311,7 @@ const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 export interface AssetsTableProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    setCanDownloadFiles: (canDownloadFiles: boolean) => void
     category: Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
     setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -342,8 +343,8 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-    const { query, setQuery, category, allLabels, setSuggestions, deletedLabelNames } = props
-    const { initialProjectName, projectStartupInfo } = props
+    const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
+    const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
     const { queuedAssetEvents: rawQueuedAssetEvents } = props
     const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
     const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
@@ -557,6 +558,22 @@ export default function AssetsTable(props: AssetsTableProps) {
         processNode(assetTree)
         return map
     }, [assetTree, filter])
+
+    React.useEffect(() => {
+        if (category === Category.trash) {
+            setCanDownloadFiles(false)
+        } else if (!isCloud) {
+            setCanDownloadFiles(selectedKeys.size !== 0)
+        } else {
+            setCanDownloadFiles(
+                selectedKeys.size !== 0 &&
+                    Array.from(selectedKeys).every(key => {
+                        const node = nodeMapRef.current.get(key)
+                        return node?.item.type === backendModule.AssetType.file
+                    })
+            )
+        }
+    }, [category, selectedKeys, isCloud, /* should never change */ setCanDownloadFiles])
 
     React.useEffect(() => {
         const nodeToSuggestion = (

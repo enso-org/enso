@@ -9,10 +9,8 @@ import Standard.Test.Extensions
 foreign js js_check = """
     return (4 == 2 + 2)
 
-on_ci = if Environment.get "ENSO_RUNNER_CONTAINER_NAME" . is_nothing . not then Nothing else "Not in CI"
-
-spec = Test.group "Asserts" pending=on_ci <|
-    Test.specify "should be enabled on the CI" <|
+spec = Test.group "Asserts" <|
+    Test.specify "should be enabled in tests" <|
         p = Panic.catch Assertion_Error (Runtime.assert False) err->
             err.payload
         Meta.type_of p . should_be_a Assertion_Error
@@ -26,15 +24,14 @@ spec = Test.group "Asserts" pending=on_ci <|
             4 == 2 + 2
         ret . should_be_a Nothing
 
-    Test.specify "should fail with type error when given dataflow error as expression" <|
-        p = Panic.catch Assertion_Error (Runtime.assert (Error.throw "foo")) err->
-            err.payload
-        Meta.type_of p . should_be_a Assertion_Error
-        p.message . should_start_with "Result of assert action is a dataflow error"
-
     Test.specify "should be able to take values with warnings" <|
         foo x = Warning.attach "My warning" (x+2)
         Runtime.assert (foo 2 > 2) . should_be_a Nothing
+
+    Test.specify "should fail with Type_Error if action does not return Boolean" <|
+        p = Panic.catch Type_Error (Runtime.assert 42) err->
+            err
+        Meta.type_of p.payload . should_be_a Type_Error
 
 
 main = Test_Suite.run_main spec

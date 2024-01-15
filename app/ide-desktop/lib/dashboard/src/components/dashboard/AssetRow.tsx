@@ -72,6 +72,7 @@ export default function AssetRow(props: AssetRowProps) {
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
         object.merge(initialRowState, { setVisibility: setInsertionVisibility })
     )
+    const isCloud = backend.type === backendModule.BackendType.remote
     const visibility = visibilities.get(key) ?? insertionVisibility
 
     React.useEffect(() => {
@@ -318,19 +319,47 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case AssetEventType.download: {
                 if (event.ids.has(item.key)) {
-                    download.download(
-                        `./api/project-manager/projects/${asset.id}/enso-project`,
-                        `${asset.title}.enso-project`
-                    )
+                    if (isCloud) {
+                        if (asset.type !== backendModule.AssetType.file) {
+                            toastAndLog('Cannot download assets that are not files')
+                        } else {
+                            try {
+                                const details = await backend.getFileDetails(asset.id, asset.title)
+                                const file = details.file
+                                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                            } catch (error) {
+                                toastAndLog('Could not download file', error)
+                            }
+                        }
+                    } else {
+                        download.download(
+                            `./api/project-manager/projects/${asset.id}/enso-project`,
+                            `${asset.title}.enso-project`
+                        )
+                    }
                 }
                 break
             }
             case AssetEventType.downloadSelected: {
                 if (selected) {
-                    download.download(
-                        `./api/project-manager/projects/${asset.id}/enso-project`,
-                        `${asset.title}.enso-project`
-                    )
+                    if (isCloud) {
+                        if (asset.type !== backendModule.AssetType.file) {
+                            toastAndLog('Cannot download assets that are not files')
+                        } else {
+                            try {
+                                const details = await backend.getFileDetails(asset.id, asset.title)
+                                const file = details.file
+                                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                            } catch (error) {
+                                toastAndLog('Could not download selected files', error)
+                            }
+                        }
+                    } else {
+                        download.download(
+                            `./api/project-manager/projects/${asset.id}/enso-project`,
+                            `${asset.title}.enso-project`
+                        )
+                    }
                 }
                 break
             }

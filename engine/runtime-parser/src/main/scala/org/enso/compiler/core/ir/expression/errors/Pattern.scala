@@ -3,7 +3,6 @@ package expression
 package errors
 
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -22,7 +21,8 @@ sealed case class Pattern(
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
-    with org.enso.compiler.core.ir.Pattern {
+    with org.enso.compiler.core.ir.Pattern
+    with LazyId {
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
   ): Pattern =
@@ -71,7 +71,7 @@ sealed case class Pattern(
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else randomId
+      id = if (keepIdentifiers) id else null
     )
 
   override def message(source: (IdentifiedLocation => String)): String =
@@ -83,8 +83,6 @@ sealed case class Pattern(
     originalPattern.location
 
   override def children: List[IR] = List(originalPattern)
-
-  var id: UUID @Identifier = randomId
 
   override def showCode(indent: Int): String =
     originalPattern.showCode(indent)

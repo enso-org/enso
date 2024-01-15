@@ -1,5 +1,6 @@
 package org.enso.base.polyglot;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.graalvm.polyglot.Value;
@@ -7,7 +8,8 @@ import org.graalvm.polyglot.Value;
 public class Polyglot_Utils {
   /**
    * Converts a polyglot Value ensuring that various date/time types are converted to the correct
-   * type.
+   * type. The conversion checks if a {@link java.math.BigInteger} fits into {@code long} and if so,
+   * it converts it to {@code long}.
    */
   public static Object convertPolyglotValue(Value item) {
     if (item == null) {
@@ -33,8 +35,11 @@ public class Polyglot_Utils {
     if (item.isException()) {
       throw new WrappedDataflowError(item);
     }
-
-    return item.as(Object.class);
+    var ret = item.as(Object.class);
+    if (ret instanceof BigInteger && item.fitsInLong()) {
+      return item.asLong();
+    }
+    return ret;
   }
 
   /**
