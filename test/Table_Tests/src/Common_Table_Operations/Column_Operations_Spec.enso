@@ -947,6 +947,14 @@ spec setup =
             col.text_left 6 . should_fail_with Invalid_Value_Type
             col.text_right 6 . should_fail_with Invalid_Value_Type
 
+        Test.specify "text_left and text_right should error on non integer parameters" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_left 3.14 . should_fail_with Invalid_Value_Type
+            col.text_right 3.14 . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+
         Test.specify "text_left and text_right should return empty on negative arguments" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
