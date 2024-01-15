@@ -8,28 +8,24 @@ import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
 public abstract class GenericBinaryObjectMapOperation<
-        InputType,
-        InputStorageType extends Storage<InputType>,
-        ArgType,
-        ArgStorageType extends Storage<ArgType>,
-        OutputType>
+        InputType, InputStorageType extends Storage<InputType>, OutputType>
     extends BinaryMapOperation<InputType, InputStorageType> {
 
   protected GenericBinaryObjectMapOperation(
       String name,
-      Class<ArgType> argTypeClass,
-      Class<? extends ArgStorageType> argStorageTypeClass) {
+      Class<InputType> inputTypeClass,
+      Class<? extends InputStorageType> inputStorageTypeClass) {
     super(name);
-    this.argTypeClass = argTypeClass;
-    this.argStorageTypeClass = argStorageTypeClass;
+    this.inputTypeClass = inputTypeClass;
+    this.inputStorageTypeClass = inputStorageTypeClass;
   }
 
-  private final Class<ArgType> argTypeClass;
-  private final Class<? extends ArgStorageType> argStorageTypeClass;
+  private final Class<InputType> inputTypeClass;
+  private final Class<? extends InputStorageType> inputStorageTypeClass;
 
   protected abstract Builder createOutputBuilder(int size);
 
-  protected abstract OutputType run(InputType value, ArgType other);
+  protected abstract OutputType run(InputType value, InputType other);
 
   @Override
   public Storage<?> runBinaryMap(
@@ -40,8 +36,8 @@ public abstract class GenericBinaryObjectMapOperation<
       Builder builder = createOutputBuilder(n);
       builder.appendNulls(n);
       return builder.seal();
-    } else if (argTypeClass.isInstance(arg)) {
-      ArgType casted = argTypeClass.cast(arg);
+    } else if (inputTypeClass.isInstance(arg)) {
+      InputType casted = inputTypeClass.cast(arg);
       int n = storage.size();
       Builder builder = createOutputBuilder(n);
       Context context = Context.getCurrent();
@@ -58,15 +54,15 @@ public abstract class GenericBinaryObjectMapOperation<
       return builder.seal();
     } else {
       throw new UnexpectedTypeException(
-          "a " + argTypeClass.getName() + " but got " + arg.getClass().getName());
+          "a " + inputTypeClass.getName() + " but got " + arg.getClass().getName());
     }
   }
 
   @Override
   public Storage<?> runZip(
       InputStorageType storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    if (argStorageTypeClass.isInstance(arg)) {
-      ArgStorageType otherCasted = argStorageTypeClass.cast(arg);
+    if (inputStorageTypeClass.isInstance(arg)) {
+      InputStorageType otherCasted = inputStorageTypeClass.cast(arg);
       int n = storage.size();
       Builder builder = createOutputBuilder(n);
       Context context = Context.getCurrent();
@@ -75,7 +71,7 @@ public abstract class GenericBinaryObjectMapOperation<
           builder.appendNulls(1);
         } else {
           InputType left = storage.getItemBoxed(i);
-          ArgType right = otherCasted.getItemBoxed(i);
+          InputType right = otherCasted.getItemBoxed(i);
           OutputType result = run(left, right);
           builder.append(result);
         }
@@ -94,13 +90,13 @@ public abstract class GenericBinaryObjectMapOperation<
         } else {
           InputType left = storage.getItemBoxed(i);
           Object right = arg.getItemBoxed(i);
-          if (argTypeClass.isInstance(right)) {
-            OutputType result = run(left, argTypeClass.cast(right));
+          if (inputTypeClass.isInstance(right)) {
+            OutputType result = run(left, inputTypeClass.cast(right));
             builder.append(result);
           } else {
             throw new UnexpectedTypeException(
                 "Got a mixed storage where values were assumed to be of type "
-                    + argTypeClass.getName()
+                    + inputTypeClass.getName()
                     + ", but got a value of type "
                     + right.getClass().getName());
           }
@@ -111,7 +107,7 @@ public abstract class GenericBinaryObjectMapOperation<
       return builder.seal();
     } else {
       throw new UnexpectedTypeException(
-          "a " + argStorageTypeClass.getName() + " or a mixed storage");
+          "a " + inputStorageTypeClass.getName() + " or a mixed storage");
     }
   }
 }
