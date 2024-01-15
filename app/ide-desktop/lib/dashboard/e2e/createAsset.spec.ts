@@ -21,12 +21,6 @@ test.test('create project', async ({ page }) => {
     await actions.locateNewProjectButton(page).click()
     // Assets: [0: Project 1]
     await test.expect(assetRows).toHaveCount(1)
-    await page.evaluate(() => {
-        const ideContainer = document.getElementById('root')
-        if (ideContainer) {
-            ideContainer.style.height = '100vh'
-        }
-    })
     await test.expect(actions.locateEditor(page)).toBeVisible()
 })
 

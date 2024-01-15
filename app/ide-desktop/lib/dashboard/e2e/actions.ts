@@ -318,6 +318,18 @@ export function locateDriveView(page: test.Locator | test.Page) {
     return page.getByTestId('drive-view')
 }
 
+/** Find a samples list (if any) on the current page. */
+export function locateSamplesList(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('samples')
+}
+
+/** Find all samples list (if any) on the current page. */
+export function locateSamples(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return locateSamplesList(page).getByRole('button')
+}
+
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
     // This is fine as this element is defined in `index.html`, rather than from React.
@@ -494,6 +506,23 @@ async function mockDate({ page }: MockParams) {
     }`)
 }
 
+// ========================
+// === mockIDEContainer ===
+// ========================
+
+/** Make the IDE container have a non-zero size. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockIDEContainer({ page }: MockParams) {
+    await page.evaluate(() => {
+        const ideContainer = document.getElementById('root')
+        if (ideContainer) {
+            ideContainer.style.height = '100vh'
+            ideContainer.style.width = '100vw'
+        }
+    })
+}
+
 // ===============
 // === mockApi ===
 // ===============
@@ -524,4 +553,7 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
     await mockAll({ page })
     await login(page)
+    // This MUST run after login, otherwise the element's styles are reset when the browser
+    // is navigated to another page.
+    await mockIDEContainer({ page })
 }

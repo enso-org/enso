@@ -300,7 +300,7 @@ class Main implements AppRunner {
         const ideElement = document.getElementById('root')
         if (ideElement) {
             ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
+            ideElement.style.position = 'fixed'
         }
         const ide2Element = document.getElementById('app')
         if (ide2Element) {
