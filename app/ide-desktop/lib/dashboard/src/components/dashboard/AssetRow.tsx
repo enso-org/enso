@@ -24,8 +24,8 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import Visibility, * as visibilityModule from '#/utilities/visibility'
 
+import type * as column from '#/components/dashboard/column'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import type * as tableColumn from '#/components/TableColumn'
 
 // =================
 // === Constants ===
@@ -61,12 +61,7 @@ export interface AssetRowProps
     state: assetsTable.AssetsTableState
     hidden: boolean
     initialRowState: assetsTable.AssetRowState
-    columns: tableColumn.TableColumn<
-        assetTreeNode.AssetTreeNode,
-        assetsTable.AssetsTableState,
-        assetsTable.AssetRowState,
-        backendModule.AssetId
-    >[]
+    columns: column.AssetColumn[]
     selected: boolean
     setSelected: (selected: boolean) => void
     isSoleSelectedItem: boolean
