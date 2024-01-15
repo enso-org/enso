@@ -21,8 +21,6 @@ public abstract class StructsLibrary extends Library {
     return false;
   }
 
-  public abstract Object[] getFields(Object receiver);
-
   public abstract Object getField(Object receiver, int index);
 
   public abstract void setField(Object receiver, int index, Object value);

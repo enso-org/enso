@@ -57,11 +57,6 @@ final class BoxingAtom extends Atom {
   }
 
   @ExportMessage
-  Object[] getFields() {
-    return fields;
-  }
-
-  @ExportMessage
   static class GetField {
     @Specialization(
         guards = {"cachedLayout == atom.getConstructor().getBoxedLayout()", "cachedIndex == index"},

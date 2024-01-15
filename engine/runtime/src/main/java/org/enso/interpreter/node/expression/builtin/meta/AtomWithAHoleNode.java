@@ -173,13 +173,12 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     int findHoleIndex(Atom atom, HoleInAtom lazy) {
-      var arr = structs.getFields(atom);
-      if (lastIndex >= 0 && lastIndex < arr.length) {
-        if (arr[lastIndex] == lazy) {
+      if (lastIndex >= 0 && lastIndex < atom.getConstructor().getArity()) {
+        if (structs.getField(atom, lastIndex) == lazy) {
           return lastIndex;
         }
       }
-      int index = findHoleIndexLoop(arr, lazy);
+      int index = findHoleIndexLoop(atom, lazy);
       if (index == -1) {
         return -1;
       }
@@ -197,9 +196,9 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private int findHoleIndexLoop(Object[] arr, HoleInAtom lazy) {
-      for (int i = 0; i < arr.length; i++) {
-        if (arr[i] == lazy) {
+    private int findHoleIndexLoop(Atom atom, HoleInAtom lazy) {
+      for (int i = 0; i < atom.getConstructor().getArity(); i++) {
+        if (structs.getField(atom, i) == lazy) {
           return i;
         }
       }

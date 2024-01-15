@@ -41,7 +41,11 @@ public abstract class ConstructorBranchNode extends BranchNode {
       Atom target,
       @CachedLibrary(limit = "10") StructsLibrary structs) {
     if (profile.profile(matcher == target.getConstructor())) {
-      accept(frame, state, structs.getFields(target));
+      var arr = new Object[target.getConstructor().getArity()];
+      for (var i = 0; i < arr.length; i++) {
+        arr[i] = structs.getField(target, i);
+      }
+      accept(frame, state, arr);
     }
   }
 

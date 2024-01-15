@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 
 /**
@@ -103,32 +102,6 @@ abstract class UnboxingAtom extends Atom {
     @Specialization(replaces = "doCached")
     static void doUncached(UnboxingAtom atom, int index, Object value) {
       atom.layout.getUncachedFieldSetter(index).execute(atom, value);
-    }
-  }
-
-  @ExportMessage(name = "getFields")
-  static class GetFields {
-    @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
-    @ExplodeLoop
-    static Object[] doCached(
-        UnboxingAtom atom,
-        @Cached("atom.layout") Layout cachedLayout,
-        @Cached(value = "cachedLayout.buildGetters()") FieldGetterNode[] getters) {
-      Object[] result = new Object[getters.length];
-      for (int i = 0; i < getters.length; i++) {
-        result[i] = getters[i].execute(atom);
-      }
-      return result;
-    }
-
-    @Specialization(replaces = "doCached")
-    static Object[] doUncached(UnboxingAtom atom) {
-      var getters = atom.layout.getUncachedFieldGetters();
-      var result = new Object[getters.length];
-      for (int i = 0; i < getters.length; i++) {
-        result[i] = getters[i].execute(atom);
-      }
-      return result;
     }
   }
 

@@ -32,9 +32,8 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @CachedLibrary(limit = "5") StructsLibrary structs) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var fields = structs.getFields(self);
-    Object payload = fields[0];
-    Object originalException = fields[1];
+    var payload = structs.getField(self, 0);
+    var originalException = structs.getField(self, 1);
     if (interopLibrary.isException(originalException)) {
       return DataflowError.withTrace(payload, (AbstractTruffleException) originalException);
     } else {
