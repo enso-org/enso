@@ -12,8 +12,8 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
+import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -38,17 +38,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenus from '#/components/ContextMenus'
 import AssetNameColumn from '#/components/dashboard/AssetNameColumn'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import * as columnHeading from '#/components/dashboard/columnHeading'
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
-import MenuEntry from '#/components/MenuEntry'
 import Spinner, * as spinner from '#/components/Spinner'
 import type * as tableRow from '#/components/TableRow'
 
@@ -63,13 +59,6 @@ const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
 const COMPARE_LESS_THAN = -1
-/** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'item'
-/** The user-facing plural name of this asset type. */
-const ASSET_TYPE_NAME_PLURAL = 'items'
-// This is a function, even though it is not syntactically a function.
-// eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** The default placeholder row. */
 const PLACEHOLDER = (
     <span className="opacity-75">
@@ -1586,158 +1575,33 @@ export default function AssetsTable(props: AssetsTableProps) {
         ]
     )
 
-    const doRenderContextMenu = React.useCallback(
-        (
-            innerSelectedKeys: Set<backendModule.AssetId>,
-            event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>,
-            innerSetSelectedKeys: (items: Set<backendModule.AssetId>) => void,
-            hidden: boolean
-        ) => {
-            const pluralized = pluralize(innerSelectedKeys.size)
-            // This works because all items are mutated, ensuring their value stays
-            // up to date.
-            const ownsAllSelectedAssets =
-                isCloud ||
-                (organization != null &&
-                    Array.from(innerSelectedKeys, key => {
-                        const userPermissions = nodeMapRef.current.get(key)?.item.permissions
-                        const selfPermission = userPermissions?.find(
-                            permission => permission.user.user_email === organization.email
-                        )
-                        return selfPermission?.permission === permissions.PermissionAction.own
-                    }).every(isOwner => isOwner))
-            // This is not a React component even though it contains JSX.
-            // eslint-disable-next-line no-restricted-syntax
-            const doDeleteAll = () => {
-                if (isCloud) {
-                    unsetModal()
-                    dispatchAssetEvent({
-                        type: AssetEventType.delete,
-                        ids: innerSelectedKeys,
-                    })
-                } else {
-                    setModal(
-                        <ConfirmDeleteModal
-                            description={`${innerSelectedKeys.size} selected ${pluralized}`}
-                            doDelete={() => {
-                                innerSetSelectedKeys(new Set())
-                                dispatchAssetEvent({
-                                    type: AssetEventType.delete,
-                                    ids: innerSelectedKeys,
-                                })
-                            }}
-                        />
-                    )
-                }
-            }
-            // This is not a React component even though it contains JSX.
-            // eslint-disable-next-line no-restricted-syntax
-            const doRestoreAll = () => {
-                unsetModal()
-                dispatchAssetEvent({
-                    type: AssetEventType.restore,
-                    ids: innerSelectedKeys,
-                })
-            }
-            if (category === Category.trash) {
-                return innerSelectedKeys.size === 0 ? (
-                    <></>
-                ) : (
-                    <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-                        <ContextMenu hidden={hidden}>
-                            <MenuEntry
-                                hidden={hidden}
-                                action={shortcutsModule.KeyboardAction.restoreAllFromTrash}
-                                doAction={doRestoreAll}
-                            />
-                        </ContextMenu>
-                    </ContextMenus>
-                )
-            } else if (category !== Category.home) {
-                return null
-            } else {
-                const deleteAction = isCloud
-                    ? shortcutsModule.KeyboardAction.moveAllToTrash
-                    : shortcutsModule.KeyboardAction.deleteAll
-                return (
-                    <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-                        {innerSelectedKeys.size !== 0 && (
-                            <ContextMenu hidden={hidden}>
-                                {ownsAllSelectedAssets && (
-                                    <MenuEntry
-                                        hidden={hidden}
-                                        action={deleteAction}
-                                        doAction={doDeleteAll}
-                                    />
-                                )}
-                                {isCloud && (
-                                    <MenuEntry
-                                        hidden={hidden}
-                                        action={shortcutsModule.KeyboardAction.copyAll}
-                                        doAction={doCopy}
-                                    />
-                                )}
-                                {isCloud && ownsAllSelectedAssets && (
-                                    <MenuEntry
-                                        hidden={hidden}
-                                        action={shortcutsModule.KeyboardAction.cutAll}
-                                        doAction={doCut}
-                                    />
-                                )}
-                                {pasteData != null && pasteData.data.size > 0 && (
-                                    <MenuEntry
-                                        hidden={hidden}
-                                        action={shortcutsModule.KeyboardAction.pasteAll}
-                                        doAction={() => {
-                                            const [firstKey] = innerSelectedKeys
-                                            const selectedNode =
-                                                innerSelectedKeys.size === 1 && firstKey != null
-                                                    ? nodeMapRef.current.get(firstKey)
-                                                    : null
-                                            if (
-                                                selectedNode?.item.type ===
-                                                backendModule.AssetType.directory
-                                            ) {
-                                                doPaste(selectedNode.key, selectedNode.item.id)
-                                            } else {
-                                                doPaste(rootDirectoryId, rootDirectoryId)
-                                            }
-                                        }}
-                                    />
-                                )}
-                            </ContextMenu>
-                        )}
-                        <GlobalContextMenu
-                            hidden={hidden}
-                            hasCopyData={pasteData != null}
-                            directoryKey={null}
-                            directoryId={null}
-                            dispatchAssetListEvent={dispatchAssetListEvent}
-                            doPaste={doPaste}
-                        />
-                    </ContextMenus>
-                )
-            }
-        },
+    const hiddenContextMenu = React.useMemo(
+        () => (
+            <AssetsTableContextMenu
+                hidden
+                category={category}
+                pasteData={pasteData}
+                selectedKeys={selectedKeys}
+                nodeMapRef={nodeMapRef}
+                event={{ pageX: 0, pageY: 0 }}
+                setSelectedKeys={setSelectedKeys}
+                dispatchAssetEvent={dispatchAssetEvent}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                doCopy={doCopy}
+                doCut={doCut}
+                doPaste={doPaste}
+            />
+        ),
         [
-            isCloud,
             category,
             pasteData,
+            selectedKeys,
             doCopy,
             doCut,
             doPaste,
-            organization,
-            rootDirectoryId,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
-            /* should never change */ setModal,
-            /* should never change */ unsetModal,
         ]
-    )
-
-    const hiddenContextMenu = React.useMemo(
-        () => doRenderContextMenu(selectedKeys, { pageX: 0, pageY: 0 }, setSelectedKeys, true),
-        [doRenderContextMenu, selectedKeys]
     )
 
     const onDragOver = (event: React.DragEvent<Element>) => {
@@ -2141,10 +2005,21 @@ export default function AssetsTable(props: AssetsTableProps) {
             onContextMenu={event => {
                 event.preventDefault()
                 event.stopPropagation()
-                const modal = doRenderContextMenu(selectedKeys, event, setSelectedKeys, false)
-                if (modal != null) {
-                    setModal(modal)
-                }
+                setModal(
+                    <AssetsTableContextMenu
+                        category={category}
+                        pasteData={pasteData}
+                        selectedKeys={selectedKeys}
+                        nodeMapRef={nodeMapRef}
+                        event={event}
+                        setSelectedKeys={setSelectedKeys}
+                        dispatchAssetEvent={dispatchAssetEvent}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
+                        doCopy={doCopy}
+                        doCut={doCut}
+                        doPaste={doPaste}
+                    />
+                )
             }}
             onDragLeave={event => {
                 const payload = drag.LABELS.lookup(event)
