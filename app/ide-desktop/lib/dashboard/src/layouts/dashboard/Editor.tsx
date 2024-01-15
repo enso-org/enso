@@ -173,7 +173,7 @@ export default function Editor(props: EditorProps) {
                         if (!initialized) {
                             await Promise.all([
                                 load.loadStyle(`${assetsRoot}style.css`),
-                                load.loadScript(`${assetsRoot}index.js.gz`),
+                                load.loadScript(`${assetsRoot}entrypoint.js.gz`),
                             ])
                             setInitialized(true)
                         }
