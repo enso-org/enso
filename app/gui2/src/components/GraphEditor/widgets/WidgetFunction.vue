@@ -6,7 +6,7 @@ import {
   WidgetInput,
   defineWidget,
   widgetProps,
-  type UpdatePayload,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
@@ -137,10 +137,13 @@ const widgetConfiguration = computed(() => {
  * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
  * handling deletions of arguments and rewriting the applications to named as appropriate.
  */
-function handleArgUpdate(update: UpdatePayload): boolean {
+function handleArgUpdate(update: WidgetUpdate): boolean {
   const app = application.value
-  if (update.type === 'set' && app instanceof ArgumentApplication) {
-    const { value, origin } = update
+  if (update.portUpdate && app instanceof ArgumentApplication) {
+    const {
+      edit,
+      portUpdate: { value, origin },
+    } = update
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
@@ -151,7 +154,6 @@ function handleArgUpdate(update: UpdatePayload): boolean {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      let edit = graph.astModule.edit()
       let newArg: Ast.Owned<Ast.Ast>
       if (value instanceof Ast.Ast) {
         newArg = value
@@ -162,7 +164,7 @@ function handleArgUpdate(update: UpdatePayload): boolean {
       edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
         Ast.App.new(oldAppTree, name, newArg, edit),
       )
-      props.onUpdate({ type: 'edit', edit })
+      props.onUpdate({ edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
@@ -172,13 +174,14 @@ function handleArgUpdate(update: UpdatePayload): boolean {
 
         // Named argument can always be removed immediately. Replace the whole application with its
         // target, effectively removing the argument from the call.
-        const edit = graph.astModule.edit()
         const func = edit.take(argApp.appTree.function.exprId)
         assert(func != null)
         props.onUpdate({
-          type: 'set',
-          value: func.node,
-          origin: argApp.appTree.exprId,
+          edit,
+          portUpdate: {
+            value: func.node,
+            origin: argApp.appTree.exprId,
+          },
         })
         return true
       } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
@@ -186,13 +189,14 @@ function handleArgUpdate(update: UpdatePayload): boolean {
 
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
-          const edit = graph.astModule.edit()
           const lhs = edit.take(argApp.appTree.lhs.exprId)
           assert(lhs != null)
           props.onUpdate({
-            type: 'set',
-            value: lhs.node,
-            origin: argApp.appTree.exprId,
+            edit,
+            portUpdate: {
+              value: lhs.node,
+              origin: argApp.appTree.exprId,
+            },
           })
         }
         return true
@@ -202,7 +206,6 @@ function handleArgUpdate(update: UpdatePayload): boolean {
         // Since the update of this kind can affect following arguments, it may be necessary to
         // replace the AST for multiple levels of application.
 
-        const edit = argApp.appTree.module.edit()
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
         for (let innerApp of [...app.iterApplications()]) {
@@ -212,7 +215,7 @@ function handleArgUpdate(update: UpdatePayload): boolean {
             const newFunction = edit.take(argApp.appTree.function.exprId)?.node
             assert(newFunction != undefined)
             edit.replaceRef(argApp.appTree.exprId, newFunction)
-            props.onUpdate({ type: 'edit', edit })
+            props.onUpdate({ edit })
             return true
           } else {
             // Process an argument to the right of the removed argument.
