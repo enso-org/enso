@@ -316,7 +316,23 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.FUNCTION),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.FUNCTION,
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                "Enso_Test.Test.Main.Foo",
+                "Bar"
+              ),
+              Vector(0)
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
