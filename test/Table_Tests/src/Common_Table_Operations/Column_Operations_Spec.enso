@@ -928,13 +928,18 @@ spec setup =
         
         Test.specify "should handle operation text_left and text_right with length 1" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
-                col = t.at "strings"
+                col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
                 resLeft = col.text_left 1
                 resLeft.name . should_equal "text_left([strings], 1)"
                 resRight = col.text_right 1
                 resRight.name . should_equal "text_right([strings], 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"] 
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
+                case setup.test_selection.length_restricted_text_columns of
+                    True -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                        resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    False -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
+                        resRight . value_type . should_equal (Value_Type.Char variable_length=True)
         
         Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
