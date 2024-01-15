@@ -9,7 +9,6 @@ import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
-import type { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
@@ -28,7 +27,7 @@ import {
   type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { reactive, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 export interface BindingInfo {
   identifier: string
@@ -118,8 +117,6 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<ExprId, Node>()
-  nodeRects = reactive(new Map<ExprId, Rect>())
-  vizRects = reactive(new Map<ExprId, Rect>())
   private bindings = new BindingsDb()
 
   constructor(
@@ -327,7 +324,7 @@ export class GraphDb {
 
     for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
-        this.deleteNode(nodeId)
+        this.nodeIdToNode.delete(nodeId)
       }
     }
 
@@ -336,12 +333,6 @@ export class GraphDb {
       this.bindings.readFunctionAst(functionAst)
     }
     return currentNodeIds
-  }
-
-  private deleteNode(nodeId: ExprId) {
-    this.nodeIdToNode.delete(nodeId)
-    this.nodeRects.delete(nodeId)
-    this.vizRects.delete(nodeId)
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {

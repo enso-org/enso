@@ -1118,13 +1118,6 @@ export class BodyBlock extends Ast {
     setParent(module, this.exprId, ...this.concreteChildren())
   }
 
-  addTrailingNewline(module: MutableModule) {
-    new BodyBlock(module, this.exprId, [
-      ...this.lines_,
-      { newline: { node: Token.new('\n') }, expression: null },
-    ])
-  }
-
   push(module: MutableModule, node: Ast) {
     const line = { expression: autospaced(makeChild(module, node, this.exprId)) }
     const edited = new BodyBlock(module, this.exprId, [...this.lines_, line])

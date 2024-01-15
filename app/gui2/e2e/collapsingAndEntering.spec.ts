@@ -10,16 +10,16 @@ const COLLAPSE_SHORTCUT = os.platform() === 'darwin' ? 'Meta+G' : 'Control+G'
 test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
-  await isInsideMain(page)
+  await expectInsideMain(page)
   await expect(locate.navBreadcrumb(page)).toHaveText(['main'])
 
   await locate.graphNodeByBinding(page, 'final').dblclick()
   await mockCollapsedFunctionInfo(page, 'f2', 'func2')
-  await isInsideFunc1(page)
+  await expectInsideFunc1(page)
   await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1'])
 
   await locate.graphNodeByBinding(page, 'f2').dblclick()
-  await isInsideFunc2(page)
+  await expectInsideFunc2(page)
   await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
 })
 
@@ -28,10 +28,10 @@ test('Leaving entered nodes', async ({ page }) => {
   await enterToFunc2(page)
 
   await locate.graphEditor(page).dblclick()
-  await isInsideFunc1(page)
+  await expectInsideFunc1(page)
 
   await locate.graphEditor(page).dblclick()
-  await isInsideMain(page)
+  await expectInsideMain(page)
 })
 
 test('Using breadcrumbs to navigate', async ({ page }) => {
@@ -46,7 +46,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
     'func2',
   ])
 
-  // TODO: This actually fails on develop.
+  // TODO: This actually fails on develop. https://github.com/enso-org/enso/issues/8756
   //
   // await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
   // await isInsideFunc2(page)
@@ -92,7 +92,7 @@ test('Collapsing nodes', async ({ page }) => {
   await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
 })
 
-async function isInsideMain(page: Page) {
+async function expectInsideMain(page: Page) {
   await expect(locate.graphNode(page)).toHaveCount(5)
   await customExpect.toExist(locate.graphNodeByBinding(page, 'five'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
@@ -101,13 +101,13 @@ async function isInsideMain(page: Page) {
   await customExpect.toExist(locate.graphNodeByBinding(page, 'final'))
 }
 
-async function isInsideFunc1(page: Page) {
+async function expectInsideFunc1(page: Page) {
   await expect(locate.graphNode(page)).toHaveCount(3)
   await customExpect.toExist(locate.graphNodeByBinding(page, 'f2'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'result'))
 }
 
-async function isInsideFunc2(page: Page) {
+async function expectInsideFunc2(page: Page) {
   await expect(locate.graphNode(page)).toHaveCount(2)
   await customExpect.toExist(locate.graphNodeByBinding(page, 'r'))
 }

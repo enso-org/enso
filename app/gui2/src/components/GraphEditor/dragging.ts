@@ -136,7 +136,7 @@ export function useDragging() {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
       for (const [id, { initialPos }] of this.draggedNodes) {
-        const rect = graphStore.db.nodeRects.get(id)
+        const rect = graphStore.nodeRects.get(id)
         const node = graphStore.db.nodeIdToNode.get(id)
         if (rect != null && node != null) rects.push(new Rect(initialPos.add(newOffset), rect.size))
       }
@@ -166,7 +166,7 @@ export function useDragging() {
           graphStore.currentNodeIds.values(),
           (id) => !this.draggedNodes.has(id),
         )
-        return Array.from(nonDraggedNodes, (id) => graphStore.db.nodeRects.get(id)!)
+        return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
       })
       return new SnapGrid(nonDraggedRects)
     }
