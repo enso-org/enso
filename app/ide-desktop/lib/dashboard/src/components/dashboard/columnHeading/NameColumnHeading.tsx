@@ -18,8 +18,15 @@ export default function NameColumnHeading(
     const [isHovered, setIsHovered] = React.useState(false)
     const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
     return (
-        <div
-            className="flex items-center cursor-pointer gap-2 pt-1 pb-1.5"
+        <button
+            title={
+                !isSortActive
+                    ? 'Sort by name'
+                    : sortDirection === sorting.SortDirection.ascending
+                    ? 'Sort by name descending'
+                    : 'Stop sorting by name'
+            }
+            className="flex items-center gap-2 pt-1 pb-1.5"
             onMouseEnter={() => {
                 setIsHovered(true)
             }}
@@ -40,9 +47,14 @@ export default function NameColumnHeading(
                 {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
             </span>
             <img
+                alt={
+                    !isSortActive || sortDirection === sorting.SortDirection.ascending
+                        ? 'Sort Ascending'
+                        : 'Sort Descending'
+                }
                 src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-                className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
             />
-        </div>
+        </button>
     )
 }

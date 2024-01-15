@@ -1,6 +1,7 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
 import * as backend from '../src/services/backend'
@@ -74,6 +75,99 @@ export async function mockApi({ page }: MockParams) {
         deletedAssets.delete(assetId)
     }
 
+    const createDirectory = (
+        title: string,
+        rest: Partial<backend.DirectoryAsset> = {}
+    ): backend.DirectoryAsset =>
+        object.merge(
+            {
+                type: backend.AssetType.directory,
+                id: backend.DirectoryId('directory-' + uniqueString.uniqueString()),
+                projectState: null,
+                title,
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                description: null,
+                labels: [],
+                parentId: defaultDirectoryId,
+                permissions: [],
+            },
+            rest
+        )
+
+    const createProject = (
+        title: string,
+        rest: Partial<backend.ProjectAsset> = {}
+    ): backend.ProjectAsset =>
+        object.merge(
+            {
+                type: backend.AssetType.project,
+                id: backend.ProjectId('project-' + uniqueString.uniqueString()),
+                projectState: {
+                    type: backend.ProjectState.opened,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    volume_id: '',
+                },
+                title,
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                description: null,
+                labels: [],
+                parentId: defaultDirectoryId,
+                permissions: [],
+            },
+            rest
+        )
+
+    const createFile = (title: string, rest: Partial<backend.FileAsset> = {}): backend.FileAsset =>
+        object.merge(
+            {
+                type: backend.AssetType.file,
+                id: backend.FileId('file-' + uniqueString.uniqueString()),
+                projectState: null,
+                title,
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                description: null,
+                labels: [],
+                parentId: defaultDirectoryId,
+                permissions: [],
+            },
+            rest
+        )
+
+    const createSecret = (
+        title: string,
+        rest: Partial<backend.SecretAsset> = {}
+    ): backend.SecretAsset =>
+        object.merge(
+            {
+                type: backend.AssetType.secret,
+                id: backend.SecretId('secret-' + uniqueString.uniqueString()),
+                projectState: null,
+                title,
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                description: null,
+                labels: [],
+                parentId: defaultDirectoryId,
+                permissions: [],
+            },
+            rest
+        )
+
+    const addDirectory = (title: string, rest?: Partial<backend.DirectoryAsset>) => {
+        addAsset(createDirectory(title, rest))
+    }
+
+    const addProject = (title: string, rest?: Partial<backend.ProjectAsset>) => {
+        addAsset(createProject(title, rest))
+    }
+
+    const addFile = (title: string, rest?: Partial<backend.FileAsset>) => {
+        addAsset(createFile(title, rest))
+    }
+
+    const addSecret = (title: string, rest?: Partial<backend.SecretAsset>) => {
+        addAsset(createSecret(title, rest))
+    }
+
     await test.test.step('Mock API', async () => {
         await page.route('https://www.google-analytics.com/**', async route => {
             await route.fulfill()
@@ -85,6 +179,14 @@ export async function mockApi({ page }: MockParams) {
                 body: 'export {};',
             })
         })
+
+        const isOnline = await page.evaluate(() => navigator.onLine)
+
+        if (!isOnline) {
+            await page.route('https://fonts.googleapis.com/*', async route => {
+                await route.abort()
+            })
+        }
 
         await page.route(BASE_URL + '**', (_route, request) => {
             throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
@@ -142,6 +244,9 @@ export async function mockApi({ page }: MockParams) {
                         break
                     }
                 }
+                filteredAssets.sort(
+                    (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type]
+                )
                 await route.fulfill({
                     json: {
                         assets: filteredAssets,
@@ -438,5 +543,16 @@ export async function mockApi({ page }: MockParams) {
         setCurrentUser: (user: backend.UserOrOrganization | null) => {
             currentUser = user
         },
+        addAsset,
+        deleteAsset,
+        undeleteAsset,
+        createDirectory,
+        createProject,
+        createFile,
+        createSecret,
+        addDirectory,
+        addProject,
+        addFile,
+        addSecret,
     }
 }

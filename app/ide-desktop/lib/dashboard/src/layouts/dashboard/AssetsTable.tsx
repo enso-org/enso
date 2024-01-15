@@ -57,9 +57,6 @@ import Table from '#/components/Table'
 
 /** The number of pixels the header bar should shrink when the extra column selector is visible. */
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
-/** A value that represents that the first argument is less than the second argument, in a
- * sorting function. */
-const COMPARE_LESS_THAN = -1
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'item'
 /** The user-facing plural name of this asset type. */
@@ -504,32 +501,53 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (sortColumn == null || sortDirection == null) {
             return assetTree.preorderTraversal()
         } else {
-            const sortDescendingMultiplier = -1
             const multiplier = {
                 [sorting.SortDirection.ascending]: 1,
-                [sorting.SortDirection.descending]: sortDescendingMultiplier,
+                [sorting.SortDirection.descending]: -1,
             }[sortDirection]
             let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
             switch (sortColumn) {
                 case columnUtils.Column.name: {
-                    compare = (a, b) =>
-                        multiplier *
-                        (a.item.title > b.item.title
-                            ? 1
-                            : a.item.title < b.item.title
-                            ? COMPARE_LESS_THAN
-                            : 0)
-
+                    compare = (a, b) => {
+                        const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
+                        const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
+                        const typeDelta = aTypeOrder - bTypeOrder
+                        const aTitle = a.item.title.toLowerCase()
+                        const bTitle = b.item.title.toLowerCase()
+                        if (typeDelta !== 0) {
+                            return typeDelta
+                        } else if (aTitle === bTitle) {
+                            const delta =
+                                a.item.title > b.item.title
+                                    ? 1
+                                    : a.item.title < b.item.title
+                                    ? -1
+                                    : 0
+                            return multiplier * delta
+                        } else {
+                            const delta = aTitle > bTitle ? 1 : aTitle < bTitle ? -1 : 0
+                            return multiplier * delta
+                        }
+                    }
                     break
                 }
                 case columnUtils.Column.modified: {
-                    compare = (a, b) =>
-                        multiplier *
-                        (Number(new Date(a.item.modifiedAt)) - Number(new Date(b.item.modifiedAt)))
+                    compare = (a, b) => {
+                        const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
+                        const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
+                        const typeDelta = aTypeOrder - bTypeOrder
+                        if (typeDelta !== 0) {
+                            return typeDelta
+                        } else {
+                            const aOrder = Number(new Date(a.item.modifiedAt))
+                            const bOrder = Number(new Date(b.item.modifiedAt))
+                            return multiplier * (aOrder - bOrder)
+                        }
+                    }
                     break
                 }
             }
-            return assetTree.preorderTraversal(tree => Array.from(tree).sort(compare))
+            return assetTree.preorderTraversal(tree => [...tree].sort(compare))
         }
     }, [assetTree, sortColumn, sortDirection])
     const visibilities = React.useMemo(() => {

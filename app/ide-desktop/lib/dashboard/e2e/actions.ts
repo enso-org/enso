@@ -1,7 +1,7 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
-import * as api from './api'
+import * as apiModule from './api'
 
 // =================
 // === Constants ===
@@ -293,6 +293,21 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Download Files')
 }
 
+// === Icon locators ===
+
+// These are specifically icons that are not also buttons.
+// Icons that *are* buttons belong in the "Button locators" section.
+
+/** Find a "sort ascending" icon (if any) on the current page. */
+export function locateSortAscendingIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Sort Ascending')
+}
+
+/** Find a "sort descending" icon (if any) on the current page. */
+export function locateSortDescendingIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Sort Descending')
+}
+
 // === Page locators ===
 
 /** Find a "home page" icon (if any) on the current page. */
@@ -305,9 +320,21 @@ export function locateDrivePageIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Go to drive page')
 }
 
-/** Find a "editor page" icon (if any) on the current page. */
+/** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Go to editor page')
+}
+
+/** Find a "name" column heading (if any) on the current page. */
+export function locateNameColumnHeading(page: test.Locator | test.Page) {
+    return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+}
+
+/** Find a "modified" column heading (if any) on the current page. */
+export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
+    return page
+        .getByTitle('Sort by modification date')
+        .or(page.getByTitle('Stop sorting by modification date'))
 }
 
 // === Container locators ===
@@ -535,7 +562,7 @@ export async function mockIDEContainer({ page }: MockParams) {
 
 // This is a function, even though it does not use function syntax.
 // eslint-disable-next-line no-restricted-syntax
-export const mockApi = api.mockApi
+export const mockApi = apiModule.mockApi
 
 // ===============
 // === mockAll ===
@@ -545,8 +572,9 @@ export const mockApi = api.mockApi
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
-    await mockApi({ page })
+    const api = await mockApi({ page })
     await mockDate({ page })
+    return { api }
 }
 
 // =======================
@@ -557,9 +585,11 @@ export async function mockAll({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLogin({ page }: MockParams) {
+    const api = await mockApi({ page })
     await mockAll({ page })
     await login(page)
     // This MUST run after login, otherwise the element's styles are reset when the browser
     // is navigated to another page.
     await mockIDEContainer({ page })
+    return { api }
 }

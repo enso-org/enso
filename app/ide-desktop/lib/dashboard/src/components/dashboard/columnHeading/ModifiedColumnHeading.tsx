@@ -20,7 +20,14 @@ export default function ModifiedColumnHeading(
     const [isHovered, setIsHovered] = React.useState(false)
     const isSortActive = sortColumn === columnUtils.Column.modified && sortDirection != null
     return (
-        <div
+        <button
+            title={
+                !isSortActive
+                    ? 'Sort by modification date'
+                    : sortDirection === sorting.SortDirection.ascending
+                    ? 'Sort by modification date descending'
+                    : 'Stop sorting by modification date'
+            }
             className="flex items-center cursor-pointer gap-2"
             onMouseEnter={() => {
                 setIsHovered(true)
@@ -43,9 +50,14 @@ export default function ModifiedColumnHeading(
                 {columnUtils.COLUMN_NAME[columnUtils.Column.modified]}
             </span>
             <img
+                alt={
+                    !isSortActive || sortDirection === sorting.SortDirection.ascending
+                        ? 'Sort Ascending'
+                        : 'Sort Descending'
+                }
                 src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-                className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
             />
-        </div>
+        </button>
     )
 }
