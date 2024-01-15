@@ -8,14 +8,16 @@ order: 12
 
 # Wrapped Errors
 
-A wrapped error is an error wrapped in an additional 'error wrapper' value providing additional information about the error.
+A wrapped error is an error wrapped in an additional 'error wrapper' value
+providing additional information about the error.
 
 For example, an error attached to a value within a `Vector` can be wrapped in a
 `Map_Error` wrapper which indicates the position of the value within the
-`Vector`. 
+`Vector`.
 
-(Such errors are only wrapped when they are obtained through `Warning.get_all wrap_errors=True`;
-see [Obtaining Wrapped Errors](#obtaining-wrapped-errors).)
+(Such errors are only wrapped when they are obtained through
+`Warning.get_all wrap_errors=True`; see
+[Obtaining Wrapped Errors](#obtaining-wrapped-errors).)
 
 For example:
 
@@ -61,7 +63,8 @@ Note that if you catch the error as the inner error (`My_Error`), the
 
 ## Implementing Error Wrappers
 
-An error wrapper is a regular Enso value that has a conversion to `Wrapped_Error`. For example:
+An error wrapper is a regular Enso value that has a conversion to
+`Wrapped_Error`. For example:
 
 ```ruby
 type Map_Error
@@ -76,16 +79,17 @@ wrapper, and possibly perform automatic unwrapping on it.
 ## Obtaining Wrapped Errors
 
 Wrapped errors are obtained in two ways:
-* An error thrown during a call to `Vector.map`
-* An error attached to a value within a `Vector`
+
+- An error thrown during a call to `Vector.map`
+- An error attached to a value within a `Vector`
 
 In the case of an error thrown during `Vector.map`, the error is caught, wrapped
 in `Map_Error`, and re-thrown.
 
 In the case of an error attached to a value within a `Vector`, the wrapper is
-added by `Warning.get_all wrap_errors=True` when it is called on the `Vector`. In this
-case, the wrapping is not attached to the value itself, and is therefore not
-propagated to downstream values.
+added by `Warning.get_all wrap_errors=True` when it is called on the `Vector`.
+In this case, the wrapping is not attached to the value itself, and is therefore
+not propagated to downstream values.
 
 ## Map_Error
 
@@ -95,14 +99,15 @@ call over a large `Vector` will contain the index at which the error occurred,
 so it can be displayed to the user in the IDE.
 
 Note that the error does not have to occur during a call to `map`. A `Map_Error`
-wrapping is added by `Warning.get_all wrap_errors=True` to any error attached to a
-value within a `Vector` (or any array-like container). If the value is extracted
-from the `Vector` (for example, using `.at`), its attached `Warning` is not wrapped.
+wrapping is added by `Warning.get_all wrap_errors=True` to any error attached to
+a value within a `Vector` (or any array-like container). If the value is
+extracted from the `Vector` (for example, using `.at`), its attached `Warning`
+is not wrapped.
 
 If a value is nested within multiple `Vector`s, its attached errors are wrapped
-with `Map_Error` multiple times. The outermost `Map_Error` index indicates
-the index into the outermost `Vector`, the second `Map_Error` index the index
-into the sub-`Vector` within the outermost `Vector`, and so on.
+with `Map_Error` multiple times. The outermost `Map_Error` index indicates the
+index into the outermost `Vector`, the second `Map_Error` index the index into
+the sub-`Vector` within the outermost `Vector`, and so on.
 
 For example:
 
