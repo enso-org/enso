@@ -1,7 +1,10 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
+import java.nio.file.attribute.BasicFileAttributes
 import io.circe.literal._
+import io.circe.generic.auto._
+import org.enso.languageserver.filemanager
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
@@ -11,6 +14,17 @@ class ReceivesTreeUpdatesHandlerTest
     with ReportLogsOnFailure {
 
   override val isFileWatcherEnabled = true
+
+  private def getFileAttributes(path: Path): filemanager.FileAttributes = {
+    val basicAttrs =
+      Files.readAttributes(path, classOf[BasicFileAttributes])
+    filemanager.FileAttributes.fromFileSystemAttributes(
+      testContentRoot.file,
+      filemanager.Path(testContentRootId, path),
+      filemanager.FileSystemApi.Attributes
+        .fromBasicAttributes(path, basicAttrs)
+    )
+  }
 
   "ReceivesTreeUpdatesHandler" must {
 
@@ -92,7 +106,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Added"
+               "kind": "Added",
+               "attributes": ${getFileAttributes(path)}
              }
           }
           """)
@@ -104,7 +119,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Added"
+               "kind": "Added",
+               "attributes": ${getFileAttributes(path)}
              }
           }
           """)
@@ -119,7 +135,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Modified"
+               "kind": "Modified",
+               "attributes": ${getFileAttributes(path)}
              }
           }
           """)
@@ -131,7 +148,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Modified"
+               "kind": "Modified",
+               "attributes": ${getFileAttributes(path)}
              }
           }
           """)
@@ -150,7 +168,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Removed"
+               "kind": "Removed",
+               "attributes": null
              }
           }
           """)

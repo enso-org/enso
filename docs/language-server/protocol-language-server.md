@@ -2350,6 +2350,7 @@ of the (possibly multiple) content roots.
 interface FileEventNotification {
   path: Path;
   kind: FileEventKind;
+  attributes?: FileAttributes;
 }
 ```
 
