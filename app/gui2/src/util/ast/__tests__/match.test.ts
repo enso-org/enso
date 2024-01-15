@@ -106,4 +106,11 @@ test.each([
   const intron = Ast.parse(source, edit)
   const instantiated = pattern.instantiate(edit, [intron.exprId])
   expect(instantiated.code(edit)).toBe(result)
+
+  // Check that `instantiate` has not affected the base module.
+  const intron2 = Ast.parse(source, edit)
+  const originalParent = intron2.parent
+  const edit2 = edit.edit()
+  pattern.instantiate(edit2, [intron2.exprId])
+  expect(edit.get(intron2.exprId)!.parent).toBe(originalParent)
 })

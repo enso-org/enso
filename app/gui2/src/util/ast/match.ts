@@ -1,5 +1,6 @@
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
+import { assert } from '@/util/assert'
 
 export class Pattern {
   private readonly tokenTree: Ast.TokenTree
@@ -44,7 +45,9 @@ export class Pattern {
     for (const matched of placeholders(ast, this.placeholder)) {
       const replacement = subtrees.shift()
       if (replacement === undefined) break
-      edit.get(replacement)!.parent = matched.parent
+      const replacementAst = edit.get(replacement)
+      assert(replacementAst !== null)
+      edit.splice(replacementAst).parent = matched.parent
       matched.ref.node = replacement
     }
     return ast
