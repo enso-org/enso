@@ -34,7 +34,7 @@ public abstract class GetTypeConstructorsNode extends Node {
     var rawResult = new EnsoObject[rawConstructors.size()];
     int at = 0;
     for (var cons : rawConstructors) {
-      var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory);
+      var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory, cons);
       rawResult[at++] = metaCons;
     }
     return ArrayLikeHelpers.wrapEnsoObjects(rawResult);
