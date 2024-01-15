@@ -38,11 +38,11 @@ import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
-import AssetNameColumn from '#/components/dashboard/AssetNameColumn'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
@@ -1879,7 +1879,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         }}
                                     >
                                         {nodes.map(node => (
-                                            <AssetNameColumn
+                                            <NameColumn
                                                 key={node.key}
                                                 keyProp={node.key}
                                                 item={node.with({ depth: 0 })}

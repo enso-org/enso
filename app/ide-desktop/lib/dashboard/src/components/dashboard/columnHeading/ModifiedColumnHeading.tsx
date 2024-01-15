@@ -4,17 +4,14 @@ import * as React from 'react'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as sorting from '#/utilities/sorting'
 
+import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
-import type * as tableColumn from '#/components/TableColumn'
 
 /** A heading for the "Modified" column. */
-export default function ModifiedColumnHeading(
-    props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>
-): JSX.Element {
+export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
     const { state } = props
     const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
     const [isHovered, setIsHovered] = React.useState(false)
