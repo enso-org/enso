@@ -178,7 +178,7 @@ check_binary_boolean_op arg1 arg2 ~action =
    - action: the action to run if the arguments are compatible.
 check_multi_argument_comparable_op column arg_or_args ~action =
     args = Vector.unify_vector_or_element arg_or_args
-    checked = args.map on_problems=No_Wrap.Value arg->
+    checked = args.map on_problems=No_Wrap arg->
         Value_Type.expect_comparable column arg <|
             True
     checked.if_not_error <|

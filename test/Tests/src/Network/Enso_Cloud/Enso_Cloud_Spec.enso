@@ -8,35 +8,14 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Environment
 import Standard.Test.Extensions
 
-polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
-## Resets the user token, to avoid cached token from other tests interfering.
-reset_token =
-    AuthenticationProvider.setToken Nothing
-
-spec =
-    ## To run this test locally:
-       $ sbt 'http-test-helper/run localhost 8080'
-       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending_has_url = if base_url != Nothing then Nothing else
-        "The Cloud mock tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the http-test-helper server"
-    enso_cloud_url = base_url.if_not_nothing <|
-        with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
-        with_slash + "enso-cloud-mock/"
-    tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".txt"
-    test_token = "TEST-ENSO-TOKEN-caffee"
-    test_token.write tmp_cred_file
-
-    ## This helper method is needed, because of the bug https://github.com/enso-org/enso/issues/7117
-       If the bug is fixed, we could move the overrides to the top-level and not have to re-initialize them.
-    with_mock_environment ~action =
-        Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
-            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" tmp_cred_file.absolute.normalize.path <|
-                action
-    with_mock_environment <|
-        reset_token
-        Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
+## To run this test locally:
+   $ sbt 'http-test-helper/run localhost 8080'
+   $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
+spec setup:Cloud_Tests_Setup =
+    setup.with_prepared_environment <|
+        Test.group "Enso Cloud Basic Utils" pending=setup.pending <|
             Test.specify "will report Not_Logged_In if no credentials file is found" <|
                 non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
                 non_existent_file.exists.should_be_false
@@ -47,10 +26,10 @@ spec =
 
             Test.specify "should be able to get the cloud URL from environment" <|
                 api_url = Cloud_Utils.cloud_root_uri
-                api_url.should_equal enso_cloud_url
+                api_url.should_equal setup.api_url.to_text
 
-            Test.specify "should be able to read the authorization token" <|
-                Cloud_Utils.authorization_header.to_display_text.should_equal "Authorization: Bearer "+test_token
+            Test.specify "should be able to read the authorization token" pending=setup.mock_only_pending <|
+                Cloud_Utils.authorization_header.to_display_text.should_equal "Authorization: Bearer "+Cloud_Tests_Setup.test_token
 
         Test.group "Enso_User - offline logic tests" <|
             Test.specify "is correctly parsed from JSON" <|
@@ -74,9 +53,9 @@ spec =
                 Enso_User.from invalid_json . should_fail_with Illegal_Argument
                 Test.expect_panic No_Such_Conversion (Enso_User.from (Json.parse "[]"))
 
-        Test.group "Enso_User - local mock integration tests" pending=pending_has_url <|
+        Test.group "Enso_User - local mock integration tests" <|
             # These tests should be kept in sync with tools/http-test-helper/src/main/java/org/enso/shttp/cloud_mock/UsersHandler.java
-            Test.specify "current user can be fetched from mock API" pending=pending_has_url <|
+            Test.specify "current user can be fetched from mock API" pending=setup.mock_only_pending <|
                 current = Enso_User.current
                 current.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
                 current.name.should_equal "My test User 1"
@@ -88,7 +67,7 @@ spec =
                 home . should_be_a Enso_File
                 home.is_directory.should_be_true
 
-            Test.specify "user list can be fetched from mock API" pending=pending_has_url <|
+            Test.specify "user list can be fetched from mock API" pending=setup.mock_only_pending <|
                 users = Enso_User.list
 
                 users.length.should_equal 2
@@ -100,22 +79,21 @@ spec =
                 non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
                 non_existent_file.exists.should_be_false
                 r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
-                    reset_token
+                    Cloud_Tests_Setup.reset_token
                     Enso_User.current
                 r.should_fail_with Cloud_Utils.Not_Logged_In
 
-            Test.specify "will fail if the token is invalid" pending=pending_has_url <|
+            Test.specify "will fail if the token is invalid" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
                 "invalid-token".write invalid_token_file . should_succeed
-                reset_token
+                Cloud_Tests_Setup.reset_token
                 r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
                     Enso_User.current
                 r.should_fail_with HTTP_Error
                 r.catch.should_be_a HTTP_Error.Status_Error
-                r.catch.status_code.code . should_equal 403
+                [401, 403].should_contain r.catch.status_code.code
 
             # Ensure the token is reset after the last test, so that any other tests will again use the correct one.
-            reset_token
+            Cloud_Tests_Setup.reset_token
 
-
-main = Test_Suite.run_main spec
+main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)

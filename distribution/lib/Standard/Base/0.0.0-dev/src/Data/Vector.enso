@@ -1354,11 +1354,17 @@ type Builder
         Vector.from_polyglot_array self.java_builder.toArray
 
 ## PRIVATE
-   Describes an error produced by a function mapped over a Vector. Includes the
-   function argument's position in the vector.
+   Describes an error attached to a value within a `Vector`. The `index` field
+   contains the index into the `Vector` at which the error occurred.
+
+   If a value is nested within multiple `Vector`s, its warnings are wrapped
+   with `Map_Error` multiple times. The outermost `Map_Error` index indicates
+   the index into the outermost `Vector`, the second `Map_Error` index the index
+   into the sub-`Vector` within the outermost `Vector`, and so on.
 
    An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
    as itself. In the latter case, the `Map_Error` wrapper is stripped off.
+@Builtin_Type
 type Map_Error
     ## PRIVATE
        Creates a new `Map_Error` from the given index and underlying error.
@@ -1371,8 +1377,6 @@ type Map_Error
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
 type No_Wrap
-    ## PRIVATE
-    Value
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error

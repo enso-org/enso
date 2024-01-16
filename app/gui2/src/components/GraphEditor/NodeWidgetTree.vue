@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
-import { WidgetInput, type UpdatePayload } from '@/providers/widgetRegistry'
+import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { assertNever } from '@/util/assert'
@@ -32,31 +32,27 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
-function handleWidgetUpdates(update: UpdatePayload) {
+function handleWidgetUpdates(update: WidgetUpdate) {
   console.log('Widget Update: ', update)
-  if (update.type === 'edit') {
-    graph.commitEdit(update.edit)
-  } else if (update.type === 'set') {
-    const { value, origin } = update
+  if (update.portUpdate) {
+    const {
+      edit,
+      portUpdate: { value, origin },
+    } = update
     if (!isUuid(origin)) {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
-    } else if (value instanceof Ast.Ast) {
-      const edit = graph.astModule.edit()
-      edit.replaceValue(origin as Ast.AstId, value)
-      graph.commitEdit(edit)
-    } else if (typeof value === 'string') {
-      graph.setExpressionContent(origin, value)
-    } else if (value == null) {
-      graph.setExpressionContent(origin, '_')
     } else {
-      console.error(`[UPDATE ${origin}] Invalid value:`, value)
+      const ast =
+        value instanceof Ast.Ast
+          ? value
+          : value == null
+          ? Ast.Wildcard.new(edit)
+          : Ast.RawCode.new(value, edit)
+      edit.replaceValue(origin as Ast.AstId, ast)
     }
-  } else {
-    assertNever(update)
   }
-
-  // No matter if it's a success or not, this handler is always considered to have handled the update,
-  // since it is guaranteed to be the last handler in the chain.
+  graph.commitEdit(update.edit)
+  // This handler is guaranteed to be the last handler in the chain.
   return true
 }
 

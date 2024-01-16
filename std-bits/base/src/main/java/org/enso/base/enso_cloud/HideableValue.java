@@ -13,6 +13,11 @@ public sealed interface HideableValue permits HideableValue.SecretValue, Hideabl
     public String safeResolve() throws EnsoSecretAccessDenied {
       throw new EnsoSecretAccessDenied();
     }
+
+    @Override
+    public boolean isSecret() {
+      return true;
+    }
   }
 
   record PlainValue(String value) implements HideableValue {
@@ -24,6 +29,11 @@ public sealed interface HideableValue permits HideableValue.SecretValue, Hideabl
     @Override
     public String safeResolve() throws EnsoSecretAccessDenied {
       return value;
+    }
+
+    @Override
+    public boolean isSecret() {
+      return false;
     }
   }
 
@@ -37,4 +47,6 @@ public sealed interface HideableValue permits HideableValue.SecretValue, Hideabl
    * secret.
    */
   String safeResolve() throws EnsoSecretAccessDenied;
+
+  boolean isSecret();
 }
