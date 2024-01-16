@@ -12,7 +12,7 @@ from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.pending <|
         Test.specify "should allow to create a directory" <|
-            my_name = "my_test_dir-" + Random.uuid
+            my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
             my_dir.should_succeed
             Panic.with_finalizer my_dir.delete <| with_retries <|
@@ -20,11 +20,15 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
                 my_dir.exists . should_be_true
                 my_dir.name . should_equal my_name
 
-                Enso_File.root.list . should_contain my_dir
+                # TODO this is a workaround because create does not return organizationId!
+                # Enso_File.root.list . should_contain my_dir
+                Enso_File.root.list.map .name . should_contain my_name
 
             with_retries <|
                 my_dir.exists . should_be_false
-                Enso_File.root.list . should_not_contain my_dir
+
+                # Enso_File.root.list . should_not_contain my_dir
+                Enso_File.root.list.map .name . should_not_contain my_name
 
         Test.specify "should not allow to create a directory inside of a regular file" pending="TODO" <|
             Error.throw "TODO"
