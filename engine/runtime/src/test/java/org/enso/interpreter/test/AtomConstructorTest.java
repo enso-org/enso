@@ -16,9 +16,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-/**
- * @author devel
- */
 public class AtomConstructorTest extends TestBase {
 
   private static Context ctx;
@@ -36,7 +33,7 @@ public class AtomConstructorTest extends TestBase {
   }
 
   @Test
-  public void newInstance() {
+  public void testGetUncached() {
     var code = """
         type NoPrime
             A a b c
@@ -48,14 +45,14 @@ public class AtomConstructorTest extends TestBase {
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
 
-    Function<Object[], Atom> factory =
+    Function<Object[], Atom> uncachedFactory =
         args -> AtomNewInstanceNode.getUncached().newInstance(cons, args);
-    assertAtomFactory("AtomConstructor.newInstance without priming", factory);
-    assertLessArguments("AtomConstructor.newInstance without priming", factory);
+    assertAtomFactory("getUncached() without priming", uncachedFactory);
+    assertLessArguments("getUncached() without priming", uncachedFactory);
   }
 
   @Test
-  public void newAtomNewInstanceNode() {
+  public void testAtomNewInstanceNode() {
     var code = """
         type X
             A a b c
@@ -68,12 +65,15 @@ public class AtomConstructorTest extends TestBase {
     var cons = (AtomConstructor) raw;
 
     var node = AtomNewInstanceNode.create();
-    Function<Object[], Atom> factory = args -> node.newInstance(cons, args);
-    assertAtomFactory("AtomNewInstanceNode.create", factory);
-    assertLessArguments("AtomNewInstanceNode.create", factory);
+    Function<Object[], Atom> createFactory = args -> node.newInstance(cons, args);
+    assertAtomFactory("AtomNewInstanceNode.create", createFactory);
+    assertLessArguments("AtomNewInstanceNode.create", createFactory);
 
-    assertAtomFactory("AtomConstructor.newInstance with priming", factory);
-    assertLessArguments("AtomConstructor.newInstance with priming", factory);
+    Function<Object[], Atom> uncachedFactory =
+        args -> AtomNewInstanceNode.getUncached().newInstance(cons, args);
+
+    assertAtomFactory("getUncached() with priming", uncachedFactory);
+    assertLessArguments("getUncached() with priming", uncachedFactory);
   }
 
   private static void assertAtomFactory(String msg, Function<java.lang.Object[], Atom> factory) {
