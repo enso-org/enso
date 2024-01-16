@@ -48,9 +48,11 @@ export default function Editor(props: EditorProps) {
             if (hidden) {
                 ideElement.style.top = '-100vh'
                 ideElement.style.position = 'fixed'
+                ideElement.style.visibility = 'hidden'
             } else {
                 ideElement.style.top = ''
                 ideElement.style.position = 'absolute'
+                ideElement.style.visibility = ''
             }
         }
         const ide2Element = document.getElementById(IDE2_ELEMENT_ID)

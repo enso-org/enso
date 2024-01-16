@@ -3,10 +3,6 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-// =============
-// === Tests ===
-// =============
-
 test.test('sign up flow', async ({ page }) => {
     const api = await actions.mockApi({ page })
     api.setCurrentUser(null)

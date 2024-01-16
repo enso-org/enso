@@ -309,12 +309,13 @@ export async function mockApi({ page }: MockParams) {
 
         await page.route(
             BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
-            async route => {
+            async (route, request) => {
+                const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
                 await route.fulfill({
                     json: {
                         /* eslint-disable @typescript-eslint/naming-convention */
                         organizationId: defaultOrganizationId,
-                        projectId: backend.ProjectId('project-example id'),
+                        projectId: backend.ProjectId(projectId),
                         name: 'example project name',
                         state: {
                             type: backend.ProjectState.opened,
@@ -342,7 +343,7 @@ export async function mockApi({ page }: MockParams) {
                 interface Body {
                     parentDirectoryId: backend.DirectoryId
                 }
-                const assetId = request.url().match(/assets[/](.+?)[/]copy/)?.[1]
+                const assetId = request.url().match(/[/]assets[/](.+?)[/]copy/)?.[1]
                 // eslint-disable-next-line no-restricted-syntax
                 const asset = assetId != null ? assetMap.get(assetId as backend.AssetId) : null
                 if (asset == null) {
@@ -417,18 +418,18 @@ export async function mockApi({ page }: MockParams) {
             BASE_URL + remoteBackendPaths.updateDirectoryPath(GLOB_DIRECTORY_ID),
             async (route, request) => {
                 if (request.method() === 'PUT') {
-                    const [, id] = request.url().match(/[/]directories[/]([^?]+)/) ?? []
+                    const directoryId = request.url().match(/[/]directories[/]([^?]+)/)?.[1] ?? ''
                     // The type of the body sent by this app is statically known.
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const body: backend.UpdateDirectoryRequestBody = request.postDataJSON()
-                    const asset = assetMap.get(backend.DirectoryId(id ?? ''))
-                    if (asset == null || id == null) {
+                    const asset = assetMap.get(backend.DirectoryId(directoryId))
+                    if (asset == null) {
                         await route.abort()
                     } else {
                         asset.title = body.title
                         await route.fulfill({
                             json: {
-                                id: backend.DirectoryId(id),
+                                id: backend.DirectoryId(directoryId),
                                 parentId: asset.parentId,
                                 title: body.title,
                             } satisfies backend.UpdatedDirectory,
@@ -443,12 +444,10 @@ export async function mockApi({ page }: MockParams) {
             BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID),
             async (route, request) => {
                 if (request.method() === 'DELETE') {
-                    const [, id] = request.url().match(/[/]assets[/]([^?]+)/) ?? []
-                    if (id != null) {
-                        // This could be an id for an arbitrary asset, but pretend it's a
-                        // `DirectoryId` to make TypeScript happy.
-                        deleteAsset(backend.DirectoryId(id))
-                    }
+                    const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
+                    // This could be an id for an arbitrary asset, but pretend it's a
+                    // `DirectoryId` to make TypeScript happy.
+                    deleteAsset(backend.DirectoryId(assetId))
                     await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
                 } else {
                     await route.fallback()
@@ -520,43 +519,91 @@ export async function mockApi({ page }: MockParams) {
                 await route.fallback()
             }
         })
-        await page.route(BASE_URL + remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', async route => {
-            if (route.request().method() === 'POST') {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                const body: backend.CreateDirectoryRequestBody = route.request().postDataJSON()
-                const title = body.title
-                const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
-                const parentId =
-                    body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
-                const json: backend.CreatedDirectory = { title, id, parentId }
-                addAsset({
-                    type: backend.AssetType.directory,
-                    description: null,
-                    id,
-                    labels: [],
-                    modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId,
-                    permissions: [
-                        {
-                            user: {
-                                pk: backend.Subject(''),
-                                /* eslint-disable @typescript-eslint/naming-convention */
-                                user_name: defaultUsername,
-                                user_email: defaultEmail,
-                                organization_id: defaultOrganizationId,
-                                /* eslint-enable @typescript-eslint/naming-convention */
+        await page.route(
+            BASE_URL + remoteBackendPaths.CREATE_PROJECT_PATH + '*',
+            async (route, request) => {
+                if (request.method() === 'POST') {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: backend.CreateProjectRequestBody = request.postDataJSON()
+                    const title = body.projectName
+                    const id = backend.ProjectId(`project-${uniqueString.uniqueString()}`)
+                    const parentId =
+                        body.parentDirectoryId ??
+                        backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+                    const json: backend.CreatedProject = {
+                        name: title,
+                        organizationId: defaultOrganizationId,
+                        packageName: 'Project_root',
+                        projectId: id,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        state: { type: backend.ProjectState.opened, volume_id: '' },
+                    }
+                    addProject(title, {
+                        description: null,
+                        id,
+                        labels: [],
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        parentId,
+                        permissions: [
+                            {
+                                user: {
+                                    pk: backend.Subject(''),
+                                    /* eslint-disable @typescript-eslint/naming-convention */
+                                    user_name: defaultUsername,
+                                    user_email: defaultEmail,
+                                    organization_id: defaultOrganizationId,
+                                    /* eslint-enable @typescript-eslint/naming-convention */
+                                },
+                                permission: permissions.PermissionAction.own,
                             },
-                            permission: permissions.PermissionAction.own,
-                        },
-                    ],
-                    projectState: null,
-                    title,
-                })
-                await route.fulfill({ json })
-            } else {
-                await route.fallback()
+                        ],
+                        projectState: json.state,
+                    })
+                    await route.fulfill({ json })
+                } else {
+                    await route.fallback()
+                }
             }
-        })
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.CREATE_DIRECTORY_PATH + '*',
+            async (route, request) => {
+                if (request.method() === 'POST') {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: backend.CreateDirectoryRequestBody = request.postDataJSON()
+                    const title = body.title
+                    const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+                    const parentId =
+                        body.parentId ??
+                        backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+                    const json: backend.CreatedDirectory = { title, id, parentId }
+                    addDirectory(title, {
+                        description: null,
+                        id,
+                        labels: [],
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        parentId,
+                        permissions: [
+                            {
+                                user: {
+                                    pk: backend.Subject(''),
+                                    /* eslint-disable @typescript-eslint/naming-convention */
+                                    user_name: defaultUsername,
+                                    user_email: defaultEmail,
+                                    organization_id: defaultOrganizationId,
+                                    /* eslint-enable @typescript-eslint/naming-convention */
+                                },
+                                permission: permissions.PermissionAction.own,
+                            },
+                        ],
+                        projectState: null,
+                    })
+                    await route.fulfill({ json })
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
     })
 
     return {
