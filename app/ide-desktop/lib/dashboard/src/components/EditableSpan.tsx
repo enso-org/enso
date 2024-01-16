@@ -40,6 +40,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [isSubmittable, setIsSubmittable] = React.useState(true)
     const inputRef = React.useRef<HTMLInputElement>(null)
+    const cancelled = React.useRef(false)
 
     React.useEffect(() => {
         setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
@@ -52,6 +53,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             return shortcuts.registerKeyboardHandlers({
                 [shortcutsModule.KeyboardAction.cancelEditName]: () => {
                     onCancel()
+                    cancelled.current = true
                     inputRef.current?.blur()
                 },
             })
@@ -59,6 +61,10 @@ export default function EditableSpan(props: EditableSpanProps) {
             return
         }
     }, [editable, shortcuts, onCancel])
+
+    React.useEffect(() => {
+        cancelled.current = false
+    }, [editable])
 
     if (editable) {
         return (
@@ -79,7 +85,11 @@ export default function EditableSpan(props: EditableSpanProps) {
                     type="text"
                     size={1}
                     defaultValue={children}
-                    onBlur={event => event.currentTarget.form?.requestSubmit()}
+                    onBlur={event => {
+                        if (!cancelled.current) {
+                            event.currentTarget.form?.requestSubmit()
+                        }
+                    }}
                     {...(inputPattern == null ? {} : { pattern: inputPattern })}
                     {...(inputTitle == null ? {} : { title: inputTitle })}
                     {...(checkSubmittable == null

@@ -12,12 +12,12 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutsModule from '#/utilities/shortcuts'
+import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/visibility'
 
@@ -69,21 +69,23 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         projectState.opened_by != null &&
         projectState.opened_by !== organization?.email
 
-    const doRename = async (newName: string) => {
-        try {
-            await backend.updateProject(
-                asset.id,
-                {
-                    ami: null,
-                    ideVersion: null,
-                    projectName: newName,
-                },
-                asset.title
-            )
-            return
-        } catch (error) {
-            toastAndLog(errorModule.tryGetMessage(error) ?? 'Could not rename project.')
-            throw error
+    const doRename = async (newTitle: string) => {
+        setRowState(object.merger({ isEditingName: false }))
+        if (string.isWhitespaceOnly(newTitle)) {
+            // Do nothing.
+        } else if (newTitle !== asset.title) {
+            const oldTitle = asset.title
+            setAsset(object.merger({ title: newTitle }))
+            try {
+                await backend.updateProject(
+                    asset.id,
+                    { ami: null, ideVersion: null, projectName: newTitle },
+                    asset.title
+                )
+            } catch (error) {
+                toastAndLog('Could not rename project', error)
+                setAsset(object.merger({ title: oldTitle }))
+            }
         }
     }
 
@@ -296,18 +298,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             child.item.title !== newTitle
                     )
                 }
-                onSubmit={async newTitle => {
-                    setRowState(object.merger({ isEditingName: false }))
-                    if (newTitle !== asset.title) {
-                        const oldTitle = asset.title
-                        setAsset(object.merger({ title: newTitle }))
-                        try {
-                            await doRename(newTitle)
-                        } catch {
-                            setAsset(object.merger({ title: oldTitle }))
-                        }
-                    }
-                }}
+                onSubmit={doRename}
                 onCancel={() => {
                     setRowState(object.merger({ isEditingName: false }))
                 }}
