@@ -114,26 +114,32 @@ spec setup =
             value = triple.at 0
             other_value = triple.at 1
             value_type = triple.at 2
-            t0 = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["n", [Nothing, Nothing]]] [value_type, value_type, value_type]
+            t0 = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] [value_type, value_type, value_type, value_type]
 
             true_if_not_nothing = if value == Nothing then Nothing else True
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column (returning True)" <|
+                t0.at "x" . is_in (t0.at "z") . to_vector . should_equal [true_if_not_nothing, Nothing]
+
+            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning True)" <|
                 t0.at "x" . is_in (t0.at "x") . to_vector . should_equal [true_if_not_nothing, Nothing]
 
-            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y") . to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify "Correctly handle Nothing in: Nothing.is_in Column (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: Nothing.is_in Column with Nothings (returning Nothing)" <|
                 t0.at "n" . is_in (t0.at "x") . to_vector . should_equal [Nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector (returning True)" <|
+                t0.at "x" . is_in (t0.at "z" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
+
+            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning True)" <|
                 t0.at "x" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
 
-            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
-            Test.specify "Correctly handle Nothing in: Nothing.is_in Vector (returning Nothing)" <|
+            Test.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
                 t0.at "n" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"distinct" <|
