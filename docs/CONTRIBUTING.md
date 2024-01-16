@@ -528,7 +528,7 @@ enso --run test/Table_Tests
 Or to run just a single test (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+enso --in-project test/Base_Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
@@ -541,7 +541,7 @@ the `LANG` environment variable to `C` to make sure that the language is
 configured correctly and run the tests as following:
 
 ```bash
-LANG=C enso --run test/Tests
+LANG=C enso --run test/Base_Tests
 ```
 
 Note that JVM assertions are not enabled by default, one has to pass `-ea` via
