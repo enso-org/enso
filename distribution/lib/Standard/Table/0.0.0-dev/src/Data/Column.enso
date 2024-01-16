@@ -2138,7 +2138,8 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -2217,7 +2218,8 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
