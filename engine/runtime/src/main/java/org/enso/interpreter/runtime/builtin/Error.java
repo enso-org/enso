@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
 import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
 import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
 import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.MapError;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
 import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
@@ -63,6 +64,7 @@ public final class Error {
   private final Panic panic;
   private final CaughtPanic caughtPanic;
   private final ForbiddenOperation forbiddenOperation;
+  private final MapError mapError;
 
   private final Unimplemented unimplemented;
 
@@ -101,6 +103,7 @@ public final class Error {
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
     unimplemented = builtins.getBuiltinType(Unimplemented.class);
+    mapError = builtins.getBuiltinType(MapError.class);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -288,5 +291,14 @@ public final class Error {
 
   public Atom makeNumberParseError(String message) {
     return numberParseError.newInstance(Text.create(message));
+  }
+
+  /**
+   * @param index the position at which the original error occured
+   * @param inner_error the original error
+   * @return an error indicating the index of the error
+   */
+  public Atom makeMapError(long index, Object innerError) {
+    return mapError.newInstance(index, innerError);
   }
 }

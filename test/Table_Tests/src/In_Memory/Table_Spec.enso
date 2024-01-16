@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -92,7 +93,7 @@ spec =
             Table.new [] . should_fail_with Illegal_Argument
 
             Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
-            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with (Map_Error.Error 1 (Index_Out_Of_Bounds.Error 1 1))
+            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with (Map_Error.Error 1 (Index_Out_Of_Bounds.Error 1 1)) unwrap_errors=False
             Table.from_rows [] [] . should_fail_with Illegal_Argument
             Table.from_rows [] [[]] . should_fail_with Illegal_Argument
 

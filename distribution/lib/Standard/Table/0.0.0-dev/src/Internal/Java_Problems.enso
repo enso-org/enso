@@ -78,7 +78,7 @@ unpack_problem_summary problem_summary =
     ## TODO [RW, GT] In the next iterations we will want to remove
        `translate_problem` in favour of constructing Enso problem instances
        directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
-    parsed = problems_array . map on_problems=No_Wrap.Value translate_problem
+    parsed = problems_array . map on_problems=No_Wrap translate_problem
     if count == parsed.length then parsed else
         parsed + [Additional_Warnings.Error (count - parsed.length)]
 
