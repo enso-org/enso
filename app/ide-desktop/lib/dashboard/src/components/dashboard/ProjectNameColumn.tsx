@@ -284,6 +284,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 />
             )}
             <EditableSpan
+                data-testid="asset-row-name"
                 editable={rowState.isEditingName}
                 checkSubmittable={newTitle =>
                     (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

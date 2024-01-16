@@ -6,7 +6,7 @@ import * as actions from './actions'
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('create folder', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -16,7 +16,7 @@ test.test('create folder', async ({ page }) => {
 })
 
 test.test('create project', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewProjectButton(page).click()
     // Assets: [0: Project 1]
@@ -25,7 +25,7 @@ test.test('create project', async ({ page }) => {
 })
 
 test.test('upload file', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     const fileChooserPromise = page.waitForEvent('filechooser')
     await actions.locateUploadFilesIcon(page).click()
@@ -46,7 +46,7 @@ test.test('upload file', async ({ page }) => {
 })
 
 test.test('create secret', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewSecretIcon(page).click()
     const name = 'a secret name'

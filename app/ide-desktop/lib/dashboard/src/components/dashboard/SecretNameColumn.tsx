@@ -145,6 +145,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         >
             <img src={ConnectorIcon} className="m-1" />
             <EditableSpan
+                data-testid="asset-row-name"
                 editable={false}
                 onSubmit={async newTitle => {
                     setRowState(object.merger({ isEditingName: false }))

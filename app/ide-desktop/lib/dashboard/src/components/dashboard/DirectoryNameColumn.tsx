@@ -153,6 +153,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             />
             <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
             <EditableSpan
+                data-testid="asset-row-name"
                 editable={rowState.isEditingName}
                 checkSubmittable={newTitle =>
                     (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

@@ -6,7 +6,7 @@ import * as actions from './actions'
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('drive view', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     // Drive view
     await test.expect(actions.locateDriveView(page)).toBeVisible()

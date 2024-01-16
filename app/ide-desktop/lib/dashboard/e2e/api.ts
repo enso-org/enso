@@ -21,15 +21,15 @@ const HTTP_STATUS_NO_CONTENT = 204
 const HTTP_STATUS_BAD_REQUEST = 400
 /** The HTTP status code representing a URL that does not exist. */
 const HTTP_STATUS_NOT_FOUND = 404
-/* eslint-disable no-restricted-syntax */
 /** An asset ID that is a path glob. */
-const GLOB_ASSET_ID = '*' as backend.AssetId
-/** A projet ID that is a path glob. */
-const GLOB_PROJECT_ID = '*' as backend.ProjectId
+const GLOB_ASSET_ID: backend.AssetId = backend.DirectoryId('*')
+/** A directory ID that is a path glob. */
+const GLOB_DIRECTORY_ID = backend.DirectoryId('*')
+/** A project ID that is a path glob. */
+const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
-const GLOB_TAG_ID = '*' as backend.TagId
+const GLOB_TAG_ID = backend.TagId('*')
 /* eslint-enable no-restricted-syntax */
-/** The base URL for all backend endpoints. */
 const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
 
 // ===============
@@ -306,6 +306,7 @@ export async function mockApi({ page }: MockParams) {
         )
 
         // === Unimplemented endpoints ===
+
         await page.route(
             BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
             async route => {
@@ -411,14 +412,42 @@ export async function mockApi({ page }: MockParams) {
         })
 
         // === Other endpoints ===
+
+        await page.route(
+            BASE_URL + remoteBackendPaths.updateDirectoryPath(GLOB_DIRECTORY_ID),
+            async (route, request) => {
+                if (request.method() === 'PUT') {
+                    const [, id] = request.url().match(/[/]directories[/]([^?]+)/) ?? []
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: backend.UpdateDirectoryRequestBody = request.postDataJSON()
+                    const asset = assetMap.get(backend.DirectoryId(id ?? ''))
+                    if (asset == null || id == null) {
+                        await route.abort()
+                    } else {
+                        asset.title = body.title
+                        await route.fulfill({
+                            json: {
+                                id: backend.DirectoryId(id),
+                                parentId: asset.parentId,
+                                title: body.title,
+                            } satisfies backend.UpdatedDirectory,
+                        })
+                    }
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
         await page.route(
             BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID),
             async (route, request) => {
                 if (request.method() === 'DELETE') {
                     const [, id] = request.url().match(/[/]assets[/]([^?]+)/) ?? []
                     if (id != null) {
-                        // eslint-disable-next-line no-restricted-syntax
-                        deleteAsset(id as backend.AssetId)
+                        // This could be an id for an arbitrary asset, but pretend it's a
+                        // `DirectoryId` to make TypeScript happy.
+                        deleteAsset(backend.DirectoryId(id))
                     }
                     await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
                 } else {

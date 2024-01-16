@@ -13,7 +13,7 @@ const MIN_MS = 60_000
 
 test.test('sort', async ({ page }) => {
     const { api } = await actions.mockAll({ page })
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
     const nameHeading = actions.locateNameColumnHeading(page)
     const modifiedHeading = actions.locateModifiedColumnHeading(page)
 

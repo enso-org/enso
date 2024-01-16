@@ -8,7 +8,7 @@ import * as actions from './actions'
 
 test.test('open and close asset panel', async ({ page }) => {
     await actions.mockAllAndLogin({ page })
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     await assetRows.nth(0).click()
@@ -22,7 +22,7 @@ test.test('open and close asset panel', async ({ page }) => {
 test.test('asset panel contents', async ({ page }) => {
     const { api } = await actions.mockAll({ page })
     const { defaultOrganizationId } = api
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
     const description = 'foo bar'
     const username = 'baz quux'
     const email = 'baz.quux@email.com'

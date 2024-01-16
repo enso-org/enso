@@ -80,6 +80,11 @@ export function locateSecretValueInput(page: test.Locator | test.Page) {
     return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
 }
 
+/** Find the name column of the given assets table row. */
+export function locateAssetRowName(locator: test.Locator) {
+    return locator.getByTestId('asset-row-name')
+}
+
 // === Button locators ===
 
 /** Find a login button (if any) on the current page. */
@@ -157,6 +162,16 @@ export function locateHomeButton(page: test.Locator | test.Page) {
 /** Find a "trash" button (if any) on the current page. */
 export function locateTrashButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Trash' }).getByText('Trash')
+}
+
+/** Find a tick button (if any) on the current page. */
+export function locateEditingTick(page: test.Locator | test.Page) {
+    return page.getByAltText('Confirm Edit')
+}
+
+/** Find a cross button (if any) on the current page. */
+export function locateEditingCross(page: test.Locator | test.Page) {
+    return page.getByAltText('Cancel Edit')
 }
 
 // === Context menu buttons ===
@@ -387,7 +402,7 @@ export function locateAssetsTable(page: test.Locator | test.Page) {
 }
 
 /** Find assets table rows (if any) on the current page. */
-export function locateAssetsTableRows(page: test.Locator | test.Page) {
+export function locateAssetRows(page: test.Locator | test.Page) {
     return locateAssetsTable(page).locator('tbody').getByRole('row')
 }
 
@@ -483,7 +498,7 @@ export function getAssetRowLeftPx(locator: test.Locator) {
 /** A test assertion to confirm that there is only one row visible, and that row is the
  * placeholder row displayed when there are no assets to show. */
 export async function expectPlaceholderRow(page: test.Page) {
-    const assetRows = locateAssetsTableRows(page)
+    const assetRows = locateAssetRows(page)
     await test.test.step('Expect placeholder row', async () => {
         await test.expect(assetRows).toHaveCount(1)
         await test.expect(assetRows).toHaveText(/You have no files/)
@@ -493,7 +508,7 @@ export async function expectPlaceholderRow(page: test.Page) {
 /** A test assertion to confirm that there is only one row visible, and that row is the
  * placeholder row displayed when there are no assets in Trash. */
 export async function expectTrashPlaceholderRow(page: test.Page) {
-    const assetRows = locateAssetsTableRows(page)
+    const assetRows = locateAssetRows(page)
     await test.test.step('Expect trash placeholder row', async () => {
         await test.expect(assetRows).toHaveCount(1)
         await test.expect(assetRows).toHaveText(/Your trash is empty/)
@@ -503,6 +518,15 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // ==========================
 // === Keyboard utilities ===
 // ==========================
+
+/** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
+export async function modModifier(page: test.Page) {
+    let userAgent = ''
+    await test.test.step('Detect browser OS', async () => {
+        userAgent = await page.evaluate(() => navigator.userAgent)
+    })
+    return /macOS/.test(userAgent) ? 'Meta' : 'Control'
+}
 
 /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
  * on all other platforms. */

@@ -93,7 +93,7 @@ export default function EditableSpan(props: EditableSpanProps) {
                 />
                 {isSubmittable && (
                     <button type="submit" className="mx-0.5">
-                        <img src={TickIcon} />
+                        <img src={TickIcon} alt="Confirm Edit" />
                     </button>
                 )}
                 <button
@@ -104,7 +104,7 @@ export default function EditableSpan(props: EditableSpanProps) {
                         onCancel()
                     }}
                 >
-                    <img src={CrossIcon} />
+                    <img src={CrossIcon} alt="Cancel Edit" />
                 </button>
             </form>
         )

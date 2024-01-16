@@ -127,6 +127,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         >
             <SvgMask src={fileIcon.fileIcon()} className="m-1" />
             <EditableSpan
+                data-testid="asset-row-name"
                 editable={false}
                 onSubmit={async newTitle => {
                     setRowState(object.merger({ isEditingName: false }))

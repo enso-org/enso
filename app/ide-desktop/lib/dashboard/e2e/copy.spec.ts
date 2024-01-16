@@ -6,7 +6,7 @@ import * as actions from './actions'
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('copy', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -30,7 +30,7 @@ test.test('copy', async ({ page }) => {
 })
 
 test.test('copy (keyboard)', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -51,7 +51,7 @@ test.test('copy (keyboard)', async ({ page }) => {
 })
 
 test.test('move', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -75,7 +75,7 @@ test.test('move', async ({ page }) => {
 })
 
 test.test('move (drag)', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [1: Folder 1]
@@ -92,7 +92,7 @@ test.test('move (drag)', async ({ page }) => {
 })
 
 test.test('move (keyboard)', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -113,7 +113,7 @@ test.test('move (keyboard)', async ({ page }) => {
 })
 
 test.test('duplicate', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]
@@ -128,7 +128,7 @@ test.test('duplicate', async ({ page }) => {
 })
 
 test.test('duplicate (keyboard)', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     // Assets: [0: Folder 1]

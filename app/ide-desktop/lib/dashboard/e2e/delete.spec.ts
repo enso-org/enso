@@ -6,7 +6,7 @@ import * as actions from './actions'
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('delete and restore', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
     const contextMenu = actions.locateContextMenus(page)
 
     await actions.locateNewFolderIcon(page).click()
@@ -29,7 +29,7 @@ test.test('delete and restore', async ({ page }) => {
 })
 
 test.test('delete and restore (keyboard)', async ({ page }) => {
-    const assetRows = actions.locateAssetsTableRows(page)
+    const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
     await test.expect(assetRows).toHaveCount(1)
