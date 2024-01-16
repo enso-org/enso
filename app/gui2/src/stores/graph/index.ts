@@ -478,7 +478,7 @@ export const useGraphStore = defineStore('graph', () => {
     assert(targetExpr != null)
     assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
 
-    const lines = body.lines()
+    const lines = body.takeLines(edit)
     const sourceIdx = lines.findIndex((line) => line.expression?.node.exprId === sourceExpr)
     const targetIdx = lines.findIndex((line) => line.expression?.node.exprId === targetExpr)
 
