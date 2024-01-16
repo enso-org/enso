@@ -328,6 +328,7 @@ export async function mockApi({ page }: MockParams) {
                             value: '2023.2.1-nightly.2023.9.29',
                             lifecycle: backend.VersionLifecycle.development,
                         },
+                        address: backend.Address('ws://example.com/'),
                         /* eslint-enable @typescript-eslint/naming-convention */
                     } satisfies backend.ProjectRaw,
                 })
