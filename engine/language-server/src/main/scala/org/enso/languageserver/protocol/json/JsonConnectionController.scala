@@ -354,13 +354,16 @@ class JsonConnectionController(
         FileModifiedOnDisk.Params(path)
       )
 
-    case TextProtocol.FileEvent(path, event) =>
-      webActor ! Notification(EventFile, EventFile.Params(path, event))
+    case TextProtocol.FileEvent(path, event, attributes) =>
+      webActor ! Notification(
+        EventFile,
+        EventFile.Params(path, event, attributes)
+      )
 
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(
         EventFile,
-        EventFile.Params(event.path, event.kind)
+        EventFile.Params(event.path, event.kind, event.attributes.toOption)
       )
 
     case ContextRegistryProtocol

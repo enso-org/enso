@@ -142,21 +142,13 @@ type Error
                         Maybe.Some inner_error -> handler inner_error
 
     ## PRIVATE
-       Convert a wrapped error to a Wrapped_Error. If the argument is not a
-       wrapped error, Nothing is returned.
-    as_wrapped_error : Any -> Wrapped_Error | Nothing
-    as_wrapped_error error_value =
-        Panic.catch No_Such_Conversion (Wrapped_Error.from error_value) _->Nothing
-
-    ## PRIVATE
-       Determines if this is the specified error wrapper, and, if so, returns
-       the inner error. This only unwraps once.
-    unwrap_error : Any -> Any -> Maybe Any
-    unwrap_error wrapper_error_type error_value =
-        case Error.as_wrapped_error error_value of
-            Wrapped_Error.Value wrapping_error inner_error ->
-                if wrapping_error.is_a wrapper_error_type then Maybe.Some inner_error else Maybe.None
-            Nothing -> Maybe.None
+       Remove all wrapping errors, returning the inner error. If the argument is
+       not a wrapping error, it is returned unchanged.
+    unwrap : Any -> Any
+    unwrap error_value =
+        Panic.catch No_Such_Conversion handler=_->error_value <|
+            wrapped_error = Wrapped_Error.from error_value
+            @Tail_Call Error.unwrap wrapped_error.inner_error
 
     ## Transforms an error.
 

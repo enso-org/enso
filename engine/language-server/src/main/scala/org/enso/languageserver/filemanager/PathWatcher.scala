@@ -140,7 +140,17 @@ final class PathWatcher(
 
     case e: Watcher.WatcherEvent =>
       restartCounter.reset()
-      val event = FileEvent.fromWatcherEvent(root, base, e)
+
+      val fileInfo =
+        if (e.eventType == Watcher.EventTypeDelete) ZIO.fail(FileNotFound)
+        else fs.info(e.path.toFile)
+
+      exec
+        .exec(fileInfo)
+        .map(FileEvent.fromWatcherEvent(root, base, e, _))
+        .pipeTo(self)
+
+    case event: FileEvent =>
       clients.foreach(_ ! FileEventResult(event))
       context.system.eventStream.publish(event)
 

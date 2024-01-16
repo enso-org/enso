@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -276,28 +277,28 @@ spec = Test.group "Dataflow Warnings" <|
         c = [a, b]
         d = Warning.attach "d" c
         c . should_equal [1, 2]
-        Warning.get_all c . map .value . should_equal ["b", "a"]
-        Warning.get_all d . map .value . should_equal ["d", "b", "a"]
+        Warning.get_all c wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a')]
+        Warning.get_all d wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a'), 'd']
 
     Test.specify "should be preserved after operations on Vector" <|
-        even x = (Warning.attach x x) % 2
+        even x = (Warning.attach "warn"+x.to_text x) % 2
         res = [1,2,3,4].map even
 
         res . should_equal [1, 0, 1, 0]
-        Warning.get_all res . map .value . should_equal [4, 3, 2, 1]
+        Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
         res.at 0 . should_equal 1
-        Warning.get_all (res.at 0) . map .value . should_equal [4, 3, 2, 1]
+        Warning.get_all (res.at 0) . map .value . should_equal ['warn4', 'warn3', 'warn2', 'warn1']
 
         slice = res.slice 1 4
-        Warning.get_all slice . map .value . should_equal [4, 3, 2, 1]
+        Warning.get_all slice wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
 
         zero = even 0
-        Warning.get_all zero . map .value . should_equal [0]
+        Warning.get_all zero wrap_errors=True . map .value . should_equal ["warn"+0.to_text]
 
         v = 0.up_to 10 . to_vector
         r = v.map x->(if x % 2 == 0 then 10*x else Warning.attach 100*x x)
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
-        Warning.get_all r . map .value . should_contain_the_same_elements_as [100, 300, 500, 700, 900]
+        Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
 
     Test.specify "should be preserved after operations on multi-dimensional Vector" <|
         even x = (Warning.attach x x) % 2
@@ -307,6 +308,7 @@ spec = Test.group "Dataflow Warnings" <|
 
         res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
         Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
+        Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
         Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
     Test.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
