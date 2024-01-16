@@ -34,6 +34,7 @@ import project.Sieve
 import project.Sum
 import project.Startup.Startup
 import project.Runtime.Panics_And_Errors
+import project.Warnings
 from Standard.Base.Runtime import Debug
 
 all_benchmarks : Vector Bench.All

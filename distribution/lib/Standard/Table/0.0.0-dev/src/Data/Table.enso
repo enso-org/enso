@@ -103,7 +103,7 @@ type Table
     new columns =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
-        cols = columns.map on_problems=No_Wrap.Value c->
+        cols = columns.map on_problems=No_Wrap c->
             case c of
                 v : Vector ->
                     if v.length != 2 then invalid_input_shape else
@@ -971,7 +971,7 @@ type Table
                 False ->
                     Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-            new_columns = self.columns.map on_problems=No_Wrap.Value column-> if selected_column_names.contains_key column.name . not then column else
+            new_columns = self.columns.map on_problems=No_Wrap column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -1929,10 +1929,10 @@ type Table
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map make_java_lookup_column_description
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
 
         keys = lookup_columns.filter .is_key
-        java_keys = keys.map key_column->
+        java_keys = keys.map on_problems=No_Wrap key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 
         handle_java_errors ~action =
@@ -2345,7 +2345,7 @@ type Table
         normalize_group_by input = case input of
             Aggregate_Column.Group_By c _ -> c
             _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
-            _ : Vector -> input.map on_problems=No_Wrap.Value normalize_group_by
+            _ : Vector -> input.map on_problems=No_Wrap normalize_group_by
             _ -> input
 
         ## validate the name and group_by columns
@@ -2360,7 +2360,7 @@ type Table
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        resolved_values = values_vector.map on_problems=No_Wrap.Value (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        resolved_values = values_vector.map on_problems=No_Wrap (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
