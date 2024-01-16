@@ -1536,19 +1536,7 @@ type Column
                    fix it later) and setting up the query - but at the set up this only
                    applies to adding nulls - setting any other object does not check the
                    type at this level anyway.
-                partitioned = vector.partition .is_nothing
-                nulls = partitioned.first
-                non_nulls = partitioned.second
-                ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
-                   separately. So we handle all non-null values using `IS_IN` and then
-                   `OR` that with a null check (if the vector contained any nulls to
-                   begin with). The implementation also ensures that even
-                   `NULL IN (...)` is coalesced to False, so that negation works as
-                   expected.
-                is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_name=new_name
-                result = case nulls.not_empty of
-                    True -> is_in_not_null || self.is_nothing
-                    False -> is_in_not_null
+                result = self.make_op "IS_IN" operands=vector new_name=new_name
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
             column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
