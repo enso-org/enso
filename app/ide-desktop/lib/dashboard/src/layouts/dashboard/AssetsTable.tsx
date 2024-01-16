@@ -13,6 +13,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -1361,53 +1362,119 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
-                const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
-                    (file): backendModule.FileAsset => ({
-                        type: backendModule.AssetType.file,
-                        id: backendModule.FileId(uniqueString.uniqueString()),
-                        title: file.name,
-                        parentId: event.parentId,
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                        modifiedAt: dateTime.toRfc3339(new Date()),
-                        projectState: null,
-                        labels: [],
-                        description: null,
-                    })
+                const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
+                const siblings = siblingNodes.map(node => node.item)
+                const siblingFiles = siblings.filter(backendModule.assetIsFile)
+                const siblingProjects = siblings.filter(backendModule.assetIsProject)
+                const siblingFileTitles = new Set(siblingFiles.map(asset => asset.title))
+                const siblingProjectTitles = new Set(siblingProjects.map(asset => asset.title))
+                const files = reversedFiles.filter(backendModule.fileIsNotProject)
+                const projects = reversedFiles.filter(backendModule.fileIsProject)
+                const duplicateFiles = files.filter(file => siblingFileTitles.has(file.name))
+                const duplicateProjects = projects.filter(project =>
+                    siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
                 )
-                const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
-                    (file): backendModule.ProjectAsset => ({
-                        type: backendModule.AssetType.project,
-                        id: backendModule.ProjectId(uniqueString.uniqueString()),
-                        title: file.name,
-                        parentId: event.parentId,
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                        modifiedAt: dateTime.toRfc3339(new Date()),
-                        projectState: {
-                            type: backendModule.ProjectState.new,
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
-                            volume_id: '',
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
-                            ...(organization != null ? { opened_by: organization.email } : {}),
-                        },
-                        labels: [],
-                        description: null,
+                if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
+                    const placeholderFiles = files.map(
+                        (file): backendModule.FileAsset => ({
+                            type: backendModule.AssetType.file,
+                            id: backendModule.FileId(uniqueString.uniqueString()),
+                            title: file.name,
+                            parentId: event.parentId,
+                            permissions: permissions.tryGetSingletonOwnerPermission(
+                                organization,
+                                user
+                            ),
+                            modifiedAt: dateTime.toRfc3339(new Date()),
+                            projectState: null,
+                            labels: [],
+                            description: null,
+                        })
+                    )
+                    const placeholderProjects = projects.map(
+                        (file): backendModule.ProjectAsset => ({
+                            type: backendModule.AssetType.project,
+                            id: backendModule.ProjectId(uniqueString.uniqueString()),
+                            title: file.name,
+                            parentId: event.parentId,
+                            permissions: permissions.tryGetSingletonOwnerPermission(
+                                organization,
+                                user
+                            ),
+                            modifiedAt: dateTime.toRfc3339(new Date()),
+                            projectState: {
+                                type: backendModule.ProjectState.new,
+                                // eslint-disable-next-line @typescript-eslint/naming-convention
+                                volume_id: '',
+                                // eslint-disable-next-line @typescript-eslint/naming-convention
+                                ...(organization != null ? { opened_by: organization.email } : {}),
+                            },
+                            labels: [],
+                            description: null,
+                        })
+                    )
+                    doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
+                    insertAssets(placeholderFiles, event.parentKey, event.parentId)
+                    insertAssets(placeholderProjects, event.parentKey, event.parentId)
+                    dispatchAssetEvent({
+                        type: AssetEventType.uploadFiles,
+                        files: new Map(
+                            [...placeholderFiles, ...placeholderProjects].map(
+                                (placeholderItem, i) => [
+                                    placeholderItem.id,
+                                    // This is SAFE, as `placeholderItems` is created using a map on
+                                    // `event.files`.
+                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                    event.files[i]!,
+                                ]
+                            )
+                        ),
                     })
-                )
-                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-                insertAssets(placeholderFiles, event.parentKey, event.parentId)
-                insertAssets(placeholderProjects, event.parentKey, event.parentId)
-                dispatchAssetEvent({
-                    type: AssetEventType.uploadFiles,
-                    files: new Map(
-                        [...placeholderFiles, ...placeholderProjects].map((placeholderItem, i) => [
-                            placeholderItem.id,
-                            // This is SAFE, as `placeholderItems` is created using a map on
-                            // `event.files`.
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            event.files[i]!,
-                        ])
-                    ),
-                })
+                } else {
+                    const siblingFilesByName = new Map(siblingFiles.map(file => [file.title, file]))
+                    const siblingProjectsByName = new Map(
+                        siblingProjects.map(project => [project.title, project])
+                    )
+                    const conflictingFiles = duplicateFiles.map(file => ({
+                        // This is SAFE, as `duplicateFiles` only contains files that have siblings
+                        // with the same name.
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        current: siblingFilesByName.get(file.name)!,
+                        // TODO: File -> FileAsset
+                        new: file,
+                    }))
+                    const conflictingProjects = duplicateProjects.map(project => ({
+                        // This is SAFE, as `duplicateProjects` only contains projects that have
+                        // siblings with the same name.
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        current: siblingProjectsByName.get(
+                            backendModule.stripProjectExtension(project.name)
+                        )!,
+                        // TODO: File -> ProjectAsset
+                        new: project,
+                    }))
+                    const conflictingAssets = [...conflictingFiles, ...conflictingProjects]
+                    const nonConflictingFiles = files.filter(
+                        file => !siblingFileTitles.has(file.name)
+                    )
+                    const nonConflictingProjects = projects.filter(
+                        project =>
+                            !siblingProjectTitles.has(
+                                backendModule.stripProjectExtension(project.name)
+                            )
+                    )
+                    setModal(
+                        <DuplicateAssetsModal
+                            conflictingAssets={conflictingAssets}
+                            doUpdate={() => {
+                                // TODO:
+                            }}
+                            doRename={() => {
+                                // TODO:
+                            }}
+                        />
+                    )
+                }
                 break
             }
             case AssetListEventType.newDataConnector: {

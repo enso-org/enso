@@ -93,10 +93,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         rowState.setVisibility(Visibility.visible)
                         setAsset(object.merge(asset, { id: createdFile.id }))
                     } catch (error) {
-                        dispatchAssetListEvent({
-                            type: AssetListEventType.delete,
-                            key: item.key,
-                        })
+                        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
                         toastAndLog('Could not upload file', error)
                     }
                 }

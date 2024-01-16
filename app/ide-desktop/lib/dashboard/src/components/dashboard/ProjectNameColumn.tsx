@@ -187,13 +187,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 })
                             )
                         } else {
-                            const fileName = asset.title
                             const title = backendModule.stripProjectExtension(asset.title)
                             setAsset(object.merge(asset, { title }))
                             const createdFile = await backend.uploadFile(
                                 {
                                     fileId: null,
-                                    fileName,
+                                    fileName: asset.title,
                                     parentDirectoryId: asset.parentId,
                                 },
                                 file
