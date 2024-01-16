@@ -27,6 +27,15 @@ type Complex
 
 Complex.from (that:Number) = Complex.new that
 
+type Complex_Comparator
+    compare x:Complex y:Complex = if x.re==y.re && x.im==y.im then Ordering.Equal else
+        if x.im==0 && y.im==0 then Ordering.compare x.re y.re else
+            Nothing
+    hash x:Complex = 7*x.re + 11*x.im
+
+Comparable.from (_:Complex) = Complex_Comparator
+
+
 spec =
     eps = 0.000001
     almost_max_long = 9223372036854775806
@@ -546,10 +555,54 @@ spec =
             -3.truncate . should_equal -3
 
     Test.group "Number Conversions" <|
-        Test.specify "Returns its argument" <|
+        Test.specify "Complex plus Integer" <|
             v1 = (Complex.new 1 2) + (Complex.new 3)
             v2 = (Complex.new 1 2) + 3
             v1 . should_equal v2
+
+        Test.specify "Integer plus Complex" <|
+            v1 = (Complex.new 3) + (Complex.new 1 2)
+            v2 = 3 + (Complex.new 1 2)
+            v1 . should_equal v2
+
+        Test.specify "Equality of complex and complex" <|
+            v1 = (Complex.new 3 1) + (Complex.new 4 7)
+            v2 = (Complex.new 1 2) + (Complex.new 6 6)
+            v1 . should_equal v2
+            v2 . should_equal v1
+            v1==v2 . should_be_true
+            v2==v1 . should_be_true
+
+        Test.specify "Inequality of complex and complex" <|
+            v1 = (Complex.new 7 1)
+            v2 = (Complex.new 6 6)
+            Ordering.compare v1 v2 . catch Incomparable_Values (_->42) . should_equal 42
+
+        Test.specify "Equality of complex and number" <|
+            v1 = (Complex.new 3)
+            v2 = 3
+            v1 . should_equal v2
+            v2 . should_equal v1
+            v1==v2 . should_be_true
+            v2==v1 . should_be_true
+
+        Test.specify "Greater or equal of complex and complex" <|
+            v1 = (Complex.new 3)
+            v2 = (Complex.new 4)
+            v1<v2 . should_be_true
+            v2<v1 . should_be_false
+
+            v1>v2 . should_be_false
+            v2>v1 . should_be_true
+
+        Test.specify "Greater or equal of complex and number" <|
+            v1 = (Complex.new 3)
+            v2 = 4
+            v1<v2 . should_be_true
+            v2<v1 . should_be_false
+
+            v1>v2 . should_be_false
+            v2>v1 . should_be_true
 
     Test.group "BigInts" <|
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
