@@ -178,20 +178,20 @@ mod tests {
     #[test]
     fn remove_glob_test() -> Result {
         let temp = tempfile::tempdir()?;
-        crate::env::set_current_dir(&temp)?;
+        crate::env::try_with_current_dir(&temp, || {
+            let pattern_to_remove = "**/file1.txt";
+            write("file1.txt", "file1")?;
+            write("file2.txt", "file2")?;
+            write("dir1/file1.txt", "file1")?;
+            write("dir1/file2.txt", "file2")?;
 
-        let pattern_to_remove = "**/file1.txt";
-        write("file1.txt", "file1")?;
-        write("file2.txt", "file2")?;
-        write("dir1/file1.txt", "file1")?;
-        write("dir1/file2.txt", "file2")?;
-
-        remove_glob(pattern_to_remove)?;
-        assert!(!Path::new("file1.txt").exists());
-        assert!(Path::new("file2.txt").exists());
-        assert!(!Path::new("dir1/file1.txt").exists());
-        assert!(Path::new("dir1/file2.txt").exists());
-        Ok(())
+            remove_glob(pattern_to_remove)?;
+            assert!(!Path::new("file1.txt").exists());
+            assert!(Path::new("file2.txt").exists());
+            assert!(!Path::new("dir1/file1.txt").exists());
+            assert!(Path::new("dir1/file2.txt").exists());
+            Ok(())
+        })
     }
 
     #[test]
