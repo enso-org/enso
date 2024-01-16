@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -7,17 +7,14 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-public class GetFieldWithMatchNode extends RootNode {
-  public static class GetterPair {
+final class GetFieldWithMatchNode extends RootNode {
+  static class GetterPair {
     private final AtomConstructor target;
     private final int index;
 

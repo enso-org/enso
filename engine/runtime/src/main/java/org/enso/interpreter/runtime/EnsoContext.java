@@ -806,10 +806,6 @@ public final class EnsoContext {
     return State.create(this);
   }
 
-  public int getMaxUnboxingLayouts() {
-    return 10;
-  }
-
   /**
    * @return the notification handler.
    */

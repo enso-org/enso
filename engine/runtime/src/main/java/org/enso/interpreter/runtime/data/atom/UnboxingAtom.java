@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom.unboxing;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
@@ -6,11 +6,7 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 /**
  * This is a common superclass for atoms that know their arity and are able to unbox some fields.
@@ -60,7 +56,7 @@ import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
  * </ul>
  */
 @ExportLibrary(StructsLibrary.class)
-public abstract class UnboxingAtom extends Atom {
+abstract class UnboxingAtom extends Atom {
   protected final Layout layout;
 
   protected UnboxingAtom(AtomConstructor constructor, Layout layout) {
@@ -106,32 +102,6 @@ public abstract class UnboxingAtom extends Atom {
     @Specialization(replaces = "doCached")
     static void doUncached(UnboxingAtom atom, int index, Object value) {
       atom.layout.getUncachedFieldSetter(index).execute(atom, value);
-    }
-  }
-
-  @ExportMessage(name = "getFields")
-  static class GetFields {
-    @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
-    @ExplodeLoop
-    static Object[] doCached(
-        UnboxingAtom atom,
-        @Cached("atom.layout") Layout cachedLayout,
-        @Cached(value = "cachedLayout.buildGetters()") FieldGetterNode[] getters) {
-      Object[] result = new Object[getters.length];
-      for (int i = 0; i < getters.length; i++) {
-        result[i] = getters[i].execute(atom);
-      }
-      return result;
-    }
-
-    @Specialization(replaces = "doCached")
-    static Object[] doUncached(UnboxingAtom atom) {
-      var getters = atom.layout.getUncachedFieldGetters();
-      var result = new Object[getters.length];
-      for (int i = 0; i < getters.length; i++) {
-        result[i] = getters[i].execute(atom);
-      }
-      return result;
     }
   }
 
@@ -188,75 +158,5 @@ public abstract class UnboxingAtom extends Atom {
   @GenerateUncached(inherit = true)
   abstract static class FieldSetterNode extends Node {
     public abstract void execute(Atom atom, Object value);
-  }
-
-  /**
-   * Wraps an {@link InstantiatorNode} to provide an externally usable interface for creating nodes.
-   * It performs field reordering and casting based on the {@link Layout} to make sure it creates an
-   * instance that can be understood based on the particular layout instance.
-   */
-  static class DirectCreateLayoutInstanceNode extends Node {
-    final Layout layout;
-    final AtomConstructor constructor;
-    private @Children ReadAtIndexNode[] argReaderNodes;
-    private @Child InstantiatorNode instantiator;
-
-    public DirectCreateLayoutInstanceNode(AtomConstructor constructor, Layout layout) {
-      this.constructor = constructor;
-      this.layout = layout;
-      this.argReaderNodes = new ReadAtIndexNode[layout.arity()];
-      for (int i = 0; i < layout.arity(); i++) {
-        this.argReaderNodes[layout.getFieldToStorage()[i]] =
-            ReadAtIndexNode.create(i, layout.isDoubleAt(i));
-      }
-      this.instantiator = layout.getInstantiatorFactory().createNode();
-    }
-
-    @ExplodeLoop
-    public Atom execute(Object[] args) {
-      var arguments = new Object[argReaderNodes.length];
-      for (int i = 0; i < argReaderNodes.length; i++) {
-        arguments[i] = argReaderNodes[i].execute(args);
-      }
-      return instantiator.execute(constructor, layout, arguments);
-    }
-
-    abstract static class ReadAtIndexNode extends Node {
-      final int index;
-
-      public static ReadAtIndexNode create(int fieldIndex, boolean isDouble) {
-        return isDouble
-            ? new ReadDoubleAtIndexNode(fieldIndex)
-            : new ReadObjectAtIndexNode(fieldIndex);
-      }
-
-      public ReadAtIndexNode(int index) {
-        this.index = index;
-      }
-
-      public abstract Object execute(Object[] args);
-    }
-
-    static class ReadObjectAtIndexNode extends ReadAtIndexNode {
-      ReadObjectAtIndexNode(int index) {
-        super(index);
-      }
-
-      @Override
-      public Object execute(Object[] args) {
-        return args[index];
-      }
-    }
-
-    static class ReadDoubleAtIndexNode extends ReadAtIndexNode {
-      ReadDoubleAtIndexNode(int index) {
-        super(index);
-      }
-
-      @Override
-      public Object execute(Object[] args) {
-        return Double.doubleToRawLongBits((double) args[index]);
-      }
-    }
   }
 }

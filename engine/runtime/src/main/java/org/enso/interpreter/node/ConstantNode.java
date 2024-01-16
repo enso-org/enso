@@ -1,10 +1,10 @@
-package org.enso.interpreter.node.expression.atom;
+package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 
-public class ConstantNode extends RootNode {
+public final class ConstantNode extends RootNode {
   private final Object constant;
 
   /**
