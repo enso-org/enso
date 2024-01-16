@@ -86,8 +86,28 @@ export default function EditableSpan(props: EditableSpanProps) {
                     size={1}
                     defaultValue={children}
                     onBlur={event => {
+                        passthrough.onBlur?.(event)
                         if (!cancelled.current) {
                             event.currentTarget.form?.requestSubmit()
+                        }
+                    }}
+                    onKeyDown={event => {
+                        passthrough.onKeyDown?.(event)
+                        if (
+                            !event.isPropagationStopped() &&
+                            ((event.ctrlKey &&
+                                !event.shiftKey &&
+                                !event.altKey &&
+                                !event.metaKey &&
+                                /^[xcvzy]$/.test(event.key)) ||
+                                (event.ctrlKey &&
+                                    event.shiftKey &&
+                                    !event.altKey &&
+                                    !event.metaKey &&
+                                    /[Z]/.test(event.key)))
+                        ) {
+                            // This is an event that will be handled by the input.
+                            event.stopPropagation()
                         }
                     }}
                     {...(inputPattern == null ? {} : { pattern: inputPattern })}
