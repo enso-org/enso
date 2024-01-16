@@ -238,6 +238,11 @@ export function locateDownloadButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Download' }).getByText('Download')
 }
 
+/** Find a "download app" button (if any) on the current page. */
+export function locateDownloadAppButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Download App' }).getByText('Download App')
+}
+
 /** Find an "upload files" button (if any) on the current page. */
 export function locateUploadFilesButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
