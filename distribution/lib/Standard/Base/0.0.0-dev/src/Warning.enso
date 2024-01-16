@@ -4,6 +4,8 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Set.Set
+import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -58,8 +60,13 @@ type Warning
        ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
-    get_all : Any -> Vector Warning
-    get_all value = Vector.from_polyglot_array (get_all_array value)
+
+       Arguments:
+       - value: The value to get the attached warnings of.
+       - wrap_errors: If true, warnings attached to elements in array-likes are
+         wrapped in Map_Error.
+    get_all : Any -> Boolean -> Vector Warning
+    get_all value wrap_errors:Boolean=False = Vector.from_polyglot_array (get_all_array value wrap_errors)
 
     ## PRIVATE
        ADVANCED
@@ -288,8 +295,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that gets all the warnings attached to the given value.
-get_all_array : Any -> Array Warning
-get_all_array value = @Builtin_Method "Warning.get_all_array"
+get_all_array : Any -> Boolean -> Array Warning
+get_all_array value should_wrap = @Builtin_Method "Warning.get_all_array"
 
 ## PRIVATE
 
@@ -309,7 +316,7 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
     warnings = Warning.get_all value
-    mapped_warnings = warnings.map on_problems=No_Wrap.Value warning->
+    mapped_warnings = warnings.map on_problems=No_Wrap warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"

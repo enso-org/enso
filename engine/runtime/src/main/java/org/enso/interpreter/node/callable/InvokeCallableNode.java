@@ -276,7 +276,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null);
+      extracted = warnings.getWarnings(warning, null, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
@@ -307,8 +307,6 @@ public abstract class InvokeCallableNode extends BaseNode {
 
       if (result instanceof DataflowError) {
         return result;
-      } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
         return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }

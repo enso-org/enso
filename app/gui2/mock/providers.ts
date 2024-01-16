@@ -25,8 +25,6 @@ export const graphSelection: GraphSelection = {
   events: {} as any,
   anchor: undefined,
   deselectAll: () => {},
-  addHoveredPort: () => new Set(),
-  removeHoveredPort: () => false,
   handleSelectionOf: () => {},
   hoveredNode: undefined,
   hoveredPort: undefined,
