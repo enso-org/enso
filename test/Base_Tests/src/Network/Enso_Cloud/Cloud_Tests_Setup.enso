@@ -108,7 +108,7 @@ with_retries ~action =
 
     # Delays are in seconds
     sleep_time = 0.1
-    total_sleep_delay = 1
+    total_sleep_delay = 10
 
     max_iterations = total_sleep_delay / sleep_time
     go i =

@@ -1,18 +1,35 @@
 from Standard.Base import all
 import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
-import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Environment
 import Standard.Test.Extensions
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.pending <|
-        Test.specify "" <|
+        Test.specify "should allow to create a directory" <|
+            my_name = "my_test_dir-" + Random.uuid
+            my_dir = Enso_File.root.create_directory my_name
+            my_dir.should_succeed
+            Panic.with_finalizer my_dir.delete <| with_retries <|
+                my_dir.is_directory . should_be_true
+                my_dir.exists . should_be_true
+                my_dir.name . should_equal my_name
 
+                Enso_File.root.list . should_contain my_dir
+
+            with_retries <|
+                my_dir.exists . should_be_false
+                Enso_File.root.list . should_not_contain my_dir
+
+        Test.specify "should not allow to create a directory inside of a regular file" pending="TODO" <|
+            Error.throw "TODO"
+
+        Test.specify "should not allow to delete the root directory" <|
+            Enso_File.root.delete . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)
