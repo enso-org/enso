@@ -14,5 +14,7 @@ public interface CloudHandler {
     String subPath();
 
     void sendResponse(int code, String response) throws IOException;
+
+    String decodeBodyAsText() throws IOException;
   }
 }
