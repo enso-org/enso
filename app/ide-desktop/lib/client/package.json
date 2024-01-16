@@ -50,7 +50,7 @@
     "dmg-license": "^1.0.11"
   },
   "scripts": {
-    "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --noEmit",
+    "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --build",
     "start": "tsx start.ts",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",

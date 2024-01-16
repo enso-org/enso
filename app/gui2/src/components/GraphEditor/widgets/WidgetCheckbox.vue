@@ -1,23 +1,43 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import { tryQualifiedName, type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
 const value = computed({
   get() {
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
+    const edit = graph.astModule.edit()
     if (props.input.value instanceof Ast.Ast) {
       const node = getRawBoolNode(props.input.value)
       if (node != null) {
-        props.onUpdate(value ? 'True' : 'False', node.exprId)
+        props.onUpdate({
+          edit,
+          portUpdate: { value: value ? 'True' : 'False', origin: node.exprId },
+        })
       }
     } else {
-      props.onUpdate(value ? 'Boolean.True' : 'Boolean.False', props.input.portId)
+      graph.addMissingImports(edit, [
+        {
+          kind: 'Unqualified',
+          from: 'Standard.Base.Data.Boolean' as QualifiedName,
+          import: 'Boolean' as Identifier,
+        },
+      ])
+      props.onUpdate({
+        edit,
+        portUpdate: {
+          value: value ? 'Boolean.True' : 'Boolean.False',
+          origin: props.input.portId,
+        },
+      })
     }
   },
 })

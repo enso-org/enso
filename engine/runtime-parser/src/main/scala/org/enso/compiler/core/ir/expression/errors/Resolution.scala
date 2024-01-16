@@ -3,7 +3,6 @@ package expression
 package errors
 
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -22,7 +21,8 @@ sealed case class Resolution(
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
-    with Name {
+    with Name
+    with LazyId {
   override val name: String = originalName.name
 
   override def mapExpressions(
@@ -75,14 +75,11 @@ sealed case class Resolution(
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = randomId
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
   override def children: List[IR] = List(originalName)
-
-  /** @inheritdoc */
-  var id: UUID @Identifier = randomId
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)

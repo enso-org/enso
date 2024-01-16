@@ -1,0 +1,122 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Test.Test_Environment
+
+polyglot java import java.lang.Thread
+polyglot java import java.security.KeyStore
+polyglot java import javax.net.ssl.SSLContext
+polyglot java import javax.net.ssl.TrustManagerFactory
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
+type Cloud_Tests_Setup
+    Mock api_url:URI credentials_location:File
+    Cloud api_url:URI credentials_location:File
+    None
+
+    with_prepared_environment self ~action =
+        if self == Cloud_Tests_Setup.None then action else
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                    action
+
+    pending self = case self of
+        Cloud_Tests_Setup.None -> "Cloud tests run only if ENSO_RUN_REAL_CLOUD_TEST or ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
+        _ -> Nothing
+
+    mock_only_pending self = case self of
+        Cloud_Tests_Setup.Mock _ _ -> Nothing
+        Cloud_Tests_Setup.Cloud _ _ -> "Mock cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is NOT defined, as they would interfere with other cloud tests."
+        _ -> "Cloud tests run only if ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
+
+    httpbin_pending self =
+        if Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL" . is_nothing . not then Nothing else
+            "This test requires the ENSO_HTTP_TEST_HTTPBIN_URL environment variable to be defined."
+
+    httpbin_uri self -> URI =
+        base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+        if base_url.is_nothing then
+            Panic.throw (Illegal_State.Error "ENSO_HTTP_TEST_HTTPBIN_URL environment variable is not defined.")
+        with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        URI.from with_slash
+
+    httpbin_secure_uri self -> URI =
+        # TODO we could extend URI to allow easier override of scheme/port, for now we use a hack:
+        uri = self.httpbin_uri
+        new_text = uri.to_text.replace "http://" "https://" . replace (":"+uri.port.to_text) (":"+(uri.port+1).to_text)
+        URI.from new_text
+
+    ## Returns a HTTP instance configured to be able to 'talk' with our test server over HTTPS.
+       The test server uses a self-signed certificate, so it needs to be trusted manually.
+    httpbin_secure_client self -> HTTP =
+        password = "test-password"
+        key_store_location = enso_project.root / ".." / ".." / "tools" / "http-test-helper" / "target" / "keystore.jks"
+        key_store = KeyStore.getInstance "JKS"
+        key_store_location.with_input_stream [File_Access.Read] input_stream->
+            input_stream.with_java_stream java_stream->
+                key_store.load java_stream password.char_vector
+
+        trust_manager_factory = TrustManagerFactory.getInstance TrustManagerFactory.getDefaultAlgorithm
+        trust_manager_factory.init key_store
+
+        ssl_context = SSLContext.getInstance "TLS"
+        ssl_context.init Nothing trust_manager_factory.getTrustManagers Nothing
+        HTTP.new.set_custom_ssl_context ssl_context
+
+    is_mock self -> Boolean = case self of
+        Cloud_Tests_Setup.Mock _ _ -> True
+        _ -> False
+
+    ## Resets the user token, to avoid cached token from other tests interfering.
+    reset_token =
+        AuthenticationProvider.setToken Nothing
+
+    ## Detects the setup based on environment settings.
+    prepare : Cloud_Tests_Setup
+    prepare =
+        real_cloud = Environment.get "ENSO_RUN_REAL_CLOUD_TEST" . is_nothing . not
+        case real_cloud of
+            True ->
+                api_url = Environment.get "ENSO_CLOUD_API_URI" . if_nothing <|
+                    Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_API_URI must be defined as well.")
+                credentials_location = Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" . if_nothing <|
+                    Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_CREDENTIALS_FILE must be defined as well.")
+
+                Cloud_Tests_Setup.reset_token
+                Cloud_Tests_Setup.Cloud (URI.from api_url) (File.new credentials_location)
+
+            False ->
+                base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+                if base_url.is_nothing then Cloud_Tests_Setup.None else
+                    with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+                    enso_cloud_url = with_slash + "enso-cloud-mock/"
+
+                    tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".txt"
+                    Cloud_Tests_Setup.test_token.write tmp_cred_file
+
+                    Cloud_Tests_Setup.reset_token
+                    Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
+
+    test_token -> Text = "TEST-ENSO-TOKEN-caffee"
+
+## PRIVATE
+   A helper method that retries the action a few times, to allow tests that may fail due to propagation delays to pass.
+   This is needed, because after creating a secret, there is a slight delay before it shows up within `list`.
+   To make tests robust, we add this retry logic.
+with_retries ~action =
+    loc = Meta.get_source_location 1
+
+    # Delays are in seconds
+    sleep_time = 0.1
+    total_sleep_delay = 1
+
+    max_iterations = total_sleep_delay / sleep_time
+    go i =
+        Panic.catch Any action caught_panic->
+            # If the iterations are exhausted, we rethrow the panic.
+            if i > max_iterations then Panic.throw caught_panic else
+                if i % 10 == 0 then
+                    IO.println "Still failing after "+i.to_text+" retries. ("+loc.to_display_text+")"
+                Thread.sleep (1000*sleep_time . floor)
+                @Tail_Call go (i+1)
+    go 1

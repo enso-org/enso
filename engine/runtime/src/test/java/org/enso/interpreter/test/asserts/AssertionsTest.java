@@ -24,6 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AssertionsTest extends TestBase {
+
   private static Context ctx;
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -63,9 +64,9 @@ public class AssertionsTest extends TestBase {
       TestBase.evalModule(
           ctx,
           """
-      from Standard.Base import False, Runtime
-      main = Runtime.assert False
-      """);
+              from Standard.Base import False, Runtime
+              main = Runtime.assert False
+              """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
       assertThat(e.getGuestObject().isException(), is(true));
@@ -78,9 +79,9 @@ public class AssertionsTest extends TestBase {
       TestBase.evalModule(
           ctx,
           """
-      from Standard.Base import False, Runtime
-      main = Runtime.assert False 'My fail message'
-      """);
+              from Standard.Base import False, Runtime
+              main = Runtime.assert False 'My fail message'
+              """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
       assertThat(
@@ -95,17 +96,18 @@ public class AssertionsTest extends TestBase {
       TestBase.evalModule(
           ctx,
           """
-      from Standard.Base import False, Runtime
-      foo = Runtime.assert False 'My fail message'
-      main = foo
-      """);
+              from Standard.Base import False, Runtime
+              foo = Runtime.assert False 'My fail message'
+              main = foo
+              """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
-      assertThat(e.getStackTrace().length, greaterThan(3));
-      assertThat(e.getStackTrace()[0].toString(), containsString("Runtime.assert_builtin"));
+      assertThat(e.getStackTrace().length, greaterThan(5));
+      assertThat(e.getStackTrace()[0].toString(), containsString("Panic"));
       assertThat(e.getStackTrace()[1].toString(), containsString("Runtime.assert"));
-      assertThat(e.getStackTrace()[2].toString(), containsString("foo"));
-      assertThat(e.getStackTrace()[3].toString(), containsString("main"));
+      // Ignore the next two frames as they are implementation details
+      assertThat(e.getStackTrace()[4].toString(), containsString("foo"));
+      assertThat(e.getStackTrace()[5].toString(), containsString("main"));
     }
   }
 
@@ -115,9 +117,9 @@ public class AssertionsTest extends TestBase {
         TestBase.evalModule(
             ctx,
             """
-      from Standard.Base import Runtime, True
-      main = Runtime.assert True
-      """);
+                from Standard.Base import Runtime, True
+                main = Runtime.assert True
+                """);
     assertTrue(res.isNull());
   }
 
@@ -127,9 +129,9 @@ public class AssertionsTest extends TestBase {
       TestBase.evalModule(
           ctx,
           """
-        from Standard.Base import Runtime
-        main = Runtime.assert [1,2,3]
-        """);
+              from Standard.Base import Runtime
+              main = Runtime.assert [1,2,3]
+              """);
       fail("Should throw Type_Error");
     } catch (PolyglotException e) {
       assertThat(e.getMessage(), stringContainsInOrder(List.of("Type", "error")));
@@ -142,14 +144,14 @@ public class AssertionsTest extends TestBase {
         TestBase.evalModule(
             ctx,
             """
-from Standard.Base import Runtime
-import Standard.Base.Runtime.Ref.Ref
+                from Standard.Base import Runtime
+                import Standard.Base.Runtime.Ref.Ref
 
-main =
-    ref = Ref.new 10
-    Runtime.assert (ref.put 23 . is_nothing . not)
-    ref.get
-""");
+                main =
+                    ref = Ref.new 10
+                    Runtime.assert (ref.put 23 . is_nothing . not)
+                    ref.get
+                """);
     assertTrue(res.isNumber());
     assertThat(res.asInt(), is(23));
   }

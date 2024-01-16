@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
-import { type PortId } from '@/providers/portInfo'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
+import { assertNever } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { isUuid } from 'shared/yjsModel'
 import { computed, toRef } from 'vue'
@@ -32,21 +32,27 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
-function handleWidgetUpdates(value: unknown, origin: PortId) {
-  // TODO: Implement proper AST-based update.
-  if (!isUuid(origin)) {
-    console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
-  } else if (typeof value === 'string') {
-    graph.setExpressionContent(origin, value)
-  } else if (value instanceof Ast.Ast) {
-    graph.setExpression(origin, value)
-  } else if (value == null) {
-    graph.setExpressionContent(origin, '_')
-  } else {
-    console.error(`[UPDATE ${origin}] Invalid value:`, value)
+function handleWidgetUpdates(update: WidgetUpdate) {
+  console.log('Widget Update: ', update)
+  if (update.portUpdate) {
+    const {
+      edit,
+      portUpdate: { value, origin },
+    } = update
+    if (!isUuid(origin)) {
+      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+    } else {
+      const ast =
+        value instanceof Ast.Ast
+          ? value
+          : value == null
+          ? Ast.Wildcard.new(edit)
+          : Ast.RawCode.new(value, edit)
+      edit.replaceValue(origin as Ast.AstId, ast)
+    }
   }
-  // No matter if its a succes or not, this handler is always considered to have handled the update,
-  // since it is guaranteed to be the last handler in the chain.
+  graph.commitEdit(update.edit)
+  // This handler is guaranteed to be the last handler in the chain.
   return true
 }
 

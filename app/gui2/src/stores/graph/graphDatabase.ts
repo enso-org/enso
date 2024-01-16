@@ -12,7 +12,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -137,16 +137,29 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
-      for (const usage of info.usages) {
-        const targetNode = db.getExpressionNodeId(usage)
-        // Display only connections to existing targets and different than source node
-        if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage]
-      }
-    }
-    return Array.from(allTargets(this))
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
+
+  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
+   * e.g. input arguments of the collapsed function.
+   */
+  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
+    const srcNode = this.getPatternExpressionNodeId(alias)
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
+  })
+
+  private *connectionsFromBindings(
+    info: BindingInfo,
+    alias: ExprId,
+    srcNode: ExprId | undefined,
+  ): Generator<[ExprId, ExprId]> {
+    for (const usage of info.usages) {
+      const targetNode = this.getExpressionNodeId(usage)
+      // Display only connections to existing targets and different than source node.
+      if (targetNode == null || targetNode === srcNode) continue
+      yield [alias, usage]
+    }
+  }
 
   /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
   nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -206,6 +219,10 @@ export class GraphDb {
     return this.bindings.bindings.get(source)?.identifier
   }
 
+  allIdentifiers(): string[] {
+    return [...this.bindings.identifierToBindingId.allForward()].map(([ident, _]) => ident)
+  }
+
   identifierUsed(ident: string): boolean {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
@@ -247,6 +264,20 @@ export class GraphDb {
 
   moveNodeToTop(id: ExprId) {
     this.nodeIdToNode.moveToLast(id)
+  }
+
+  /** Get the method name from the stack item. */
+  stackItemToMethodName(item: StackItem): string | undefined {
+    switch (item.type) {
+      case 'ExplicitCall': {
+        return item.methodPointer.name
+      }
+      case 'LocalCall': {
+        const exprId = item.expressionId
+        const info = this.getExpressionInfo(exprId)
+        return info?.methodCall?.methodPointer.name
+      }
+    }
   }
 
   readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {

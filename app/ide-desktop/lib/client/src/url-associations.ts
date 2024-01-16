@@ -66,6 +66,8 @@ export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
     return result
 }
 
+let initialUrl: URL | null = null
+
 /** Handle the case where IDE is invoked with a URL to open.
  *
  * This happens on Windows when the browser redirects user using the deep link scheme.
@@ -76,7 +78,7 @@ export function handleOpenUrl(openedUrl: URL) {
     if (!appLock) {
         // If we failed to acquire the lock, it means that another instance of the application is
         // already running. In this case, we must send the URL to the existing instance and exit.
-        logger.log('Another instance of the application is already running. Exiting.')
+        logger.log('Another instance of the application is already running, exiting.')
         // Note that we need here to exit rather than quit. Otherwise, the application would
         // continue initializing and would create a new window, before quitting.
         // We don't want anything to flash on the screen, so we just exit.
@@ -85,10 +87,11 @@ export function handleOpenUrl(openedUrl: URL) {
         // If we acquired the lock, it means that we are the first instance of the application.
         // In this case, we must wait for the application to be ready and then send the URL to the
         // renderer process.
-        // If we supported starting the application from the URL, we should add this logic here.
-        // However, we currently only use our custom URL scheme to handle authentication, so we
-        // don't need to do anything here.
-        logger.log('We are the first instance of the application. This is not expected.')
+        logger.log(
+            'This is the first instance of the application, ' +
+                'saving the URL to be opened when the first window is opened.'
+        )
+        initialUrl = openedUrl
     }
 }
 
@@ -103,6 +106,11 @@ export function handleOpenUrl(openedUrl: URL) {
  * is called.
  * @param callback - The callback to call when the application is requested to open a URL. */
 export function registerUrlCallback(callback: (url: URL) => void) {
+    if (initialUrl != null) {
+        logger.log(`Got URL from command line: '${initialUrl.toString()}'.`)
+        callback(initialUrl)
+    }
+
     // First, register the callback for the `open-url` event. This is used on macOS.
     electron.app.on('open-url', (event, url) => {
         logger.log(`Got URL from 'open-url' event: '${url}'.`)

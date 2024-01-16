@@ -1,5 +1,6 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
+import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
@@ -11,11 +12,13 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import type { AstId, Module } from '@/util/ast/abstract'
+import type { AstId, Module, Owned } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
+import type { Result } from '@/util/data/result.ts'
+import { Ok } from '@/util/data/result.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
@@ -42,7 +45,7 @@ export class PortViewInstance {
   constructor(
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: ExprId,
-    public onUpdate: (value: unknown, origin: PortId) => void,
+    public onUpdate: (update: WidgetUpdate) => void,
   ) {}
 }
 
@@ -62,6 +65,8 @@ export const useGraphStore = defineStore('graph', () => {
   const astModule: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
   let moduleDirty = false
+  const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
@@ -77,8 +82,6 @@ export const useGraphStore = defineStore('graph', () => {
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const nodeRects = reactive(new Map<ExprId, Rect>())
-  const vizRects = reactive(new Map<ExprId, Rect>())
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: SourceRange }[]>([])
@@ -201,16 +204,8 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot add node: No module root.`)
-      return
-    }
     const edit = astModule.edit()
-    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    // The top level of the module is always a block.
-    const topLevel = astModule.get(root)! as Ast.BodyBlock
-    if (importsToAdd) addImports(edit, topLevel, importsToAdd)
+    if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
     const functionBlock = Ast.functionBlock(astModule, currentFunc)
     if (!functionBlock) {
@@ -223,11 +218,29 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
+  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
+    if (!newImports.length) return
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot add required imports: No module root.`)
+      return
+    }
+    const importsToAdd = filterOutRedundantImports(imports.value, newImports)
+    if (!importsToAdd.length) return
+    // The top level of the module is always a block.
+    const topLevel = astModule.get(root)! as Ast.BodyBlock
+    addImports(edit, topLevel, importsToAdd)
+  }
+
+  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
+    const edit = cb(astModule)
+    commitEdit(edit)
+  }
+
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.doc.metadata.delete(node.outerExprId)
-    nodeRects.delete(id)
     const root = moduleRoot.value
     if (!root) {
       console.error(`BUG: Cannot delete node: No module root.`)
@@ -244,14 +257,9 @@ export const useGraphStore = defineStore('graph', () => {
     setExpressionContent(node.rootSpan.exprId, content)
   }
 
-  function setExpression(id: ExprId, content: Ast.Ast) {
+  function setExpression(id: ExprId, content: Ast.Owned<Ast.Ast>) {
     const edit = astModule.edit()
-    edit.set(Ast.asNodeId(id), content)
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot update node: No module root.`)
-      return
-    }
+    edit.replaceValue(Ast.asNodeId(id), content)
     commitEdit(edit)
   }
 
@@ -320,6 +328,11 @@ export const useGraphStore = defineStore('graph', () => {
     else vizRects.delete(id)
   }
 
+  function unregisterNodeRect(id: ExprId) {
+    nodeRects.delete(id)
+    vizRects.delete(id)
+  }
+
   function addPortInstance(id: PortId, instance: PortViewInstance) {
     map.setIfUndefined(portInstances, id, set.create).add(instance)
   }
@@ -364,10 +377,11 @@ export const useGraphStore = defineStore('graph', () => {
    * Emit an value update to a port view under specific ID. Returns `true` if the port view is
    * registered and the update was emitted, or `false` otherwise.
    */
-  function updatePortValue(id: PortId, value: Ast.Ast | undefined): boolean {
+  function updatePortValue(id: PortId, value: Owned<Ast.Ast> | undefined): boolean {
     const update = getPortPrimaryInstance(id)?.onUpdate
     if (!update) return false
-    update(value, id)
+    const edit = astModule.edit()
+    update({ edit, portUpdate: { value, origin: id } })
     return true
   }
 
@@ -377,9 +391,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot commit edit: No module root.`)
       return
     }
-    const ast = edit.get(root)
-    if (!ast) return
-    const printed = Ast.print(ast.exprId, edit)
+    const printed = Ast.print(root, edit)
     const module_ = proj.module
     if (!module_) return
     if (moduleDirty) {
@@ -419,11 +431,15 @@ export const useGraphStore = defineStore('graph', () => {
     moduleCode,
     nodeRects,
     vizRects,
+    unregisterNodeRect,
     methodAst,
+    editAst,
+    astModule,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
+    moduleRoot,
     createNode,
     deleteNode,
     setNodeContent,
@@ -443,6 +459,7 @@ export const useGraphStore = defineStore('graph', () => {
     setEditedNode,
     updateState,
     commitEdit,
+    addMissingImports,
   }
 })
 
