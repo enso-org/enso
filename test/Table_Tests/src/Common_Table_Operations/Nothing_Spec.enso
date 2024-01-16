@@ -14,19 +14,20 @@ type My_Type
 
 
 spec setup =
-    prefix = setup.prefix
+    prefix = setup.prefix+"asdfasdf"
     table_builder = setup.table_builder
 
+    mixed_values = if setup.is_database then [] else
+        [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]] + [[[1], [2], Value_Type.Mixed]]
     values_without_nothing = [[False, True, Value_Type.Boolean]]
-           + [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
-           + [["abcd", "efgh", Value_Type.Char]]
-           + [[12, 13, Value_Type.Integer]]
-           + [[9223372036854775806, 9223372036854775807, Value_Type.Integer]]
-           + [[12.3, 23.4, Value_Type.Float]]
-           + [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
-           + [[Date_Time.new 2024 1 3 2 30 10, Date_Time.new 2024 1 3 2 30 11, Value_Type.Date_Time]]
-           + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
-           + [[[1], [2], Value_Type.Mixed]]
+            + [["abcd", "efgh", Value_Type.Char]]
+            + [[12, 13, Value_Type.Integer]]
+            + [[9223372036854775806, 9223372036854775807, Value_Type.Integer]]
+            + [[12.3, 23.4, Value_Type.Float]]
+            + [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
+            + [[Date_Time.new 2024 1 3 2 30 10, Date_Time.new 2024 1 3 2 30 11, Value_Type.Date_Time]]
+            + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
+            + mixed_values
     values_with_nothing = values_without_nothing + [[Nothing, Nothing, Value_Type.Mixed]]
 
     Test.group prefix+"Comparisons" <|
@@ -115,11 +116,17 @@ spec setup =
             Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Column (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y") . to_vector . should_equal [Nothing, Nothing]
 
+            Test.specify "Correctly handle Nothing in: Nothing.is_in Column (returning Nothing)" <|
+                t0.at "n" . is_in (t0.at "x") . to_vector . should_equal [Nothing, Nothing]
+
             Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Vector (returning True)" <|
                 t0.at "x" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [True, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+expected_value_type.to_text+".is_in Vector (returning Nothing)" <|
                 t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+
+            Test.specify "Correctly handle Nothing in: Nothing.is_in Vector (returning Nothing)" <|
+                t0.at "n" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"distinct" <|
         values_without_nothing.map triple->
@@ -152,8 +159,6 @@ spec setup =
                 t0 = table_builder [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]]
 
                 Test.specify "Correctly handle Nothing in .order_by (asc) for "+expected_value_type.to_text <|
-                    #IO.println (Nothing < Nothing)
-                    #IO.println (My_Type.Value "1" < My_Type.Value "2")
                     t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
                     t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
