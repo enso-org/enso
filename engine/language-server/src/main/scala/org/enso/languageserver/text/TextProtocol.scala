@@ -2,6 +2,7 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
+  FileAttributes,
   FileEventKind,
   FileSystemFailure,
   Path
@@ -151,8 +152,14 @@ object TextProtocol {
     * a file event after reloading the buffer to sync with file system
     *
     * @param path path to the file
+    * @param kind file event kind
+    * @param attributes file attributes
     */
-  case class FileEvent(path: Path, event: FileEventKind)
+  case class FileEvent(
+    path: Path,
+    kind: FileEventKind,
+    attributes: Option[FileAttributes]
+  )
 
   /** Requests the language server to save a file on behalf of a given user.
     *

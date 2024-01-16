@@ -1561,8 +1561,11 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk"  % "polyglot-tck"            % graalMavenPackagesVersion,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
@@ -2996,11 +2999,19 @@ lazy val `http-test-helper` = project
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
     Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
-    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons"        % "commons-text" % commonsTextVersion,
-      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
+      "org.apache.commons"         % "commons-text"     % commonsTextVersion,
+      "org.apache.httpcomponents"  % "httpclient"       % httpComponentsVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    },
+    assembly / mainClass := (Compile / run / mainClass).value,
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true
   )
