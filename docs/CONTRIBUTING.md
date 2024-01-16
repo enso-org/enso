@@ -520,7 +520,7 @@ To run the tests you can run the following commands (where `enso` refers to the
 built runner executable as explained above):
 
 ```bash
-enso --run test/Tests # for the Base library
+enso --run test/Base_Tests
 enso --run test/Geo_Tests
 enso --run test/Table_Tests
 ```
@@ -528,7 +528,7 @@ enso --run test/Table_Tests
 Or to run just a single test (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Tests --run test/Tests/src/Data/Time/Duration_Spec.enso
+enso --in-project test/Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
@@ -555,7 +555,7 @@ assertions are enabled as well.
 To run all the stdlib test suites, set `CI=true` environment variable:
 
 ```bash
-env CI=true enso --run test/Tests/
+env CI=true enso --run test/Base_Tests/
 ```
 
 For more details about the CI setup, you can check the
