@@ -10,12 +10,16 @@ sealed class SecretValueResolver permits EnsoSecretHelper, ExternalLibrarySecret
   protected static String resolveValue(HideableValue value) {
     return switch (value) {
       case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> EnsoSecretReader.readSecret(
-          secretValue.secretId());
-      case HideableValue.ConcatValues concatValues ->
-          resolveValue(concatValues.left()) + resolveValue(concatValues.right());
-      case HideableValue.Base64EncodeValue base64EncodeValue ->
-          HideableValue.Base64EncodeValue.encode(resolveValue(base64EncodeValue.value()));
+      case HideableValue.SecretValue secretValue -> {
+        yield EnsoSecretReader.readSecret(secretValue.secretId());
+      }
+      case HideableValue.ConcatValues concatValues -> {
+        String left = resolveValue(concatValues.left());
+        String right = resolveValue(concatValues.right());
+        yield left + right;
+      }
+      case HideableValue.Base64EncodeValue base64EncodeValue -> HideableValue.Base64EncodeValue
+          .encode(resolveValue(base64EncodeValue.value()));
     };
   }
 }

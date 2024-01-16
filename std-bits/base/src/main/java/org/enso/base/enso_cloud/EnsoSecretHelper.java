@@ -17,27 +17,6 @@ import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
-  /**
-   * Gets the value of an HideableValue resolving secrets.
-   *
-   * @param value The value to resolve.
-   * @return The pair's value. Should not be returned to Enso.
-   */
-  private static String resolveValue(HideableValue value) {
-    return switch (value) {
-      case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> {
-        yield EnsoSecretReader.readSecret(secretValue.secretId());
-      }
-      case HideableValue.ConcatValues concatValues -> {
-        String left = resolveValue(concatValues.left());
-        String right = resolveValue(concatValues.right());
-        yield left + right;
-      }
-      case HideableValue.Base64EncodeValue base64EncodeValue -> HideableValue.Base64EncodeValue
-          .encode(resolveValue(base64EncodeValue.value()));
-    };
-  }
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(String url, Pair<String, HideableValue>[] properties)
