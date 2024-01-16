@@ -112,6 +112,17 @@ test.test('move (keyboard)', async ({ page }) => {
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
 })
 
+test.test('cut (keyboard)', async ({ page }) => {
+    const assetRows = actions.locateAssetRows(page)
+
+    await actions.locateNewFolderIcon(page).click()
+    await assetRows.nth(0).click()
+    await actions.press(page, 'Mod+X')
+    test.expect(
+        await assetRows.nth(0).evaluate(el => Number(getComputedStyle(el).opacity))
+    ).toBeLessThan(1)
+})
+
 test.test('duplicate', async ({ page }) => {
     const assetRows = actions.locateAssetRows(page)
 
