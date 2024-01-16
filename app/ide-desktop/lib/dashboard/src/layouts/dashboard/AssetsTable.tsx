@@ -1604,7 +1604,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // This works because all items are mutated, ensuring their value stays
             // up to date.
             const ownsAllSelectedAssets =
-                isCloud ||
+                !isCloud ||
                 (organization != null &&
                     Array.from(innerSelectedKeys, key => {
                         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
