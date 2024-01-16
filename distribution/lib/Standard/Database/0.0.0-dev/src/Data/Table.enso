@@ -2337,7 +2337,8 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata 
+       GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
