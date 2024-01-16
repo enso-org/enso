@@ -502,10 +502,10 @@ export default function Dashboard(props: DashboardProps) {
                     className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
                         isAssetSettingsPanelVisible && assetSettingsPanelProps != null
                             ? 'min-w-120'
-                            : 'min-w-0'
+                            : 'min-w-0 invisible'
                     }`}
                 >
-                    {assetSettingsPanelProps && (
+                    {assetSettingsPanelProps && isAssetSettingsPanelVisible && (
                         <AssetSettingsPanel
                             supportsLocalBackend={supportsLocalBackend}
                             key={assetSettingsPanelProps.item.item.id}

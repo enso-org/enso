@@ -12,7 +12,7 @@ test.test.beforeEach(actions.mockAll)
 
 test.test('login and logout', async ({ page }) => {
     // After sign in
-    await actions.login(page)
+    await actions.login({ page })
     await test.expect(actions.locateDriveView(page)).toBeVisible()
     await test.expect(actions.locateLoginButton(page)).not.toBeVisible()
 

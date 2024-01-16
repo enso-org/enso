@@ -96,6 +96,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
 
     return (
         <div
+            data-testid="asset-panel"
             className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
             onClick={event => {
                 event.stopPropagation()
@@ -135,7 +136,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                         />
                     )}
                 </span>
-                <div className="py-1 self-stretch">
+                <div data-testid="asset-panel-description" className="py-1 self-stretch">
                     {!isEditingDescription ? (
                         <span className="leading-170 py-px">{item.item.description}</span>
                     ) : (
@@ -183,7 +184,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
                 <table>
                     <tbody>
-                        <tr>
+                        <tr data-testid="asset-panel-permissions">
                             <td className="min-w-32 px-0 py-1">
                                 <span className="inline-block leading-170 h-6 py-px">
                                     Shared with

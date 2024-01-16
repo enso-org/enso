@@ -298,6 +298,11 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Download Files')
 }
 
+/** Find an icon to open or close the asset panel (if any) on the current page. */
+export function locateAssetPanelIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Open Asset Panel').or(page.getByAltText('Close Asset Panel'))
+}
+
 // === Icon locators ===
 
 // These are specifically icons that are not also buttons.
@@ -440,6 +445,26 @@ export function locateLabelsList(page: test.Locator | test.Page) {
     return page.getByTestId('labels-list')
 }
 
+/** Find an asset panel (if any) on the current page. */
+export function locateAssetPanel(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('asset-panel')
+}
+
+// === Content locators ===
+
+/** Find an asset description in an asset panel (if any) on the current page. */
+export function locateAssetPanelDescription(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return locateAssetPanel(page).getByTestId('asset-panel-description')
+}
+
+/** Find asset permissions in an asset panel (if any) on the current page. */
+export function locateAssetPanelPermissions(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
+}
+
 // ===============================
 // === Visual layout utilities ===
 // ===============================
@@ -500,8 +525,10 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 // =============
 
 /** Perform a successful login. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
 export async function login(
-    page: test.Page,
+    { page }: MockParams,
     email = 'email@example.com',
     password = VALID_PASSWORD
 ) {
@@ -592,7 +619,7 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
     const api = await mockApi({ page })
     await mockAll({ page })
-    await login(page)
+    await login({ page })
     // This MUST run after login, otherwise the element's styles are reset when the browser
     // is navigated to another page.
     await mockIDEContainer({ page })

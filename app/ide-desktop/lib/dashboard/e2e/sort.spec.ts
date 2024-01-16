@@ -18,7 +18,7 @@ test.test('sort', async ({ page }) => {
     const modifiedHeading = actions.locateModifiedColumnHeading(page)
 
     await page.goto('/')
-    await actions.login(page)
+    await actions.login({ page })
 
     const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
     const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))

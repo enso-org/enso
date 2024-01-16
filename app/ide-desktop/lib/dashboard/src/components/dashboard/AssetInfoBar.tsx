@@ -41,6 +41,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
                 }}
             />
             <Button
+                alt={isSettingsPanelVisible ? 'Close Asset Panel' : 'Open Asset Panel'}
                 active={canToggleSettingsPanel && isSettingsPanelVisible}
                 disabled={!canToggleSettingsPanel}
                 image={SettingsIcon}
