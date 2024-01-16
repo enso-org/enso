@@ -239,6 +239,32 @@ export class GraphDb {
     )
   }
 
+  /**
+   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
+   */
+  dependantNodes(id: ExprId): Set<ExprId> {
+    const toVisit = [id]
+    const result = new Set<ExprId>()
+
+    let currentNode: ExprId | undefined
+    while ((currentNode = toVisit.pop())) {
+      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
+      for (const outputPort of outputPorts) {
+        const connectedPorts = this.connections.lookup(outputPort)
+        for (const port of connectedPorts) {
+          const portNode = this.getExpressionNodeId(port)
+          if (portNode == null) continue
+          if (!result.has(portNode)) {
+            result.add(portNode)
+            toVisit.push(portNode)
+          }
+        }
+      }
+    }
+
+    return result
+  }
+
   getMethodCallInfo(
     id: ExprId,
   ):

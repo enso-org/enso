@@ -196,9 +196,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deleteSelected() {
     graphStore.transact(() => {
-      for (const node of nodeSelection.selected) {
-        graphStore.deleteNode(node)
-      }
+      graphStore.deleteNodes([...nodeSelection.selected])
       nodeSelection.selected.clear()
     })
   },
@@ -266,11 +264,11 @@ const graphBindingsHandler = graphBindings.handler({
       if (currentMethodName == null) {
         bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
-      graphStore.editAst((module) => {
+      graphStore.editScope((edit) => {
         if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
-        const topLevel = module.get(graphStore.moduleRoot)
+        const topLevel = edit.get(graphStore.moduleRoot)
         assert(topLevel instanceof BodyBlock)
-        return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
+        return performCollapse(info, edit, topLevel, graphStore.db, currentMethodName)
       })
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
