@@ -26,6 +26,8 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert, bail } from '@/util/assert'
+import { BodyBlock } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -255,13 +257,23 @@ const graphBindingsHandler = graphBindings.handler({
   },
   collapse() {
     if (keyboardBusy()) return false
-    const selected = nodeSelection.selected
+    const selected = new Set(nodeSelection.selected)
     if (selected.size == 0) return
     try {
-      const info = prepareCollapsedInfo(nodeSelection.selected, graphStore.db)
-      performCollapse(info)
+      const info = prepareCollapsedInfo(selected, graphStore.db)
+      const currentMethod = projectStore.executionContext.getStackTop()
+      const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
+      if (currentMethodName == null) {
+        bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+      }
+      graphStore.editAst((module) => {
+        if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
+        const topLevel = module.get(graphStore.moduleRoot)
+        assert(topLevel instanceof BodyBlock)
+        return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
+      })
     } catch (err) {
-      console.log(`Error while collapsing, this is not normal. ${err}`)
+      console.log('Error while collapsing, this is not normal.', err)
     }
   },
   enterNode() {

@@ -100,13 +100,8 @@ public interface IR extends Serializable {
    *
    * @return the node's identifier
    */
-  default @Identifier UUID getId() {
-    return id();
-  }
-
-  /** A unique identifier for a piece of IR. */
   @Identifier
-  UUID id();
+  UUID getId();
 
   /** Storage for compiler diagnostics related to the IR node. */
   DiagnosticStorage diagnostics();

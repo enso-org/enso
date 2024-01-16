@@ -70,6 +70,8 @@ spec =
             Text_Utils.take_prefix txt 5 . should_equal txt
             Text_Utils.take_prefix txt 400 . should_equal txt
             Text_Utils.take_prefix txt 0 . should_equal ''
+            Text_Utils.take_prefix txt -1 . should_equal ''
+            Text_Utils.take_prefix txt -42 . should_equal ''
 
             Text_Utils.take_suffix txt 1 . should_equal 'c\u0301'
             Text_Utils.take_suffix txt 2 . should_equal 'śc\u0301'
@@ -78,6 +80,8 @@ spec =
             Text_Utils.take_suffix txt 5 . should_equal txt
             Text_Utils.take_suffix txt 400 . should_equal txt
             Text_Utils.take_suffix txt 0 . should_equal ''
+            Text_Utils.take_suffix txt -1 . should_equal ''
+            Text_Utils.take_suffix txt -42 . should_equal ''
 
             Text_Utils.take_prefix '🚀🚧' 1 . should_equal '🚀'
             Text_Utils.take_prefix '🚀🚧' 2 . should_equal '🚀🚧'

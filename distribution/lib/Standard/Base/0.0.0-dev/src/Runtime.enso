@@ -8,10 +8,12 @@ import project.Errors.Common.Assertion_Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
 import project.Function.Function
+import project.IO
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
+import project.System
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Input, Output
@@ -58,13 +60,18 @@ gc = @Builtin_Method "Runtime.gc"
    Asserts that the given action succeeds, otherwise throws a panic.
 
    Assertions are disable by default, meaning that call to this method is
-   a no-op. To enable assertions, set the environment variable
-   `ENSO_ENABLE_ASSERTIONS=true`
-assert : Boolean -> Text -> Nothing ! Assertion_Error
-assert ~action message="" = assert_builtin action message
+   a no-op. To enable assertions, either set the environment variable
+   `ENSO_ENABLE_ASSERTIONS=true` or enable JVM assertions by passing `-ea`
+   cmd line option to java.
+assert : Boolean -> Text -> Nothing
+assert (~action : Boolean) (message : Text = "") =
+    if assertions_enabled.not then Nothing else
+        if action then Nothing else
+            Panic.throw <| Assertion_Error.Error message
 
 ## PRIVATE
-assert_builtin ~action message = @Builtin_Method "Runtime.assert_builtin"
+   Returns True if assertions are enabled.
+assertions_enabled = @Builtin_Method "Runtime.assertions_enabled"
 
 ## PRIVATE
    ADVANCED

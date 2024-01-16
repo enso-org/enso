@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -19,8 +18,8 @@ sealed case class Empty(
 ) extends IR
     with Expression
     with Diagnostic
-    with IRKind.Primitive {
-  var id: UUID @Identifier = randomId
+    with IRKind.Primitive
+    with LazyId {
 
   /** Creates a copy of `this`
     *
@@ -54,7 +53,7 @@ sealed case class Empty(
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else randomId
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

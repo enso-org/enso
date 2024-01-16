@@ -85,7 +85,7 @@ export default defineConfig({
     env: {
       E2E: 'true',
     },
-    command: 'vite build && vite preview',
+    command: 'npx vite build && npx vite preview',
     port: 4173,
     // We use our special, mocked version of server, thus do not want to re-use user's one.
     reuseExistingServer: false,

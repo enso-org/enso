@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.{Literal => IRLiteral, Name => IRName}
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 
 import java.util.UUID
@@ -46,8 +45,8 @@ object Pattern {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Pattern {
-    var id: UUID @Identifier = randomId
+  ) extends Pattern
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -89,7 +88,7 @@ object Pattern {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -139,8 +138,8 @@ object Pattern {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Pattern {
-    var id: UUID @Identifier = randomId
+  ) extends Pattern
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -193,7 +192,7 @@ object Pattern {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** Checks if the constructor pattern has been desugared.
@@ -290,8 +289,8 @@ object Pattern {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Pattern {
-    var id: UUID @Identifier = randomId
+  ) extends Pattern
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -333,7 +332,7 @@ object Pattern {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -385,8 +384,8 @@ object Pattern {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Pattern {
-    var id: UUID @Identifier = randomId
+  ) extends Pattern
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -436,7 +435,7 @@ object Pattern {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -488,8 +487,8 @@ object Pattern {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Pattern {
-    var id: UUID @Identifier = randomId
+  ) extends Pattern
+      with LazyId {
 
     /** @inheritdoc */
     override def mapExpressions(
@@ -538,7 +537,7 @@ object Pattern {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

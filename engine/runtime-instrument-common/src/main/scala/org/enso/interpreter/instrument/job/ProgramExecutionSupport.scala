@@ -13,6 +13,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
@@ -344,12 +345,12 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    val expressionId  = value.getExpressionId
-    val methodPointer = toMethodCall(value)
+    val expressionId = value.getExpressionId
+    val methodCall   = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
-        methodPointer.isDefined && !syncState.isMethodPointerSync(
+        methodCall.isDefined && !syncState.isMethodPointerSync(
           expressionId
         )
       ) ||
@@ -409,13 +410,23 @@ object ProgramExecutionSupport {
           val schema = value.getValue match {
             case function: Function =>
               val functionInfo = FunctionPointer.fromFunction(function)
-              toMethodPointer(functionInfo).map { methodPointer =>
-                Api.FunctionSchema(
-                  methodPointer,
-                  FunctionPointer.collectNotAppliedArguments(function).toVector
+              val notAppliedArguments = FunctionPointer
+                .collectNotAppliedArguments(function)
+                .toVector
+              toMethodPointer(functionInfo).map(methodPointer =>
+                Api.FunctionSchema(methodPointer, notAppliedArguments)
+              )
+            case atomConstructor: AtomConstructor =>
+              val functionInfo =
+                FunctionPointer.fromAtomConstructor(atomConstructor)
+              val notAppliedArguments = FunctionPointer
+                .collectNotAppliedArguments(
+                  atomConstructor.getConstructorFunction
                 )
-              }
-
+                .toVector
+              toMethodPointer(functionInfo).map(methodPointer =>
+                Api.FunctionSchema(methodPointer, notAppliedArguments)
+              )
             case _ =>
               None
           }
@@ -430,7 +441,7 @@ object ProgramExecutionSupport {
               Api.ExpressionUpdate(
                 value.getExpressionId,
                 Option(value.getType),
-                methodPointer,
+                methodCall,
                 value.getProfilingInfo.map { case e: ExecutionTime =>
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
@@ -444,7 +455,7 @@ object ProgramExecutionSupport {
       )
 
       syncState.setExpressionSync(expressionId)
-      if (methodPointer.isDefined) {
+      if (methodCall.isDefined) {
         syncState.setMethodPointerSync(expressionId)
       }
     }

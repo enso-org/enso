@@ -175,11 +175,11 @@ spec =
             err.catch.should_equal (Illegal_Argument.Error "Unsupported method DELETE")
 
         Test.specify "unknown host" <|
-            Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
+            Data.fetch "http://undefined_host.invalid" . should_fail_with Illegal_Argument
 
         Test.specify "Fails on a bad URL scheme" <|
-            Data.fetch "zxcv://bad.scheme" . should_fail_with Request_Error
-            Data.fetch "" . should_fail_with Request_Error
+            Data.fetch "zxcv://bad.scheme" . should_fail_with Illegal_Argument
+            Data.fetch "" . should_fail_with Illegal_Argument
 
         Test.specify "can select the version" <|
             req = Request.get url_get
@@ -400,7 +400,7 @@ spec =
             err2.catch.should_equal (Illegal_Argument.Error "Unsupported method Custom: BREW_COFFEE")
 
         Test.specify "unknown host" <|
-            Data.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
+            Data.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Illegal_Argument
 
         Test.specify "Nonexistent file" <|
             test_file = enso_project.data / "does_not_exist.txt"

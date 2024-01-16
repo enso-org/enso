@@ -1,7 +1,6 @@
 import { useProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
-import { type Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
