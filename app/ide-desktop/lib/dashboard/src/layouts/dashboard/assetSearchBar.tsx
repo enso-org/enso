@@ -184,6 +184,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     return (
         <label
             ref={rootRef}
+            data-testid="asset-search-bar"
             tabIndex={-1}
             onFocus={() => {
                 setAreSuggestionsVisible(true)
@@ -232,7 +233,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 {areSuggestionsVisible && (
                     <div className="relative flex flex-col gap-2">
                         {/* Tags (`name:`, `modified:`, etc.) */}
-                        <div className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto">
+                        <div
+                            data-testid="asset-search-tag-names"
+                            className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
+                        >
                             {assetQuery.AssetQuery.tagNames.flatMap(entry => {
                                 const [key, tag] = entry
                                 return tag == null || isShiftPressed !== tag.startsWith('-')

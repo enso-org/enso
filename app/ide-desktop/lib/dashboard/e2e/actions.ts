@@ -80,12 +80,31 @@ export function locateSecretValueInput(page: test.Locator | test.Page) {
     return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
 }
 
+/** Find a search bar input (if any) on the current page. */
+export function locateSearchBarInput(page: test.Locator | test.Page) {
+    return locateSearchBar(page).getByPlaceholder(
+        'Type to search for projects, data connectors, users, and more.'
+    )
+}
+
+/** Find a list of tags in the search bar (if any) on the current page. */
+export function locateSearchBarTags(page: test.Locator | test.Page) {
+    return locateSearchBar(page).getByTestId('asset-search-tag-names').getByRole('button')
+}
+
 /** Find the name column of the given assets table row. */
 export function locateAssetRowName(locator: test.Locator) {
     return locator.getByTestId('asset-row-name')
 }
 
 // === Button locators ===
+
+/** Find a toast close button (if any) on the current page. */
+export function locateToastCloseButton(page: test.Locator | test.Page) {
+    // There is no other simple way to uniquely identify this element.
+    // eslint-disable-next-line no-restricted-properties
+    return page.locator('.Toastify__close-button')
+}
 
 /** Find a login button (if any) on the current page. */
 export function locateLoginButton(page: test.Locator | test.Page) {
@@ -466,6 +485,12 @@ export function locateAssetPanel(page: test.Locator | test.Page) {
     return page.getByTestId('asset-panel')
 }
 
+/** Find a search bar (if any) on the current page. */
+export function locateSearchBar(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('asset-search-bar')
+}
+
 // === Content locators ===
 
 /** Find an asset description in an asset panel (if any) on the current page. */
@@ -560,6 +585,7 @@ export async function login(
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
+    await locateToastCloseButton(page).click()
 }
 
 // ================
