@@ -20,16 +20,17 @@ const max = ref(100)
 // === Dropdown props ===
 
 const color = ref('#357ab9')
+const backgroundColor = ref('#4778b4')
 const selectedValue = ref('location')
 const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace'])
 </script>
 
 <template>
   <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" autoPropsDisabled>
-    <Variant title="placeholder">
+    <Variant title="placeholder" :meta="{ customBackground: backgroundColor }">
       <PlaceholderWidget />
     </Variant>
-    <Variant title="checkbox">
+    <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
       <CheckboxWidget
         v-model="checkboxState"
         @update:modelValue="logEvent('update:modelValue', [$event])"
@@ -39,7 +40,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
         <HstCheckbox v-model="checkboxState" title="v-model" />
       </template>
     </Variant>
-    <Variant title="slider">
+    <Variant title="slider" :meta="{ customBackground: backgroundColor }">
       <SliderWidget
         v-model="state"
         :min="min"

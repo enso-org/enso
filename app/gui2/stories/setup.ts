@@ -7,6 +7,7 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
+import CustomBackground from './histoire/CustomBackground.vue'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
 import type {
   SuggestionEntry,
@@ -73,7 +74,9 @@ MockTransport.addMock('engine', async (method, data, transport) => {
   }
 })
 
-export const setupVue3 = defineSetupVue3(({ app }) => {
+export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
+  addWrapper(CustomBackground)
+
   app.use(createPinia())
   provideGuiConfig._mock(
     ref({
