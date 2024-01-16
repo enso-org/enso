@@ -925,6 +925,71 @@ spec setup =
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             col.text_length . should_fail_with Invalid_Value_Type
+        
+        Test.specify "should handle operation text_left and text_right with length 1" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
+                resLeft = col.text_left 1
+                resLeft.name . should_equal "text_left([strings], 1)"
+                resRight = col.text_right 1
+                resRight.name . should_equal "text_right([strings], 1)"
+                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"] 
+                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
+                case setup.is_database of
+                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
+                case setup.is_database of
+                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+        
+        Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left 3
+                resLeft.name . should_equal "text_left([strings], 3)"
+                resRight = col.text_right 3
+                resRight.name . should_equal "text_right([strings], 3)"
+
+                case setup.is_database of
+                    False -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "] # Grapheme Length
+                    True -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
+                case setup.is_database of
+                    False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
+                    True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
+        
+        Test.specify "text_left and text_right should error on non-string columns" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_left 6 . should_fail_with Invalid_Value_Type
+            col.text_right 6 . should_fail_with Invalid_Value_Type
+
+        Test.specify "text_left and text_right should error on non integer parameters" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_left 3.14 . should_fail_with Invalid_Value_Type
+            col.text_right 3.14 . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+
+        Test.specify "text_left and text_right should return empty on zero argument" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left 0
+                resLeft.name . should_equal "text_left([strings], 0)"
+                resRight = col.text_right 0
+                resRight.name . should_equal "text_right([strings], 0)"
+                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+
+        Test.specify "text_left and text_right should return empty on negative arguments" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left -3
+                resLeft.name . should_equal "text_left([strings], -3)"
+                resRight = col.text_right -3
+                resRight.name . should_equal "text_right([strings], -3)"
+                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
 
         Test.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
