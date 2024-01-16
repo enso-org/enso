@@ -537,7 +537,6 @@ export default function AssetRow(props: AssetRowProps) {
                 <>
                     {!hidden && insertionVisibility !== Visibility.hidden && (
                         <tr
-                            {...props}
                             ref={tableRowRef}
                             tabIndex={-1}
                             onClick={event => {
