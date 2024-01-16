@@ -165,16 +165,16 @@ export function performCollapse(
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
   const collapsed = []
   const refactored = []
-  const lines = functionBlock.lines()
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
     collapsedName,
     edit,
   )
+  const lines = functionBlock.statements()
   for (const line of lines) {
-    const astId = line.expression?.node.exprId
-    const ast = astId != null ? edit.get(astId) : null
-    if (ast == null) continue
+    const astId = line.exprId
+    const ast = edit.take(astId)?.node
+    assert(ast != null)
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
       if (astId === astIdToReplace) {
@@ -197,7 +197,7 @@ export function performCollapse(
   edit.replaceRef(functionBlock.exprId, refactoredBlock)
 
   // Insert a new function.
-  const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
+  const args: Ast.Owned<Ast.Ast>[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
@@ -208,7 +208,7 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: string,
   edit: Ast.MutableModule,
-): { ast: Ast.Ast; nodeId: ExprId } {
+): { ast: Ast.Owned<Ast.Ast>; nodeId: ExprId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`

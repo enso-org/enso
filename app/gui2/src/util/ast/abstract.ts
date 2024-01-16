@@ -37,6 +37,7 @@ export interface Module {
   iterAllNodeIds(): IterableIterator<AstId>
   iterAllNodes(): IterableIterator<Ast>
   root(): Module
+  has(id: AstId): boolean
 }
 
 export class MutableModule implements Module {
@@ -293,6 +294,10 @@ export class MutableModule implements Module {
     if (!this.base) return this
     return this.base.root()
   }
+
+  has(id: AstId) {
+    return this.nodes.has(id) || (this.base ? this.base.has(id) : false)
+  }
 }
 
 export function normalize(rootIn: Ast): Ast {
@@ -421,9 +426,13 @@ export abstract class Ast {
 
   /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
   static parse(source: PrintedSource | string, module?: MutableModule): Owned<Ast> {
-    const ast = Ast.parseBlock(source, module)
+    const module_ = module ?? MutableModule.Transient()
+    const ast = Ast.parseBlock(source, module_)
     const [expr] = ast.statements()
-    return expr ? asOwned(expr) : ast
+    if (!expr) return ast
+    if (expr.parent) module_.nodes.delete(expr.parent)
+    expr.parent = undefined
+    return asOwned(expr)
   }
 
   visitRecursive(visit: (node: Ast | Token) => void) {
@@ -527,8 +536,11 @@ function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
   return { whitespace: isSpaced ? ' ' : '', node }
 }
 
-function makeChild(module: MutableModule, child: Ast, parent: AstId): AstId {
-  assert(child !== null)
+function makeChild<T extends Ast>(module: MutableModule, child: Owned<T>, parent: AstId): AstId {
+  assert(
+    !child.parent || !module.has(child.parent),
+    'Owned object is not owned. Was it obtained from a different module?',
+  )
   const spliced = module.splice(child)
   spliced.parent = parent
   return spliced.exprId
@@ -754,7 +766,7 @@ export class PropertyAccess extends OprApp {
     const lhs_ = lhs ? unspaced(makeChild(module, lhs, id)) : null
     let rhs_ = null
     if (rhs) {
-      const ident = new Ident(module, undefined, unspaced(rhs))
+      const ident = asOwned(new Ident(module, undefined, unspaced(rhs)))
       rhs_ = unspaced(makeChild(module, ident, id))
     }
     return asOwned(new PropertyAccess(module, id, lhs_, undefined, rhs_))
@@ -1046,7 +1058,7 @@ export class Function extends Ast {
         args.map((arg) =>
           arg.map((child) => ({
             ...child,
-            node: child.node instanceof Ast ? makeChild(module, child.node, id) : child.node,
+            node: child.node instanceof Token ? child.node : makeChild(module, module.take(child.node)!.node, id),
           })),
         ),
         undefined,
@@ -1058,12 +1070,12 @@ export class Function extends Ast {
   static fromExprs(
     module: MutableModule,
     name: string,
-    args: Ast[],
-    exprs: Ast[],
+    args: Owned<Ast>[],
+    exprs: Owned<Ast>[],
     trailingNewline?: boolean,
-  ): Function {
+  ): Owned<Function> {
     const id = newAstId()
-    const exprs_: BlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
+    const exprs_: OwnedBlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
     if (trailingNewline) {
       exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
     }
@@ -1071,7 +1083,7 @@ export class Function extends Ast {
     const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
     const ident = { node: Ident.new(module, name).exprId }
     const equals = { node: Token.new('=') }
-    return new Function(module, id, ident, args_, equals, { node: body.exprId })
+    return asOwned(new Function(module, id, ident, args_, equals, { node: body.exprId }))
   }
 
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
@@ -1172,7 +1184,7 @@ export class Assignment extends Ast {
 export class BodyBlock extends Ast {
   private readonly lines_: RawBlockLine[]
 
-  static new(lines: BlockLine[], module?: MutableModule) {
+  static new(lines: OwnedBlockLine[], module?: MutableModule) {
     const module_ = module ?? MutableModule.Transient()
     const id = newAstId()
     const rawLines = lines.map((line) => lineToRaw(line, module_, id))
@@ -1181,6 +1193,10 @@ export class BodyBlock extends Ast {
 
   lines(): BlockLine[] {
     return this.lines_.map((line) => lineFromRaw(line, this.module))
+  }
+
+  takeLines(edit: MutableModule): OwnedBlockLine[] {
+    return this.lines_.map((line) => ownedLineFromRaw(line, edit))
   }
 
   *statements(): IterableIterator<Ast> {
@@ -1195,14 +1211,14 @@ export class BodyBlock extends Ast {
     setParent(module, this.exprId, ...this.concreteChildren())
   }
 
-  push(module: MutableModule, node: Ast) {
+  push(module: MutableModule, node: Owned<Ast>) {
     const line = { expression: autospaced(makeChild(module, node, this.exprId)) }
     const edited = new BodyBlock(module, this.exprId, [...this.lines_, line])
     edited.parent = this.parent
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
-  insert(module: MutableModule, index: number, ...nodes: Ast[]) {
+  insert(module: MutableModule, index: number, ...nodes: Owned<Ast>[]) {
     const before = this.lines_.slice(0, index)
     const insertions = Array.from(nodes, (node) => ({
       expression: unspaced(makeChild(module, node, this.exprId)),
@@ -1268,15 +1284,14 @@ export class BodyBlock extends Ast {
   }
 }
 
-interface RawBlockLine {
+type Line<T> = {
   newline?: NodeChild<Token> | undefined
-  expression: NodeChild<AstId> | null
+  expression: NodeChild<T> | null
 }
 
-interface BlockLine {
-  newline?: NodeChild<Token> | undefined
-  expression: NodeChild<Ast> | null
-}
+type RawBlockLine = Line<AstId>
+type BlockLine = Line<Ast>
+type OwnedBlockLine = Line<Owned<Ast>>
 
 function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.get(raw.expression.node) : null
@@ -1291,7 +1306,20 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   }
 }
 
-function lineToRaw(line: BlockLine, module: MutableModule, block: AstId): RawBlockLine {
+function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockLine {
+  const expression = raw.expression ? module.take(raw.expression.node)!.node : null
+  return {
+    newline: raw.newline,
+    expression: expression
+      ? {
+        whitespace: raw.expression?.whitespace,
+        node: expression,
+      }
+      : null,
+  }
+}
+
+function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): RawBlockLine {
   return {
     newline: line.newline,
     expression: line.expression
@@ -1556,9 +1584,15 @@ function abstractTree(
       break
     }
     case RawAst.Tree.Type.Import: {
+      const recurseBody = (tree: RawAst.Tree) => {
+        const body = recurseTree(tree)
+        const bodyAst = module.get(body.node)
+        if (bodyAst instanceof Invalid && bodyAst.code() === '') return null
+        return body
+      }
       const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
         header: recurseToken(segment.header),
-        body: segment.body ? recurseTree(segment.body) : null,
+        body: segment.body ? recurseBody(segment.body) : null,
       })
       const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : null
       const from = tree.from ? recurseSegment(tree.from) : null
