@@ -73,13 +73,33 @@ export default function AssetPanel(props: AssetPanelProps) {
     const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const [tab, setTab] = React.useState(
-        () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
-    )
+    const [initialized, setInitialized] = React.useState(false)
+    const [tab, setTab] = React.useState(() => {
+        const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
+        if (
+            (item.item.type === backend.AssetType.secret ||
+                item.item.type === backend.AssetType.directory) &&
+            savedTab === AssetPanelTab.versions
+        ) {
+            return AssetPanelTab.properties
+        } else {
+            return savedTab
+        }
+    })
 
     React.useEffect(() => {
-        localStorage.set('assetPanelTab', tab)
+        // This prevents secrets and directories always setting the tab to `properties`
+        // (because they do not support the `versions` tab).
+        if (initialized) {
+            localStorage.set('assetPanelTab', tab)
+        }
+        // `initialized` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, /* should never change */ localStorage])
+
+    React.useEffect(() => {
+        setInitialized(true)
+    }, [])
 
     return (
         <div
