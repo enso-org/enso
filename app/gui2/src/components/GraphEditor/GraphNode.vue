@@ -179,24 +179,23 @@ const isOutputContextOverridden = computed({
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
-    const replacements = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode)]
-      : undefined
     const edit = props.node.rootSpan.module.edit()
-    const newAst = prefixes.modify(
-      edit,
-      props.node.rootSpan,
-      projectStore.isOutputContextEnabled
-        ? {
-            enableOutputContext: undefined,
-            disableOutputContext: replacements,
-          }
-        : {
-            enableOutputContext: replacements,
-            disableOutputContext: undefined,
-          },
-    )
-    graph.setNodeContent(props.node.rootSpan.exprId, newAst.code())
+    const replacementText = shouldOverride
+      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+      : undefined
+    const replacements = projectStore.isOutputContextEnabled
+      ? {
+          enableOutputContext: undefined,
+          disableOutputContext: replacementText,
+        }
+      : {
+          enableOutputContext: replacementText,
+          disableOutputContext: undefined,
+        }
+    const expression = props.node.rootSpan
+    const newAst = prefixes.modify(edit, expression, replacements)
+    const code = newAst.code()
+    graph.setNodeContent(props.node.rootSpan.exprId, code)
   },
 })
 

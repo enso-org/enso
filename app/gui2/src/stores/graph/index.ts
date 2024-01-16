@@ -251,10 +251,10 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit)
   }
 
-  function setNodeContent(id: ExprId, content: string) {
+  function setNodeContent(id: ExprId, content: string, moduleIn?: MutableModule) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    setExpressionContent(node.rootSpan.exprId, content)
+    setExpressionContent(node.rootSpan.exprId, content, moduleIn)
   }
 
   function setExpression(id: ExprId, content: Ast.Owned<Ast.Ast>) {
@@ -263,8 +263,8 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit)
   }
 
-  function setExpressionContent(id: ExprId, content: string) {
-    setExpression(id, Ast.RawCode.new(content))
+  function setExpressionContent(id: ExprId, content: string, moduleIn?: MutableModule) {
+    setExpression(id, Ast.RawCode.new(content, moduleIn))
   }
 
   function transact(fn: () => void) {
