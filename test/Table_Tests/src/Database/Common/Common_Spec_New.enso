@@ -34,74 +34,82 @@ drop_table connection name =
 
 
 type Basic_Data
-    Impl ~connection ~t1 ~t2 ~t4 ~big_table big_size
+    Value ~data
 
-    create connection_provider =
+    connection self = self.data.at 0
+    t1 self = self.data.at 1
+    t2 self = self.data.at 2
+    t4 self = self.data.at 3
+    big_table self = self.data.at 4
+    big_size self = self.data.at 5
+
+    setup create_connection_fn = Basic_Data.Value <|
+        IO.println <| "  Common_Spec_New.Basic_Data.setup"
         big_size = 1000
-        Basic_Data.Impl (Basic_Data.create_connection connection_provider) (Basic_Data.create_t1 connection_provider) (Basic_Data.create_t2 connection_provider) (Basic_Data.create_t4 connection_provider) (Basic_Data.create_big_table connection_provider big_size) big_size
+        connection = create_connection_fn Nothing
+        t1 = upload connection "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
+        t2 = upload connection "T2" (Table.new [["d", [100, 200]]])
+        ## The effective name may get a deduplication prefix/suffix so we
+            need to use `t4.name` instead of the literal string. Still it
+            will contain the weird characters we wanted.
 
-    create_connection connection_provider =
-        connection_provider.connection
+            Also, the table name cannot be too long as Postgres truncates at
+            63 chars (and we append 37 chars of uniqueness suffix) and the
+            test logic will break then.
+        t4 = upload connection 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
+        big = Table.new [["a", Vector.new big_size ix->ix], ["b", Vector.new big_size ix-> ix *  3.1415926], ["c", Vector.new big_size ix-> ix.to_text]]
+        big_table = upload connection "Big" big
+        [connection, t1, t2, t4, big_table, big_size]
 
-    create_t1 connection_provider =
-        t1 = upload connection_provider.connection "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
-        t1
-
-    create_t2 connection_provider =
-        t2 = upload connection_provider.connection "T2" (Table.new [["d", [100, 200]]])
-        t2
-    
-    create_t4 connection_provider =
-        t4 = upload connection_provider.connection "T4" <|
-            Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
-        t4
-
-    create_big_table connection_provider size =
-        big = Table.new [["a", Vector.new size ix->ix], ["b", Vector.new size ix-> ix *  3.1415926], ["c", Vector.new size ix-> ix.to_text]]
-        big_table = upload connection_provider.connection "Big" big
-        big_table
-    
     teardown self =
-        IO.println <| "    Common_Spec_New.Basic_Data.teardown"
-        drop_table self.connection self.t1.name
-        drop_table self.connection self.t2.name
-        drop_table self.connection self.t4.name
-        drop_table self.connection self.big_table.name
+        data = self
+        IO.println <| "  Common_Spec_New.Basic_Data.teardown"
+        drop_table data.connection data.t1.name
+        drop_table data.connection data.t2.name
+        drop_table data.connection data.t4.name
+        drop_table data.connection data.big_table.name
 
 
 type Sorting_Data
-    Impl ~connection ~df ints reals bools texts ~t8
-    
-    create connection_provider =
+    Value ~data
+
+    connection self = self.data.at 0
+    df self = self.data.at 1
+    ints self = self.data.at 2
+    reals self = self.data.at 3
+    bools self = self.data.at 4
+    texts self = self.data.at 5
+    t8 self = self.data.at 6
+
+    setup create_connection_fn = Sorting_Data.Value <|
+        IO.println <| "  Common_Spec_New.Sorting_Data.setup"
+        connection = create_connection_fn Nothing
         ints = [1, 2, 3, 4, 5]
         reals = [1.3, 4.6, 3.2, 5.2, 1.6]
         bools = [False, False, True, True, False]
         texts = ["foo", "foo", "bar", "baz", "spam"]
-        Sorting_Data.Impl connection_provider.connection (Sorting_Data.create_df connection_provider) ints reals bools texts (Sorting_Data.create_t8 ints reals bools texts)
-
-    create_df connection_provider =
-        df = upload connection_provider.connection "clothes" <|
+        df = upload connection "clothes" <|
             Table.new [["id", [1,2,3,4,5,6]], ["name", ["shoes","trousers","dress","skirt","blouse","t-shirt"]], ["quantity", [20,10,20,10,30,30]], ["rating", [3.0,Nothing,7.3,3.0,2.2,Nothing]], ["price", [37.2,42.1,64.1,87.4,13.5,64.2]]]
-        df
-    
-    create_t8 connection_provider ints reals bools texts =
-        t8 = upload connection_provider.connection "T8" <|
+        t8 = upload connection "T8" <|
             Table.new [["ord", [0,3,2,4,1]], ["ints", ints], ["reals", reals], ["bools", bools], ["texts", texts]]
-        t8
-    
+        [connection, df, ints, reals, bools, texts, t8]
+
     teardown self =
-        IO.println <| "    Common_Spec_New.Sorting_Data.teardown"
+        IO.println <| "  Common_Spec_New.Sorting_Data.teardown"
         drop_table self.connection self.df.name
         drop_table self.connection self.t8.name
 
 
+
 type Aggregation_Data
-    Impl ~connection ~t9
+    Value ~data
 
-    create connection_provider =
-        Aggregation_Data.Impl connection_provider.connection (Aggregation_Data.create_t9 connection_provider)
+    connection self = self.data.first
+    t9 self = self.data.second
 
-    create_t9 connection_provider =
+    setup create_connection_fn = Aggregation_Data.Value <|
+        IO.println <| "  Common_Spec_New.Aggregation_Data.setup"
+        connection = create_connection_fn Nothing
         builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]
         insert v =
             builders.zip v .append
@@ -121,47 +129,51 @@ type Aggregation_Data
         insert ["zzzz", 1, 0]
         insert ["zzzz", 0, 0]
         insert ["zzzz", Nothing, Nothing]
-        t9 = upload connection_provider.connection "T9" <|
+        t9 = upload connection "T9" <|
             Table.new [["name", builders.at 0 . to_vector], ["price", builders.at 1 . to_vector], ["quantity", builders.at 2 . to_vector]]
-        t9
+        [connection, t9]
 
     teardown self =
-        IO.println <| "    Common_Spec_New.Aggregation_Data.teardown"
+        IO.println <| "  Common_Spec_New.Aggregation_Data.teardown"
         drop_table self.connection self.t9.name
 
 
+
 type Missing_Values_Data
-    Impl ~connection ~t4
+    Value ~data
 
-    create connection_provider
-        Missing_Values_Data.Impl (Missing_Values_Data.create_connection connection_provider) (Missing_Values_Data.create_t4 connection_provider)
+    connection self = self.data.first
+    t4 self = self.data.second
 
-    create_connection connection_provider =
-        connection_provider.connection
-    
-    create_t4 connection_provider =
-        t4 = upload connection_provider.connection "T4" <|
+    setup create_connection_fn = Missing_Values_Data.Value <|
+        IO.println <| "  Common_Spec_New.Missing_Values_Data.setup"
+        connection = create_connection_fn Nothing
+        t4 = upload connection "T4" <|
             Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
-        t4
+        [connection, t4]
 
     teardown self =
-        IO.println <| "    Common_Spec_New.Missing_Values_Data.teardown"
+        IO.println <| "  Common_Spec_New.Missing_Values_Data.teardown"
         drop_table self.connection self.t4.name
 
 
 
-add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_provider : Any) =
 
-    Default_Ordering_Spec_New.add_default_ordering_specs suite_builder prefix connection_provider
+## Docs
+
+   Arguments:
+   - create_connection_fn: A function that creates an appropriate Connection to the database backend.
+add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) =
+
+    Default_Ordering_Spec_New.add_default_ordering_specs suite_builder prefix create_connection_fn
     # TODO:
-    # Names_Length_Limits_Spec_New.add_specs suite_builder prefix connection_provider
+    # Names_Length_Limits_Spec_New.add_specs suite_builder prefix create_connection_fn
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->
-        data = Basic_Data.create connection_provider
+        data = Basic_Data.setup create_connection_fn
         
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "should allow to materialize tables and columns into local memory" <|
             df = data.t1.read
@@ -181,11 +193,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
 
 
     suite_builder.group (prefix + "Connection.query") group_builder->
-        data = Basic_Data.create connection_provider
+        data = Basic_Data.setup create_connection_fn
         
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "should allow to access a Table by name" <|
             name = data.t1.name
@@ -316,11 +327,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
 
 
     suite_builder.group (prefix + "Masking Tables") group_builder->
-        data = Basic_Data.create connection_provider
+        data = Basic_Data.setup create_connection_fn
         
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = data.t1.filter (data.t1.at "a" == 1)
@@ -333,11 +343,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
             t2.at "c" . to_vector . should_equal [3]
 
     suite_builder.group (prefix + "Missing Values")  group_builder->
-        data = Basic_Data.create connection_provider
+        data = Missing_Values_Data.setup create_connection_fn
         
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "fill_nothing should replace nulls" <|
             data.t4.at 'a' . fill_nothing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
@@ -353,11 +362,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
 
 
     suite_builder.group (prefix + "Sorting") group_builder->
-        data = Sorting_Data.create connection_provider
+        data = Sorting_Data.setup create_connection_fn
         
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "should allow sorting by a single column name" <|
             r_1 = data.df.order_by ([Sort_Column.Name 'quantity'])
@@ -404,11 +412,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
 
 
     suite_builder.group prefix+"Aggregation" group_builder->
-        data = Aggregation_Data.create connection_provider
+        data = Aggregation_Data.setup create_connection_fn
 
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         ## A helper which makes sure that the groups in a materialized
            (InMemory) table are ordered according to a specified column or list
@@ -450,11 +457,10 @@ add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_pro
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
 
     suite_builder.group prefix+"Table.filter" group_builder->
-        data = Basic_Data.create connection_provider
+        data = Basic_Data.setup create_connection_fn
 
         group_builder.teardown <|
             data.teardown
-            connection_provider.teardown
 
         group_builder.specify "report error when trying to filter by a custom predicate" <|
             data.t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation

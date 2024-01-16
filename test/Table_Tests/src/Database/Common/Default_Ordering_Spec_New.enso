@@ -15,17 +15,18 @@ import project.Util
 import project.Database.Helpers.Name_Generator
 
 type Data
-    Impl ~db_table_without_key ~db_table_with_key
+    Value ~data
 
-    create connection_provider =
+    db_table_without_key self = self.data.first
+    db_table_with_key self = self.data.second
+
+    setup create_connection_func = Data.Value <|
+        IO.println <| "  Default_Ordering_Spec_New.setup"
+        connection = create_connection_func Nothing
         src_table = Table.new [["X", [1, 2, 3]], ["Y", [30, 20, 10]]]
-        Data.Impl (Data.create_db_table_without_key src_table connection_provider) (Data.create_db_table_with_key src_table connection_provider)
-
-    create_db_table_without_key src_table connection_provider =
-        src_table.select_into_database_table connection_provider.connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=Nothing
-
-    create_db_table_with_key src_table connection_provider =
-        src_table.select_into_database_table connection_provider.connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=["X"]
+        db_table_without_key = src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=Nothing
+        db_table_with_key = src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=["X"]
+        [db_table_without_key, db_table_with_key]
 
 
 ## Adds test specifications for default ordering to the given `suite_builder`. Adds it as
@@ -33,27 +34,12 @@ type Data
 
    Arguments:
    - suite_builder: A Suite_Builder in which a new group will be created
-   - connection_provider: An atom with `connection` method that returns a database connection.
-                          Preferably, this method should be lazy. It must contain `teardown` method as well.
-add_default_ordering_specs (suite_builder : Suite_Builder) (prefix : Text) (connection_provider : Any) =
-    expected_methods_in_provider = ["connection", "teardown"]
-    provider_type = Meta.type_of connection_provider
-    is_correct_provider = expected_methods_in_provider.all expected_method->
-        provider_methods = Meta.get_type_methods provider_type
-        provider_methods.contains expected_method
-    if is_correct_provider.not then
-        # Print the message to stderr to make sure that it is not abbreviated in the Panic message
-        msg = "connection_provider must contain all these methods: " + expected_methods_in_provider.to_text + ". Actual type is " + provider_type.to_text
-        IO.print_err msg
-        Panic.throw <| Illegal_Argument.Error "connection_provider"
-
+   - create_connection_fn: A function that creates an appropriate Connection to the database backend.
+add_default_ordering_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : Any) =
     group_name = prefix + "Table.default_ordering"
 
     suite_builder.group group_name group_builder->
-        data = Data.create connection_provider
-
-        group_builder.teardown <|
-            connection_provider.teardown
+        data = Data.setup create_connection_fn
 
         group_builder.specify "will return Nothing if no primary key is defined" <|
             data.db_table_without_key.default_ordering . should_equal Nothing

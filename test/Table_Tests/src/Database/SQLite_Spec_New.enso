@@ -73,55 +73,50 @@ sqlite_spec suite_builder prefix connection_provider =
     Common_Spec_New.add_common_specs suite_builder prefix connection_provider
 
 
-type Inmem_Connection
-    Impl ~connection
+backing_file =
+    transient_dir = enso_project.data / "transient"
+    assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
+    transient_dir / "sqlite_test.db"
 
-    create =
-        Inmem_Connection.Impl Inmem_Connection.create_connection
 
-    create_connection =
-        IO.println <| "    SQLite_Spec_New.Inmem_Connection.create_connection"
-        Database.connect (SQLite In_Memory)
+create_inmem_connection =
+    Database.connect (SQLite In_Memory)
 
-    teardown self = Nothing
+
+create_file_connection file =
+    connection = Database.connect (SQLite file)
+    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+    connection
 
 
 type File_Connection
-    Impl ~file
+    Value ~file
 
-    create =
-        File_Connection.Impl File_Connection.create_file
+    setup = File_Connection.Value <|
+        IO.println <| "  SQLite_Spec_New.File_Connection.setup"
+        tmp_file = backing_file
+        con = create_file_connection backing_file
+        con.close
+        assert tmp_file.exists
+        tmp_file
 
-    create_file =
-        IO.println <| "    SQLite_Spec_New.File_Connection.create_file"
-        transient_dir = enso_project.data / "transient"
-        assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
-        file = transient_dir / "sqlite_test.db"
-        if file.exists then Panic.throw "Assertion error: File should not exist"
-        connection = Database.connect (SQLite file)
-        connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        connection.close
-        assert file.exists
-        file
-
-    connection self =
-        Database.connect (SQLite self.file)
 
     teardown self =
-        IO.println <| "    SQLite_Spec_New.File_Connection.teardown"
+        IO.println <| "  SQLite_Spec_New.File_Connection.teardown"
         assert self.file.exists
         self.file.delete
+
 
 suite =
     Test.build suite_builder->
         in_file_prefix = "[SQLite File] "
-        sqlite_spec suite_builder in_file_prefix File_Connection.create
+        sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection backing_file)
 
         in_memory_prefix = "[SQLite In-Memory] "
-        sqlite_spec suite_builder in_memory_prefix Inmem_Connection.create
+        sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
 
         suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
-            data = File_Connection.create
+            data = File_Connection.setup
 
             group_builder.teardown <|
                 data.teardown
@@ -129,7 +124,7 @@ suite =
             group_builder.specify "should recognise a SQLite database file" <|
                 Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
 
-            group_builder.specify 'should not duplicate warnings' <|
+            group_builder.specify "should not duplicate warnings" <|
                 c = Database.connect (SQLite In_Memory)
                 t0 = Table.new [["X", ["a", "bc", "def"]]]
                 t1 = t0.select_into_database_table c "Tabela"
@@ -140,6 +135,6 @@ main =
     IO.println <| "=============="
     suite.print_all
     IO.println <| "=============="
-    group_filter = Regex.compile "\[SQLite File\] Connection.query"
-    spec_filter = "should allow to access a Table by name"
+    group_filter = Nothing
+    spec_filter = Nothing
     suite.run_with_filter group_filter spec_filter
