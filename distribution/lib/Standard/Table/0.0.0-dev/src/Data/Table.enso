@@ -1823,7 +1823,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join
+    ## ALIAS cartesian join, append
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the

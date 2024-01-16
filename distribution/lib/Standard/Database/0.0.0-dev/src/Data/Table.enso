@@ -1306,7 +1306,7 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS cartesian join append
+    ## ALIAS cartesian join, append
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
