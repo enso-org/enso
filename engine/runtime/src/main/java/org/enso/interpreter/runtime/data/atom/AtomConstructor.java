@@ -231,7 +231,8 @@ public final class AtomConstructor implements EnsoObject {
    * Creates a new runtime instance of the Atom represented by this constructor.
    *
    * @param arguments the runtime arguments to the constructor
-   * @return a new instance of the atom represented by this constructor @See AtomNewInstanceNode
+   * @return a new instance of the atom represented by this constructor
+   * @see AtomNewInstanceNode
    */
   final Atom newInstance(Object... arguments) {
     // package private on purpose
