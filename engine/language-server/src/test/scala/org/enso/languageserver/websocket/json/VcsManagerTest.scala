@@ -1324,7 +1324,8 @@ class VcsManagerTest
                   $testBarFileName
                 ]
               },
-              "kind" : "Removed"
+              "kind" : "Removed",
+              "attributes" : null
             }
           }
           """
@@ -1354,7 +1355,8 @@ class VcsManagerTest
                   $testBarFileName
                 ]
               },
-              "kind" : "Removed"
+              "kind" : "Removed",
+              "attributes" : null
             }
           }
           """)
