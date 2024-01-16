@@ -2744,6 +2744,15 @@ Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
 
 ## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector . to Table
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector . to Table
+
+
+## PRIVATE
    Convert an `XML_Element` into a `Table`
 
    Generates a single-row table with columns for the tag's contents.

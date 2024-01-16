@@ -487,6 +487,14 @@ type Date_Range
                 (1.up_to length).fold self.start acc-> ix->
                     function acc (self.internal_at ix)
 
+    ## PRIVATE
+       Default column name based on step.
+    default_column_name : Text
+    default_column_name self =
+        periods = [Date_Period.Year, Date_Period.Quarter, Date_Period.Month, Date_Period.Week, Date_Period.Day]
+        names = ["Year", "Quarter", "Month", "Week", "Date"]
+        index = periods.index_of self.step
+        if index == Nothing then "Date" else names.index_of index
 
 ## PRIVATE
    Computes the length of the range and verifies its invariants.
