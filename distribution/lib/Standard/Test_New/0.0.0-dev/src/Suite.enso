@@ -15,11 +15,15 @@ type Suite_Builder
     Impl builder
 
     ## Add a group to the builder.
+
+       Arguments:
+       - pending: Contains a reason for why the test group should be ignored. If Nothing, the test
+         is not ignored.
     group : Text -> (Group_Builder -> Any) -> Nothing
-    group self (name:Text) (fn : (Group_Builder -> Any)) =
+    group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl
         fn group_builder
-        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector
+        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
         self.builder.append group
 
 
@@ -55,7 +59,10 @@ type Suite
         group_filter_conv = convert_filter group_filter
         spec_filter_conv = convert_filter spec_filter
         filtered_groups = self.groups.filter group->
-            (group_filter_conv.match group.name) != Nothing
+            group_name_matches = (group_filter_conv.match group.name) != Nothing
+            case group_name_matches of
+                False -> False
+                True -> group.pending == Nothing
         filtered_groups.each group->
             State.run Running_Tests True <|
                 results = Helpers.run_group_with_filter group spec_filter_conv

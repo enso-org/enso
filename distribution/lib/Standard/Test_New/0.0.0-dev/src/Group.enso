@@ -32,7 +32,7 @@ type Group_Builder
 
 
 type Group
-    Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec)
+    Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (pending : (Text | Nothing) = Nothing)
 
     to_text self =
         sb = StringBuilder.new
