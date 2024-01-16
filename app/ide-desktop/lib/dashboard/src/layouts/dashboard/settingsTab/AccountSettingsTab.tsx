@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -57,7 +57,7 @@ function InfoEntry(props: InternalInfoEntryProps) {
 
 /** Settings tab for viewing and editing account information. */
 export default function AccountSettingsTab() {
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { setOrganization } = authProvider.useAuth()
     const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()

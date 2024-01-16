@@ -1,7 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as hooks from '#/hooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
@@ -20,7 +20,7 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { description, doDelete } = props
-    const toastAndLog = hooks.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { unsetModal } = modalProvider.useSetModal()
 
     const onSubmit = () => {
