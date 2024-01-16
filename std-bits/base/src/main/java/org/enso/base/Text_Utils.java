@@ -52,8 +52,8 @@ public class Text_Utils {
    * @param str the string to convert
    * @return the UTF-16 character representation of the string.
    */
-  public static char[] get_chars(String str) {
-    return str.toCharArray();
+  public static int[] get_chars(String str) {
+    return str.chars().toArray();
   }
 
   /**
@@ -294,7 +294,9 @@ public class Text_Utils {
     BreakIterator iter = BreakIterator.getCharacterInstance();
     iter.setText(str);
     iter.last();
-    if (iter.next(Math.toIntExact(-grapheme_length)) == BreakIterator.DONE) {
+    if (grapheme_length <= 0) {
+      return "";
+    } else if (iter.next(Math.toIntExact(-grapheme_length)) == BreakIterator.DONE) {
       return str;
     } else {
       return str.substring(iter.current());

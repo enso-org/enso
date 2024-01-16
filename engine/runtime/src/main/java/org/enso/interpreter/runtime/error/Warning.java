@@ -92,8 +92,9 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib) {
-    Warning[] warnings = value.getWarningsArray(warningsLib);
+  public static EnsoObject getAll(
+      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib) {
+    Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
     sortArray(warnings);
     return ArrayLikeHelpers.wrapEnsoObjects(warnings);
   }
@@ -103,14 +104,14 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, WarningsLibrary warnings) {
-    if (warnings.hasWarnings(value)) {
+  public static EnsoObject getAll(Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
+    if (warningsLib.hasWarnings(value)) {
       try {
-        Warning[] arr = warnings.getWarnings(value, null);
-        sortArray(arr);
-        return ArrayLikeHelpers.wrapEnsoObjects(arr);
+        Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
+        sortArray(warnings);
+        return ArrayLikeHelpers.wrapEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {
-        throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
+        throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, e);
       }
     } else {
       return ArrayLikeHelpers.empty();
@@ -242,5 +243,13 @@ public final class Warning implements EnsoObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
+  }
+
+  public static Warning wrapMapError(WarningsLibrary warningsLib, Warning warning, long index) {
+    var ctx = EnsoContext.get(warningsLib);
+    var error = warning.getValue();
+    var wrappedError = ctx.getBuiltins().error().makeMapError(index, error);
+    var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+    return wrappedWarning;
   }
 }

@@ -730,6 +730,14 @@ public final class ExecutionService {
   public record FunctionPointer(
       QualifiedName moduleName, QualifiedName typeName, String functionName) {
 
+    public static FunctionPointer fromAtomConstructor(AtomConstructor atomConstructor) {
+      QualifiedName moduleName = atomConstructor.getDefinitionScope().getModule().getName();
+      QualifiedName typeName = atomConstructor.getType().getQualifiedName();
+      String functionName = atomConstructor.getName();
+
+      return new FunctionPointer(moduleName, typeName, functionName);
+    }
+
     public static FunctionPointer fromFunction(Function function) {
       RootNode rootNode = function.getCallTarget().getRootNode();
 
@@ -767,6 +775,9 @@ public final class ExecutionService {
     public static int[] collectNotAppliedArguments(Function function) {
       FunctionSchema functionSchema = function.getSchema();
       Object[] preAppliedArguments = function.getPreAppliedArguments();
+      if (preAppliedArguments == null) {
+        preAppliedArguments = new Object[functionSchema.getArgumentsCount()];
+      }
       boolean isStatic = preAppliedArguments[0] instanceof Type;
       int selfArgumentPosition = isStatic ? -1 : 0;
       int[] notAppliedArguments = new int[functionSchema.getArgumentsCount()];

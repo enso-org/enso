@@ -357,9 +357,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled={isCloud}
+                    disabled={isCloud && asset.type !== backendModule.AssetType.file}
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
+                        unsetModal()
                         dispatchAssetEvent({
                             type: AssetEventType.download,
                             ids: new Set([asset.id]),

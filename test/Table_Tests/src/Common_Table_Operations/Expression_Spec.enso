@@ -376,7 +376,7 @@ spec detailed setup =
 
             r2 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
             Problems.get_attached_warnings r2 . each warn->
-                warn.should_be_a Floating_Point_Equality
+                (Error.unwrap warn).should_be_a Floating_Point_Equality
             r2.to_vector . should_equal [True, True, False]
 
             err3 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error

@@ -3,6 +3,7 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
@@ -13,7 +14,8 @@ public class CloudRoot extends HandlerWithTokenAuth {
     return "TEST-ENSO-TOKEN-caffee";
   }
 
-  private final CloudHandler[] handlers = new CloudHandler[] {new UsersHandler()};
+  private final CloudHandler[] handlers =
+      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {
@@ -51,6 +53,11 @@ public class CloudRoot extends HandlerWithTokenAuth {
       @Override
       public void sendResponse(int code, String response) throws IOException {
         CloudRoot.this.sendResponse(code, response, exchange);
+      }
+
+      @Override
+      public String decodeBodyAsText() throws IOException {
+        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
       }
     };
   }
