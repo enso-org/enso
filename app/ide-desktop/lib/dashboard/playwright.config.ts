@@ -10,9 +10,8 @@ import * as test from '@playwright/test'
 
 export default test.defineConfig({
     testDir: './e2e',
-    forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    ...(process.env.CI ? { workers: 1 } : {}),
+    forbidOnly: true,
+    workers: 1,
     expect: {
         toHaveScreenshot: { threshold: 0 },
     },
