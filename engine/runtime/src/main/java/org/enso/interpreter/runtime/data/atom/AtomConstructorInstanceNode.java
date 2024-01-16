@@ -93,7 +93,6 @@ final class AtomConstructorInstanceNode extends Node {
           if (layouts.length == this.unboxedLayouts.length) {
             // Layouts stored in this node are probably up-to-date; create a new one and try to
             // register it.
-            // var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
             var newLayout = boxedLayout.layout.copy(flags);
             constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
           }
