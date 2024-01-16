@@ -46,9 +46,9 @@ spec =
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
         Test.specify "should not work with invalid credentials" <|
-            S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with AWS_SDK_Error
+            S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
 
-        Test.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <|
+        Test.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
             secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
