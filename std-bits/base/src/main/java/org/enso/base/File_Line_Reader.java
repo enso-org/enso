@@ -15,60 +15,49 @@ import org.enso.base.arrays.LongArrayList;
 import org.graalvm.polyglot.Context;
 
 public class File_Line_Reader {
-  private static final ByteArrayOutputStream reusedLine = new ByteArrayOutputStream();
-  private static final Logger LOGGER = Logger.getLogger(File_Line_Reader.class.getName());
+  private static final Logger LOGGER = Logger.getLogger("enso-file-line-reader");
+
+  // ** Amount of data to read at a time for a single line (4KB). */
   private static final int LINE_BUFFER = 4 * 1024;
+
+  // ** Amount of data to read at a time (4MB). */
   private static final int BUFFER_SIZE = 4 * 1024 * 1024;
 
   private static boolean moreToRead(int c, MappedByteBuffer buffer) {
-    if (c == -1 || c == '\n') {
-      return false;
-    }
-
-    if (c == '\r') {
-      c = buffer.hasRemaining() ? buffer.get() : '\n';
-      if (c != '\n') {
-        buffer.position(buffer.position() - 1);
+    return switch (c) {
+      case '\n', -1 -> false;
+      case '\r' -> {
+        c = buffer.hasRemaining() ? buffer.get() : '\n';
+        if (c != '\n') {
+          buffer.position(buffer.position() - 1);
+        }
+        yield false;
       }
-      return false;
-    }
-
-    return true;
+      default -> true;
+    };
   }
 
-  private static String readLine(
-      MappedByteBuffer buffer, Charset charset, FileChannel channel, long position)
-      throws IOException {
-    reusedLine.reset();
+  // ** Reads a line into an OutputStream.
+  //    Returns true if the end of the line was found, false if the buffer finished. */
+  private static boolean readLine(MappedByteBuffer buffer, ByteArrayOutputStream result) {
     int c = buffer.get();
     while (moreToRead(c, buffer)) {
-      reusedLine.write(c);
-
-      if (buffer.hasRemaining()) {
-        c = buffer.get();
-      } else {
-        // Need to read more data.
-        if (channel != null) {
-          position = position + buffer.position();
-          buffer = channel.map(FileChannel.MapMode.READ_ONLY, position, LINE_BUFFER);
-          c = buffer.get();
-        } else {
-          c = -1;
-        }
-      }
-
+      result.write(c);
+      c = buffer.hasRemaining() ? buffer.get() : -1;
       Context.getCurrent().safepoint();
     }
-
-    return reusedLine.toString(charset);
+    return c != -1;
   }
 
-  private static void scanLine(MappedByteBuffer buffer) {
+  // ** Scans forward one line.
+  //    Returns true if the end of the line was found, false if the buffer finished. */
+  private static boolean scanLine(MappedByteBuffer buffer) {
     int c = buffer.get();
     while (moreToRead(c, buffer)) {
       c = buffer.hasRemaining() ? buffer.get() : -1;
       Context.getCurrent().safepoint();
     }
+    return c != -1;
   }
 
   // ** Reads a line from a file at the given index using the existing rowMap. */
@@ -83,17 +72,29 @@ public class File_Line_Reader {
     if (position >= length) {
       return null;
     }
+    long toRead = rowMap.getSize() > index + 1 ? rowMap.get(index + 1) - position : length - position;
+
+    // Output buffer
+    var outputStream = new ByteArrayOutputStream(128);
 
     // Only read what we have to.
     try (var stream = new FileInputStream(file)) {
       var channel = stream.getChannel();
-      int bufferSize =
-          rowMap.getSize() > index + 1
-              ? (int) (rowMap.get(index + 1) - position)
-              : (int)Math.min(LINE_BUFFER, (length - position));
+      int bufferSize = (int) Math.min(LINE_BUFFER, toRead);
+      long remaining = toRead - bufferSize;
       var buffer = channel.map(FileChannel.MapMode.READ_ONLY, position, bufferSize);
-      return readLine(buffer, charset, channel, position);
+      var result = readLine(buffer, outputStream);
+      while (!result && remaining > 0) {
+        position += bufferSize;
+        bufferSize = (int) Math.min(LINE_BUFFER, remaining);
+        remaining -= bufferSize;
+        buffer = channel.map(FileChannel.MapMode.READ_ONLY, position, bufferSize);
+        result = readLine(buffer, outputStream);
+      }
+
     }
+
+    return outputStream.toString(charset);
   }
 
   // ** Scans forward in a file and returns the line at the given index. */
@@ -128,6 +129,8 @@ public class File_Line_Reader {
       Function<String, Boolean> filter,
       BiFunction<Integer, String, Boolean> action)
       throws IOException {
+    LOGGER.log(Level.INFO, "readLines: {0} {1}", new Object[] { startAt, endAt });
+
     if (startAt >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(startAt);
     }
@@ -162,7 +165,7 @@ public class File_Line_Reader {
             buffer.position((int) (rowMap.get(index) - position));
           }
 
-          output = readLine(buffer, charset, null, -1);
+          output = readLine(buffer, charset);
           if (action.apply(index, output)) {
             return output;
           }
@@ -180,16 +183,16 @@ public class File_Line_Reader {
         }
 
         if (readAll || index == endAt) {
-          output = readLine(buffer, charset, null, -1);
+          output = readLine(buffer, charset);
         } else {
           scanLine(buffer);
         }
 
         if ((buffer.hasRemaining() || !truncated) && (filter == null || filter.apply(output))) {
+          if (index % 100000 == 0) {
+            LOGGER.log(Level.INFO, "Scanned Lines: {0}", index);
+          }
           if (index >= rowMap.getSize()) {
-            if (index % 100000 == 0) {
-              LOGGER.log(Level.INFO, "Scanned Lines: {0}", index);
-            }
             rowMap.add(linePosition);
           }
 
