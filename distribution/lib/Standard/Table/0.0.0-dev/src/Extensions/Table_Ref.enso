@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -50,6 +51,7 @@ type Table_Ref
         Filter_Condition.Greater value -> Filter_Condition.Greater (self.resolve value)
         Filter_Condition.Equal_Or_Greater value -> Filter_Condition.Equal_Or_Greater (self.resolve value)
         Filter_Condition.Between lower upper -> Filter_Condition.Between (self.resolve lower) (self.resolve upper)
+        Filter_Condition.Equal_Ignore_Case value locale -> Filter_Condition.Equal_Ignore_Case (self.resolve value) locale
         Filter_Condition.Starts_With prefix case_sensitivity -> Filter_Condition.Starts_With (self.resolve prefix) case_sensitivity
         Filter_Condition.Ends_With prefix case_sensitivity -> Filter_Condition.Ends_With (self.resolve prefix) case_sensitivity
         Filter_Condition.Contains prefix case_sensitivity -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity
@@ -84,6 +86,6 @@ check_is_in_values operation_name values =
             Error.throw (Illegal_Argument.Error message)
         _ -> v
     case values of
-        _ : Vector -> values.map check_value
-        _ : Array -> values.map check_value
+        _ : Vector -> values.map on_problems=No_Wrap check_value
+        _ : Array -> values.map on_problems=No_Wrap check_value
         _ -> check_value values

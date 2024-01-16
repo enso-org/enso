@@ -11,9 +11,10 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
+import { type Opt } from '@/util/data/opt'
+import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
-import { type Opt } from '@/util/opt'
 import {
   normalizeQualifiedName,
   qnJoin,
@@ -23,7 +24,6 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 
 interface UnfinishedEntry {
@@ -304,7 +304,7 @@ function applyArgumentsUpdate(
           const nameUpdate = applyPropertyUpdate('name', arg, update)
           if (!nameUpdate.ok) return nameUpdate
           const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
-            arg.type = type
+            arg.reprType = type
           })
           if (!typeUpdate.ok) return typeUpdate
           const isSuspendedUpdate = applyPropertyUpdate('isSuspended', arg, update)

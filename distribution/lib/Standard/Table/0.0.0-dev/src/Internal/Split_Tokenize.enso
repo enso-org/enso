@@ -22,7 +22,7 @@ split_to_rows : Table -> Text | Integer -> Text -> Table
 split_to_rows table input_column_id delimiter="," =
     column = table.at input_column_id
     Value_Type.expect_text column
-        fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter))
+        fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter)) at_least_one_row=True
 
 ## PRIVATE
    Tokenizes a column of text into a set of new columns using a regular

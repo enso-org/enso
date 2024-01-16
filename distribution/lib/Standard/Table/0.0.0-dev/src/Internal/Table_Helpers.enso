@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -66,7 +67,7 @@ type Table_Column_Helper
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selectors case_sensitivity reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
-            if error_on_empty && result.is_empty then Error.throw No_Output_Columns else result
+            if error_on_empty && result.is_empty then problem_builder.raise_no_output_columns_with_cause else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
@@ -96,7 +97,7 @@ type Table_Column_Helper
         result = self.internal_columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
-        if result.is_empty then Error.throw No_Output_Columns else
+        if result.is_empty then Error.throw No_Output_Columns.Error else
             problem_builder.attach_problems_after on_problems result
 
     ## PRIVATE
@@ -235,7 +236,7 @@ type Table_Column_Helper
             Panic.throw (Illegal_State.Error message=msg cause=error)
 
         counts = materialized_result.rows.first
-        self.internal_columns.filter_with_index i-> _->
+        new_columns = self.internal_columns.filter_with_index i-> _->
             include = case counts.at i of
                 ## No rows in input, so treating as blank by convention.
                 Nothing -> True
@@ -244,6 +245,9 @@ type Table_Column_Helper
                 unexpected ->
                     Panic.throw (Illegal_State.Error "Unexpected result: "+unexpected.to_display_text+". Perhaps an implementation bug of `select_blank_columns_helper`.")
             if invert_selection then include.not else include
+        if new_columns.is_empty.not then new_columns else
+            message = if invert_selection then "All columns were blank." else "No columns were blank."
+            Error.throw (No_Output_Columns.Error message)
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -514,5 +518,5 @@ replace_columns_with_transformed_columns : Table -> Text | Integer | Regex | Vec
 replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems=Report_Warning =
     internal_columns = table.columns_helper.select_columns selectors Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
     columns = internal_columns.map table.columns_helper.make_column
-    new_columns = columns.map transformer
+    new_columns = columns.map on_problems=No_Wrap transformer
     replace_columns_with_columns table columns new_columns

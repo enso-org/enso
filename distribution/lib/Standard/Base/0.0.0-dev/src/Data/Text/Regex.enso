@@ -99,7 +99,7 @@ type Regex
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match | Nothing | Type_Error
+    match : Text -> Match | Nothing ! Type_Error
     match self input =
         Helpers.expect_text input <|
             it = Match_Iterator.new self input

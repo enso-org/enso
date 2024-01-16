@@ -72,7 +72,7 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 .Dropdown {
   position: absolute;
   top: 100%;
-  margin-top: 4px;
+  margin-top: 8px;
   height: 136px;
 }
 
@@ -88,6 +88,18 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   list-style-type: none;
   color: var(--color-text-light);
   padding: 4px 0;
+}
+
+li {
+  text-align: left;
+}
+
+.selectable-item:hover {
+  color: white;
+}
+
+.list span {
+  vertical-align: text-bottom;
 }
 
 .list::-webkit-scrollbar {
@@ -152,5 +164,6 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 
 .selectable-item {
   margin-right: 16px;
+  padding-left: 8px;
 }
 </style>

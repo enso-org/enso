@@ -215,8 +215,10 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
-        thatArgument = thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
+        selfArgument =
+            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        thatArgument =
+            thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
 
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
@@ -226,7 +228,11 @@ public abstract class InvokeCallableNode extends BaseNode {
     } else {
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
-      throw new PanicException(ctx.getBuiltins().error().makeNoConversionCurrying(canApplyThis, canApplyThat, conversion), this);
+      throw new PanicException(
+          ctx.getBuiltins()
+              .error()
+              .makeNoConversionCurrying(canApplyThis, canApplyThat, conversion),
+          this);
     }
   }
 
@@ -248,7 +254,8 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        selfArgument =
+            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
@@ -269,7 +276,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null);
+      extracted = warnings.getWarnings(warning, null, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
@@ -282,11 +289,11 @@ public abstract class InvokeCallableNode extends BaseNode {
         try {
           if (childDispatch == null) {
             childDispatch =
-                    insert(
-                            build(
-                                    invokeFunctionNode.getSchema(),
-                                    invokeFunctionNode.getDefaultsExecutionMode(),
-                                    invokeFunctionNode.getArgumentsExecutionMode()));
+                insert(
+                    build(
+                        invokeFunctionNode.getSchema(),
+                        invokeFunctionNode.getDefaultsExecutionMode(),
+                        invokeFunctionNode.getArgumentsExecutionMode()));
             childDispatch.setTailStatus(getTailStatus());
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
@@ -296,17 +303,10 @@ public abstract class InvokeCallableNode extends BaseNode {
         }
       }
 
-      var result = childDispatch.execute(
-                  callable,
-                  callerFrame,
-                  state,
-                  arguments);
-
+      var result = childDispatch.execute(callable, callerFrame, state, arguments);
 
       if (result instanceof DataflowError) {
         return result;
-      } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
         return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
@@ -350,7 +350,9 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
-  /** @return the source section for this node. */
+  /**
+   * @return the source section for this node.
+   */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();

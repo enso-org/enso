@@ -1,6 +1,6 @@
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
+import type { Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import type { Opt } from '@/util/opt'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 
 export interface VisualizationMetadata

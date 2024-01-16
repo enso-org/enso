@@ -1,3 +1,4 @@
+import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
@@ -58,8 +59,9 @@ type Type_Error
        Arguments:
        - expected: The expected type at the error location.
        - actual: The actual type at the error location.
-       - name: The name of the argument whose type is mismatched.
-    Error expected actual name
+       - comment: Description of the value that was being checked,
+         e.g. function argument, result or an arbitrary expression.
+    Error expected actual comment
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.
@@ -77,7 +79,7 @@ type Type_Error
                         _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
                _ -> tpe.to_text
 
-        "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
+        "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
 
 @Builtin_Type
 type Compile_Error
@@ -453,3 +455,15 @@ type Missing_Required_Argument
         function_name = function_frame.name
         call_location = caller_frame.source_location
         Error.throw (Missing_Required_Argument.Error argument_name function_name call_location)
+
+## Warning when additional warnings occurred.
+type Additional_Warnings
+    ## PRIVATE
+    Error (count:Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "There were "+self.count.to_text+" additional issues."

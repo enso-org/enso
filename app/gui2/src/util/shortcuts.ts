@@ -1,4 +1,4 @@
-import { isMacLike } from '@/util/events'
+import { isMacLike } from '@/composables/events'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -182,7 +182,7 @@ const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
 )
 normalizedKeyboardSegmentLookup[''] = '+'
 normalizedKeyboardSegmentLookup['space'] = ' '
-normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Delete' : 'Backspace'
+normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Backspace' : 'Delete'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }

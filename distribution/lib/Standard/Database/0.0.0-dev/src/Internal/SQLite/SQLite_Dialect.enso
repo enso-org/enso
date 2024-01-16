@@ -282,7 +282,7 @@ type SQLite_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace]]+concat_ops+trim_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
@@ -408,6 +408,14 @@ make_contains_expr expr substring =
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+
+## PRIVATE
+left = Base_Generator.lift_binary_op "LEFT" str-> n->
+    Builder.code "substr(" ++ str ++ ", 0, " ++ n ++ " + 1)"
+
+## PRIVATE
+right = Base_Generator.lift_binary_op "RIGHT" str-> n->
+    Builder.code "substr(" ++ str ++ ", -" ++ n ++ ", " ++ n ++ ")"
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->

@@ -31,7 +31,9 @@ public abstract class TernaryMapOperation<T, I extends Storage<? super T>> {
   public abstract Storage<?> runTernaryMap(
       I storage, Object arg0, Object arg1, MapOperationProblemAggregator problemAggregator);
 
-  /** @return the name of this operation */
+  /**
+   * @return the name of this operation
+   */
   public String getName() {
     return name;
   }

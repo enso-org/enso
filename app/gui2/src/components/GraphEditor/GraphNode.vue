@@ -1,30 +1,44 @@
-<script setup lang="ts">
+<script lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useApproach } from '@/util/animation'
-import { usePointer, useResizeObserver } from '@/util/events'
+import { Ast } from '@/util/ast'
+import { Prefixes } from '@/util/ast/prefixes'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
-import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, watch, watchEffect } from 'vue'
+import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 /** The width in pixels that is not the widget tree. This includes the icon, and padding. */
 const NODE_EXTRA_WIDTH_PX = 30
 
+const prefixes = Prefixes.FromLines({
+  enableOutputContext:
+    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  disableOutputContext:
+    'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  // Currently unused; included as PoC.
+  skip: 'SKIP __',
+  freeze: 'FREEZE __',
+})
+</script>
+
+<script setup lang="ts">
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -37,10 +51,9 @@ const emit = defineEmits<{
   replaceSelection: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
-  'update:content': [updates: [range: ContentRange, content: string][]]
+  doubleClick: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
-  'update:selected': [selected: boolean]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
@@ -58,7 +71,9 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => props.node.rootSpan.astId)
+const nodeId = computed(() => props.node.rootSpan.exprId)
+
+onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
@@ -87,7 +102,6 @@ watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
 
-const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
@@ -143,6 +157,51 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
+const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
+const displayedExpression = computed(() => matches.value.innerExpr)
+
+const isOutputContextOverridden = computed({
+  get() {
+    const override =
+      matches.value.matches.enableOutputContext ?? matches.value.matches.disableOutputContext
+    const overrideEnabled = matches.value.matches.enableOutputContext != null
+    // An override is only counted as enabled if it is currently in effect. This requires:
+    // - that an override exists
+    if (!override) return false
+    // - that it is setting the "enabled" value to a non-default value
+    else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
+    // - and that it applies to the current execution context.
+    else {
+      const contextWithoutQuotes = override[0]?.code().replace(/^['"]|['"]$/g, '')
+      return contextWithoutQuotes === projectStore.executionMode
+    }
+  },
+  set(shouldOverride) {
+    const module = projectStore.module
+    if (!module) return
+    const replacements = shouldOverride
+      ? [Ast.TextLiteral.new(projectStore.executionMode)]
+      : undefined
+    const edit = props.node.rootSpan.module.edit()
+    const newAst = prefixes.modify(
+      edit,
+      props.node.rootSpan,
+      projectStore.isOutputContextEnabled
+        ? {
+            enableOutputContext: undefined,
+            disableOutputContext: replacements,
+          }
+        : {
+            enableOutputContext: replacements,
+            disableOutputContext: undefined,
+          },
+    )
+    graph.setNodeContent(props.node.rootSpan.exprId, newAst.code())
+  },
+})
+
+// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
+// This does not take into account `displayedExpression`.
 const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
@@ -209,15 +268,19 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
     const offsetData = domNode.parentElement?.dataset.spanStart
     if (offsetData != null) return parseInt(offsetData) + domOffset
   }
-  return 0
+  return domOffset
 }
 
-const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (portId) => emit('outputPortClick', portId),
-  (portId) => {
-    emit('outputPortDoubleClick', portId)
-  },
+const handlePortClick = useDoubleClick(
+  (portId: ExprId) => emit('outputPortClick', portId),
+  (portId: ExprId) => emit('outputPortDoubleClick', portId),
 ).handleClick
+
+const handleNodeClick = useDoubleClick(
+  (e: MouseEvent) => nodeEditHandler(e),
+  () => emit('doubleClick'),
+).handleClick
+
 interface PortData {
   clipRange: [number, number]
   label: string
@@ -227,9 +290,10 @@ interface PortData {
 const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
   const numPorts = ports.size
-  return Array.from(ports, (portId, index) => {
+  return Array.from(ports, (portId, index): PortData => {
     const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType = graph.db.getExpressionInfo(portId)?.typename ?? 'Unknown'
+    const labelType =
+      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
       label: labelIdent + labelType,
@@ -286,12 +350,13 @@ function portGroupStyle(port: PortData) {
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.pattern?.repr() ?? '' }}
+      {{ node.pattern?.code() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"
-      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
+      :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
@@ -311,10 +376,10 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
+    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="node.rootSpan" />
+        <NodeWidgetTree :ast="displayedExpression" />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />
@@ -447,6 +512,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .node {
+  font-family: var(--font-code);
   position: relative;
   top: 0;
   left: 0;
@@ -501,6 +567,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .binding {
+  font-family: var(--font-code);
   user-select: none;
   margin-right: 10px;
   color: black;

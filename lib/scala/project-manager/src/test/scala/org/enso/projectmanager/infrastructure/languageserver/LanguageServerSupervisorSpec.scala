@@ -3,6 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
@@ -27,7 +28,8 @@ class LanguageServerSupervisorSpec
     with Matchers
     with BeforeAndAfterAll
     with MockitoSugar
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" taggedAs Flaky in new TestCtx {
     //given

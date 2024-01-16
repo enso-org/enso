@@ -3,8 +3,11 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Out_Of_Memory
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
@@ -100,7 +103,7 @@ type Table
     new columns =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
-        cols = columns.map c->
+        cols = columns.map on_problems=No_Wrap c->
             case c of
                 v : Vector ->
                     if v.length != 2 then invalid_input_shape else
@@ -438,8 +441,7 @@ type Table
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
@@ -465,8 +467,7 @@ type Table
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -970,7 +971,7 @@ type Table
                 False ->
                     Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-            new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+            new_columns = self.columns.map on_problems=No_Wrap column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -1868,12 +1869,14 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS lookup
+       GROUP Standard.Base.Calculations
        ICON join
-       Replaces values in this table by values from a lookup table.
+       Merges this table with a lookup table
        New values are looked up in the lookup table based on the `key_columns`.
-       Columns found in the lookup table values are replaced by values from the
-       lookup. Columns not found are left unchanged.
+       Columns that exist in the lookup table where a match was found are
+       replaced by values from the lookup table. Columns not found are left
+       unchanged.
        This operation is similar to `Table.update_rows`, but just returns a new
        `Table` instance, instead of updating the table in-place (which is only
        possible for Database tables).
@@ -1922,14 +1925,14 @@ type Table
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map make_java_lookup_column_description
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
 
         keys = lookup_columns.filter .is_key
-        java_keys = keys.map key_column->
+        java_keys = keys.map on_problems=No_Wrap key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 
         handle_java_errors ~action =
@@ -2120,18 +2123,22 @@ type Table
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
         all_tables.if_not_error <|
-            problem_builder = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+            problem_builder_for_matching = Problem_Builder.new
+            problem_builder_for_unification = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
                     Nothing -> Nothing
                     result_type : Value_Type ->
                         concat_columns column_set all_tables result_type result_row_count on_problems
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
-            if good_columns.is_empty then Error.throw No_Output_Columns else
-                problem_builder.attach_problems_before on_problems <|
-                    Table.new good_columns
+            problem_builder_for_matching.attach_problems_before on_problems <|
+                problem_builder_for_unification.attach_problems_before on_problems <|
+                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        Table.new good_columns
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2338,7 +2345,7 @@ type Table
         normalize_group_by input = case input of
             Aggregate_Column.Group_By c _ -> c
             _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
-            _ : Vector -> input.map normalize_group_by
+            _ : Vector -> input.map on_problems=No_Wrap normalize_group_by
             _ -> input
 
         ## validate the name and group_by columns
@@ -2353,7 +2360,7 @@ type Table
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        resolved_values = values_vector.map (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        resolved_values = values_vector.map on_problems=No_Wrap (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
@@ -2488,16 +2495,13 @@ type Table
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                methods = if format == JSON_Format then ["write_table"] else Meta.meta (Meta.type_of format) . methods
-                if methods.contains "write_table" . not then Error.throw (File_Error.Unsupported_Output_Type format Table) else
-                    effective_existing_behaviour = on_existing_file.get_effective_behavior file
-                    tgt_file = if Context.Output.is_enabled then file else
-                        should_copy_file = on_existing_file==Existing_File_Behavior.Append
-                        file.create_dry_run_file copy_original=should_copy_file
-
+                handle_no_write_method caught_panic =
+                    is_write = caught_panic.payload.method_name == "write_table"
+                    if is_write.not then Panic.throw caught_panic else
+                        Error.throw (File_Error.Unsupported_Output_Type format Table)
+                Panic.catch No_Such_Method handler=handle_no_write_method <|
                     to_write = if Context.Output.is_enabled then self else self.take 1000
-                    Context.Output.with_enabled <|
-                        format.write_table tgt_file to_write effective_existing_behaviour match_columns on_problems
+                    format.write_table file to_write on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
@@ -2586,7 +2590,7 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.replace "-" "_"
+             table.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
@@ -2600,8 +2604,8 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @term Widget_Helpers.make_column_ref_or_text_value_selector
     @new_text Widget_Helpers.make_column_ref_or_text_value_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
-    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -2731,6 +2735,11 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 ## PRIVATE
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
+
+## PRIVATE
+   Conversion method to a Table from a JS_Object.
+Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
+    Table.from_objects that fields
 
 ## PRIVATE
    Convert an `XML_Element` into a `Table`

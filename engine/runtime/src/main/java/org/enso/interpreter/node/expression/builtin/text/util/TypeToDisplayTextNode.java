@@ -1,18 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.text.util;
 
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Type;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
 
 public final class TypeToDisplayTextNode extends Node {
-  @Child
-  private TypeOfNode typeOfNode;
+  @Child private TypeOfNode typeOfNode;
 
   private TypeToDisplayTextNode(TypeOfNode typeOfNode) {
     this.typeOfNode = typeOfNode;

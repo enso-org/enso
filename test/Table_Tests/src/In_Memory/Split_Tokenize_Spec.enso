@@ -10,43 +10,67 @@ from project.Util import all
 spec =
     Test.group "Table.split" <|
         Test.specify "can do split_to_columns" <|
-            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            cols = [["foo", [0, 1, 2]], ["bar", ["a|c", "c|d|ef", "gh|ij|u"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
             expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
-            t2 = t.split_to_columns "bar" "b"
+            t2 = t.split_to_columns "bar" "|"
+            t2.should_equal expected
+            
+        Test.specify "can do split_to_columns where split character, first, last and only character" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["|cb", "ab|", "|"]]]
+            t = Table.new cols
+            expected_rows = [[0, "", "cb"], [1, "ab", ""], [2, "", ""]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
+            t2 = t.split_to_columns "bar" "|"
+            t2.should_equal expected
+
+        Test.specify "can do split_to_columns where split character, first, last and only character and mismatch in number of split characters" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["|c|", "ab|", "|"]]]
+            t = Table.new cols
+            expected_rows = [[0, "", "c", ""], [1, "ab", "", Nothing], [2, "", "", Nothing]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
+            t2 = t.split_to_columns "bar" "|"
             t2.should_equal expected
 
         Test.specify "can do split_to_rows" <|
-            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            cols = [["foo", [0, 1, 2]], ["bar", ["a|c", "c|d|ef", "gh|ij|u"]]]
             t = Table.new cols
             expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
-            t2 = t.split_to_rows "bar" "b"
+            t2 = t.split_to_rows "bar" "|"
             t2.should_equal expected
 
-        Test.specify "can do split_to_columns with some Nothings" <|
-            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
+        Test.specify "can do split_to_rows where split character, first, last and only character" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["|cb", "ab|", "|"]]]
             t = Table.new cols
-            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, Nothing, Nothing, Nothing], [3, "gh", "ij", "u"]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
-            t2 = t.split_to_columns "bar" "b"
-            t2.should_equal expected
-
-        Test.specify "can do split_to_rows with some Nothings" <|
-            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
-            t = Table.new cols
-            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [3, "gh"], [3, "ij"], [3, "u"]]
+            expected_rows = [[0, ""], [0, "cb"], [1, "ab"], [1, ""], [2, ""], [2, ""]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
-            t2 = t.split_to_rows "bar" "b"
+            t2 = t.split_to_rows "bar" "|"
+            t2.should_equal expected
+
+        Test.specify "can do split_to_columns with some Nothings and Empty Strings" <|
+            cols = [["foo", [0, 1, 2, 3, 4]], ["bar", ["a|c", "c|d|ef", Nothing, "gh|ij|u", ""]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, Nothing, Nothing, Nothing], [3, "gh", "ij", "u"], [4, "", Nothing, Nothing]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
+            t2 = t.split_to_columns "bar" "|"
+            t2.should_equal expected
+
+        Test.specify "can do split_to_rows with some Nothings and Empty Strings" <|
+            cols = [["foo", [0, 1, 2, 3, 4]], ["bar", ["a|c", "c|d|ef", Nothing, "gh|ij|u", ""]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, Nothing], [3, "gh"], [3, "ij"], [3, "u"], [4, ""]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_rows "bar" "|"
             t2.should_equal expected
 
         Test.specify "can do split_to_columns with one output column, no column suffix added" <|
-            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            cols = [["foo", [0, 1, 2, 3, 4]], ["bar", ["abc", "cbdbef", "ghbijbu", Nothing, ""]]]
             t = Table.new cols
-            expected_rows = [[0, "abc"], [1, "cbdbef"], [2, "ghbijbu"]]
+            expected_rows = [[0, "abc"], [1, "cbdbef"], [2, "ghbijbu"], [3, Nothing], [4, ""]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
-            t2 = t.split_to_columns "bar" "q"
+            t2 = t.split_to_columns "bar" "|"
             t2.should_equal expected
 
     Test.group "Table.tokenize" <|

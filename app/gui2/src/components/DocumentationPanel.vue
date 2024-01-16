@@ -11,9 +11,9 @@ import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/Docume
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { tryGetIndex } from '@/util/array'
+import { tryGetIndex } from '@/util/data/array'
+import { type Opt } from '@/util/data/opt'
 import type { Icon as IconName } from '@/util/iconName'
-import { type Opt } from '@/util/opt'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
@@ -48,7 +48,7 @@ const types = computed<TypeDocs[]>(() => {
   return docs.kind === 'Module' ? docs.types : []
 })
 
-const isPlaceholder = computed(() => 'Placeholder' in documentation.value)
+const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
 const name = computed<Opt<QualifiedName>>(() => {
   const docs = documentation.value
@@ -116,7 +116,6 @@ function handleBreadcrumbClick(index: number) {
 
 <template>
   <div class="DocumentationPanel scrollable" @wheel.stop.passive>
-    <h1 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h1>
     <Breadcrumbs
       v-if="!isPlaceholder"
       :breadcrumbs="breadcrumbs"
@@ -128,9 +127,15 @@ function handleBreadcrumbClick(index: number) {
       @forward="historyStack.forward()"
       @backward="historyStack.backward()"
     />
-    <DocsTags v-if="sections.tags.length > 0" class="tags" :tags="sections.tags" />
+    <DocsTags
+      v-if="sections.tags.length > 0"
+      class="tags"
+      :tags="sections.tags"
+      :groupColor="color"
+    />
     <div class="sections">
-      <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
+      <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
+      <span v-if="sections.synopsis.length == 0">No documentation available.</span>
       <DocsSynopsis :sections="sections.synopsis" />
       <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
       <DocsList
@@ -167,7 +172,7 @@ function handleBreadcrumbClick(index: number) {
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
   --enso-docs-tag-background-color: #dcd8d8;
   --enso-docs-code-background-color: #dddcde;
-  font-family: 'M PLUS 1', DejaVuSansMonoBook, sans-serif;
+  font-family: var(--font-sans);
   font-size: 11.5px;
   line-height: 160%;
   color: var(--enso-docs-text-color);

@@ -1,5 +1,6 @@
-import { Awareness, type UploadingFile } from '@/stores/awareness'
-import { Vec2 } from '@/util/vec2'
+import { Awareness } from '@/stores/awareness'
+import * as astText from '@/util/ast/text'
+import { Vec2 } from '@/util/data/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'
@@ -11,39 +12,44 @@ import { markRaw, toRaw } from 'vue'
 
 // === Constants ===
 
-export const uploadedExpression = (name: string) => `enso_project.data/"${name}" . read`
 const DATA_DIR_NAME = 'data'
+
+export function uploadedExpression(result: UploadResult) {
+  switch (result.source) {
+    case 'Project': {
+      return `enso_project.data/'${astText.escape(result.name)}' . read`
+    }
+    case 'FileSystemRoot': {
+      return `Data.read '${astText.escape(result.name)}'`
+    }
+  }
+}
 
 // === Uploader ===
 
+export interface UploadResult {
+  source: 'FileSystemRoot' | 'Project'
+  name: string
+}
+
 export class Uploader {
-  private rpc: LanguageServer
-  private binary: DataServer
-  private file: File
-  private projectRootId: Uuid
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
-  private awareness: Awareness
-  private position: Vec2
   private stackItem: StackItem
 
   private constructor(
-    rpc: LanguageServer,
-    binary: DataServer,
-    awareness: Awareness,
-    file: File,
-    projectRootId: Uuid,
-    position: Vec2,
+    private rpc: LanguageServer,
+    private binary: DataServer,
+    private awareness: Awareness,
+    private file: File,
+    private projectRootId: Uuid,
+    private position: Vec2,
+    private isOnLocalBackend: boolean,
+    private disableDirectRead: boolean,
     stackItem: StackItem,
   ) {
-    this.rpc = rpc
-    this.binary = binary
-    this.awareness = awareness
-    this.file = file
-    this.projectRootId = projectRootId
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
-    this.position = position
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
@@ -54,11 +60,13 @@ export class Uploader {
     awareness: Awareness,
     file: File,
     position: Vec2,
+    isOnLocalBackend: boolean,
+    disableDirectRead: boolean,
     stackItem: StackItem,
   ): Promise<Uploader> {
     const roots = await contentRoots
     const projectRootId = roots.find((root) => root.type == 'Project')
-    if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
+    if (!projectRootId) throw new Error('Could not find project root, uploading not possible.')
     const instance = new Uploader(
       await rpc,
       await binary,
@@ -66,20 +74,30 @@ export class Uploader {
       file,
       projectRootId.id,
       position,
+      isOnLocalBackend,
+      disableDirectRead,
       stackItem,
     )
     return instance
   }
 
-  async upload(): Promise<string> {
+  async upload(): Promise<UploadResult> {
+    // This non-standard property is defined in Electron.
+    if (
+      this.isOnLocalBackend &&
+      !this.disableDirectRead &&
+      'path' in this.file &&
+      typeof this.file.path === 'string'
+    ) {
+      return { source: 'FileSystemRoot', name: this.file.path }
+    }
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
-    const file: UploadingFile = {
+    this.awareness.addOrUpdateUpload(name, {
       sizePercentage: 0,
       position: this.position,
       stackItem: this.stackItem,
-    }
-    this.awareness.addOrUpdateUpload(name, file)
+    })
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const cleanup = this.cleanup.bind(this, name)
@@ -90,12 +108,11 @@ export class Uploader {
         uploader.uploadedBytes += BigInt(chunk.length)
         const bytes = Number(uploader.uploadedBytes)
         const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
-        const file: UploadingFile = {
+        uploader.awareness.addOrUpdateUpload(name, {
           sizePercentage,
           position: uploader.position,
           stackItem: uploader.stackItem,
-        }
-        uploader.awareness.addOrUpdateUpload(name, file)
+        })
       },
       async close() {
         cleanup()
@@ -109,7 +126,7 @@ export class Uploader {
       },
     })
     await this.file.stream().pipeTo(writableStream)
-    return name
+    return { source: 'Project', name }
   }
 
   private cleanup(name: string) {
@@ -132,34 +149,39 @@ export class Uploader {
 
   private async ensureDataDirExists() {
     const exists = await this.dataDirExists()
-    if (!exists) {
-      await this.rpc.createFile({
-        type: 'Directory',
-        name: DATA_DIR_NAME,
-        path: { rootId: this.projectRootId, segments: [] },
-      })
-    }
+    if (exists) return
+    await this.rpc.createFile({
+      type: 'Directory',
+      name: DATA_DIR_NAME,
+      path: { rootId: this.projectRootId, segments: [] },
+    })
   }
 
   private async dataDirExists(): Promise<boolean> {
     try {
       const info = await this.rpc.fileInfo(this.dataDirPath())
       return info.attributes.kind.type == 'Directory'
-    } catch (err: any) {
-      if (err.cause && err.cause instanceof RemoteRpcError) {
-        if ([ErrorCode.FILE_NOT_FOUND, ErrorCode.CONTENT_ROOT_NOT_FOUND].includes(err.cause.code)) {
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error &&
+        'cause' in error &&
+        error.cause instanceof RemoteRpcError
+      ) {
+        if (
+          error.cause.code === ErrorCode.FILE_NOT_FOUND ||
+          error.cause.code === ErrorCode.CONTENT_ROOT_NOT_FOUND
+        )
           return false
-        }
       }
-      throw err
+      throw error
     }
   }
 
   private async pickUniqueName(suggestedName: string): Promise<string> {
     const files = await this.rpc.listFiles(this.dataDirPath())
     const existingNames = new Set(files.paths.map((path) => path.name))
-    const [stem, maybeExtension] = splitFilename(suggestedName)
-    const extension = maybeExtension ?? ''
+    const { stem, extension = '' } = splitFilename(suggestedName)
     let candidate = suggestedName
     let num = 1
     while (existingNames.has(candidate)) {
@@ -173,14 +195,12 @@ export class Uploader {
 /**
  * Split filename into stem and (optional) extension.
  */
-function splitFilename(filename: string): [string, string | null] {
-  const dotIndex = filename.lastIndexOf('.')
-
+function splitFilename(fileName: string): { stem: string; extension?: string } {
+  const dotIndex = fileName.lastIndexOf('.')
   if (dotIndex !== -1 && dotIndex !== 0) {
-    const stem = filename.substring(0, dotIndex)
-    const extension = filename.substring(dotIndex + 1)
-    return [stem, extension]
+    const stem = fileName.substring(0, dotIndex)
+    const extension = fileName.substring(dotIndex + 1)
+    return { stem, extension }
   }
-
-  return [filename, null]
+  return { stem: fileName }
 }

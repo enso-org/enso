@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
 import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
 import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
 import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.MapError;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
 import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
@@ -63,6 +64,7 @@ public final class Error {
   private final Panic panic;
   private final CaughtPanic caughtPanic;
   private final ForbiddenOperation forbiddenOperation;
+  private final MapError mapError;
 
   private final Unimplemented unimplemented;
 
@@ -101,6 +103,7 @@ public final class Error {
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
     unimplemented = builtins.getBuiltinType(Unimplemented.class);
+    mapError = builtins.getBuiltinType(MapError.class);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -176,11 +179,24 @@ public final class Error {
    *
    * @param expected the expected type
    * @param actual the actual type
-   * @param name the name of the variable that is a type error
+   * @param name name of the argument that was being checked
    * @return a runtime representation of the error.
    */
+  @CompilerDirectives.TruffleBoundary
   public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.newInstance(expected, actual, Text.create(name));
+    return typeError.newInstance(expected, actual, Text.create("`" + name + "`"));
+  }
+
+  /**
+   * Creates an instance of the runtime representation of a {@code Type_Error}.
+   *
+   * @param expected the expected type
+   * @param actual the actual type
+   * @param comment description of the value that was being checked
+   * @return a runtime representation of the error.
+   */
+  public Atom makeTypeErrorOfComment(Object expected, Object actual, String comment) {
+    return typeError.newInstance(expected, actual, Text.create(comment));
   }
 
   /**
@@ -193,7 +209,9 @@ public final class Error {
     return arithmeticError.newInstance(reason);
   }
 
-  /** @return An arithmetic error representing a too-large shift for the bit shift. */
+  /**
+   * @return An arithmetic error representing a too-large shift for the bit shift.
+   */
   public Atom getShiftAmountTooLargeError() {
     if (arithmeticErrorShiftTooBig == null) {
       transferToInterpreterAndInvalidate();
@@ -202,7 +220,9 @@ public final class Error {
     return arithmeticErrorShiftTooBig;
   }
 
-  /** @return An Arithmetic error representing a division by zero. */
+  /**
+   * @return An Arithmetic error representing a division by zero.
+   */
   public Atom getDivideByZeroError() {
     if (arithmeticErrorDivideByZero == null) {
       transferToInterpreterAndInvalidate();
@@ -271,5 +291,14 @@ public final class Error {
 
   public Atom makeNumberParseError(String message) {
     return numberParseError.newInstance(Text.create(message));
+  }
+
+  /**
+   * @param index the position at which the original error occured
+   * @param inner_error the original error
+   * @return an error indicating the index of the error
+   */
+  public Atom makeMapError(long index, Object innerError) {
+    return mapError.newInstance(index, innerError);
   }
 }

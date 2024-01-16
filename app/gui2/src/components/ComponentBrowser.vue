@@ -2,33 +2,33 @@
 import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
+import { useScrolling } from '@/components/ComponentBrowser/scrolling'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useApproach } from '@/composables/animation'
+import { useEvent, useResizeObserver } from '@/composables/events'
+import type { useNavigator } from '@/composables/navigator'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { useApproach } from '@/util/animation'
-import { tryGetIndex } from '@/util/array'
-import { useEvent, useResizeObserver } from '@/util/events'
-import type { useNavigator } from '@/util/navigator'
-import type { Opt } from '@/util/opt'
-import { allRanges } from '@/util/range'
-import { Vec2 } from '@/util/vec2'
+import { tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { allRanges } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
-import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { useComponentBrowserInput } from './ComponentBrowser/input'
-import GraphVisualization from './GraphEditor/GraphVisualization.vue'
+import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -37,44 +37,24 @@ const graphStore = useGraphStore()
 const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
-  initialContent: string
-  initialCaretPosition: ContentRange
-  sourcePort: Opt<ExprId>
+  usage: Usage
 }>()
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string]
+  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
   canceled: []
 }>()
 
-function getInitialContent(): string {
-  if (props.sourcePort == null) return props.initialContent
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return sourceNodeNameWithDot + props.initialContent
-}
-
-function getInitialCaret(): ContentRange {
-  if (props.sourcePort == null) return props.initialCaretPosition
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return [
-    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
-    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
-  ]
-}
-
 onMounted(() => {
-  nextTick(() => {
-    input.code.value = getInitialContent()
-    const caret = getInitialCaret()
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-      input.selection.value = { start: caret[0], end: caret[1] }
-      selectLastAfterRefresh()
-    }
-  })
+  input.reset(props.usage)
+  if (inputField.value != null) {
+    inputField.value.focus({ preventScroll: true })
+  } else {
+    console.warn(
+      'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
+    )
+  }
 })
 
 // === Position ===
@@ -108,7 +88,12 @@ const currentFiltering = computed(() => {
   )
 })
 
-watch(currentFiltering, selectLastAfterRefresh)
+watch(currentFiltering, () => {
+  selected.value = input.autoSelectFirstComponent.value ? 0 : null
+  scrolling.targetScroll.value = { type: 'bottom' }
+  animatedHighlightPosition.skip()
+  animatedHighlightHeight.skip()
+})
 
 function readInputFieldSelection() {
   if (
@@ -159,9 +144,10 @@ useEvent(
   window,
   'pointerdown',
   (event) => {
+    if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value)
+      emit('closed', input.code.value, input.importsToAdd())
     }
   },
   { capture: true },
@@ -186,21 +172,21 @@ const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = comp
   return {
     type: 'expression',
     expression: previewedExpression.value,
-    contextId: body.astId,
+    contextId: body.exprId,
   }
 })
 
 // === Components List and Positions ===
 
-const components = computed(() => {
-  return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
-})
+const components = computed(() =>
+  makeComponentList(suggestionDbStore.entries, currentFiltering.value),
+)
 
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
-  const scrollPosition = animatedScrollPosition.value
-  const topmostVisible = componentAtY(scrollPosition)
-  const bottommostVisible = Math.max(0, componentAtY(scrollPosition + scrollerSize.value.y))
+  const scrollPos = scrolling.scrollPosition.value
+  const topmostVisible = componentAtY(scrollPos)
+  const bottommostVisible = Math.max(0, componentAtY(scrollPos + scrollerSize.value.y))
   return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
     return { component, index: i + bottommostVisible }
   })
@@ -247,13 +233,18 @@ const selectedSuggestion = computed(() => {
   return suggestionDbStore.entries.get(id) ?? null
 })
 
-watch(selectedPosition, (newPos) => {
-  if (newPos == null) return
-  highlightPosition.value = newPos
-  if (animatedHighlightHeight.value <= 1.0) {
-    animatedHighlightPosition.skip()
-  }
-})
+watch(
+  selectedPosition,
+  (newPos) => {
+    if (newPos == null) return
+    highlightPosition.value = newPos
+    if (animatedHighlightHeight.value <= 1.0) {
+      animatedHighlightPosition.skip()
+    }
+  },
+  // Needs to be synchronous to make skipping highlight animation work.
+  { flush: 'sync' },
+)
 
 const highlightClipPath = computed(() => {
   let height = animatedHighlightHeight.value
@@ -263,44 +254,34 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
+function selectWithoutScrolling(index: number) {
+  const scrollPos = scrolling.scrollPosition.value
+  scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
+  selected.value = index
 }
 
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
 const scrollerSize = useResizeObserver(scroller)
-const scrollPosition = ref(0)
-const animatedScrollPosition = useApproach(scrollPosition)
-
 const listContentHeight = computed(() =>
   // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
   // by top bar.
   Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
 )
+const scrolling = useScrolling(
+  animatedHighlightPosition,
+  computed(() => scrollerSize.value.y),
+  listContentHeight,
+  ITEM_SIZE,
+)
+
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
-function scrollToSelected() {
-  if (selectedPosition.value == null) return
-  scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
-}
-
 function updateScroll() {
-  if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
-    scrollPosition.value = scroller.value.scrollTop
-    animatedScrollPosition.skip()
+  // If the scrollTop value changed significantly, that means the user is scrolling.
+  if (scroller.value && Math.abs(scroller.value.scrollTop - scrolling.scrollPosition.value) > 1.0) {
+    scrolling.targetScroll.value = { type: 'offset', offset: scroller.value.scrollTop }
   }
 }
 
@@ -360,7 +341,7 @@ const handler = componentBrowserBindings.handler({
     if (selected.value != null && selected.value < components.value.length - 1) {
       selected.value += 1
     }
-    scrollToSelected()
+    scrolling.scrollWithTransition({ type: 'selected' })
   },
   moveDown() {
     if (selected.value == null) {
@@ -368,7 +349,7 @@ const handler = componentBrowserBindings.handler({
     } else if (selected.value > 0) {
       selected.value -= 1
     }
-    scrollToSelected()
+    scrolling.scrollWithTransition({ type: 'selected' })
   },
   cancelEditing() {
     emit('canceled')
@@ -385,6 +366,9 @@ const handler = componentBrowserBindings.handler({
     @focusout="handleDefocus"
     @keydown="handler"
     @pointerdown.stop
+    @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -401,7 +385,7 @@ const handler = componentBrowserBindings.handler({
           <div
             ref="scroller"
             class="list"
-            :scrollTop.prop="animatedScrollPosition.value"
+            :scrollTop.prop="scrolling.scrollPosition.value"
             @wheel.stop.passive
             @scroll="updateScroll"
           >
@@ -411,7 +395,7 @@ const handler = componentBrowserBindings.handler({
                 :key="item.component.suggestionId"
                 class="component"
                 :style="componentStyle(item.index)"
-                @mousemove="selected = item.index"
+                @mousemove="selectWithoutScrolling(item.index)"
                 @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon
@@ -490,7 +474,7 @@ const handler = componentBrowserBindings.handler({
           v-model="input.code.value"
           name="cb-input"
           autocomplete="off"
-          @keyup="readInputFieldSelection"
+          @input="readInputFieldSelection"
         />
       </div>
     </div>
@@ -570,7 +554,9 @@ const handler = componentBrowserBindings.handler({
   display: flex;
   position: absolute;
   line-height: 1;
+  font-family: var(--font-code);
 }
+
 .selected {
   color: white;
   & svg {

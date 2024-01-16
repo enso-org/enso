@@ -1,11 +1,9 @@
 package org.enso.base.enso_cloud;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.sql.Connection;
@@ -13,119 +11,91 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import org.enso.base.net.URISchematic;
+import org.enso.base.net.URIWithSecrets;
+import org.graalvm.collections.Pair;
 
-/**
- * Makes HTTP requests with secrets in either header or query string.
- */
+/** Makes HTTP requests with secrets in either header or query string. */
 public class EnsoSecretHelper {
   /**
-   * Gets the value of an EnsoKeyValuePair resolving secrets.
-   * @param pair The pair to resolve.
+   * Gets the value of an HideableValue resolving secrets.
+   *
+   * @param value The value to resolve.
    * @return The pair's value. Should not be returned to Enso.
    */
-  private static String resolveValue(EnsoKeyValuePair pair) {
-    return switch (pair) {
-      case EnsoKeyStringPair stringPair -> stringPair.value();
-      case EnsoKeySecretPair secretPair ->
-          EnsoSecretReader.readSecret(secretPair.secretId());
-      case null ->
-          throw new IllegalArgumentException("EnsoKeyValuePair should not be NULL.");
+  private static String resolveValue(HideableValue value) {
+    return switch (value) {
+      case HideableValue.PlainValue plainValue -> plainValue.value();
+      case HideableValue.SecretValue secretValue -> EnsoSecretReader.readSecret(
+          secretValue.secretId());
     };
   }
 
-  /**
-   * Converts an EnsoKeyValuePair into a string for display purposes. Does not include secrets.
-   * @param pair The pair to render.
-   * @return The rendered string.
-   */
-  private static String renderValue(EnsoKeyValuePair pair) {
-    return switch (pair) {
-      case EnsoKeyStringPair stringPair -> stringPair.value();
-      case EnsoKeySecretPair _ -> "__SECRET__";
-      case null ->
-          throw new IllegalArgumentException("EnsoKeyValuePair should not be NULL.");
-    };
-  }
-
-  /**
-   * Substitutes the minimal parts within the string for the URI parse.
-   * */
-  public static String encodeArg(String arg, boolean includeEquals) {
-    var encoded = arg.replace("%", "%25")
-        .replace("&", "%26")
-        .replace(" ", "%20");
-    if (includeEquals) {
-      encoded = encoded.replace("=", "%3D");
-    }
-    return encoded;
-  }
-
-    /**
-     * Replaces the query string in a URI.
-     * */
-  public static URI replaceQuery(URI uri, String newQuery) throws URISyntaxException {
-    var baseURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
-
-    var baseFragment = uri.getFragment();
-    baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
-
-    return URI.create(baseURI + newQuery + baseFragment);
-  }
-
-  private static String makeQueryAry(EnsoKeyValuePair pair, Function<EnsoKeyValuePair, String> resolver) {
-    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? encodeArg(pair.key(), true) + "=" : "";
-    String resolvedValue = encodeArg(resolver.apply(pair), false);
-    return resolvedKey + resolvedValue;
-  }
-
-  //** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. **//
-  public static Connection getJDBCConnection(String url, EnsoKeyValuePair[] properties)
-    throws SQLException {
+  /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
+  public static Connection getJDBCConnection(String url, Pair<String, HideableValue>[] properties)
+      throws SQLException {
     var javaProperties = new Properties();
-    for (EnsoKeyValuePair pair : properties) {
-      javaProperties.setProperty(pair.key(), resolveValue(pair));
+    for (var pair : properties) {
+      javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
     }
 
     return DriverManager.getConnection(url, javaProperties);
   }
 
-  //** Makes a request with secrets in the query string or headers. **//
-  public static EnsoHttpResponse makeRequest(HttpClient client, Builder builder, URI uri, List<EnsoKeyValuePair> queryArguments, List<EnsoKeyValuePair> headerArguments)
+  /**
+   * Gets the actual URI with all secrets resolved, so that it can be used to create a request. This
+   * value should never be returned to Enso.
+   */
+  private static URI resolveURI(URIWithSecrets uri) {
+    try {
+      List<Pair<String, String>> resolvedQueryParameters =
+          uri.queryParameters().stream()
+              .map(p -> Pair.create(p.getLeft(), resolveValue(p.getRight())))
+              .toList();
+      URISchematic resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
+      return resolvedSchematic.build();
+    } catch (URISyntaxException e) {
+      // Here we don't display the message of the exception to avoid risking it may leak any
+      // secrets.
+      // This should never happen in practice.
+      throw new IllegalStateException(
+          "Unexpectedly unable to build a valid URI from the base URI: "
+              + uri
+              + ": "
+              + e.getClass().getCanonicalName());
+    }
+  }
+
+  // ** Makes a request with secrets in the query string or headers. **//
+  public static EnsoHttpResponse makeRequest(
+      HttpClient client,
+      Builder builder,
+      URIWithSecrets uri,
+      List<Pair<String, HideableValue>> headers)
       throws IOException, InterruptedException {
 
     // Build a new URI with the query arguments.
-    URI resolvedURI = uri;
-    URI renderedURI = uri;
-    if (queryArguments != null && !queryArguments.isEmpty()) {
-      try {
-        var baseQuery = uri.getQuery();
-        baseQuery = baseQuery != null && !baseQuery.isBlank() ? "?" + baseQuery + "&" : "?";
-        var query = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
+    URI resolvedURI = resolveURI(uri);
+    URI renderedURI = uri.render();
 
-        resolvedURI = replaceQuery(uri, query);
-        renderedURI = resolvedURI;
-        if (queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair)) {
-          if (!resolvedURI.getScheme().equals("https")) {
-            // If used a secret then only allow HTTPS
-            throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI.");
-          }
+    boolean hasSecrets =
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().isSecret());
+    if (hasSecrets) {
+      if (resolvedURI.getScheme() == null) {
+        throw new IllegalArgumentException("The URI must have a scheme.");
+      }
 
-          var renderedQuery = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::renderValue)).collect(Collectors.joining("&"));
-          renderedURI = replaceQuery(uri, renderedQuery);
-        }
-      } catch (URISyntaxException e) {
-        throw new IllegalArgumentException("Unable to build a valid URI.");
+      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+        throw new IllegalArgumentException(
+            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
       }
     }
+
     builder.uri(resolvedURI);
 
     // Resolve the header arguments.
-    if (headerArguments != null && !headerArguments.isEmpty()) {
-      for (EnsoKeyValuePair header : headerArguments) {
-        builder.header(header.key(), resolveValue(header));
-      }
+    for (Pair<String, HideableValue> header : headers) {
+      builder.header(header.getLeft(), resolveValue(header.getRight()));
     }
 
     // Build and Send the request.
@@ -134,11 +104,7 @@ public class EnsoSecretHelper {
     var javaResponse = client.send(httpRequest, bodyHandler);
 
     // Extract parts of the response
-    return new EnsoHttpResponse(renderedURI, javaResponse.headers().map().keySet().stream().toList(), javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+    return new EnsoHttpResponse(
+        renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
-
-  /**
-   * A subset of the HttpResponse to avoid leaking the decrypted Enso secrets.
-   */
-  public record EnsoHttpResponse(URI uri, List<String> headerNames, HttpHeaders headers, InputStream body, int statusCode) { }
 }

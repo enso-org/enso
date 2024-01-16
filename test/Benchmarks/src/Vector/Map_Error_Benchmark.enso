@@ -1,0 +1,80 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Bench
+
+import project.Vector.Utils
+
+polyglot java import java.util.ArrayList
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 3) . set_measure (Bench.phase_conf 3 3)
+
+vector_size = 100000
+
+type Lazy
+    Value ~value
+
+# Vector elements are not inspected
+create_vec size = Vector.new size i->i
+
+map_id vec on_problems =
+    f i x =
+        _ = [i]
+        x
+    vec.map_with_index f on_problems=on_problems
+
+map_id_one_error vec on_problems =
+    an_index = Random.integer 0 vec.length
+    f i x = if i != an_index then x else
+        Error.throw (Illegal_Argument.Error "error")
+    vec.map_with_index f on_problems=on_problems
+
+map_id_always_throw vec on_problems =
+    f i x =
+        _ = [i, x]
+        Error.throw (Illegal_Argument.Error "error")
+    vec.map_with_index f on_problems=on_problems
+
+map_id_throw_ten_percent vec on_problems =
+    f i x = 
+        _ = [i]
+        should_throw = (Random.integer 0 10) == 0
+        if should_throw then Error.throw (Illegal_Argument.Error "error") else x
+    vec.map_with_index f on_problems=on_problems
+
+collect_benches = Bench.build builder->
+    unaltered_data = Lazy.Value (create_vec vector_size)
+
+    type_group vector_type alter =
+        data = Lazy.Value (alter unaltered_data.value)
+
+        [["ignore", Problem_Behavior.Ignore], ["report_warning", Problem_Behavior.Report_Warning], ["report_error", Problem_Behavior.Report_Error]].map x->
+            problem_behavior_name = x.at 0
+            problem_behavior = x.at 1
+            builder.group "Map_Error_Benchmark_"+vector_type+"_"+problem_behavior_name options group_builder->
+                    group_builder.specify "Map_Id_No_Errors" <|
+                        map_id data.value on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_One_Error" <|
+                        map_id_one_error data.value on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_All_Errors" <|
+                        map_id_always_throw data.value on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_Ten_Percent_Errors" <|
+                        map_id_throw_ten_percent data.value on_problems=problem_behavior . catch
+
+    type_group "Vector" identity
+    type_group "Array" (v -> v.to_array)
+    type_group "JavaArrayList" v->
+        arr = ArrayList.new
+        v.each (x -> arr.add x)
+        arr
+    type_group "Array_Proxy" v->
+        Array_Proxy.new v.length (ix -> v.at ix)
+    type_group "Slice" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
+
+main = collect_benches . run_main

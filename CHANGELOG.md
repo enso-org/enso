@@ -593,6 +593,16 @@
 - [Added `Table.format` for the in-memory backend.][8150]
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 - [Initial Enso Cloud APIs.][8006]
+- [Renamed `replace` to `text_replace` and renamed `lookup_and_replace` to
+  `merge` on `Table`.][8564]
+- [Errors thrown inside `map` are wrapped in `Map_Error`.][8307]
+- [Support for loading big Excel files.][8403]
+- [Added new `Filter_Condition`s - `Equal_Ignore_Case`, `Is_Nan`, `Is_Infinite`
+  and `Is_Finite`.][8539]
+- [Support `on_problems=Problem_Behavior.Report_Warning` in `Vector.map`.][8595]
+- [Added text_length to Column][8606]
+- [Added none delimiter option for Data.Read][8627]
+- [Added text_left and text_right to Column][8691]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -848,6 +858,14 @@
 [8105]: https://github.com/enso-org/enso/pull/8105
 [8150]: https://github.com/enso-org/enso/pull/8150
 [8235]: https://github.com/enso-org/enso/pull/8235
+[8307]: https://github.com/enso-org/enso/pull/8307
+[8403]: https://github.com/enso-org/enso/pull/8403
+[8539]: https://github.com/enso-org/enso/pull/8539
+[8564]: https://github.com/enso-org/enso/pull/8564
+[8595]: https://github.com/enso-org/enso/pull/8595
+[8606]: https://github.com/enso-org/enso/pull/8606
+[8627]: https://github.com/enso-org/enso/pull/8627
+[8691]: https://github.com/enso-org/enso/pull/8691
 
 #### Enso Compiler
 
@@ -999,6 +1017,9 @@
 - [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
 - [Upgrade GraalVM to 23.1.0 JDK21][7991]
+- [Added opt-in type checks of return type][8502]
+- [Introduce Arrow language][8512]
+- [DataflowError.withoutTrace doesn't store stacktrace][8608]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1149,6 +1170,9 @@
 [7937]: https://github.com/enso-org/enso/pull/7937
 [7960]: https://github.com/enso-org/enso/pull/7960
 [7991]: https://github.com/enso-org/enso/pull/7991
+[8502]: https://github.com/enso-org/enso/pull/8502
+[8512]: https://github.com/enso-org/enso/pull/8512
+[8608]: https://github.com/enso-org/enso/pull/8608
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

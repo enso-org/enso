@@ -1,37 +1,77 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { ForcePort } from '@/providers/portInfo'
-import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication } from '@/util/callTree'
+import { ArgumentApplicationKey, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const targetMaybePort = computed(() =>
-  props.input.target instanceof Ast.Ast ? new ForcePort(props.input.target) : props.input.target,
-)
+const application = computed(() => props.input[ArgumentApplicationKey])
+const targetMaybePort = computed(() => {
+  const target = application.value.target
+  return target instanceof ArgumentPlaceholder || target instanceof ArgumentAst
+    ? { ...target.toWidgetInput(), forcePort: true }
+    : target instanceof Ast.Ast
+    ? WidgetInput.FromAst(target)
+    : target.toWidgetInput()
+})
+
+const appClass = computed(() => {
+  return application.value.infixOperator != null ? 'infix' : 'prefix'
+})
+
+const operatorStyle = computed(() => {
+  if (application.value.appTree instanceof Ast.OprApp) {
+    const [_lhs, opr, rhs] = application.value.appTree.concreteChildren()
+    return {
+      '--whitespace-pre': `${JSON.stringify(opr?.whitespace ?? '')}`,
+      '--whitespace-post': `${JSON.stringify(rhs?.whitespace ?? '')}`,
+    }
+  }
+  return {}
+})
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(ArgumentApplication, {
-  priority: 1000,
+export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
+  priority: -20,
 })
 </script>
 
 <template>
-  <span class="WidgetApplication">
+  <span class="WidgetApplication" :class="appClass">
     <NodeWidget :input="targetMaybePort" />
-    <NodeWidget v-if="props.input.infixOperator" :input="props.input.infixOperator" />
-    <NodeWidget :input="props.input.argument" :dynamicConfig="props.config" />
+    <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
+      <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
+    </div>
+    <NodeWidget :input="application.argument.toWidgetInput()" nest />
   </span>
 </template>
 
 <style>
 .WidgetApplication {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  gap: 4px;
+  &.prefix {
+    gap: 4px;
+  }
+}
+
+.infixOp {
+  display: flex;
+
+  &:before {
+    content: var(--whitespace-pre);
+    display: inline;
+    white-space: pre;
+  }
+
+  &:after {
+    content: var(--whitespace-post);
+    display: inline;
+    white-space: pre;
+  }
 }
 </style>

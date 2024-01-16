@@ -1,7 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -13,17 +22,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Any",
@@ -76,11 +74,11 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  @Specialization(guards="interop.isBoolean(other)")
+  @Specialization
   boolean equalsBoolInterop(
-    boolean self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      boolean self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return self == interop.asBoolean(other);
     } catch (UnsupportedMessageException ex) {
@@ -108,11 +106,21 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  @Specialization(guards="interop.fitsInLong(other)")
+  @Specialization
+  @TruffleBoundary
+  boolean equalsLongBigInt(long self, EnsoBigInteger other) {
+    if (BigIntegerOps.fitsInLong(other.getValue())) {
+      return BigInteger.valueOf(self).compareTo(other.getValue()) == 0;
+    } else {
+      return false;
+    }
+  }
+
+  @Specialization
   boolean equalsLongInterop(
-    long self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      long self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return self == interop.asLong(other);
     } catch (UnsupportedMessageException ex) {
@@ -140,45 +148,56 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  @TruffleBoundary
-  boolean equalsDoubleBigInt(double self, EnsoBigInteger other) {
-    return self == other.getValue().doubleValue();
-  }
-
-  @Specialization(guards="interop.fitsInDouble(other)")
-  boolean equalsDoubleInterop(
-    double self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
-    try {
-      return self == interop.asDouble(other);
-    } catch (UnsupportedMessageException ex) {
-      return false;
-    }
-  }
-
-  @Specialization
   boolean equalsDoubleText(double self, Text other) {
     return false;
   }
 
   @Specialization
-  @TruffleBoundary
-  boolean equalsBigIntBigInt(EnsoBigInteger self, EnsoBigInteger otherBigInt) {
-    return self.equals(otherBigInt);
+  boolean equalsDoubleInterop(
+      double self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    try {
+      if (interop.fitsInDouble(other)) {
+        return self == interop.asDouble(other);
+      }
+      var otherBig = interop.asBigInteger(other);
+      return self == asDouble(otherBig);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
   }
 
-  @Specialization
   @TruffleBoundary
-  boolean equalsBitIntDouble(EnsoBigInteger self, double other) {
-    return self.getValue().doubleValue() == other;
+  private static double asDouble(BigInteger big) {
+    return big.doubleValue();
   }
 
-  @Specialization
+  @Specialization(guards = {"isBigInteger(iop, self)", "isBigInteger(iop, other)"})
   @TruffleBoundary
-  boolean equalsBigIntLong(EnsoBigInteger self, long other) {
-    if (BigIntegerOps.fitsInLong(self.getValue())) {
-      return self.getValue().compareTo(BigInteger.valueOf(other)) == 0;
+  boolean other(
+      Object self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    return asBigInteger(iop, self).equals(asBigInteger(iop, other));
+  }
+
+  @Specialization(guards = "isBigInteger(iop, self)")
+  @TruffleBoundary
+  boolean equalsBigIntDouble(
+      Object self,
+      double other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    return asBigInteger(iop, self).doubleValue() == other;
+  }
+
+  @Specialization(guards = "isBigInteger(iop, self)")
+  @TruffleBoundary
+  boolean equalsBigIntLong(
+      Object self, long other, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    var v = asBigInteger(iop, self);
+    if (BigIntegerOps.fitsInLong(v)) {
+      return v.compareTo(BigInteger.valueOf(other)) == 0;
     } else {
       return false;
     }
@@ -195,28 +214,15 @@ public abstract class EqualsNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(guards={
-    "!isPrimitiveValue(other)",
-    "interop.fitsInBigInteger(other)"
-  })
+  @Specialization(guards = {"isBigInteger(iop, self)", "!isPrimitiveValue(other)"})
   boolean equalsBigIntInterop(
-    EnsoBigInteger self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      Object self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     try {
       var otherBigInteger = InteropLibrary.getUncached().asBigInteger(other);
-      return self.asBigInteger().equals(otherBigInteger);
+      return asBigInteger(iop, self).equals(otherBigInteger);
     } catch (UnsupportedMessageException ex) {
-      return false;
-    }
-  }
-
-  @Specialization
-  @TruffleBoundary
-  boolean equalsLongBigInt(long self, EnsoBigInteger other) {
-    if (BigIntegerOps.fitsInLong(other.getValue())) {
-      return BigInteger.valueOf(self).compareTo(other.getValue()) == 0;
-    } else {
       return false;
     }
   }
@@ -247,12 +253,13 @@ public abstract class EqualsNode extends Node {
   }
 
   /**
-   * Compares interop strings according to the lexicographical order, handling Unicode
-   * normalization. See {@code Text_Utils.compare_to}.
+   * Compares interop string with other object. If the other object doesn't support conversion to
+   * String, it is not equal. Otherwise the two strings are compared according to the
+   * lexicographical order, handling Unicode normalization. See {@code Text_Utils.compare_to}.
    */
   @TruffleBoundary
   @Specialization(
-      guards = {"selfInterop.isString(selfString)", "otherInterop.isString(otherString)"},
+      guards = {"selfInterop.isString(selfString)"},
       limit = "3")
   boolean equalsStrings(
       Object selfString,
@@ -265,7 +272,7 @@ public abstract class EqualsNode extends Node {
       selfJavaString = selfInterop.asString(selfString);
       otherJavaString = otherInterop.asString(otherString);
     } catch (UnsupportedMessageException e) {
-      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
+      return false;
     }
     return Core_Text_Utils.equals(selfJavaString, otherJavaString);
   }
@@ -293,40 +300,39 @@ public abstract class EqualsNode extends Node {
     return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
   }
 
-
   @Specialization
   boolean equalsReverseBoolean(
-    TruffleObject self, boolean other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      boolean other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseLong(
-    TruffleObject self, long other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      long other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseDouble(
-    TruffleObject self, double other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      double other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseBigInt(
-    TruffleObject self, EnsoBigInteger other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      EnsoBigInteger other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
@@ -375,8 +381,26 @@ public abstract class EqualsNode extends Node {
   }
 
   static boolean isPrimitiveValue(Object object) {
-    return object instanceof Boolean
-            || object instanceof Long
-            || object instanceof Double;
+    return object instanceof Boolean || object instanceof Long || object instanceof Double;
+  }
+
+  static boolean isBigInteger(InteropLibrary iop, Object v) {
+    if (v instanceof EnsoBigInteger) {
+      return true;
+    } else {
+      return !iop.fitsInDouble(v) && !iop.fitsInLong(v) && iop.fitsInBigInteger(v);
+    }
+  }
+
+  BigInteger asBigInteger(InteropLibrary iop, Object v) {
+    if (v instanceof EnsoBigInteger big) {
+      return big.getValue();
+    } else {
+      try {
+        return iop.asBigInteger(v);
+      } catch (UnsupportedMessageException ex) {
+        throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
+      }
+    }
   }
 }

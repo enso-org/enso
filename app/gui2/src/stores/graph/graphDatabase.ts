@@ -1,22 +1,24 @@
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
 import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import type { Opt } from '@/util/opt'
-import { Vec2 } from '@/util/vec2'
+import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
@@ -87,9 +89,9 @@ export class BindingsDb {
   private static rangeMappings(
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
-    const bindingIdToRange = new Map<ExprId, ContentRange>()
+  ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<ExprId, SourceRange>] {
+    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(IdMap.keyForRange)
+    const bindingIdToRange = new Map<ExprId, SourceRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
       bindingRanges.add(binding)
@@ -135,24 +137,37 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
-      for (const usage of info.usages) {
-        const targetNode = db.getExpressionNodeId(usage)
-        // Display only connections to existing targets and different than source node
-        if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage]
-      }
-    }
-    return Array.from(allTargets(this))
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
+
+  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
+   * e.g. input arguments of the collapsed function.
+   */
+  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
+    const srcNode = this.getPatternExpressionNodeId(alias)
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
+  })
+
+  private *connectionsFromBindings(
+    info: BindingInfo,
+    alias: ExprId,
+    srcNode: ExprId | undefined,
+  ): Generator<[ExprId, ExprId]> {
+    for (const usage of info.usages) {
+      const targetNode = this.getExpressionNodeId(usage)
+      // Display only connections to existing targets and different than source node.
+      if (targetNode == null || targetNode === srcNode) continue
+      yield [alias, usage]
+    }
+  }
 
   /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
   nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     const ports = new Set<ExprId>()
     entry.pattern.visitRecursive((ast) => {
-      if (this.bindings.bindings.has(ast.astId)) {
-        ports.add(ast.astId)
+      if (this.bindings.bindings.has(ast.exprId)) {
+        ports.add(ast.exprId)
         return false
       }
       return true
@@ -204,6 +219,10 @@ export class GraphDb {
     return this.bindings.bindings.get(source)?.identifier
   }
 
+  allIdentifiers(): string[] {
+    return [...this.bindings.identifierToBindingId.allForward()].map(([ident, _]) => ident)
+  }
+
   identifierUsed(ident: string): boolean {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
@@ -247,11 +266,25 @@ export class GraphDb {
     this.nodeIdToNode.moveToLast(id)
   }
 
+  /** Get the method name from the stack item. */
+  stackItemToMethodName(item: StackItem): string | undefined {
+    switch (item.type) {
+      case 'ExplicitCall': {
+        return item.methodPointer.name
+      }
+      case 'LocalCall': {
+        const exprId = item.expressionId
+        const info = this.getExpressionInfo(exprId)
+        return info?.methodCall?.methodPointer.name
+      }
+    }
+  }
+
   readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
-      const nodeId = newNode.rootSpan.astId
+      const nodeId = newNode.rootSpan.exprId
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = getMeta(nodeId)
       currentNodeIds.add(nodeId)
@@ -290,9 +323,10 @@ export class GraphDb {
     }
 
     const functionAst = functionAst_.astExtended
-    if (!functionAst) return
-    if (!functionAst.isTree(RawAst.Tree.Type.Function)) return
-    this.bindings.readFunctionAst(functionAst)
+    if (functionAst?.isTree(RawAst.Tree.Type.Function)) {
+      this.bindings.readFunctionAst(functionAst)
+    }
+    return currentNodeIds
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
@@ -309,46 +343,39 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string) {
-    const node = {
+  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
+    const pattern = Ast.parse(binding)
+    const node: Node = {
       outerExprId: id,
-      pattern: Ast.parse(binding),
+      pattern,
       rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bidingId = node.pattern.astId
+    const bindingId = pattern.exprId
     this.nodeIdToNode.set(id, node)
-    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+    this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
+    return node
   }
 }
 
 export interface Node {
-  outerExprId: ExprId
+  outerExprId: Ast.AstId
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: Ast.Ast): Node {
-  const common = {
-    outerExprId: ast.exprId,
+/** This should only be used for supplying as initial props when testing.
+ * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
+export function mockNode(exprId?: Ast.AstId): Node {
+  return {
+    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
+    pattern: undefined,
+    rootSpan: Ast.parse('0'),
     position: Vec2.Zero,
     vis: undefined,
-  }
-  if (ast instanceof Ast.Assignment && ast.expression) {
-    return {
-      ...common,
-      pattern: ast.pattern ?? undefined,
-      rootSpan: ast.expression,
-    }
-  } else {
-    return {
-      ...common,
-      pattern: undefined,
-      rootSpan: ast,
-    }
   }
 }
 

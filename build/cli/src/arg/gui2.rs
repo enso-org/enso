@@ -25,6 +25,8 @@ pub enum Command {
     Test,
     /// Run linter on the GUI's sources.
     Lint,
+    /// Continuously rebuilds GUI when its sources are changed and serves it using dev-server.
+    Watch,
 }
 
 #[derive(Args, Clone, Debug)]

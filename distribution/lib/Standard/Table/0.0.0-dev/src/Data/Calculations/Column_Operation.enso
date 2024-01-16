@@ -142,7 +142,7 @@ type Column_Operation
         builder.append (Option "max" fqn+".Max" [["input", col_refs], ["rhs", col_refs]])
         builder.append (Option "date add" fqn+".Date_Add" [["input", col_refs], ["length", col_refs]])
         builder.append (Option "date part" fqn+".Date_Part" [["input", col_refs]])
-        builder.append (Option "date diff" fqn+".Date_Diff" [["start", col_refs], ["end", col_refs]])
+        builder.append (Option "date diff" fqn+".Date_Diff" [["input", col_refs], ["end", col_refs]])
         builder.append (Option "not" fqn+".Not" [["input", col_refs]])
         builder.append (Option "and" fqn+".And" [["input", col_refs], ["rhs", col_refs]])
         builder.append (Option "or" fqn+".Or" [["input", col_refs], ["rhs", col_refs]])

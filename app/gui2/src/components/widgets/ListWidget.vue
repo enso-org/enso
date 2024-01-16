@@ -1,10 +1,10 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useRaf } from '@/composables/animation'
+import { useEvent } from '@/composables/events'
 import { useAppClass } from '@/providers/appClass'
-import { useRaf } from '@/util/animation'
-import { useEvent } from '@/util/events'
-import { Range } from '@/util/range'
-import { Vec2 } from '@/util/vec2'
+import { Range } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
 import { uuidv4 } from 'lib0/random'
 import { nextTick } from 'process'
 import { computed, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
@@ -425,6 +425,12 @@ watchPostEffect(() => {
 </template>
 
 <style scoped>
+.VectorWidget {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .VectorWidget.animate {
   .placeholder {
     display: flex;
@@ -459,6 +465,10 @@ watchPostEffect(() => {
   }
 }
 
+div {
+  display: inline-block;
+}
+
 .vector-literal {
   display: flex;
   align-items: center;
@@ -466,10 +476,14 @@ watchPostEffect(() => {
 
 .items {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  list-style: none;
 }
 
 .item {
   display: flex;
+  flex-direction: row;
   align-items: center;
 }
 
@@ -481,11 +495,7 @@ watchPostEffect(() => {
 
 .token {
   color: rgb(255 255 255 / 0.33);
-  vertical-align: middle;
-  align-items: center;
-  display: inline-flex;
   user-select: none;
-  height: 24px;
 }
 
 .drop-area {

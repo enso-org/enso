@@ -21,13 +21,19 @@ import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
-  /** @return the number of elements in this column (including NAs) */
+  /**
+   * @return the number of elements in this column (including NAs)
+   */
   public abstract int size();
 
-  /** @return the number of NA elements in this column */
+  /**
+   * @return the number of NA elements in this column
+   */
   public abstract int countMissing();
 
-  /** @return the type tag of this column's storage. */
+  /**
+   * @return the type tag of this column's storage.
+   */
   public abstract StorageType getType();
 
   /**
@@ -103,6 +109,9 @@ public abstract class Storage<T> {
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
+    public static final String TEXT_LENGTH = "text_length";
+    public static final String TEXT_LEFT = "text_left";
+    public static final String TEXT_RIGHT = "text_right";
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
@@ -378,7 +387,8 @@ public abstract class Storage<T> {
     if (fallback == null) {
       if (operationName == null) {
         throw new IllegalArgumentException(
-            "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
+            "A function or name of vectorized operation must be specified. This is a bug in the"
+                + " Table library.");
       } else {
         String className = this.getClass().getName();
         throw new IllegalArgumentException(
@@ -392,8 +402,8 @@ public abstract class Storage<T> {
 
     if (storageType == null) {
       throw new IllegalArgumentException(
-          "The expected result type must be specified if a fallback function is used. This is a bug in the Table "
-              + "library.");
+          "The expected result type must be specified if a fallback function is used. This is a bug"
+              + " in the Table library.");
     }
   }
 
@@ -407,7 +417,20 @@ public abstract class Storage<T> {
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     Builder builder = Builder.getForType(commonType, size(), problemAggregator);
-    return fillMissingHelper(arg, builder);
+    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (it == null) {
+        builder.appendNoGrow(convertedFallback);
+      } else {
+        builder.appendNoGrow(it);
+      }
+
+      context.safepoint();
+    }
+
+    return builder.seal();
   }
 
   /**
@@ -426,23 +449,6 @@ public abstract class Storage<T> {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
-    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
-      if (it == null) {
-        builder.appendNoGrow(convertedFallback);
-      } else {
-        builder.appendNoGrow(it);
       }
 
       context.safepoint();
@@ -492,7 +498,9 @@ public abstract class Storage<T> {
    */
   public abstract Storage<T> countMask(int[] counts, int total);
 
-  /** @return a copy of the storage containing a slice of the original data */
+  /**
+   * @return a copy of the storage containing a slice of the original data
+   */
   public abstract Storage<T> slice(int offset, int limit);
 
   /**
@@ -501,7 +509,9 @@ public abstract class Storage<T> {
    */
   public abstract Storage<?> appendNulls(int count);
 
-  /** @return a copy of the storage consisting of slices of the original data */
+  /**
+   * @return a copy of the storage consisting of slices of the original data
+   */
   public abstract Storage<T> slice(List<SliceRange> ranges);
 
   public List<Object> toList() {

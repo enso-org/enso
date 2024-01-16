@@ -162,12 +162,43 @@ spec setup =
                 (x && y).to_vector . should_equal [True, False, False]
                 (x || y.not).to_vector . should_equal [True, True, True]
 
-        Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
-            t = table_builder [["X", [True, False, True]]]
-            x = t.at "X"
-            nulls = [Nothing, Nothing, Nothing, Nothing]
-            (x && Nothing).to_vector . should_equal nulls
-            (x || Nothing).to_vector . should_equal nulls
+        Test.specify "should handle nulls correctly in not" <|
+            t = table_builder [["A", [True, False, Nothing]]]
+            a = t.at "A"
+            a_not = a.not
+            a_not.to_vector . should_equal [False, True, Nothing]
+
+        Test.specify "should handle nulls correctly in &&" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a && True).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a && Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, False, False, False, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not && True).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a_not && Nothing).to_vector . should_equal [False, False, False, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a && b).to_vector . should_equal [True, False, Nothing, False, False, False, Nothing, False, Nothing]
+            (a_not && b).to_vector . should_equal [False, False, False, True, False, Nothing, Nothing, False, Nothing]
+
+        Test.specify "should handle nulls correctly in ||" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a || False).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a || Nothing).to_vector . should_equal [True, True, True, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a_not || False).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not || Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, True, True, True, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a || b).to_vector . should_equal [True, True, True, True, False, Nothing, True, Nothing, Nothing]
+            (a_not || b).to_vector . should_equal [True, False, Nothing, True, True, True, True, Nothing, Nothing]
 
         Test.specify "should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [True, False, Nothing]]]
@@ -295,6 +326,59 @@ spec setup =
             actual = t.fill_nothing ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+        
+        Test.specify "should allow to fill_nothing from larger string and expands type to fit" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
+            actual = t.fill_nothing ["col0"] "ABCDE"
+            actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
+            case setup.test_selection.length_restricted_text_columns of
+                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
+                False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+
+        Test.specify "should allow to fill_nothing from an empty string" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
+            actual = t.fill_nothing ["col0", "col1"] ""
+            actual.at "col0" . to_vector . should_equal ["0", "", "4", "5", "", ""]
+            actual.at "col1" . to_vector . should_equal ["", "200", "", "400", "500", ""]
+
+        Test.specify "should allow to fill_nothing a fixed width from an empty string" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] ""
+            actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]  
+            case setup.test_selection.length_restricted_text_columns of
+                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
+                False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+        
+        Test.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+            t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
+            fillBlank = t.fill_nothing ["col0"] ""
+            fillOneSpace = t.fill_nothing ["col0"] " "
+            fillTwoSpaces = t.fill_nothing ["col0"] "  "
+            case setup.test_selection.length_restricted_text_columns of
+                True -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                    fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
+                False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                    fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+            
+            case setup.test_selection.removes_trailing_whitespace_casting_from_char_to_varchar of
+                True -> fillBlank.at "col0" . to_vector . should_equal ["a", "", ""]
+                False -> fillBlank.at "col0" . to_vector . should_equal ["a", "", " "]
+
+            fillOneSpace.at "col0" . to_vector . should_equal ["a", " ", " "]
+                   
+            case setup.test_selection.removes_trailing_whitespace_casting_from_char_to_varchar of
+                True -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "", ""]
+                False -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "  ", " "]
+                
+        Test.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
+            t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
+            actual = t.fill_nothing ["col0"] "   "
+            actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]  
+            case setup.test_selection.fixed_length_text_columns of
+                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
         Test.specify "should allow to fill_nothing from other columns" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
@@ -333,16 +417,16 @@ spec setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
-    Test.group prefix+"Table.replace" <|
+    Test.group prefix+"Table.text_replace" <|
         Test.specify "should allow to replace values in a table" <|
             with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
-                actual = t.replace ["col0", "col1"] "ab" "xy"
+                actual = t.text_replace ["col0", "col1"] "ab" "xy"
                 actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
                 actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
 
         Test.specify "should allow to replace values in a table with a regex" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
-            actual = t.replace ["col0", "col1"] "[bdi]".to_regex "xy"
+            actual = t.text_replace ["col0", "col1"] "[bdi]".to_regex "xy"
             case actual.is_error && setup.is_database of
                 True ->
                     actual.should_fail_with Unsupported_Database_Operation
@@ -352,7 +436,7 @@ spec setup =
 
         Test.specify "should allow to replace values in a table with a column" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
-            actual = t.replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
+            actual = t.text_replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
             case actual.is_error && setup.is_database of
                 True ->
                     actual.should_fail_with Unsupported_Database_Operation
@@ -363,7 +447,7 @@ spec setup =
 
         Test.specify "should allow to use Column_Ref in replace" <|
             t = table_builder [["txt", ["abc", "def", "ghi"]], ["term", ["b", "d", "i"]], ["new", ["X", "Y", "Z"]]]
-            t1 = t.replace "txt" (Column_Ref.Name "term") (Column_Ref.Name "new")
+            t1 = t.text_replace "txt" (Column_Ref.Name "term") (Column_Ref.Name "new")
             case t1.is_error && setup.is_database of
                 True ->
                     t1.should_fail_with Unsupported_Database_Operation
@@ -827,6 +911,86 @@ spec setup =
                 s1.like (s2+"%r") . to_vector . should_equal [True, False, False, False, Nothing]
                 s1.like "%r%" . to_vector . should_equal [True, True, False, False, Nothing]
 
+        Test.specify "should handle operation text_length" <|
+            with_mixed_columns_if_supported [["strings", ["foobar", "", Nothing, "👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                res = col.text_length
+                res.name . should_equal "text_length([strings])"
+
+                case setup.is_database of
+                    False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
+                    True -> res . to_vector . should_equal [6, 0, Nothing, 3, 4, 286]  # Storage Length
+
+        Test.specify "text_length should error on non-string columns" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_length . should_fail_with Invalid_Value_Type
+        
+        Test.specify "should handle operation text_left and text_right with length 1" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
+                resLeft = col.text_left 1
+                resLeft.name . should_equal "text_left([strings], 1)"
+                resRight = col.text_right 1
+                resRight.name . should_equal "text_right([strings], 1)"
+                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"] 
+                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
+                case setup.is_database of
+                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
+                case setup.is_database of
+                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
+                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+        
+        Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left 3
+                resLeft.name . should_equal "text_left([strings], 3)"
+                resRight = col.text_right 3
+                resRight.name . should_equal "text_right([strings], 3)"
+
+                case setup.is_database of
+                    False -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "] # Grapheme Length
+                    True -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
+                case setup.is_database of
+                    False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
+                    True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
+        
+        Test.specify "text_left and text_right should error on non-string columns" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_left 6 . should_fail_with Invalid_Value_Type
+            col.text_right 6 . should_fail_with Invalid_Value_Type
+
+        Test.specify "text_left and text_right should error on non integer parameters" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_left 3.14 . should_fail_with Invalid_Value_Type
+            col.text_right 3.14 . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+            col.text_left "7" . should_fail_with Invalid_Value_Type
+
+        Test.specify "text_left and text_right should return empty on zero argument" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left 0
+                resLeft.name . should_equal "text_left([strings], 0)"
+                resRight = col.text_right 0
+                resRight.name . should_equal "text_right([strings], 0)"
+                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+
+        Test.specify "text_left and text_right should return empty on negative arguments" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left -3
+                resLeft.name . should_equal "text_left([strings], -3)"
+                resRight = col.text_right -3
+                resRight.name . should_equal "text_right([strings], -3)"
+                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+
         Test.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
@@ -954,113 +1118,112 @@ spec setup =
                 op c 1 . should_fail_with Invalid_Value_Type
                 op a True . should_fail_with Invalid_Value_Type
 
-    Test.group prefix+"Column Operations - Text Replace" <|
-        do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
-            case setup.is_database of
-                True ->
-                    input_type = Meta.type_of term
-                    params = Replace_Params.Value input_type case_sensitivity only_first
-                    supported_replace_params = setup.test_selection.supported_replace_params
-                    supported_replace_params . should_be_a Set
-                    are_params_supported = supported_replace_params.contains params
-                    case are_params_supported of
-                        True -> column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
-                        False -> column.replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
-                False ->
-                    result = column.replace term new_text case_sensitivity only_first
-                    result.value_type . should_equal Value_Type.Char
-                    result . to_vector . should_equal expected
+    do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
+        case setup.is_database of
+            True ->
+                input_type = Meta.type_of term
+                params = Replace_Params.Value input_type case_sensitivity only_first
+                supported_replace_params = setup.test_selection.supported_replace_params
+                supported_replace_params . should_be_a Set
+                are_params_supported = supported_replace_params.contains params
+                case are_params_supported of
+                    True -> column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
+                    False -> column.replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
+            False ->
+                result = column.replace term new_text case_sensitivity only_first
+                result.value_type . should_equal Value_Type.Char
+                result . to_vector . should_equal expected
 
-        Test.group prefix+"replace: literal text pattern and replacement" <|
-            col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
-            col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+    Test.group prefix+"replace: literal text pattern and replacement" <|
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
 
-            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-                do_replace col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-                do_replace col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
+        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+            do_replace col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
 
-            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-                do_replace col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
-                do_replace col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+            do_replace col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
+            do_replace col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-            Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
-                do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
+        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
+            do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
 
-            Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
-                do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
+            do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-        Test.group prefix+"replace: literal regex pattern and replacement" <|
-            col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+    Test.group prefix+"replace: literal regex pattern and replacement" <|
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
 
-            Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
-                do_replace col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
+        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
+            do_replace col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
-            Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-                do_replace col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
+            do_replace col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
-            Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-                do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+        Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
+            do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
 
-            Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-                do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+        Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
+            do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
-            Test.specify "can properly escape complex regexes" <|
-                regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
-                col = table_builder [["x", [regex]]] . at "x"
-                do_replace col regex "asdf" ["asdf"]
+        Test.specify "can properly escape complex regexes" <|
+            regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
+            col = table_builder [["x", [regex]]] . at "x"
+            do_replace col regex "asdf" ["asdf"]
 
-        Test.group prefix+"replace: pattern and replacement columns" <|
+    Test.group prefix+"replace: pattern and replacement columns" <|
+        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+        col = table.at "x"
+        patterns = table.at "patterns"
+        replacements = table.at "replacements"
+
+        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+            do_replace col patterns replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+
+        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+            do_replace col patterns replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
+
+        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+    Test.group prefix+"replace: empty table and nothings" <|
+        Test.specify "should work on empty tables" <|
+            col = table_builder [["x", ['hello Hello']]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
+            do_replace col 'hello' 'bye' expected=[]
+
+        Test.specify "should work on Nothing text column" <|
+            col = table_builder [["x", ['hello Hello', Nothing]]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
+            do_replace col 'hello' 'bye' expected=[Nothing]
+
+    if setup.is_database then Test.group prefix+"replace: DB specific edge-cases" <|
+        col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
+        Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
+            locale = Locale.new "en" "GB" "UTF-8"
+            col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+
+        Test.specify "column name" <|
             table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
             col = table.at "x"
             patterns = table.at "patterns"
             replacements = table.at "replacements"
 
-            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-                do_replace col patterns replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-
-            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-                do_replace col patterns replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
-            Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
-
-            Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
-        Test.group prefix+"replace: empty table and nothings" <|
-            Test.specify "should work on empty tables" <|
-                col = table_builder [["x", ['hello Hello']]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
-                do_replace col 'hello' 'bye' expected=[]
-
-            Test.specify "should work on Nothing text column" <|
-                col = table_builder [["x", ['hello Hello', Nothing]]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
-                do_replace col 'hello' 'bye' expected=[Nothing]
-
-        if setup.is_database then
-            col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
-            Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
-                locale = Locale.new "en" "GB" "UTF-8"
-                col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
-
-            Test.specify "column name" <|
-                table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
-                col = table.at "x"
-                patterns = table.at "patterns"
-                replacements = table.at "replacements"
-
-                supported_replace_params = setup.test_selection.supported_replace_params
-                if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
-                    col.replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
-                if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
-                    col.replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
-                if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
-                    col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
+            supported_replace_params = setup.test_selection.supported_replace_params
+            if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
+                col.replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
+            if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
+                col.replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
+            if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
+                col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
 
     Test.group prefix+"Column Operations - Text Replace (in-memory only)" <|
         if setup.is_database.not then
@@ -1211,7 +1374,7 @@ spec setup =
 
         Test.specify "nulls" <|
             t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
-            t.at "a" . is_nothing . name . should_equal "[a] is null"
+            t.at "a" . is_nothing . name . should_equal "[a] is Nothing"
             t.at "a" . is_present . name . should_equal "is_present([a])"
             t.at "a" . is_blank . name . should_equal "is_blank([a])"
             t.at "a" . fill_nothing 100 . name . should_equal "a"

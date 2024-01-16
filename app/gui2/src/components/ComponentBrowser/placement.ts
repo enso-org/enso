@@ -1,7 +1,7 @@
 import { bail } from '@/util/assert'
-import { Rect } from '@/util/rect'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
-import { Vec2 } from '@/util/vec2'
 
 export interface Environment {
   screenBounds: Rect
@@ -127,4 +127,55 @@ export function mouseDictatedPlacement(
 ): Placement {
   const nodeRadius = nodeSize.y / 2
   return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
+}
+
+/** The new node should appear at the average position of selected nodes.
+ *
+ * If the desired place is already occupied by non-selected node, it should be moved down to the closest free space.
+ *
+ * Specifically, this code, in order:
+ * - calculates the average position of selected nodes
+ * - searches for all vertical spans below the initial position,
+ *   that horizontally intersect the initial position (no horizontal gap is required between
+ *   the new node and old nodes)
+ * - shifts the node down (if required) until there is sufficient vertical space -
+ *   the height of the node, in addition to the specified gap both above and below the node.
+ */
+export function averagePositionPlacement(
+  nodeSize: Vec2,
+  { screenBounds, selectedNodeRects, nodeRects }: Environment,
+  { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
+): Placement {
+  let totalPosition = new Vec2(0, 0)
+  let selectedNodeRectsCount = 0
+  for (const rect of selectedNodeRects) {
+    totalPosition = totalPosition.add(rect.pos)
+    selectedNodeRectsCount++
+  }
+  const initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
+  const nonSelectedNodeRects = []
+  outer: for (const rect of nodeRects) {
+    for (const sel of selectedNodeRects) {
+      if (sel.equals(rect)) {
+        continue outer
+      }
+    }
+    nonSelectedNodeRects.push(rect)
+  }
+  let top = initialPosition.y
+  const initialRect = new Rect(initialPosition, nodeSize)
+  const nodeRectsSorted = Array.from(nonSelectedNodeRects).sort((a, b) => a.top - b.top)
+  for (const rect of nodeRectsSorted) {
+    if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
+      if (rect.top - (top + nodeSize.y) < verticalGap) {
+        top = rect.bottom + verticalGap
+      }
+    }
+  }
+  const finalPosition = new Vec2(initialPosition.x, top)
+  if (new Rect(finalPosition, nodeSize).within(screenBounds)) {
+    return { position: finalPosition }
+  } else {
+    return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
+  }
 }

@@ -18,7 +18,9 @@ public abstract class UnaryMapOperation<T, I extends Storage<? super T>> {
   protected abstract Storage<?> runUnaryMap(
       I storage, MapOperationProblemAggregator problemAggregator);
 
-  /** @return the name of this operation */
+  /**
+   * @return the name of this operation
+   */
   public String getName() {
     return name;
   }

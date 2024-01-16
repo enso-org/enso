@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
-import type { GraphNavigator } from '@/providers/graphNavigator.ts'
-import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import type { GraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import type { PortId } from '@/providers/portInfo'
 import { useGraphStore } from '@/stores/graph'
-import { Vec2 } from '@/util/vec2.ts'
-import type { ExprId } from 'shared/yjsModel.ts'
+import { Ast } from '@/util/ast'
+import { Vec2 } from '@/util/data/vec2'
+import { isUuid, type ExprId } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
+
+const emits = defineEmits<{
+  createNodeFromEdge: [source: ExprId, position: Vec2]
+}>()
 
 const editingEdge: Interaction = {
   cancel() {
@@ -23,13 +29,13 @@ const editingEdge: Interaction = {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = target && graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.getPortNodeId(target)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
-          createNodeFromEdgeDrop(source, graphNavigator)
+          emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
         } else {
           createEdge(source, target)
         }
@@ -39,27 +45,34 @@ const editingEdge: Interaction = {
     return true
   },
 }
+
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
-function disconnectEdge(target: ExprId) {
-  graph.setExpressionContent(target, '_')
-}
-
-function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) {
-  const node = graph.createNodeFromSource(graphNavigator.sceneMousePos ?? Vec2.Zero, source)
-  if (node != null) {
-    graph.setEditedNode(node, 0)
-  } else {
-    console.error('Failed to create node from edge drop.')
+function disconnectEdge(target: PortId) {
+  if (!graph.updatePortValue(target, undefined)) {
+    const targetStr: string = target
+    if (isUuid(targetStr)) {
+      console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
+      graph.setExpressionContent(targetStr as ExprId, '_')
+    } else {
+      console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
+    }
   }
 }
 
-function createEdge(source: ExprId, target: ExprId) {
+function createEdge(source: ExprId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
-  // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, ident)
-  // TODO: Use alias analysis to ensure declarations are in a dependency order.
+  const identAst = Ast.parse(ident)
+  if (!graph.updatePortValue(target, identAst)) {
+    const targetStr: string = target
+    if (isUuid(targetStr)) {
+      console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
+      graph.setExpressionContent(targetStr as ExprId, ident)
+    } else {
+      console.error(`Failed to connect edge to port ${target}, no fallback possible.`)
+    }
+  }
 }
 </script>
 

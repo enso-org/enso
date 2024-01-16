@@ -18,6 +18,7 @@ public class TestLogProvider implements SLF4JServiceProvider {
   @Override
   public ILoggerFactory getLoggerFactory() {
     ILoggerFactory factory = underlying.getLoggerFactory();
+    assert factory instanceof LoggerContext;
     if (!initialized) {
       try {
         new LogbackSetup((LoggerContext) factory).setup();

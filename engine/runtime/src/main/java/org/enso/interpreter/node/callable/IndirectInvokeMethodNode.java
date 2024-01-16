@@ -39,7 +39,9 @@ import org.enso.interpreter.runtime.state.State;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeMethodNode extends Node {
 
-  /** @return a new indirect method invocation node */
+  /**
+   * @return a new indirect method invocation node
+   */
   public static IndirectInvokeMethodNode build() {
     return IndirectInvokeMethodNodeGen.create();
   }
@@ -130,7 +132,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch) {
     arguments[thisArgumentPosition] = self.getValue();
-    ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this);
+    ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this, false);
     Object result =
         childDispatch.execute(
             frame,

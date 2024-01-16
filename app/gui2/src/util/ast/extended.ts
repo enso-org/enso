@@ -1,22 +1,21 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
-import * as encoding from 'lib0/encoding'
-import { digest } from 'lib0/hash/sha256'
-import * as map from 'lib0/map'
-import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
-import { markRaw } from 'vue'
 import {
   childrenAstNodesOrTokens,
-  debugAst,
   parseEnso,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
   visitGenerator,
   visitRecursive,
   walkRecursive,
-} from '.'
-import type { Opt } from '../opt'
+} from '@/util/ast'
+import type { Opt } from '@/util/data/opt'
+import * as encoding from 'lib0/encoding'
+import * as sha256 from 'lib0/hash/sha256'
+import * as map from 'lib0/map'
+import type { ExprId, IdMap, SourceRange } from 'shared/yjsModel'
+import { markRaw } from 'vue'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
   ? Extract<V, { type: Ts }>
@@ -71,14 +70,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     })
   }
 
-  treeTypeName(): (typeof Tree.typeNames)[number] | null {
-    return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
-  }
-
-  tokenTypeName(): (typeof Token.typeNames)[number] | null {
-    return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
-  }
-
   isToken<T extends OneOrArray<Ast.Token.Type>>(
     type?: T,
   ): this is AstExtended<ExtractType<Ast.Token, T>, HasIdMap> {
@@ -113,10 +104,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     }
   }
 
-  debug(): unknown {
-    return debugAst(this.inner)
-  }
-
   tryMap<T2 extends Tree | Token>(
     mapper: (t: T) => Opt<T2>,
   ): AstExtended<T2, HasIdMap> | undefined {
@@ -147,7 +134,7 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
   }
 
-  span(): ContentRange {
+  span(): SourceRange {
     return parsedTreeOrTokenRange(this.inner)
   }
 
@@ -218,7 +205,7 @@ class AstExtendedCtx<HasIdMap extends boolean> {
   getHash(ast: AstExtended<Tree | Token, boolean>) {
     const key = AstExtendedCtx.getHashKey(ast)
     return map.setIfUndefined(this.contentHashes, key, () =>
-      digest(
+      sha256.digest(
         encoding.encode((encoder) => {
           const whitespace = ast.whitespaceLength()
           encoding.writeUint32(encoder, whitespace)
@@ -236,12 +223,5 @@ class AstExtendedCtx<HasIdMap extends boolean> {
         }),
       ),
     )
-  }
-}
-
-declare const AstExtendedKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [AstExtendedKey]: AstExtended
   }
 }

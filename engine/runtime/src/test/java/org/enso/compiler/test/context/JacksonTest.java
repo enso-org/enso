@@ -1,31 +1,23 @@
 package org.enso.compiler.test.context;
 
-import java.util.List;
-
-import org.enso.polyglot.Suggestion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
-
+import java.util.List;
+import org.enso.polyglot.Suggestion;
+import org.junit.Test;
 import scala.Option;
 
 public class JacksonTest {
 
   @Test
   public void testSerdeOfSuggestion() throws Exception {
-    Object shape = new Suggestion.Module(
-      "SampleModule",
-      Option.apply("doc"),
-      Option.empty()
-    );
+    Object shape = new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty());
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
-    String result = m
-            .writerWithDefaultPrettyPrinter()
-            .writeValueAsString(shape);
+    String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
 
     Suggestion suggestion = m.readerFor(Suggestion.class).readValue(result);
     assertEquals("SampleModule", suggestion.name());
@@ -35,15 +27,12 @@ public class JacksonTest {
 
   @Test
   public void testArraySerdeOfSuggestion() throws Exception {
-    Object shape = new Suggestion[]{new Suggestion.Module(
-      "SampleModule",
-      Option.apply("doc"),
-      Option.empty()
-      )};
+    Object shape =
+        new Suggestion[] {
+          new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty())
+        };
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
-    String result = m
-            .writerWithDefaultPrettyPrinter()
-            .writeValueAsString(shape);
+    String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
 
     var it = m.readerFor(Suggestion.class).readValues(result);
     var suggestion = it.nextValue();
@@ -58,15 +47,12 @@ public class JacksonTest {
 
   @Test
   public void testRecordSerdeOfSuggestion() throws Exception {
-    Object shape = new SuggestionCache(11, List.of(new Suggestion.Module(
-      "SampleModule",
-      Option.apply("doc"),
-      Option.empty()
-    )));
+    Object shape =
+        new SuggestionCache(
+            11,
+            List.of(new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty())));
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
-    String result = m
-            .writerWithDefaultPrettyPrinter()
-            .writeValueAsString(shape);
+    String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
 
     var cache = (SuggestionCache) m.readerFor(SuggestionCache.class).readValue(result);
     assertEquals("One suggestion", 1, cache.suggestions.size());
@@ -79,8 +65,6 @@ public class JacksonTest {
   }
 
   public record SuggestionCache(
-    @JsonProperty("version") int version,
-    @JsonProperty("suggestions") List<Suggestion> suggestions
-  ) {
-  }
+      @JsonProperty("version") int version,
+      @JsonProperty("suggestions") List<Suggestion> suggestions) {}
 }

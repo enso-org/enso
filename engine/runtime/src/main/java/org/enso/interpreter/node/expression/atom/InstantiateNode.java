@@ -82,7 +82,8 @@ public abstract class InstantiateNode extends ExpressionNode {
       } else if (warningProfile.profile(warnings.hasWarnings(argument))) {
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(argument, this));
+          accumulatedWarnings =
+              accumulatedWarnings.append(warnings.getWarnings(argument, this, false));
           argumentValues[i] = warnings.removeWarnings(argument);
         } catch (UnsupportedMessageException e) {
           throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);

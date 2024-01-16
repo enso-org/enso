@@ -25,12 +25,11 @@
  * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
  */
 
-import type { ContentRange } from '@/../../../../shared/yjsModel'
 import { assertDefined } from '@/util/assert'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { IdMap, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { IdMap } from '../../../../shared/yjsModel'
-import { AliasAnalyzer } from '../aliasAnalysis'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -55,9 +54,9 @@ class Annotation {
 /** Parse annotations from the annotated code. See the file-top comment for the syntax. */
 function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
-  annotations: MappedKeyMap<ContentRange, Annotation>
+  annotations: MappedKeyMap<SourceRange, Annotation>
 } {
-  const annotations = new MappedKeyMap(IdMap.keyForRange)
+  const annotations = new MappedKeyMap<SourceRange, Annotation>(IdMap.keyForRange)
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
@@ -69,7 +68,14 @@ function parseAnnotations(annotatedCode: string): {
 
   const unannotatedCode = annotatedCode.replace(
     annotationRegex,
-    (match, bindingPrefix, bindingName, usagePrefix, usageName, offset) => {
+    (
+      match,
+      bindingPrefix: string | undefined,
+      bindingName: string | undefined,
+      usagePrefix: string | undefined,
+      usageName: string | undefined,
+      offset: number,
+    ) => {
       console.log(`Processing annotated identifier ${match}.`)
 
       // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
@@ -78,13 +84,13 @@ function parseAnnotations(annotatedCode: string): {
       expect(usagePrefix != null).toBe(usageName != null)
       expect(bindingPrefix != null).not.toBe(usagePrefix != null)
 
-      const id = parseInt(bindingPrefix ?? usagePrefix, 10)
-      const name = bindingName ?? usageName
+      const id = parseInt(bindingPrefix ?? usagePrefix ?? '0', 10)
+      const name = bindingName ?? usageName ?? ''
       const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
 
       const start = offset - accumulatedOffset
       const end = start + name.length
-      const range = [start, end]
+      const range: SourceRange = [start, end]
 
       const annotation = new Annotation(kind, id)
       accumulatedOffset += match.length - name.length
@@ -107,10 +113,10 @@ function parseAnnotations(annotatedCode: string): {
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
   /** The expected aliases. */
-  readonly expectedAliases = new MappedKeyMap<ContentRange, ContentRange[]>(IdMap.keyForRange)
+  readonly expectedAliases = new MappedKeyMap<SourceRange, SourceRange[]>(IdMap.keyForRange)
 
   /** The expected unresolved symbols. */
-  readonly expectedUnresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
+  readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
 
   /**
    * @param code The code of the program to be tested, without annotations.
@@ -122,7 +128,7 @@ class TestCase {
     const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
 
     const testCase = new TestCase(unannotatedCode)
-    const prefixBindings = new Map<number, ContentRange>()
+    const prefixBindings = new Map<number, SourceRange>()
 
     for (const [range, annotation] of annotations) {
       if (annotation.kind === AnnotationType.Binding) {
@@ -151,11 +157,11 @@ class TestCase {
     return testCase
   }
 
-  repr(range: ContentRange): string {
+  repr(range: SourceRange): string {
     return this.code.substring(range[0], range[1])
   }
 
-  prettyPrint(range: ContentRange): string {
+  prettyPrint(range: SourceRange): string {
     return `${this.repr(range)}@[${range}]`
   }
 
@@ -218,7 +224,7 @@ test('Annotations parsing', () => {
   expect(unannotatedCode).toBe(expectedUnannotatedCode)
   expect(annotations.size).toBe(7)
   const validateAnnotation = (
-    range: ContentRange,
+    range: SourceRange,
     kind: AnnotationType,
     prefix: number,
     identifier: string,
@@ -318,7 +324,7 @@ test(
 test(
   'Default argument application',
   runTestCase(`«1,main» =
-    »3,summarize_transaction« default`),
+    »3,summarize_transaction« »2,default«`),
 )
 
 test(
@@ -333,4 +339,12 @@ test(
     »2,x«
     «3,x» = 1
     »3,x«`),
+)
+
+test(
+  'Identifier called default',
+  runTestCase(`«1,main» =
+    »2,default«
+    «3,default» = 1
+    »3,default«`),
 )

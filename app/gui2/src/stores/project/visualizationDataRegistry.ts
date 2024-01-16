@@ -1,5 +1,5 @@
 import type { ExecutionContext } from '@/stores/project'
-import { Err, Ok, type Result } from '@/util/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import type { DataServer } from 'shared/dataServer'
 import type {
@@ -35,7 +35,7 @@ export class VisualizationDataRegistry {
     this.dataServer = dataServer
     this.visualizationValues = reactive(new Map())
 
-    this.executionContext.on('visualizationsConfigured', this.reconfiguredHandler)
+    this.executionContext.on('newVisualizationConfiguration', this.reconfiguredHandler)
     this.dataServer.then((data) => {
       data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
     })

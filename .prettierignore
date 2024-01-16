@@ -15,12 +15,12 @@ distribution/docs-js
 
 built-distribution/
 THIRD-PARTY
-resources/engine
-resources/python
+/resources/
 
 # The files in the `data` directory of our tests may have specific structure or
 # even be malformed on purpose, so we do not want to run prettier on them.
 test/**/data
+tools/http-test-helper/www-files
 
 # GUI
 **/scala-parser.js
@@ -34,6 +34,7 @@ app/ide-desktop/lib/dashboard/playwright-report/
 app/ide-desktop/lib/dashboard/playwright/.cache/
 app/gui/view/documentation/assets/stylesheet.css
 app/gui2/rust-ffi/pkg
+app/gui2/src/assets/font-*.css
 Cargo.lock
 build.json
 app/gui2/playwright-report/

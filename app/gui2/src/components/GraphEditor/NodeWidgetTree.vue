@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { ForcePort } from '@/providers/portInfo'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useTransitioning } from '@/composables/animation'
+import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import { useTransitioning } from '@/util/animation'
+import { assertNever } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { isUuid } from 'shared/yjsModel'
 import { computed, toRef } from 'vue'
-import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
-  return props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.astId)
-    ? new ForcePort(props.ast)
-    : props.ast
+  const input = WidgetInput.FromAst(props.ast)
+  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.exprId)) {
+    input.forcePort = true
+  }
+  return input
 })
 
 const observedLayoutTransitions = new Set([
@@ -28,13 +32,37 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
+function handleWidgetUpdates(update: WidgetUpdate) {
+  console.log('Widget Update: ', update)
+  if (update.portUpdate) {
+    const {
+      edit,
+      portUpdate: { value, origin },
+    } = update
+    if (!isUuid(origin)) {
+      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+    } else {
+      const ast =
+        value instanceof Ast.Ast
+          ? value
+          : value == null
+          ? Ast.Wildcard.new(edit)
+          : Ast.RawCode.new(value, edit)
+      edit.replaceValue(origin as Ast.AstId, ast)
+    }
+  }
+  graph.commitEdit(update.edit)
+  // This handler is guaranteed to be the last handler in the chain.
+  return true
+}
+
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
 provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 </script>
 
 <template>
   <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
-    <NodeWidget :input="rootPort" />
+    <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>
 </template>
 
@@ -47,10 +75,6 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
   height: 24px;
   display: flex;
   align-items: center;
-
-  & :deep(span) {
-    vertical-align: middle;
-  }
 
   &:has(.WidgetPort.newToConnect) {
     margin-left: calc(4px - var(--widget-port-extra-pad));

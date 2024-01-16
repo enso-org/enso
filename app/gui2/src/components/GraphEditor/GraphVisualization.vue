@@ -11,14 +11,15 @@ import {
   type VisualizationDataSource,
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
-import { toError } from '@/util/error'
+import { toError } from '@/util/data/error'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import type { Result } from '@/util/data/result'
+import type { URLString } from '@/util/data/urlString'
+import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import type { URLString } from '@/util/urlString'
-import { Vec2 } from '@/util/vec2'
 import { computedAsync } from '@vueuse/core'
-import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
   onErrorCaptured,
@@ -77,14 +78,17 @@ const configForGettingDefaultVisualization = computed<NodeVisualizationConfigura
 
 const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
-) as ShallowRef<{ library: { name: string } | null; name: string } | undefined>
+) as ShallowRef<Result<{ library: { name: string } | null; name: string } | undefined>>
 
 const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
   const raw = defaultVisualizationRaw.value
-  if (!raw) return
+  if (!raw?.ok || !raw.value) return
   return {
-    name: raw.name,
-    module: raw.library == null ? { kind: 'Builtin' } : { kind: 'Library', name: raw.library.name },
+    name: raw.value.name,
+    module:
+      raw.value.library == null
+        ? { kind: 'Builtin' }
+        : { kind: 'Library', name: raw.value.library.name },
   }
 })
 
@@ -238,7 +242,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return visualizationStore.types(props.typename)
+    return Array.from(visualizationStore.types(props.typename))
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible

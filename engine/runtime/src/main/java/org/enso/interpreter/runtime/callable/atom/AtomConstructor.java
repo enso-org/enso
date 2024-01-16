@@ -15,8 +15,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
@@ -161,15 +161,8 @@ public final class AtomConstructor implements EnsoObject {
     }
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
-        ClosureRootNode.build(
-            language,
-            localScope,
-            definitionScope,
-            instantiateBlock,
-            section,
-            type.getName() + "." + name,
-            null,
-            false);
+        MethodRootNode.build(
+            language, localScope, definitionScope, instantiateBlock, section, type, name);
     RootCallTarget callTarget = rootNode.getCallTarget();
     return new Function(callTarget, null, new FunctionSchema(annotations, args));
   }
@@ -329,19 +322,25 @@ public final class AtomConstructor implements EnsoObject {
     return sb.toString();
   }
 
-  /** @return the fully qualified name of this constructor. */
+  /**
+   * @return the fully qualified name of this constructor.
+   */
   @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
 
-  /** @return the fully qualified name of constructor type. */
+  /**
+   * @return the fully qualified name of constructor type.
+   */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedTypeName() {
     return type.getQualifiedName();
   }
 
-  /** @return the fields defined by this constructor. */
+  /**
+   * @return the fields defined by this constructor.
+   */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }

@@ -1,11 +1,12 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
-class RefactoringTest extends BaseServerTest {
+class RefactoringTest extends BaseServerTest with ReportLogsOnFailure {
 
   "refactoring/renameProject" should {
 

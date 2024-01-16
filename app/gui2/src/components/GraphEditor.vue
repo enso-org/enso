@@ -7,13 +7,17 @@ import {
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
-} from '@/components/ComponentBrowser/placement.ts'
+} from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -22,13 +26,17 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert, bail } from '@/util/assert'
+import { BodyBlock } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { Rect } from '@/util/rect.ts'
-import { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
-import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
-import { computed, onMounted, ref, watch } from 'vue'
+import { toast } from 'react-toastify'
+import type { ExprId, NodeMetadata } from 'shared/yjsModel'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
+import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -42,9 +50,58 @@ const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
-const componentBrowserInputContent = ref('')
+const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
+const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+/// === UI Messages and Errors ===
+function initStartupToast() {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+    autoClose: false,
+  })
+
+  const removeToast = () => toast.dismiss(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
+}
+
+function initConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
+  onUnmounted(() => {
+    toast.dismiss(connectionLostToast)
+  })
+}
+
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
+onMounted(() => {
+  initStartupToast()
+  initConnectionLostToast()
+})
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -99,16 +156,11 @@ function targetComponentBrowserNodePosition() {
   }
 }
 
-/** The current position of the component browser. */
-const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
-
 function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
   return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
 }
-
-const componentBrowserSourcePort = ref<ExprId | undefined>(sourcePortForSelection())
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
@@ -147,6 +199,7 @@ const graphBindingsHandler = graphBindings.handler({
       for (const node of nodeSelection.selected) {
         graphStore.deleteNode(node)
       }
+      nodeSelection.selected.clear()
     })
   },
   zoomToSelected() {
@@ -156,7 +209,7 @@ const graphBindingsHandler = graphBindings.handler({
     let right = -Infinity
     let bottom = -Infinity
     const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.nodeRects.keys() : nodeSelection.selected
+      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
     for (const id of nodesToCenter) {
       const rect = graphStore.nodeRects.get(id)
       if (!rect) continue
@@ -202,8 +255,48 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     readNodeFromClipboard()
   },
+  collapse() {
+    if (keyboardBusy()) return false
+    const selected = new Set(nodeSelection.selected)
+    if (selected.size == 0) return
+    try {
+      const info = prepareCollapsedInfo(selected, graphStore.db)
+      const currentMethod = projectStore.executionContext.getStackTop()
+      const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
+      if (currentMethodName == null) {
+        bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+      }
+      graphStore.editAst((module) => {
+        if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
+        const topLevel = module.get(graphStore.moduleRoot)
+        assert(topLevel instanceof BodyBlock)
+        return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
+      })
+    } catch (err) {
+      console.log('Error while collapsing, this is not normal.', err)
+    }
+  },
+  enterNode() {
+    if (keyboardBusy()) return false
+    const selectedNode = set.first(nodeSelection.selected)
+    if (selectedNode) {
+      stackNavigator.enterNode(selectedNode)
+    }
+  },
+  exitNode() {
+    if (keyboardBusy()) return false
+    stackNavigator.exitNode()
+  },
 })
 
+const handleClick = useDoubleClick(
+  (e: MouseEvent) => {
+    graphBindingsHandler(e)
+  },
+  () => {
+    stackNavigator.exitNode()
+  },
+).handleClick
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -235,32 +328,36 @@ watch(
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name.replace(/\w/g, '-'))
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles
 })
 
 const editingNode: Interaction = {
   init: () => {
+    // component browser usage is set in `graphStore.editedNodeInfo` watch
     componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
   },
-  cancel: () => (componentBrowserVisible.value = false),
+  cancel: () => {
+    hideComponentBrowser()
+    graphStore.editedNodeInfo = undefined
+  },
 }
 const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
 interaction.setWhen(nodeIsBeingEdited, editingNode)
 
 const creatingNode: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
-    componentBrowserSourcePort.value = sourcePortForSelection()
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
     componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
 const creatingNodeFromButton: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
     let targetPos = placementPositionForSelection()
     if (targetPos == undefined) {
       targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
@@ -268,52 +365,27 @@ const creatingNodeFromButton: Interaction = {
     componentBrowserNodePosition.value = targetPos
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
 const creatingNodeFromPortDoubleClick: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
+    // component browser usage is set in event handler
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
-async function handleFileDrop(event: DragEvent) {
-  // A vertical gap between created nodes when multiple files were dropped together.
-  const MULTIPLE_FILES_GAP = 50
-
-  try {
-    if (event.dataTransfer && event.dataTransfer.items) {
-      ;[...event.dataTransfer.items].forEach(async (item, index) => {
-        if (item.kind === 'file') {
-          const file = item.getAsFile()
-          if (file) {
-            const clientPos = new Vec2(event.clientX, event.clientY)
-            const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
-            const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-            const uploader = await Uploader.Create(
-              projectStore.lsRpcConnection,
-              projectStore.dataConnection,
-              projectStore.contentRoots,
-              projectStore.awareness,
-              file,
-              pos,
-              projectStore.executionContext.getStackTop(),
-            )
-            const name = await uploader.upload()
-            graphStore.createNode(pos, uploadedExpression(name))
-          }
-        }
-      })
-    }
-  } catch (err) {
-    console.error(`Uploading file failed. ${err}`)
-  }
+const creatingNodeFromEdgeDrop: Interaction = {
+  init: () => {
+    // component browser usage is set in event handler
+    componentBrowserVisible.value = true
+  },
+  cancel: hideComponentBrowser,
 }
 
-function resetComponentBrowserState() {
+function hideComponentBrowser() {
   componentBrowserVisible.value = false
-  graphStore.editedNodeInfo = undefined
-  interaction.setCurrent(undefined)
 }
 
 function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
@@ -327,13 +399,13 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
       graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
     }
   }
-  resetComponentBrowserState()
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
 }
 
-const onComponentBrowserCancel = resetComponentBrowserState
-
-function getNodeContent(id: ExprId): string {
-  return graphStore.db.nodeIdToNode.get(id)?.rootSpan.repr() ?? ''
+function onComponentBrowserCancel() {
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
 }
 
 // Watch the `editedNode` in the graph store
@@ -342,7 +414,11 @@ watch(
   (editedInfo) => {
     if (editedInfo) {
       componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
-      componentBrowserInputContent.value = getNodeContent(editedInfo.id)
+      componentBrowserUsage.value = {
+        type: 'editNode',
+        node: editedInfo.id,
+        cursorPos: editedInfo.initialCursorPos,
+      }
       componentBrowserVisible.value = true
     } else {
       componentBrowserVisible.value = false
@@ -350,16 +426,38 @@ watch(
   },
 )
 
-const breadcrumbs = computed(() =>
-  projectStore.executionContext.desiredStack.map((frame) => {
-    switch (frame.type) {
-      case 'ExplicitCall':
-        return frame.methodPointer.name
-      case 'LocalCall':
-        return frame.expressionId
+async function handleFileDrop(event: DragEvent) {
+  // A vertical gap between created nodes when multiple files were dropped together.
+  const MULTIPLE_FILES_GAP = 50
+
+  if (!event.dataTransfer?.items) return
+  ;[...event.dataTransfer.items].forEach(async (item, index) => {
+    try {
+      if (item.kind === 'file') {
+        const file = item.getAsFile()
+        if (!file) return
+        const clientPos = new Vec2(event.clientX, event.clientY)
+        const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+        const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+        const uploader = await Uploader.Create(
+          projectStore.lsRpcConnection,
+          projectStore.dataConnection,
+          projectStore.contentRoots,
+          projectStore.awareness,
+          file,
+          pos,
+          projectStore.isOnLocalBackend,
+          event.shiftKey,
+          projectStore.executionContext.getStackTop(),
+        )
+        const uploadResult = await uploader.upload()
+        graphStore.createNode(pos, uploadedExpression(uploadResult))
+      }
+    } catch (err) {
+      console.error(`Uploading file failed. ${err}`)
     }
-  }),
-)
+  })
+}
 
 // === Clipboard ===
 
@@ -381,7 +479,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -400,6 +498,16 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
         const blob = await clipboardItem.getType(type)
         return JSON.parse(await blob.text())
       }
+
+      if (type === 'text/html') {
+        const blob = await clipboardItem.getType(type)
+        const htmlContent = await blob.text()
+        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
+        if (excelPayload) {
+          return excelPayload
+        }
+      }
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -433,9 +541,34 @@ async function readNodeFromClipboard() {
   )
 }
 
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
+  // Check we have a valid HTML table
+  // If it is Excel, we should have a plain-text version of the table with tab separators.
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
+    const text = await textData.text()
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
+    const expression = `'${payload}'.to Table`
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
+  }
+  return undefined
+}
+
 function handleNodeOutputPortDoubleClick(id: ExprId) {
-  componentBrowserSourcePort.value = id
-  const placementEnvironment = environmentForNodes([id].values())
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
@@ -445,6 +578,14 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     },
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
+}
+
+const stackNavigator = useStackNavigator()
+
+function handleEdgeDrop(source: ExprId, position: Vec2) {
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
+  componentBrowserNodePosition.value = position
+  interaction.setCurrent(creatingNodeFromEdgeDrop)
 }
 </script>
 
@@ -456,36 +597,40 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
-    @click="graphBindingsHandler"
+    @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges />
-    </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
-      <GraphNodes @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick" />
+      <GraphNodes
+        @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
+        @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+      />
     </div>
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
+    </svg>
+
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
       :navigator="graphNavigator"
       :nodePosition="componentBrowserNodePosition"
-      :initialContent="componentBrowserInputContent"
-      :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
-      :sourcePort="componentBrowserSourcePort"
+      :usage="componentBrowserUsage"
       @accepted="onComponentBrowserCommit"
-      @closed="onComponentBrowserCancel"
+      @closed="onComponentBrowserCommit"
       @canceled="onComponentBrowserCancel"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.name"
+      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="breadcrumbs"
-      @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="console.log('breadcrumbs \'back\' button clicked.')"
-      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
+      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
+      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
+      @back="stackNavigator.exitNode"
+      @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
@@ -503,15 +648,15 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   position: relative;
   contain: layout;
   overflow: clip;
-  cursor: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }
 
-svg {
+.svgBackdropLayer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: -1;
 }
 
 .htmlLayer {

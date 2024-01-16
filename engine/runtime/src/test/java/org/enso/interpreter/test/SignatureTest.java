@@ -1,21 +1,21 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -24,10 +24,11 @@ public class SignatureTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = defaultContextBuilder()
-        .out(OutputStream.nullOutputStream())
-        .err(OutputStream.nullOutputStream())
-        .build();
+    ctx =
+        defaultContextBuilder()
+            .out(OutputStream.nullOutputStream())
+            .err(OutputStream.nullOutputStream())
+            .build();
   }
 
   @AfterClass
@@ -38,10 +39,12 @@ public class SignatureTest extends TestBase {
   @Test
   public void wrongFunctionSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso", """
     neg : Xyz -> Abc
     neg a = 0 - a
-    """,uri.getAuthority())
+    """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -57,9 +60,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void wrongLiteralSignature() throws Exception {
     final URI uri = new URI("memory://literal_signature.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     neg a = 0 - a:Xyz
-    """,uri.getAuthority())
+    """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -75,9 +79,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void wrongExpressionSignature() throws Exception {
     final URI uri = new URI("memory://exp_signature.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     neg a = (0 - a):Xyz
-    """,uri.getAuthority())
+    """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -93,9 +98,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void wrongAscribedTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     neg (a : Xyz) = 0 - a
-    """,uri.getAuthority())
+    """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -111,12 +117,16 @@ public class SignatureTest extends TestBase {
   @Test
   public void runtimeCheckOfAscribedFunctionSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, Error
 
     err msg = Error.throw msg
     neg (a : Integer) = 0 - a
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -143,7 +153,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void lazyIntegerInConstructor() throws Exception {
     final URI uri = new URI("memory://int_simple_complex.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import all
 
     type Int
@@ -158,7 +171,8 @@ public class SignatureTest extends TestBase {
 
     simple v = Int.Simple v
     complex x y = Int.Complex (x+y)
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -192,7 +206,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void runtimeCheckOfLazyAscribedFunctionSignature() throws Exception {
     final URI uri = new URI("memory://neg_lazy.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, IO
 
     build (~zero : Integer) =
@@ -201,14 +218,16 @@ public class SignatureTest extends TestBase {
 
     make arr = build <|
       arr.at 0
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
 
-    var zeroValue = new Object[] { 0 };
-    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object)zeroValue);
+    var zeroValue = new Object[] {0};
+    var neg =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object) zeroValue);
 
     zeroValue[0] = "Wrong";
     try {
@@ -240,7 +259,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void runtimeCheckOfLazyAscribedConstructorSignature() throws Exception {
     final URI uri = new URI("memory://neg_lazy_const.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, IO, Polyglot
 
     type Lazy
@@ -251,7 +273,8 @@ public class SignatureTest extends TestBase {
     make arr = Lazy.Value <|
       Polyglot.invoke arr "add" [ arr.length ]
       arr.at 0
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -259,7 +282,8 @@ public class SignatureTest extends TestBase {
 
     var zeroValue = new ArrayList<Integer>();
     zeroValue.add(0);
-    var lazy = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object)zeroValue);
+    var lazy =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object) zeroValue);
     assertEquals("No read from zeroValue, still size 1", 1, zeroValue.size());
 
     var five = lazy.invokeMember("neg", -5);
@@ -286,13 +310,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void runtimeCheckOfAscribedInstanceMethodSignature() throws Exception {
     final URI uri = new URI("memory://twice_instance.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     type Neg
         Singleton
 
         twice self (a : Integer) = a + a
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -310,15 +338,18 @@ public class SignatureTest extends TestBase {
     }
   }
 
-
   @Test
   public void runtimeCheckOfAscribedStaticMethodSignature() throws Exception {
     final URI uri = new URI("memory://twice_static.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     type Neg
         twice (a : Integer) = a + a
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -339,13 +370,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void runtimeCheckOfAscribedLocalMethodSignature() throws Exception {
     final URI uri = new URI("memory://twice_local.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     call_twice x =
         twice (a : Integer) = a + a
         twice x
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -366,12 +401,16 @@ public class SignatureTest extends TestBase {
   @Test
   public void wrongAscribedInConstructor() throws Exception {
     final URI uri = new URI("memory://constructor.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     type Neg
       Val (a : Xyz)
 
     neg = Neg.Val 10
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -387,11 +426,15 @@ public class SignatureTest extends TestBase {
   @Test
   public void ascribedWithAParameter() throws Exception {
     final URI uri = new URI("memory://constructor.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     type Maybe a
         Nothing
         Some unwrap:a
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -403,14 +446,18 @@ public class SignatureTest extends TestBase {
   @Test
   public void ascribedWithAParameterAndMethod() throws Exception {
     final URI uri = new URI("memory://getter.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     type Maybe a
         Nothing
         Some unwrap:a
 
         get : a
         get self = self.unwrap
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -422,13 +469,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void suspendedAscribedParameter() throws Exception {
     final URI uri = new URI("memory://suspended.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     type Maybe a
         Nothing
         Some (~unwrap : Integer)
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -455,7 +506,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Zero One");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("`v`", "Zero", "Zero", ex.getMessage());
+      assertTypeError("`v`", "Zero", "One", ex.getMessage());
     }
   }
 
@@ -465,13 +516,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void panicSentinelSupersedesTypeError() throws URISyntaxException {
     URI uri = new URI("memory://panic_sentinel.enso");
-    var src = Source.newBuilder("enso", """
+    var src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     my_func (x : Integer) = x + 1
     main = my_func (Non_Existing_Func 23)
-    """, uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
     Value module = ctx.eval(src);
     try {
       module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "my_func (Non_Existing_Func 23)");
@@ -484,7 +539,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void automaticConversionToAType() throws Exception {
     final URI uri = new URI("memory://convert.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     type V
@@ -499,7 +557,8 @@ public class SignatureTest extends TestBase {
 
     # invokes V.mul with Integer parameter, not V!
     mix a:V b:Integer = a.mul b
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -516,7 +575,10 @@ public class SignatureTest extends TestBase {
 
   private Value exampleWithBinary() throws URISyntaxException {
     var uri = new URI("memory://binary.enso");
-    var src = Source.newBuilder("enso", """
+    var src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import all
 
     type Zero
@@ -527,7 +589,10 @@ public class SignatureTest extends TestBase {
         One (v:One)
         Either v:(Zero | One)
         Vec v:(Integer | Range | Vector (Integer | Range))
-    """,uri.getAuthority()).uri(uri).buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
     return ctx.eval(src);
   }
 
@@ -574,7 +639,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Vec 'Hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("`v`", "Integer | Range | Vector", "Integer", ex.getMessage());
+      assertTypeError("`v`", "Integer | Range | Vector", "Text", ex.getMessage());
     }
     var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
@@ -585,7 +650,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void partiallyAppliedConstructor() throws Exception {
     final URI uri = new URI("memory://partial.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     type V
@@ -596,7 +664,8 @@ public class SignatureTest extends TestBase {
     mix a =
       partial = V.Val 1 a
       create partial
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -619,7 +688,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void oversaturatedFunction() throws Exception {
     final URI uri = new URI("memory://oversaturated.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     fn a b c =
@@ -630,7 +702,8 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix n = neg (fn 2 a=4 n)
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -654,7 +727,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void suspendedArgumentsUnappliedFunction() throws Exception {
     final URI uri = new URI("memory://suspended.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
 
     fn ~a ~b ~c =
@@ -664,7 +740,8 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix a = neg (fn c=(2/0) b=(a/0))
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -688,7 +765,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void andConversions() throws Exception {
     final URI uri = new URI("memory://and_conv.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import all
 
     type Plus
@@ -715,7 +795,8 @@ public class SignatureTest extends TestBase {
         mul a:Boolean b:Boolean = a && b
     Mul.from(that:Boolean) = Mul.Impl that BooleanMul
 
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -727,16 +808,322 @@ public class SignatureTest extends TestBase {
     assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
+  @Test
+  public void unresolvedReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://neg.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+    neg a -> Xyz = 0 - a
+    """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      System.out.println(e);
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
+  public void validReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    add1 a b -> Integer = a+b
+    add2 (a : Integer) (b : Integer) -> Integer = a+b
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add1");
+    assertEquals(3, add1.execute(1, 2).asInt());
+
+    var add2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add2");
+    assertEquals(3, add2.execute(1, 2).asInt());
+  }
+
+  @Test
+  public void returnTypeCheckOptInError() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    plusChecked a b -> Integer = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    try {
+      var res = plusChecked.execute("a", "b");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `plusChecked` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  /**
+   * Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check
+   * is not currently performed.
+   */
+  @Test
+  public void returnTypeCheckOptOut() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    plusUnchecked : Integer -> Integer -> Integer
+    plusUnchecked a b = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusUnchecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    // This variant does allow other types, because the signature remains unchecked:
+    assertEquals("ba", plusChecked.execute("a", "b").asString());
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArguments() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    constant -> Integer = "foo"
+    foo a b = a + constant + b
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    try {
+      var res = plusChecked.execute(2, 3);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `constant` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsExpression() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a =
+        x -> Integer = a+a
+        x+x
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, foo.execute(2).asInt());
+    try {
+      var res = foo.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `x` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsBlock() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, IO
+    foo a =
+        x -> Integer =
+            a+a
+        x+x
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, plusChecked.execute(2).asInt());
+    try {
+      var res = plusChecked.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `x` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInAllowDataflowErrors() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo x -> Integer = case x of
+        1 -> 100
+        2 -> "TWO"
+        3 -> Error.throw "My error"
+        _ -> x+1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(100, foo.execute(1).asInt());
+
+    try {
+      var res = foo.execute(2);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `foo` to be Integer, but got Text", e.getMessage());
+    }
+
+    var res = foo.execute(3);
+    assertTrue(res.isException());
+    assertContains("My error", res.toString());
+  }
+
+  @Test
+  public void returnTypeCheckOptInTailRec() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    factorial (x : Integer) -> Integer =
+        go n acc -> Integer =
+            if n == 0 then acc else
+                if n == 10 then "TEN :)" else
+                    @Tail_Call go (n-1) (acc*n)
+        go x 1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var factorial = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "factorial");
+    assertEquals(120, factorial.execute(5).asInt());
+    assertEquals(1, factorial.execute(0).asInt());
+    try {
+      var res = factorial.execute(20);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `go` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  /**
+   * An additional test to ensure that the way the return type check is implemented does not break
+   * the TCO. We execute a recursive computation that goes 100k frames deep - if TCO did not kick in
+   * here, we'd get a stack overflow.
+   */
+  @Test
+  public void returnTypeCheckOptInTCO() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo (counter : Integer) (trap : Integer) -> Integer =
+        go i acc -> Integer =
+            if i == 0 then acc else
+                if i == trap then "TRAP!" else
+                    @Tail_Call go (i-1) (acc+1)
+        go counter 1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    long n = 100000;
+    assertEquals(n + 1, foo.execute(n, -1).asInt());
+    try {
+      var res = foo.execute(n, 1);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `go` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInTCO2() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo_ok counter -> Integer =
+        if counter == 0 then 0 else
+            @Tail_Call foo_ok (counter-1)
+    foo_bad counter -> Integer =
+        if counter == 0 then "ZERO" else
+            @Tail_Call foo_bad (counter-1)
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo_ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_ok");
+    long n = 100000;
+    assertEquals(0, foo_ok.execute(n).asInt());
+
+    try {
+      var foo_bad = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_bad");
+      var res = foo_bad.execute(n);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertEquals(
+          "Type error: expected the result of `foo_bad` to be Integer, but got Text.",
+          e.getMessage());
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
-    if (!msg.contains(expArg)) {
-      fail("Expecting value " + expArg + " in " + msg);
-    }
-    if (!msg.contains(expType)) {
-      fail("Expecting value " + expType + " in " + msg);
-    }
-    if (!msg.contains(realType)) {
-      fail("Expecting value " + realType + " in " + msg);
-    }
+    assertEquals(
+        "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
+        msg);
   }
 
   private static void assertContains(String exp, String msg) {

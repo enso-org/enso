@@ -62,6 +62,8 @@ node_modules/
 !.idea/runConfigurations/
 !.vscode
 .vscode/*
+!.vs
+.vs/*
 .metals/
 *.swp
 .projections.json
@@ -147,6 +149,8 @@ distribution/lib/*/*/*/manifest.yaml
 
 test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
+
+/resources/
 
 # Ignore test output folder
 test-results

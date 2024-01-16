@@ -1,115 +1,135 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
+import type { PortId } from '@/providers/portInfo'
+import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
+  addImports,
   filterOutRedundantImports,
   recognizeImport,
-  requiredImportToText,
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
+import type { AstId, Module, Owned } from '@/util/ast/abstract'
+import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import type { Result } from '@/util/data/result.ts'
+import { Ok } from '@/util/data/result.ts'
+import { Vec2 } from '@/util/data/vec2'
+import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
+  IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch, type Ref, type ShallowRef } from 'vue'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: ExprId
-  range: ContentRange
+  initialCursorPos: number
 }
+
+export class PortViewInstance {
+  constructor(
+    public rect: ShallowRef<Rect | undefined>,
+    public nodeId: ExprId,
+    public onUpdate: (update: WidgetUpdate) => void,
+  ) {}
+}
+
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
   const suggestionDb = useSuggestionDbStore()
 
   proj.setObservedFileName('Main.enso')
 
-  const text = computed(() => proj.module?.doc.contents)
+  const data = computed(() => proj.module?.doc.data)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref('')
+  const moduleCode = ref(proj.module?.doc.getCode())
+  // We need casting here, as type changes in Ref when class has private fields.
+  // see https://github.com/vuejs/core/issues/2557
+  const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
+  const astModule: Module = MutableModule.Observable()
+  const moduleRoot = ref<AstId>()
+  let moduleDirty = false
+  const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
+
+  // Initialize text and idmap once module is loaded (data != null)
+  watch(data, () => {
+    if (!moduleCode.value) {
+      moduleCode.value = proj.module?.doc.getCode()
+      idMap.value = proj.module?.doc.getIdMap()
+      if (moduleCode.value && idMap.value) updateState()
+    }
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const nodeRects = reactive(new Map<ExprId, Rect>())
-  const vizRects = reactive(new Map<ExprId, Rect>())
-  const exprRects = reactive(new Map<ExprId, Rect>())
+  const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const imports = ref<{ import: Import; span: SourceRange }[]>([])
   const methodAst = ref<Ast.Function>()
+  const currentNodeIds = ref(new Set<ExprId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  useObserveYjs(text, (event) => {
-    const delta = event.changes.delta
-    if (delta.length === 0) return
-
-    let newContent = ''
-    let oldIdx = 0
-    for (const op of delta) {
-      if (op.retain) {
-        newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
-        oldIdx += op.retain
-      } else if (op.delete) {
-        oldIdx += op.delete
-      } else if (op.insert && typeof op.insert === 'string') {
-        newContent += op.insert
-      } else {
-        console.error('Unexpected Yjs operation:', op)
-      }
-    }
-    newContent += textContent.value.substring(oldIdx)
-    textContent.value = newContent
-    updateState()
-  })
-
-  watch(text, (value) => {
-    textContent.value = value?.toString() ?? ''
-    if (value) updateState()
+  useObserveYjs(data, (event) => {
+    moduleDirty = false
+    if (!event.changes.keys.size) return
+    const code = proj.module?.doc.getCode()
+    if (code) moduleCode.value = code
+    const ids = proj.module?.doc.getIdMap()
+    if (ids) idMap.value = ids
+    if (code && ids) updateState()
   })
 
   function updateState() {
     const module = proj.module
     if (!module) return
+    const idMap_ = idMap.value
+    if (!idMap_) return
     module.transact(() => {
-      const idMap = module.getIdMap()
       const meta = module.doc.metadata
-      const textContentLocal = textContent.value
+      const textContentLocal = moduleCode.value
+      if (!textContentLocal) return
 
-      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
+      astModule.replace(newRoot.module)
+      moduleRoot.value = newRoot.exprId
+      module.doc.setIdMap(idMap_)
 
       imports.value = []
       newRoot.visitRecursive((node) => {
         if (node instanceof Ast.Import) {
           const recognized = recognizeImport(node)
           if (recognized) {
-            imports.value.push({ import: recognized, span: node.astExtended!.span() })
+            imports.value.push({ import: recognized, span: node.span! })
           }
           return false
         }
         return true
       })
 
-      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
       if (methodAst.value) {
-        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
+        currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -136,7 +156,7 @@ export const useGraphStore = defineStore('graph', () => {
     const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
     for (const [target, sources] of db.connections.allReverse()) {
-      if (target === disconnectedEdgeTarget) continue
+      if ((target as string as PortId) === disconnectedEdgeTarget) continue
       for (const source of sources) {
         edges.push({ source, target })
       }
@@ -155,13 +175,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function disconnectSource(edge: Edge) {
-    if (edge.target)
-      unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+    if (!edge.target) return
+    unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
   }
 
   function disconnectTarget(edge: Edge) {
-    if (edge.source && edge.target)
-      unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+    if (!edge.source || !edge.target) return
+    unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
   }
 
   function clearUnconnected() {
@@ -184,47 +204,67 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    let importData = undefined
-    let additionalOffset = 0
-    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    if (importsToAdd.length > 0) {
-      const lastImport = imports.value[imports.value.length - 1]
-      const importOffset = lastImport ? lastImport.span[1] + 1 : 0
-      const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
-      additionalOffset += str.length + 1
-      importData = { str, offset: importOffset }
+    const edit = astModule.edit()
+    if (withImports) addMissingImports(edit, withImports)
+    const currentFunc = 'main'
+    const functionBlock = Ast.functionBlock(astModule, currentFunc)
+    if (!functionBlock) {
+      console.error(`BUG: Cannot add node: No current function.`)
+      return
     }
-    return mod.insertNewNode(
-      mod.doc.contents.length + additionalOffset,
-      ident,
-      expression,
-      meta,
-      importData,
-    )
+    const rhs = Ast.parse(expression, edit)
+    const assignment = Ast.Assignment.new(edit, ident, rhs)
+    functionBlock.push(edit, assignment)
+    commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
-  // Create a node from a source expression, and insert it into the graph. The return value will be
-  // the new node's ID, or `null` if the node creation fails.
-  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourcePortName = db.getOutputPortIdentifier(source)
-    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
-    return createNode(position, sourcePortNameWithDot)
+  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
+    if (!newImports.length) return
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot add required imports: No module root.`)
+      return
+    }
+    const importsToAdd = filterOutRedundantImports(imports.value, newImports)
+    if (!importsToAdd.length) return
+    // The top level of the module is always a block.
+    const topLevel = astModule.get(root)! as Ast.BodyBlock
+    addImports(edit, topLevel, importsToAdd)
+  }
+
+  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
+    const edit = cb(astModule)
+    commitEdit(edit)
   }
 
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    proj.module?.deleteExpression(node.outerExprId)
+    proj.module?.doc.metadata.delete(node.outerExprId)
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot delete node: No module root.`)
+      return
+    }
+    const edit = astModule.edit()
+    edit.delete(node.outerExprId)
+    commitEdit(edit)
   }
 
   function setNodeContent(id: ExprId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    setExpressionContent(node.rootSpan.astId, content)
+    setExpressionContent(node.rootSpan.exprId, content)
+  }
+
+  function setExpression(id: ExprId, content: Ast.Owned<Ast.Ast>) {
+    const edit = astModule.edit()
+    edit.replaceValue(Ast.asNodeId(id), content)
+    commitEdit(edit)
   }
 
   function setExpressionContent(id: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(id, content)
+    setExpression(id, Ast.RawCode.new(content))
   }
 
   function transact(fn: () => void) {
@@ -233,20 +273,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   function stopCapturingUndo() {
     proj.stopCapturingUndo()
-  }
-
-  function replaceNodeSubexpression(
-    nodeId: ExprId,
-    range: ContentRange | undefined,
-    content: string,
-  ) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
-    proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
-  }
-
-  function replaceExpressionContent(exprId: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(exprId, content)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -302,13 +328,20 @@ export const useGraphStore = defineStore('graph', () => {
     else vizRects.delete(id)
   }
 
-  function updateExprRect(id: ExprId, rect: Rect | undefined) {
-    const current = exprRects.get(id)
-    if (rect) {
-      if (!current || !current.equals(rect)) exprRects.set(id, rect)
-    } else {
-      if (current) exprRects.delete(id)
-    }
+  function unregisterNodeRect(id: ExprId) {
+    nodeRects.delete(id)
+    vizRects.delete(id)
+  }
+
+  function addPortInstance(id: PortId, instance: PortViewInstance) {
+    map.setIfUndefined(portInstances, id, set.create).add(instance)
+  }
+
+  function removePortInstance(id: PortId, instance: PortViewInstance) {
+    const instances = portInstances.get(id)
+    if (!instances) return
+    instances.delete(instance)
+    if (instances.size === 0) portInstances.delete(id)
   }
 
   function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
@@ -320,8 +353,71 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range: ContentRange = [cursorPosition, cursorPosition]
-    editedNodeInfo.value = { id, range }
+    editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
+  }
+
+  function getPortPrimaryInstance(id: PortId): PortViewInstance | undefined {
+    const instances = portInstances.get(id)
+    return instances && set.first(instances)
+  }
+
+  /**
+   * Get the bounding rectangle of a port view, within the coordinate system of the node it belongs
+   * to. If the port is currently not connected or interacted with, `undefined` may be returned.
+   */
+  function getPortRelativeRect(id: PortId): Rect | undefined {
+    return getPortPrimaryInstance(id)?.rect.value
+  }
+
+  function getPortNodeId(id: PortId): ExprId | undefined {
+    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as ExprId)
+  }
+
+  /**
+   * Emit an value update to a port view under specific ID. Returns `true` if the port view is
+   * registered and the update was emitted, or `false` otherwise.
+   */
+  function updatePortValue(id: PortId, value: Owned<Ast.Ast> | undefined): boolean {
+    const update = getPortPrimaryInstance(id)?.onUpdate
+    if (!update) return false
+    const edit = astModule.edit()
+    update({ edit, portUpdate: { value, origin: id } })
+    return true
+  }
+
+  function commitEdit(edit: Module, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot commit edit: No module root.`)
+      return
+    }
+    const printed = Ast.print(root, edit)
+    const module_ = proj.module
+    if (!module_) return
+    if (moduleDirty) {
+      console.warn(
+        `An edit has been committed before a previous edit has been observed. The new edit will supersede the previous edit.`,
+      )
+    }
+    moduleDirty = true
+    const idMap = new IdMap()
+    for (const [tokenKey, id] of printed.info.tokens) {
+      const range = Ast.keyToRange(tokenKey)
+      idMap.insertKnownId([range.start, range.end], id)
+    }
+    for (const [nodeKey, ids] of printed.info.nodes) {
+      const range = Ast.keyToRange(nodeKey)
+      idMap.insertKnownId([range.start, range.end], ids[0]!)
+    }
+    module_.transact(() => {
+      module_.doc.setIdMap(idMap)
+      module_.doc.setCode(printed.code)
+      if (metadataUpdates) {
+        for (const [id, meta] of metadataUpdates) {
+          module_.updateNodeMetadata(id, meta)
+        }
+      }
+    })
   }
 
   return {
@@ -331,29 +427,39 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
+    currentNodeIds,
+    moduleCode,
     nodeRects,
     vizRects,
-    exprRects,
+    unregisterNodeRect,
     methodAst,
+    editAst,
+    astModule,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
+    moduleRoot,
     createNode,
     deleteNode,
     setNodeContent,
+    setExpression,
     setExpressionContent,
-    replaceNodeSubexpression,
-    replaceExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
     updateNodeRect,
     updateVizRect,
-    updateExprRect,
+    addPortInstance,
+    removePortInstance,
+    getPortRelativeRect,
+    getPortNodeId,
+    updatePortValue,
     setEditedNode,
-    createNodeFromSource,
+    updateState,
+    commitEdit,
+    addMissingImports,
   }
 })
 
@@ -364,19 +470,20 @@ function randomIdent() {
 /** An edge, which may be connected or unconnected. */
 export type Edge = {
   source: ExprId | undefined
-  target: ExprId | undefined
+  target: PortId | undefined
 }
 
 export type UnconnectedEdge = {
   source?: ExprId
-  target?: ExprId
+  target?: PortId
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
-  disconnectedEdgeTarget?: ExprId
+  disconnectedEdgeTarget?: PortId
 }
 
 function getExecutedMethodAst(
   ast: Ast.Ast,
   executionStackTop: StackItem,
+  db: GraphDb,
 ): Ast.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
@@ -386,10 +493,12 @@ function getExecutedMethodAst(
       return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
     case 'LocalCall': {
-      console.error(`TODO (#8068)--this should not be reachable yet`)
-      /* AO: The expression ID is a call expression - we should get method pointer from expression updates and this way
-       * find the definition.
-       */
+      const exprId = executionStackTop.expressionId
+      const info = db.getExpressionInfo(exprId)
+      if (!info) return undefined
+      const ptr = info.methodCall?.methodPointer
+      if (!ptr) return undefined
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
   }
 }

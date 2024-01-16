@@ -25,7 +25,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeConversionNode extends Node {
 
-  /** @return a new indirect method invocation node */
+  /**
+   * @return a new indirect method invocation node
+   */
   public static IndirectInvokeConversionNode build() {
     return IndirectInvokeConversionNodeGen.create();
   }
@@ -141,7 +143,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       int thatArgumentPosition,
       @Cached IndirectInvokeConversionNode childDispatch) {
     arguments[thatArgumentPosition] = that.getValue();
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
+    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     Object result =
         childDispatch.execute(
             frame,

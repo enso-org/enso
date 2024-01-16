@@ -21,8 +21,13 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type ContentRange } from 'shared/yjsModel'
+import { IdMap, type ExprId, type SourceRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
+
+/** Information how the component browser is used, needed for proper input initializing. */
+export type Usage =
+  | { type: 'newNode'; sourcePort?: ExprId | undefined }
+  | { type: 'editNode'; node: ExprId; cursorPos: number }
 
 /** Input's editing context.
  *
@@ -55,7 +60,7 @@ export type EditingContext =
 interface Change {
   str: string
   /** Range in the original code to be replaced with `str`. */
-  range: ContentRange
+  range: SourceRange
 }
 
 /** Component Browser Input Data */
@@ -66,6 +71,7 @@ export function useComponentBrowserInput(
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
+  const imports = ref<RequiredImport[]>([])
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -143,7 +149,20 @@ export function useComponentBrowserInput(
     return filter
   })
 
-  const imports = ref<RequiredImport[]>([])
+  const autoSelectFirstComponent = computed(() => {
+    // We want to autoselect first component only when we may safely assume user want's to continue
+    // editing - they want to immediately see preview of best component and rather won't press
+    // enter (and if press, they won't be surprised by the results).
+    const ctx = context.value
+    // If no input, we're sure user want's to add something.
+    if (!code.value) return true
+    // When changing identifier, it is unfinished. Or, the best match should be exactly what
+    // the user wants
+    if (ctx.type === 'changeIdentifier') return true
+    // With partially written `.` chain we ssume user want's to add something.
+    if (ctx.type === 'insert' && ctx.oprApp?.lastOpr()?.repr() === '.') return true
+    return false
+  })
 
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
@@ -380,7 +399,7 @@ export function useComponentBrowserInput(
           result.push({ range: span, str: segment as string })
         } else {
           // The rest of qualified name needs to be added at the end.
-          const range: ContentRange = [lastEditedCharIndex, lastEditedCharIndex]
+          const range: SourceRange = [lastEditedCharIndex, lastEditedCharIndex]
           result.push({ range, str: ('.' + segment) as string })
         }
       }
@@ -388,6 +407,27 @@ export function useComponentBrowserInput(
     } else {
       return { changes: [], requiredImport: null }
     }
+  }
+
+  function reset(usage: Usage) {
+    switch (usage.type) {
+      case 'newNode':
+        if (usage.sourcePort) {
+          const sourceNodeName = graphDb.getOutputPortIdentifier(usage.sourcePort)
+          code.value = sourceNodeName ? sourceNodeName + '.' : ''
+          const caretPosition = code.value.length
+          selection.value = { start: caretPosition, end: caretPosition }
+        } else {
+          code.value = ''
+          selection.value = { start: 0, end: 0 }
+        }
+        break
+      case 'editNode':
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.code() ?? ''
+        selection.value = { start: usage.cursorPos, end: usage.cursorPos }
+        break
+    }
+    imports.value = []
   }
 
   return {
@@ -399,6 +439,10 @@ export function useComponentBrowserInput(
     context,
     /** The filter deduced from code and selection. */
     filter,
+    /** Flag indicating that we should autoselect first component after last update */
+    autoSelectFirstComponent,
+    /** Re-initializes the input for given usage. */
+    reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
     /** Return input after applying given suggestion, without changing state. */

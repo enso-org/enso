@@ -1,19 +1,23 @@
 package org.enso.compiler;
 
-import java.nio.file.Paths;
-import java.util.logging.Level;
-
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.io.IOAccess;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.net.URI;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.io.IOAccess;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ExecCompilerTest {
@@ -21,21 +25,18 @@ public class ExecCompilerTest {
 
   @BeforeClass
   public static void initEnsoContext() {
-    ctx = Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(IOAccess.ALL)
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        )
-        .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .option(
-                RuntimeOptions.LOG_LEVEL,
-                Level.WARNING.getName()
-        )
-        .logHandler(System.err)
-        .allowAllAccess(true)
-        .build();
+    ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(IOAccess.ALL)
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .option(RuntimeOptions.STRICT_ERRORS, "false")
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .allowAllAccess(true)
+            .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
   }
 
@@ -46,7 +47,10 @@ public class ExecCompilerTest {
 
   @Test
   public void testCaseOfWithNegativeConstant() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     run value =
         case value of
             -1 -> "minus one"
@@ -60,8 +64,51 @@ public class ExecCompilerTest {
   }
 
   @Test
-  public void testHalfAssignment() throws Exception {
+  public void testDesugarOperators() throws Exception {
     var module = ctx.eval("enso", """
+    main =
+      ma ==ums==
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: The name `ma` could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsLeftRight() throws Exception {
+    var module = ctx.eval("enso", """
+    main = (+ (2 *))
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Unnamed could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsRightLeft() throws Exception {
+    var module = ctx.eval("enso", """
+    main = ((* 2) +)
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testHalfAssignment() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
     from Standard.Base.Errors.Common import all
     run value =
         x = 4
@@ -70,10 +117,10 @@ public class ExecCompilerTest {
     """);
     var run = module.invokeMember("eval_expression", "run");
     try {
-        var never = run.execute(-1);
-        fail("Unexpected result: " + never);
+      var never = run.execute(-1);
+      fail("Unexpected result: " + never);
     } catch (PolyglotException ex) {
-        assertEquals("Syntax error: Unexpected expression.", ex.getMessage());
+      assertEquals("Syntax error: Unexpected expression.", ex.getMessage());
     }
   }
 
@@ -98,7 +145,10 @@ public class ExecCompilerTest {
 
   @Test
   public void testSelfAssignment() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     from Standard.Base.Errors.Common import all
     run value =
         meta1 = meta1
@@ -113,7 +163,10 @@ public class ExecCompilerTest {
 
   @Test
   public void testRecursiveDefinition() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     from Standard.Base import all
 
     run prefix =
@@ -126,6 +179,35 @@ public class ExecCompilerTest {
     assertTrue("The error value also represents null", error.isNull());
     assertEquals("(Error: Uninitialized value)", error.toString());
   }
+
+  @Ignore("Explicitly-default arguments will be implemented in #8480")
+  @Test
+  public void testDefault() throws Exception {
+    var module =
+        ctx.eval("enso", """
+    f x=1 = x
+    value_from_default =
+      f default
+    """);
+    var result = module.invokeMember("eval_expression", "value_from_default");
+    assertEquals("Value obtained from default argument", 1, result.asInt());
+  }
+
+  @Test
+  public void testIdentCalledDefault() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    f x=1 = x
+    value_from_binding =
+      default = 2
+      f default
+    """);
+    var result = module.invokeMember("eval_expression", "value_from_binding");
+    assertEquals("Value obtained from binding", 2, result.asInt());
+  }
+
   @Test
   public void dotUnderscore() throws Exception {
     var module = ctx.eval("enso", """
@@ -147,7 +229,10 @@ public class ExecCompilerTest {
 
   @Test
   public void chainedSyntax() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     from Standard.Base import all
 
     nums n = [1, 2, 3, 4, 5]
@@ -175,6 +260,107 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void inlineReturnSignature() throws Exception {
+    var module =
+        ctx.eval("enso", """
+    foo (x : Integer) (y : Integer) -> Integer = 10*x + y
+    """);
+    var foo = module.invokeMember("eval_expression", "foo");
+    assertTrue("foo a function", foo.canExecute());
+    assertEquals(45, foo.execute(4, 5).asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureOnMemberMethod() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    type My_Type
+        Value x
+
+        member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+    """);
+    var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
+    var result = instance.invokeMember("member_foo", 2, 3);
+    assertEquals(321, result.asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureOnLocalFunction() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    foo x y =
+        inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
+        a = 3
+        r = inner_foo a
+        r + 50000
+    """);
+    var instance = module.invokeMember("eval_expression", "foo");
+    var result = instance.execute(1, 2);
+    assertEquals(50321, result.asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureWithoutArguments() throws Exception {
+    var module = ctx.eval("enso", """
+    the_number -> Integer = 23
+    """);
+    var result = module.invokeMember("eval_expression", "the_number");
+    assertEquals("Function-return syntax can be used with 0 arguments", 23, result.asInt());
+  }
+
+  /**
+   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour
+   * of `->` with ascriptions: 1. for `foo a:Integer -> Integer` it is interpreted as foo
+   * (a:Integer) -> Integer - i.e. a function taking an Integer and returning an Integer. 2. for
+   * `foo a : Integer -> Integer`, this results in a compile error currently.
+   */
+  @Test
+  public void weirdReturnTypeSignature1() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a:Integer -> Integer = a+10
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(11, foo.execute(1).asInt());
+  }
+
+  @Test
+  public void weirdReturnTypeSignature2() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a : Integer -> Integer = a+10
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+      fail("Compiler error was expected, but foo evaluated successfully as: " + foo);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: The name `foo` could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
   public void testInvalidEnsoProjectRef() throws Exception {
     var module =
         ctx.eval(
@@ -196,7 +382,7 @@ public class ExecCompilerTest {
     var module =
         ctx.eval(
             "enso",
-          """
+            """
           from Standard.Base import all
           polyglot java import java.util.Random
 
@@ -208,7 +394,9 @@ public class ExecCompilerTest {
       var err = run.execute(1L);
       fail("Not expecting any result: " + err);
     } catch (PolyglotException ex) {
-      assertEquals("Compile error: Compiler Internal Error: No polyglot symbol for Random.", ex.getMessage());
+      assertEquals(
+          "Compile error: Compiler Internal Error: No polyglot symbol for Random.",
+          ex.getMessage());
     }
   }
 
@@ -217,7 +405,7 @@ public class ExecCompilerTest {
     var module =
         ctx.eval(
             "enso",
-          """
+            """
           from Standard.Base import all
           polyglot java import java.util.Random as R
 
