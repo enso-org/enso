@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -126,20 +127,17 @@ final class BoxingAtom extends Atom {
 
     @Override
     public Class<UnboxingAtom.InstantiatorNode> getNodeClass() {
-      throw new UnsupportedOperationException("Not supported yet."); // Generated from
-      // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw CompilerDirectives.shouldNotReachHere();
     }
 
     @Override
     public List<List<Class<?>>> getNodeSignatures() {
-      throw new UnsupportedOperationException("Not supported yet."); // Generated from
-      // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw CompilerDirectives.shouldNotReachHere();
     }
 
     @Override
     public List<Class<? extends Node>> getExecutionSignature() {
-      throw new UnsupportedOperationException("Not supported yet."); // Generated from
-      // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw CompilerDirectives.shouldNotReachHere();
     }
 
     @Override
