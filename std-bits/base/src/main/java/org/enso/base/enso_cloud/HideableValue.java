@@ -4,7 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /** Represents a value that is input of various operation that may contain a Secret. */
-public sealed interface HideableValue permits HideableValue.Base64EncodeValue, HideableValue.ConcatValues, HideableValue.PlainValue, HideableValue.SecretValue {
+public sealed interface HideableValue
+    permits HideableValue.Base64EncodeValue,
+        HideableValue.ConcatValues,
+        HideableValue.PlainValue,
+        HideableValue.SecretValue {
 
   record SecretValue(String secretId) implements HideableValue {
     @Override
