@@ -1,0 +1,18 @@
+from Standard.Base import all
+import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
+import Standard.Base.Errors.Common.No_Such_Conversion
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Test_Environment
+import Standard.Test.Extensions
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
+    Test.group "Enso Cloud Files" pending=setup.pending <|
+        Test.specify "" <|
+
+
+main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)
