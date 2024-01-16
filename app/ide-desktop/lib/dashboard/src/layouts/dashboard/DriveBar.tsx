@@ -40,7 +40,7 @@ export default function DriveBar(props: DriveBarProps) {
     const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
     const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { setModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
@@ -76,7 +76,6 @@ export default function DriveBar(props: DriveBarProps) {
                           }
                         : {})}
                     onClick={() => {
-                        unsetModal()
                         doCreateProject(null)
                     }}
                 >
@@ -98,7 +97,6 @@ export default function DriveBar(props: DriveBarProps) {
                             alt="New Folder"
                             disabledOpacityClassName="opacity-20"
                             onClick={() => {
-                                unsetModal()
                                 doCreateDirectory()
                             }}
                         />
@@ -150,7 +148,6 @@ export default function DriveBar(props: DriveBarProps) {
                         alt="Upload Files"
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
-                            unsetModal()
                             uploadFilesRef.current?.click()
                         }}
                     />
@@ -167,7 +164,6 @@ export default function DriveBar(props: DriveBarProps) {
                         disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()
-                            unsetModal()
                             dispatchAssetEvent({
                                 type: AssetEventType.downloadSelected,
                             })

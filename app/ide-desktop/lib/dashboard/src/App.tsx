@@ -181,8 +181,12 @@ function AppRouter(props: AppProps) {
         const onMouseDown = () => {
             isClick = true
         }
-        const onMouseUp = () => {
-            if (isClick) {
+        const onMouseUp = (event: MouseEvent) => {
+            if (
+                isClick &&
+                !(event.target instanceof HTMLInputElement) &&
+                !(event.target instanceof HTMLTextAreaElement)
+            ) {
                 document.getSelection()?.removeAllRanges()
             }
         }
