@@ -502,8 +502,10 @@ type Date
 
        Arguments:
        - end: The end of the range.
-       - include_end: Specifies if the right end of the range should be included. By
-         default, the range is right-exclusive.
+       - include_end: Specifies if the right end of the range should be
+         included. By default, the range is right-exclusive.
+       - step: The step of the range. It can be a `Date_Period` or `Period`.
+         By default, the step is one day.
 
        > Example
          Create a range of dates.
@@ -514,12 +516,11 @@ type Date
          Create a range containing dates [2021-12-05, 2021-12-06].
 
              (Date.new 2021 12 05).up_to (Date.new 2021 12 06) include_end=True
-    up_to : Date -> Boolean -> Date_Range
-    up_to self end include_end=False = case end of
-        _ : Date ->
-            effective_end = if include_end then end.next else end
-            Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
-        _ -> Error.throw (Type_Error.Error Date end "end")
+    up_to : Date -> Boolean -> Date_Period|Period -> Date_Range
+    up_to self end:Date include_end:Boolean=False step:Date_Period|Period=Date_Period.Day =
+        effective_end = if include_end then end.next else end
+        day_range = Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
+        if step == Date_Period.Day then day_range else day_range.with_step step
 
     ## ALIAS date range
        GROUP Input
@@ -539,12 +540,11 @@ type Date
          Create a range containing dates [2021-12-06, 2021-12-05].
 
              (Date.new 2021 12 06).down_to (Date.new 2021 12 05) include_end=True
-    down_to : Date -> Boolean -> Date_Range
-    down_to self end include_end=False = case end of
-        _ : Date ->
-            effective_end = if include_end then end.previous else end
-            Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
-        _ -> Error.throw (Type_Error.Error Date end "end")
+    down_to : Date -> Boolean -> Date_Period|Period -> Date_Range
+    down_to self end:Date include_end:Boolean=False step:Date_Period|Period=Date_Period.Day =
+        effective_end = if include_end then end.previous else end
+        day_range = Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
+        if step == Date_Period.Day then day_range else day_range.with_step step
 
     ## GROUP DateTime
        Shift the date by the specified amount of business days.
