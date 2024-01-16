@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import BellIcon from 'enso-assets/bell.svg'
+import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
 
@@ -32,6 +33,17 @@ const SECTIONS: SettingsSectionData[] = [
                 name: 'Notifications',
                 settingsTab: SettingsTab.notifications,
                 icon: BellIcon,
+            },
+        ],
+    },
+    {
+        name: 'Access',
+        tabs: [
+            {
+                name: 'Members',
+                settingsTab: SettingsTab.members,
+                icon: PeopleIcon,
+                visible: true,
             },
         ],
     },

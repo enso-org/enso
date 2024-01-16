@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsTab'
+import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
 import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
 import * as authProvider from '#/providers/AuthProvider'
 
@@ -19,6 +20,10 @@ export default function Settings() {
     switch (settingsTab) {
         case SettingsTab.account: {
             content = <AccountSettingsTab />
+            break
+        }
+        case SettingsTab.members: {
+            content = <MembersSettingsTab />
             break
         }
         default: {
