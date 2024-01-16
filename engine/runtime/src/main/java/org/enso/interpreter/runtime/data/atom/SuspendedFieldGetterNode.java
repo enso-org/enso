@@ -1,14 +1,17 @@
-package org.enso.interpreter.runtime.callable.atom.unboxing;
+package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.List;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
+import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.State;
 
@@ -33,7 +36,51 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     this.set = set;
   }
 
-  static UnboxingAtom.FieldGetterNode build(
+  static NodeFactory<? extends UnboxingAtom.FieldGetterNode> factory(
+      NodeFactory<? extends FieldGetterNode> delegate,
+      NodeFactory<? extends FieldSetterNode> setters) {
+    class NF implements NodeFactory<UnboxingAtom.FieldGetterNode> {
+      @Override
+      public UnboxingAtom.FieldGetterNode createNode(Object... arguments) {
+        var get = delegate.createNode(arguments);
+        if (setters == null) {
+          return get;
+        } else {
+          var set = setters.createNode(arguments);
+          return build(get, set);
+        }
+      }
+
+      @Override
+      public Class<UnboxingAtom.FieldGetterNode> getNodeClass() {
+        return UnboxingAtom.FieldGetterNode.class;
+      }
+
+      @Override
+      public List<List<Class<?>>> getNodeSignatures() {
+        return delegate.getNodeSignatures();
+      }
+
+      @Override
+      public List<Class<? extends Node>> getExecutionSignature() {
+        return delegate.getExecutionSignature();
+      }
+
+      @Override
+      public FieldGetterNode getUncachedInstance() {
+        if (setters == null) {
+          return delegate.getUncachedInstance();
+        } else {
+          var set = setters.getUncachedInstance();
+          var get = delegate.getUncachedInstance();
+          return build(get, set);
+        }
+      }
+    }
+    return new NF();
+  }
+
+  private static UnboxingAtom.FieldGetterNode build(
       UnboxingAtom.FieldGetterNode get, UnboxingAtom.FieldSetterNode set) {
     return new SuspendedFieldGetterNode(get, set);
   }
