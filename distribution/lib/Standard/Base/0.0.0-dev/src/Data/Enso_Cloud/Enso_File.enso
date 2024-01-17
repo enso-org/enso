@@ -174,16 +174,9 @@ type Enso_File
     ## GROUP Input
        Gets a list of assets within self.
     list : Vector Enso_File
-    list self = if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-        auth_header = Utils.authorization_header
-        response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
-        response.if_not_error <|
-            js_object = response.decode_as_json
-            assets = js_object.get "assets" []
-            files = assets.map t-> t.into Enso_File
-
-            ## Remove secrets from the list
-            files.filter f-> f.asset_type != Enso_Asset_Type.Secret
+    list self =
+        # Remove secrets from the list
+        list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
 
     ## UNSTABLE
        Creates a subdirectory in a specified directory.
@@ -205,6 +198,15 @@ type Enso_File
         auth_header = Utils.authorization_header
         response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
         response.if_not_error <| Nothing
+
+## PRIVATE
+list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
+     auth_header = Utils.authorization_header
+     response = HTTP.fetch parent.internal_uri HTTP_Method.Get [auth_header]
+     response.if_not_error <|
+         js_object = response.decode_as_json
+         assets = js_object.get "assets" []
+         assets.map t-> t.into Enso_File
 
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
