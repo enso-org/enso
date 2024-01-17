@@ -491,10 +491,10 @@ type Date_Range
        Default column name based on step.
     default_column_name : Text
     default_column_name self =
-        periods = [Date_Period.Year, Date_Period.Quarter, Date_Period.Month, Date_Period.Week, Date_Period.Day]
+        periods = [Date_Period.Year, Date_Period.Quarter, Date_Period.Month, Date_Period.Week, Date_Period.Day].map _.to_period
         names = ["Year", "Quarter", "Month", "Week", "Date"]
         index = periods.index_of self.step
-        if index == Nothing then "Date" else names.index_of index
+        if index == Nothing then "Date" else names.get index
 
 ## PRIVATE
    Computes the length of the range and verifies its invariants.
