@@ -1,5 +1,5 @@
 import * as RawAst from '@/generated/ast'
-import { assert, assertEqual } from '@/util/assert'
+import { assert, assertEqual, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { Opt } from '@/util/data/opt'
@@ -10,8 +10,7 @@ import { createIterator, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
-import type { ExprId, SourceRange } from '../../../shared/yjsModel'
-import { IdMap } from '../../../shared/yjsModel'
+import { IdMap, type ExprId, type SourceRange } from '../../../shared/yjsModel'
 
 declare const brandOwned: unique symbol
 /** Used to mark references required to be unique.
@@ -27,66 +26,10 @@ function asOwned<T>(t: T): Owned<T> {
   return t as Owned<T>
 }
 
-export interface Module {
-  get raw(): MutableModule
-  get(id: AstId): Ast | null
-  getExtended(id: AstId): RawAstExtended | undefined
-  edit(): MutableModule
-  apply(module: Module): void
-  replace(editIn: Module): void
-  iterAllNodeIds(): IterableIterator<AstId>
-  iterAllNodes(): IterableIterator<Ast>
-  root(): Module
-  has(id: AstId): boolean
-}
-
-export class MutableModule implements Module {
-  readonly base: Module | null
-  readonly nodes: Map<AstId, Ast | null>
-  astExtended: Map<AstId, RawAstExtended> | null
-  spans: Map<AstId, SourceRange> | null
-
-  constructor(
-    base: Module | null,
-    nodes: Map<AstId, Ast | null>,
-    astExtended: Map<AstId, RawAstExtended> | null,
-    spans: Map<AstId, SourceRange> | null,
-  ) {
-    this.base = base
-    this.nodes = nodes
-    this.astExtended = astExtended
-    this.spans = spans
-  }
-
-  static Observable(): MutableModule {
-    const nodes = reactive(new Map())
-    const astExtended = reactive(new Map())
-    const spans = reactive(new Map())
-    return new MutableModule(null, nodes, astExtended, spans)
-  }
-
-  static Transient(base?: Module): MutableModule {
-    const nodes = new Map<AstId, Ast>()
-    return new MutableModule(base ?? null, nodes, null, null)
-  }
-
-  edit(): MutableModule {
-    return MutableModule.Transient(this)
-  }
-
-  get raw(): MutableModule {
-    return this
-  }
-
+/*
+export class MutableModule {
   apply(editIn: Module) {
     const edit = editIn.raw
-    if (edit.astExtended) {
-      const astExtended = this.astExtended ?? new Map()
-      for (const [id, ast] of edit.astExtended.entries()) {
-        astExtended.set(id, ast)
-      }
-      this.astExtended = astExtended
-    }
     if (edit.spans) {
       const spans = this.spans ?? new Map()
       for (const [id, ast] of edit.spans.entries()) {
@@ -97,7 +40,6 @@ export class MutableModule implements Module {
     for (const [id, ast] of edit.nodes.entries()) {
       if (ast === null) {
         this.nodes.delete(id)
-        this.astExtended?.delete(id)
         this.spans?.delete(id)
       } else {
         this.nodes.set(id, ast)
@@ -105,27 +47,16 @@ export class MutableModule implements Module {
     }
   }
 
-  /** Replace the contents of this module with the contents of the specified module. */
+  // Replace the contents of this module with the contents of the specified module.
   replace(editIn: Module) {
     const edit = editIn.raw
     for (const id of this.nodes.keys()) {
       if (!edit.nodes.has(id)) {
         this.nodes.delete(id)
-        this.astExtended?.delete(id)
         this.spans?.delete(id)
       }
     }
     this.apply(edit)
-  }
-
-  /** Returns a syntax node representing the current committed state of the given ID. */
-  get(id: AstId): Ast | null {
-    const editedNode = this.nodes.get(id)
-    if (editedNode === null) {
-      return null
-    } else {
-      return editedNode ?? this.base?.get(id) ?? null
-    }
   }
 
   iterAllNodeIds(): IterableIterator<AstId> {
@@ -167,31 +98,191 @@ export class MutableModule implements Module {
       return node
     })
   }
+}
+
+export function normalize(rootIn: Ast): Ast {
+  const printed = print(rootIn.exprId, rootIn.module)
+  const module = Module.Transient()
+  const tree = parseEnso(printed.code)
+  return abstract(module, tree, printed.code, printed.info).node
+}
+*/
+
+export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; node: T }
+
+declare const brandAstId: unique symbol
+declare const brandTokenId: unique symbol
+export type AstId = ExprId & { [brandAstId]: never }
+export type TokenId = ExprId & { [brandTokenId]: never }
+
+function newAstId(): AstId {
+  return random.uuidv4() as AstId
+}
+function newTokenId(): TokenId {
+  return random.uuidv4() as TokenId
+}
+// Cast an ID which may be a tree or a token to a tree ID.
+export function asNodeId(expr: ExprId): AstId {
+  return expr as AstId
+}
+
+export class Token {
+  leadingSpace: string | undefined
+  readonly exprId: TokenId
+  code_: string
+  tokenType_: RawAst.Token.Type | undefined
+  constructor(code: string, id: TokenId, type: RawAst.Token.Type | undefined) {
+    this.exprId = id
+    this.code_ = code
+    this.tokenType_ = type
+  }
+
+  static new(code: string) {
+    return new Token(code, newTokenId(), undefined)
+  }
+
+  code(): string {
+    return this.code_
+  }
+
+  typeName(): string {
+    if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
+    else return 'Raw'
+  }
+}
+
+function clone<T>(value: T): T {
+  if (value instanceof Array) {
+    return Array.from(value, clone) as T
+  }
+  if (value && typeof value === 'object') {
+    return cloneObject(value)
+  }
+  return value
+}
+function cloneObject<T extends Object>(object: T): T {
+  const mapEntry = ([name, value]: [string, unknown]) => [name, clone(value)]
+  const properties = Object.fromEntries(Object.entries(object).map(mapEntry))
+  return Object.assign(Object.create(Object.getPrototypeOf(object)), properties)
+}
+
+function spaced<T>(node: T): NodeChild<T> {
+  return { whitespace: ' ', node }
+}
+
+function unspaced<T>(node: T): NodeChild<T> {
+  return { whitespace: '', node }
+}
+
+function autospaced<T>(node: T): NodeChild<T> {
+  return { node }
+}
+
+function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
+  return { whitespace: isSpaced ? ' ' : '', node }
+}
+
+/*
+function makeChild<T extends Ast>(module: Module, child: Owned<T>, parent: AstId): AstId {
+  const oldParent = child.parentId
+  assert(
+    !oldParent || !module.has(oldParent),
+    'Owned object is not owned. Was it obtained from a different module?',
+  )
+  const spliced = module.splice(child)
+  spliced.parent = parent
+  return spliced.exprId
+}
+
+function setParent(module: Module, parent: AstId, ...children: (NodeChild | null)[]) {
+  for (const child of children) {
+    if (child && !(child.node instanceof Token)) module.get(child.node)!.parent = parent
+  }
+}
+ */
+
+////////////////////////////////////////////////////////
+
+export interface IModule {
+  baseObject(type: string, id?: AstId): FixedMap<AstFields>
+  getAst(id: AstId): Ast
+  getAst(id: AstId | null): Ast | null
+  getAst(id: AstId | null): Ast | null
+  getExtended(id: AstId): RawAstExtended | undefined
+  edit(): Module
+  iterAllNodeIds(): IterableIterator<AstId>
+  iterAllNodes(): IterableIterator<Ast>
+  has(id: AstId): boolean
+}
+class Module implements IModule {
+  private readonly nodes: Map<AstId, Map<string, unknown>>
+  spans: Map<AstId, SourceRange> | null
+
+  constructor(nodes: Map<AstId, Map<string, unknown>>, spans: Map<AstId, SourceRange> | null) {
+    this.nodes = nodes
+    this.spans = spans
+  }
+
+  baseObject(type: string, id?: AstId): FixedMap<AstFields> {
+    const map = new Map<string, unknown>() as FixedMap<{}>
+    return setAll(map, {
+      id: id ?? newAstId(),
+      type: type,
+      parent: null,
+    })
+  }
+
+  get(id: AstId): Ast
+  get(id: AstId | null): Ast | null
+  get(id: AstId | null): Ast | null {
+    const nodeData = this.nodes.get(id)
+    assert(nodeData !== undefined)
+    const fields = nodeData as FixedMap<any>
+    const type = fields.get('type')
+    switch (type) {
+      case 'App':
+        return new App(this, fields)
+      case 'UnaryOprApp':
+        return new UnaryOprApp(this, fields)
+      case 'OprApp':
+        return new OprApp(this, fields)
+      case 'Generic':
+        return new Generic(this, fields)
+      case 'Import':
+        return new Import(this, fields)
+      case 'TextLiteral':
+        return new TextLiteral(this, fields)
+      case 'Documented':
+        return new Documented(this, fields)
+      case 'Invalid':
+        return new Invalid(this, fields)
+      case 'Group':
+        return new Group(this, fields)
+      case 'NumericLiteral':
+        return new NumericLiteral(this, fields)
+      case 'Function':
+        return new Function(this, fields)
+      case 'Assignment':
+        return new Assignment(this, fields)
+      case 'BodyBlock':
+        return new BodyBlock(this, fields)
+      case 'Ident':
+        return new Ident(this, fields)
+      case 'Wildcard':
+        return new Wildcard(this, fields)
+    }
+    bail(`Invalid type: ${type}`)
+  }
 
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
   replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
-    if (!old || replacement.exprId === target) {
-      return this.replaceValue(target, replacement)
-    } else {
-      assert(!!old.parent)
-      const parentSomewhere = this.get(old.parent)
-      assert(!!parentSomewhere)
-      const parent = this.spliceShallow(parentSomewhere)
-      let foundChildInParent = false
-      for (const child of parent.concreteChildren()) {
-        if (child.node === target) {
-          child.node = makeChild(this, replacement, parent.exprId)
-          foundChildInParent = true
-          break
-        }
-      }
-      assert(foundChildInParent)
-      for (const child of parent.concreteChildren()) assert(child.node !== target)
-      const old_ = this.spliceShallow(old)
-      old_.parent = undefined
-      return asOwned(old_)
-    }
+    const parentId = old.parentId
+    if (!parentId) return
+    const parent = this.get(parentId)
+    parent.replaceChild(target, replacement)
+    old.fields.set('parent', null)
+    return asOwned(old)
   }
 
   /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
@@ -199,17 +290,13 @@ export class MutableModule implements Module {
    */
   replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
-    replacement.parent = old?.parent
-    if (replacement.exprId !== target || replacement.module !== this) {
-      this.splice(replacement, target)
-    } else {
-      this.nodes.set(target, replacement)
-    }
+    const replacement_ = this.splice(replacement, target)
+    replacement_.fields.set('parent', old?.parentId)
     if (replacement.module === this && replacement.exprId !== target)
-      this.nodes.delete(replacement.exprId)
+      this.delete(replacement.exprId)
     if (old) {
       const old_ = this.splice(old, newAstId())
-      old_.parent = undefined
+      old_.fields.set('parent', null)
       return asOwned(old_)
     } else {
       return undefined
@@ -254,112 +341,102 @@ export class MutableModule implements Module {
   splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
     if (!ast) return ast
     const id_ = id ?? ast.exprId
-    if (ast.module === this && this.nodes.get(id_) === ast) return ast
+    if (ast.module === this && this.get(id_) === ast) return ast
     const ast_ = ast.cloneWithId(this, id_)
     for (const child of ast_.concreteChildren()) {
       if (!(child.node instanceof Token)) {
         const childInForeignModule = ast.module.get(child.node)
         assert(childInForeignModule !== null)
         const child_ = this.splice(childInForeignModule)
-        child_.parent = id_
+        child_.fields.set('parent', id_)
       }
     }
-    this.nodes.set(id_, ast_)
+    this.nodes.set(id_, ast_.fields as any)
     return ast_
   }
 
   spliceShallow(ast: Ast): Ast {
     const cloned = ast.cloneWithId(this, ast.exprId)
-    this.nodes.set(ast.exprId, cloned)
+    this.nodes.set(ast.exprId, cloned.fields as any)
     return cloned
   }
 
-  getExtended(id: AstId): RawAstExtended | undefined {
-    return this.astExtended?.get(id) ?? this.base?.getExtended(id)
-  }
-
-  /** Remove the expression with the specified ID.
-   *
-   *  If the expression is optional in its parent, it will be removed entirely.
-   *  E.g. if it is a direct child of a `BodyBlock`, its line will be eliminated.
-   *
-   *  If the expression is a required part of the structure of its parent, it will be replaced with a placeholder.
-   *  In most contexts within an expression, this will be `_`.
-   */
   delete(id: AstId) {
-    this.nodes.set(id, null)
-  }
-
-  root(): Module {
-    if (!this.base) return this
-    return this.base.root()
+    this.nodes.delete(id)
   }
 
   has(id: AstId) {
-    return this.nodes.has(id) || (this.base ? this.base.has(id) : false)
+    return this.nodes.has(id)
   }
 }
 
-export function normalize(rootIn: Ast): Ast {
-  const printed = print(rootIn.exprId, rootIn.module)
-  const module = MutableModule.Transient()
-  const tree = parseEnso(printed.code)
-  const rootOut = abstract(module, tree, printed.code, printed.info).node
-  return module.get(rootOut)!
+type FixedMap<Fields> = {
+  get<Key extends string & keyof Fields>(key: Key): Fields[Key]
+  set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
+  entries(): IterableIterator<readonly [string, unknown]>
 }
 
-export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; node: T }
-
-declare const brandAstId: unique symbol
-declare const brandTokenId: unique symbol
-export type AstId = ExprId & { [brandAstId]: never }
-export type TokenId = ExprId & { [brandTokenId]: never }
-
-function newAstId(): AstId {
-  return random.uuidv4() as AstId
-}
-function newTokenId(): TokenId {
-  return random.uuidv4() as TokenId
-}
-// Cast an ID which may be a tree or a token to a tree ID.
-export function asNodeId(expr: ExprId): AstId {
-  return expr as AstId
+function getAll<Fields extends object>(map: FixedMap<Fields>): Fields {
+  return Object.fromEntries(map.entries()) as Fields
 }
 
-export class Token {
-  readonly exprId: TokenId
-  code_: string
-  tokenType_: RawAst.Token.Type | undefined
-  constructor(code: string, id: TokenId, type: RawAst.Token.Type | undefined) {
-    this.exprId = id
-    this.code_ = code
-    this.tokenType_ = type
+/** Modifies the input `map`. Returns the same object with an extended type. */
+function setAll<Fields1, Fields2 extends object>(
+  map: FixedMap<Fields1>,
+  fields: Fields2,
+): FixedMap<Fields1 & Fields2> {
+  const map_ = map as FixedMap<Fields1 & Fields2>
+  for (const [k, v] of Object.entries(fields)) {
+    const k_ = k as string & (keyof Fields1 | keyof Fields2)
+    map_.set(k_, v)
   }
-
-  static new(code: string) {
-    return new Token(code, newTokenId(), undefined)
-  }
-
-  code(): string {
-    return this.code_
-  }
-
-  typeName(): string {
-    if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
-    else return 'Raw'
-  }
+  return map_
 }
 
+type AstFields = {
+  id: AstId
+  type: string
+  parent: AstId | null
+}
 export abstract class Ast {
-  readonly treeType: RawAst.Tree.Type | undefined
-  readonly exprId: AstId
   readonly module: Module
-  parent: AstId | undefined
+  readonly fields: FixedMap<AstFields>
 
-  // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
-  get astExtended(): RawAstExtended | undefined {
-    return this.module.getExtended(this.exprId)
+  get exprId(): AstId {
+    return this.fields.get('id')
   }
+
+  get parentId(): AstId | null {
+    return this.fields.get('parent')
+  }
+
+  /**
+   * Return whether `this` and `other` are the same object.
+   * This is true if and only if they are in the same module and have the same `exprId`.
+   * If true, changes to either will be immediately visible in the other.
+   *
+   * NOTE: This method should be used in place of `===`.
+   */
+  is<T extends Ast>(other: T): boolean {
+    return this.fields === other.fields
+  }
+
+  /** Returns child subtrees, including information about the whitespace between them. */
+  abstract concreteChildren(): IterableIterator<NodeChild>
+  abstract replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>): void
+
+  protected constructor(module: Module, fields: FixedMap<AstFields>) {
+    this.module = module
+    this.fields = fields
+  }
+
+  protected claimChild<T extends Ast>(child: Owned<T>): AstId
+  protected claimChild<T extends Ast>(child: Owned<T> | null): AstId | null
+  protected claimChild<T extends Ast>(child: Owned<T> | null): AstId | null {
+    return child ? claimChild(this.module, child, this.exprId) : null
+  }
+
+  ////////////////////
 
   serialize(): string {
     return JSON.stringify(print(this.exprId, this.module))
@@ -370,16 +447,14 @@ export abstract class Ast {
     const nodes = new Map(unsafeEntries(parsed.info.nodes))
     const tokens = new Map(unsafeEntries(parsed.info.tokens))
     const tokensOut = new Map()
-    const module = MutableModule.Transient()
+    const module = Module.Transient()
     const tree = parseEnso(parsed.code)
-    const root = abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
-    return module.get(root)!
+    return abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
   }
 
   /** Return this node's span, if it belongs to a module with an associated span map. */
   get span(): SourceRange | undefined {
-    const spans = this.module.raw.spans
-    if (spans) return spans.get(this.exprId)
+    return this.module.spans?.get(this.exprId)
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
@@ -399,9 +474,6 @@ export abstract class Ast {
     return this
   }
 
-  /** Returns child subtrees, including information about the whitespace between them. */
-  abstract concreteChildren(): IterableIterator<NodeChild>
-
   code(module?: Module): string {
     return print(this.exprId, module ?? this.module).code
   }
@@ -412,26 +484,25 @@ export abstract class Ast {
   }
 
   /** Parse the input as a block. */
-  static parseBlock(source: PrintedSource | string, inModule?: MutableModule | undefined) {
+  static parseBlock(source: PrintedSource | string, inModule?: Module) {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
-    const module = inModule ?? MutableModule.Transient()
-    const newRoot = abstract(module, tree, code, ids).node
-    const ast = module.get(newRoot)
+    const module = inModule ?? Module.Transient()
+    const ast = abstract(module, tree, code, ids).node
     // The root of the tree produced by the parser is always a `BodyBlock`.
     const block = ast as BodyBlock
     return asOwned(block)
   }
 
   /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
-  static parse(source: PrintedSource | string, module?: MutableModule): Owned<Ast> {
-    const module_ = module ?? MutableModule.Transient()
+  static parse(source: PrintedSource | string, module?: Module): Owned<Ast> {
+    const module_ = module ?? Module.Transient()
     const ast = Ast.parseBlock(source, module_)
     const [expr] = ast.statements()
     if (!expr) return ast
-    if (expr.parent) module_.nodes.delete(expr.parent)
-    expr.parent = undefined
+    if (expr.parentId) module_.nodes.delete(expr.parentId)
+    expr.fields.set('parent', null)
     return asOwned(expr)
   }
 
@@ -444,13 +515,6 @@ export abstract class Ast {
         this.module.get(child.node)?.visitRecursive(visit)
       }
     }
-  }
-
-  protected constructor(module: MutableModule, id?: AstId, treeType?: RawAst.Tree.Type) {
-    this.module = module
-    this.exprId = id ?? newAstId()
-    this.treeType = treeType
-    module.nodes.set(this.exprId, this)
   }
 
   printSubtree(
@@ -480,10 +544,10 @@ export abstract class Ast {
         code += childNode.printSubtree(info, offset + code.length, parentIndent, moduleOverride)
         // Extra structural validation.
         assertEqual(childNode.exprId, child.node)
-        if (childNode.parent !== this.exprId) {
+        if (childNode.parentId !== this.exprId) {
           console.error(`Inconsistent parent pointer (expected ${this.exprId})`, childNode)
         }
-        assertEqual(childNode.parent, this.exprId)
+        assertEqual(childNode.parentId, this.exprId)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -505,395 +569,420 @@ export abstract class Ast {
   }
 }
 
-function clone<T>(value: T): T {
-  if (value instanceof Array) {
-    return Array.from(value, clone) as T
+function claimChild(module: Module, child: Owned<Ast>, parent: AstId): AstId {
+  if (child.module !== module) {
+    throw new Error('TODO')
   }
-  if (value && typeof value === 'object') {
-    return cloneObject(value)
-  }
-  return value
-}
-function cloneObject<T extends Object>(object: T): T {
-  const mapEntry = ([name, value]: [string, unknown]) => [name, clone(value)]
-  const properties = Object.fromEntries(Object.entries(object).map(mapEntry))
-  return Object.assign(Object.create(Object.getPrototypeOf(object)), properties)
+  child.fields.set('parent', parent)
+  return child.exprId
 }
 
-function spaced<T>(node: T): NodeChild<T> {
-  return { whitespace: ' ', node }
+function concreteChild(
+  module: Module,
+  child: NodeChild<Owned<Ast>>,
+  parent: AstId,
+): NodeChild<AstId> {
+  return { ...child, node: claimChild(module, child.node, parent) }
 }
 
-function unspaced<T>(node: T): NodeChild<T> {
-  return { whitespace: '', node }
+function toIdent(ident: string | Token): Token
+function toIdent(ident: string | Token | null): Token | null
+function toIdent(ident: string | Token | null): Token | null {
+  return ident
+    ? ident instanceof Token
+      ? ident
+      : new Token(ident, newTokenId(), RawAst.Token.Type.Ident)
+    : null
+}
+function makeEquals(): Token {
+  return new Token('=', newTokenId(), RawAst.Token.Type.Operator)
 }
 
-function autospaced<T>(node: T): NodeChild<T> {
-  return { node }
+function nameSpecification(
+  name: string | Token | null,
+): { name: NodeChild<Token>; equals: NodeChild<Token> } | null {
+  if (name === null) return null
+  return { name: autospaced(toIdent(name)), equals: unspaced(makeEquals()) }
 }
 
-function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
-  return { whitespace: isSpaced ? ' ' : '', node }
+type AppFields = {
+  function: NodeChild<AstId>
+  parens: { open: NodeChild<Token>; close: NodeChild<Token> } | null
+  nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | null
+  argument: NodeChild<AstId>
 }
-
-function makeChild<T extends Ast>(module: MutableModule, child: Owned<T>, parent: AstId): AstId {
-  assert(
-    !child.parent || !module.has(child.parent),
-    'Owned object is not owned. Was it obtained from a different module?',
-  )
-  const spliced = module.splice(child)
-  spliced.parent = parent
-  return spliced.exprId
-}
-
-function setParent(module: MutableModule, parent: AstId, ...children: (NodeChild | null)[]) {
-  for (const child of children) {
-    if (child && !(child.node instanceof Token)) module.get(child.node)!.parent = parent
-  }
-}
-
 export class App extends Ast {
-  private readonly func_: NodeChild<AstId>
-  private readonly leftParen_: NodeChild<Token> | null
-  private readonly argumentName_: NodeChild<Token> | null
-  private readonly equals_: NodeChild<Token> | null
-  private readonly arg_: NodeChild<AstId>
-  private readonly rightParen_: NodeChild<Token> | null
+  declare fields: FixedMap<AstFields & AppFields>
+  constructor(module: Module, fields: FixedMap<AstFields & AppFields>) {
+    super(module, fields)
+  }
 
   static new(
+    module: Module,
     func: Owned<Ast>,
-    name: string | Token | null,
-    arg: Owned<Ast>,
-    module?: MutableModule,
+    argumentName: string | Token | null,
+    argument: Owned<Ast>,
   ) {
-    const edit = module ?? MutableModule.Transient()
-    const id = newAstId()
-    const func_ = unspaced(makeChild(edit, func, id))
-    const nameToken =
-      typeof name === 'string' ? new Token(name, newTokenId(), RawAst.Token.Type.Ident) : null
-    const name_ = nameToken ? spaced(nameToken) : null
-    const equals = name ? unspaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator)) : null
-    const arg_ = spacedIf(makeChild(edit, arg, id), !name)
-    const treeType = name ? RawAst.Tree.Type.NamedApp : RawAst.Tree.Type.App
-    return asOwned(new App(edit, id, func_, null, name_, equals, arg_, null, treeType))
+    const base = module.baseObject('App')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      function: unspaced(claimChild(module, func, id)),
+      parens: null,
+      nameSpecification: nameSpecification(argumentName),
+      argument: autospaced(claimChild(module, argument, id)),
+    })
+    return asOwned(new App(module, fields))
   }
 
   get function(): Ast {
-    return this.module.get(this.func_.node)!
+    return this.module.get(this.fields.get('function').node)
   }
-
+  setFunction<T extends Ast>(func: Owned<T>) {
+    this.fields.set('function', unspaced(this.claimChild(func)))
+  }
   get argumentName(): Token | null {
-    return this.argumentName_?.node ?? null
+    return this.fields.get('nameSpecification')?.name.node ?? null
   }
-
+  setArgumentName(name: string | Token | null) {
+    this.fields.set('nameSpecification', nameSpecification(name))
+  }
   get argument(): Ast {
-    return this.module.get(this.arg_.node)!
+    return this.module.get(this.fields.get('argument').node)
   }
-
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    func: NodeChild<AstId>,
-    leftParen: NodeChild<Token> | null,
-    name: NodeChild<Token> | null,
-    equals: NodeChild<Token> | null,
-    arg: NodeChild<AstId>,
-    rightParen: NodeChild<Token> | null,
-    treeType: RawAst.Tree.Type,
-  ) {
-    super(module, id, treeType)
-    setParent(module, this.exprId, func, arg)
-    this.func_ = func
-    this.leftParen_ = leftParen
-    this.argumentName_ = name
-    this.equals_ = equals
-    this.arg_ = arg
-    this.rightParen_ = rightParen
+  setArgument<T extends Ast>(argument: Owned<T>) {
+    this.fields.set('argument', { node: this.claimChild(argument) })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.func_
-    if (this.leftParen_) yield this.leftParen_
-    if (this.argumentName_) yield this.argumentName_
-    if (this.equals_)
-      yield { whitespace: this.equals_.whitespace ?? this.arg_.whitespace, node: this.equals_.node }
-    yield this.arg_
-    if (this.rightParen_) yield this.rightParen_
+    const { function: function_, parens, nameSpecification, argument } = getAll(this.fields)
+    yield function_
+    if (parens) yield parens.open
+    if (nameSpecification) {
+      yield nameSpecification.name
+      yield nameSpecification.equals
+    }
+    yield argument
+    if (parens) yield parens.close
   }
-}
 
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-export function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    if (this.fields.get('function').node === target) {
+      this.setFunction(replacement)
+    } else if (this.fields.get('argument').node === target) {
+      this.setArgument(replacement)
+    }
+  }
 }
 
 function positionalApp(
-  module: MutableModule,
+  module: Module,
   id: AstId | undefined,
-  func: NodeChild<AstId>,
-  arg: NodeChild<AstId>,
-): App {
-  return new App(module, id, func, null, null, null, arg, null, RawAst.Tree.Type.App)
+  func: NodeChild<Owned<Ast>>,
+  argument: NodeChild<Owned<Ast>>,
+) {
+  const base = module.baseObject('App', id)
+  const id_ = base.get('id')
+  const fields = setAll(base, {
+    function: concreteChild(module, func, id_),
+    parens: null,
+    nameSpecification: null,
+    argument: concreteChild(module, argument, id_),
+  })
+  return asOwned(new App(module, fields))
 }
 
 function namedApp(
-  module: MutableModule,
+  module: Module,
   id: AstId | undefined,
-  func: NodeChild<AstId>,
-  leftParen: NodeChild<Token> | null,
+  func: NodeChild<Owned<Ast>>,
+  open: NodeChild<Token> | null,
   name: NodeChild<Token>,
-  equals: NodeChild<Token>, // Edits (#8367): NodeChild<Tok> | undefined
-  arg: NodeChild<AstId>,
-  rightParen: NodeChild<Token> | null,
+  equals: NodeChild<Token>,
+  argument: NodeChild<Owned<Ast>>,
+  close: NodeChild<Token> | null,
 ) {
-  return asOwned(
-    new App(module, id, func, leftParen, name, equals, arg, rightParen, RawAst.Tree.Type.NamedApp),
-  )
+  const base = module.baseObject('App', id)
+  const id_ = base.get('id')
+  const fields = setAll(base, {
+    function: concreteChild(module, func, id_),
+    parens: open && close ? { open, close } : null,
+    nameSpecification: { name, equals },
+    argument: concreteChild(module, argument, id_),
+  })
+  return asOwned(new App(module, fields))
 }
 
+type UnaryOprAppFields = {
+  operator: NodeChild<Token>
+  argument: NodeChild<AstId> | null
+}
 export class UnaryOprApp extends Ast {
-  private readonly opr: NodeChild<Token>
-  private readonly arg: NodeChild<AstId> | null
+  declare fields: FixedMap<AstFields & UnaryOprAppFields>
+  constructor(module: Module, fields: FixedMap<AstFields & UnaryOprAppFields>) {
+    super(module, fields)
+  }
+
+  static new(module: Module, operator: Token, argument: Owned<Ast> | null) {
+    const base = module.baseObject('UnaryOprApp')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      operator: unspaced(operator),
+      argument: argument ? autospaced(claimChild(module, argument, id)) : null,
+    })
+    return asOwned(new UnaryOprApp(module, fields))
+  }
 
   get operator(): Token {
-    return this.opr.node
+    return this.fields.get('operator').node
   }
-
+  setOperator(value: Token) {
+    this.fields.set('operator', unspaced(value))
+  }
   get argument(): Ast | null {
-    const id = this.arg?.node
-    return id ? this.module.get(id) : null
+    return this.module.get(this.fields.get('argument')?.node ?? null)
   }
-
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    opr: NodeChild<Token>,
-    arg: NodeChild<AstId> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.UnaryOprApp)
-    setParent(module, this.exprId, arg)
-    this.opr = opr
-    this.arg = arg
+  setArgument<T extends Ast>(argument: Owned<T>) {
+    this.fields.set('argument', autospaced(this.claimChild(argument)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.opr
-    if (this.arg) yield this.arg
+    const { operator, argument } = getAll(this.fields)
+    yield operator
+    if (argument) yield argument
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    if (this.fields.get('argument')?.node === target) {
+      this.setArgument(replacement)
+    }
   }
 }
 
 export class NegationOprApp extends UnaryOprApp {
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    opr: NodeChild<Token>,
-    arg: NodeChild<AstId> | null,
-  ) {
-    super(module, id, opr, arg)
+  static new(module: Module, operator: Token, argument: Owned<Ast> | null): Owned<NegationOprApp> {
+    const base = module.baseObject('NegationOprApp')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      operator: unspaced(operator),
+      argument: argument ? autospaced(claimChild(module, argument, id)) : null,
+    })
+    return asOwned(new NegationOprApp(module, fields))
   }
 }
 
+type OprAppFields = {
+  lhs: NodeChild<AstId> | null
+  operator: NodeChild[]
+  rhs: NodeChild<AstId> | null
+}
 export class OprApp extends Ast {
-  private readonly lhs_: NodeChild<AstId> | null
-  private readonly opr_: NodeChild[]
-  private readonly rhs_: NodeChild<AstId> | null
+  declare fields: FixedMap<AstFields & OprAppFields>
+  constructor(module: Module, fields: FixedMap<AstFields & OprAppFields>) {
+    super(module, fields)
+  }
+
+  static new(module: Module, lhs: Owned<Ast> | null, operator: Token, rhs: Owned<Ast> | null) {
+    const base = module.baseObject('OprApp')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      lhs: lhs ? autospaced(claimChild(module, lhs, id)) : null,
+      operator: [unspaced(operator)],
+      rhs: rhs ? autospaced(claimChild(module, rhs, id)) : null,
+    })
+    return asOwned(new OprApp(module, fields))
+  }
 
   get lhs(): Ast | null {
-    return this.lhs_ ? this.module.get(this.lhs_.node) : null
+    return this.module.get(this.fields.get('lhs')?.node ?? null)
   }
-
+  setLhs<T extends Ast>(value: Owned<T>) {
+    this.fields.set('lhs', autospaced(this.claimChild(value)))
+  }
   get operator(): Result<Token, NodeChild[]> {
-    const first = this.opr_[0]?.node
-    if (first && this.opr_.length < 2 && first instanceof Token) {
-      return Ok(first)
-    } else {
-      return Err(this.opr_)
-    }
+    const operators = this.fields.get('operator')
+    const [opr] = operators
+    return opr?.node instanceof Token ? Ok(opr.node) : Err(operators)
   }
-
+  setOperator(value: Token) {
+    this.fields.set('operator', [unspaced(value)])
+  }
   get rhs(): Ast | null {
-    return this.rhs_ ? this.module.get(this.rhs_.node) : null
+    return this.module.get(this.fields.get('lhs')?.node ?? null)
   }
-
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    lhs: NodeChild<AstId> | null,
-    opr: NodeChild[],
-    rhs: NodeChild<AstId> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.OprApp)
-    setParent(module, this.exprId, lhs, rhs)
-    this.lhs_ = lhs
-    this.opr_ = opr
-    this.rhs_ = rhs
+  setRhs<T extends Ast>(value: Owned<T>) {
+    this.fields.set('rhs', autospaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.lhs_) yield this.lhs_
-    for (const opr of this.opr_) yield opr
-    if (this.rhs_) yield this.rhs_
+    const { lhs, operator, rhs } = getAll(this.fields)
+    if (lhs) yield lhs
+    yield* operator
+    if (rhs) yield rhs
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    if (this.fields.get('lhs')?.node === target) {
+      this.setLhs(replacement)
+    } else if (this.fields.get('rhs')?.node === target) {
+      this.setRhs(replacement)
+    }
   }
 }
 
 export class PropertyAccess extends OprApp {
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    lhs: NodeChild<AstId> | null,
-    opr: NodeChild<Token> | undefined,
-    rhs: NodeChild<AstId> | null,
-  ) {
-    const oprs = [opr ?? unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))]
-    super(module, id, lhs, oprs, rhs)
-  }
-
-  static new(module: MutableModule, lhs: Owned<Ast> | null, rhs: Owned<Token> | null) {
-    const id = newAstId()
-    const lhs_ = lhs ? unspaced(makeChild(module, lhs, id)) : null
-    let rhs_ = null
-    if (rhs) {
-      const ident = asOwned(new Ident(module, undefined, unspaced(rhs)))
-      rhs_ = unspaced(makeChild(module, ident, id))
-    }
-    return asOwned(new PropertyAccess(module, id, lhs_, undefined, rhs_))
+  static new(module: Module, lhs: Owned<Ast>, operator: Token | undefined, rhs: Token | string) {
+    const base = module.baseObject('PropertyAccess')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      lhs: autospaced(claimChild(module, lhs, id)),
+      operator: [unspaced(operator ?? new Token('.', newTokenId(), RawAst.Token.Type.Operator))],
+      rhs: autospaced(claimChild(module, Ident.new(module, toIdent(rhs)), id)),
+    })
+    return asOwned(new PropertyAccess(module, fields))
   }
 
   static Sequence(
-    segments: string[],
-    module?: MutableModule,
+    segments: [(Token | string), ...(Token | string)[]],
+    module: Module,
+  ): Owned<PropertyAccess> | Owned<Ident>
+  static Sequence(
+    segments: (Token | string)[],
+    module: Module,
+  ): Owned<PropertyAccess> | Owned<Ident> | undefined
+  static Sequence(
+    segments: (Token | string)[],
+    module: Module,
   ): Owned<PropertyAccess> | Owned<Ident> | undefined {
-    const module_ = module ?? MutableModule.Transient()
     let path
     for (const s of segments) {
-      const t = asOwned(new Token(s, newTokenId(), RawAst.Token.Type.Ident))
-      if (!path) {
-        path = Ident.new(module_, s)
-        continue
-      }
-      path = PropertyAccess.new(module_, path, t)
+      const t = toIdent(s)
+      path = path ? PropertyAccess.new(module, path, undefined, t) : Ident.new(module, t)
     }
     return path
   }
 }
 
-/** Representation without any type-specific accessors, for tree types that don't require any special treatment. */
+type GenericFields = {
+  children: NodeChild[]
+}
 export class Generic extends Ast {
-  private readonly children_: NodeChild[]
-
-  constructor(
-    module: MutableModule,
-    id?: AstId,
-    children?: NodeChild[],
-    treeType?: RawAst.Tree.Type,
-  ) {
-    super(module, id, treeType)
-    this.children_ = children ?? []
-    setParent(module, this.exprId, ...this.children_)
+  declare fields: FixedMap<AstFields & GenericFields>
+  constructor(module: Module, fields: FixedMap<AstFields & GenericFields>) {
+    super(module, fields)
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
-    return this.children_.values()
+    return this.fields.get('children')[Symbol.iterator]()
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const replacement_ = autospaced(this.claimChild(replacement))
+    this.fields.set(
+      'children',
+      this.fields.get('children').map((child) => (child.node === target ? replacement_ : child)),
+    )
   }
 }
 
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
-function multiSegmentAppSegment(
-  whitespace: string,
-  header: string,
-  body: Ast,
-): MultiSegmentAppSegment {
-  return {
-    header: { whitespace, node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-    body: spaced(body.exprId),
-  }
+function multiSegmentAppSegment(header: string, body: AstId): MultiSegmentAppSegment
+function multiSegmentAppSegment(header: string, body: AstId | null): MultiSegmentAppSegment | null
+function multiSegmentAppSegment(header: string, body: AstId | null): MultiSegmentAppSegment | null {
+  return body
+    ? {
+        header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
+        body: spaced(body),
+      }
+    : null
 }
 
+type ImportFields = {
+  polyglot: MultiSegmentAppSegment | null
+  from: MultiSegmentAppSegment | null
+  import: MultiSegmentAppSegment
+  all: NodeChild<Token> | null
+  as: MultiSegmentAppSegment | null
+  hiding: MultiSegmentAppSegment | null
+}
 export class Import extends Ast {
-  private readonly polyglot_: MultiSegmentAppSegment | null
-  private readonly from_: MultiSegmentAppSegment | null
-  private readonly import__: MultiSegmentAppSegment
-  private readonly all_: NodeChild<Token> | null
-  private readonly as_: MultiSegmentAppSegment | null
-  private readonly hiding_: MultiSegmentAppSegment | null
+  declare fields: FixedMap<AstFields & ImportFields>
+  constructor(module: Module, fields: FixedMap<AstFields & ImportFields>) {
+    super(module, fields)
+  }
 
   get polyglot(): Ast | null {
-    return this.polyglot_?.body ? this.module.get(this.polyglot_.body.node) : null
+    return this.module.get(this.fields.get('polyglot')?.body?.node ?? null)
   }
-
   get from(): Ast | null {
-    return this.from_?.body ? this.module.get(this.from_.body.node) : null
+    return this.module.get(this.fields.get('from')?.body?.node ?? null)
   }
-
   get import_(): Ast | null {
-    return this.import__?.body ? this.module.get(this.import__.body.node) : null
+    return this.module.get(this.fields.get('import').body?.node ?? null)
   }
-
   get all(): Token | null {
-    return this.all_?.node ?? null
+    return this.fields.get('all')?.node ?? null
   }
-
   get as(): Ast | null {
-    return this.as_?.body ? this.module.get(this.as_.body.node) : null
+    return this.module.get(this.fields.get('as')?.body?.node ?? null)
   }
-
   get hiding(): Ast | null {
-    return this.hiding_?.body ? this.module.get(this.hiding_.body.node) : null
+    return this.module.get(this.fields.get('hiding')?.body?.node ?? null)
   }
 
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    polyglot: MultiSegmentAppSegment | null,
-    from: MultiSegmentAppSegment | null,
-    import_: MultiSegmentAppSegment,
-    all: NodeChild<Token> | null,
-    as: MultiSegmentAppSegment | null,
-    hiding: MultiSegmentAppSegment | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.Import)
-    this.polyglot_ = polyglot
-    this.from_ = from
-    this.import__ = import_
-    this.all_ = all
-    this.as_ = as
-    this.hiding_ = hiding
-    setParent(module, this.exprId, ...this.concreteChildren())
+  setPolyglot<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('polyglot', multiSegmentAppSegment('polyglot', this.claimChild(value)))
+  }
+  setFrom<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('from', multiSegmentAppSegment('from', this.claimChild(value)))
+  }
+  setImport<T extends Ast>(value: Owned<T>) {
+    this.fields.set('import', multiSegmentAppSegment('import', this.claimChild(value)))
+  }
+  setAll(value: Token | null) {
+    this.fields.set('all', value ? spaced(value) : null)
+  }
+  setAs<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('as', multiSegmentAppSegment('as', this.claimChild(value)))
+  }
+  setHiding<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('hiding', multiSegmentAppSegment('hiding', this.claimChild(value)))
   }
 
-  static Qualified(path: string[], module?: MutableModule): Owned<Import> | undefined {
-    const module_ = module ?? MutableModule.Transient()
+  static Qualified(path: string[], module: Module): Owned<Import> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    const import_ = multiSegmentAppSegment('', 'import', path_)
-    return asOwned(new Import(module_, undefined, null, null, import_, null, null, null))
+    const base = module.baseObject('Import')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      polyglot: null,
+      from: null,
+      import: multiSegmentAppSegment('import', claimChild(module, path_, id)),
+      all: null,
+      as: null,
+      hiding: null,
+    })
+    return asOwned(new Import(module, fields))
   }
 
   static Unqualified(
-    path: string[],
-    name: string,
-    module?: MutableModule,
+    path: (Token | string)[],
+    name: Token | string,
+    module: Module,
   ): Owned<Import> | undefined {
-    const module_ = module ?? MutableModule.Transient()
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    const name_ = Ident.new(module_, name)
-    const from = multiSegmentAppSegment('', 'from', path_)
-    const import_ = multiSegmentAppSegment(' ', 'import', name_)
-    return asOwned(new Import(module_, undefined, null, from, import_, null, null, null))
+    const name_ = Ident.new(module, name)
+    const base = module.baseObject('Import')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      polyglot: null,
+      from: multiSegmentAppSegment('from', claimChild(module, path_, id)),
+      import: multiSegmentAppSegment('import', claimChild(module, name_, id)),
+      all: null,
+      as: null,
+      hiding: null,
+    })
+    return asOwned(new Import(module, fields))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -903,204 +992,288 @@ export class Import extends Ast {
       if (segment?.body) parts.push(segment.body)
       return parts
     }
-    yield* segment(this.polyglot_)
-    yield* segment(this.from_)
-    yield* segment(this.import__)
-    if (this.all_) yield this.all_
-    yield* segment(this.as_)
-    yield* segment(this.hiding_)
+    const { polyglot, from, import: import_, all, as, hiding } = getAll(this.fields)
+    yield* segment(polyglot)
+    yield* segment(from)
+    yield* segment(import_)
+    if (all) yield all
+    yield* segment(as)
+    yield* segment(hiding)
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const { polyglot, from, import: import_, as, hiding } = getAll(this.fields)
+    ;(polyglot?.body?.node === target
+      ? this.setPolyglot
+      : from?.body?.node === target
+      ? this.setFrom
+      : import_.body?.node === target
+      ? this.setImport
+      : as?.body?.node === target
+      ? this.setAs
+      : hiding?.body?.node === target
+      ? this.setHiding
+      : bail(`Failed to find child ${target} in node ${this.exprId}.`))(replacement)
   }
 }
 
+type TextLiteralFields = {
+  open: NodeChild<Token> | null
+  newline: NodeChild<Token> | null
+  elements: NodeChild[]
+  close: NodeChild<Token> | null
+}
 export class TextLiteral extends Ast {
-  private readonly open_: NodeChild<Token> | null
-  private readonly newline_: NodeChild<Token> | null
-  private readonly elements_: NodeChild[]
-  private readonly close_: NodeChild<Token> | null
-
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    open: NodeChild<Token> | null,
-    newline: NodeChild<Token> | null,
-    elements: NodeChild[],
-    close: NodeChild<Token> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.TextLiteral)
-    setParent(module, this.exprId, ...elements)
-    this.open_ = open
-    this.newline_ = newline
-    this.elements_ = elements
-    this.close_ = close
+  declare fields: FixedMap<AstFields & TextLiteralFields>
+  constructor(module: Module, fields: FixedMap<AstFields & TextLiteralFields>) {
+    super(module, fields)
   }
 
-  static new(rawText: string, moduleIn?: MutableModule) {
-    const module = moduleIn ?? MutableModule.Transient()
+  static new(rawText: string, module: Module) {
     const open = unspaced(Token.new("'"))
     const elements = [unspaced(Token.new(escape(rawText)))]
     const close = unspaced(Token.new("'"))
-    return asOwned(new TextLiteral(module, undefined, open, null, elements, close))
+    const base = module.baseObject('TextLiteral')
+    const fields = setAll(base, {
+      open,
+      newline: null,
+      elements,
+      close,
+    })
+    return asOwned(new TextLiteral(module, fields))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.open_) yield this.open_
-    if (this.newline_) yield this.newline_
-    yield* this.elements_
-    if (this.close_) yield this.close_
+    const { open, newline, elements, close } = getAll(this.fields)
+    if (open) yield open
+    if (newline) yield newline
+    yield* elements
+    if (close) yield close
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const replacement_ = autospaced(this.claimChild(replacement))
+    this.fields.set(
+      'elements',
+      this.fields.get('elements').map((child) => (child.node === target ? replacement_ : child)),
+    )
   }
 }
 
+type DocumentedFields = {
+  open: NodeChild<Token> | null
+  elements: NodeChild[]
+  newlines: NodeChild<Token>[]
+  expression: NodeChild<AstId> | null
+}
 export class Documented extends Ast {
-  private readonly open_: NodeChild<Token> | null
-  private readonly elements_: NodeChild[]
-  private readonly newlines_: NodeChild<Token>[]
-  private readonly expression_: NodeChild<AstId> | null
+  declare fields: FixedMap<AstFields & DocumentedFields>
+  constructor(module: Module, fields: FixedMap<AstFields & DocumentedFields>) {
+    super(module, fields)
+  }
 
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    open: NodeChild<Token> | null,
-    elements: NodeChild[],
-    newlines: NodeChild<Token>[],
-    expression: NodeChild<AstId> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.Documented)
-    setParent(module, this.exprId, expression, ...elements)
-    this.open_ = open
-    this.elements_ = elements
-    this.newlines_ = newlines
-    this.expression_ = expression
+  get expression(): Ast | null {
+    return this.module.get(this.fields.get('expression')?.node ?? null)
+  }
+  setExpression<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('expression', value ? unspaced(this.claimChild(value)) : null)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.open_) yield this.open_
-    yield* this.elements_
-    yield* this.newlines_
-    if (this.expression_) yield this.expression_
+    const { open, elements, newlines, expression } = getAll(this.fields)
+    if (open) yield open
+    yield* elements
+    yield* newlines
+    if (expression) yield expression
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    if (this.fields.get('expression')?.node === target) {
+      this.setExpression(replacement)
+    } else {
+      const replacement_ = unspaced(this.claimChild(replacement))
+      this.fields.set(
+        'elements',
+        this.fields.get('elements').map((child) => (child.node === target ? replacement_ : child)),
+      )
+    }
   }
 }
 
+type InvalidFields = { expression: NodeChild<AstId> }
 export class Invalid extends Ast {
-  private readonly expression_: NodeChild<AstId>
+  declare fields: FixedMap<AstFields & InvalidFields>
+  constructor(module: Module, fields: FixedMap<AstFields & InvalidFields>) {
+    super(module, fields)
+  }
 
-  constructor(module: MutableModule, id: AstId | undefined, expression: NodeChild<AstId>) {
-    super(module, id, RawAst.Tree.Type.Invalid)
-    setParent(module, this.exprId, expression)
-    this.expression_ = expression
+  get expression(): Ast {
+    return this.module.get(this.fields.get('expression').node)
+  }
+  setExpression<T extends Ast>(value: Owned<T>) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.expression_
+    yield this.fields.get('expression')
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    assertEqual(this.fields.get('expression').node, target)
+    this.setExpression(replacement)
   }
 }
 
+type GroupFields = {
+  open: NodeChild<Token>
+  expression: NodeChild<AstId> | null
+  close: NodeChild<Token>
+}
 export class Group extends Ast {
-  private readonly open_: NodeChild<Token> | undefined
-  private readonly expression_: NodeChild<AstId> | null
-  private readonly close_: NodeChild<Token> | undefined
+  declare fields: FixedMap<AstFields & GroupFields>
+  constructor(module: Module, fields: FixedMap<AstFields & GroupFields>) {
+    super(module, fields)
+  }
 
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    open: NodeChild<Token> | undefined,
-    expression: NodeChild<AstId> | null,
-    close: NodeChild<Token> | undefined,
-  ) {
-    super(module, id, RawAst.Tree.Type.Group)
-    setParent(module, this.exprId, expression)
-    this.open_ = open
-    this.expression_ = expression
-    this.close_ = close
+  get expression(): Ast | null {
+    return this.module.get(this.fields.get('expression')?.node ?? null)
+  }
+  setExpression<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('expression', value ? unspaced(this.claimChild(value)) : null)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.open_) yield this.open_
-    if (this.expression_) yield this.expression_
-    if (this.close_) yield this.close_
+    const { open, expression, close } = getAll(this.fields)
+    yield open
+    if (expression) yield expression
+    yield close
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    assertEqual(this.fields.get('expression')?.node, target)
+    this.setExpression(replacement)
   }
 }
 
+type NumericLiteralFields = {
+  tokens: NodeChild[]
+}
 export class NumericLiteral extends Ast {
-  private readonly tokens_: NodeChild[]
-
-  constructor(module: MutableModule, id: AstId | undefined, tokens: NodeChild[]) {
-    super(module, id, RawAst.Tree.Type.Number)
-    setParent(module, this.exprId, ...tokens)
-    this.tokens_ = tokens ?? []
+  declare fields: FixedMap<AstFields & NumericLiteralFields>
+  constructor(module: Module, fields: FixedMap<AstFields & NumericLiteralFields>) {
+    super(module, fields)
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
-    return this.tokens_.values()
+    return this.fields.get('tokens')[Symbol.iterator]()
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const replacement_ = autospaced(this.claimChild(replacement))
+    this.fields.set(
+      'tokens',
+      this.fields.get('tokens').map((child) => (child.node === target ? replacement_ : child)),
+    )
   }
 }
 
-type FunctionArgument = NodeChild[]
+/** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
+ *  GUI. We just need to represent them faithfully and create the simple cases. */
+type ArgumentDefinition = NodeChild<Ast | Token>[]
+type RawArgumentDefinition = NodeChild[]
+type OwnedArgumentDefinition = NodeChild<Owned<Ast> | Token>[]
 
+function argumentDefinitionsToRaw(
+  module: Module,
+  defs: OwnedArgumentDefinition[],
+  parent: AstId,
+): RawArgumentDefinition[] {
+  return defs.map((def) =>
+    def.map((part) => ({
+      ...part,
+      node: part.node instanceof Token ? part.node : claimChild(module, part.node, parent),
+    })),
+  )
+}
+
+type FunctionFields = {
+  name: NodeChild<AstId>
+  argumentDefinitions: RawArgumentDefinition[]
+  equals: NodeChild<Token>
+  body: NodeChild<AstId> | null
+}
 export class Function extends Ast {
-  private readonly name_: NodeChild<AstId>
-  private readonly args_: FunctionArgument[]
-  private readonly equals_: NodeChild<Token>
-  private readonly body_: NodeChild<AstId> | null
-
-  /** @internal */
-  static new(
-    module: MutableModule,
-    name: Owned<Ast>,
-    args: FunctionArgument[],
-    body: Owned<Ast> | null,
-  ): Owned<Function> {
-    const id = newAstId()
-    return asOwned(
-      new Function(
-        module,
-        id,
-        unspaced(makeChild(module, name, id)),
-        args.map((arg) =>
-          arg.map((child) => ({
-            ...child,
-            node: child.node instanceof Token ? child.node : makeChild(module, module.take(child.node)!.node, id),
-          })),
-        ),
-        undefined,
-        body != null ? unspaced(makeChild(module, body, id)) : null,
-      ),
-    )
+  declare fields: FixedMap<AstFields & FunctionFields>
+  constructor(module: Module, fields: FixedMap<AstFields & FunctionFields>) {
+    super(module, fields)
   }
 
-  static fromExprs(
-    module: MutableModule,
-    name: string,
-    args: Owned<Ast>[],
-    exprs: Owned<Ast>[],
-    trailingNewline?: boolean,
-  ): Owned<Function> {
-    const id = newAstId()
-    const exprs_: OwnedBlockLine[] = exprs.map((expr) => ({ expression: { node: expr } }))
-    if (trailingNewline) {
-      exprs_.push({ newline: { node: Token.new('\n') }, expression: null })
-    }
-    const body = BodyBlock.new(exprs_, module)
-    const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
-    const ident = { node: Ident.new(module, name).exprId }
-    const equals = { node: Token.new('=') }
-    return asOwned(new Function(module, id, ident, args_, equals, { node: body.exprId }))
-  }
-
-  // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
-  //  here and in `rawChildren` (and indirectly, `print`).
-  get name(): Ast | null {
-    return this.module.get(this.name_.node)
+  get name(): Ast {
+    return this.module.get(this.fields.get('name').node)
   }
   get body(): Ast | null {
-    return this.body_ ? this.module.get(this.body_.node) : null
+    return this.module.get(this.fields.get('body')?.node ?? null)
+  }
+  get argumentDefinitions(): ArgumentDefinition[] {
+    return this.fields
+      .get('argumentDefinitions')
+      .map((raw) =>
+        raw.map((part) => ({
+          ...part,
+          node: part.node instanceof Token ? part.node : this.module.get(part.node),
+        })),
+      )
+  }
+  setName<T extends Ast>(value: Owned<T>) {
+    this.fields.set('name', unspaced(this.claimChild(value)))
+  }
+  setBody<T extends Ast>(value: Owned<T> | null) {
+    this.fields.set('body', value ? unspaced(this.claimChild(value)) : null)
+  }
+  setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
+    this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.exprId))
   }
 
-  argNodes(): FunctionArgument[] {
-    return [...this.args_]
+  static new(
+    module: Module,
+    name: Token | string,
+    argumentDefinitions: OwnedArgumentDefinition[],
+    body: Owned<BodyBlock>,
+  ): Owned<Function> {
+    const base = module.baseObject('Function')
+    const id = base.get('id')
+    const bodyId = claimChild(module, body, id)
+    const path = claimChild(module, PropertyAccess.Sequence([name], module), id)
+    const fields = setAll(base, {
+      name: unspaced(path),
+      argumentDefinitions: argumentDefinitionsToRaw(module, argumentDefinitions, id),
+      equals: spaced(makeEquals()),
+      body: bodyId ? autospaced(bodyId) : null,
+    })
+    return asOwned(new Function(module, fields))
+  }
+
+  /** Construct a function with simple (name-only) arguments and a body block. */
+  static fromStatements(
+    module: Module,
+    name: Token | string,
+    argumentNames: (Token | string)[],
+    statements: Owned<Ast>[],
+    trailingNewline?: boolean,
+  ): Owned<Function> {
+    const statements_: OwnedBlockLine[] = statements.map((statement) => ({
+      expression: unspaced(statement),
+    }))
+    if (trailingNewline) {
+      statements_.push({ expression: null })
+    }
+    const argumentDefinitions = argumentNames.map((name) => [unspaced(Ident.new(module, name))])
+    const body = BodyBlock.new(statements_, module)
+    return Function.new(module, name, argumentDefinitions, body)
   }
 
   *bodyExpressions(): IterableIterator<Ast> {
-    const body = this.body_ ? this.module.get(this.body_.node) : null
+    const body = this.body
     if (body instanceof BodyBlock) {
       yield* body.statements()
     } else if (body !== null) {
@@ -1108,145 +1281,147 @@ export class Function extends Ast {
     }
   }
 
-  /** @internal */
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    name: NodeChild<AstId>,
-    args: FunctionArgument[],
-    equals: NodeChild<Token> | undefined, // Edits (#8367): NodeChild<Tok> | undefined
-    body: NodeChild<AstId> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.Function)
-    this.name_ = name
-    this.args_ = args
-    this.equals_ = equals ?? spaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator))
-
-    this.body_ = body
-    setParent(module, this.exprId, ...this.concreteChildren())
+  *concreteChildren(): IterableIterator<NodeChild> {
+    const { name, argumentDefinitions, equals, body } = getAll(this.fields)
+    yield name
+    for (const def of argumentDefinitions) yield* def
+    yield { whitespace: equals.whitespace ?? ' ', node: equals.node }
+    if (body) yield body
   }
 
-  *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.name_
-    for (const arg of this.args_) yield* arg
-    yield { whitespace: this.equals_.whitespace ?? ' ', node: this.equals_.node }
-    if (this.body_ !== null) {
-      yield this.body_
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const { name, argumentDefinitions, equals, body } = getAll(this.fields)
+    if (name.node === target) {
+      this.setName(replacement)
+    } else if (body?.node === target) {
+      this.setBody(replacement)
+    } else {
+      const replacement_ = this.claimChild(replacement)
+      const replaceChild = (child: NodeChild) =>
+        child.node === target ? { ...child, node: replacement_ } : child
+      this.fields.set(
+        'argumentDefinitions',
+        argumentDefinitions.map((def) => def.map(replaceChild)),
+      )
     }
   }
 }
 
+type AssignmentFields = {
+  pattern: NodeChild<AstId>
+  equals: NodeChild<Token>
+  expression: NodeChild<AstId>
+}
 export class Assignment extends Ast {
-  private readonly pattern_: NodeChild<AstId>
-  private readonly equals_: NodeChild<Token>
-  private readonly expression_: NodeChild<AstId>
-  get pattern(): Ast | null {
-    return this.module.get(this.pattern_.node)
-  }
-  get expression(): Ast | null {
-    return this.module.get(this.expression_.node)
-  }
-  constructor(
-    module: MutableModule,
-    id: AstId | undefined,
-    pattern: NodeChild<AstId>,
-    equals: NodeChild<Token> | undefined,
-    expression: NodeChild<AstId>,
-  ) {
-    super(module, id, RawAst.Tree.Type.Assignment)
-    setParent(module, this.exprId, pattern, expression)
-    this.pattern_ = pattern
-    this.equals_ =
-      equals ??
-      spacedIf(new Token('=', newTokenId(), RawAst.Token.Type.Operator), !!expression.whitespace)
-    this.expression_ = expression
+  declare fields: FixedMap<AstFields & AssignmentFields>
+  constructor(module: Module, fields: FixedMap<AstFields & AssignmentFields>) {
+    super(module, fields)
   }
 
-  static new(module: MutableModule, ident: string, expression: Owned<Ast>): Owned<Assignment> {
-    const id = newAstId()
-    const pattern = unspaced(makeChild(module, Ident.new(module, ident), id))
-    const expression_ = spaced(makeChild(module, expression, id))
-    return asOwned(new Assignment(module, id, pattern, undefined, expression_))
+  static new(module: Module, ident: string | Token, expression: Owned<Ast>) {
+    const base = module.baseObject('Assignment')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      pattern: unspaced(claimChild(module, Ident.new(module, ident), id)),
+      equals: spaced(makeEquals()),
+      expression: spaced(claimChild(module, expression, id)),
+    })
+    return asOwned(new Assignment(module, fields))
+  }
+
+  get pattern(): Ast {
+    return this.module.get(this.fields.get('pattern').node)
+  }
+  get expression(): Ast {
+    return this.module.get(this.fields.get('expression').node)
+  }
+  setPattern<T extends Ast>(value: Owned<T>) {
+    this.fields.set('pattern', unspaced(this.claimChild(value)))
+  }
+  setExpression<T extends Ast>(value: Owned<T>) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.pattern_
+    const { pattern, equals, expression } = getAll(this.fields)
+    yield pattern
     yield {
-      whitespace: this.equals_.whitespace ?? this.expression_.whitespace ?? ' ',
-      node: this.equals_.node,
+      whitespace: equals.whitespace ?? expression.whitespace ?? ' ',
+      node: equals.node,
     }
-    if (this.expression_ !== null) {
-      yield this.expression_
+    yield expression
+  }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const { pattern, expression } = getAll(this.fields)
+    if (pattern.node === target) {
+      this.setPattern(replacement)
+    } else if (expression.node === target) {
+      this.setExpression(replacement)
     }
   }
 }
 
+type BodyBlockFields = {
+  lines: RawBlockLine[]
+}
 export class BodyBlock extends Ast {
-  private readonly lines_: RawBlockLine[]
-
-  static new(lines: OwnedBlockLine[], module?: MutableModule) {
-    const module_ = module ?? MutableModule.Transient()
-    const id = newAstId()
-    const rawLines = lines.map((line) => lineToRaw(line, module_, id))
-    return asOwned(new BodyBlock(module_, id, rawLines))
+  declare fields: FixedMap<AstFields & BodyBlockFields>
+  constructor(module: Module, fields: FixedMap<AstFields & BodyBlockFields>) {
+    super(module, fields)
   }
 
-  lines(): BlockLine[] {
-    return this.lines_.map((line) => lineFromRaw(line, this.module))
+  static new(lines: OwnedBlockLine[], module: Module) {
+    const base = module.baseObject('BodyBlock')
+    const id = base.get('id')
+    const fields = setAll(base, {
+      lines: lines.map((line) => lineToRaw(line, module, id)),
+    })
+    return asOwned(new BodyBlock(module, fields))
   }
 
-  takeLines(edit: MutableModule): OwnedBlockLine[] {
-    return this.lines_.map((line) => ownedLineFromRaw(line, edit))
+  get lines(): BlockLine[] {
+    return this.fields.get('lines').map((line) => lineFromRaw(line, this.module))
+  }
+  takeLines(edit: Module): OwnedBlockLine[] {
+    return this.fields.get('lines').map((line) => ownedLineFromRaw(line, edit))
   }
 
   *statements(): IterableIterator<Ast> {
-    for (const line of this.lines()) {
+    for (const line of this.lines) {
       if (line.expression) yield line.expression.node
     }
   }
 
-  constructor(module: MutableModule, id: AstId | undefined, lines: RawBlockLine[]) {
-    super(module, id, RawAst.Tree.Type.BodyBlock)
-    this.lines_ = lines
-    setParent(module, this.exprId, ...this.concreteChildren())
-  }
-
-  push(module: MutableModule, node: Owned<Ast>) {
-    const line = { expression: autospaced(makeChild(module, node, this.exprId)) }
-    const edited = new BodyBlock(module, this.exprId, [...this.lines_, line])
-    edited.parent = this.parent
-  }
-
-  /** Insert the given expression(s) starting at the specified line index. */
-  insert(module: MutableModule, index: number, ...nodes: Owned<Ast>[]) {
-    const before = this.lines_.slice(0, index)
-    const insertions = Array.from(nodes, (node) => ({
-      expression: unspaced(makeChild(module, node, this.exprId)),
+  /** Insert the given statement(s) starting at the specified line index. */
+  insert(module: Module, index: number, ...statements: Owned<Ast>[]) {
+    const before = this.lines.slice(0, index)
+    const insertions = statements.map((statement) => ({
+      expression: unspaced(claimChild(module, statement, this.exprId)),
     }))
-    const after = this.lines_.slice(index)
-    const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
-    edited.parent = this.parent
+    const after = this.lines.slice(index)
+    throw new Error('TODO')
+    //const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
+    //edited.parent = this.parentId
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    for (const line of this.lines_) {
+    for (const line of this.fields.get('lines')) {
       yield line.newline ?? { node: new Token('\n', newTokenId(), RawAst.Token.Type.Newline) }
       if (line.expression !== null) yield line.expression
     }
   }
 
-  printSubtree(
-    info: InfoMap,
-    offset: number,
-    parentIndent: string | null,
-    moduleOverride?: Module | undefined,
-  ): string {
-    const module_ = moduleOverride ?? this.module
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+    const replacement_ = this.claimChild(replacement)
+    const updateLine = (line: RawBlockLine) => (line.expression?.node === target) ? { ...line, expression: { ...line.expression, node: replacement_ } } : line
+    this.fields.set('lines', this.fields.get('lines').map(updateLine))
+  }
+
+  printSubtree(info: InfoMap, offset: number, parentIndent: string | null): string {
     let blockIndent: string | undefined
     let code = ''
-    for (const line of this.lines_) {
-      // Skip deleted lines (and associated whitespace).
-      if (line.expression?.node != null && module_.get(line.expression.node) === null) continue
+    for (const line of this.fields.get('lines')) {
       code += line.newline?.whitespace ?? ''
       const newlineCode = line.newline?.node.code()
       // Only print a newline if this isn't the first line in the output, or it's a comment.
@@ -1267,10 +1442,10 @@ export class BodyBlock extends Ast {
         }
         const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
         code += validIndent ? line.expression.whitespace : blockIndent
-        const lineNode = module_.get(line.expression.node)!
+        const lineNode = this.module.get(line.expression.node)
         assertEqual(lineNode.exprId, line.expression.node)
-        assertEqual(lineNode.parent, this.exprId)
-        code += lineNode.printSubtree(info, offset + code.length, blockIndent, moduleOverride)
+        assertEqual(lineNode.parentId, this.exprId)
+        code += lineNode.printSubtree(info, offset + code.length, blockIndent)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -1306,103 +1481,114 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   }
 }
 
-function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockLine {
+function ownedLineFromRaw(raw: RawBlockLine, module: Module): OwnedBlockLine {
   const expression = raw.expression ? module.take(raw.expression.node)!.node : null
   return {
     newline: raw.newline,
     expression: expression
       ? {
-        whitespace: raw.expression?.whitespace,
-        node: expression,
-      }
-      : null,
-  }
-}
-
-function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): RawBlockLine {
-  return {
-    newline: line.newline,
-    expression: line.expression
-      ? {
-          whitespace: line.expression?.whitespace,
-          node: makeChild(module, line.expression.node, block),
+          whitespace: raw.expression?.whitespace,
+          node: expression,
         }
       : null,
   }
 }
 
+function lineToRaw(line: OwnedBlockLine, module: Module, block: AstId): RawBlockLine {
+  return {
+    newline: line.newline,
+    expression: line.expression
+      ? {
+          whitespace: line.expression?.whitespace,
+          node: claimChild(module, line.expression.node, block),
+        }
+      : null,
+  }
+}
+
+type IdentFields = {
+  token: NodeChild<Token>
+}
 export class Ident extends Ast {
-  private readonly token: NodeChild<Token>
-
-  constructor(module: MutableModule, id: AstId | undefined, token: NodeChild<Token>) {
-    super(module, id, RawAst.Tree.Type.Ident)
-    this.token = token
+  declare fields: FixedMap<AstFields & IdentFields>
+  constructor(module: Module, fields: FixedMap<AstFields & IdentFields>) {
+    super(module, fields)
   }
 
-  static new(module: MutableModule, code: string) {
-    return asOwned(
-      new Ident(
-        module,
-        undefined,
-        unspaced(new Token(code, newTokenId(), RawAst.Token.Type.Ident)),
-      ),
-    )
+  get token(): Token {
+    return this.fields.get('token').node
+  }
+  setToken(ident: Token | string) {
+    this.fields.set('token', unspaced(toIdent(ident)))
+  }
+
+  static new(module: Module, ident: Token | string) {
+    const base = module.baseObject('Ident')
+    const fields = setAll(base, {
+      token: unspaced(toIdent(ident)),
+    })
+    return asOwned(new Ident(module, fields))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.token
+    yield this.fields.get('token')
   }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
 }
 
+type WildcardFields = {
+  token: NodeChild<Token>
+}
 export class Wildcard extends Ast {
-  private readonly token: NodeChild<Token>
-
-  constructor(module: MutableModule, id: AstId | undefined, token: NodeChild<Token>) {
-    super(module, id, RawAst.Tree.Type.Wildcard)
-    this.token = token
+  declare fields: FixedMap<AstFields & WildcardFields>
+  constructor(module: Module, fields: FixedMap<AstFields & WildcardFields>) {
+    super(module, fields)
   }
 
-  static new(module?: MutableModule) {
-    const module_ = module ?? MutableModule.Transient()
-    return asOwned(
-      new Wildcard(
-        module_,
-        undefined,
-        unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)),
-      ),
-    )
+  get token(): Token {
+    return this.fields.get('token').node
+  }
+
+  static new(module: Module) {
+    const base = module.baseObject('Wildcard')
+    const fields = setAll(base, {
+      token: unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)),
+    })
+    return asOwned(new Wildcard(module, fields))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.token
+    yield this.fields.get('token')
   }
+
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
 }
 
-export class RawCode extends Ast {
-  private readonly code_: NodeChild
+const mapping: Record<string, string> = {
+  '\b': '\\b',
+  '\f': '\\f',
+  '\n': '\\n',
+  '\r': '\\r',
+  '\t': '\\t',
+  '\v': '\\v',
+  '"': '\\"',
+  "'": "\\'",
+  '`': '``',
+}
 
-  constructor(module: MutableModule, id: AstId | undefined, code: NodeChild) {
-    super(module, id)
-    this.code_ = code
-  }
-
-  static new(code: string, moduleIn?: MutableModule, id?: AstId | undefined) {
-    const token = new Token(code, newTokenId(), RawAst.Token.Type.Ident)
-    const module = moduleIn ?? MutableModule.Transient()
-    return asOwned(new RawCode(module, id, unspaced(token)))
-  }
-
-  *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.code_
-  }
+/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
+ * NOT USABLE to insert into raw strings. Does not include quotes. */
+export function escape(string: string) {
+  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
 }
 
 function abstract(
-  module: MutableModule,
+  module: Module,
   tree: RawAst.Tree,
   code: string,
   info: InfoMap | undefined,
-): { whitespace: string | undefined; node: AstId } {
+): { whitespace: string | undefined; node: Ast } {
   const nodesExpected = new Map(
     Array.from(info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
@@ -1412,18 +1598,18 @@ function abstract(
 }
 
 function abstractTree(
-  module: MutableModule,
+  module: Module,
   tree: RawAst.Tree,
   code: string,
   nodesExpected: NodeSpanMap,
   tokens: TokenSpanMap,
   tokensOut: TokenSpanMap,
-): { whitespace: string | undefined; node: AstId } {
+): { whitespace: string | undefined; node: Ast } {
   const recurseTree = (tree: RawAst.Tree) =>
     abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
   const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokens, tokensOut)
   const visitChildren = (tree: LazyObject) => {
-    const children: NodeChild[] = []
+    const children: NodeChild<Ast | Token>[] = []
     const visitor = (child: LazyObject) => {
       if (RawAst.Tree.isInstance(child)) {
         children.push(recurseTree(child))
@@ -1449,11 +1635,11 @@ function abstractTree(
     case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = recurseToken(line.newline)
-        let expression = null
-        if (line.expression != null) {
-          expression = recurseTree(line.expression)
+        let expression = line.expression ? recurseTree(line.expression) : null
+        return {
+          newline,
+          expression: expression ? { ...expression, node: expression.node.exprId } : null,
         }
-        return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
       node = new BodyBlock(module, id, lines).exprId
@@ -1782,8 +1968,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   })
   const tokensOut = new Map()
   const newRoot = Ast.parseBlock({ info: { nodes, tokens, tokensOut }, code })
-  newRoot.module.raw.astExtended = astExtended
-  newRoot.module.raw.spans = spans
+  newRoot.module.spans = spans
   idMap.clear()
   // TODO (optimization): Use ID-match info collected while abstracting.
   /*

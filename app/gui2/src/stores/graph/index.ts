@@ -243,7 +243,7 @@ export const useGraphStore = defineStore('graph', () => {
         const name = edit.take(func.name.exprId)?.node
         assert(name != null)
         const body = Ast.BodyBlock.new([], edit)
-        return Ast.Function.new(edit, name, func.argNodes(), body)
+        return Ast.Function.new(edit, name, func.argumentDefinitions, body)
       })
       assert(newMethod.body instanceof Ast.BodyBlock)
       functionBlock = newMethod.body

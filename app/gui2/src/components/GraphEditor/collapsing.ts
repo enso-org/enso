@@ -197,8 +197,14 @@ export function performCollapse(
   edit.replaceRef(functionBlock.exprId, refactoredBlock)
 
   // Insert a new function.
-  const args: Ast.Owned<Ast.Ast>[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
+  const argNames: string[] = info.extracted.inputs.map((arg) => arg)
+  const collapsedFunction = Ast.Function.fromStatements(
+    edit,
+    collapsedName,
+    argNames,
+    collapsed,
+    true,
+  )
   topLevel.insert(edit, posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
