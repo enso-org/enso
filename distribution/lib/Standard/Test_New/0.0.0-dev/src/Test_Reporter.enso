@@ -30,9 +30,6 @@ wrap_junit_testsuites config builder ~action =
 
     result
 
-## PRIVATE
-use_ansi_colors : Boolean
-use_ansi_colors = Environment.get "ENSO_TEST_ANSI_COLORS" . is_nothing . not
 
 red text =
     '\u001b[31;1m' + text + '\u001b[0m'
@@ -100,6 +97,7 @@ print_group_report group_name test_results config builder =
     total_time = test_results.fold Duration.zero acc-> res->
         acc + res.time_taken
     if config.should_output_junit then
+        assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
         builder.append ('    <testsuite name="' + (escape_xml group_name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + test_results.length.to_text + '"')
         builder.append (' disabled="' + test_results.filter _.is_pending . length . to_text + '"')

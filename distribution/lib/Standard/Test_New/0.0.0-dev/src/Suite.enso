@@ -10,6 +10,8 @@ import project.Phases.Running_Tests
 import project.Suite_Config.Suite_Config
 import project.Test_Reporter
 
+polyglot java import java.lang.StringBuilder
+
 type Suite_Builder
     ## PRIVATE
     Impl builder
@@ -63,10 +65,12 @@ type Suite
             case group_name_matches of
                 False -> False
                 True -> group.pending == Nothing
-        filtered_groups.each group->
-            State.run Running_Tests True <|
-                results = Helpers.run_group_with_filter group spec_filter_conv
-                Test_Reporter.print_report results config Nothing
+        junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
+        Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
+            filtered_groups.each group->
+                State.run Running_Tests True <|
+                    results = Helpers.run_group_with_filter group spec_filter_conv
+                    Test_Reporter.print_report results config junit_sb_builder
 
     group_names self =
         self.groups.map (_.name)
