@@ -1838,6 +1838,38 @@ export default function AssetsTable(props: AssetsTableProps) {
             const key = assetTreeNode.AssetTreeNode.getKey(item)
             const isSelected = selectedKeys.has(key)
             const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
+            const onRowDragOver = (event: React.DragEvent) => {
+                setSelectedKeys(oldSelectedKeys => {
+                    const payload = drag.LABELS.lookup(event)
+                    if (payload != null) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
+                        let labelsPresent = 0
+                        for (const selectedKey of ids) {
+                            const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                            if (labels != null) {
+                                for (const label of labels) {
+                                    if (payload.has(label)) {
+                                        labelsPresent += 1
+                                    }
+                                }
+                            }
+                        }
+                        const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                        window.setTimeout(() => {
+                            dispatchAssetEvent({
+                                type: shouldAdd
+                                    ? AssetEventType.temporarilyAddLabels
+                                    : AssetEventType.temporarilyRemoveLabels,
+                                ids,
+                                labelNames: payload,
+                            })
+                        })
+                    }
+                    return oldSelectedKeys
+                })
+            }
             return (
                 <AssetRow
                     columns={columns}
@@ -1916,40 +1948,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                             return oldSelectedKeys
                         })
                     }}
-                    onDragOver={event => {
-                        setSelectedKeys(oldSelectedKeys => {
-                            const payload = drag.LABELS.lookup(event)
-                            if (payload != null) {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                const ids = oldSelectedKeys.has(key)
-                                    ? oldSelectedKeys
-                                    : new Set([key])
-                                let labelsPresent = 0
-                                for (const selectedKey of ids) {
-                                    const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                                    if (labels != null) {
-                                        for (const label of labels) {
-                                            if (payload.has(label)) {
-                                                labelsPresent += 1
-                                            }
-                                        }
-                                    }
-                                }
-                                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                                window.setTimeout(() => {
-                                    dispatchAssetEvent({
-                                        type: shouldAdd
-                                            ? AssetEventType.temporarilyAddLabels
-                                            : AssetEventType.temporarilyRemoveLabels,
-                                        ids,
-                                        labelNames: payload,
-                                    })
-                                })
-                            }
-                            return oldSelectedKeys
-                        })
-                    }}
+                    // Required because `dragover` does not fire on `mouseenter`.
+                    onDragEnter={onRowDragOver}
+                    onDragOver={onRowDragOver}
                     onDragEnd={() => {
                         setSelectedKeys(oldSelectedKeys => {
                             window.setTimeout(() => {

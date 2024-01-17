@@ -188,6 +188,11 @@ export function locateEditingCross(page: test.Locator | test.Page) {
     return page.getByAltText('Cancel Edit')
 }
 
+/** Find labels in the "Labels" column of the assets table (if any) on the current page. */
+export function locateAssetLabels(page: test.Locator | test.Page) {
+    return page.getByTestId('asset-label')
+}
+
 // === Context menu buttons ===
 
 /** Find an "open" button (if any) on the current page. */

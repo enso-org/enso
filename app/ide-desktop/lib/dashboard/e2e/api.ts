@@ -62,6 +62,7 @@ export async function mockApi({ page }: MockParams) {
     const deletedAssets = new Set<backend.AssetId>()
     const assets: backend.AnyAsset[] = []
     const labels: backend.Label[] = []
+    const labelsByValue = new Map<backend.LabelName, backend.Label>()
     const labelMap = new Map<backend.TagId, backend.Label>()
 
     const addAsset = (asset: backend.AnyAsset) => {
@@ -179,6 +180,7 @@ export async function mockApi({ page }: MockParams) {
     const addLabel = (value: string, color: backend.LChColor) => {
         const label = createLabel(value, color)
         labels.push(label)
+        labelsByValue.set(label.value, label)
         labelMap.set(label.id, label)
     }
 
@@ -429,6 +431,61 @@ export async function mockApi({ page }: MockParams) {
 
         // === Other endpoints ===
 
+        await page.route(
+            BASE_URL + remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID),
+            async (route, request) => {
+                if (request.method() === 'PATCH') {
+                    const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: backend.UpdateAssetRequestBody = request.postDataJSON()
+                    // This could be an id for an arbitrary asset, but pretend it's a
+                    // `DirectoryId` to make TypeScript happy.
+                    const asset = assetMap.get(backend.DirectoryId(assetId))
+                    if (asset != null) {
+                        if (body.description != null) {
+                            asset.description = body.description
+                        }
+                    }
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.associateTagPath(GLOB_ASSET_ID),
+            async (route, request) => {
+                if (request.method() === 'PATCH') {
+                    const assetId = request.url().match(/[/]assets[/]([^/?]+)/)?.[1] ?? ''
+                    /** The type for the JSON request payload for this endpoint. */
+                    interface Body {
+                        labels: backend.LabelName[]
+                    }
+                    /** The type for the JSON response payload for this endpoint. */
+                    interface Response {
+                        tags: backend.Label[]
+                    }
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: Body = await request.postDataJSON()
+                    // This could be an id for an arbitrary asset, but pretend it's a
+                    // `DirectoryId` to make TypeScript happy.
+                    const asset = assetMap.get(backend.DirectoryId(assetId))
+                    if (asset != null) {
+                        asset.labels = body.labels
+                    }
+                    const json: Response = {
+                        tags: body.labels.flatMap(value => {
+                            const label = labelsByValue.get(value)
+                            return label != null ? [label] : []
+                        }),
+                    }
+                    await route.fulfill({ json })
+                } else {
+                    await route.fallback()
+                }
+            }
+        )
         await page.route(
             BASE_URL + remoteBackendPaths.updateDirectoryPath(GLOB_DIRECTORY_ID),
             async (route, request) => {

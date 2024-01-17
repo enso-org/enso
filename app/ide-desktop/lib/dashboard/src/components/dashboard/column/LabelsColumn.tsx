@@ -73,6 +73,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 .map(label => (
                     <Label
                         key={label}
+                        data-testid="asset-label"
                         title="Right click to remove label."
                         color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
                         active={!temporarilyRemovedLabels.has(label)}
