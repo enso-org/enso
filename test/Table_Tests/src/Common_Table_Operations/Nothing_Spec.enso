@@ -142,6 +142,61 @@ spec setup =
             Test.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
                 t0.at "n" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
+    Test.group prefix+"Boolean is_in" <|
+        make_containing_values  had_null had_true had_false =
+            null_maybe = if had_null then [Nothing] else []
+            true_maybe = if had_true then [True] else []
+            false_maybe = if had_false then [False] else []
+            null_maybe + true_maybe + false_maybe
+
+        cases = [[True, True, True, True, True]]
+            + [[True, True, True, False, True]]
+            + [[True, False, True, True, True]]
+            + [[True, False, True, False, True]]
+            + [[True, True, False, True, Nothing]]
+            + [[True, True, False, False, Nothing]]
+            + [[True, False, False, True, False]]
+            + [[True, False, False, False, False]]
+            + [[False, True, True, True, True]]
+            + [[False, True, False, True, True]]
+            + [[False, False, True, True, True]]
+            + [[False, False, False, True, True]]
+            + [[False, True, True, False, Nothing]]
+            + [[False, True, False, False, Nothing]]
+            + [[False, False, True, False, False]]
+            + [[False, False, False, False, False]]
+            + [[Nothing, True, True, True, Nothing]]
+            + [[Nothing, True, False, True, Nothing]]
+            + [[Nothing, False, True, True, Nothing]]
+            + [[Nothing, False, False, True, Nothing]]
+            + [[Nothing, True, True, False, Nothing]]
+            + [[Nothing, True, False, False, Nothing]]
+            + [[Nothing, False, True, False, Nothing]]
+            + [[Nothing, False, False, False, Nothing]]
+
+        cases.map cs->
+            input = cs.at 0
+            output = cs.at 4
+            containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3) 
+
+            Test.specify "Boolean is_in: (Vector) "+cs.to_text <|
+                input_column = [input]
+                t = table_builder_typed [["input", input_column]] [Value_Type.Boolean]
+
+                c = t.at "input" . is_in containing_values
+
+                c.to_vector . should_equal [output]
+
+            Test.specify "Boolean is_in: (Column) "+cs.to_text <|
+                input_column = Vector.fill containing_values.length input
+                t = table_builder_typed [["input", input_column], ["containing", containing_values]] [Value_Type.Boolean, Value_Type.Boolean]
+                expected_output = if input_column.is_empty then [] else [output]
+
+                c = t.at "input" . is_in (t.at "containing")
+
+                c.to_vector . length . should_equal input_column.length
+                c.to_vector.distinct . should_equal expected_output
+
     Test.group prefix+"distinct" <|
         values_without_nothing.map triple->
             value = triple.at 0

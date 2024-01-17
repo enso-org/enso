@@ -60,7 +60,44 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
-    BitSet newVals;
+    BitSet newVals = new BitSet(storage.size());
+    BitSet newMissing = new BitSet(storage.size());
+    byte[] bits = storage.getValues().toByteArray();
+    System.out.println("vals " + bits);
+    for (int i = 0; i < storage.size(); ++i) {
+      boolean bitUnNegated = storage.getValues().get(i);
+      boolean bit = storage.isNegated() ? !bitUnNegated : bitUnNegated;
+      System.out.println("bits " + bitUnNegated + " " + bit);
+      boolean inputValue = storage.getItem(i);
+      boolean inputIsNull = storage.isNa(i);
+      if (inputIsNull) {
+        newMissing.set(i, true);
+      } else if (inputValue) {
+        if (hadTrue) {
+          newVals.set(i, true);
+        } else {
+          if (hadNull) {
+              newMissing.set(i, true);
+          } else {
+              newVals.set(i, false);
+          }
+        }
+      } else { // inputValue==false
+        if (hadFalse) {
+          newVals.set(i, true);
+        } else {
+          if (hadNull) {
+            newMissing.set(i, true);
+          } else {
+            newVals.set(i, false);
+          }
+        }
+      }
+    }
+
+    return new BoolStorage(newVals, newMissing, storage.size(), false);
+
+/*
     boolean negated = false;
 
     if (hadNull && hadTrue && hadFalse) {
@@ -98,5 +135,6 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     }
 
     return new BoolStorage(newVals, new BitSet(), storage.size(), negated);
+    */
   }
 }
