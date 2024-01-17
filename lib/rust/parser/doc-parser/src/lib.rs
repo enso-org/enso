@@ -68,7 +68,6 @@ pub enum Tag {
     Modified,
     Private,
     Removed,
-    TextOnly,
     Unstable,
     Upcoming,
 }
