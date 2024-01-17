@@ -175,7 +175,7 @@ spec setup =
             + [[Nothing, True, True, False, Nothing]]
             + [[Nothing, True, False, False, Nothing]]
             + [[Nothing, False, True, False, Nothing]]
-            + [[Nothing, False, False, False, Nothing]]
+            + [[Nothing, False, False, False, False]]
 
         negate : Vector | Column -> Vector | Column
         negate vorc = case vorc of

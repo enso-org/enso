@@ -148,8 +148,9 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           newMissing = missing;
         } else {
           // hadNull=f hadTrue=f hadFalse=f
-          newValues = missing;
-          newMissing = missing;
+          // NULL.is_in([]) is false, not NULL
+          newValues = new BitSet();
+          newMissing = new BitSet();
         }
       }
     }
