@@ -17,16 +17,21 @@ from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
-import Standard.Test.Extensions
-import Standard.Test.Test_Environment
-from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test_New import all
+import Standard.Test_New.Test_Environment
+from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Database.Helpers.Name_Generator
 
 polyglot java import org.enso.table_test_helpers.ExplodingStorage
 polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
 polyglot java import java.lang.Thread
+
+main =
+    create_connection_func _ = (Database.connect (SQLite In_Memory))
+    suite = Test.build suite_builder->
+        add_specs suite_builder  create_connection_func "SQLite In-Memory" persistent_connector=False
+    suite.run_with_filter
 
 type Data
     Value ~data
@@ -40,15 +45,15 @@ type Data
         [connection, in_memory_table]
 
 
-in_memory_table_builder args primary_key=[] connection=Nothing =
-    _ = [primary_key, connection]
+in_memory_table_builder args primary_key=[] data=Nothing =
+    _ = [primary_key, data]
     case args of
         table : Table -> table
         _ -> Table.new args
 
-database_table_builder name_prefix args primary_key=[] connection =
+database_table_builder name_prefix args primary_key=[] (data : Data) =
     in_memory_table = in_memory_table_builder args
-    in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
+    in_memory_table.select_into_database_table data.connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
 
 ## PRIVATE
    Adds uploading table specs to the suite builder.
@@ -589,429 +594,10 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             preexisting2.column_names . should_equal ["X"]
             preexisting2.at "X" . to_vector . should_equal [42]
 
-    test_table_append group_builder source_table_builder target_table_builder =
+    suite_builder.group prefix+"Appending an in-memory table to a Database table" group_builder->
         data = Data.setup make_new_connection
 
-        group_builder.specify "should be able to append new rows to a table" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]]
-
-            result = dest.update_rows src key_columns=["X"]
-            result.column_names . should_equal ["X", "Y"]
-
-            result.is_trivial_query . should_be_true
-            (result == dest) . should_be_true
-
-            expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
-            rows1 = result.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["X", [1, 5, 6]], ["Y", ['d', 'e', 'f']]]
-
-            # This is checked in dry-run mode but only for the first 1000 rows.
-            run_with_and_without_output <|
-                r1 = dest.update_rows src update_action=Update_Action.Insert key_columns=["X"]
-                r1.should_fail_with Rows_Already_Present
-
-        group_builder.specify "should use the target table primary key for the key by default" <|
-            dest1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
-            default_key_columns dest1 . should_equal ["Y", "Z"]
-
-            dest2 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
-            src = source_table_builder [["X", [4, 5]], ["Y", ['b', 'e']]]
-            # Not specifying `key_columns`, rely on `default_key_columns` inferring Y as default based on the primary key.
-            r1 = dest2.update_rows src
-            rows = r1.rows.to_vector.map .to_vector
-            rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
-
-        group_builder.specify "should be able to Update existing rows in a table" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
-            src = source_table_builder [["X", [2]], ["Y", ['ZZZ']]]
-
-            r1 = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
-            r1.column_names . should_equal ["X", "Y"]
-            r1.should_succeed
-
-            rows = dest.rows.to_vector.map .to_vector
-            rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
-
-        group_builder.specify "should fail on unmatched rows in Update mode" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
-            src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
-
-            # In dry run mode this will only check first 1000 rows.
-            run_with_and_without_output <|
-                r1 = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
-                r1.should_fail_with Unmatched_Rows
-
-                # The table should remain unchanged.
-                rows = dest.rows.to_vector.map .to_vector
-                rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
-
-        group_builder.specify "should upsert by default (update existing rows, insert new rows)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
-            r1 = dest.update_rows src key_columns=["X"]
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["X", "Y"]
-            expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-            # The original table is updated too.
-            rows2 = dest.rows.to_vector.map .to_vector
-            rows2.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
-            r1 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["X", "Y"]
-            expected_rows = [[2, 'D'], [100, 'E']]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-            rows2 = dest.rows.to_vector.map .to_vector
-            rows2.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should match columns by name, reordering to destination order if needed (Insert)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [4, 5, 6]]]
-            result = dest.update_rows src update_action=Update_Action.Insert key_columns=["X"]
-            result.column_names . should_equal ["X", "Y"]
-            src.column_names . should_equal ["Y", "X"]
-            expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
-            rows1 = result.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should match columns by name, reordering to destination order if needed (Upsert)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [1, 5, 6]]]
-            result = dest.update_rows src key_columns=["X"]
-            result.column_names . should_equal ["X", "Y"]
-            src.column_names . should_equal ["Y", "X"]
-            expected_rows = [[1, 'd'], [2, 'b'], [3, 'c'], [5, 'e'], [6, 'f']]
-            rows1 = result.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should match columns by name, reordering to destination order if needed (Update)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [3, 2, 1]]]
-            result = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
-            result.column_names . should_equal ["X", "Y"]
-            src.column_names . should_equal ["Y", "X"]
-            expected_rows = [[1, 'f'], [2, 'e'], [3, 'd']]
-            rows1 = result.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should match columns by name, reordering to destination order if needed (Align)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [2, 1, 6]]]
-            result = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
-            result.column_names . should_equal ["X", "Y"]
-            src.column_names . should_equal ["Y", "X"]
-            expected_rows = [[1, 'e'], [2, 'd'], [6, 'f']]
-            rows1 = result.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should allow to use a transformed table, with computed fields, as a source" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
-            t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
-            t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
-            src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set "[X] + 100" "X"
-            src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
-
-            r1 = dest.update_rows src key_columns=["X"]
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["X", "Y"]
-            expected_rows = [[1, 'E'], [110, 'D'], [2, 'b'], [3, 'c']]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-
-        group_builder.specify "should allow specifying no key in Insert mode" <|
-            dest = target_table_builder [["X", [1, 10, 100]]]
-            src = source_table_builder [["X", [1, 2, 3]]]
-            result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-
-            expected = [1, 10, 100, 1, 2, 3]
-            result.column_names . should_equal ["X"]
-            result.at "X" . to_vector . should_contain_the_same_elements_as expected
-
-            r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=Nothing
-            r2.column_names . should_equal ["X"]
-            r2.at "X" . to_vector . should_contain_the_same_elements_as expected
-
-            default_key_columns dest . should_equal Nothing
-            r3 = dest.update_rows src update_action=Update_Action.Insert
-            r3.column_names . should_equal ["X"]
-            r3.at "X" . to_vector . should_contain_the_same_elements_as expected
-
-        group_builder.specify "should fail if no key is specified in other modes" <|
-            dest = target_table_builder [["X", [1, 10, 100]]]
-            src = source_table_builder [["X", [1, 2, 3]]]
-
-            run_with_and_without_output <|
-                r1 = dest.update_rows src update_action=Update_Action.Update key_columns=[]
-                r1.should_fail_with Illegal_Argument
-                r1.catch.to_display_text.should_contain "`key_columns` must be specified"
-
-                # The default will also fail because no primary key is detected in the DB.
-                default_key_columns dest . should_equal Nothing
-                r2 = dest.update_rows src update_action=Update_Action.Update
-                r2.should_fail_with Illegal_Argument
-
-                r3 = dest.update_rows src update_action=Update_Action.Update_Or_Insert key_columns=[]
-                r3.should_fail_with Illegal_Argument
-
-                r4 = dest.update_rows src key_columns=[]
-                r4.should_fail_with Illegal_Argument
-
-                r5 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=[]
-                r5.should_fail_with Illegal_Argument
-
-        group_builder.specify "should fail if the key is not unique in the input table" <|
-            d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
-            d2 = target_table_builder [["X", [0, 10, 100]]]
-            src = source_table_builder [["X", [1, 1, 3]]]
-
-            # Only checks 1000 rows in dry run mode.
-            run_with_and_without_output <|
-                # Relying on the default key based on primary key.
-                r1 = d1.update_rows src update_action=Update_Action.Insert
-                r1.should_fail_with Non_Unique_Key
-
-                r2 = d2.update_rows src key_columns=["X"] update_action=Update_Action.Insert
-                r2.should_fail_with Non_Unique_Key
-
-        group_builder.specify "will fail if source table contains null keys, unless only Inserting" <|
-            t1 = target_table_builder [["X", [0, 10, 100]], ["Y", ["a", "b", "c"]]] primary_key=[]
-            s1 = source_table_builder [["X", [10, Nothing]], ["Y", ["x", "y"]]]
-            run_with_and_without_output <|
-                r1 = t1.update_rows s1 key_columns=["X"] update_action=Update_Action.Update_Or_Insert
-                r1.should_fail_with Null_Values_In_Key_Columns
-
-            r2 = t1.update_rows s1 update_action=Update_Action.Insert key_columns=[]
-            Problems.assume_no_problems r2
-            m2 = r2.read . order_by "Y"
-            m2.at "Y" . to_vector . should_equal ["a", "b", "c", "x", "y"]
-            m2.at "X" . to_vector . should_equal [0, 10, 100, 10, Nothing]
-
-        group_builder.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
-            dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]]
-            src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
-
-            run_with_and_without_output <|
-                r1 = dest.update_rows src key_columns=["X"]
-                r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
-                r1.catch.to_display_text . should_contain "key [1] matched 2 rows"
-
-            src2 = source_table_builder [["X", [1]], ["Y", ['d']]]
-            run_with_and_without_output <|
-                r2 = dest.update_rows src2 key_columns=["X"] update_action=Update_Action.Update
-                r2.should_fail_with Multiple_Target_Rows_Matched_For_Update
-
-            ## In the future we may consider `Align_Records` to remove the
-               duplicated rows and keep just one of them. But that probably
-               should not be a default, so maybe only if we introduce a
-               parameter like `multi_row_update`.
-            r3 = dest.update_rows src key_columns=["X"] update_action=Update_Action.Align_Records
-            r3.should_fail_with Multiple_Target_Rows_Matched_For_Update
-
-            ## BUT the check should not throw an error if the duplicated key is on an unaffected row!
-               (here key 1 is duplicated, but we are NOT updating it)
-            src3 = source_table_builder [["X", [2]], ["Y", ['f']]]
-            Problems.assume_no_problems <|
-                dest.update_rows src3 key_columns=["X"]
-
-        group_builder.specify "should fail if the source table contains columns not present in the target (data loss)" <|
-            dest = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
-            src = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
-            run_with_and_without_output <|
-                r1 = dest.update_rows src key_columns=["X"]
-                r1.should_fail_with Unmatched_Columns
-                r1.catch.column_names . should_equal ["Y"]
-                r1.catch.to_display_text . should_contain "columns were not present"
-                r1.catch.to_display_text . should_contain "Y"
-
-        group_builder.specify "should use defaults when inserting" <|
-            dest_name = Name_Generator.random_name "table-defaults"
-            dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
-            src = source_table_builder [["X", [1, 2, 3]]]
-            r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["Y", "X"]
-            expected_rows = [[42, 1], [42, 2], [42, 3]]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-            data.connection.drop_table dest_name
-
-        group_builder.specify "should use defaults when inserting new values in upsert, but retain existing values" <|
-            dest_name = Name_Generator.random_name "table-defaults"
-            dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Z" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
-            Problems.assume_no_problems <|
-                dest.update_rows (Table.from_rows ["X", "Y", "Z"] [[1, 1000, 10]]) key_columns=[] update_action=Update_Action.Insert
-
-            src = source_table_builder [["X", [1, 2, 3]], ["Z", [100, 200, 300]]]
-            r1 = dest.update_rows src key_columns=["X"] update_action=Update_Action.Update_Or_Insert
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["Y", "X", "Z"]
-            expected_rows = [[1000, 1, 100], [42, 2, 200], [42, 3, 300]]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-            data.connection.drop_table dest_name
-
-        group_builder.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
-            dest_name = Name_Generator.random_name "table-defaults-align"
-            dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "Z" Value_Type.Integer] temporary=True . should_succeed
-            initial_data = Table.new [["X", [10, 20]], ["Y", [100, 200]], ["Z", [1000, 2000]]]
-            dest.update_rows initial_data key_columns=[] update_action=Update_Action.Insert . should_succeed
-            src = source_table_builder [["X", [10, 2, 3]], ["Z", [-1, -2, -3]]]
-            r1 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
-            Problems.assume_no_problems r1
-            r1.column_names . should_equal ["X", "Y", "Z"]
-            # The X=10 stays with Y=100, but the X=2 is inserted with the default Y=42
-            expected_rows = [[10, 100, -1], [2, 42, -2], [3, 42, -3]]
-            rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
-            data.connection.drop_table dest_name
-
-        group_builder.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
-            dest_name = Name_Generator.random_name "table-notnull"
-            dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Not_Null], Column_Description.Value "X" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
-            src = source_table_builder [["X", [1, 2, 3]]]
-            r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
-            # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
-            r1.should_fail_with SQL_Error
-            data.connection.drop_table dest_name
-
-        group_builder.specify "should fail if the source table is missing some columns, if asked to" <|
-            dest = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
-            src = source_table_builder [["X", [1, 2, 3]]]
-            run_with_and_without_output <|
-                r1 = dest.update_rows src error_on_missing_columns=True update_action=Update_Action.Insert key_columns=[]
-                r1.should_fail_with Missing_Input_Columns
-                r1.catch.criteria . should_equal ["Y"]
-
-        group_builder.specify "should fail if some of key_columns do not exist in either table" <|
-            d1 = target_table_builder [["X", [0, 10, 100]]]
-            d2 = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
-            s1 = source_table_builder [["X", [1, 3]]]
-            s2 = source_table_builder [["X", [1, 3]], ["Y", ['e', 'f']]]
-
-            run_with_and_without_output <|
-                r1 = d1.update_rows s1 key_columns=["Y"]
-                r1.should_fail_with Missing_Input_Columns
-
-                r2 = d2.update_rows s1 key_columns=["Y"]
-                r2.should_fail_with Missing_Input_Columns
-
-                # This may be Missing_Input_Columns or Unmatched_Columns
-                r3 = d1.update_rows s2 key_columns=["Y"]
-                r3.should_fail_with Any
-                ((r3.catch.is_a Missing_Input_Columns) || (r3.catch.is_a Unmatched_Columns)).should_be_true
-
-        group_builder.specify "should fail if the target table does not exist" <|
-            t = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
-            nonexistent_name = Name_Generator.random_name "nonexistent-table"
-            nonexistent_ref = data.connection.create_table nonexistent_name t
-            # Dropping the table to make it not exist.
-            data.connection.drop_table nonexistent_ref.name
-
-            run_with_and_without_output <|
-                r1 = nonexistent_ref.update_rows t key_columns=[]
-                r1.should_fail_with Table_Not_Found
-
-                default_key_columns nonexistent_ref . should_fail_with Table_Not_Found
-                r2 = nonexistent_ref.update_rows t
-                r2.should_fail_with Table_Not_Found
-
-        group_builder.specify "should fail if the target table is in-memory" <|
-            t = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
-            in_memory_table = Table.new [["X", [0]], ["Y", ['_']]]
-            run_with_and_without_output <|
-                r1 = in_memory_table.update_rows t key_columns=[]
-                r1.should_fail_with Illegal_Argument
-
-                r2 = in_memory_table.update_rows t
-                r2.should_fail_with Illegal_Argument
-
-        group_builder.specify "should warn if type widening occurs" <|
-            dest = target_table_builder [["X", [3.25, 4.25, 10.0]]]
-            src = source_table_builder [["X", [1, 2, 0]]]
-
-            # Warning should be present in dry-run mode too!
-            Context.Output.with_disabled <|
-                r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-                Problems.expect_warning Inexact_Type_Coercion r2
-
-                # But in dry run the update is not actually performed:
-                r2.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0]
-
-            result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-            warning = Problems.expect_warning Inexact_Type_Coercion result
-            warning.requested_type.is_integer . should_be_true
-            warning.actual_type.is_floating_point . should_be_true
-
-            result.column_names . should_equal ["X"]
-            result.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0, 1, 2, 0]
-
-        group_builder.specify "should fail if types of columns are not compatible" <|
-            dest = target_table_builder [["X", ["a", "B", "c"]]]
-            src = source_table_builder [["X", [1, 2, 3]]]
-
-            run_with_and_without_output <|
-                result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-                result.should_fail_with Column_Type_Mismatch
-                err = result.catch
-                err.column_name.should_equal "X"
-                err.expected_type.is_text . should_be_true
-                err.got_type.is_numeric . should_be_true
-
-        dest_name = Name_Generator.random_name "dest-table-test-types"
-        structure =
-            x = Column_Description.Value "X" (Value_Type.Integer Bits.Bits_16)
-            y = Column_Description.Value "Y" (Value_Type.Char size=4 variable_length=True)
-            z = Column_Description.Value "Z" (Value_Type.Char size=5 variable_length=False)
-            [x, y, z]
-        dest = data.connection.create_table dest_name structure temporary=True primary_key=[]
-        non_trivial_types_supported =
-            has_warning_or_error = dest.is_error || (Problems.get_attached_warnings dest . not_empty)
-            has_warning_or_error.not
-        if non_trivial_types_supported then
-            src = source_table_builder [["X", [1, 2, 3]], ["Y", ["a", "xyz", "abcdefghijkl"]], ["Z", ["a", "pqrst", "abcdefghijkl"]]]
-            group_builder.specify "fails if the target type is more restrictive than source" <|
-                result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-                result.should_fail_with Column_Type_Mismatch
-
-        group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" <|
-            dest_name = Name_Generator.random_name "dest-table"
-            # We will make the upload fail by violating the NOT NULL constraint.
-            dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
-            src = source_table_builder [["X", [1, Nothing, 3]]]
-
-            existing_tables = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-            res = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-            res.should_fail_with SQL_Error
-
-            tables_immediately_after = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-
-            ## If there are some additional tables, we add some timeout to allow
-               the database to do the cleaning up.
-            additional_tables = (Set.from_vector tables_immediately_after).difference (Set.from_vector existing_tables)
-            if additional_tables.is_empty then Nothing else
-                additional_table = additional_tables.to_vector.first
-
-                wait_until_temporary_table_is_deleted_after_closing_connection data.connection additional_table
-                # After the wait we check again and now there should be no additional tables.
-                tables_after_wait = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-                additional_tables_2 = (Set.from_vector tables_after_wait).difference (Set.from_vector existing_tables)
-                additional_tables_2.to_vector . should_equal []
-
-
-    suite_builder.group prefix+"Appending an in-memory table to a Database table" group_builder->
-        test_table_append group_builder in_memory_table_builder (database_table_builder "target-table")
+        test_table_append group_builder data in_memory_table_builder (database_table_builder "target-table" data=data)
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
             t1 = Table.new [["X", [1, 2, 3]]]
@@ -1021,147 +607,19 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
     suite_builder.group prefix+"Appending a Database table to a Database table" group_builder->
-        test_table_append group_builder (database_table_builder "source-table") (database_table_builder "target-table")
-
-    test_table_delete group_builder source_table_builder target_table_builder =
         data = Data.setup make_new_connection
 
-        group_builder.specify "should remove rows matching by key_columns" <|
-            table = target_table_builder [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["score", [100, 100, 44, 100, 120]]] primary_key=["student_id"]
-            key_values_to_delete = source_table_builder [["student_id", [44, 100]]]
-            # key columns should automatically be discovered by the primary key
-            affected_rows = table.delete_rows key_values_to_delete
-            affected_rows . should_equal 2
-            table.rows.map .to_vector . should_equal [[1, "Alice", 100], [2, "Bob", 100], [120, "Eve", 120]]
-
-        group_builder.specify "will require key_columns if no default can be used as no primary key is set" <|
-            table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
-            key_values_to_delete = source_table_builder [["X", [1, 2]]]
-
-            run_with_and_without_output <|
-                r1 = table.delete_rows key_values_to_delete
-                r1.should_fail_with Illegal_Argument
-                r1.to_display_text.should_contain "default value"
-
-            r2 = table.delete_rows key_values_to_delete key_columns=["X"]
-            Problems.assume_no_problems r2
-            r2.should_equal 2
-            table.at "X" . to_vector . should_equal [3]
-
-        group_builder.specify "does not fail if no rows matching the key_values_to_delete are found" <|
-            table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
-            key_values_to_delete = source_table_builder [["X", [4, 5]]]
-            r1 = table.delete_rows key_values_to_delete key_columns=["X"]
-            r1.should_equal 0
-            Problems.assume_no_problems r1
-            table.at "X" . to_vector . should_equal [1, 2, 3]
-
-            key_values_2 = source_table_builder [["X", [4, 3, 5]]]
-            r2 = table.delete_rows key_values_2 key_columns=["X"]
-            r2.should_equal 1
-            Problems.assume_no_problems r2
-            table.at "X" . to_vector . should_equal [1, 2]
-
-        group_builder.specify "should allow to use multiple columns as key" <|
-            table = target_table_builder [["X", [1, 2, 2, 3, 4, 4]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f']]] primary_key=[]
-            keys = source_table_builder [["X", [2, 4]], ["Y", ['b', 'f']]]
-            affected_rows = table.delete_rows keys key_columns=["X", "Y"]
-            affected_rows . should_equal 2
-            table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"], [4, "e"]]
-
-        group_builder.specify "should fail if key_columns are missing in source or target tables" <|
-            table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] primary_key=[]
-            keys = source_table_builder [["Z", [7, 8]]]
-
-            run_with_and_without_output <|
-                r1 = table.delete_rows keys key_columns=["Y"]
-                r1.should_fail_with Missing_Input_Columns
-                r1.catch.criteria . should_equal ["Y"]
-                r1.catch.where . should_contain "key values to delete"
-
-                r2 = table.delete_rows keys key_columns=["Z"]
-                r2.should_fail_with Missing_Input_Columns
-                r2.catch.criteria . should_equal ["Z"]
-                r2.catch.where . should_contain "target"
-
-                r3 = table.delete_rows keys key_columns=["neither"]
-                r3.should_fail_with Missing_Input_Columns
-                r3.catch.criteria . should_equal ["neither"]
-
-        group_builder.specify "should fail if empty key_columns were provided" <|
-            table = target_table_builder [["X", [1, 2, 3]]] primary_key=["X"]
-            keys = source_table_builder [["X", [1, 2]]]
-            r1 = table.delete_rows keys key_columns=[]
-            r1.should_fail_with Illegal_Argument
-
-        group_builder.specify "should fail if multiple rows match a single key_values_to_delete row, unless allow_duplicate_matches is set to True" <|
-            table = target_table_builder [["X", [1, 2, 2, 3, 2]], ["Y", ['a', 'b', 'c', 'd', 'e']]] primary_key=[]
-            keys = source_table_builder [["X", [2]], ["Y", ['b']]]
-
-            run_with_and_without_output <|
-                r1 = table.delete_rows keys key_columns=["X"]
-                r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
-                r1.catch.example_key . should_equal [2]
-                r1.catch.example_count . should_equal 3
-                # no changes
-                table.at "X" . to_vector . should_equal [1, 2, 2, 3, 2]
-
-            r2 = table.delete_rows keys key_columns=["X"] allow_duplicate_matches=True
-            r2.should_equal 3
-            table.rows.map .to_vector . should_equal [[1, "a"], [3, "d"]]
-
-        group_builder.specify "should fail if the target table does not exist" <|
-            table = target_table_builder [["X", [1, 2, 3]]]
-            keys = source_table_builder [["X", [1, 2]]]
-            data.connection.drop_table table.name
-
-            run_with_and_without_output <|
-                table.delete_rows keys key_columns=["X"] . should_fail_with Table_Not_Found
-                table.delete_rows keys . should_fail_with Table_Not_Found
-
-        group_builder.specify "will warn if not all input rows were checked as part of a dry run" <|
-            target = target_table_builder [["X", [0, 1, 500, 1500, 3500]]] primary_key=["X"]
-            source = source_table_builder [["X", (1.up_to 2000).to_vector]] primary_key=["X"]
-
-            Context.Output.with_disabled <|
-                r1 = target.delete_rows source
-                # Values 1 and 500 are always checked; 1500 may exceed the dry run limit.
-                [2, 3].should_contain r1
-                w1 = Problems.expect_warning Dry_Run_Operation r1
-                # If not all rows were checked, a warning is expected:
-                if r1 == 2 then
-                    w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
-
-            # Target remains unchanged
-            target.at "X" . to_vector . should_equal [0, 1, 500, 1500, 3500]
-
-            r2 = target.delete_rows source
-            Problems.assume_no_problems r2
-            # All 3 rows were deleted
-            r2.should_equal 3
-            target.at "X" . to_vector . should_equal [0, 3500]
-
-        group_builder.specify "will work fine if the target table contains NULL keys" <|
-            t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]]
-            s1 = source_table_builder [["X", ["b", "c"]]]
-            t1.delete_rows s1 key_columns=["X"] . should_equal 2
-            m1 = t1.read . order_by "X"
-            m1.at "X" . to_vector . should_equal [Nothing, "a"]
-            m1.at "Y" . to_vector . should_equal [3, 1]
-
-        group_builder.specify "will raise an error if they source table contains NULL keys" <|
-            t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]]
-            s2 = source_table_builder [["X", ["b", Nothing]], ["f", [10, 20]]]
-            r1 = t2.delete_rows s2 key_columns=["X"]
-            r1.should_fail_with Null_Values_In_Key_Columns
-            r1.catch.to_display_text . should_contain "Nothing values in key columns"
-            r1.catch.to_display_text . should_contain "[Nothing, 20]"
+        test_table_append group_builder data (database_table_builder "source-table" data=data) (database_table_builder "target-table" data=data)
 
     suite_builder.group prefix+"Deleting rows from a Database table (source=in-memory)" group_builder->
-        test_table_delete group_builder in_memory_table_builder (database_table_builder "target-table")
+        data = Data.setup make_new_connection
+
+        test_table_delete group_builder data in_memory_table_builder (database_table_builder "target-table" data=data)
 
     suite_builder.group prefix+"Deleting rows from a Database table (source=Database)" group_builder->
-        test_table_delete group_builder (database_table_builder "source-table") (database_table_builder "target-table")
+        data = Data.setup make_new_connection
+
+        test_table_delete group_builder data (database_table_builder "source-table" data=data) (database_table_builder "target-table" data=data)
 
     suite_builder.group prefix+"Deleting rows from a Database table" group_builder->
         data = Data.setup make_new_connection
@@ -1177,7 +635,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             t2.at "X" . to_vector . should_equal []
 
         group_builder.specify "should allow to delete rows based on another query" <|
-            table = database_table_builder "target-table" [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["graduation_year", [2023, 2024, 2021, 2020, 2019]]] primary_key=["student_id"]
+            table = database_table_builder "target-table" [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["graduation_year", [2023, 2024, 2021, 2020, 2019]]] primary_key=["student_id"] data=data
             graduates = table.filter "graduation_year" (Filter_Condition.Less 2023)
             affected_rows = table.delete_rows graduates # uses the primary key by default
             affected_rows . should_equal 3
@@ -1191,7 +649,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
         group_builder.specify "can use itself as source of rows to delete (even if that's an anti-pattern)" <|
-            t1 = database_table_builder "target-table" [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            t1 = database_table_builder "target-table" [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] data=data
             affected_rows = t1.delete_rows t1
             affected_rows . should_equal 3
             t1.rows.should_equal []
@@ -1299,109 +757,664 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
                     # The pre-existing table should not have been overwritten.
                     pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
-        tests group_builder source_table_builder suffix =
-            data = Data.setup make_new_connection
 
-            group_builder.specify "should return a temporary table with a sample of the data for select_into_database_table"+suffix <|
-                Context.Output.with_disabled <|
-                    src1 = source_table_builder [["X", [1, 2, 3]]]
-                    name = (Name_Generator.random_name "table-foo2")
-                    r1 = src1.select_into_database_table data.connection name
-                    Problems.expect_only_warning Dry_Run_Operation r1
-                    r1.column_names . should_equal ["X"]
-                    r1.name . should_not_equal name
-                    # A small table is uploaded whole.
-                    r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                    r1.row_count . should_equal 3
-                    r1.is_trivial_query . should_be_true
+        tests group_builder data make_new_connection (in_memory_table_builder) " (from memory)" persistent_connector
+        tests group_builder data make_new_connection (database_table_builder "ec-tests-table" data=data) " (from Database table)" persistent_connector
 
-                    # But a big one will be sampled.
-                    n = 2000
-                    src2 = source_table_builder [["X", (0.up_to n).to_vector]]
-                    # We re-use the name - multiple dry-runs for the same table name should be allowed without issues.
-                    r2 = src2.select_into_database_table data.connection name
-                    Problems.expect_only_warning Dry_Run_Operation r2
-                    r2.column_names . should_equal ["X"]
-                    # Only a sample is uploaded.
-                    r2.row_count . should_equal 1000
-                    r2.is_trivial_query . should_be_true
 
-            group_builder.specify "should return the target table unchanged for update_rows"+suffix <|
-                dest_data = Table.new [["X", [1, 2, 3]]]
-                dest = dest_data.select_into_database_table data.connection (Name_Generator.random_name "target-table") temporary=True primary_key=[]
-                Context.Output.with_disabled <|
-                    src = source_table_builder [["X", [4, 5, 6]]]
-                    r1 = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-                    Problems.expect_only_warning Dry_Run_Operation r1
-                    r1.column_names . should_equal ["X"]
-                    # The target table is returned, as usually.
-                    r1.name . should_equal dest.name
-                    # But the data is not appended due to the dry-run - the table is unmodified.
-                    r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                    r1.is_trivial_query . should_be_true
+test_table_append group_builder (data : Data) source_table_builder target_table_builder =
+    group_builder.specify "should be able to append new rows to a table" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]]
 
-            group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged" <|
-                v = [1, 2, 3, 4, 4, 4, 1]
-                dest_data = Table.new [["X", v]]
-                dest = dest_data.select_into_database_table data.connection (Name_Generator.random_name "table-delete-rows-dry") temporary=True primary_key=[]
-                Context.Output.with_disabled <|
-                    src = source_table_builder [["X", [2, 3]]]
-                    r1 = dest.delete_rows src key_columns=["X"]
-                    # 2 rows would be deleted
-                    r1.should_equal 2
-                    Problems.expect_only_warning Dry_Run_Operation r1
+        result = dest.update_rows src key_columns=["X"]
+        result.column_names . should_equal ["X", "Y"]
 
-                    # The target table is unaffected.
-                    dest.at "X" . to_vector . should_equal v
+        result.is_trivial_query . should_be_true
+        (result == dest) . should_be_true
 
-                    src2 = source_table_builder [["X", [4]]]
-                    r2 = dest.delete_rows src2 key_columns=["X"] allow_duplicate_matches=True
-                    # 3 rows would be deleted
-                    r2.should_equal 3
-                    Problems.expect_only_warning Dry_Run_Operation r2
-                    dest.at "X" . to_vector . should_equal v
+        expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
+        rows1 = result.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
 
-            if persistent_connector then
-                group_builder.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
-                    target_name = Name_Generator.random_name "test-table"
-                    dry_run_name = Context.Output.with_disabled <|
-                        tmp_connection1 = make_new_connection Nothing
-                        src1 = source_table_builder [["A", [1, 2, 3]]] connection=tmp_connection1
-                        dry_run_table = src1.select_into_database_table tmp_connection1 target_name temporary=True . should_succeed
-                        Problems.expect_only_warning Dry_Run_Operation dry_run_table
-                        dry_run_table.column_names . should_equal ["A"]
-                        name = Warning.clear dry_run_table.name
-                        tmp_connection1.close
-                        name
+    group_builder.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["X", [1, 5, 6]], ["Y", ['d', 'e', 'f']]]
 
-                    wait_until_temporary_table_is_deleted_after_closing_connection data.connection dry_run_name
+        # This is checked in dry-run mode but only for the first 1000 rows.
+        run_with_and_without_output <|
+            r1 = dest.update_rows src update_action=Update_Action.Insert key_columns=["X"]
+            r1.should_fail_with Rows_Already_Present
 
-                    pre_existing_src = Table.new [["X", [4, 5, 6]]]
-                    # Create a table that has the same name as the dry run table normally would have.
-                    pre_existing_table = pre_existing_src.select_into_database_table data.connection dry_run_name temporary=False . should_succeed
-                    pre_existing_table.column_names . should_equal ["X"]
-                    pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
-                    Panic.with_finalizer (data.connection.drop_table pre_existing_table.name if_exists=True) <|
-                        new_dry_run_name = Context.Output.with_disabled <|
-                            tmp_connection2 = make_new_connection Nothing
-                            src3 = source_table_builder [["B", [7, 8, 9]]] connection=tmp_connection2
-                            # Create a dry run table that is supposed to clash with pre_existing_table
-                            dry_run_table = src3.select_into_database_table tmp_connection2 target_name temporary=True . should_succeed
-                            Problems.expect_warning Dry_Run_Operation dry_run_table
-                            dry_run_table.column_names . should_equal ["B"]
-                            dry_run_table.at "B" . to_vector . should_contain_the_same_elements_as [7, 8, 9]
-                            name = Warning.clear dry_run_table.name
-                            tmp_connection2.close
-                            name
+    group_builder.specify "should use the target table primary key for the key by default" <|
+        dest1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
+        default_key_columns dest1 . should_equal ["Y", "Z"]
 
-                        # Ensure that the created dry run table changed the name to avoid clash.
-                        new_dry_run_name . should_not_equal dry_run_name
+        dest2 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
+        src = source_table_builder [["X", [4, 5]], ["Y", ['b', 'e']]]
+        # Not specifying `key_columns`, rely on `default_key_columns` inferring Y as default based on the primary key.
+        r1 = dest2.update_rows src
+        rows = r1.rows.to_vector.map .to_vector
+        rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
 
-                        # The pre-existing table should not have been overwritten.
-                        pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+    group_builder.specify "should be able to Update existing rows in a table" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        src = source_table_builder [["X", [2]], ["Y", ['ZZZ']]]
 
-        tests group_builder (in_memory_table_builder) " (from memory)"
-        tests group_builder (database_table_builder "ec-tests-table") " (from Database table)"
+        r1 = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
+        r1.column_names . should_equal ["X", "Y"]
+        r1.should_succeed
+
+        rows = dest.rows.to_vector.map .to_vector
+        rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
+
+    group_builder.specify "should fail on unmatched rows in Update mode" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
+
+        # In dry run mode this will only check first 1000 rows.
+        run_with_and_without_output <|
+            r1 = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
+            r1.should_fail_with Unmatched_Rows
+
+            # The table should remain unchanged.
+            rows = dest.rows.to_vector.map .to_vector
+            rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
+
+    group_builder.specify "should upsert by default (update existing rows, insert new rows)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
+        r1 = dest.update_rows src key_columns=["X"]
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["X", "Y"]
+        expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+        # The original table is updated too.
+        rows2 = dest.rows.to_vector.map .to_vector
+        rows2.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
+        r1 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["X", "Y"]
+        expected_rows = [[2, 'D'], [100, 'E']]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+        rows2 = dest.rows.to_vector.map .to_vector
+        rows2.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should match columns by name, reordering to destination order if needed (Insert)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [4, 5, 6]]]
+        result = dest.update_rows src update_action=Update_Action.Insert key_columns=["X"]
+        result.column_names . should_equal ["X", "Y"]
+        src.column_names . should_equal ["Y", "X"]
+        expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
+        rows1 = result.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should match columns by name, reordering to destination order if needed (Upsert)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [1, 5, 6]]]
+        result = dest.update_rows src key_columns=["X"]
+        result.column_names . should_equal ["X", "Y"]
+        src.column_names . should_equal ["Y", "X"]
+        expected_rows = [[1, 'd'], [2, 'b'], [3, 'c'], [5, 'e'], [6, 'f']]
+        rows1 = result.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should match columns by name, reordering to destination order if needed (Update)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [3, 2, 1]]]
+        result = dest.update_rows src update_action=Update_Action.Update key_columns=["X"]
+        result.column_names . should_equal ["X", "Y"]
+        src.column_names . should_equal ["Y", "X"]
+        expected_rows = [[1, 'f'], [2, 'e'], [3, 'd']]
+        rows1 = result.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should match columns by name, reordering to destination order if needed (Align)" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [2, 1, 6]]]
+        result = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
+        result.column_names . should_equal ["X", "Y"]
+        src.column_names . should_equal ["Y", "X"]
+        expected_rows = [[1, 'e'], [2, 'd'], [6, 'f']]
+        rows1 = result.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should allow to use a transformed table, with computed fields, as a source" <|
+        dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+        t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
+        t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
+        src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set "[X] + 100" "X"
+        src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
+
+        r1 = dest.update_rows src key_columns=["X"]
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["X", "Y"]
+        expected_rows = [[1, 'E'], [110, 'D'], [2, 'b'], [3, 'c']]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+
+    group_builder.specify "should allow specifying no key in Insert mode" <|
+        dest = target_table_builder [["X", [1, 10, 100]]]
+        src = source_table_builder [["X", [1, 2, 3]]]
+        result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+
+        expected = [1, 10, 100, 1, 2, 3]
+        result.column_names . should_equal ["X"]
+        result.at "X" . to_vector . should_contain_the_same_elements_as expected
+
+        r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=Nothing
+        r2.column_names . should_equal ["X"]
+        r2.at "X" . to_vector . should_contain_the_same_elements_as expected
+
+        default_key_columns dest . should_equal Nothing
+        r3 = dest.update_rows src update_action=Update_Action.Insert
+        r3.column_names . should_equal ["X"]
+        r3.at "X" . to_vector . should_contain_the_same_elements_as expected
+
+    group_builder.specify "should fail if no key is specified in other modes" <|
+        dest = target_table_builder [["X", [1, 10, 100]]]
+        src = source_table_builder [["X", [1, 2, 3]]]
+
+        run_with_and_without_output <|
+            r1 = dest.update_rows src update_action=Update_Action.Update key_columns=[]
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text.should_contain "`key_columns` must be specified"
+
+            # The default will also fail because no primary key is detected in the DB.
+            default_key_columns dest . should_equal Nothing
+            r2 = dest.update_rows src update_action=Update_Action.Update
+            r2.should_fail_with Illegal_Argument
+
+            r3 = dest.update_rows src update_action=Update_Action.Update_Or_Insert key_columns=[]
+            r3.should_fail_with Illegal_Argument
+
+            r4 = dest.update_rows src key_columns=[]
+            r4.should_fail_with Illegal_Argument
+
+            r5 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=[]
+            r5.should_fail_with Illegal_Argument
+
+    group_builder.specify "should fail if the key is not unique in the input table" <|
+        d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
+        d2 = target_table_builder [["X", [0, 10, 100]]]
+        src = source_table_builder [["X", [1, 1, 3]]]
+
+        # Only checks 1000 rows in dry run mode.
+        run_with_and_without_output <|
+            # Relying on the default key based on primary key.
+            r1 = d1.update_rows src update_action=Update_Action.Insert
+            r1.should_fail_with Non_Unique_Key
+
+            r2 = d2.update_rows src key_columns=["X"] update_action=Update_Action.Insert
+            r2.should_fail_with Non_Unique_Key
+
+    group_builder.specify "will fail if source table contains null keys, unless only Inserting" <|
+        t1 = target_table_builder [["X", [0, 10, 100]], ["Y", ["a", "b", "c"]]] primary_key=[]
+        s1 = source_table_builder [["X", [10, Nothing]], ["Y", ["x", "y"]]]
+        run_with_and_without_output <|
+            r1 = t1.update_rows s1 key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+            r1.should_fail_with Null_Values_In_Key_Columns
+
+        r2 = t1.update_rows s1 update_action=Update_Action.Insert key_columns=[]
+        Problems.assume_no_problems r2
+        m2 = r2.read . order_by "Y"
+        m2.at "Y" . to_vector . should_equal ["a", "b", "c", "x", "y"]
+        m2.at "X" . to_vector . should_equal [0, 10, 100, 10, Nothing]
+
+    group_builder.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
+        dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]]
+        src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
+
+        run_with_and_without_output <|
+            r1 = dest.update_rows src key_columns=["X"]
+            r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
+            r1.catch.to_display_text . should_contain "key [1] matched 2 rows"
+
+        src2 = source_table_builder [["X", [1]], ["Y", ['d']]]
+        run_with_and_without_output <|
+            r2 = dest.update_rows src2 key_columns=["X"] update_action=Update_Action.Update
+            r2.should_fail_with Multiple_Target_Rows_Matched_For_Update
+
+        ## In the future we may consider `Align_Records` to remove the
+           duplicated rows and keep just one of them. But that probably
+           should not be a default, so maybe only if we introduce a
+           parameter like `multi_row_update`.
+        r3 = dest.update_rows src key_columns=["X"] update_action=Update_Action.Align_Records
+        r3.should_fail_with Multiple_Target_Rows_Matched_For_Update
+
+        ## BUT the check should not throw an error if the duplicated key is on an unaffected row!
+           (here key 1 is duplicated, but we are NOT updating it)
+        src3 = source_table_builder [["X", [2]], ["Y", ['f']]]
+        Problems.assume_no_problems <|
+            dest.update_rows src3 key_columns=["X"]
+
+    group_builder.specify "should fail if the source table contains columns not present in the target (data loss)" <|
+        dest = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
+        src = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        run_with_and_without_output <|
+            r1 = dest.update_rows src key_columns=["X"]
+            r1.should_fail_with Unmatched_Columns
+            r1.catch.column_names . should_equal ["Y"]
+            r1.catch.to_display_text . should_contain "columns were not present"
+            r1.catch.to_display_text . should_contain "Y"
+
+    group_builder.specify "should use defaults when inserting" <|
+        dest_name = Name_Generator.random_name "table-defaults"
+        dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
+        src = source_table_builder [["X", [1, 2, 3]]]
+        r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["Y", "X"]
+        expected_rows = [[42, 1], [42, 2], [42, 3]]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+        data.connection.drop_table dest_name
+
+    group_builder.specify "should use defaults when inserting new values in upsert, but retain existing values" <|
+        dest_name = Name_Generator.random_name "table-defaults"
+        dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Z" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
+        Problems.assume_no_problems <|
+            dest.update_rows (Table.from_rows ["X", "Y", "Z"] [[1, 1000, 10]]) key_columns=[] update_action=Update_Action.Insert
+
+        src = source_table_builder [["X", [1, 2, 3]], ["Z", [100, 200, 300]]]
+        r1 = dest.update_rows src key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["Y", "X", "Z"]
+        expected_rows = [[1000, 1, 100], [42, 2, 200], [42, 3, 300]]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+        data.connection.drop_table dest_name
+
+    group_builder.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
+        dest_name = Name_Generator.random_name "table-defaults-align"
+        dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "Z" Value_Type.Integer] temporary=True . should_succeed
+        initial_data = Table.new [["X", [10, 20]], ["Y", [100, 200]], ["Z", [1000, 2000]]]
+        dest.update_rows initial_data key_columns=[] update_action=Update_Action.Insert . should_succeed
+        src = source_table_builder [["X", [10, 2, 3]], ["Z", [-1, -2, -3]]]
+        r1 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=["X"]
+        Problems.assume_no_problems r1
+        r1.column_names . should_equal ["X", "Y", "Z"]
+        # The X=10 stays with Y=100, but the X=2 is inserted with the default Y=42
+        expected_rows = [[10, 100, -1], [2, 42, -2], [3, 42, -3]]
+        rows1 = r1.rows.to_vector.map .to_vector
+        rows1.should_contain_the_same_elements_as expected_rows
+        data.connection.drop_table dest_name
+
+    group_builder.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
+        dest_name = Name_Generator.random_name "table-notnull"
+        dest = data.connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Not_Null], Column_Description.Value "X" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
+        src = source_table_builder [["X", [1, 2, 3]]]
+        r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
+        # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
+        r1.should_fail_with SQL_Error
+        data.connection.drop_table dest_name
+
+    group_builder.specify "should fail if the source table is missing some columns, if asked to" <|
+        dest = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
+        src = source_table_builder [["X", [1, 2, 3]]]
+        run_with_and_without_output <|
+            r1 = dest.update_rows src error_on_missing_columns=True update_action=Update_Action.Insert key_columns=[]
+            r1.should_fail_with Missing_Input_Columns
+            r1.catch.criteria . should_equal ["Y"]
+
+    group_builder.specify "should fail if some of key_columns do not exist in either table" <|
+        d1 = target_table_builder [["X", [0, 10, 100]]]
+        d2 = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
+        s1 = source_table_builder [["X", [1, 3]]]
+        s2 = source_table_builder [["X", [1, 3]], ["Y", ['e', 'f']]]
+
+        run_with_and_without_output <|
+            r1 = d1.update_rows s1 key_columns=["Y"]
+            r1.should_fail_with Missing_Input_Columns
+
+            r2 = d2.update_rows s1 key_columns=["Y"]
+            r2.should_fail_with Missing_Input_Columns
+
+            # This may be Missing_Input_Columns or Unmatched_Columns
+            r3 = d1.update_rows s2 key_columns=["Y"]
+            r3.should_fail_with Any
+            ((r3.catch.is_a Missing_Input_Columns) || (r3.catch.is_a Unmatched_Columns)).should_be_true
+
+    group_builder.specify "should fail if the target table does not exist" <|
+        t = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        nonexistent_name = Name_Generator.random_name "nonexistent-table"
+        nonexistent_ref = data.connection.create_table nonexistent_name t
+        # Dropping the table to make it not exist.
+        data.connection.drop_table nonexistent_ref.name
+
+        run_with_and_without_output <|
+            r1 = nonexistent_ref.update_rows t key_columns=[]
+            r1.should_fail_with Table_Not_Found
+
+            default_key_columns nonexistent_ref . should_fail_with Table_Not_Found
+            r2 = nonexistent_ref.update_rows t
+            r2.should_fail_with Table_Not_Found
+
+    group_builder.specify "should fail if the target table is in-memory" <|
+        t = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        in_memory_table = Table.new [["X", [0]], ["Y", ['_']]]
+        run_with_and_without_output <|
+            r1 = in_memory_table.update_rows t key_columns=[]
+            r1.should_fail_with Illegal_Argument
+
+            r2 = in_memory_table.update_rows t
+            r2.should_fail_with Illegal_Argument
+
+    group_builder.specify "should warn if type widening occurs" <|
+        dest = target_table_builder [["X", [3.25, 4.25, 10.0]]]
+        src = source_table_builder [["X", [1, 2, 0]]]
+
+        # Warning should be present in dry-run mode too!
+        Context.Output.with_disabled <|
+            r2 = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+            Problems.expect_warning Inexact_Type_Coercion r2
+
+            # But in dry run the update is not actually performed:
+            r2.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0]
+
+        result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+        warning = Problems.expect_warning Inexact_Type_Coercion result
+        warning.requested_type.is_integer . should_be_true
+        warning.actual_type.is_floating_point . should_be_true
+
+        result.column_names . should_equal ["X"]
+        result.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0, 1, 2, 0]
+
+    group_builder.specify "should fail if types of columns are not compatible" <|
+        dest = target_table_builder [["X", ["a", "B", "c"]]]
+        src = source_table_builder [["X", [1, 2, 3]]]
+
+        run_with_and_without_output <|
+            result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+            result.should_fail_with Column_Type_Mismatch
+            err = result.catch
+            err.column_name.should_equal "X"
+            err.expected_type.is_text . should_be_true
+            err.got_type.is_numeric . should_be_true
+
+    group_builder.specify "fails if the target type is more restrictive than source" <|
+        src = source_table_builder [["X", [1, 2, 3]], ["Y", ["a", "xyz", "abcdefghijkl"]], ["Z", ["a", "pqrst", "abcdefghijkl"]]]
+        dest_name = Name_Generator.random_name "dest-table-test-types"
+        structure =
+            x = Column_Description.Value "X" (Value_Type.Integer Bits.Bits_16)
+            y = Column_Description.Value "Y" (Value_Type.Char size=4 variable_length=True)
+            z = Column_Description.Value "Z" (Value_Type.Char size=5 variable_length=False)
+            [x, y, z]
+        dest = data.connection.create_table dest_name structure temporary=True primary_key=[]
+        non_trivial_types_supported =
+            has_warning_or_error = dest.is_error || (Problems.get_attached_warnings dest . not_empty)
+            has_warning_or_error.not
+        case non_trivial_types_supported of
+            False -> Nothing # Skip the test
+            True ->
+                result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+                result.should_fail_with Column_Type_Mismatch
+
+    group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" <|
+        dest_name = Name_Generator.random_name "dest-table"
+        # We will make the upload fail by violating the NOT NULL constraint.
+        dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
+        src = source_table_builder [["X", [1, Nothing, 3]]]
+
+        existing_tables = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+        res = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+        res.should_fail_with SQL_Error
+
+        tables_immediately_after = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+
+        ## If there are some additional tables, we add some timeout to allow
+           the database to do the cleaning up.
+        additional_tables = (Set.from_vector tables_immediately_after).difference (Set.from_vector existing_tables)
+        if additional_tables.is_empty then Nothing else
+            additional_table = additional_tables.to_vector.first
+
+            wait_until_temporary_table_is_deleted_after_closing_connection data.connection additional_table
+            # After the wait we check again and now there should be no additional tables.
+            tables_after_wait = data.connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+            additional_tables_2 = (Set.from_vector tables_after_wait).difference (Set.from_vector existing_tables)
+            additional_tables_2.to_vector . should_equal []
+
+
+test_table_delete group_builder (data : Data) source_table_builder target_table_builder =
+    group_builder.specify "should remove rows matching by key_columns" <|
+        table = target_table_builder [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["score", [100, 100, 44, 100, 120]]] primary_key=["student_id"]
+        key_values_to_delete = source_table_builder [["student_id", [44, 100]]]
+        # key columns should automatically be discovered by the primary key
+        affected_rows = table.delete_rows key_values_to_delete
+        affected_rows . should_equal 2
+        table.rows.map .to_vector . should_equal [[1, "Alice", 100], [2, "Bob", 100], [120, "Eve", 120]]
+
+    group_builder.specify "will require key_columns if no default can be used as no primary key is set" <|
+        table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
+        key_values_to_delete = source_table_builder [["X", [1, 2]]]
+
+        run_with_and_without_output <|
+            r1 = table.delete_rows key_values_to_delete
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text.should_contain "default value"
+
+        r2 = table.delete_rows key_values_to_delete key_columns=["X"]
+        Problems.assume_no_problems r2
+        r2.should_equal 2
+        table.at "X" . to_vector . should_equal [3]
+
+    group_builder.specify "does not fail if no rows matching the key_values_to_delete are found" <|
+        table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
+        key_values_to_delete = source_table_builder [["X", [4, 5]]]
+        r1 = table.delete_rows key_values_to_delete key_columns=["X"] # Error: Unresolved method `delete_rows`
+        r1.should_equal 0
+        Problems.assume_no_problems r1
+        table.at "X" . to_vector . should_equal [1, 2, 3]
+
+        key_values_2 = source_table_builder [["X", [4, 3, 5]]]
+        r2 = table.delete_rows key_values_2 key_columns=["X"]
+        r2.should_equal 1
+        Problems.assume_no_problems r2
+        table.at "X" . to_vector . should_equal [1, 2]
+
+    group_builder.specify "should allow to use multiple columns as key" <|
+        table = target_table_builder [["X", [1, 2, 2, 3, 4, 4]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f']]] primary_key=[]
+        keys = source_table_builder [["X", [2, 4]], ["Y", ['b', 'f']]]
+        affected_rows = table.delete_rows keys key_columns=["X", "Y"]
+        affected_rows . should_equal 2
+        table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"], [4, "e"]]
+
+    group_builder.specify "should fail if key_columns are missing in source or target tables" <|
+        table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] primary_key=[]
+        keys = source_table_builder [["Z", [7, 8]]]
+
+        run_with_and_without_output <|
+            r1 = table.delete_rows keys key_columns=["Y"]
+            r1.should_fail_with Missing_Input_Columns
+            r1.catch.criteria . should_equal ["Y"]
+            r1.catch.where . should_contain "key values to delete"
+
+            r2 = table.delete_rows keys key_columns=["Z"]
+            r2.should_fail_with Missing_Input_Columns
+            r2.catch.criteria . should_equal ["Z"]
+            r2.catch.where . should_contain "target"
+
+            r3 = table.delete_rows keys key_columns=["neither"]
+            r3.should_fail_with Missing_Input_Columns
+            r3.catch.criteria . should_equal ["neither"]
+
+    group_builder.specify "should fail if empty key_columns were provided" <|
+        table = target_table_builder [["X", [1, 2, 3]]] primary_key=["X"]
+        keys = source_table_builder [["X", [1, 2]]]
+        r1 = table.delete_rows keys key_columns=[]
+        r1.should_fail_with Illegal_Argument
+
+    group_builder.specify "should fail if multiple rows match a single key_values_to_delete row, unless allow_duplicate_matches is set to True" <|
+        table = target_table_builder [["X", [1, 2, 2, 3, 2]], ["Y", ['a', 'b', 'c', 'd', 'e']]] primary_key=[]
+        keys = source_table_builder [["X", [2]], ["Y", ['b']]]
+
+        run_with_and_without_output <|
+            r1 = table.delete_rows keys key_columns=["X"]
+            r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
+            r1.catch.example_key . should_equal [2]
+            r1.catch.example_count . should_equal 3
+            # no changes
+            table.at "X" . to_vector . should_equal [1, 2, 2, 3, 2]
+
+        r2 = table.delete_rows keys key_columns=["X"] allow_duplicate_matches=True
+        r2.should_equal 3
+        table.rows.map .to_vector . should_equal [[1, "a"], [3, "d"]]
+
+    group_builder.specify "should fail if the target table does not exist" <|
+        table = target_table_builder [["X", [1, 2, 3]]]
+        keys = source_table_builder [["X", [1, 2]]]
+        data.connection.drop_table table.name
+
+        run_with_and_without_output <|
+            table.delete_rows keys key_columns=["X"] . should_fail_with Table_Not_Found
+            table.delete_rows keys . should_fail_with Table_Not_Found
+
+    group_builder.specify "will warn if not all input rows were checked as part of a dry run" <|
+        target = target_table_builder [["X", [0, 1, 500, 1500, 3500]]] primary_key=["X"]
+        source = source_table_builder [["X", (1.up_to 2000).to_vector]] primary_key=["X"]
+
+        Context.Output.with_disabled <|
+            r1 = target.delete_rows source
+            # Values 1 and 500 are always checked; 1500 may exceed the dry run limit.
+            [2, 3].should_contain r1
+            w1 = Problems.expect_warning Dry_Run_Operation r1
+            # If not all rows were checked, a warning is expected:
+            if r1 == 2 then
+                w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
+
+        # Target remains unchanged
+        target.at "X" . to_vector . should_equal [0, 1, 500, 1500, 3500]
+
+        r2 = target.delete_rows source
+        Problems.assume_no_problems r2
+        # All 3 rows were deleted
+        r2.should_equal 3
+        target.at "X" . to_vector . should_equal [0, 3500]
+
+    group_builder.specify "will work fine if the target table contains NULL keys" <|
+        t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]]
+        s1 = source_table_builder [["X", ["b", "c"]]]
+        t1.delete_rows s1 key_columns=["X"] . should_equal 2
+        m1 = t1.read . order_by "X"
+        m1.at "X" . to_vector . should_equal [Nothing, "a"]
+        m1.at "Y" . to_vector . should_equal [3, 1]
+
+    group_builder.specify "will raise an error if they source table contains NULL keys" <|
+        t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]]
+        s2 = source_table_builder [["X", ["b", Nothing]], ["f", [10, 20]]]
+        r1 = t2.delete_rows s2 key_columns=["X"]
+        r1.should_fail_with Null_Values_In_Key_Columns
+        r1.catch.to_display_text . should_contain "Nothing values in key columns"
+        r1.catch.to_display_text . should_contain "[Nothing, 20]"
+
+
+tests group_builder (data : Data) make_new_connection source_table_builder (suffix : Text) persistent_connector =
+    group_builder.specify "should return a temporary table with a sample of the data for select_into_database_table"+suffix <|
+        Context.Output.with_disabled <|
+            src1 = source_table_builder [["X", [1, 2, 3]]]
+            name = (Name_Generator.random_name "table-foo2")
+            r1 = src1.select_into_database_table data.connection name
+            Problems.expect_only_warning Dry_Run_Operation r1
+            r1.column_names . should_equal ["X"]
+            r1.name . should_not_equal name
+            # A small table is uploaded whole.
+            r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            r1.row_count . should_equal 3
+            r1.is_trivial_query . should_be_true
+
+            # But a big one will be sampled.
+            n = 2000
+            src2 = source_table_builder [["X", (0.up_to n).to_vector]]
+            # We re-use the name - multiple dry-runs for the same table name should be allowed without issues.
+            r2 = src2.select_into_database_table data.connection name
+            Problems.expect_only_warning Dry_Run_Operation r2
+            r2.column_names . should_equal ["X"]
+            # Only a sample is uploaded.
+            r2.row_count . should_equal 1000
+            r2.is_trivial_query . should_be_true
+
+    group_builder.specify "should return the target table unchanged for update_rows"+suffix <|
+        dest_data = Table.new [["X", [1, 2, 3]]]
+        dest = dest_data.select_into_database_table data.connection (Name_Generator.random_name "target-table") temporary=True primary_key=[]
+        Context.Output.with_disabled <|
+            src = source_table_builder [["X", [4, 5, 6]]]
+            r1 = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
+            Problems.expect_only_warning Dry_Run_Operation r1
+            r1.column_names . should_equal ["X"]
+            # The target table is returned, as usually.
+            r1.name . should_equal dest.name
+            # But the data is not appended due to the dry-run - the table is unmodified.
+            r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            r1.is_trivial_query . should_be_true
+
+    group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged"+suffix <|
+        v = [1, 2, 3, 4, 4, 4, 1]
+        dest_data = Table.new [["X", v]]
+        dest = dest_data.select_into_database_table data.connection (Name_Generator.random_name "table-delete-rows-dry") temporary=True primary_key=[]
+        Context.Output.with_disabled <|
+            src = source_table_builder [["X", [2, 3]]]
+            r1 = dest.delete_rows src key_columns=["X"]
+            # 2 rows would be deleted
+            r1.should_equal 2
+            Problems.expect_only_warning Dry_Run_Operation r1
+
+            # The target table is unaffected.
+            dest.at "X" . to_vector . should_equal v
+
+            src2 = source_table_builder [["X", [4]]]
+            r2 = dest.delete_rows src2 key_columns=["X"] allow_duplicate_matches=True
+            # 3 rows would be deleted
+            r2.should_equal 3
+            Problems.expect_only_warning Dry_Run_Operation r2
+            dest.at "X" . to_vector . should_equal v
+
+    if persistent_connector then
+        group_builder.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
+            target_name = Name_Generator.random_name "test-table"
+            dry_run_name = Context.Output.with_disabled <|
+                tmp_connection1 = make_new_connection Nothing
+                src1 = source_table_builder [["A", [1, 2, 3]]] connection=tmp_connection1
+                dry_run_table = src1.select_into_database_table tmp_connection1 target_name temporary=True . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation dry_run_table
+                dry_run_table.column_names . should_equal ["A"]
+                name = Warning.clear dry_run_table.name
+                tmp_connection1.close
+                name
+
+            wait_until_temporary_table_is_deleted_after_closing_connection data.connection dry_run_name
+
+            pre_existing_src = Table.new [["X", [4, 5, 6]]]
+            # Create a table that has the same name as the dry run table normally would have.
+            pre_existing_table = pre_existing_src.select_into_database_table data.connection dry_run_name temporary=False . should_succeed
+            pre_existing_table.column_names . should_equal ["X"]
+            pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+            Panic.with_finalizer (data.connection.drop_table pre_existing_table.name if_exists=True) <|
+                new_dry_run_name = Context.Output.with_disabled <|
+                    tmp_connection2 = make_new_connection Nothing
+                    src3 = source_table_builder [["B", [7, 8, 9]]] connection=tmp_connection2
+                    # Create a dry run table that is supposed to clash with pre_existing_table
+                    dry_run_table = src3.select_into_database_table tmp_connection2 target_name temporary=True . should_succeed
+                    Problems.expect_warning Dry_Run_Operation dry_run_table
+                    dry_run_table.column_names . should_equal ["B"]
+                    dry_run_table.at "B" . to_vector . should_contain_the_same_elements_as [7, 8, 9]
+                    name = Warning.clear dry_run_table.name
+                    tmp_connection2.close
+                    name
+
+                # Ensure that the created dry run table changed the name to avoid clash.
+                new_dry_run_name . should_not_equal dry_run_name
+
+                # The pre-existing table should not have been overwritten.
+                pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+
 
 ## PRIVATE
    Creates a mock column containing `values`.
@@ -1410,6 +1423,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
 make_mock_column name values exploding_index =
     storage = ExplodingStorage.new values exploding_index
     Column.from_storage name storage
+
 
 ## PRIVATE
 cleanup_sentinel ref _ =
