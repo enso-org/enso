@@ -16,7 +16,7 @@ from project.Logging import all
 
 polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.arrays.LongArrayList
-polyglot java import org.enso.base.File_Line_Reader
+polyglot java import org.enso.base.FileLineReader
 polyglot java import java.io.File as Java_File
 polyglot java import java.nio.charset.Charset
 
@@ -67,11 +67,11 @@ type File_By_Line
     ## Counts the number of lines in the file.
     count : Integer
     count self =
-        end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines
+        end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines
         for_each_lines self 0 end_at Nothing
         ## We've added all the indexes to the row map including the last one so we need to subtract 1
            As row_map can be shared if we have a limit return that.
-        end_at.min self.row_map.getSize-1
+        if end_at == -1 then self.row_map.getSize-1 else end_at.min self.row_map.getSize-1
 
     ## Returns the lines in the file as a vector.
     to_vector : Vector Text
@@ -93,10 +93,7 @@ type File_By_Line
     each_with_index : (Integer -> Text -> Any) -> Nothing
     each_with_index self function =
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
-        wrapper i t =
-            function i t
-            False
-        for_each_lines self 0 end_at wrapper
+        for_each_lines self 0 end_at function
 
     ## Transforms each line in the file and returns the result as a vector.
 
@@ -166,7 +163,7 @@ type File_By_Line
    Reads a specific line from the file.
 read_line : File_By_Line->Integer->Any->Any
 read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
-    File_Line_Reader.scanAndReadLine file.java_file file.row_map line file.charset file.filter_func . if_nothing default
+    FileLineReader.scanAndReadLine file.java_file file.row_map line file.charset file.filter_func . if_nothing default
 
 ## PRIVATE
    Performs an action on each line in the file.
@@ -177,8 +174,8 @@ for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) actio
     charset = file.charset
 
     ## First if we haven't read the found the start_at line we need to find that.
-    if start_at >= row_map.getSize then File_Line_Reader.scanAndReadLine java_file row_map start_at charset file.filter_func
+    if start_at >= row_map.getSize then FileLineReader.scanAndReadLine java_file row_map start_at charset file.filter_func
 
     ## Now we can read the lines we need.
     if row_map.getOrLast start_at >= java_file.length then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else
-        File_Line_Reader.readLines java_file row_map start_at (end_at.if_nothing -1) charset file.filter_func action
+        FileLineReader.readLines java_file row_map start_at (end_at.if_nothing -1) charset file.filter_func action
