@@ -2616,12 +2616,12 @@ lazy val `common-polyglot-core-utils` = project
   )
 
 lazy val `enso-test-java-helpers` = project
-  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
