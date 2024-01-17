@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -40,7 +40,7 @@ public abstract class Atom implements EnsoObject {
    *
    * @param constructor the Atom's constructor
    */
-  protected Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor) {
     this.constructor = constructor;
   }
 
@@ -53,10 +53,6 @@ public abstract class Atom implements EnsoObject {
     return constructor;
   }
 
-  private final Object[] getFields() {
-    return StructsLibrary.getUncached().getFields(this);
-  }
-
   public void setHashCode(int hashCode) {
     assert this.hashCode == null : "setHashCode must be called at most once";
     this.hashCode = hashCode;
@@ -66,17 +62,19 @@ public abstract class Atom implements EnsoObject {
     return hashCode;
   }
 
+  @CompilerDirectives.TruffleBoundary
   private void toString(StringBuilder builder, boolean shouldParen, int depth) {
     if (depth <= 0) {
       builder.append("...");
       return;
     }
-    boolean parensNeeded = shouldParen && getFields().length > 0;
+    boolean parensNeeded = shouldParen && constructor.getArity() > 0;
     if (parensNeeded) {
       builder.append("(");
     }
     builder.append(getConstructor().getName());
-    for (var obj : getFields()) {
+    for (var i = 0; i < constructor.getArity(); i++) {
+      var obj = StructsLibrary.getUncached().getField(this, i);
       builder.append(" ");
       if (obj instanceof Atom atom) {
         atom.toString(builder, true, depth - 1);
@@ -132,13 +130,13 @@ public abstract class Atom implements EnsoObject {
   }
 
   @ExportMessage
-  public boolean hasMembers() {
+  boolean hasMembers() {
     return true;
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public EnsoObject getMembers(boolean includeInternal) {
+  EnsoObject getMembers(boolean includeInternal) {
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
@@ -156,7 +154,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public boolean isMemberInvocable(String member) {
+  final boolean isMemberInvocable(String member) {
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null && members.contains(member)) {
@@ -169,7 +167,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @ExplodeLoop
-  public boolean isMemberReadable(String member) {
+  final boolean isMemberReadable(String member) {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return true;
@@ -180,10 +178,11 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @ExplodeLoop
-  public Object readMember(String member) throws UnknownIdentifierException {
+  final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
+      throws UnknownIdentifierException {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
-        return getFields()[i];
+        return structs.getField(this, i);
       }
     }
     throw UnknownIdentifierException.create(member);
@@ -293,7 +292,7 @@ public abstract class Atom implements EnsoObject {
   }
 
   @ExportMessage
-  public Type getType() {
+  Type getType() {
     return getConstructor().getType();
   }
 

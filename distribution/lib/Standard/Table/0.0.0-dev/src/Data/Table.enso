@@ -1483,7 +1483,8 @@ type Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
@@ -1822,7 +1823,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join
+    ## ALIAS cartesian join, append
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -2193,7 +2194,8 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning max_rows
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
