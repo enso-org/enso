@@ -19,6 +19,22 @@ const value = computed({
     })
   },
 })
+
+const allowDecimals = computed(() => {
+  const type = props.input.expectedType
+  if ( type === 'Standard.Base.Data.Numbers.Integer')
+    return false
+  return true
+})
+
+const limits = computed(() => {
+  const config = props.input.dynamicConfig
+  if (config != null && config.kind === 'Numeric_Input' && config.minimum != null && config.maximum != null) {
+    return { min: config.minimum, max: config.maximum }
+  } else {
+    return undefined
+  }
+})
 </script>
 
 <script lang="ts">
@@ -44,7 +60,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <SliderWidget v-model="value" class="WidgetNumber r-24" :min="-1000" :max="1000" />
+  <SliderWidget v-model="value" class="WidgetNumber r-24" :limits="limits" :allowDecimals="allowDecimals" />
 </template>
 
 <style scoped>

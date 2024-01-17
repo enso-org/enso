@@ -2,9 +2,16 @@
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
 import { getTextWidth } from '@/util/measurement'
 import { computed, ref, type StyleValue } from 'vue'
+import { blurIfNecessary } from '@/util/autoBlur'
 
-const props = defineProps<{ modelValue: number; min: number; max: number }>()
+const props = defineProps<{ 
+  modelValue: number;
+  limits?: { min: number; max: number } | undefined;
+  allowDecimals: boolean;
+}>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
+
+const inputFieldActive = ref(false)
 
 const dragPointer = usePointer(
   (position, event, eventType) => {
@@ -13,14 +20,24 @@ const dragPointer = usePointer(
       return
     }
 
-    if (eventType === 'start') {
-      event.stopImmediatePropagation()
+    if (eventType === 'stop' && position.relative.lengthSquared() < 1.0) { 
+      inputNode.value?.focus()
+      inputFieldActive.value = true
+      return
     }
 
+    if (eventType === 'start') {
+      event.stopImmediatePropagation()
+      return
+    }
+
+    if (inputFieldActive.value == true || props.limits == null) return
+
+    const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
     const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
     const fraction = Math.max(0, Math.min(1, fractionRaw))
-    const newValue = props.min + Math.round(fraction * (props.max - props.min))
+    const newValue = min + Math.round(fraction * (max - min))
     emit('update:modelValue', newValue)
   },
   PointerButtonMask.Main,
@@ -28,7 +45,7 @@ const dragPointer = usePointer(
 )
 
 const sliderWidth = computed(
-  () => `${((props.modelValue - props.min) * 100) / (props.max - props.min)}%`,
+  () => props.limits == null ? undefined : `${((props.modelValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)}%`,
 )
 
 const inputValue = computed({
@@ -40,13 +57,14 @@ const inputValue = computed({
       value = parseFloat(toNumericOnly(value))
     }
     if (typeof value === 'number' && !isNaN(value)) {
-      emit('update:modelValue', value)
+      emit('update:modelValue', props.allowDecimals ? value : Math.round(value))
     }
   },
 })
 
+const disallowedChars = props.allowDecimals ? /[^0-9.-]/g : /[^0-9-]/g
 function toNumericOnly(value: string) {
-  return value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+  return value.replace(disallowedChars, '')
 }
 
 const inputNode = ref<HTMLInputElement>()
@@ -82,20 +100,34 @@ const inputStyle = computed<StyleValue>(() => {
   }
 })
 
-function fixupInputValue() {
+function blur() {
+  inputFieldActive.value = false
   if (inputNode.value != null) inputNode.value.value = `${inputValue.value}`
+}
+
+/** To prevent other elements from stealing mouse events (which breaks blur),
+  * we instead setup our own `pointerdown` handler while the input is focused.
+  * Any click outside of the input field causes `blur`. */
+function setupAutoBlur() {
+  const options = { capture: true }
+  function callback(event: MouseEvent) {
+    blurIfNecessary(inputNode, event)
+    window.removeEventListener('pointerdown', callback, options)
+  }
+  window.addEventListener('pointerdown', callback, options)
 }
 </script>
 
 <template>
   <div class="SliderWidget" v-on="dragPointer.events">
-    <div class="fraction" :style="{ width: sliderWidth }"></div>
+    <div class="fraction" v-if="props.limits != null"  :style="{ width: sliderWidth }"></div>
     <input
       ref="inputNode"
       v-model="inputValue"
       class="value"
       :style="inputStyle"
-      @blur="fixupInputValue"
+      @blur="blur"
+      @focus="() => inputNode && inputNode.select() || setupAutoBlur()"
     />
   </div>
 </template>

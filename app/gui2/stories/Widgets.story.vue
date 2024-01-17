@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { logEvent } from 'histoire/client'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
@@ -16,6 +16,11 @@ const checkboxState = ref(false)
 const state = ref(0)
 const min = ref(0)
 const max = ref(100)
+const withLimits = ref(true)
+const allowDecimals = ref(true)
+const sliderLimits = computed(() => {
+  return withLimits.value ? { min: min.value, max: max.value } : undefined
+})
 
 // === Dropdown props ===
 
@@ -33,7 +38,6 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
     <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
       <CheckboxWidget
         v-model="checkboxState"
-        @update:modelValue="logEvent('update:modelValue', [$event])"
       />
 
       <template #controls>
@@ -43,13 +47,14 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
     <Variant title="slider" :meta="{ customBackground: backgroundColor }">
       <SliderWidget
         v-model="state"
-        :min="min"
-        :max="max"
-        @update:modelValue="logEvent('update:modelValue', [$event])"
+        :limits="sliderLimits"
+        :allowDecimals="allowDecimals"
       />
 
       <template #controls>
         <HstSlider v-model="state" title="v-model" :min="min" :max="max" />
+        <HstCheckbox v-model="allowDecimals" title="Allow decimals" />
+        <HstCheckbox v-model="withLimits" title="With limits" />
         <HstNumber v-model="min" title="min" />
         <HstNumber v-model="max" title="max" />
       </template>
