@@ -93,7 +93,6 @@ test.test('suggestions (keyboard)', async ({ page }) => {
         const name = (await suggestion.textContent()) ?? ''
         test.expect(name.length).toBeGreaterThan(0)
         await page.press('body', 'Tab')
-        // FIXME: (correctly) broken!
         await test.expect(searchBarInput).toHaveValue('name:' + name)
     }
 })

@@ -10,12 +10,33 @@ import * as shortcuts from '#/utilities/shortcuts'
 
 import Label from '#/components/dashboard/Label'
 
-/** A suggested query based on */
+// =============
+// === Types ===
+// =============
+
+/** The reason behind a new query. */
+enum QuerySource {
+    /** A query change initiated by tabbing. While *technically* internal, it is semantically
+     * different in that tabbing does not update the base query. */
+    tabbing = 'tabbing',
+    /** A query change initiated from code in this component. */
+    internal = 'internal',
+    /** A query change initiated by typing in the search bar. */
+    typing = 'typing',
+    /** A query change initiated from code in another component. */
+    external = 'external',
+}
+
+/** A suggested query. */
 export interface Suggestion {
     render: () => React.ReactNode
     addToQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
     deleteFromQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
 }
+
+// ======================
+// === AssetSearchBar ===
+// ======================
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
@@ -28,7 +49,6 @@ export interface AssetSearchBarProps {
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
     const { query, setQuery, labels, suggestions: rawSuggestions } = props
-    const [isTabbing, setIsTabbing] = React.useState(false)
     /** A cached query as of the start of tabbing. */
     const baseQuery = React.useRef(query)
     const [suggestions, setSuggestions] = React.useState(rawSuggestions)
@@ -39,50 +59,50 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
     const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
-    const [wasQueryModified, setWasQueryModified] = React.useState(false)
-    const [wasQueryTyped, setWasQueryTyped] = React.useState(false)
+    const querySource = React.useRef(QuerySource.external)
     const [isShiftPressed, setIsShiftPressed] = React.useState(false)
     const rootRef = React.useRef<HTMLLabelElement>(null)
     const searchRef = React.useRef<HTMLInputElement>(null)
-
-    React.useEffect(() => {
-        if (!isTabbing && !isShiftPressed) {
-            baseQuery.current = query
-        }
-    }, [isTabbing, isShiftPressed, query])
-
-    React.useEffect(() => {
-        if (!wasQueryTyped) {
-            baseQuery.current = query
-            if (searchRef.current != null) {
-                searchRef.current.value = query.toString()
-            }
-        }
-    }, [wasQueryTyped, query])
-
-    React.useEffect(() => {
-        if (!isTabbing && !isShiftPressed) {
-            setSuggestions(rawSuggestions)
-            suggestionsRef.current = rawSuggestions
-        }
-    }, [isTabbing, isShiftPressed, rawSuggestions])
 
     React.useEffect(() => {
         areSuggestionsVisibleRef.current = areSuggestionsVisible
     }, [areSuggestionsVisible])
 
     React.useEffect(() => {
-        if (!wasQueryModified && selectedIndex == null) {
-            setQuery(baseQuery.current)
+        if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
+            baseQuery.current = query
         }
-        // `wasQueryModified` MUST NOT be a dependency, as it is always set to `false` immediately
-        // after it is set to true.
+        // This effect MUST only run when `query` changes.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedIndex, /* should never change */ setQuery])
+    }, [query])
 
     React.useEffect(() => {
-        let newQuery = query
-        if (wasQueryModified) {
+        if (querySource.current !== QuerySource.tabbing) {
+            setSelectedIndex(null)
+        }
+        if (
+            querySource.current !== QuerySource.internal &&
+            querySource.current !== QuerySource.tabbing
+        ) {
+            if (searchRef.current != null) {
+                searchRef.current.value = query.toString()
+            }
+        }
+    }, [query])
+
+    React.useEffect(() => {
+        if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
+            setSuggestions(rawSuggestions)
+            suggestionsRef.current = rawSuggestions
+        }
+    }, [isShiftPressed, rawSuggestions])
+
+    React.useEffect(() => {
+        if (
+            querySource.current === QuerySource.internal ||
+            querySource.current === QuerySource.tabbing
+        ) {
+            let newQuery = query
             const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
             if (suggestion != null) {
                 newQuery = suggestion.addToQuery(baseQuery.current)
@@ -95,15 +115,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 searchRef.current.value = newQuery.toString()
             }
         }
-        setWasQueryModified(false)
-    }, [
-        wasQueryModified,
-        query,
-        baseQuery,
-        selectedIndex,
-        suggestions,
-        /* should never change */ setQuery,
-    ])
+        // This effect MUST only run when `selectedIndex` changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedIndex])
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -111,20 +125,27 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             if (areSuggestionsVisibleRef.current) {
                 if (event.key === 'Tab') {
                     event.preventDefault()
-                    setIsTabbing(true)
+                    querySource.current = QuerySource.tabbing
                     setSelectedIndex(oldIndex => {
+                        const length = Math.max(1, suggestionsRef.current.length)
                         if (event.shiftKey) {
-                            return oldIndex == null
-                                ? suggestionsRef.current.length - 1
-                                : (oldIndex + suggestionsRef.current.length - 1) %
-                                      suggestionsRef.current.length
+                            return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
                         } else {
-                            return oldIndex == null
-                                ? 0
-                                : (oldIndex + 1) % suggestionsRef.current.length
+                            return oldIndex == null ? 0 : (oldIndex + 1) % length
                         }
                     })
-                    setWasQueryModified(true)
+                    // FIXME: `setQuery`?
+                }
+                if (event.key === 'Enter' || event.key === ' ') {
+                    querySource.current = QuerySource.external
+                    if (searchRef.current != null) {
+                        searchRef.current.focus()
+                        const end = searchRef.current.value.length
+                        searchRef.current.setSelectionRange(end, end)
+                    }
+                }
+                if (event.key === 'Enter') {
+                    setAreSuggestionsVisible(false)
                 }
             }
             if (event.key === 'Escape') {
@@ -159,27 +180,16 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }
     }, [])
 
+    // Reset `querySource` after all other effects have run.
     React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (areSuggestionsVisibleRef.current) {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    baseQuery.current = query
-                    setIsTabbing(false)
-                    setSelectedIndex(null)
-                    searchRef.current?.focus()
-                    const end = searchRef.current?.value.length ?? 0
-                    searchRef.current?.setSelectionRange(end, end)
-                }
-                if (event.key === 'Enter') {
-                    setAreSuggestionsVisible(false)
-                }
-            }
+        if (querySource.current !== QuerySource.typing && searchRef.current != null) {
+            searchRef.current.value = query.toString()
         }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
+        if (querySource.current !== QuerySource.tabbing) {
+            baseQuery.current = query
+            querySource.current = QuerySource.external
         }
-    }, [query, setQuery])
+    }, [query, /* should never change */ setQuery])
 
     return (
         <label
@@ -191,8 +201,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }}
             onBlur={event => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setIsTabbing(false)
-                    setSelectedIndex(null)
+                    if (querySource.current === QuerySource.tabbing) {
+                        querySource.current = QuerySource.external
+                    }
                     setAreSuggestionsVisible(false)
                 }
             }}
@@ -205,15 +216,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 size={1}
                 placeholder="Type to search for projects, data connectors, users, and more."
                 className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
-                onFocus={() => {
-                    if (!wasQueryModified) {
-                        setSelectedIndex(null)
-                    }
-                }}
                 onChange={event => {
-                    if (!wasQueryModified) {
+                    if (querySource.current !== QuerySource.internal) {
+                        querySource.current = QuerySource.typing
                         setQuery(assetQuery.AssetQuery.fromString(event.target.value))
-                        setWasQueryTyped(true)
                     }
                 }}
                 onKeyDown={event => {
@@ -224,6 +230,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                         !event.metaKey &&
                         !event.ctrlKey
                     ) {
+                        // Clone the query to refresh results.
                         setQuery(query.clone())
                     }
                 }}
@@ -246,13 +253,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               key={key}
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
-                                                  setWasQueryModified(true)
-                                                  setSelectedIndex(null)
-                                                  setQuery(oldQuery => {
-                                                      const newQuery = oldQuery.add({ [key]: [[]] })
-                                                      baseQuery.current = newQuery
-                                                      return newQuery
-                                                  })
+                                                  querySource.current = QuerySource.internal
+                                                  setQuery(query.add({ [key]: [[]] }))
                                               }}
                                           >
                                               {tag}:
@@ -282,8 +284,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         }
                                         negated={negated}
                                         onClick={event => {
-                                            setWasQueryModified(true)
-                                            setSelectedIndex(null)
+                                            querySource.current = QuerySource.internal
                                             setQuery(oldQuery => {
                                                 const newQuery = assetQuery.toggleLabel(
                                                     oldQuery,
@@ -322,8 +323,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                             : ''
                                     }`}
                                     onClick={event => {
-                                        setSelectedIndex(null)
-                                        setWasQueryModified(true)
+                                        querySource.current = QuerySource.internal
                                         setQuery(
                                             selectedIndices.has(index)
                                                 ? suggestion.deleteFromQuery(

@@ -10,6 +10,7 @@ import * as test from '@playwright/test'
 
 export default test.defineConfig({
     testDir: './e2e',
+    fullyParallel: true,
     forbidOnly: true,
     workers: 1,
     expect: {
