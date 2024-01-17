@@ -76,15 +76,15 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           newMissing = missing;
         } else {
           // t t f
-          BitSet oldValuesFlipped = (BitSet) values.clone();
-          oldValuesFlipped.flip(0, storage.size());
           if (negated) {
             newValues = (BitSet) missing.clone();
             newValues.flip(0, storage.size());
-            newValues.and(oldValuesFlipped);
+            newValues.andNot(values);
             newMissing = (BitSet) missing.clone();
             newMissing.or(values);
           } else {
+            BitSet oldValuesFlipped = (BitSet) values.clone();
+            oldValuesFlipped.flip(0, storage.size());
             newValues = (BitSet) missing.clone();
             newValues.flip(0, storage.size());
             newValues.and(values);
@@ -97,16 +97,16 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           // t f t
           BitSet oldMissingFlipped = (BitSet) missing.clone();
           oldMissingFlipped.flip(0, storage.size());
-          BitSet oldValuesFlipped = (BitSet) values.clone();
-          oldValuesFlipped.flip(0, storage.size());
           if (negated) {
+            BitSet oldValuesFlipped = (BitSet) values.clone();
+            oldValuesFlipped.flip(0, storage.size());
             newValues = oldMissingFlipped;
             newValues.and(values);
             newMissing = (BitSet) missing.clone();
             newMissing.or(oldValuesFlipped);
           } else {
             newValues = oldMissingFlipped;
-            newValues.and(oldValuesFlipped);
+            newValues.andNot(values);
             newMissing = (BitSet) missing.clone();
             newMissing.or(values);
           }
@@ -129,9 +129,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           newValues = (BitSet) missing.clone();
           newValues.flip(0, storage.size());
           if (negated) {
-            BitSet oldValuesFlipped = (BitSet) values.clone();
-            oldValuesFlipped.flip(0, storage.size());
-            newValues.and(oldValuesFlipped);
+            newValues.andNot(values);
           } else {
             newValues.and(values);
           }
@@ -145,9 +143,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           if (negated) {
             newValues.and(values);
           } else {
-            BitSet oldValuesFlipped = (BitSet) values.clone();
-            oldValuesFlipped.flip(0, storage.size());
-            newValues.and(oldValuesFlipped);
+            newValues.andNot(values);
           }
           newMissing = missing;
         } else {
