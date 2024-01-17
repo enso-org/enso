@@ -27,6 +27,16 @@ spec = Test.group "Range" <|
         range_3.end . should_equal 0
         range_3.step  . should_equal -1
 
+        range_4 = 0.up_to 10 step=2
+        range_4.start . should_equal 0
+        range_4.end . should_equal 10
+        range_4.step  . should_equal 2
+
+        range_5 = 10.down_to 2 step=2
+        range_5.start . should_equal 10
+        range_5.end . should_equal 2
+        range_5.step  . should_equal -2
+
     Test.specify "should allow to include the end" <|
         1.up_to 3 include_end=True . to_vector . should_equal [1, 2, 3]
         3.down_to 1 include_end=True . to_vector . should_equal [3, 2, 1]
@@ -50,12 +60,17 @@ spec = Test.group "Range" <|
         10.down_to 0 . with_step 2 . should_equal (Range.Between 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
-        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument
-        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument
-        0.up_to 2.0 . should_fail_with Illegal_Argument
-        0.down_to 2.0 . should_fail_with Illegal_Argument
+    Test.specify "should fail with type errors if not the wrong type" <|
         Test.expect_panic_with (0.0.up_to 2) No_Such_Method
         Test.expect_panic_with (0.0.down_to 2) No_Such_Method
+        Test.expect_panic_with (0.up_to 2.0) Type_Error
+        Test.expect_panic_with (5.down_to 2.0) Type_Error
+        Test.expect_panic_with (1.up_to 2 step=0.5) Type_Error
+        Test.expect_panic_with (5.down_to 2 step=0.5) Type_Error
+        Test.expect_panic_with (1.up_to 2 . with_step 0.5) Type_Error
+        Test.expect_panic_with (5.down_to 2 . with_step 0.5) Type_Error
+        1.up_to 2 . with_step 0 . should_fail_with Illegal_State
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument
 
     Test.specify "should have a length" <|
         0.up_to 100 . length . should_equal 100

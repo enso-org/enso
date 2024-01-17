@@ -2729,10 +2729,9 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
    Arguments:
    - that: The table to convert.
    - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    case format of
-        _ : Delimited_Format -> Delimited_Writer.write_text that format
-        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') = case format of
+    _ : Delimited_Format -> Delimited_Writer.write_text that format
+    _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
@@ -2742,6 +2741,14 @@ Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table
    Conversion method to a Table from a JS_Object.
 Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Range) (name:Text="Range") = Table.new [Column.from_vector name that.to_vector]
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Date_Range) (name:Text=that.default_column_name) = Table.new [Column.from_vector name that.to_vector]
 
 ## PRIVATE
    Convert an `XML_Element` into a `Table`
