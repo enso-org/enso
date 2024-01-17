@@ -87,11 +87,6 @@ export function locateSearchBarInput(page: test.Locator | test.Page) {
     )
 }
 
-/** Find a list of tags in the search bar (if any) on the current page. */
-export function locateSearchBarTags(page: test.Locator | test.Page) {
-    return locateSearchBar(page).getByTestId('asset-search-tag-names').getByRole('button')
-}
-
 /** Find the name column of the given assets table row. */
 export function locateAssetRowName(locator: test.Locator) {
     return locator.getByTestId('asset-row-name')
@@ -335,6 +330,21 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
     return page.getByAltText('Open Asset Panel').or(page.getByAltText('Close Asset Panel'))
+}
+
+/** Find a list of tags in the search bar (if any) on the current page. */
+export function locateSearchBarTags(page: test.Locator | test.Page) {
+    return locateSearchBar(page).getByTestId('asset-search-tag-names').getByRole('button')
+}
+
+/** Find a list of labels in the search bar (if any) on the current page. */
+export function locateSearchBarLabels(page: test.Locator | test.Page) {
+    return locateSearchBar(page).getByTestId('asset-search-labels').getByRole('button')
+}
+
+/** Find a list of labels in the search bar (if any) on the current page. */
+export function locateSearchBarSuggestions(page: test.Locator | test.Page) {
+    return locateSearchBar(page).getByTestId('asset-search-suggestion')
 }
 
 // === Icon locators ===
@@ -656,6 +666,7 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
     const api = await mockApi({ page })
     await mockDate({ page })
+    await mockIDEContainer({ page })
     return { api }
 }
 
@@ -667,11 +678,10 @@ export async function mockAll({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLogin({ page }: MockParams) {
-    const api = await mockApi({ page })
-    await mockAll({ page })
+    const mocks = await mockAll({ page })
     await login({ page })
     // This MUST run after login, otherwise the element's styles are reset when the browser
     // is navigated to another page.
     await mockIDEContainer({ page })
-    return { api }
+    return mocks
 }

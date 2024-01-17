@@ -61,6 +61,8 @@ export async function mockApi({ page }: MockParams) {
     const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
     const deletedAssets = new Set<backend.AssetId>()
     const assets: backend.AnyAsset[] = []
+    const labels: backend.Label[] = []
+    const labelMap = new Map<backend.TagId, backend.Label>()
 
     const addAsset = (asset: backend.AnyAsset) => {
         assets.push(asset)
@@ -152,6 +154,12 @@ export async function mockApi({ page }: MockParams) {
             rest
         )
 
+    const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
+        id: backend.TagId('tag-' + uniqueString.uniqueString()),
+        value: backend.LabelName(value),
+        color,
+    })
+
     const addDirectory = (title: string, rest?: Partial<backend.DirectoryAsset>) => {
         addAsset(createDirectory(title, rest))
     }
@@ -166,6 +174,12 @@ export async function mockApi({ page }: MockParams) {
 
     const addSecret = (title: string, rest?: Partial<backend.SecretAsset>) => {
         addAsset(createSecret(title, rest))
+    }
+
+    const addLabel = (value: string, color: backend.LChColor) => {
+        const label = createLabel(value, color)
+        labels.push(label)
+        labelMap.set(label.id, label)
     }
 
     await test.test.step('Mock API', async () => {
@@ -271,7 +285,7 @@ export async function mockApi({ page }: MockParams) {
         })
         await page.route(BASE_URL + remoteBackendPaths.LIST_TAGS_PATH + '*', async route => {
             await route.fulfill({
-                json: { tags: [] } satisfies remoteBackend.ListTagsResponseBody,
+                json: { tags: labels } satisfies remoteBackend.ListTagsResponseBody,
             })
         })
         await page.route(BASE_URL + remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
@@ -631,5 +645,7 @@ export async function mockApi({ page }: MockParams) {
         addProject,
         addFile,
         addSecret,
+        createLabel,
+        addLabel,
     }
 }

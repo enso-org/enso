@@ -261,7 +261,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             })}
                         </div>
                         {/* Asset labels */}
-                        <div className="flex gap-2 p-2 pointer-events-auto">
+                        <div
+                            data-testid="asset-search-labels"
+                            className="flex gap-2 p-2 pointer-events-auto"
+                        >
                             {labels.map(label => {
                                 const negated = query.negativeLabels.some(term =>
                                     array.shallowEqual(term, [label.value])
@@ -300,7 +303,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                         {/* Suggestions */}
                         <div className="flex flex-col max-h-[16rem] overflow-y-auto">
                             {suggestions.map((suggestion, index) => (
+                                // This should not be a `<button>`, since `render()` may output a
+                                // tree containing a button.
                                 <div
+                                    data-testid="asset-search-suggestion"
                                     key={index}
                                     ref={el => {
                                         if (index === selectedIndex) {
