@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Table import all
 
+import Standard.Database.Data.Column.Column as Database_Column
+
 from Standard.Test import Test
 import Standard.Test.Extensions
 
@@ -179,6 +181,7 @@ spec setup =
         negate vorc = case vorc of
             _ : Vector -> vorc.map (x-> x.if_not_nothing x.not)
             _ : Column -> vorc.not
+            _ : Database_Column -> vorc.not
         negation_cases = [["normal input, normal argument", identity, identity]]
             + [["negated input, normal argument", negate, identity]]
             + [["normal input, negated argument", identity, negate]]
