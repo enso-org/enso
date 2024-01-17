@@ -17,7 +17,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             my_dir.should_succeed
             delete_on_fail caught_panic =
                 my_dir.delete
-                Error.throw caught_panic
+                Panic.throw caught_panic
             Panic.catch Any handler=delete_on_fail <| with_retries <|
                 my_dir.is_directory . should_be_true
                 my_dir.exists . should_be_true
