@@ -60,6 +60,107 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
+    BitSet values = storage.getValues();
+    BitSet missing = storage.getIsMissing();
+    boolean negated = storage.isNegated();
+
+    BitSet newValues;
+    BitSet newMissing;
+
+    if (hadNull) {
+      if (hadTrue) {
+        if (hadFalse) {
+          // t t t
+          newValues = (BitSet) missing.clone();
+          newValues.flip(0, storage.size());
+          newMissing = missing;
+        } else {
+          // t t f
+          BitSet oldValuesFlipped = (BitSet) values.clone();
+          oldValuesFlipped.flip(0, storage.size());
+          if (negated) {
+            newValues = (BitSet) missing.clone();
+            newValues.flip(0, storage.size());
+            newValues.and(oldValuesFlipped);
+            newMissing = (BitSet) missing.clone();
+            newMissing.or(values);
+          } else {
+            newValues = (BitSet) missing.clone();
+            newValues.flip(0, storage.size());
+            newValues.and(values);
+            newMissing = (BitSet) missing.clone();
+            newMissing.or(oldValuesFlipped);
+          }
+        }
+      } else {
+        if (hadFalse) {
+          // t f t
+          BitSet oldMissingFlipped = (BitSet) missing.clone();
+          oldMissingFlipped.flip(0, storage.size());
+          BitSet oldValuesFlipped = (BitSet) values.clone();
+          oldValuesFlipped.flip(0, storage.size());
+          if (negated) {
+            newValues = oldMissingFlipped;
+            newValues.and(values);
+            newMissing = (BitSet) missing.clone();
+            newMissing.or(oldValuesFlipped);
+          } else {
+            newValues = oldMissingFlipped;
+            newValues.and(oldValuesFlipped);
+            newMissing = (BitSet) missing.clone();
+            newMissing.or(values);
+          }
+        } else {
+          // t f f
+          newValues = new BitSet(storage.size()); // Values don't matter
+          newMissing = new BitSet(storage.size());
+          newMissing.flip(0, storage.size());
+        }
+      }
+    } else {
+      if (hadTrue) {
+        if (hadFalse) {
+          // f t t
+          newValues = (BitSet) missing.clone();
+          newValues.flip(0, storage.size());
+          newMissing = (BitSet) missing.clone();
+        } else {
+          // f t f
+          newValues = (BitSet) missing.clone();
+          newValues.flip(0, storage.size());
+          if (negated) {
+            BitSet oldValuesFlipped = (BitSet) values.clone();
+            oldValuesFlipped.flip(0, storage.size());
+            newValues.and(oldValuesFlipped);
+          } else {
+            newValues.and(values);
+          }
+          newMissing = missing;
+        }
+      } else {
+        if (hadFalse) {
+          // f f t
+          newValues = (BitSet) missing.clone();
+          newValues.flip(0, storage.size());
+          if (negated) {
+            newValues.and(values);
+          } else {
+            BitSet oldValuesFlipped = (BitSet) values.clone();
+            oldValuesFlipped.flip(0, storage.size());
+            newValues.and(oldValuesFlipped);
+          }
+          newMissing = missing;
+        } else {
+          // f f f
+          newValues = missing;
+          newMissing = missing;
+        }
+      }
+    }
+
+    return new BoolStorage(newValues, newMissing, storage.size(), false);
+
+    /*
     BitSet newVals = new BitSet(storage.size());
     BitSet newMissing = new BitSet(storage.size());
     byte[] bits = storage.getValues().toByteArray();
@@ -96,6 +197,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     }
 
     return new BoolStorage(newVals, newMissing, storage.size(), false);
+    */
 
 /*
     boolean negated = false;
