@@ -150,9 +150,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
                 break
             }
+            case AssetEventType.updateFiles:
             case AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
+                    const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
                     rowState.setVisibility(Visibility.faded)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
@@ -191,7 +193,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             setAsset(object.merge(asset, { title }))
                             const createdFile = await backend.uploadFile(
                                 {
-                                    fileId: null,
+                                    fileId,
                                     fileName: asset.title,
                                     parentDirectoryId: asset.parentId,
                                 },
@@ -213,10 +215,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             }
                         }
                     } catch (error) {
-                        dispatchAssetListEvent({
-                            type: AssetListEventType.delete,
-                            key: item.key,
-                        })
+                        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
                         toastAndLog('Could not upload project', error)
                     }
                 }

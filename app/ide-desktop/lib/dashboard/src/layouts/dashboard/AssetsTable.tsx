@@ -1432,7 +1432,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.stripProjectExtension(project.name)
                         )!,
                         new: backendModule.createPlaceholderProjectAsset(
-                            project.name,
+                            backendModule.stripProjectExtension(project.name),
                             event.parentId,
                             ownerPermission,
                             organization
@@ -1477,7 +1477,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     )
                                     .map(project => {
                                         const asset = backendModule.createPlaceholderProjectAsset(
-                                            project.name,
+                                            backendModule.stripProjectExtension(project.name),
                                             event.parentId,
                                             ownerPermission,
                                             organization

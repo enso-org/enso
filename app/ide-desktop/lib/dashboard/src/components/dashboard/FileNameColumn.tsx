@@ -77,14 +77,16 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 // are handled by `AssetRow`.
                 break
             }
+            case AssetEventType.updateFiles:
             case AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
+                    const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
                     rowState.setVisibility(Visibility.faded)
                     try {
                         const createdFile = await backend.uploadFile(
                             {
-                                fileId: null,
+                                fileId,
                                 fileName: asset.title,
                                 parentDirectoryId: asset.parentId,
                             },

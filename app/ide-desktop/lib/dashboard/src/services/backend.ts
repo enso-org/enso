@@ -791,7 +791,7 @@ export interface ListDirectoryRequestParams {
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-    fileId: string | null
+    fileId: AssetId | null
     fileName: string | null
     parentDirectoryId: DirectoryId | null
 }

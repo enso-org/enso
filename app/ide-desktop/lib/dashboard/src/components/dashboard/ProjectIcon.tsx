@@ -241,6 +241,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case AssetEventType.uploadFiles:
             case AssetEventType.newSecret:
             case AssetEventType.copy:
+            case AssetEventType.updateFiles:
             case AssetEventType.cut:
             case AssetEventType.cancelCut:
             case AssetEventType.move:

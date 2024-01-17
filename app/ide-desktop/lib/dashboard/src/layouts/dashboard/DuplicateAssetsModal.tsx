@@ -72,10 +72,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     const siblingProjectNames = React.useRef(new Set<string>())
     const count = conflictingFiles.length + conflictingProjects.length
     const firstConflict = conflictingFiles[0] ?? conflictingProjects[0]
+    const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
     const otherFilesText =
-        conflictingFiles.length === 0
+        otherFilesCount === 0
             ? ''
-            : `and ${conflictingFiles.length} other ${pluralizeFile(conflictingFiles.length)}`
+            : `and ${otherFilesCount} other ${pluralizeFile(otherFilesCount)}`
     const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
     const otherProjectsText =
         otherProjectsCount === 0
@@ -101,6 +102,44 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         // be re-rendered with different props, the dependency list should not matter anyway.
     }, [siblingFileNamesRaw, siblingProjectNamesRaw])
 
+    const findNewName = (conflict: ConflictingAsset, commit = true) => {
+        let title = conflict.file.name
+        switch (conflict.new.type) {
+            case backendModule.AssetType.file: {
+                let i = 1
+                while (true) {
+                    i += 1
+                    const candidateTitle = `${title} (${i})`
+                    if (!siblingFileNames.current.has(candidateTitle)) {
+                        if (commit) {
+                            siblingFileNames.current.add(candidateTitle)
+                        }
+                        title = candidateTitle
+                        break
+                    }
+                }
+                break
+            }
+            case backendModule.AssetType.project: {
+                title = backendModule.stripProjectExtension(title)
+                let i = 1
+                while (true) {
+                    i += 1
+                    const candidateTitle = `${title} (${i})`
+                    if (!siblingProjectNames.current.has(candidateTitle)) {
+                        if (commit) {
+                            siblingProjectNames.current.add(candidateTitle)
+                        }
+                        title = candidateTitle
+                        break
+                    }
+                }
+                break
+            }
+        }
+        return title
+    }
+
     const doUpdate = (toUpdate: ConflictingAsset[]) => {
         dispatchAssetEvent({
             type: AssetEventType.updateFiles,
@@ -111,37 +150,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     const doRename = (toRename: ConflictingAsset[]) => {
         const clonedConflicts = structuredClone(toRename)
         for (const conflict of clonedConflicts) {
-            let title = conflict.file.name
-            switch (conflict.new.type) {
-                case backendModule.AssetType.file: {
-                    let i = 1
-                    while (true) {
-                        i += 1
-                        const candidateTitle = `${title} (${i})`
-                        if (!siblingFileNames.current.has(candidateTitle)) {
-                            siblingFileNames.current.add(candidateTitle)
-                            title = candidateTitle
-                            break
-                        }
-                    }
-                    break
-                }
-                case backendModule.AssetType.project: {
-                    title = backendModule.stripProjectExtension(title)
-                    let i = 1
-                    while (true) {
-                        i += 1
-                        const candidateTitle = `${title} (${i})`
-                        if (!siblingProjectNames.current.has(candidateTitle)) {
-                            siblingProjectNames.current.add(candidateTitle)
-                            title = candidateTitle
-                            break
-                        }
-                    }
-                    break
-                }
-            }
-            conflict.new.title = title
+            conflict.new.title = findNewName(conflict)
         }
         dispatchAssetListEvent({
             type: AssetListEventType.insertAssets,
@@ -151,12 +160,12 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         })
         dispatchAssetEvent({
             type: AssetEventType.uploadFiles,
-            files: new Map(toRename.map(asset => [asset.current.id, asset.file])),
+            files: new Map(clonedConflicts.map(conflict => [conflict.new.id, conflict.file])),
         })
     }
 
     return (
-        <Modal className="absolute bg-dim">
+        <Modal centered className="absolute bg-dim">
             <form
                 data-testid="new-label-modal"
                 tabIndex={-1}
@@ -169,68 +178,89 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 onClick={event => {
                     event.stopPropagation()
                 }}
+                onSubmit={event => {
+                    event.preventDefault()
+                }}
             >
                 <h1 className="relative text-sm font-semibold">
                     Duplicate Files and Projects Found
                 </h1>
                 {firstConflict && (
-                    <AssetSummary asset={firstConflict.current} className="relative" />
+                    <>
+                        <div className="flex flex-col">
+                            <span className="relative">Current:</span>
+                            <AssetSummary asset={firstConflict.current} className="relative" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="relative">New:</span>
+                            <AssetSummary
+                                new
+                                newName={findNewName(firstConflict, false)}
+                                asset={firstConflict.new}
+                                className="relative"
+                            />
+                        </div>
+                        {count > 1 && (
+                            <div className="relative flex gap-2">
+                                <button
+                                    type="submit"
+                                    className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                                    onClick={() => {
+                                        doUploadNonConflicting()
+                                        doUpdate([firstConflict])
+                                        switch (firstConflict.new.type) {
+                                            case backendModule.AssetType.file: {
+                                                setConflictingFiles(oldConflicts =>
+                                                    oldConflicts.slice(1)
+                                                )
+                                                break
+                                            }
+                                            case backendModule.AssetType.project: {
+                                                setConflictingProjects(oldConflicts =>
+                                                    oldConflicts.slice(1)
+                                                )
+                                                break
+                                            }
+                                        }
+                                    }}
+                                >
+                                    Update
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                                    onClick={() => {
+                                        doUploadNonConflicting()
+                                        doRename([firstConflict])
+                                        switch (firstConflict.new.type) {
+                                            case backendModule.AssetType.file: {
+                                                setConflictingFiles(oldConflicts =>
+                                                    oldConflicts.slice(1)
+                                                )
+                                                break
+                                            }
+                                            case backendModule.AssetType.project: {
+                                                setConflictingProjects(oldConflicts =>
+                                                    oldConflicts.slice(1)
+                                                )
+                                                break
+                                            }
+                                        }
+                                    }}
+                                >
+                                    Rename New File
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
-                {firstConflict && <AssetSummary asset={firstConflict.new} className="relative" />}
-                {firstConflict && (
-                    <div className="relative flex gap-2">
-                        <button
-                            type="submit"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
-                            onClick={() => {
-                                doUploadNonConflicting()
-                                doUpdate([firstConflict])
-                                switch (firstConflict.new.type) {
-                                    case backendModule.AssetType.file: {
-                                        setConflictingFiles(oldConflicts => oldConflicts.slice(1))
-                                        break
-                                    }
-                                    case backendModule.AssetType.project: {
-                                        setConflictingProjects(oldConflicts =>
-                                            oldConflicts.slice(1)
-                                        )
-                                        break
-                                    }
-                                }
-                            }}
-                        >
-                            Update
-                        </button>
-                        <button
-                            type="submit"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
-                            onClick={() => {
-                                doUploadNonConflicting()
-                                doRename([firstConflict])
-                                switch (firstConflict.new.type) {
-                                    case backendModule.AssetType.file: {
-                                        setConflictingFiles(oldConflicts => oldConflicts.slice(1))
-                                        break
-                                    }
-                                    case backendModule.AssetType.project: {
-                                        setConflictingProjects(oldConflicts =>
-                                            oldConflicts.slice(1)
-                                        )
-                                        break
-                                    }
-                                }
-                            }}
-                        >
-                            Rename New File
-                        </button>
-                    </div>
-                )}
-                {[otherFilesText, otherProjectsText].join(' ')}
+                <span className="relative">{[otherFilesText, otherProjectsText].join(' ')}</span>
                 <div className="relative flex gap-2">
                     <button
                         type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                         onClick={() => {
+                            unsetModal()
                             doUploadNonConflicting()
                             doUpdate([...conflictingFiles, ...conflictingProjects])
                         }}
@@ -241,6 +271,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                         type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                         onClick={() => {
+                            unsetModal()
                             doUploadNonConflicting()
                             doRename([...conflictingFiles, ...conflictingProjects])
                         }}
