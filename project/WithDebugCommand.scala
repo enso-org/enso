@@ -103,15 +103,13 @@ object WithDebugCommand {
           // Append the java options also to the Benchmark configuration, in case we run `benchOnly`
           // task.
           val Benchmark = config("bench")
-          val withJavaOpts = extracted
-            .appendWithoutSession(
-              Seq(Compile / Keys.javaOptions ++= javaOpts),
-              state
-            )
-            .appendWithoutSession(
-              Seq(Benchmark / Keys.javaOptions ++= javaOpts),
-              state
-            )
+          val withJavaOpts = extracted.appendWithoutSession(
+            Seq(
+              Compile / Keys.javaOptions ++= javaOpts,
+              Benchmark / Keys.javaOptions ++= javaOpts
+            ),
+            state
+          )
           Project
             .extract(withJavaOpts)
             .runInputTask(taskKey, runArgs, withJavaOpts)
