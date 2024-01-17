@@ -70,12 +70,12 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     if (hadNull) {
       if (hadTrue) {
         if (hadFalse) {
-          // t t t
+          // hadNull=t hadTrue=t hadFalse=t
           newValues = (BitSet) missing.clone();
           newValues.flip(0, storage.size());
           newMissing = missing;
         } else {
-          // t t f
+          // hadNull=t hadTrue=t hadFalse=f
           if (negated) {
             newValues = (BitSet) missing.clone();
             newValues.flip(0, storage.size());
@@ -94,7 +94,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
         }
       } else {
         if (hadFalse) {
-          // t f t
+          // hadNull=t hadTrue=f hadFalse=t
           BitSet oldMissingFlipped = (BitSet) missing.clone();
           oldMissingFlipped.flip(0, storage.size());
           if (negated) {
@@ -111,7 +111,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
             newMissing.or(values);
           }
         } else {
-          // t f f
+          // hadNull=t hadTrue=f hadFalse=f
           newValues = new BitSet(storage.size()); // Values don't matter
           newMissing = new BitSet(storage.size());
           newMissing.flip(0, storage.size());
@@ -120,12 +120,12 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     } else {
       if (hadTrue) {
         if (hadFalse) {
-          // f t t
+          // hadNull=f hadTrue=t hadFalse=t
           newValues = (BitSet) missing.clone();
           newValues.flip(0, storage.size());
           newMissing = (BitSet) missing.clone();
         } else {
-          // f t f
+          // hadNull=f hadTrue=t hadFalse=f
           newValues = (BitSet) missing.clone();
           newValues.flip(0, storage.size());
           if (negated) {
@@ -137,7 +137,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
         }
       } else {
         if (hadFalse) {
-          // f f t
+          // hadNull=f hadTrue=f hadFalse=t
           newValues = (BitSet) missing.clone();
           newValues.flip(0, storage.size());
           if (negated) {
@@ -147,7 +147,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
           }
           newMissing = missing;
         } else {
-          // f f f
+          // hadNull=f hadTrue=f hadFalse=f
           newValues = missing;
           newMissing = missing;
         }
