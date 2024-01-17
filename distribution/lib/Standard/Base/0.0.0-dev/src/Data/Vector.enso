@@ -909,7 +909,8 @@ type Vector a
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## GROUP Selections
+    ## ALIAS skip
+       GROUP Selections
        ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 

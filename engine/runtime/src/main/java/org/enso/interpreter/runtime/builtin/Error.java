@@ -32,8 +32,8 @@ import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTyp
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
