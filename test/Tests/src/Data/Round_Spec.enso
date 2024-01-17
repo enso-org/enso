@@ -8,9 +8,9 @@ from Standard.Test import Test, Test_Suite
 polyglot java import java.math.BigInteger
 
 ## PRIVATE
-spec prefix round_fun =
-    Test.group prefix+"Rounding numeric tests" <|
-        Test.specify "Can round positive decimals correctly" <|
+add_specs suite_builder prefix round_fun =
+    suite_builder.group prefix+"Rounding numeric tests" group_builder->
+        group_builder.specify "Can round positive decimals correctly" <|
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
@@ -19,7 +19,7 @@ spec prefix round_fun =
             round_fun 3.50001 . should_equal 4
             round_fun 3.99999 . should_equal 4
 
-        Test.specify "Can round negative decimals correctly" <|
+        group_builder.specify "Can round negative decimals correctly" <|
             round_fun -3.0 . should_equal -3
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
@@ -28,18 +28,18 @@ spec prefix round_fun =
             round_fun -3.50001 . should_equal -4
             round_fun -3.99999 . should_equal -4
 
-        Test.specify "Explicit and implicit 0 decimal places work the same" <|
+        group_builder.specify "Explicit and implicit 0 decimal places work the same" <|
             round_fun 3.00001 0 . should_equal 3
             round_fun 3.3 0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
 
-        Test.specify "Can round zero and small decimals correctly" <|
+        group_builder.specify "Can round zero and small decimals correctly" <|
             round_fun 0.0 . should_equal 0
             round_fun 0.00001 . should_equal 0
             round_fun -0.00001 . should_equal 0
 
-        Test.specify "Can round positive decimals to a specified number of decimal places" <|
+        group_builder.specify "Can round positive decimals to a specified number of decimal places" <|
             round_fun 3.0001 2 . should_equal 3.0
             round_fun 3.1414 2 . should_equal 3.14
             round_fun 3.1415 2 . should_equal 3.14
@@ -52,7 +52,7 @@ spec prefix round_fun =
             round_fun 3.1416 3 . should_equal 3.142
             round_fun 3.9999 3 . should_equal 4.0
 
-        Test.specify "Can round negative decimals to a specified number of decimal places" <|
+        group_builder.specify "Can round negative decimals to a specified number of decimal places" <|
             round_fun -3.0001 2 . should_equal -3.0
             round_fun -3.1414 2 . should_equal -3.14
             round_fun -3.1415 2 . should_equal -3.14
@@ -65,7 +65,7 @@ spec prefix round_fun =
             round_fun -3.1416 3 . should_equal -3.142
             round_fun -3.9999 3 . should_equal -4.0
 
-        Test.specify "Can round positive decimals to a specified negative number of decimal places" <|
+        group_builder.specify "Can round positive decimals to a specified negative number of decimal places" <|
             round_fun 1234.0 -1 . should_equal 1230
             round_fun 1234.0 -2 . should_equal 1200
             round_fun 1234.0 -3 . should_equal 1000
@@ -80,7 +80,7 @@ spec prefix round_fun =
             round_fun 1495.0 -2 . should_equal 1500
             round_fun 1494.0 -2 . should_equal 1500
 
-        Test.specify "Can round negative decimals to a specified negative number of decimal places" <|
+        group_builder.specify "Can round negative decimals to a specified negative number of decimal places" <|
             round_fun -1234.0 -1 . should_equal -1230
             round_fun -1234.0 -2 . should_equal -1200
             round_fun -1234.0 -3 . should_equal -1000
@@ -95,7 +95,7 @@ spec prefix round_fun =
             round_fun -1495.0 -2 . should_equal -1500
             round_fun -1494.0 -2 . should_equal -1500
 
-        Test.specify "Banker's rounding handles half-way values correctly" <|
+        group_builder.specify "Banker's rounding handles half-way values correctly" <|
             round_fun -3.5 use_bankers=True . should_equal -4
             round_fun -2.5 use_bankers=True . should_equal -2
             round_fun -1.5 use_bankers=True . should_equal -2
@@ -115,7 +115,7 @@ spec prefix round_fun =
             round_fun -12350.0 -2 use_bankers=True . should_equal -12400
             round_fun -12250.0 -2 use_bankers=True . should_equal -12200
 
-        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+        group_builder.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
             round_fun 3.0 use_bankers=True . should_equal 3
             round_fun 3.00001 use_bankers=True . should_equal 3
             round_fun 3.3 use_bankers=True . should_equal 3
@@ -130,7 +130,7 @@ spec prefix round_fun =
             round_fun -3.50001 . should_equal -4
             round_fun -3.99999 . should_equal -4
 
-        Test.specify "Can round correctly near the precision limit" <|
+        group_builder.specify "Can round correctly near the precision limit" <|
             round_fun 1.22222222225 10 . should_equal 1.2222222223
             round_fun 1.222222222225 11 . should_equal 1.22222222223
             round_fun 1.2222222222225 12 . should_equal 1.222222222223
@@ -155,7 +155,7 @@ spec prefix round_fun =
             round_fun -1.22222222222235 13 . should_equal -1.2222222222224
             round_fun -1.222222222222235 14 . should_equal -1.22222222222224
 
-        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+        group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
             round_fun 1.22222222225 10 use_bankers=True . should_equal 1.2222222222
             round_fun 1.222222222225 11 use_bankers=True . should_equal 1.22222222222
             round_fun 1.2222222222225 12 use_bankers=True . should_equal 1.222222222222
@@ -180,15 +180,15 @@ spec prefix round_fun =
             round_fun -1.22222222222235 13 use_bankers=True . should_equal -1.2222222222224
             round_fun -1.222222222222235 14 use_bankers=True . should_equal -1.22222222222224
 
-        Test.specify "Decimal places out of range" <|
+        group_builder.specify "Decimal places out of range" <|
             round_fun 3.1 16 . should_fail_with Illegal_Argument
             round_fun 3.1 -16 . should_fail_with Illegal_Argument
 
-        Test.specify "Floating point imperfect representation counter-examples" <|
+        group_builder.specify "Floating point imperfect representation counter-examples" <|
             round_fun 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
             round_fun 37.785 2 . should_equal 37.79
 
-        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
+        group_builder.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             round_fun 0 . should_equal 0
             round_fun 3 . should_equal 3
             round_fun -3 . should_equal -3
@@ -197,7 +197,7 @@ spec prefix round_fun =
             round_fun 3 1 . should_equal 3
             round_fun -3 1 . should_equal -3
 
-        Test.specify "Can round integers to a specified number of negative places correctly"
+        group_builder.specify "Can round integers to a specified number of negative places correctly"
             round_fun 0 -1 . should_equal 0
             round_fun 4 -1 . should_equal 0
             round_fun 5 -1 . should_equal 10
@@ -225,7 +225,7 @@ spec prefix round_fun =
             round_fun 3098 -3 . should_equal 3000
             round_fun 3101 -3 . should_equal 3000
 
-        Test.specify "Can round negative integers to a specified number of negative places correctly"
+        group_builder.specify "Can round negative integers to a specified number of negative places correctly"
             round_fun -4 -1 . should_equal 0
             round_fun -5 -1 . should_equal -10
             round_fun -6 -1 . should_equal -10
@@ -252,7 +252,7 @@ spec prefix round_fun =
             round_fun -3098 -3 . should_equal -3000
             round_fun -3101 -3 . should_equal -3000
 
-        Test.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" <|
+        group_builder.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" <|
             round_fun 12300 -2 use_bankers=True . should_equal 12300
             round_fun 12301 -2 use_bankers=True . should_equal 12300
             round_fun 12330 -2 use_bankers=True . should_equal 12300
@@ -281,10 +281,8 @@ spec prefix round_fun =
             round_fun -12250 -2 use_bankers=True . should_equal -12200
             round_fun -12251 -2 use_bankers=True . should_equal -12300
 
-        Test.specify "Handles incorrect argument types" <|
+        group_builder.specify "Handles incorrect argument types" <|
             Test.expect_panic_with (round_fun 123 "two") Type_Error
             Test.expect_panic_with (round_fun 123 use_bankers="no") Type_Error
             Test.expect_panic_with (round_fun 123 use_bankers=0) Type_Error
 
-## PRIVATE
-main = Test_Suite.run_main (spec "Number " .round)

@@ -6,18 +6,17 @@ from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Test
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
 
-spec setup =
+add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     test_selection = setup.test_selection
-    Test.group prefix+"Dropping Missing Values" <|
+    suite_builder.group prefix+"Dropping Missing Values" group_builder->
         t0 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
         t1 =
             a = ["a", [1, Nothing, 3, 4]]
@@ -28,20 +27,20 @@ spec setup =
             f = ["f", [Nothing, "", Nothing, ""]]
             table_builder [a, b, c, d, e, f]
 
-        Test.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
+        group_builder.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
             d = t0.filter_blank_rows when=Blank_Selector.Any_Cell
             d.row_count . should_equal 1
             d.at "a" . to_vector . should_equal [5]
             d.at "b" . to_vector . should_equal [False]
             d.at "c" . to_vector . should_equal [" "]
 
-        Test.specify "filter_blank_rows should drop rows that are all blank" <|
+        group_builder.specify "filter_blank_rows should drop rows that are all blank" <|
             d2 = t0.filter_blank_rows when=Blank_Selector.All_Cells
             d2.at "a" . to_vector . should_equal [0, 1, Nothing, 42, 5]
             d2.at "b" . to_vector . should_equal [True, Nothing, True, False, False]
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
 
-        Test.specify "filter_blank_rows should deal with edge cases" <|
+        group_builder.specify "filter_blank_rows should deal with edge cases" <|
             ## TODO currently our builder does not allow all-null tables, so we
                create one with a 0 and remove it by filter. See #6159.
             t0 = table_builder [["X", [0, Nothing, Nothing, Nothing]]]
@@ -58,7 +57,7 @@ spec setup =
             t4.row_count . should_equal 0
             t4.at "X" . to_vector . should_equal []
 
-        Test.specify "filter_blank_rows should work with a table with many columns" <|
+        group_builder.specify "filter_blank_rows should work with a table with many columns" <|
             cols = Vector.new 60 i->
                 ["col_"+i.to_text, [i, Nothing]]
             t1 = table_builder cols
@@ -67,7 +66,7 @@ spec setup =
             t2.row_count . should_equal 1
             t2.at 42 . to_vector . should_equal [42]
 
-        Test.specify "should allow to select blank columns" <|
+        group_builder.specify "should allow to select blank columns" <|
             r1 = t1.select_blank_columns
             r1.columns.map .name . should_equal ["f"]
             r1.at "f" . to_vector . should_equal [Nothing, "", Nothing, ""]
@@ -76,7 +75,7 @@ spec setup =
             r2.columns.map .name . should_equal ["a", "b", "d", "e", "f"]
             r2.at "d" . to_vector . should_equal [Nothing, True, False, True]
 
-        Test.specify "should allow to remove blank columns" <|
+        group_builder.specify "should allow to remove blank columns" <|
             r1 = t1.remove_blank_columns
             r1.columns.map .name . should_equal ["a", "b", "c", "d", "e"]
             r1.at "a" . to_vector . should_equal [1, Nothing, 3, 4]
@@ -92,7 +91,7 @@ spec setup =
             h = ["h", [Number.nan, Nothing, Number.nan, Nothing]]
             table_builder [c, g, h]
         if test_selection.is_nan_and_nothing_distinct then
-            Test.specify "should not treat NaNs as blank by default" <|
+            group_builder.specify "should not treat NaNs as blank by default" <|
                 r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
@@ -114,7 +113,7 @@ spec setup =
                 r5.columns.map .name . should_equal ["h"]
                 r5.at "h" . to_vector . to_text . should_equal "[NaN, Nothing, NaN, Nothing]"
 
-            Test.specify "should allow to treat NaNs as blank if asked" <|
+            group_builder.specify "should allow to treat NaNs as blank if asked" <|
                 r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell treat_nans_as_blank=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . should_equal [1.5]
@@ -141,11 +140,11 @@ spec setup =
                 r6.at "h" . to_vector . to_text . should_equal "[NaN, Nothing, NaN, Nothing]"
 
         if test_selection.is_nan_and_nothing_distinct.not then
-            Test.specify "this backend treats NaN as Nothing" <|
+            group_builder.specify "this backend treats NaN as Nothing" <|
                 t3.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
                 t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation
 
-        Test.specify "select_blank_columns and remove_blank_columns should deal with edge cases" <|
+        group_builder.specify "select_blank_columns and remove_blank_columns should deal with edge cases" <|
             t = table_builder [["X", [1, 2, 3, 4]]]
             no_rows = t.filter "X" (Filter_Condition.Equal to=0)
             no_rows.row_count . should_equal 0
@@ -160,8 +159,8 @@ spec setup =
             r3.should_fail_with No_Output_Columns
             r3.catch.to_display_text . should_equal "No columns in the result, because of another problem: No columns were blank."
 
-    Test.group prefix+"Filling Missing Values" <|
-        Test.specify "should coerce long and double types to double" <|
+    suite_builder.group prefix+"Filling Missing Values" group_builder->
+        group_builder.specify "should coerce long and double types to double" <|
             table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0.5, Nothing, Nothing, 0.25]]]
             ints = table.at "X"
             ints_filled = ints.fill_nothing 0.5
@@ -198,7 +197,7 @@ spec setup =
             Test.with_clue "r4.value_type="+vt4.to_display_text+": " <|
                 vt4.is_floating_point.should_be_true
 
-        Test.specify "should keep String, Boolean, Long and Double type" <|
+        group_builder.specify "should keep String, Boolean, Long and Double type" <|
             table = table_builder [["X", ["a", Nothing, "b", Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [1, Nothing, 2, Nothing]], ["W", [0.5, Nothing, Nothing, 0.25]]]
             strs = table.at "X"
             strs_filled = strs.fill_nothing "X"
@@ -220,7 +219,7 @@ spec setup =
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.value_type.is_floating_point.should_be_true
 
-        Test.specify "should not allow mixing types by default" <|
+        group_builder.specify "should not allow mixing types by default" <|
             table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
             ints = table.at "X"
             ints_filled = ints.fill_nothing False
@@ -233,7 +232,7 @@ spec setup =
             table.at "Z" . fill_nothing True . should_fail_with No_Common_Type
 
         if setup.is_database.not then
-            Test.specify "may allow mixed types if explicitly retyped" <|
+            group_builder.specify "may allow mixed types if explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
                 mix = table.at "X" . cast Value_Type.Mixed
                 mix.value_type . should_equal Value_Type.Mixed
@@ -249,14 +248,14 @@ spec setup =
                 c3.to_vector . should_equal [0.5, Nothing, 2, 0.25]
                 c3.value_type . should_equal Value_Type.Mixed
 
-            Test.specify "will keep the Mixed type if was explicitly retyped" <|
+            group_builder.specify "will keep the Mixed type if was explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
                 mix = table.at "X" . cast Value_Type.Mixed
                 mix_filled = mix.fill_nothing 0
                 mix_filled.to_vector . should_equal [1, 0, 2, 0]
                 mix_filled.value_type . should_equal Value_Type.Mixed
 
-        Test.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+        group_builder.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=1 variable_length=False) . cast "C" (Value_Type.Char size=3 variable_length=False)
 
@@ -276,7 +275,7 @@ spec setup =
             Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
                 e.value_type.variable_length.should_be_true
 
-        Test.specify "should allow setting a default column by reference" <|
+        group_builder.specify "should allow setting a default column by reference" <|
             t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]], ["C", [Nothing, Nothing, "ZZZ"]], ["D", [Nothing, "2", "3"]]]
 
             t1 = t.fill_nothing "A" (Column_Ref.Name "B")
@@ -291,7 +290,7 @@ spec setup =
             t3.at "C" . to_vector . should_equal [Nothing, "2", "ZZZ"]
             t3.at "D" . to_vector . should_equal [Nothing, "2", "3"]
 
-        if setup.is_database.not then Test.specify "should allow filling rows with previous value" <|
+        if setup.is_database.not then group_builder.specify "should allow filling rows with previous value" <|
             t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
 
             t1 = t.fill_nothing "A" Previous_Value
@@ -317,7 +316,7 @@ spec setup =
             # C is unchanged
             t5.at "C" . to_vector . should_equal ["", "foo", Nothing, "bar"]
 
-        if setup.is_database then Test.specify "will for now report that Previous_Value is not supported" <|
+        if setup.is_database then group_builder.specify "will for now report that Previous_Value is not supported" <|
             t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
             t.fill_nothing "A" Previous_Value . should_fail_with Unsupported_Database_Operation
             t.fill_empty "A" Previous_Value . should_fail_with Unsupported_Database_Operation

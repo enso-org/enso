@@ -9,7 +9,6 @@ from Standard.Database import all
 from Standard.Database.Errors import all
 
 from Standard.Test_New import all
-import Standard.Test_New.Problems
 import Standard.Test_New.Suite.Suite_Builder
 
 import project.Database.Common.Default_Ordering_Spec
@@ -17,7 +16,6 @@ import project.Database.Common.Names_Length_Limits_Spec
 
 import project.Util
 import project.Database.Helpers.Name_Generator
-import project.Database.Common.Default_Ordering_Spec_New
 
 
 upload connection prefix data temporary=True =
@@ -157,13 +155,13 @@ type Missing_Values_Data
         drop_table self.connection self.t4.name
 
 
-## Docs
+##
 
    Arguments:
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
-add_common_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) =
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) =
 
-    Default_Ordering_Spec.add_default_ordering_specs suite_builder prefix create_connection_fn
+    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
     # TODO:
     # Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
 

@@ -35,7 +35,7 @@ type Data
    Arguments:
    - suite_builder: A Suite_Builder in which a new group will be created
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
-add_default_ordering_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : Any) =
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : Any) =
     group_name = prefix + "Table.default_ordering"
 
     suite_builder.group group_name group_builder->
