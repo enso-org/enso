@@ -13,7 +13,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
@@ -388,7 +388,11 @@ object ProgramExecutionSupport {
               )
             ) {
               val warnings =
-                WarningsLibrary.getUncached.getWarnings(value.getValue, null)
+                WarningsLibrary.getUncached.getWarnings(
+                  value.getValue,
+                  null,
+                  false
+                )
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount == 1) {

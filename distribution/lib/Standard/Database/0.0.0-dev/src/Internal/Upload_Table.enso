@@ -188,7 +188,7 @@ verify_structure_hint structure_hint column_names =
 resolve_primary_key structure primary_key = case primary_key of
     Nothing -> Nothing
     _ : Vector -> if primary_key.is_empty then Nothing else
-        validated = primary_key.map on_problems=No_Wrap.Value key->
+        validated = primary_key.map on_problems=No_Wrap key->
             if key.is_a Text then key else
                 Error.throw (Illegal_Argument.Error ("Primary key must be a vector of column names, instead got a " + (Meta.type_of key . to_display_text)))
         validated.if_not_error <|
@@ -303,7 +303,7 @@ first_column_name_in_structure structure = case structure of
 prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
     type_mapping = connection.dialect.get_type_mapping
-    column_descriptors = columns.map on_problems=No_Wrap.Value def->
+    column_descriptors = columns.map on_problems=No_Wrap def->
         sql_type = type_mapping.value_type_to_sql def.value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Create_Column_Descriptor.Value def.name sql_type_text def.constraints
@@ -485,7 +485,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
                 if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
                     if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
                         # Verify type matching
-                        problems = source_table.columns.flat_map on_problems=No_Wrap.Value check_source_column
+                        problems = source_table.columns.flat_map on_problems=No_Wrap check_source_column
                         problems.if_not_error <|
                             on_problems.attach_problems_before problems action
 

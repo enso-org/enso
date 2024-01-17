@@ -6,7 +6,6 @@ import * as toast from 'react-toastify'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
@@ -18,7 +17,6 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as http from '#/utilities/http'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -27,9 +25,9 @@ import * as shortcuts from '#/utilities/shortcuts'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import ContextMenuSeparator from '#/components/ContextMenuSeparator'
+import type * as assetRow from '#/components/dashboard/AssetRow'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
-import type * as tableRow from '#/components/TableRow'
 
 // ========================
 // === AssetContextMenu ===
@@ -38,11 +36,7 @@ import type * as tableRow from '#/components/TableRow'
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
     hidden?: boolean
-    innerProps: tableRow.TableRowInnerProps<
-        assetTreeNode.AssetTreeNode,
-        assetsTable.AssetsTableState,
-        assetsTable.AssetRowState
-    >
+    innerProps: assetRow.AssetRowInnerProps
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
     doDelete: () => void

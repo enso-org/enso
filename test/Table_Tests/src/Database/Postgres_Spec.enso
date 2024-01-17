@@ -29,6 +29,9 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
+import enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
 postgres_specific_spec connection db_name setup =
     Test.group "[PostgreSQL] Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
@@ -587,6 +590,28 @@ table_spec =
 
             Transaction_Spec.spec connection "[PostgreSQL] "
             Upload_Spec.spec connection_builder "[PostgreSQL] "
+
+            cloud_setup = Cloud_Tests_Setup.prepare
+            cloud_setup.with_prepared_environment <| Test.group "[PostgreSQL] Secrets in connection settings" <|
+                Test.specify "should allow to set up a connection with the password passed as a secret" <|
+                    with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
+                        my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
+                        with_secret "my_postgres_app_name" my_secret_name app_name_secret-> with_retries <|
+                            details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
+                            # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
+                            options = Connection_Options.Value [["ApplicationName", app_name_secret]]
+                            connection = Database.connect details options
+                            connection.should_succeed
+                            Panic.with_finalizer connection.close <|
+                                connection.tables . should_be_a Table
+                                table = connection.read "SELECT application_name FROM pg_stat_activity"
+                                application_names = table.at 0 . to_vector
+                                application_names.should_contain my_secret_name
+
+with_secret name value callback =
+    secret = Enso_Secret.create name+Random.uuid value
+    secret.should_succeed
+    Panic.with_finalizer secret.delete (callback secret)
 
 create_connection_builder =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
