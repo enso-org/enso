@@ -26,7 +26,7 @@ spec = Test.group "Meta-Value Inspection" <|
         Meta.get_simple_type_name y . should_equal "My_Type"
 
     Test.specify "should allow access to package names" <|
-        enso_project.name.should_equal 'Tests'
+        enso_project.name.should_equal 'Base_Tests'
         (Project_Description.new Base).name.should_equal 'Base'
 
     Test.specify "should allow to fetch enso project description from a module" <|
