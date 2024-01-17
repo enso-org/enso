@@ -11,11 +11,14 @@ from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.pending <|
-        Test.specify "should allow to create a directory" <|
+        Test.specify "should allow to create and delete a directory" <|
             my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
             my_dir.should_succeed
-            Panic.with_finalizer my_dir.delete <| with_retries <|
+            delete_on_fail caught_panic =
+                my_dir.delete
+                Error.throw caught_panic
+            Panic.catch Any handler=delete_on_fail <| with_retries <|
                 my_dir.is_directory . should_be_true
                 my_dir.exists . should_be_true
                 my_dir.name . should_equal my_name
@@ -23,6 +26,8 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
                 # TODO this is a workaround because create does not return organizationId!
                 # Enso_File.root.list . should_contain my_dir
                 Enso_File.root.list.map .name . should_contain my_name
+
+            my_dir.delete . should_succeed
 
             with_retries <|
                 my_dir.exists . should_be_false
