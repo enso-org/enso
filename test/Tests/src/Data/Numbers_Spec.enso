@@ -586,6 +586,14 @@ spec =
             v1==v2 . should_be_true
             v2==v1 . should_be_true
 
+        Test.specify "Equality of number and complex" <|
+            v1 = 3
+            v2 = (Complex.new 3)
+            v1 . should_equal v2
+            v2 . should_equal v1
+            v1==v2 . should_be_true
+            v2==v1 . should_be_true
+
         Test.specify "Greater or equal of complex and complex" <|
             v1 = (Complex.new 3)
             v2 = (Complex.new 4)
@@ -598,6 +606,15 @@ spec =
         Test.specify "Greater or equal of complex and number" <|
             v1 = (Complex.new 3)
             v2 = 4
+            v1<v2 . should_be_true
+            v2<v1 . should_be_false
+
+            v1>v2 . should_be_false
+            v2>v1 . should_be_true
+
+        Test.specify "Greater or equal of number and complex" <|
+            v1 = 3
+            v2 = (Complex.new 4)
             v1<v2 . should_be_true
             v2<v1 . should_be_false
 
