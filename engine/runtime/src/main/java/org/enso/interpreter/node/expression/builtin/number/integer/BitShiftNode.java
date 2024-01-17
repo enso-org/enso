@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -27,7 +28,7 @@ public abstract class BitShiftNode extends IntegerNode {
   private final CountingConditionProfile rightShiftExceedsLongWidth =
       CountingConditionProfile.create();
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   @NeverDefault
   static BitShiftNode build() {
@@ -127,11 +128,12 @@ public abstract class BitShiftNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
+      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached BitShiftNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
+    return super.doInterop(frame, self, that, iop, delegate);
   }
 
   @Fallback

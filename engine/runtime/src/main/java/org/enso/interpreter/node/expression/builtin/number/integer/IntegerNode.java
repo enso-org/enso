@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -43,21 +44,25 @@ abstract class IntegerNode extends Node {
   }
 
   final Object doInterop(
-      Object self, TruffleObject that, InteropLibrary iop, IntegerNode delegate) {
+      VirtualFrame frame,
+      Object self,
+      TruffleObject that,
+      InteropLibrary iop,
+      IntegerNode delegate) {
     try {
       if (iop.fitsInLong(that)) {
-        return delegate.execute(self, iop.asLong(that));
+        return delegate.execute(frame, self, iop.asLong(that));
       } else if (iop.fitsInDouble(that)) {
-        return delegate.execute(self, iop.asDouble(that));
+        return delegate.execute(frame, self, iop.asDouble(that));
       } else if (iop.fitsInBigInteger(that)) {
-        return delegate.execute(self, toEnsoNumberNode.execute(iop.asBigInteger(that)));
+        return delegate.execute(frame, self, toEnsoNumberNode.execute(iop.asBigInteger(that)));
       }
     } catch (UnsupportedMessageException ex) {
     }
     return doOther(self, that);
   }
 
-  Object execute(Object self, Object that) {
+  Object execute(VirtualFrame frame, Object self, Object that) {
     throw new AbstractMethodError();
   }
 

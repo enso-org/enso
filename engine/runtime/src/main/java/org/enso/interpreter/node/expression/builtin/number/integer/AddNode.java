@@ -1,10 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -21,7 +21,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.State;
@@ -29,7 +28,7 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends IntegerNode {
 
-  public abstract Object execute(Object self, Object that);
+  public abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   public static AddNode build() {
     return AddNodeGen.create();
@@ -74,23 +73,23 @@ public abstract class AddNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
+      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached AddNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
+    return super.doInterop(frame, self, that, iop, delegate);
   }
 
-  @Specialization
-  Object doOther(Object self, Object that) {
+  @Fallback
+  Object doOther(VirtualFrame frame, Object self, Object that) {
     var ctx = EnsoContext.get(this);
     var typeOfNode = TypeOfNode.getUncached();
     var rawType = typeOfNode.execute(that);
     ApplicationNode convertNode = null;
-    Function conversionFn = null;
     if (rawType instanceof Type type) {
       var convert = UnresolvedConversion.build(type.getDefinitionScope());
-      conversionFn = convert.resolveFor(ctx, type, ctx.getBuiltins().number().getInteger());
+      var conversionFn = convert.resolveFor(ctx, type, ctx.getBuiltins().number().getInteger());
       if (conversionFn != null) {
         var convNode = LiteralNode.build(conversionFn);
         var intoNode = LiteralNode.build(type);
@@ -105,11 +104,6 @@ public abstract class AddNode extends IntegerNode {
 
     if (convertNode != null && rawType instanceof Type type) {
       var state = State.create(ctx);
-      var frame =
-          Truffle.getRuntime()
-              .createVirtualFrame(
-                  Function.ArgumentsHelper.buildArguments(conversionFn, state),
-                  new FrameDescriptor());
       var convertedValue = convertNode.executeGeneric(frame);
 
       var symbol = UnresolvedSymbol.build("+", type.getDefinitionScope());

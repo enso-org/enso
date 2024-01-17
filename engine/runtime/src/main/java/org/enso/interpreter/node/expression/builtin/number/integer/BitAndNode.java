@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -13,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "bit_and", description = "Bitwise and.")
 public abstract class BitAndNode extends IntegerNode {
 
-  public abstract Object execute(Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   public static BitAndNode build() {
     return BitAndNodeGen.create();
@@ -41,11 +42,12 @@ public abstract class BitAndNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
+      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached BitAndNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
+    return super.doInterop(frame, self, that, iop, delegate);
   }
 
   @Fallback

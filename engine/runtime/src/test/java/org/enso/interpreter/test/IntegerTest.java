@@ -69,8 +69,8 @@ public class IntegerTest extends TestBase {
     executeInContext(
         ctx,
         () -> {
-          assertEquals(23L, addNode.execute(22L, 1L));
-          assertThrows(PanicException.class, () -> addNode.execute(23L, "Hello"));
+          assertEquals(23L, addNode.execute(null, 22L, 1L));
+          assertThrows(PanicException.class, () -> addNode.execute(null, 23L, "Hello"));
           return null;
         });
   }

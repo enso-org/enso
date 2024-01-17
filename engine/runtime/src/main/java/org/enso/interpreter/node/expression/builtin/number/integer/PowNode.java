@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -18,14 +19,14 @@ public abstract class PowNode extends IntegerNode {
 
   private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   static PowNode build() {
     return PowNodeGen.create();
   }
 
   @Specialization
-  Object doLong(long self, long that) {
+  Object doLong(VirtualFrame frame, long self, long that) {
     if (that < 0) {
       return Math.pow(self, that);
     } else if (that == 0) {
@@ -35,10 +36,10 @@ public abstract class PowNode extends IntegerNode {
       Object base = self;
       while (that > 0) {
         if (that % 2 == 0) {
-          base = multiplyNode.execute(base, base);
+          base = multiplyNode.execute(frame, base, base);
           that /= 2;
         } else {
-          res = multiplyNode.execute(res, base);
+          res = multiplyNode.execute(frame, res, base);
           that--;
         }
       }
@@ -99,11 +100,12 @@ public abstract class PowNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
+      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached PowNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
+    return super.doInterop(frame, self, that, iop, delegate);
   }
 
   @Fallback
