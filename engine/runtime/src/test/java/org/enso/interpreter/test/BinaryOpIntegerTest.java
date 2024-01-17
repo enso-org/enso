@@ -25,6 +25,7 @@ public class BinaryOpIntegerTest extends TestBase {
     " ^",
     " *",
     " %",
+    " ==",
     " <=",
     " <",
     " >=",
@@ -88,6 +89,10 @@ public class BinaryOpIntegerTest extends TestBase {
                   bit_shift_r self that:Wrap = self.v.bit_shift_r that.v
                   bit_or self that:Wrap = self.v.bit_or that.v
                   bit_and self that:Wrap = self.v.bit_and that.v
+                  < self that:Wrap = self.v<that.v
+                  <= self that:Wrap = self.v<=that.v
+                  > self that:Wrap = self.v>that.v
+                  >= self that:Wrap = self.v>=that.v
 
                 Wrap.from(that:Integer) = Wrap.Int that
 
