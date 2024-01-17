@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -82,7 +83,7 @@ abstract class IntegerNode extends Node {
     throw new AbstractMethodError();
   }
 
-  Object doOther(VirtualFrame frame, Object self, Object that) {
+  final Object doThatConversion(VirtualFrame frame, Object self, Object that) {
     var ctx = EnsoContext.get(this);
     var typeOfNode = TypeOfNode.getUncached();
     var rawSelfType = typeOfNode.execute(self);
@@ -92,6 +93,7 @@ abstract class IntegerNode extends Node {
     InvokeFunctionNode invokeNode = null;
     if (rawSelfType == ctx.getBuiltins().number().getInteger()
         && rawThatType instanceof Type thatType) {
+      CompilerDirectives.transferToInterpreter();
       var convert = UnresolvedConversion.build(thatType.getDefinitionScope());
       var unresolved = UnresolvedSymbol.build(this.symbol, thatType.getDefinitionScope());
       var found = unresolved.resolveFor(this, thatType);
@@ -123,8 +125,16 @@ abstract class IntegerNode extends Node {
       var convertedValue = convertNode.executeGeneric(frame);
       var result = invokeNode.execute(symbolFn, frame, state, new Object[] {convertedValue, that});
       return result;
+    } else {
+      return null;
     }
+  }
 
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    if (doThatConversion(frame, self, that) instanceof Object result) {
+      return result;
+    } else {
+      throw throwTypeErrorIfNotInt(self, that);
+    }
   }
 }
