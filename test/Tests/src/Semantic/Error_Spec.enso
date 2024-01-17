@@ -13,7 +13,7 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
 
 type My_Type
@@ -447,6 +447,23 @@ spec =
         Test.specify "works with Nothing as an error" <|
             e = Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing
             e . should_equal Nothing
+
+        Test.specify "Can unwrap a wrapped error" <|
+            wrapped_error = My_Error_Wrapper.Error "error"
+            wrapped_error2 = My_Error_Wrapper.Error (My_Error_Wrapper.Error "error")
+            Error.unwrap wrapped_error . should_equal "error"
+            Error.unwrap wrapped_error2 . should_equal "error"
+
+        Test.specify "Can unwrap errors in test utils" <|
+            wrapped_error = My_Error_Wrapper.Error "error"
+            x = Warning.attach wrapped_error "12"
+            Problems.expect_warning "error" x
+            Problems.expect_only_warning "error" x
+            Error.throw wrapped_error . should_fail_with "error"
+
+        Test.specify "Unwrapping a non-error-wraper is the identity" <|
+            not_wrapped = Illegal_Argument.Error "abc"
+            Error.unwrap not_wrapped . should_equal not_wrapped
 
 type C
     Baz x

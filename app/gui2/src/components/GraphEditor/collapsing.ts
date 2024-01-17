@@ -39,7 +39,7 @@ interface Output {
 interface RefactoredInfo {
   /** The id of the refactored node. */
   id: ExprId
-  /** The pattern of the refactored node. Included for convinience, collapsing does not affect it. */
+  /** The pattern of the refactored node. Included for convenience, collapsing does not affect it. */
   pattern: string
   /** The list of necessary arguments for a call of the collapsed function. */
   arguments: Identifier[]
@@ -88,12 +88,13 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
   // If there is no output found so far, it means that none of our nodes is used outside
   // the extracted function. In such we will return value from arbitrarily chosen leaf.
   if (output == null) {
-    const arbitaryLeaf = set.first(leaves)
-    if (arbitaryLeaf == null) throw new Error('Cannot select the output node, no leaf nodes found.')
-    const outputNode = graphDb.nodeIdToNode.get(arbitaryLeaf)
-    if (outputNode == null) throw new Error(`The node with id ${arbitaryLeaf} not found.`)
+    const arbitraryLeaf = set.first(leaves)
+    if (arbitraryLeaf == null)
+      throw new Error('Cannot select the output node, no leaf nodes found.')
+    const outputNode = graphDb.nodeIdToNode.get(arbitraryLeaf)
+    if (outputNode == null) throw new Error(`The node with id ${arbitraryLeaf} not found.`)
     const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
-    output = { node: arbitaryLeaf, identifier }
+    output = { node: arbitraryLeaf, identifier }
   }
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
@@ -134,29 +135,28 @@ const COLLAPSED_FUNCTION_NAME = 'collapsed'
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
-  module: Ast.Module,
+  edit: Ast.MutableModule,
   topLevel: Ast.BodyBlock,
   db: GraphDb,
   currentMethodName: string,
-): Ast.MutableModule {
-  const functionAst = Ast.findModuleMethod(module, currentMethodName)
+) {
+  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
   if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
     throw new Error(`Expected a collapsable function, found ${functionAst}.`)
   }
   const functionBlock = functionAst.body
-  const posToInsert = findInsertionPos(module, topLevel, currentMethodName)
-  const collapsedName = findSafeMethodName(module, COLLAPSED_FUNCTION_NAME)
+  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
+  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
   const collapsed = []
   const refactored = []
-  const edit = module.edit()
   const lines = functionBlock.lines()
   for (const line of lines) {
     const astId = line.expression?.node.exprId
-    const ast = astId != null ? module.get(astId) : null
+    const ast = astId != null ? edit.get(astId) : null
     if (ast == null) continue
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
@@ -172,15 +172,13 @@ export function performCollapse(
   if (outputIdentifier != null) {
     collapsed.push(Ast.Ident.new(edit, outputIdentifier))
   }
-  // Update the definiton of refactored function.
+  // Update the definition of refactored function.
   const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
   edit.replaceRef(functionBlock.exprId, refactoredBlock)
-  // new Ast.BodyBlock(edit, functionBlock.exprId, refactored)
 
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed, true)
+  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
-  return edit
 }
 
 /** Prepare a method call expression for collapsed method. */

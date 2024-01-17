@@ -75,10 +75,6 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{
-  ConstantNode,
-  QualifiedAccessorNode
-}
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
@@ -88,13 +84,14 @@ import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   BaseNode,
   ClosureRootNode,
+  ConstantNode,
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
-import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
+import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
@@ -877,21 +874,8 @@ class IrToTruffle(
   }
 
   private def generateReExportBindings(module: Module): Unit = {
-    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
-      new RuntimeFunction(
-        new QualifiedAccessorNode(language, constructor).getCallTarget,
-        null,
-        new FunctionSchema(
-          new ArgumentDefinition(
-            0,
-            ConstantsNames.SELF_ARGUMENT,
-            null,
-            null,
-            ArgumentDefinition.ExecutionMode.EXECUTE
-          )
-        )
-      )
-    }
+    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
+      constructor.getAccessorFunction()
 
     def mkTypeGetter(tp: Type): RuntimeFunction = {
       new RuntimeFunction(

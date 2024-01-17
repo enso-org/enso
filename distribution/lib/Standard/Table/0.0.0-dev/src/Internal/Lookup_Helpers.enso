@@ -50,7 +50,7 @@ prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_
     problems_to_add = Vector.new_builder
     key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
         key_set = Set.from_vector key_columns
-        my_updated_columns = base_table.columns.map on_problems=No_Wrap.Value base_column->
+        my_updated_columns = base_table.columns.map on_problems=No_Wrap base_column->
             base_column_name = base_column.name
             is_key = key_set.contains base_column_name
             case is_key of

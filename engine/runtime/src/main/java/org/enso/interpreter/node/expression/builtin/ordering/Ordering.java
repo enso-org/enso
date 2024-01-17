@@ -3,8 +3,9 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 import java.util.List;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 @BuiltinType
 public class Ordering extends Builtin {
@@ -54,20 +55,20 @@ public class Ordering extends Builtin {
    * @return a new instance of Less
    */
   public Atom newLess() {
-    return less().newInstance();
+    return AtomNewInstanceNode.getUncached().newInstance(less());
   }
 
   /**
    * @return a new instance of Equal
    */
   public Atom newEqual() {
-    return equal().newInstance();
+    return AtomNewInstanceNode.getUncached().newInstance(equal());
   }
 
   /**
    * @return a new instance of Greater
    */
   public Atom newGreater() {
-    return greater().newInstance();
+    return AtomNewInstanceNode.getUncached().newInstance(greater());
   }
 }

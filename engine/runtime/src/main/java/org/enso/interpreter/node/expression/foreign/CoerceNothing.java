@@ -39,7 +39,7 @@ public abstract class CoerceNothing extends Node {
     var nothing = ctx.getBuiltins().nothing();
     if (nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
-        Warning[] attachedWarnings = warningsLibrary.getWarnings(value, null);
+        Warning[] attachedWarnings = warningsLibrary.getWarnings(value, null, false);
         return WithWarnings.wrap(ctx, nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
         return nothing;

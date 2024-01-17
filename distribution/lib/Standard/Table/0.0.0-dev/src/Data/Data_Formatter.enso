@@ -125,7 +125,7 @@ type Data_Formatter
             vector = case formats of
                 v : Vector -> v
                 singleton -> [singleton]
-            converted = vector.map on_problems=No_Wrap.Value elem->
+            converted = vector.map on_problems=No_Wrap elem->
                 ## Ensure the element is a `Date_Time_Formatter` or is converted to it.
                    We need to convert _each_ element - we cannot perform a 'bulk' conversion like `vector : Vector Date_Time_Formatter` because of erasure.
                 checked = elem : Date_Time_Formatter
@@ -210,17 +210,17 @@ type Data_Formatter
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new (self.date_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
+            DateParser.new (self.date_formats.map on_problems=No_Wrap .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap.Value  .get_java_formatter_for_parsing)
+            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap  .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
+            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new

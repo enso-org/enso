@@ -6,9 +6,20 @@ import Standard.Test.Extensions
 type Setup
     Config command args
 
-make_expected_output_regex expected_output =
-    parts = expected_output.split "???" . map Regex.escape
-    Regex.compile (parts.join ".+")
+## Checks if the output matches expected output.
+   The expected output may contain `???` that will be matched with any text.
+check_match expected_output actual_output =
+    parts = expected_output.split "???"
+    result = parts.fold 0 pointer-> part->
+        if pointer < 0 then pointer else
+            index = actual_output.index_of part start=pointer
+            if index == Nothing then
+                IO.println "Part "+part.pretty+" not found at position "+pointer.pretty
+            if index == Nothing then -1 else index + part.length
+    result == actual_output.length
+
+normalize_lines text =
+    text.lines.join '\n'
 
 spec setup =
     run_test source_path =
@@ -26,8 +37,7 @@ spec setup =
             expected_output = expected_output_path.read_text
             Test.specify description <|
                 result = run_test source_path
-                regex = make_expected_output_regex expected_output
-                if regex.matches result.stdout . not then
+                if check_match (normalize_lines expected_output) (normalize_lines result.stdout) . not then
                     message = 'The program output did not match the expected output, stored at ['+expected_output_path.to_text+'].'
                     line = '-'*20 + '\n'
                     details = 'The STDOUT was:\n' + line + result.stdout + line

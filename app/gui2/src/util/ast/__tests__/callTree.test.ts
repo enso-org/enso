@@ -57,7 +57,7 @@ test.each`
   ${'func a=x x c=x    '} | ${'=a @b =c ?d'}    | ${prefixFixture}
   ${'func a=x d=x      '} | ${'=a ?b ?c =d'}    | ${prefixFixture}
   ${'func a=x d=x b=x  '} | ${'=a =d =b ?c'}    | ${prefixFixture}
-  ${'func a=x d=x c=x  '} | ${'=a =d ?b =c'}    | ${prefixFixture}
+  ${'func a=x d=x c=x  '} | ${'=a ?b =d =c'}    | ${prefixFixture}
   ${'func a=x c=x d=x  '} | ${'=a ?b =c =d'}    | ${prefixFixture}
   ${'func b=x          '} | ${'?a =b ?c ?d'}    | ${prefixFixture}
   ${'func b=x c=x      '} | ${'?a =b =c ?d'}    | ${prefixFixture}
@@ -76,7 +76,7 @@ test.each`
   ${'func x x          '} | ${'@a @b ?c ?d'}    | ${prefixFixture}
   ${'func x x x        '} | ${'@a @b @c ?d'}    | ${prefixFixture}
   ${'func x x x x      '} | ${'@a @b @c @d'}    | ${prefixFixture}
-  ${'func a=x x m=x    '} | ${'=a @b =m ?c ?d'} | ${prefixFixture}
+  ${'func a=x x m=x    '} | ${'=a @b ?c ?d =m'} | ${prefixFixture}
   ${'x + y'}              | ${'@lhs @rhs'}      | ${infixFixture}
   ${'x +'}                | ${'@lhs ?rhs'}      | ${infixFixture}
 `(
