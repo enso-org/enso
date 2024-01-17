@@ -156,6 +156,26 @@ public class BinaryOpIntegerTest extends TestBase {
         });
   }
 
+  @Test
+  public void verifyOperationOnConvertibleObject() {
+    executeInContext(
+        ctx,
+        () -> {
+          var code = """
+        fn a b = a{op} b
+        """.replace("{op}", operation);
+          var fn = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+
+          var r1 = fn.execute(n1, n2);
+
+          var wrap1 = wrapInt.execute(n1);
+          var r2 = fn.execute(wrap1, n2);
+
+          assertSameResult(r1, r2);
+          return null;
+        });
+  }
+
   private void assertSameResult(Value r1, Value r2) {
     assertEquals("r1: " + r1 + " r2: " + r2, r1.isException(), r2.isException());
     assertEquals("r1: " + r1 + " r2: " + r2, r1.isBoolean(), r2.isBoolean());
