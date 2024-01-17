@@ -274,7 +274,7 @@ export default function AssetRow(props: AssetRowProps) {
             case AssetEventType.newProject:
             case AssetEventType.newFolder:
             case AssetEventType.uploadFiles:
-            case AssetEventType.newDataConnector:
+            case AssetEventType.newSecret:
             case AssetEventType.openProject:
             case AssetEventType.closeProject:
             case AssetEventType.cancelOpeningAllProjects: {

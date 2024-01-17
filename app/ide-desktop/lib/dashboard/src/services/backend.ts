@@ -525,6 +525,51 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
     }
 }
 
+/** Creates a {@link FileAsset} using the given values. */
+export function createPlaceholderFileAsset(
+    title: string,
+    parentId: DirectoryId,
+    assetPermissions: UserPermission[]
+): FileAsset {
+    return {
+        type: AssetType.file,
+        id: FileId(uniqueString.uniqueString()),
+        title,
+        parentId,
+        permissions: assetPermissions,
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        projectState: null,
+        labels: [],
+        description: null,
+    }
+}
+
+/** Creates a {@link ProjectAsset} using the given values. */
+export function createPlaceholderProjectAsset(
+    title: string,
+    parentId: DirectoryId,
+    assetPermissions: UserPermission[],
+    organization: UserOrOrganization | null
+): ProjectAsset {
+    return {
+        type: AssetType.project,
+        id: ProjectId(uniqueString.uniqueString()),
+        title,
+        parentId,
+        permissions: assetPermissions,
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        projectState: {
+            type: ProjectState.new,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            volume_id: '',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            ...(organization != null ? { opened_by: organization.email } : {}),
+        },
+        labels: [],
+        description: null,
+    }
+}
+
 /** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
  * values. */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {

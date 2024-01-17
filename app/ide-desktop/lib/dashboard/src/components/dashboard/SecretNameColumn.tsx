@@ -80,7 +80,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case AssetEventType.newDataConnector: {
+            case AssetEventType.newSecret: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Data connectors cannot be created on the local backend')

@@ -238,7 +238,7 @@ export default function Drive(props: DriveProps) {
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
             dispatchAssetListEvent({
-                type: AssetListEventType.newDataConnector,
+                type: AssetListEventType.newSecret,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
                 name,
