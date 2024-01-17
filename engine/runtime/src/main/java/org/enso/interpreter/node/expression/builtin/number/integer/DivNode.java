@@ -15,6 +15,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "div", description = "Division of numbers.")
 public abstract class DivNode extends IntegerNode {
+  DivNode() {
+    super("div");
+  }
 
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
@@ -65,7 +68,7 @@ public abstract class DivNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

@@ -16,6 +16,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "<", description = "Comparison of numbers.")
 public abstract class LessNode extends IntegerNode {
 
+  LessNode() {
+    super("<");
+  }
+
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   static LessNode build() {

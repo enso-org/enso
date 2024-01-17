@@ -71,17 +71,28 @@ public class BinaryOpIntegerTest extends TestBase {
         ctx.eval(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    type Wrap
-      Int v
+                type Wrap
+                  Int v
 
-      + self that:Wrap = self.v+that.v
+                  + self that:Wrap = self.v+that.v
+                  * self that:Wrap = self.v*that.v
+                  / self that:Wrap = self.v/that.v
+                  - self that:Wrap = self.v-that.v
+                  ^ self that:Wrap = self.v^that.v
+                  % self that:Wrap = self.v%that.v
+                  div self that:Wrap = self.v.div that.v
+                  bit_xor self that:Wrap = self.v.bit_xor that.v
+                  bit_shift self that:Wrap = self.v.bit_shift that.v
+                  bit_shift_r self that:Wrap = self.v.bit_shift_r that.v
+                  bit_or self that:Wrap = self.v.bit_or that.v
+                  bit_and self that:Wrap = self.v.bit_and that.v
 
-    Wrap.from(that:Integer) = Wrap.Int that
+                Wrap.from(that:Integer) = Wrap.Int that
 
-    wrap n:Integer -> Wrap = n
-    """)
+                wrap n:Integer -> Wrap = n
+                """)
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
   }
 

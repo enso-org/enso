@@ -16,6 +16,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends IntegerNode {
+  PowNode() {
+    super("^");
+  }
 
   private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
@@ -109,7 +112,7 @@ public abstract class PowNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

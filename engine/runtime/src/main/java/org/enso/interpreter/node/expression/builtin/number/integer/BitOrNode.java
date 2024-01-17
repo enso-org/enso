@@ -13,6 +13,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_or", description = "Bitwise or.")
 public abstract class BitOrNode extends IntegerNode {
+  BitOrNode() {
+    super("bit_or");
+  }
 
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
@@ -51,7 +54,7 @@ public abstract class BitOrNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

@@ -21,6 +21,10 @@ public final class ParseIntegerNode extends IntegerNode {
   private final BranchProfile noEx1 = BranchProfile.create();
   private final BranchProfile noEx2 = BranchProfile.create();
 
+  ParseIntegerNode() {
+    super("parse");
+  }
+
   Object execute(Text value, long radix) {
     var r = Math.toIntExact(radix);
     var t = toJavaString.execute(value);

@@ -21,6 +21,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends IntegerNode {
 
+  BitShiftNode() {
+    super("bit_shift");
+  }
+
   private final CountingConditionProfile canShiftLeftInLongProfile =
       CountingConditionProfile.create();
   private final CountingConditionProfile positiveFitsInInt = CountingConditionProfile.create();
@@ -137,8 +141,8 @@ public abstract class BitShiftNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 
   boolean hasFreeBitsLeftShift(long number, long shift) {

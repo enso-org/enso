@@ -14,6 +14,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends IntegerNode {
+
+  BitShiftRightNode() {
+    super("bit_shift_r");
+  }
+
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   static BitShiftRightNode build() {
@@ -69,7 +74,7 @@ public abstract class BitShiftRightNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

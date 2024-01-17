@@ -11,6 +11,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     name = "to_float",
     description = "Conversion of integers to floats.")
 public abstract class ToFloatNode extends IntegerNode {
+  ToFloatNode() {
+    super("to_float");
+  }
+
   public abstract Object execute(Object self);
 
   public static ToFloatNode build() {

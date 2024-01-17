@@ -14,6 +14,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends IntegerNode {
 
+  MultiplyNode() {
+    super("*");
+  }
+
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
   static MultiplyNode build() {
@@ -66,7 +70,7 @@ public abstract class MultiplyNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

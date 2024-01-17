@@ -13,6 +13,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "-", description = "Subtraction of numbers.")
 public abstract class SubtractNode extends IntegerNode {
+  SubtractNode() {
+    super("-");
+  }
 
   abstract Object execute(VirtualFrame frame, Object self, Object that);
 
@@ -66,7 +69,7 @@ public abstract class SubtractNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
-    throw throwTypeErrorIfNotInt(self, that);
+  Object doOther(VirtualFrame frame, Object self, Object that) {
+    return super.doOther(frame, self, that);
   }
 }

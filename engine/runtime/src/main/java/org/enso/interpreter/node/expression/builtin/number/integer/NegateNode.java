@@ -8,6 +8,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "negate", description = "Negation for numbers.")
 public abstract class NegateNode extends IntegerNode {
+  NegateNode() {
+    super("negate");
+  }
 
   static NegateNode build() {
     return NegateNodeGen.create();
