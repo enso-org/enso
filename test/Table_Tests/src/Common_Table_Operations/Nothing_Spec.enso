@@ -149,6 +149,7 @@ spec setup =
             false_maybe = if had_false then [False] else []
             null_maybe + true_maybe + false_maybe
 
+        # [input, had_null, had_true, had_false, output]
         cases = [[True, True, True, True, True]]
             + [[True, True, True, False, True]]
             + [[True, False, True, True, True]]
@@ -174,28 +175,42 @@ spec setup =
             + [[Nothing, False, True, False, Nothing]]
             + [[Nothing, False, False, False, Nothing]]
 
-        cases.map cs->
-            input = cs.at 0
-            output = cs.at 4
-            containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3) 
+        negate : Vector | Column -> Vector | Column
+        negate vorc = case vorc of
+            _ : Vector -> vorc.map (x-> x.if_not_nothing x.not)
+            _ : Column -> vorc.not
+        negation_cases = [["normal input, normal argument", identity, identity]]
+            + [["negated input, normal argument", negate, identity]]
+            + [["normal input, negated argument", identity, negate]]
+            + [["negated input, negated argument", negate, negate]]
 
-            Test.specify "Boolean is_in: (Vector) "+cs.to_text <|
-                input_column = [input]
-                t = table_builder_typed [["input", input_column]] [Value_Type.Boolean]
+        negation_cases.map negation_case->
+            negation_desc = negation_case.at 0
+            neg_input = negation_case.at 1
+            neg_argument = negation_case.at 2
 
-                c = t.at "input" . is_in containing_values
+            cases.map cs->
+                input = cs.at 0
+                output = cs.at 4
+                containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3) 
 
-                c.to_vector . should_equal [output]
+                Test.specify "Boolean is_in: (Vector), "+negation_desc+" "+cs.to_text <|
+                    input_column = neg_input [input]
+                    t = table_builder_typed [["input", input_column]] [Value_Type.Boolean]
 
-            Test.specify "Boolean is_in: (Column) "+cs.to_text <|
-                input_column = Vector.fill containing_values.length input
-                t = table_builder_typed [["input", input_column], ["containing", containing_values]] [Value_Type.Boolean, Value_Type.Boolean]
-                expected_output = if input_column.is_empty then [] else [output]
+                    c = (neg_input (t.at "input")) . is_in containing_values
 
-                c = t.at "input" . is_in (t.at "containing")
+                    c.to_vector . should_equal [output]
 
-                c.to_vector . length . should_equal input_column.length
-                c.to_vector.distinct . should_equal expected_output
+                Test.specify "Boolean is_in: (Column), "+negation_desc+" "+cs.to_text <|
+                    input_column = neg_input (Vector.fill containing_values.length input)
+                    t = table_builder_typed [["input", input_column], ["containing", neg_argument containing_values]] [Value_Type.Boolean, Value_Type.Boolean]
+                    expected_output = if input_column.is_empty then [] else [output]
+
+                    c = (neg_input (t.at "input")) . is_in (neg_argument (t.at "containing"))
+
+                    c.to_vector . length . should_equal input_column.length
+                    c.to_vector.distinct . should_equal expected_output
 
     Test.group prefix+"distinct" <|
         values_without_nothing.map triple->
