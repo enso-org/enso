@@ -86,24 +86,7 @@ test.each`
     expectedPattern,
     fixture: { mockSuggestion, argsParameters, methodPointer },
   }: TestData) => {
-    const expectedArgs = expectedPattern.split(' ')
-    const notAppliedArguments = expectedArgs
-      .map((p: string) =>
-        p.startsWith('?') ? mockSuggestion.arguments.findIndex((k) => p.slice(1) === k.name) : null,
-      )
-      .filter(isSome)
-
     const ast = Ast.parse(expression.trim())
-
-    const methodCall: MethodCall = {
-      methodPointer,
-      notAppliedArguments,
-    }
-
-    const funcMethodCall: MethodCall = {
-      methodPointer,
-      notAppliedArguments: Array.from(expectedArgs, (_, i) => i + 1),
-    }
 
     const configuration: widgetCfg.FunctionCall = {
       kind: 'FunctionCall',
@@ -112,8 +95,6 @@ test.each`
 
     const interpreted = interpretCall(ast, true)
     const call = ArgumentApplication.FromInterpretedWithInfo(interpreted, {
-      appMethodCall: methodCall,
-      noArgsCall: funcMethodCall,
       suggestion: mockSuggestion,
       widgetCfg: configuration,
     })

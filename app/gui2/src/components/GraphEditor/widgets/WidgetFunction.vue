@@ -47,16 +47,23 @@ const interpreted = computed(() => {
   return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
+const subjectInfo = computed(() => {
+  const analyzed = interpreted.value
+  if (analyzed.kind !== 'prefix') return
+  const subject = getAccessOprSubject(analyzed.func)
+  if (!subject) return
+  return graph.db.getExpressionInfo(subject.exprId)
+})
+
 const selfArgumentPreapplied = computed(() => {
   const info = methodCallInfo.value
-  if (info?.staticallyApplied) return false
-  const analyzed = interpreted.value
-  if (analyzed.kind !== 'prefix') return false
-  const subject = getAccessOprSubject(analyzed.func)
-  if (!subject) return false
   const funcType = info?.methodCall.methodPointer.definedOnType
-  const subjectInfo = graph.db.getExpressionInfo(subject.exprId)
-  return funcType != null && subjectInfo?.typename !== `${funcType}.type`
+  return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+})
+
+const subjectTypeMatchesMethod = computed(() => {
+  const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
+  return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
 })
 
 const application = computed(() => {
@@ -64,14 +71,28 @@ const application = computed(() => {
   if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
+  console.log('app:', props.input.value.code())
+  const notAppliedArguments =
+    noArgsCall != null &&
+    (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+      ? noArgsCall.notAppliedArguments
+      : undefined
+
+  console.log('subjectTypeMatchesMethod', subjectTypeMatchesMethod.value)
+  console.log('selfArgumentPreapplied', selfArgumentPreapplied.value)
+  console.log('notAppliedArguments', notAppliedArguments)
+  console.log('subjectInfo', subjectInfo.value)
+  console.log('noArgsCall', noArgsCall)
+  console.log('methodCallInfo', methodCallInfo.value)
+  console.log('exprInfo', graph.db.getExpressionInfo(props.input.value.exprId))
+
   const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
     call,
     {
-      noArgsCall,
-      appMethodCall: info?.methodCall,
       suggestion: info?.suggestion,
       widgetCfg: widgetConfiguration.value,
+      notAppliedArguments,
     },
     selfArgumentPreapplied.value,
   )
@@ -298,7 +319,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
     if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
     const info = db.getMethodCallInfo(ast.exprId)
-    if (prevFunctionState != null && info?.staticallyApplied === true && ast instanceof Ast.Ident) {
+    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
       return Score.Mismatch
     }
     return info != null ? Score.Perfect : Score.Mismatch

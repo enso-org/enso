@@ -5,7 +5,6 @@ import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import type { MethodCall } from 'shared/languageServerTypes'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -147,8 +146,7 @@ export function interpretCall(callRoot: Ast.Ast, allowInterpretAsInfix: boolean)
 }
 
 interface CallInfo {
-  noArgsCall?: MethodCall | undefined
-  appMethodCall?: MethodCall | undefined
+  notAppliedArguments?: number[] | undefined
   suggestion?: SuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
 }
@@ -189,7 +187,7 @@ export class ArgumentApplication {
     callInfo: CallInfo,
     stripSelfArgument: boolean,
   ) {
-    const { noArgsCall, suggestion, widgetCfg } = callInfo
+    const { notAppliedArguments, suggestion, widgetCfg } = callInfo
     const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
@@ -204,9 +202,8 @@ export class ArgumentApplication {
     ) {
       allPossiblePrefixArguments.shift()
     }
-    const notAppliedOriginally = new Set(
-      noArgsCall?.notAppliedArguments ?? allPossiblePrefixArguments,
-    )
+
+    const notAppliedOriginally = new Set(notAppliedArguments ?? allPossiblePrefixArguments)
     const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
       notAppliedOriginally.has(i),
     )
