@@ -31,11 +31,8 @@ public final class ExternalLibrarySecretHelper extends SecretValueResolver {
         StackWalker.getInstance()
             .walk(
                 (stackFrameStream -> {
-                  String myClassName = ExternalLibrarySecretHelper.class.getName();
                   Optional<StackWalker.StackFrame> firstClientFrame =
-                      stackFrameStream
-                          .filter((frame) -> !frame.getClassName().equals(myClassName))
-                          .findFirst();
+                      stackFrameStream.skip(2).findFirst();
                   if (firstClientFrame.isEmpty()) {
                     throw new IllegalStateException("Unable to find client frame.");
                   }
