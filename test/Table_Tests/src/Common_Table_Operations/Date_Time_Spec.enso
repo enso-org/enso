@@ -8,13 +8,30 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test_New import all
 
-
 from project.Common_Table_Operations.Util import all
+
+main = run_default_backend add_specs
+
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    dates self = self.data.at 1
+    times self = self.data.at 2
+    datetimes self = self.data.at 3
+
+    setup create_connection_fn table_builder = Data.Value <|
+        connection = create_connection_fn Nothing
+        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]] connection=connection
+        [connection, dates, times, datetimes]
 
 
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
 
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
@@ -49,11 +66,10 @@ add_specs suite_builder setup =
             table.at "X" . to_vector . should_equal xs
 
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
-        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
-        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
-        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        data = Data.setup create_connection_fn table_builder
+
         group_builder.specify "should allow to get the year/month/day of a Date" <|
-            t = dates
+            t = data.dates
             a = t.at "A"
             a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
             a.month . to_vector . should_equal [12, 2, 1, Nothing]
@@ -68,7 +84,7 @@ add_specs suite_builder setup =
             ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         group_builder.specify "should allow to get the year/month/day of a Date_Time" <|
-            t = datetimes
+            t = data.datetimes
             a = t.at "A"
             a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
             a.month . to_vector . should_equal [12, 2, 1, Nothing]
@@ -82,14 +98,14 @@ add_specs suite_builder setup =
             ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         group_builder.specify "should allow to evaluate expressions with year/month/day" <|
-            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
+            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]] connection=data.connection
             c = t.evaluate_expression "year([A]) + [X] + day([A]) * month([B])"
             Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                 c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
         group_builder.specify "should allow to get hour/minute/second of a Time_Of_Day" <|
-            a = times.at "A"
+            a = data.times.at "A"
             a.hour . to_vector . should_equal [23, 2, 0, Nothing]
             a.minute . to_vector . should_equal [59, 30, 0, Nothing]
             a.second . to_vector . should_equal [59, 44, 0, Nothing]
@@ -103,7 +119,7 @@ add_specs suite_builder setup =
                     c.value_type.is_integer.should_be_true
 
         group_builder.specify "should allow to get hour/minute/second of a Date_Time" <|
-            a = datetimes.at "A"
+            a = data.datetimes.at "A"
             a.hour . to_vector . should_equal [23, 2, 0, Nothing]
             a.minute . to_vector . should_equal [59, 30, 0, Nothing]
             a.second . to_vector . should_equal [59, 44, 0, Nothing]
@@ -117,7 +133,7 @@ add_specs suite_builder setup =
                     c.value_type.is_integer.should_be_true
 
         group_builder.specify "should allow to get millisecond/nanosecond of Time_Of_Day through date_part" <|
-            a = times.at "A"
+            a = data.times.at "A"
             a.date_part Time_Period.Second . to_vector . should_equal      [59, 44, 0, Nothing]
             a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
             a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
@@ -132,7 +148,7 @@ add_specs suite_builder setup =
                     c.value_type.is_integer.should_be_true
 
         group_builder.specify "should allow to get week/quarter of Date through date_part" <|
-            a = dates.at "A"
+            a = data.dates.at "A"
             a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
             a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
 
@@ -141,7 +157,7 @@ add_specs suite_builder setup =
                     c.value_type.is_integer.should_be_true
 
         group_builder.specify "should allow to get various date_part of Date_Time" <|
-            a = datetimes.at "A"
+            a = data.datetimes.at "A"
             a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
             a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
             a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
@@ -158,7 +174,7 @@ add_specs suite_builder setup =
 
 
         group_builder.specify "should allow to compare dates" <|
-            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]]
+            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]] connection=data.connection
 
             [(<), (<=), (>), (>=), (==), (!=)].each op->
                 op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
@@ -166,7 +182,7 @@ add_specs suite_builder setup =
                 op (t.at "X") (Date.new 2021 12 4) . to_vector . should_succeed
 
         group_builder.specify "should allow to compare date-times" <|
-            t = table_builder [["X", [Date_Time.new 2021 12 3 12 30 0]], ["Y", [Date_Time.new 2021 12 5 12 30 0]]]
+            t = table_builder [["X", [Date_Time.new 2021 12 3 12 30 0]], ["Y", [Date_Time.new 2021 12 5 12 30 0]]] connection=data.connection
 
             [(<), (<=), (>), (>=), (==), (!=)].each op->
                 op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
@@ -174,7 +190,7 @@ add_specs suite_builder setup =
                 op (t.at "X") (Date_Time.new 2021 12 4 12 30 0) . to_vector . should_succeed
 
         group_builder.specify "should allow to compare time-of-day" <|
-            t = table_builder [["X", [Time_Of_Day.new 12 30 0]], ["Y", [Time_Of_Day.new 12 30 1]]]
+            t = table_builder [["X", [Time_Of_Day.new 12 30 0]], ["Y", [Time_Of_Day.new 12 30 1]]] connection=data.connection
 
             [(<), (<=), (>), (>=), (==), (!=)].each op->
                 op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
@@ -182,7 +198,7 @@ add_specs suite_builder setup =
                 op (t.at "X") (Time_Of_Day.new 12 30 0) . to_vector . should_succeed
 
         group_builder.specify "should not allow to mix types in ordering comparisons" <|
-            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
+            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]] connection=data.connection
 
             [(<), (<=), (>), (>=)].each op->
                 op (t.at "X") (t.at "Y") . should_fail_with Invalid_Value_Type
@@ -190,14 +206,14 @@ add_specs suite_builder setup =
 
         if setup.test_selection.supports_time_duration then
             group_builder.specify "should allow to subtract two Dates" <|
-                t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+                t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]] connection=data.connection
 
                 ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Period.new months=1 days=2]
                 ((t.at "Y") - (Date.new 2020 12 5)) . to_vector . should_equal [Period.new years=1]
 
             group_builder.specify "should allow to subtract two Date_Times" <|
                 dx = Date_Time.new 2021 11 30 10 15 0
-                t = table_builder [["X", [dx]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+                t = table_builder [["X", [dx]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]] connection=data.connection
 
                 hours = 2 + 24 * 5
                 diff = Duration.new hours=hours minutes=15 seconds=20
@@ -205,16 +221,16 @@ add_specs suite_builder setup =
                 ((t.at "Y") - dx) . to_vector . should_equal [diff]
 
             group_builder.specify "should allow to subtract two Time_Of_Days" <|
-                t = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+                t = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]] connection=data.connection
 
                 ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Duration.new hours=2 minutes=15 seconds=20, Duration.new hours=(-1) minutes=0 seconds=0]
                 ((t.at "Y") - (Time_Of_Day.new 0 0 0)) . to_vector . should_equal [Duration.new hours=12 minutes=30 seconds=20, Duration.zero]
 
         if setup.test_selection.supports_time_duration.not then
             group_builder.specify "should report unsupported operation for subtracting date/time" <|
-                t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
-                t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
-                t3 = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+                t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]] connection=data.connection
+                t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]] connection=data.connection
+                t3 = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]] connection=data.connection
 
                 ((t1.at "Y") - (t1.at "X")) . should_fail_with Unsupported_Database_Operation
                 ((t1.at "Y") - (Date.new 2020 12 5)) . should_fail_with Unsupported_Database_Operation
@@ -224,7 +240,7 @@ add_specs suite_builder setup =
                 ((t3.at "Y") - (Time_Of_Day.new 0 0 0)) . should_fail_with Unsupported_Database_Operation
 
         group_builder.specify "should report an Invalid_Value_Type error when subtracting mixed date/time types" <|
-            t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
+            t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]] connection=data.connection
 
             ((t.at "Y") - (t.at "X")) . should_fail_with Invalid_Value_Type
             ((t.at "Y") - (Time_Of_Day.new 12 30 0)) . should_fail_with Invalid_Value_Type
@@ -234,7 +250,7 @@ add_specs suite_builder setup =
             ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should allow computing a SQL-like difference" <|
-            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]] connection=data.connection
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t1.at "Y").date_diff (t1.at "X") Date_Period.Day . to_vector . should_equal [-32]
@@ -264,7 +280,7 @@ add_specs suite_builder setup =
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
             zone = Time_Zone.parse "Europe/Warsaw"
-            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
+            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]] connection=data.connection
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t2.at "Y").date_diff (t2.at "X") Date_Period.Day . to_vector . should_equal [-32]
@@ -301,7 +317,7 @@ add_specs suite_builder setup =
                     (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
                     (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=zone) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
+            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]] connection=data.connection
 
             # There is no default period:
             (t3.at "X").date_diff (t3.at "Y") . should_be_a Function
@@ -334,7 +350,7 @@ add_specs suite_builder setup =
                     (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
         group_builder.specify "date_diff should return integers" <|
-            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]] connection=data.connection
 
             time_periods = [Time_Period.Hour, Time_Period.Minute, Time_Period.Second]
             date_periods = [Date_Period.Day, Date_Period.Week, Date_Period.Month, Date_Period.Quarter, Date_Period.Year]
@@ -349,7 +365,7 @@ add_specs suite_builder setup =
                 (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
 
         group_builder.specify "should not allow mixing types in date_diff" <|
-            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]] connection=data.connection
             (t.at "X").date_diff (t.at "Y") Date_Period.Day . should_fail_with Invalid_Value_Type
             (t.at "Z").date_diff (t.at "X") Date_Period.Day . should_fail_with Invalid_Value_Type
             (t.at "Y").date_diff (t.at "Z") Time_Period.Hour . should_fail_with Invalid_Value_Type
@@ -361,7 +377,7 @@ add_specs suite_builder setup =
             (t.at "Z").date_diff (Time_Of_Day.new 12 30 20) Time_Period.Hour . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should allow an SQL-like shift" <|
-            t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]]
+            t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]] connection=data.connection
             (t1.at "X").date_add (t1.at "Y") Date_Period.Day . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
             (t1.at "X").date_add -1 Date_Period.Day . to_vector . should_equal [Date.new 2021 01 30, Date.new 2020 12 31, Date.new 2021 12 30]
             (t1.at "X").date_add (t1.at "Y") Date_Period.Month . to_vector . should_equal [Date.new 2021 06 30, Date.new 2020 12 01, Date.new 2021 12 31]
@@ -378,7 +394,7 @@ add_specs suite_builder setup =
             # Will accept Time_Period.Day as alias of Date_Period.Day
             (t1.at "X").date_add 1 Time_Period.Day . to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
 
-            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]]
+            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]] connection=data.connection
             (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add -1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 30 12 30 0]
             (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 06 30 12 30 0, Date_Time.new 2020 12 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
@@ -400,7 +416,7 @@ add_specs suite_builder setup =
                 False ->
                     (t2.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            t3 = table_builder [["X", [Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 45 0, Time_Of_Day.new 1 30 0]], ["Y", [5, -1, 0]]]
+            t3 = table_builder [["X", [Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 45 0, Time_Of_Day.new 1 30 0]], ["Y", [5, -1, 0]]] connection=data.connection
 
             (t3.at "X").date_add (t3.at "Y") Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
             (t3.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 13 30 0, Time_Of_Day.new 0 45 0, Time_Of_Day.new 2 30 0]
@@ -427,13 +443,13 @@ add_specs suite_builder setup =
             (t3.at "X").date_add (t3.at "Y") . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
 
         group_builder.specify "should check shift_amount type in date_add" <|
-            t = table_builder [["X", [Date.new 2021 01 31]]]
+            t = table_builder [["X", [Date.new 2021 01 31]]] connection=data.connection
             t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
 
         group_builder.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
             zone = Time_Zone.parse "Europe/Warsaw"
             dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
-            t = table_builder [["X", [dt1]]]
+            t = table_builder [["X", [dt1]]] connection=data.connection
             x = t.at "X"
 
             # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
@@ -461,7 +477,7 @@ add_specs suite_builder setup =
 
             dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
-            t2 = table_builder [["X", [dt3]]]
+            t2 = table_builder [["X", [dt3]]] connection=data.connection
             # No DST switch here, so all backends agree that 0 days elapsed in the 23 hours.
             (t2.at "X").date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
             (t2.at "X").date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
