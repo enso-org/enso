@@ -84,7 +84,8 @@ type Column
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -1128,7 +1129,8 @@ type Column
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) = self.to_table.take range . at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
@@ -1194,6 +1196,48 @@ type Column
         Value_Type.expect_text self <|
             new_name = self.naming_helper.function_name "text_length" [self]
             self.make_unary_op "LENGTH" new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the left n characters for each element of the column.
+
+       In the Database backends, the default text left method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the left n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_left 5
+    text_left : Column|Integer -> Column
+    text_left self n =
+        Value_Type.expect_text self <| Value_Type.expect_integer n <|
+            n2 = n.max 0
+            new_name = self.naming_helper.function_name "text_left" [self, n]
+            self.make_binary_op "LEFT" n2 new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the right n characters for each element of the column.
+
+       In the Database backends, the default text right method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the right n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_right 5
+    text_right : Column|Integer -> Column
+    text_right self n =
+        Value_Type.expect_text self <| Value_Type.expect_integer n <|
+            n2 = n.max 0
+            new_name = self.naming_helper.function_name "text_right" [self, n]
+            self.make_binary_op "RIGHT" n2 new_name           
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

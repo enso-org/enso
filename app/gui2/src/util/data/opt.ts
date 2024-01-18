@@ -19,3 +19,7 @@ export function isSome<T>(value: Opt<T>): value is T {
 export function isNone(value: Opt<any>): value is null | undefined {
   return value == null
 }
+
+export function mapOr<T, R>(optional: Opt<T>, fallback: R, mapper: (value: T) => R): R {
+  return isSome(optional) ? mapper(optional) : fallback
+}

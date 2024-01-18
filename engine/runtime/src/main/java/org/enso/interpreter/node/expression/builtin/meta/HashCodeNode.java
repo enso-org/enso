@@ -40,12 +40,12 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -225,7 +225,7 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForAtomWithDefaultComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
-      @Cached("atomCtorCached.getFields().length") int fieldsLenCached,
+      @Cached("atomCtorCached.getArity()") int fieldsLenCached,
       @Cached(value = "createHashCodeNodes(fieldsLenCached)", allowUncached = true)
           HashCodeNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
@@ -236,17 +236,15 @@ public abstract class HashCodeNode extends Node {
       return atom.getHashCode();
     }
 
-    Object[] fields = structs.getFields(atom);
-    int fieldsCount = fields.length;
-
     CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     // hashes stores hash codes for all fields, and for constructor.
-    int[] hashes = new int[fieldsCount + 1];
+    int[] hashes = new int[fieldsLenCached + 1];
     for (int i = 0; i < fieldsLenCached; i++) {
-      if (fields[i] instanceof Atom atomField && customComparatorNode.execute(atomField) != null) {
+      var f = structs.getField(atom, i);
+      if (f instanceof Atom atomField && customComparatorNode.execute(atomField) != null) {
         hashes[i] = (int) hashCallbackNode.execute(atomField);
       } else {
-        hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
+        hashes[i] = (int) fieldHashCodeNodes[i].execute(f);
       }
     }
 
@@ -325,14 +323,15 @@ public abstract class HashCodeNode extends Node {
           createInvokeNode(compareMethod));
     }
 
-    Object[] fields = StructsLibrary.getUncached().getFields(atom);
-    int[] hashes = new int[fields.length + 1];
-    for (int i = 0; i < fields.length; i++) {
-      if (fields[i] instanceof Atom atomField
+    var len = atom.getConstructor().getArity();
+    var hashes = new int[len + 1];
+    for (int i = 0; i < len; i++) {
+      var f = StructsLibrary.getUncached().getField(atom, i);
+      if (f instanceof Atom atomField
           && CustomComparatorNode.getUncached().execute(atomField) != null) {
         hashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
       } else {
-        hashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
+        hashes[i] = (int) HashCodeNodeGen.getUncached().execute(f);
       }
     }
 

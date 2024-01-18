@@ -115,7 +115,31 @@ abstract class JsonRpcServerTestKit
     def send(json: Json): Unit = send(json.noSpaces)
 
     def expectMessage(timeout: FiniteDuration = 5.seconds.dilated): String = {
-      val message = outActor.expectMsgClass[String](timeout, classOf[String])
+      val message =
+        try {
+          outActor.expectMsgClass[String](timeout, classOf[String])
+        } catch {
+          case e: AssertionError if e.getMessage.contains("timeout") =>
+            val sb = new StringBuilder(
+              "Thread dump when timeout is reached while waiting for the message:\n"
+            )
+            Thread.getAllStackTraces.entrySet.forEach { entry =>
+              sb.append(entry.getKey.getName).append("\n")
+              entry.getValue.foreach { e =>
+                sb.append("    ")
+                  .append(e.getClassName)
+                  .append(".")
+                  .append(e.getMethodName)
+                  .append("(")
+                  .append(e.getFileName)
+                  .append(":")
+                  .append(e.getLineNumber)
+                  .append(")\n")
+              }
+            }
+            println(sb.toString())
+            throw e
+        }
       if (debugMessages) println(message)
       message
     }

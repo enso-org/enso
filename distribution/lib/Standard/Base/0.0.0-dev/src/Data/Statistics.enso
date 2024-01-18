@@ -154,7 +154,7 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        moment_order = statistics.map on_problems=No_Wrap.Value .order
+        moment_order = statistics.map on_problems=No_Wrap .order
         has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
         max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
         counter = data.fold (Accumulator.new has_min_max max_moment_order) current-> value-> compute_fold current value
@@ -165,7 +165,7 @@ type Statistic
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
         if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
-            statistics.map on_problems=No_Wrap.Value statistic-> case statistic of
+            statistics.map on_problems=No_Wrap statistic-> case statistic of
                 Statistic.Covariance series -> check_if_empty counter.count <| calculate_correlation_statistics data series . covariance
                 Statistic.Pearson series -> check_if_empty counter.count <| calculate_correlation_statistics data series . pearsonCorrelation
                 Statistic.R_Squared series -> check_if_empty counter.count <| calculate_correlation_statistics data series . rSquared
@@ -198,7 +198,7 @@ type Statistic
             _ -> False
 
         if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
-            moment_order = statistics.map on_problems=No_Wrap.Value .order
+            moment_order = statistics.map on_problems=No_Wrap .order
             has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
@@ -209,7 +209,7 @@ type Statistic
                 data.fold counter current->value->
                     result = compute_fold current value
 
-                    row = Panic.throw_wrapped_if_error <| statistics.map on_problems=No_Wrap.Value s-> case s of
+                    row = Panic.throw_wrapped_if_error <| statistics.map on_problems=No_Wrap s-> case s of
                         Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
                         Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
                         _ -> result.compute s

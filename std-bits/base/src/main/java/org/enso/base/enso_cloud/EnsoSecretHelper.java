@@ -52,13 +52,7 @@ public class EnsoSecretHelper {
           uri.queryParameters().stream()
               .map(p -> Pair.create(p.getLeft(), resolveValue(p.getRight())))
               .toList();
-      Pair<String, String> resolvedUserInfo =
-          uri.userInfo() == null
-              ? null
-              : Pair.create(
-                  resolveValue(uri.userInfo().username()), resolveValue(uri.userInfo().password()));
-      URISchematic resolvedSchematic =
-          new URISchematic(uri.baseUri(), resolvedQueryParameters, resolvedUserInfo);
+      URISchematic resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
       return resolvedSchematic.build();
     } catch (URISyntaxException e) {
       // Here we don't display the message of the exception to avoid risking it may leak any
@@ -83,6 +77,19 @@ public class EnsoSecretHelper {
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
     URI renderedURI = uri.render();
+
+    boolean hasSecrets =
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().isSecret());
+    if (hasSecrets) {
+      if (resolvedURI.getScheme() == null) {
+        throw new IllegalArgumentException("The URI must have a scheme.");
+      }
+
+      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+        throw new IllegalArgumentException(
+            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
+      }
+    }
 
     builder.uri(resolvedURI);
 

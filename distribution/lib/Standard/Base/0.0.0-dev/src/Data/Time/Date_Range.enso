@@ -70,7 +70,7 @@ type Date_Range
 
              (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)
     with_step : Date_Period|Period -> Date_Range ! Illegal_Argument
-    with_step self new_step = case new_step of
+    with_step self new_step:Date_Period|Period = case new_step of
         _ : Period ->
             effective_length = compute_length_and_verify self.start self.end new_step self.increasing
             Date_Range.Internal_Constructor self.start self.end new_step self.increasing effective_length
@@ -487,6 +487,14 @@ type Date_Range
                 (1.up_to length).fold self.start acc-> ix->
                     function acc (self.internal_at ix)
 
+    ## PRIVATE
+       Default column name based on step.
+    default_column_name : Text
+    default_column_name self =
+        periods = [Date_Period.Year, Date_Period.Quarter, Date_Period.Month, Date_Period.Week, Date_Period.Day].map _.to_period
+        names = ["Year", "Quarter", "Month", "Week", "Date"]
+        index = periods.index_of self.step
+        if index == Nothing then "Date" else names.get index
 
 ## PRIVATE
    Computes the length of the range and verifies its invariants.

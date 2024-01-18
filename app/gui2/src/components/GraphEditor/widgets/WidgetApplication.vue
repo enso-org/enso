@@ -2,18 +2,16 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { ArgumentApplicationKey, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const application = computed(() => props.input[ArgumentApplicationKey])
 const targetMaybePort = computed(() => {
   const target = application.value.target
-  return target instanceof ArgumentPlaceholder || target instanceof ArgumentAst
-    ? { ...target.toWidgetInput(), forcePort: true }
-    : target instanceof Ast.Ast
-    ? WidgetInput.FromAst(target)
-    : target.toWidgetInput()
+  const targetInput =
+    target instanceof Ast.Ast ? WidgetInput.FromAst(target) : target.toWidgetInput()
+  return { ...targetInput, forcePort: !(target instanceof ArgumentApplication) }
 })
 
 const appClass = computed(() => {

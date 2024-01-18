@@ -6,10 +6,11 @@ export function loadScript(url: string) {
     script.crossOrigin = 'anonymous'
     script.src = url
     document.head.appendChild(script)
-    return new Promise<HTMLScriptElement>(resolve => {
+    return new Promise<HTMLScriptElement>((resolve, reject) => {
         script.onload = () => {
             resolve(script)
         }
+        script.onerror = reject
     })
 }
 
@@ -22,9 +23,10 @@ export function loadStyle(url: string) {
     style.media = 'screen'
     style.type = 'text/css'
     document.head.appendChild(style)
-    return new Promise<HTMLLinkElement>(resolve => {
+    return new Promise<HTMLLinkElement>((resolve, reject) => {
         style.onload = () => {
             resolve(style)
         }
+        style.onerror = reject
     })
 }

@@ -1561,8 +1561,11 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk"  % "polyglot-tck"            % graalMavenPackagesVersion,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
@@ -2076,12 +2079,14 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"  % commonsCliVersion,
-      "com.monovore"       %% "decline"      % declineVersion,
-      "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion
+      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"         % "commons-cli"     % commonsCliVersion,
+      "com.monovore"       %% "decline"         % declineVersion,
+      "org.jline"           % "jline"           % jlineVersion,
+      "org.typelevel"      %% "cats-core"       % catsVersion,
+      "junit"               % "junit"           % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
@@ -2613,12 +2618,12 @@ lazy val `common-polyglot-core-utils` = project
   )
 
 lazy val `enso-test-java-helpers` = project
-  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
@@ -2996,11 +3001,19 @@ lazy val `http-test-helper` = project
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
     Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
-    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons"        % "commons-text" % commonsTextVersion,
-      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
+      "org.apache.commons"         % "commons-text"     % commonsTextVersion,
+      "org.apache.httpcomponents"  % "httpclient"       % httpComponentsVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    },
+    assembly / mainClass := (Compile / run / mainClass).value,
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true
   )
