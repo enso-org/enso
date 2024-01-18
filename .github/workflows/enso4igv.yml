@@ -27,7 +27,7 @@ jobs:
       - name: Update project version
         working-directory: tools/enso4igv
         run: |
-          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.`expr $GITHUB_RUN_NUMBER - 1666`
+          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.`expr $GITHUB_RUN_NUMBER - 2100`
 
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
