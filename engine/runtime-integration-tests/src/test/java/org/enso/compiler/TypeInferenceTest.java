@@ -597,6 +597,65 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   @Test
+  public void typeInferenceWorksInsideMemberMethods() throws Exception {
+    final URI uri = new URI("memory://typeInferenceWorksInsideMemberMethods.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                    
+                    static_method (x : My_Type) =
+                        y = x
+                        z = My_Type.Value 23
+                        w = 42
+                        [y, z, w]
+                      
+                    member_method self (x : My_Type) =
+                        y = x
+                        z = My_Type.Value 23
+                        w = 42
+                        [y, z, w]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var myType = TypeRepresentation.fromQualifiedName("typeInferenceWorksInsideMemberMethods.My_Type");
+
+    var staticMethod = findMemberMethod(module, "My_Type", "static_method");
+    assertEquals(myType, getInferredType(findAssignment(staticMethod, "y").expression()));
+    assertEquals(myType, getInferredType(findAssignment(staticMethod, "z").expression()));
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(staticMethod, "w").expression()));
+
+    var memberMethod = findMemberMethod(module, "My_Type", "member_method");
+    assertEquals(myType, getInferredType(findAssignment(memberMethod, "y").expression()));
+    assertEquals(myType, getInferredType(findAssignment(memberMethod, "z").expression()));
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(memberMethod, "w").expression()));
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void typeInferenceOfSelf() throws Exception {
+    final URI uri = new URI("memory://typeInferenceOfSelf.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                    
+                    member_method self =
+                        y = self
+                        y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var f = findMemberMethod(module, "My_Type", "member_method");
+    var myType = TypeRepresentation.fromQualifiedName("typeInferenceOfSelf.My_Type");
+    assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  @Test
   public void notInvokable() throws Exception {
     final URI uri = new URI("memory://notInvokable.enso");
     final Source src =
@@ -648,6 +707,7 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(List.of(), getDescendantsDiagnostics(module));
   }
 
+  @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorFromAscription() throws Exception {
     final URI uri = new URI("memory://typeErrorFromAscription.enso");
@@ -698,6 +758,7 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals("valid conversion should ensure there is no type error", List.of(), getDescendantsDiagnostics(y.expression()));
   }
 
+  @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorInLocalCall() throws Exception {
     final URI uri = new URI("memory://typeErrorInLocalCall.enso");
@@ -728,6 +789,7 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(List.of(typeError), getImmediateDiagnostics(arg));
   }
 
+  @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorInReturn() throws Exception {
     final URI uri = new URI("memory://typeErrorInReturn.enso");
@@ -830,6 +892,19 @@ public class TypeInferenceTest extends CompilerTest {
         (def) ->
             (def instanceof Method binding)
                 && binding.methodReference().typePointer().isEmpty()
+                && binding.methodReference().methodName().name().equals(name)
+    );
+
+    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
+    return (Method) option.get();
+  }
+
+  private Method findMemberMethod(Module module, String typeName, String name) {
+    var option = module.bindings().find(
+        (def) ->
+            (def instanceof Method binding)
+                && binding.methodReference().typePointer().isDefined()
+                && binding.methodReference().typePointer().get().name().equals(typeName)
                 && binding.methodReference().methodName().name().equals(name)
     );
 

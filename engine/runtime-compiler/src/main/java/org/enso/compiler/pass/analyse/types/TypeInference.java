@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
@@ -70,32 +71,28 @@ public final class TypeInference implements IRPass {
     );
 
     log("TypeInference.runModule: " + moduleContext.getName());
-    var mappedBindings = ir.bindings().map((def) -> {
-      switch (def) {
+    var mappedBindings = ir.bindings().map((def) -> switch (def) {
         case Method.Explicit b -> {
-          log("\ninside method " + b.methodReference().name());
-        }
-        default -> {
-          log("\ndefinition " + def.getClass().getCanonicalName() + " - " + def.showCode());
-        }
-      }
-      var mapped = def.mapExpressions(
-          (expression) -> runExpression(expression, ctx)
-      );
+          var mapped = def.mapExpressions(
+              (expression) -> runExpression(expression, ctx)
+          );
 
-      switch (def) {
-        case Method.Explicit b -> {
           var inferredType = getInferredType(b.body());
           if (inferredType != null) {
             setInferredType(b, inferredType);
           }
+
+          yield mapped;
+        }
+        case Definition.Type typ -> {
+          log("type definition " + typ.name().name() + " - no type inference");
+          yield typ;
         }
         default -> {
+          log("UNEXPECTED definition " + def.getClass().getCanonicalName());
+          yield def;
         }
-      }
-
-      return mapped;
-    });
+      });
 
     return ir.copy(ir.imports(), ir.exports(), mappedBindings, ir.location(), ir.passData(), ir.diagnostics(), ir.id());
   }
@@ -121,7 +118,8 @@ public final class TypeInference implements IRPass {
       case Case.Expr caseExpr -> {
         var newScrutinee = analyzeExpression(caseExpr.scrutinee(), inlineContext, localBindingsTyping);
         List<Case.Branch> newBranches = CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream().map((branch) -> {
-          // TODO we probably need to copy localBindingsTyping here, to ensure independent typing of branches
+          // TODO once we will be implementing type equality constraints*, we will need to copy localBindingsTyping here, to ensure independent typing of branches
+          //  (*) (case x of _ : Integer -> e) ==> x : Integer within e
           var myBranchLocalBindingsTyping = localBindingsTyping;
           registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
           var newExpression = analyzeExpression(branch.expression(), inlineContext, myBranchLocalBindingsTyping);
@@ -443,6 +441,13 @@ public final class TypeInference implements IRPass {
    * to a default unknown type, but we may at least infer the minimum arity of the function.
    */
   private InferredType buildLambdaType(Function.Lambda f) {
+    boolean hasAnyDefaults = f.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
+    if (hasAnyDefaults) {
+      // Inferring function types with default arguments is not supported yet.
+      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be FORCEd
+      return null;
+    }
+
     scala.collection.immutable.List<TypeRepresentation> argTypesScala =
         f.arguments()
             .filter((arg) -> !(arg.name() instanceof Name.Self))
@@ -614,7 +619,9 @@ public final class TypeInference implements IRPass {
 
     if (expected instanceof TypeRepresentation.AtomType && provided instanceof TypeRepresentation.AtomType) {
       // If both are atom types, but they were not == above, that means they are not compatible.
-      return TypeCompatibility.NEVER_COMPATIBLE;
+      // TODO we have to check if there might be a conversion in the scope, see `noTypeErrorIfConversionExists` test
+      // return TypeCompatibility.NEVER_COMPATIBLE;
+      return TypeCompatibility.UNKNOWN;
     }
 
     if (isFunctionLike(expected) != isFunctionLike(provided)) {
