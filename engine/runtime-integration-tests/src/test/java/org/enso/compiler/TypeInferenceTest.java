@@ -758,6 +758,36 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals("valid conversion should ensure there is no type error", List.of(), getDescendantsDiagnostics(y.expression()));
   }
 
+  @Test
+  public void typeErrorFunctionToObject() throws Exception {
+    final URI uri = new URI("memory://typeErrorFunctionToObject.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                    
+                foo =
+                    f x = x
+                    y = (f : My_Type)
+                    g (x : My_Type) -> My_Type = x
+                    z = (g : My_Type)
+                    [y, z]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var y = findAssignment(foo, "y");
+    var typeError1 = new Warning.TypeMismatch(y.expression().location(), "My_Type", "(Any -> Any)");
+    assertEquals(List.of(typeError1), getDescendantsDiagnostics(y.expression()));
+
+    var z = findAssignment(foo, "z");
+    var typeError2 = new Warning.TypeMismatch(z.expression().location(), "My_Type", "(My_Type -> My_Type)");
+    assertEquals(List.of(typeError2), getDescendantsDiagnostics(z.expression()));
+  }
+
   @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorInLocalCall() throws Exception {
