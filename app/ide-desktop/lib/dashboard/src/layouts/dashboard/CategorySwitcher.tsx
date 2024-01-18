@@ -40,12 +40,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     return (
         <button
             disabled={disabled}
+            title={`Go To ${name}`}
             className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-frame-selected transition-colors ${
                 active ? 'bg-frame-selected' : 'text-not-selected'
             } ${disabled ? '' : 'hover:text-primary hover:bg-frame-selected hover:opacity-100'} ${
                 !active && disabled ? 'cursor-not-allowed' : ''
             }`}
             onClick={onClick}
+            // Required because `dragover` does not fire on `mouseenter`.
+            onDragEnter={onDragOver}
             onDragOver={onDragOver}
             onDrop={onDrop}
         >
@@ -136,7 +139,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                                         category === Category.trash
                                             ? AssetEventType.restore
                                             : AssetEventType.delete,
-                                    ids: new Set(payload.map(item => item.asset.id)),
+                                    ids: new Set(payload.map(item => item.key)),
                                 })
                             }
                         }

@@ -605,6 +605,7 @@ export default function AssetRow(props: AssetRowProps) {
                                     }, DRAG_EXPAND_DELAY_MS)
                                 }
                                 // Required because `dragover` does not fire on `mouseenter`.
+                                props.onDragOver?.(event)
                                 onDragOver(event)
                             }}
                             onDragOver={event => {

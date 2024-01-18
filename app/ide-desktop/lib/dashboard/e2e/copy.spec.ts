@@ -78,9 +78,9 @@ test.test('move (drag)', async ({ page }) => {
     const assetRows = actions.locateAssetRows(page)
 
     await actions.locateNewFolderIcon(page).click()
-    // Assets: [1: Folder 1]
+    // Assets: [0: Folder 1]
     await actions.locateNewFolderIcon(page).click()
-    // Assets: [1: Folder 2, 2: Folder 1]
+    // Assets: [0: Folder 2, 1: Folder 1]
     await assetRows.nth(0).dragTo(assetRows.nth(1))
     // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(2)
@@ -89,6 +89,25 @@ test.test('move (drag)', async ({ page }) => {
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+})
+
+test.test('move to trash', async ({ page }) => {
+    const assetRows = actions.locateAssetRows(page)
+
+    await actions.locateNewFolderIcon(page).click()
+    await actions.locateNewFolderIcon(page).click()
+    await page.keyboard.down(await actions.modModifier(page))
+    await assetRows.nth(0).click()
+    await assetRows.nth(1).click()
+    await assetRows.nth(0).dragTo(actions.locateTrashCategory(page))
+    await page.keyboard.up(await actions.modModifier(page))
+    await actions.expectPlaceholderRow(page)
+    await actions.locateTrashCategory(page).click()
+    await test.expect(assetRows).toHaveCount(2)
+    await test.expect(assetRows.nth(0)).toBeVisible()
+    await test.expect(assetRows.nth(0)).toHaveText(/^New_Folder_1/)
+    await test.expect(assetRows.nth(1)).toBeVisible()
+    await test.expect(assetRows.nth(1)).toHaveText(/^New_Folder_2/)
 })
 
 test.test('move (keyboard)', async ({ page }) => {

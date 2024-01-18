@@ -193,6 +193,41 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
     return page.getByTestId('asset-label')
 }
 
+/** Find a toggle for the "Labels" column (if any) on the current page. */
+export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
+    return page.getByAltText(/^(?:Show|Hide) Labels$/)
+}
+
+/** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
+export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
+    return page.getByAltText(/^(?:Show|Hide) Accessed by projects$/)
+}
+
+/** Find a toggle for the "Accessed data" column (if any) on the current page. */
+export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
+    return page.getByAltText(/^(?:Show|Hide) Accessed data$/)
+}
+
+/** Find a toggle for the "Docs" column (if any) on the current page. */
+export function locateDocsColumnToggle(page: test.Locator | test.Page) {
+    return page.getByAltText(/^(?:Show|Hide) Docs$/)
+}
+
+/** Find a button for the "Recent" category (if any) on the current page. */
+export function locateRecentCategory(page: test.Locator | test.Page) {
+    return page.getByTitle('Go To Recent')
+}
+
+/** Find a button for the "Home" category (if any) on the current page. */
+export function locateHomeCategory(page: test.Locator | test.Page) {
+    return page.getByTitle('Go To Homoe')
+}
+
+/** Find a button for the "Trash" category (if any) on the current page. */
+export function locateTrashCategory(page: test.Locator | test.Page) {
+    return page.getByTitle('Go To Trash')
+}
+
 // === Context menu buttons ===
 
 /** Find an "open" button (if any) on the current page. */
