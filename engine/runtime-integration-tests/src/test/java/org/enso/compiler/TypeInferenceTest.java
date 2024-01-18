@@ -649,6 +649,31 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   @Test
+  public void noTypeErrorIfConversionExists() throws Exception {
+    final URI uri = new URI("memory://noTypeErrorIfConversionExists.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                Other_type.from (that : My_Type) = Other_Type.Value that.v+1000
+                foo =
+                    x = My_Type.Value 12
+                    y = (x : Other_Type)
+                    y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var y = findAssignment(foo, "y");
+    assertEquals("valid conversion should ensure there is no type error", List.of(), getDescendantsDiagnostics(y.expression()));
+  }
+
+  @Test
   public void typeErrorInLocalCall() throws Exception {
     final URI uri = new URI("memory://typeErrorInLocalCall.enso");
     final Source src =
