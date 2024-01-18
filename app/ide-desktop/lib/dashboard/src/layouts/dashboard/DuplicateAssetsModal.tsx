@@ -21,6 +21,9 @@ import Modal from '#/components/Modal'
 const pluralizeFile = string.makePluralize('file', 'files')
 // This is a function, even though it does not look like one.
 // eslint-disable-next-line no-restricted-syntax
+const pluralizeFileUppercase = string.makePluralize('File', 'Files')
+// This is a function, even though it does not look like one.
+// eslint-disable-next-line no-restricted-syntax
 const pluralizeProject = string.makePluralize('project', 'projects')
 
 // =============
@@ -64,9 +67,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     const { dispatchAssetEvent, dispatchAssetListEvent } = props
     const { siblingFileNames: siblingFileNamesRaw } = props
     const { siblingProjectNames: siblingProjectNamesRaw } = props
-    const { nonConflictingCount, doUploadNonConflicting: doUploadNonConflictingRaw } = props
+    const { nonConflictingCount, doUploadNonConflicting } = props
     const { unsetModal } = modalProvider.useSetModal()
-    const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
     const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
     const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
     const siblingFileNames = React.useRef(new Set<string>())
@@ -83,13 +85,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         otherProjectsCount === 0
             ? ''
             : `and ${otherProjectsCount} other ${pluralizeProject(otherProjectsCount)}`
-
-    const doUploadNonConflicting = React.useCallback(() => {
-        if (!didUploadNonConflicting) {
-            doUploadNonConflictingRaw()
-            setDidUploadNonConflicting(true)
-        }
-    }, [didUploadNonConflicting, doUploadNonConflictingRaw])
 
     React.useEffect(() => {
         for (const name of siblingFileNamesRaw) {
@@ -187,6 +182,21 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 <h1 className="relative text-sm font-semibold">
                     Duplicate Files and Projects Found
                 </h1>
+                {nonConflictingCount > 0 && (
+                    <div className="relative flex flex-col gap-0.5">
+                        <span>
+                            {nonConflictingCount} {pluralizeFile(nonConflictingCount)} without
+                            conflicts
+                        </span>
+                        <button
+                            type="button"
+                            className="relative self-start hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                            onClick={doUploadNonConflicting}
+                        >
+                            Upload
+                        </button>
+                    </div>
+                )}
                 {firstConflict && (
                     <>
                         <div className="flex flex-col">
@@ -207,10 +217,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                         {count > 1 && (
                             <div className="relative flex gap-2">
                                 <button
-                                    type="submit"
+                                    type="button"
                                     className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                                     onClick={() => {
-                                        doUploadNonConflicting()
                                         doUpdate([firstConflict])
                                         switch (firstConflict.new.type) {
                                             case backendModule.AssetType.file: {
@@ -231,10 +240,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                                     Update
                                 </button>
                                 <button
-                                    type="submit"
+                                    type="button"
                                     className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                                     onClick={() => {
-                                        doUploadNonConflicting()
                                         doRename([firstConflict])
                                         switch (firstConflict.new.type) {
                                             case backendModule.AssetType.file: {
@@ -259,19 +267,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     </>
                 )}
                 {(otherFilesText !== '' || otherProjectsText !== '' || nonConflictingCount > 0) && (
-                    <div className="relative flex flex-col">
-                        <span>{[otherFilesText, otherProjectsText].join(' ')}</span>
-                        {nonConflictingCount > 0 && (
-                            <span>
-                                and {nonConflictingCount} {pluralizeFile(nonConflictingCount)}{' '}
-                                without conflicts
-                            </span>
-                        )}
-                    </div>
+                    <span className="relative">
+                        {[otherFilesText, otherProjectsText].join(' ')}
+                    </span>
                 )}
                 <div className="relative flex gap-2">
                     <button
-                        type="submit"
+                        type="button"
                         className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                         onClick={() => {
                             unsetModal()
@@ -282,7 +284,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                         {count === 1 ? 'Update' : 'Update All'}
                     </button>
                     <button
-                        type="submit"
+                        type="button"
                         className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                         onClick={() => {
                             unsetModal()
