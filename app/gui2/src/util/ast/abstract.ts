@@ -2,11 +2,9 @@ import * as RawAst from '@/generated/ast'
 import { assert, assertEqual, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
-import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
-import { createIterator, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -68,12 +66,14 @@ export function normalize(rootIn: Ast): Ast {
 }
 */
 
-export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; node: T }
+export type NodeChild<T = SyncAstId | Token> = { whitespace?: string | undefined; node: T }
 
 declare const brandAstId: unique symbol
 declare const brandTokenId: unique symbol
+declare const brandSyncAstId: unique symbol
 export type AstId = ExprId & { [brandAstId]: never }
 export type TokenId = ExprId & { [brandTokenId]: never }
+export type SyncAstId = string & { [brandSyncAstId]: never }
 
 function newAstId(): AstId {
   return random.uuidv4() as AstId
@@ -81,13 +81,15 @@ function newAstId(): AstId {
 function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
+function newSyncId(type: string): SyncAstId {
+  return `${type}#${random.uint53()}` as SyncAstId
+}
 // Cast an ID which may be a tree or a token to a tree ID.
 export function asNodeId(expr: ExprId): AstId {
   return expr as AstId
 }
 
 export class Token {
-  leadingSpace: string | undefined
   readonly exprId: TokenId
   code_: string
   tokenType_: RawAst.Token.Type | undefined
@@ -172,175 +174,138 @@ function setParent(module: Module, parent: AstId, ...children: (NodeChild | null
 
 ////////////////////////////////////////////////////////
 
-export interface IModule {
-  baseObject(type: string, id?: AstId): FixedMap<AstFields>
-  getAst(id: AstId): Ast
-  getAst(id: AstId | null): Ast | null
-  getAst(id: AstId | null): Ast | null
-  getExtended(id: AstId): RawAstExtended | undefined
-  edit(): Module
-  has(id: AstId): boolean
-}
-class Module implements IModule {
-  private readonly nodes: Map<AstId, Map<string, unknown>>
+class Module {
+  private readonly nodes: Map<SyncAstId, Map<string, unknown>>
   spans: Map<AstId, SourceRange> | null
 
-  constructor(nodes: Map<AstId, Map<string, unknown>>, spans: Map<AstId, SourceRange> | null) {
+  /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
+  find(ast: Ast) {
+    return this.tryGet(syncId(ast))
+  }
+
+  edit(): Module {
+    throw new Error('TODO')
+  }
+
+  static SyncRoot() {
+    // TODO: YJs
+    return new this(new Map(), null)
+  }
+
+  static Transient() {
+    return new this(new Map(), null)
+  }
+
+  static Observable() {
+    return new this(reactive(new Map()), reactive(new Map()))
+  }
+
+  constructor(nodes: Map<SyncAstId, Map<string, unknown>>, spans: Map<AstId, SourceRange> | null) {
     this.nodes = nodes
     this.spans = spans
   }
 
-  baseObject(type: string, id?: AstId): FixedMap<AstFields> {
-    const map = new Map<string, unknown>() as FixedMap<{}>
-    return setAll(map, {
-      id: id ?? newAstId(),
+  /** @internal */
+  baseObject(type: string, exprId?: AstId): FixedMap<AstFields> {
+    const map = new Map<string, unknown>() as unknown as FixedMap<{}>
+    const id = newSyncId(type)
+    const fields = setAll(map, {
+      id,
+      exprId: exprId ?? newAstId(),
       type: type,
       parent: null,
     })
+    this.nodes.set(id, fields as any)
+    return fields
   }
 
-  get(id: AstId): Ast
-  get(id: AstId | null): Ast | null
-  get(id: AstId | null): Ast | null {
+  /** @internal */
+  get(id: SyncAstId): Ast
+  get(id: SyncAstId | null): Ast | null
+  get(id: SyncAstId | null): Ast | null {
+    if (!id) return null
+    const ast = this.tryGet(id)
+    assert(ast !== undefined)
+    return ast
+  }
+
+  /** @internal */
+  tryGet(id: SyncAstId): Ast | undefined
+  tryGet(id: SyncAstId | null): Ast | null | undefined
+  tryGet(id: SyncAstId | null): Ast | null | undefined {
+    if (!id) return null
     const nodeData = this.nodes.get(id)
-    assert(nodeData !== undefined)
-    const fields = nodeData as FixedMap<any>
-    const type = fields.get('type')
-    switch (type) {
-      case 'App':
-        return new App(this, fields)
-      case 'UnaryOprApp':
-        return new UnaryOprApp(this, fields)
-      case 'OprApp':
-        return new OprApp(this, fields)
-      case 'Generic':
-        return new Generic(this, fields)
-      case 'Import':
-        return new Import(this, fields)
-      case 'TextLiteral':
-        return new TextLiteral(this, fields)
-      case 'Documented':
-        return new Documented(this, fields)
-      case 'Invalid':
-        return new Invalid(this, fields)
-      case 'Group':
-        return new Group(this, fields)
-      case 'NumericLiteral':
-        return new NumericLiteral(this, fields)
-      case 'Function':
-        return new Function(this, fields)
-      case 'Assignment':
-        return new Assignment(this, fields)
-      case 'BodyBlock':
-        return new BodyBlock(this, fields)
-      case 'Ident':
-        return new Ident(this, fields)
-      case 'Wildcard':
-        return new Wildcard(this, fields)
-    }
-    bail(`Invalid type: ${type}`)
-  }
-
-  /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
-  replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
-    const old = this.get(target)
-    const parentId = old.parentId
-    if (!parentId) return
-    const parent = this.get(parentId)
-    parent.replaceChild(target, replacement)
-    old.fields.set('parent', null)
-    return asOwned(old)
-  }
-
-  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
-   *  Returns the old value, with a new (unreferenced) ID.
-   */
-  replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
-    const old = this.get(target)
-    const replacement_ = this.splice(replacement, target)
-    replacement_.fields.set('parent', old?.parentId)
-    if (replacement.module === this && replacement.exprId !== target)
-      this.delete(replacement.exprId)
-    if (old) {
-      const old_ = this.splice(old, newAstId())
-      old_.fields.set('parent', null)
-      return asOwned(old_)
-    } else {
-      return undefined
-    }
-  }
-
-  /** Replace the parent of `target`'s reference to it with a reference to a new placeholder object. Return `target`. */
-  take(target: AstId): { node: Owned<Ast>; placeholder: Wildcard } | undefined {
-    const placeholder = Wildcard.new(this)
-    const node = this.replaceRef(target, placeholder)
-    if (!node) return
-    return { node, placeholder }
-  }
-
-  /** Replace the value assigned to the given ID with a placeholder.
-   *  Returns the removed value, with a new unreferenced ID.
-   **/
-  takeValue(target: AstId): Owned<Ast> | undefined {
-    return this.replaceValue(target, Wildcard.new(this))
-  }
-
-  takeAndReplaceRef<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
-    const taken = this.take(target)
-    assert(!!taken)
-    const replacement = wrap(taken.node)
-    this.replaceRef(taken.placeholder.exprId, replacement)
-    return replacement
-  }
-
-  takeAndReplaceValue<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
-    const taken = this.takeValue(target)
-    assert(!!taken)
-    const replacement = wrap(taken)
-    this.replaceValue(target, replacement)
-    return this.get(target)! as T
+    if (!nodeData) return undefined
+    const fields = nodeData as any
+    return materialize(this, fields)
   }
 
   /** Copy the given node and all its descendants into this module. */
-  splice(ast: Ast, id?: AstId): Ast
-  splice(ast: Ast | null, id?: AstId): Ast | null
-  splice(ast: Ast | undefined, id?: AstId): Ast | undefined
-  splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
-    if (!ast) return ast
-    const id_ = id ?? ast.exprId
-    if (ast.module === this && this.get(id_) === ast) return ast
-    const ast_ = ast.cloneWithId(this, id_)
-    for (const child of ast_.concreteChildren()) {
-      if (!(child.node instanceof Token)) {
-        const childInForeignModule = ast.module.get(child.node)
-        assert(childInForeignModule !== null)
-        const child_ = this.splice(childInForeignModule)
-        child_.fields.set('parent', id_)
-      }
-    }
-    this.nodes.set(id_, ast_.fields as any)
+  splice(ast: Ast): Ast
+  splice(ast: Ast | null): Ast | null
+  splice(ast: Ast | undefined): Ast | undefined
+  splice(ast: Ast | null | undefined): Ast | null | undefined {
+    if (!ast || ast.module === this) return ast
+    const id = newSyncId(typeName(ast))
+    const fields = ast.fields.clone()
+    fields.set('id', id)
+    const ast_ = materialize(this, fields)
+    ast_.importReferences(ast.module)
+    this.nodes.set(id, ast_.fields as any)
     return ast_
   }
 
-  spliceShallow(ast: Ast): Ast {
-    const cloned = ast.cloneWithId(this, ast.exprId)
-    this.nodes.set(ast.exprId, cloned.fields as any)
-    return cloned
-  }
-
-  delete(id: AstId) {
+  delete(id: SyncAstId) {
     this.nodes.delete(id)
   }
 
-  has(id: AstId) {
+  has(id: SyncAstId) {
     return this.nodes.has(id)
   }
+}
+
+function materialize(module: Module, fields: FixedMap<any>): Ast {
+  const type = fields.get('type')
+  switch (type) {
+    case 'App':
+      return new App(module, fields)
+    case 'UnaryOprApp':
+      return new UnaryOprApp(module, fields)
+    case 'OprApp':
+      return new OprApp(module, fields)
+    case 'Generic':
+      return new Generic(module, fields)
+    case 'Import':
+      return new Import(module, fields)
+    case 'TextLiteral':
+      return new TextLiteral(module, fields)
+    case 'Documented':
+      return new Documented(module, fields)
+    case 'Invalid':
+      return new Invalid(module, fields)
+    case 'Group':
+      return new Group(module, fields)
+    case 'NumericLiteral':
+      return new NumericLiteral(module, fields)
+    case 'Function':
+      return new Function(module, fields)
+    case 'Assignment':
+      return new Assignment(module, fields)
+    case 'BodyBlock':
+      return new BodyBlock(module, fields)
+    case 'Ident':
+      return new Ident(module, fields)
+    case 'Wildcard':
+      return new Wildcard(module, fields)
+  }
+  bail(`Invalid type: ${type}`)
 }
 
 type FixedMap<Fields> = {
   get<Key extends string & keyof Fields>(key: Key): Fields[Key]
   set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
   entries(): IterableIterator<readonly [string, unknown]>
+  clone(): FixedMap<Fields>
 }
 
 function getAll<Fields extends object>(map: FixedMap<Fields>): Fields {
@@ -360,63 +325,100 @@ function setAll<Fields1, Fields2 extends object>(
   return map_
 }
 
+type Removed<T> = { node: Owned<T>; placeholder: Wildcard }
+
 type AstFields = {
-  id: AstId
+  id: SyncAstId
+  exprId: AstId
   type: string
-  parent: AstId | null
+  parent: SyncAstId | null
 }
+function parentId(ast: Ast): SyncAstId | null {
+  return ast.fields.get('parent')
+}
+function syncId(ast: Ast): SyncAstId {
+  return ast.fields.get('id')
+}
+function typeName(ast: Ast): string {
+  return ast.fields.get('type')
+}
+
 export abstract class Ast {
   readonly module: Module
+  /** @internal */
   readonly fields: FixedMap<AstFields>
 
   get exprId(): AstId {
-    return this.fields.get('id')
-  }
-
-  get parentId(): AstId | null {
-    return this.fields.get('parent')
+    return this.fields.get('exprId')
   }
 
   /**
-   * Return whether `this` and `other` are the same object.
-   * This is true if and only if they are in the same module and have the same `exprId`.
-   * If true, changes to either will be immediately visible in the other.
+   * Return whether `this` and `other` are the same object. If true, changes to either will be immediately visible in the other.
    *
-   * NOTE: This method should be used in place of `===`.
+   * NOTE: This method should be used in place of `===`. Distinct JS objects may be the same logical object.
    */
   is<T extends Ast>(other: T): boolean {
     return this.fields === other.fields
   }
 
-  /** Returns child subtrees, including information about the whitespace between them. */
-  abstract concreteChildren(): IterableIterator<NodeChild>
-  abstract replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>): void
-
-  protected constructor(module: Module, fields: FixedMap<AstFields>) {
-    this.module = module
-    this.fields = fields
+  /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
+  replace<T extends Ast>(replacement: Owned<T>): Owned<typeof this> {
+    const parent = this.module.get(parentId(this))
+    assert(parent !== null)
+    parent.replaceChild(this.syncId, replacement)
+    this.fields.set('parent', null)
+    return asOwned(this)
   }
 
-  protected claimChild<T extends Ast>(child: Owned<T>): AstId
-  protected claimChild<T extends Ast>(child: Owned<T> | null): AstId | null
-  protected claimChild<T extends Ast>(child: Owned<T> | null): AstId | null {
-    return child ? claimChild(this.module, child, this.exprId) : null
+  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
+   *  Returns the old value, with a new (unreferenced) ID.
+   */
+  replaceValue<T extends Ast>(replacement: Owned<T>): Owned<typeof this> {
+    const old = this.replace(replacement)
+    replacement.fields.set('exprId', old.exprId)
+    old.fields.set('exprId', newAstId())
+    return old
   }
 
-  ////////////////////
-
-  serialize(): string {
-    return JSON.stringify(print(this.exprId, this.module))
+  /** Replace the parent of this object with a reference to a new placeholder object. Return the object, now parentless. */
+  take(): Removed<typeof this> {
+    const placeholder = Wildcard.new(this.module)
+    const node = this.replace(placeholder)
+    return { node, placeholder }
   }
 
-  static deserialize(serialized: string): Ast {
-    const parsed: SerializedPrintedSource = JSON.parse(serialized)
-    const nodes = new Map(unsafeEntries(parsed.info.nodes))
-    const tokens = new Map(unsafeEntries(parsed.info.tokens))
-    const tokensOut = new Map()
-    const module = Module.Transient()
-    const tree = parseEnso(parsed.code)
-    return abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
+  takeIfParented<T extends Ast>(): Owned<typeof this> {
+    const parent = parentId(this)
+    if (parent) {
+      const parentAst = this.module.get(parent)
+      const placeholder = Wildcard.new(this.module)
+      parentAst.replaceChild(this.syncId, placeholder)
+      this.fields.set('parent', null)
+    }
+    return asOwned(this)
+  }
+
+  /** Replace the value assigned to the given ID with a placeholder.
+   *  Returns the removed value, with a new unreferenced ID.
+   **/
+  takeValue(): Removed<typeof this> {
+    const placeholder = Wildcard.new(this.module)
+    const node = this.replaceValue(placeholder)
+    return { node, placeholder }
+  }
+
+  takeAndReplace<T extends Ast>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+    const taken = this.take()
+    const replacement = wrap(taken.node)
+    taken.placeholder.replace(replacement)
+    return replacement
+  }
+
+  takeAndReplaceValue<T extends Ast>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+    const taken = this.takeValue()
+    const replacement = wrap(taken.node)
+    taken.placeholder.replaceValue(replacement)
+    return replacement
   }
 
   /** Return this node's span, if it belongs to a module with an associated span map. */
@@ -424,30 +426,13 @@ export abstract class Ast {
     return this.module.spans?.get(this.exprId)
   }
 
-  /** Returns child subtrees, without information about the whitespace between them. */
-  *children(): IterableIterator<Ast | Token> {
-    for (const child of this.concreteChildren()) {
-      if (child.node instanceof Token) {
-        yield child.node
-      } else {
-        const node = this.module.get(child.node)
-        if (node) yield node
-      }
-    }
-  }
-
   innerExpression(): Ast {
     // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
     return this
   }
 
-  code(module?: Module): string {
-    return print(this.exprId, module ?? this.module).code
-  }
-
-  typeName(): string | undefined {
-    if (this.treeType === undefined) return undefined
-    return RawAst.Tree.typeNames[this.treeType]
+  code(): string {
+    return print(this).code
   }
 
   /** Parse the input as a block. */
@@ -468,7 +453,8 @@ export abstract class Ast {
     const ast = Ast.parseBlock(source, module_)
     const [expr] = ast.statements()
     if (!expr) return ast
-    if (expr.parentId) module_.nodes.delete(expr.parentId)
+    const parent = parentId(expr)
+    if (parent) module_.delete(parent)
     expr.fields.set('parent', null)
     return asOwned(expr)
   }
@@ -488,12 +474,10 @@ export abstract class Ast {
     info: InfoMap,
     offset: number,
     parentIndent: string | null,
-    moduleOverride?: Module | undefined,
   ): string {
-    const module_ = moduleOverride ?? this.module
     let code = ''
     for (const child of this.concreteChildren()) {
-      if (!(child.node instanceof Token) && module_.get(child.node) === null) continue
+      if (!(child.node instanceof Token) && this.module.get(child.node) === null) continue
       if (child.whitespace != null) {
         code += child.whitespace
       } else if (code.length != 0) {
@@ -506,69 +490,116 @@ export abstract class Ast {
         info.tokens.set(span, child.node.exprId)
         code += tokenCode
       } else {
-        const childNode = module_.get(child.node)
+        const childNode = this.module.get(child.node)
         assert(childNode != null)
-        code += childNode.printSubtree(info, offset + code.length, parentIndent, moduleOverride)
+        code += childNode.printSubtree(info, offset + code.length, parentIndent)
         // Extra structural validation.
-        assertEqual(childNode.exprId, child.node)
-        if (childNode.parentId !== this.exprId) {
-          console.error(`Inconsistent parent pointer (expected ${this.exprId})`, childNode)
+        assertEqual(syncId(childNode), child.node)
+        if (parentId(childNode) !== this.syncId) {
+          console.error(`Inconsistent parent pointer (expected ${this.syncId})`, childNode)
         }
-        assertEqual(childNode.parentId, this.exprId)
+        assertEqual(parentId(childNode), this.syncId)
       }
     }
-    const span = nodeKey(offset, code.length, this.treeType)
+    const span = nodeKey(offset, code.length)
     const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
     infos.unshift(this.exprId)
     return code
   }
 
-  /** Return a copy of this node, with the specified `module` and `exprId` properties.
-   *
-   *  The node's owned data is deep-copied, although note that child subtrees are stored as IDs,
-   *  so a full deep copy requires recursively cloning child nodes.
+  serialize(): string {
+    return JSON.stringify(print(this))
+  }
+
+  static deserialize(serialized: string): Ast {
+    const parsed: SerializedPrintedSource = JSON.parse(serialized)
+    const nodes = new Map(unsafeEntries(parsed.info.nodes))
+    const tokens = new Map(unsafeEntries(parsed.info.tokens))
+    const tokensOut = new Map()
+    const module = Module.Transient()
+    const tree = parseEnso(parsed.code)
+    return abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
+  }
+
+  /** Returns child subtrees, without information about the whitespace between them. */
+  *children(): IterableIterator<Ast | Token> {
+    for (const child of this.concreteChildren()) {
+      if (child.node instanceof Token) {
+        yield child.node
+      } else {
+        const node = this.module.get(child.node)
+        if (node) yield node
+      }
+    }
+  }
+
+  ////////////////////
+
+  protected constructor(module: Module, fields: FixedMap<AstFields>) {
+    this.module = module
+    this.fields = fields
+  }
+
+  /** @internal */
+  importReferences(module: Module) {
+    for (const child of this.concreteChildren()) {
+      if (!(child.node instanceof Token)) {
+        const childInForeignModule = module.get(child.node)
+        assert(childInForeignModule !== null)
+        this.replaceChild(child.node, asOwned(childInForeignModule))
+      }
+    }
+  }
+
+  /** @internal
+   *  Returns child subtrees, including information about the whitespace between them.
    */
-  cloneWithId(module: Module, exprId: AstId): this {
-    const cloned = clone(this)
-    // No one else has a reference to this object, so we can ignore `readonly` and mutate it.
-    Object.assign(cloned, { module, exprId })
-    return cloned
+  abstract concreteChildren(): IterableIterator<NodeChild>
+
+  protected abstract replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>): void
+
+  protected claimChild<T extends Ast>(child: Owned<T>): SyncAstId
+  protected claimChild<T extends Ast>(child: Owned<T> | null): SyncAstId | null
+  protected claimChild<T extends Ast>(child: Owned<T> | null): SyncAstId | null {
+    return child ? claimChild(this.module, child, this.syncId) : null
+  }
+
+  protected get syncId() {
+    return syncId(this)
   }
 }
 
-function claimChild(module: Module, child: Owned<Ast>, parent: AstId): AstId {
-  if (child.module !== module) {
-    throw new Error('TODO')
-  }
-  child.fields.set('parent', parent)
-  return child.exprId
+function claimChild<T extends Ast>(module: Module, child: Owned<T>, parent: SyncAstId): SyncAstId {
+  const child_ = module.splice(child)
+  child_.fields.set('parent', parent)
+  return syncId(child_)
 }
 
 function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast>>,
-  parent: AstId,
-): NodeChild<AstId>
+  parent: SyncAstId,
+): NodeChild<SyncAstId>
 function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast>> | null,
-  parent: AstId,
-): NodeChild<AstId> | null
+  parent: SyncAstId,
+): NodeChild<SyncAstId> | null
 function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast> | Token>,
-  parent: AstId,
-): NodeChild<AstId | Token>
+  parent: SyncAstId,
+): NodeChild<SyncAstId | Token>
 function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast> | Token> | null,
-  parent: AstId,
-): NodeChild<AstId | Token> | null
+  parent: SyncAstId,
+): NodeChild<SyncAstId | Token> | null
 function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast> | Token> | null,
-  parent: AstId,
-): NodeChild<AstId | Token> | null {
+  parent: SyncAstId,
+): NodeChild<SyncAstId | Token> | null {
   if (!child) return null
   if (child.node instanceof Token) return child as NodeChild<Token>
   return { ...child, node: claimChild(module, child.node, parent) }
@@ -595,10 +626,10 @@ function nameSpecification(
 }
 
 type AppFields = {
-  function: NodeChild<AstId>
+  function: NodeChild<SyncAstId>
   parens: { open: NodeChild<Token>; close: NodeChild<Token> } | null
   nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | null
-  argument: NodeChild<AstId>
+  argument: NodeChild<SyncAstId>
 }
 export class App extends Ast {
   declare fields: FixedMap<AstFields & AppFields>
@@ -665,7 +696,7 @@ export class App extends Ast {
     if (parens) yield parens.close
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('function').node === target) {
       this.setFunction(replacement)
     } else if (this.fields.get('argument').node === target) {
@@ -676,7 +707,7 @@ export class App extends Ast {
 
 type UnaryOprAppFields = {
   operator: NodeChild<Token>
-  argument: NodeChild<AstId> | null
+  argument: NodeChild<SyncAstId> | null
 }
 export class UnaryOprApp extends Ast {
   declare fields: FixedMap<AstFields & UnaryOprAppFields>
@@ -717,7 +748,7 @@ export class UnaryOprApp extends Ast {
     if (argument) yield argument
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('argument')?.node === target) {
       this.setArgument(replacement)
     }
@@ -731,9 +762,9 @@ export class NegationOprApp extends UnaryOprApp {
 }
 
 type OprAppFields = {
-  lhs: NodeChild<AstId> | null
+  lhs: NodeChild<SyncAstId> | null
   operators: NodeChild<Token>[]
-  rhs: NodeChild<AstId> | null
+  rhs: NodeChild<SyncAstId> | null
 }
 export class OprApp extends Ast {
   declare fields: FixedMap<AstFields & OprAppFields>
@@ -784,7 +815,7 @@ export class OprApp extends Ast {
     if (rhs) yield rhs
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('lhs')?.node === target) {
       this.setLhs(replacement)
     } else if (this.fields.get('rhs')?.node === target) {
@@ -833,7 +864,7 @@ export class Generic extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, children: NodeChild<Owned<Ast> | Token>[], id?: AstId | undefined, id?: AstId | undefined) {
+  static concrete(module: Module, children: NodeChild<Owned<Ast> | Token>[], id?: AstId | undefined) {
     const base = module.baseObject('Generic', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
@@ -846,7 +877,7 @@ export class Generic extends Ast {
     return this.fields.get('children')[Symbol.iterator]()
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const replacement_ = autospaced(this.claimChild(replacement))
     this.fields.set(
       'children',
@@ -855,21 +886,21 @@ export class Generic extends Ast {
   }
 }
 
-type RawMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
+type RawMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<SyncAstId> | null }
 type OwnedMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<Owned<Ast>> | null }
-function multiSegmentAppSegment(header: string, body: Owned<Ast>): OwnedMultiSegmentAppSegment
-function multiSegmentAppSegment(header: string, body: Owned<Ast> | null): OwnedMultiSegmentAppSegment | null
-function multiSegmentAppSegment(header: string, body: Owned<Ast> | null): OwnedMultiSegmentAppSegment | null {
+function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T>): OwnedMultiSegmentAppSegment
+function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T> | null): OwnedMultiSegmentAppSegment | null
+function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T> | null): OwnedMultiSegmentAppSegment | null {
   return {
     header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-    body: spaced(body),
+    body: spaced(body ? body as any : null),
   }
 }
 
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: AstId): RawMultiSegmentAppSegment
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: AstId): RawMultiSegmentAppSegment
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: AstId): RawMultiSegmentAppSegment | null
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: AstId): RawMultiSegmentAppSegment | null {
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: SyncAstId): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: SyncAstId): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: SyncAstId): RawMultiSegmentAppSegment | null
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: SyncAstId): RawMultiSegmentAppSegment | null {
   if (!msas) return null
   return {
     ...msas,
@@ -913,14 +944,14 @@ export class Import extends Ast {
   private toRaw(msas: OwnedMultiSegmentAppSegment): RawMultiSegmentAppSegment
   private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null
   private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null {
-    return multiSegmentAppSegmentToRaw(this.module, msas, this.exprId)
+    return multiSegmentAppSegmentToRaw(this.module, msas, this.syncId)
   }
 
   setPolyglot<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('polyglot', this.toRaw(multiSegmentAppSegment('polyglot', value)))
+    this.fields.set('polyglot', value ? this.toRaw(multiSegmentAppSegment('polyglot', value)) : null)
   }
   setFrom<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('from', this.toRaw(multiSegmentAppSegment('from', value)))
+    this.fields.set('from', value ? this.toRaw(multiSegmentAppSegment('from', value)) : value)
   }
   setImport<T extends Ast>(value: Owned<T>) {
     this.fields.set('import', this.toRaw(multiSegmentAppSegment('import', value)))
@@ -1004,7 +1035,7 @@ export class Import extends Ast {
     yield* segment(hiding)
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const { polyglot, from, import: import_, as, hiding } = getAll(this.fields)
     ;(polyglot?.body?.node === target
       ? this.setPolyglot
@@ -1059,7 +1090,7 @@ export class TextLiteral extends Ast {
     if (close) yield close
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const replacement_ = autospaced(this.claimChild(replacement))
     this.fields.set(
       'elements',
@@ -1072,7 +1103,7 @@ type DocumentedFields = {
   open: NodeChild<Token> | null
   elements: NodeChild[]
   newlines: NodeChild<Token>[]
-  expression: NodeChild<AstId> | null
+  expression: NodeChild<SyncAstId> | null
 }
 export class Documented extends Ast {
   declare fields: FixedMap<AstFields & DocumentedFields>
@@ -1107,7 +1138,7 @@ export class Documented extends Ast {
     if (expression) yield expression
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('expression')?.node === target) {
       this.setExpression(replacement)
     } else {
@@ -1120,7 +1151,7 @@ export class Documented extends Ast {
   }
 }
 
-type InvalidFields = { expression: NodeChild<AstId> }
+type InvalidFields = { expression: NodeChild<SyncAstId> }
 export class Invalid extends Ast {
   declare fields: FixedMap<AstFields & InvalidFields>
   constructor(module: Module, fields: FixedMap<AstFields & InvalidFields>) {
@@ -1145,7 +1176,7 @@ export class Invalid extends Ast {
     yield this.fields.get('expression')
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     assertEqual(this.fields.get('expression').node, target)
     this.setExpression(replacement)
   }
@@ -1153,7 +1184,7 @@ export class Invalid extends Ast {
 
 type GroupFields = {
   open: NodeChild<Token> | null
-  expression: NodeChild<AstId> | null
+  expression: NodeChild<SyncAstId> | null
   close: NodeChild<Token> | null
 }
 export class Group extends Ast {
@@ -1183,7 +1214,7 @@ export class Group extends Ast {
     if (close) yield close
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     assertEqual(this.fields.get('expression')?.node, target)
     this.setExpression(replacement)
   }
@@ -1208,7 +1239,7 @@ export class NumericLiteral extends Ast {
     return this.fields.get('tokens')[Symbol.iterator]()
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
 
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
@@ -1220,7 +1251,7 @@ type OwnedArgumentDefinition = NodeChild<Owned<Ast> | Token>[]
 function argumentDefinitionsToRaw(
   module: Module,
   defs: OwnedArgumentDefinition[],
-  parent: AstId,
+  parent: SyncAstId,
 ): RawArgumentDefinition[] {
   return defs.map((def) =>
     def.map((part) => ({
@@ -1231,10 +1262,10 @@ function argumentDefinitionsToRaw(
 }
 
 type FunctionFields = {
-  name: NodeChild<AstId>
+  name: NodeChild<SyncAstId>
   argumentDefinitions: RawArgumentDefinition[]
   equals: NodeChild<Token>
-  body: NodeChild<AstId> | null
+  body: NodeChild<SyncAstId> | null
 }
 export class Function extends Ast {
   declare fields: FixedMap<AstFields & FunctionFields>
@@ -1265,7 +1296,7 @@ export class Function extends Ast {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
   setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
-    this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.exprId))
+    this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.syncId))
   }
 
   static concrete(
@@ -1338,7 +1369,7 @@ export class Function extends Ast {
     if (body) yield body
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     if (name.node === target) {
       this.setName(replacement)
@@ -1357,9 +1388,9 @@ export class Function extends Ast {
 }
 
 type AssignmentFields = {
-  pattern: NodeChild<AstId>
+  pattern: NodeChild<SyncAstId>
   equals: NodeChild<Token>
-  expression: NodeChild<AstId>
+  expression: NodeChild<SyncAstId>
 }
 export class Assignment extends Ast {
   declare fields: FixedMap<AstFields & AssignmentFields>
@@ -1405,7 +1436,7 @@ export class Assignment extends Ast {
     yield expression
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const { pattern, expression } = getAll(this.fields)
     if (pattern.node === target) {
       this.setPattern(replacement)
@@ -1452,11 +1483,11 @@ export class BodyBlock extends Ast {
 
   /** Insert the given statement(s) starting at the specified line index. */
   insert(module: Module, index: number, ...statements: Owned<Ast>[]) {
-    const before = this.lines.slice(0, index)
+    const before = this.fields.get('lines').slice(0, index)
     const insertions = statements.map((statement) => ({
-      expression: unspaced(claimChild(module, statement, this.exprId)),
+      expression: unspaced(this.claimChild(statement)),
     }))
-    const after = this.lines.slice(index)
+    const after = this.fields.get('lines').slice(index)
     throw new Error('TODO')
     //const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
     //edited.parent = this.parentId
@@ -1469,7 +1500,7 @@ export class BodyBlock extends Ast {
     }
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
     const replacement_ = this.claimChild(replacement)
     const updateLine = (line: RawBlockLine) => (line.expression?.node === target) ? { ...line, expression: { ...line.expression, node: replacement_ } } : line
     this.fields.set('lines', this.fields.get('lines').map(updateLine))
@@ -1500,12 +1531,12 @@ export class BodyBlock extends Ast {
         const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
         code += validIndent ? line.expression.whitespace : blockIndent
         const lineNode = this.module.get(line.expression.node)
-        assertEqual(lineNode.exprId, line.expression.node)
-        assertEqual(lineNode.parentId, this.exprId)
+        assertEqual(syncId(lineNode), line.expression.node)
+        assertEqual(parentId(lineNode), this.syncId)
         code += lineNode.printSubtree(info, offset + code.length, blockIndent)
       }
     }
-    const span = nodeKey(offset, code.length, this.treeType)
+    const span = nodeKey(offset, code.length)
     const infos = info.nodes.get(span)
     if (infos == null) {
       info.nodes.set(span, [this.exprId])
@@ -1521,7 +1552,7 @@ type Line<T> = {
   expression: NodeChild<T> | null
 }
 
-type RawBlockLine = Line<AstId>
+type RawBlockLine = Line<SyncAstId>
 type BlockLine = Line<Ast>
 type OwnedBlockLine = Line<Owned<Ast>>
 
@@ -1539,7 +1570,7 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
 }
 
 function ownedLineFromRaw(raw: RawBlockLine, module: Module): OwnedBlockLine {
-  const expression = raw.expression ? module.take(raw.expression.node)!.node : null
+  const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : null
   return {
     newline: raw.newline,
     expression: expression
@@ -1551,7 +1582,7 @@ function ownedLineFromRaw(raw: RawBlockLine, module: Module): OwnedBlockLine {
   }
 }
 
-function lineToRaw(line: OwnedBlockLine, module: Module, block: AstId): RawBlockLine {
+function lineToRaw(line: OwnedBlockLine, module: Module, block: SyncAstId): RawBlockLine {
   return {
     newline: line.newline,
     expression: line.expression
@@ -1593,7 +1624,7 @@ export class Ident extends Ast {
     yield this.fields.get('token')
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
 
 type WildcardFields = {
@@ -1624,7 +1655,7 @@ export class Wildcard extends Ast {
     yield this.fields.get('token')
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
 
 const mapping: Record<string, string> = {
@@ -1691,7 +1722,7 @@ function abstractTree(
   // All node types use this value in the same way to obtain the ID type,
   // but each node does so separately because we must pop the tree's span from the ID map
   // *after* processing children.
-  const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
+  const spanKey = nodeKey(codeStart, codeEnd - codeStart)
   let node: Owned<Ast>
   switch (tree.type) {
     case RawAst.Tree.Type.BodyBlock: {
@@ -1888,9 +1919,8 @@ declare const nodeKeyBrand: unique symbol
 type NodeKey = string & { [nodeKeyBrand]: never }
 declare const tokenKeyBrand: unique symbol
 type TokenKey = string & { [tokenKeyBrand]: never }
-function nodeKey(start: number, length: number, type: Opt<RawAst.Tree.Type>): NodeKey {
-  const type_ = type?.toString() ?? '?'
-  return `${start}:${length}:${type_}` as NodeKey
+function nodeKey(start: number, length: number): NodeKey {
+  return `${start}:${length}` as NodeKey
 }
 function tokenKey(start: number, length: number): TokenKey {
   return `${start}:${length}` as TokenKey
@@ -1927,13 +1957,13 @@ interface PrintedSource {
 }
 
 /** Return stringification with associated ID map. This is only exported for testing. */
-export function print(ast: AstId, module: Module): PrintedSource {
+export function print(ast: Ast): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
     tokensOut: new Map(),
   }
-  const code = module.get(ast)!.printSubtree(info, 0, null, module)
+  const code = ast.printSubtree(info, 0, null)
   return { info, code }
 }
 
@@ -1965,32 +1995,26 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
   ]
 }
 
-export function moduleMethodNames(module: Module): Set<string> {
+export function moduleMethodNames(topLevel: BodyBlock): Set<string> {
   const result = new Set<string>()
-  for (const node of module.iterAllNodes()) {
-    if (node instanceof Function && node.name) {
-      result.add(node.name.code())
+  for (const statement of topLevel.statements()) {
+    const inner = statement.innerExpression()
+    if (inner instanceof Function) {
+      result.add(inner.name.code())
     }
   }
   return result
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
-export function findModuleMethod(module: Module, name: string): Function | null {
-  for (const node of module.iterAllNodes()) {
-    if (node instanceof Function) {
-      if (node.name && node.name.code() === name) {
-        return node
-      }
+export function findModuleMethod(topLevel: BodyBlock, name: string): Function | null {
+  for (const statement of topLevel.statements()) {
+    const inner = statement.innerExpression()
+    if (inner instanceof Function && inner.name.code() === name) {
+      return inner
     }
   }
   return null
-}
-
-export function functionBlock(module: Module, name: string): BodyBlock | null {
-  const method = findModuleMethod(module, name)
-  if (!method || !(method.body instanceof BodyBlock)) return null
-  return method.body
 }
 
 export function parseTransitional(code: string, idMap: IdMap): Ast {
@@ -2022,7 +2046,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
       }
       astExtended.set(id, node)
       spans.set(id, node.span())
-      const key = nodeKey(start, length, node.inner.type)
+      const key = nodeKey(start, length)
       const ids = nodes.get(key)
       if (ids !== undefined) {
         ids.push(id)
@@ -2045,7 +2069,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     idMap.insertKnownId( ... )
   }
    */
-  const printed = print(newRoot.exprId, newRoot.module)
+  const printed = print(newRoot)
   for (const [key, ids] of printed.info.nodes) {
     const range = keyToRange(key)
     idMap.insertKnownId([range.start, range.end], ids[0]!)

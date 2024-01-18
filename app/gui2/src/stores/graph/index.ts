@@ -138,15 +138,15 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      methodAst.value = methodAstInModule(astModule)
+      methodAst.value = methodAstInModule(topLevel.value)
       if (methodAst.value) {
         currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
 
-  function methodAstInModule(mod: Module) {
-    return getExecutedMethodAst(mod, proj.executionContext.getStackTop(), db)
+  function methodAstInModule(topLevel: Ast.BodyBlock) {
+    return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
 
   useObserveYjs(metadata, (event) => {
@@ -222,7 +222,7 @@ export const useGraphStore = defineStore('graph', () => {
     const edit = astModule.edit()
     if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
-    const method = Ast.findModuleMethod(astModule, currentFunc)
+    const method = Ast.findModuleMethod(topLevel.value, currentFunc)
     if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
@@ -292,7 +292,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setExpressionContent(id: ExprId, content: string) {
-    setExpression(id, Ast.RawCode.new(content))
+    setExpression(id, Ast.parse(content))
   }
 
   function transact(fn: () => void) {
@@ -423,7 +423,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot commit edit: No module root.`)
       return
     }
-    const printed = Ast.print(root, edit)
+    const printed = Ast.print(edit.find(root))
     const module_ = proj.module
     if (!module_) return
     if (moduleDirty) {
@@ -472,7 +472,7 @@ export const useGraphStore = defineStore('graph', () => {
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: ExprId, targetNodeId: ExprId) {
     const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
     const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
-    const body = methodAstInModule(edit)?.body
+    const body = methodAstInModule(topLevel.value)?.body
     console.log('body', body)
     assert(sourceExpr != null)
     assert(targetExpr != null)
@@ -584,7 +584,7 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  astModule: Module,
+  topLevel: Ast.BodyBlock,
   executionStackTop: StackItem,
   db: GraphDb,
 ): Ast.Function | undefined {
@@ -593,7 +593,7 @@ function getExecutedMethodAst(
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
+      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
@@ -601,7 +601,7 @@ function getExecutedMethodAst(
       if (!info) return undefined
       const ptr = info.methodCall?.methodPointer
       if (!ptr) return undefined
-      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
+      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
     }
   }
 }

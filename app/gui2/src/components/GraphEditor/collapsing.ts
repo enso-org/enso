@@ -115,8 +115,8 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(module: Ast.Module, baseName: string): string {
-  const allIdentifiers = moduleMethodNames(module)
+function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: string): string {
+  const allIdentifiers = moduleMethodNames(topLevel)
   if (!allIdentifiers.has(baseName)) {
     return baseName
   }
@@ -152,13 +152,13 @@ export function performCollapse(
   db: GraphDb,
   currentMethodName: string,
 ): CollapsingResult {
-  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
+  const functionAst = Ast.findModuleMethod(topLevel, currentMethodName)
   if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
     throw new Error(`Expected a collapsable function, found ${functionAst}.`)
   }
   const functionBlock = functionAst.body
   const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
-  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
+  const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
