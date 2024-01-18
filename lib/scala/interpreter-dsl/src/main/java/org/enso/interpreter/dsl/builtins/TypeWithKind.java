@@ -43,7 +43,7 @@ public record TypeWithKind(String baseType, TypeKind kind) {
   private static final List<String> validGuestTypes =
       List.of(
           "org.enso.interpreter.runtime.data.EnsoObject",
-          "org.enso.interpreter.runtime.callable.atom.Atom",
+          "org.enso.interpreter.runtime.data.atom.Atom",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.data.hash.EnsoHashMap",
           "org.enso.interpreter.runtime.data.vector.Array",

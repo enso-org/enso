@@ -168,15 +168,14 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
 }
 
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
-type InputMatcherSymbol<T extends WidgetInput> = symbol & keyof T
-type InputMatcher<T extends WidgetInput> = InputMatcherSymbol<T> | InputMatcherFn<T>
+type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
 type InputTy<M> = M extends (infer T)[]
   ? InputTy<T>
   : M extends InputMatcherFn<infer T>
   ? T
-  : M extends symbol & keyof WidgetInput
-  ? WidgetInput & { [S in M]: Required<WidgetInput>[S] }
+  : M extends keyof WidgetInput
+  ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {

@@ -14,6 +14,7 @@ function transformChild(child: Ast.Ast | Ast.Token) {
   if (props.input.value instanceof Ast.PropertyAccess && child === props.input.value.lhs)
     childInput.forcePort = true
   if (
+    !(props.input.value instanceof Ast.PropertyAccess) &&
     props.input.value instanceof Ast.OprApp &&
     (child === props.input.value.rhs || child === props.input.value.lhs)
   )

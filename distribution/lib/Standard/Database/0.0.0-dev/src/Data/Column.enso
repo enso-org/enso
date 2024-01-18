@@ -84,7 +84,8 @@ type Column
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -1128,7 +1129,8 @@ type Column
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) = self.to_table.take range . at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.

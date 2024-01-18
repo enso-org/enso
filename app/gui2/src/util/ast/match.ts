@@ -1,3 +1,4 @@
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
 
@@ -44,7 +45,14 @@ export class Pattern {
     for (const matched of placeholders(ast, this.placeholder)) {
       const replacement = subtrees.shift()
       if (replacement === undefined) break
-      edit.get(replacement)!.parent = matched.parent
+      const replacementAst = edit.splice(edit.get(replacement))
+      if (replacementAst === null) {
+        console.error(
+          'Subtree ID provided to `instantiate` is not accessible in the `edit` module.',
+        )
+        continue
+      }
+      replacementAst.parent = matched.parent
       matched.ref.node = replacement
     }
     return ast

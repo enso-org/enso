@@ -196,9 +196,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deleteSelected() {
     graphStore.transact(() => {
-      for (const node of nodeSelection.selected) {
-        graphStore.deleteNode(node)
-      }
+      graphStore.deleteNodes([...nodeSelection.selected])
       nodeSelection.selected.clear()
     })
   },
@@ -275,7 +273,6 @@ const graphBindingsHandler = graphBindings.handler({
       const edit = module.edit()
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        module,
         edit,
         topLevel,
         graphStore.db,

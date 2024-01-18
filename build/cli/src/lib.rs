@@ -453,7 +453,15 @@ impl Processor {
                         ret
                     },
                     execute_benchmarks_once: true,
-                    check_enso_benchmarks: true,
+                    // Benchmarks are only checked on Linux because:
+                    // * they are then run only on Linux;
+                    // * checking takes time;
+                    // * this rather verifies the Enso code correctness which should not be platform
+                    //   specific.
+                    // Checking benchmarks on Windows has caused some CI issues, see
+                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
+                    // possible explanation.
+                    check_enso_benchmarks: TARGET_OS == OS::Linux,
                     verify_packages: true,
                     ..default()
                 };

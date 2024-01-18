@@ -6,6 +6,7 @@ import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
+import { createIterator, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -33,6 +34,8 @@ export interface Module {
   edit(): MutableModule
   apply(module: Module): void
   replace(editIn: Module): void
+  iterAllNodeIds(): IterableIterator<AstId>
+  iterAllNodes(): IterableIterator<Ast>
   root(): Module
 }
 
@@ -124,8 +127,48 @@ export class MutableModule implements Module {
     }
   }
 
+  iterAllNodeIds(): IterableIterator<AstId> {
+    const parentIter = this.base?.iterAllNodeIds()
+    let parentDone = parentIter == null
+    const nodeIter = this.nodes.entries()
+    const editedVisited = new Set()
+    return createIterator(() => {
+      for (;;) {
+        if (!parentDone) {
+          const result = parentIter?.next()
+          if (result?.done) parentDone = true
+          else if (result?.value) {
+            const id = result.value
+            const edited = this.nodes.get(id)
+            if (edited !== undefined) editedVisited.add(id)
+            if (edited === null) continue
+            return result
+          }
+        } else {
+          const next = nodeIter.next()
+          if (next.done === true) return next
+          const [id, ast] = next.value
+          if (ast !== null && !editedVisited.has(id)) {
+            return {
+              done: false,
+              value: id,
+            }
+          }
+        }
+      }
+    })
+  }
+
+  iterAllNodes(): IterableIterator<Ast> {
+    return mapIterator(this.iterAllNodeIds(), (id) => {
+      const node = this.get(id)
+      assert(node != null)
+      return node
+    })
+  }
+
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
-  replaceRef(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
+  replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
     if (!old || replacement.exprId === target) {
       return this.replaceValue(target, replacement)
@@ -153,7 +196,7 @@ export class MutableModule implements Module {
   /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
    *  Returns the old value, with a new (unreferenced) ID.
    */
-  replaceValue(target: AstId, replacement: Owned<Ast>): Owned<Ast> | undefined {
+  replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
     replacement.parent = old?.parent
     if (replacement.exprId !== target || replacement.module !== this) {
@@ -187,7 +230,7 @@ export class MutableModule implements Module {
     return this.replaceValue(target, Wildcard.new(this))
   }
 
-  takeAndReplaceRef(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
+  takeAndReplaceRef<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
     const taken = this.take(target)
     assert(!!taken)
     const replacement = wrap(taken.node)
@@ -195,12 +238,12 @@ export class MutableModule implements Module {
     return replacement
   }
 
-  takeAndReplaceValue(target: AstId, wrap: (x: Owned<Ast>) => Owned<Ast>): Ast {
+  takeAndReplaceValue<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
     const taken = this.takeValue(target)
     assert(!!taken)
     const replacement = wrap(taken)
     this.replaceValue(target, replacement)
-    return this.get(target)!
+    return this.get(target)! as T
   }
 
   /** Copy the given node and all its descendants into this module. */
@@ -986,39 +1029,33 @@ export class Function extends Ast {
   private readonly args_: FunctionArgument[]
   private readonly equals_: NodeChild<Token>
   private readonly body_: NodeChild<AstId> | null
-  // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
-  //  here and in `rawChildren` (and indirectly, `print`).
-  get name(): Ast | null {
-    return this.module.get(this.name_.node)
-  }
-  get body(): Ast | null {
-    return this.body_ ? this.module.get(this.body_.node) : null
-  }
-  *bodyExpressions(): IterableIterator<Ast> {
-    const body = this.body_ ? this.module.get(this.body_.node) : null
-    if (body instanceof BodyBlock) {
-      yield* body.statements()
-    } else if (body !== null) {
-      yield body
-    }
-  }
-  constructor(
+
+  /** @internal */
+  static new(
     module: MutableModule,
-    id: AstId | undefined,
-    name: NodeChild<AstId>,
+    name: Owned<Ast>,
     args: FunctionArgument[],
-    equals: NodeChild<Token>, // Edits (#8367): NodeChild<Tok> | undefined
-    body: NodeChild<AstId> | null,
-  ) {
-    super(module, id, RawAst.Tree.Type.Function)
-    this.name_ = name
-    this.args_ = args
-    this.equals_ = equals
-    this.body_ = body
-    setParent(module, this.exprId, ...this.concreteChildren())
+    body: Owned<Ast> | null,
+  ): Owned<Function> {
+    const id = newAstId()
+    return asOwned(
+      new Function(
+        module,
+        id,
+        unspaced(makeChild(module, name, id)),
+        args.map((arg) =>
+          arg.map((child) => ({
+            ...child,
+            node: child.node instanceof Ast ? makeChild(module, child.node, id) : child.node,
+          })),
+        ),
+        undefined,
+        body != null ? unspaced(makeChild(module, body, id)) : null,
+      ),
+    )
   }
 
-  static new(
+  static fromExprs(
     module: MutableModule,
     name: string,
     args: Ast[],
@@ -1035,6 +1072,46 @@ export class Function extends Ast {
     const ident = { node: Ident.new(module, name).exprId }
     const equals = { node: Token.new('=') }
     return new Function(module, id, ident, args_, equals, { node: body.exprId })
+  }
+
+  // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
+  //  here and in `rawChildren` (and indirectly, `print`).
+  get name(): Ast | null {
+    return this.module.get(this.name_.node)
+  }
+  get body(): Ast | null {
+    return this.body_ ? this.module.get(this.body_.node) : null
+  }
+
+  argNodes(): FunctionArgument[] {
+    return [...this.args_]
+  }
+
+  *bodyExpressions(): IterableIterator<Ast> {
+    const body = this.body_ ? this.module.get(this.body_.node) : null
+    if (body instanceof BodyBlock) {
+      yield* body.statements()
+    } else if (body !== null) {
+      yield body
+    }
+  }
+
+  /** @internal */
+  constructor(
+    module: MutableModule,
+    id: AstId | undefined,
+    name: NodeChild<AstId>,
+    args: FunctionArgument[],
+    equals: NodeChild<Token> | undefined, // Edits (#8367): NodeChild<Tok> | undefined
+    body: NodeChild<AstId> | null,
+  ) {
+    super(module, id, RawAst.Tree.Type.Function)
+    this.name_ = name
+    this.args_ = args
+    this.equals_ = equals ?? spaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator))
+
+    this.body_ = body
+    setParent(module, this.exprId, ...this.concreteChildren())
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1604,7 +1681,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
 
 export function moduleMethodNames(module: Module): Set<string> {
   const result = new Set<string>()
-  for (const node of module.raw.nodes.values()) {
+  for (const node of module.iterAllNodes()) {
     if (node instanceof Function && node.name) {
       result.add(node.name.code())
     }
@@ -1614,7 +1691,7 @@ export function moduleMethodNames(module: Module): Set<string> {
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
 export function findModuleMethod(module: Module, name: string): Function | null {
-  for (const node of module.raw.nodes.values()) {
+  for (const node of module.iterAllNodes()) {
     if (node instanceof Function) {
       if (node.name && node.name.code() === name) {
         return node
