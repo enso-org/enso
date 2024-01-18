@@ -70,7 +70,8 @@ jobs:
   enso-build-ci-gen-job-build-backend-macos:
     name: Build Backend (macos)
     runs-on:
-      - macos-latest
+      - self-hosted
+      - macOS
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -369,7 +370,8 @@ jobs:
   enso-build-ci-gen-job-new-gui-build-macos:
     name: New (Vue) GUI build (macos)
     runs-on:
-      - macos-latest
+      - self-hosted
+      - macOS
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -603,7 +605,8 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-macos
     runs-on:
-      - macos-latest
+      - self-hosted
+      - macOS
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
