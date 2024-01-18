@@ -101,10 +101,12 @@ abstract class IntegerNode extends Node {
    */
   @GenerateUncached
   abstract static class DoThatConversionNode extends Node {
+    @NeverDefault
     static DoThatConversionNode getUncached() {
       return IntegerNodeFactory.DoThatConversionNodeGen.getUncached();
     }
 
+    @NeverDefault
     static DoThatConversionNode create() {
       return IntegerNodeFactory.DoThatConversionNodeGen.create();
     }

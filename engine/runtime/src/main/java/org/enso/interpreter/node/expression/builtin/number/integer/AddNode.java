@@ -72,7 +72,13 @@ public abstract class AddNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, Object self, Object that) {
-    return super.doOther(frame, self, that);
+  Object doThatConversion(
+      VirtualFrame frame, Object self, Object that, @Cached DoThatConversionNode doThatNode) {
+    var result = doThatNode.executeThatConversion(frame, "+", self, that);
+    if (result == null) {
+      throw throwTypeErrorIfNotInt(self, that);
+    } else {
+      return result;
+    }
   }
 }
