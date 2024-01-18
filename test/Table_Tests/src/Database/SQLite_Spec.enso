@@ -23,12 +23,12 @@ import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-type Data
+type Test_Data
     Value ~connection
 
     setup create_connection_func =
         connection = create_connection_func Nothing
-        Data.Value connection
+        Test_Data.Value connection
 
 
 type Metadata_Data
@@ -77,7 +77,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
     table_builder = setup.table_builder
 
     suite_builder.group prefix+"Schemas and Databases" group_builder->
-        data = Data.setup create_connection_func
+        data = Test_Data.setup create_connection_func
 
         group_builder.specify "should be able to get current database and list databases" <|
             data.connection.database . should_equal Nothing
@@ -132,7 +132,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             tables.at "Name" . to_vector . contains data.vinfo . should_be_true
 
     suite_builder.group prefix+"Error Handling" group_builder->
-        data = Data.setup create_connection_func
+        data = Test_Data.setup create_connection_func
 
         group_builder.specify "should wrap errors" <|
             data.connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error
@@ -380,26 +380,26 @@ suite = Test.build suite_builder->
             Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
 
         group_builder.specify "should not recognise nonexistent or empty files for reading" <|
-            r1 = data.read (enso_project.data / "nonexistent-data.db")
+            r1 = Data.read (enso_project.data / "nonexistent-data.db")
             r1.should_fail_with File_Error
             r1.catch . should_be_a File_Error.Not_Found
 
             empty = enso_project.data / "transient" / "empty-data.db"
             "".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-            r2 = data.read empty
+            r2 = Data.read empty
             r2.should_fail_with File_Error
             r2.catch . should_be_a File_Error.Unsupported_Type
             empty.delete_if_exists
 
             broken = enso_project.data / "transient" / "empty-data.db"
             "SOME_RANDOM_DATA".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-            r3 = data.read broken
+            r3 = Data.read broken
             r3.should_fail_with File_Error
             r3.catch . should_be_a File_Error.Unsupported_Type
             broken.delete_if_exists
 
         group_builder.specify "should connect to a db file" <|
-            connection = data.read data.file
+            connection = Data.read data.file
             tables = connection.tables
             tables.row_count . should_not_equal 0
             connection.close
@@ -412,6 +412,6 @@ suite = Test.build suite_builder->
             Warning.get_all t2 . length . should_equal 1
 
 main =
-    IO.println <| "========="
-    suite.print_all
-    IO.println <| "========="
+    group_filter = Regex.compile ".*"
+    spec_filter = Regex.compile ".*"
+    suite.run_with_filter group_filter spec_filter
