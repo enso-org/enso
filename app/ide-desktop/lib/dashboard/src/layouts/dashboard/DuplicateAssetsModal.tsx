@@ -53,6 +53,7 @@ export interface DuplicateAssetsModalProps {
     readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
     readonly siblingFileNames: Iterable<string>
     readonly siblingProjectNames: Iterable<string>
+    readonly nonConflictingCount: number
     readonly doUploadNonConflicting: () => void
 }
 
@@ -63,7 +64,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     const { dispatchAssetEvent, dispatchAssetListEvent } = props
     const { siblingFileNames: siblingFileNamesRaw } = props
     const { siblingProjectNames: siblingProjectNamesRaw } = props
-    const { doUploadNonConflicting: doUploadNonConflictingRaw } = props
+    const { nonConflictingCount, doUploadNonConflicting: doUploadNonConflictingRaw } = props
     const { unsetModal } = modalProvider.useSetModal()
     const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
     const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
@@ -109,7 +110,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 let i = 1
                 while (true) {
                     i += 1
-                    const candidateTitle = `${title} (${i})`
+                    const candidateTitle = `${title} ${i}`
                     if (!siblingFileNames.current.has(candidateTitle)) {
                         if (commit) {
                             siblingFileNames.current.add(candidateTitle)
@@ -121,16 +122,17 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 break
             }
             case backendModule.AssetType.project: {
-                title = backendModule.stripProjectExtension(title)
+                const { basename, extension } = backendModule.extractProjectExtension(title)
+                title = basename
                 let i = 1
                 while (true) {
                     i += 1
-                    const candidateTitle = `${title} (${i})`
+                    const candidateTitle = `${title} ${i}`
                     if (!siblingProjectNames.current.has(candidateTitle)) {
                         if (commit) {
                             siblingProjectNames.current.add(candidateTitle)
                         }
-                        title = candidateTitle
+                        title = `${candidateTitle}.${extension}`
                         break
                     }
                 }
@@ -169,7 +171,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             <form
                 data-testid="new-label-modal"
                 tabIndex={-1}
-                className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-80 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+                className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-96 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
@@ -195,7 +197,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                             <span className="relative">New:</span>
                             <AssetSummary
                                 new
-                                newName={findNewName(firstConflict, false)}
+                                newName={backendModule.stripProjectExtension(
+                                    findNewName(firstConflict, false)
+                                )}
                                 asset={firstConflict.new}
                                 className="relative"
                             />
@@ -254,7 +258,17 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                         )}
                     </>
                 )}
-                <span className="relative">{[otherFilesText, otherProjectsText].join(' ')}</span>
+                {(otherFilesText !== '' || otherProjectsText !== '' || nonConflictingCount > 0) && (
+                    <div className="relative flex flex-col">
+                        <span>{[otherFilesText, otherProjectsText].join(' ')}</span>
+                        {nonConflictingCount > 0 && (
+                            <span>
+                                and {nonConflictingCount} {pluralizeFile(nonConflictingCount)}{' '}
+                                without conflicts
+                            </span>
+                        )}
+                    </div>
+                )}
                 <div className="relative flex gap-2">
                     <button
                         type="submit"

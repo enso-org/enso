@@ -792,7 +792,8 @@ export interface ListDirectoryRequestParams {
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
     fileId: AssetId | null
-    fileName: string | null
+    // Marked as optional in the data type, however it is required by the actual route handler.
+    fileName: string
     parentDirectoryId: DirectoryId | null
 }
 
@@ -870,10 +871,15 @@ export function fileIsNotProject(file: JSFile) {
 // =============================
 
 /** Remove the extension of the project file name (if any). */
-
-/** Whether a `File` is a project. */
 export function stripProjectExtension(name: string) {
-    return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
+    return name.replace(/[.](?:tar[.]gz|zip|enso-project)$/, '')
+}
+
+/** Return both the extension and name of the project file name (if any).
+ * Otherwise, returns the entire name as the basename. */
+export function extractProjectExtension(name: string) {
+    const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
+    return { basename: basename ?? name, extension: extension ?? '' }
 }
 
 // ===============

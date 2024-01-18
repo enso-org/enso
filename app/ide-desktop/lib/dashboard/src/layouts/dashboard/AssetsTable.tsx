@@ -1424,21 +1424,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ),
                         file,
                     }))
-                    const conflictingProjects = duplicateProjects.map(project => ({
-                        // This is SAFE, as `duplicateProjects` only contains projects that have
-                        // siblings with the same name.
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        current: siblingProjectsByName.get(
-                            backendModule.stripProjectExtension(project.name)
-                        )!,
-                        new: backendModule.createPlaceholderProjectAsset(
-                            backendModule.stripProjectExtension(project.name),
-                            event.parentId,
-                            ownerPermission,
-                            organization
-                        ),
-                        file: project,
-                    }))
+                    const conflictingProjects = duplicateProjects.map(project => {
+                        const basename = backendModule.stripProjectExtension(project.name)
+                        return {
+                            // This is SAFE, as `duplicateProjects` only contains projects that have
+                            // siblings with the same name.
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            current: siblingProjectsByName.get(basename)!,
+                            new: backendModule.createPlaceholderProjectAsset(
+                                basename,
+                                event.parentId,
+                                ownerPermission,
+                                organization
+                            ),
+                            file: project,
+                        }
+                    })
                     setModal(
                         <DuplicateAssetsModal
                             parentKey={event.parentKey}
@@ -1449,6 +1450,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             siblingFileNames={siblingFilesByName.keys()}
                             siblingProjectNames={siblingProjectsByName.keys()}
+                            nonConflictingCount={
+                                files.length +
+                                projects.length -
+                                conflictingFiles.length -
+                                conflictingProjects.length
+                            }
                             doUploadNonConflicting={() => {
                                 doToggleDirectoryExpansion(
                                     event.parentId,
