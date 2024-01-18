@@ -7,7 +7,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
@@ -384,21 +384,31 @@ function lengthTo(pos: Vec2): number | undefined {
 }
 
 const hovered = ref(false)
-const activeStyle = computed(() => {
-  if (!hovered.value) return {}
-  if (props.edge.source == null || props.edge.target == null) return {}
-  if (base.value == null) return {}
-  if (navigator?.sceneMousePos == null) return {}
+
+const activeEnd = ref(0.0)
+
+watchEffect(() => {
+  if (!hovered.value) return
+  if (props.edge.source == null || props.edge.target == null) return
+  if (base.value == null) return
+  if (navigator?.sceneMousePos == null) return
   const length = base.value.getTotalLength()
-  let offset = lengthTo(navigator.sceneMousePos)
-  if (offset == null) return {}
-  offset = length - offset
-  if (offset < length / 2) {
-    offset += length
+  const offset = lengthTo(navigator.sceneMousePos)
+  console.log(offset)
+  if (offset == null) return
+  activeEnd.value = length - offset
+  if (activeEnd.value < length / 2) {
+    activeEnd.value += length
   }
+})
+
+const activeStyle = computed(() => {
+  if (base.value == null) return {}
+  const length = base.value.getTotalLength()
   return {
+    ...baseStyle.value,
     strokeDasharray: length,
-    strokeDashoffset: offset,
+    strokeDashoffset: activeEnd.value,
   }
 })
 
@@ -442,7 +452,13 @@ const arrowTransform = computed(() => {
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     />
-    <path ref="base" :d="basePath" class="edge visible" :style="baseStyle" />
+    <path
+      ref="base"
+      :d="basePath"
+      class="edge visible"
+      :class="{ dimmed: !!activePath }"
+      :style="baseStyle"
+    />
     <polygon
       v-if="arrowTransform"
       :transform="arrowTransform"
@@ -450,7 +466,7 @@ const arrowTransform = computed(() => {
       class="arrow visible"
       :style="baseStyle"
     />
-    <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
+    <path :d="basePath" class="edge visible" :style="activeStyle" />
   </template>
 </template>
 
@@ -463,7 +479,7 @@ const arrowTransform = computed(() => {
 .edge {
   fill: none;
   stroke: var(--edge-color);
-  transition: stroke 0.2s ease;
+  transition: stroke 2.2s ease;
 }
 
 .arrow {
@@ -480,7 +496,7 @@ const arrowTransform = computed(() => {
   stroke-linecap: round;
 }
 
-.edge.visible.active {
-  stroke: rgba(255, 255, 255, 0.4);
+.edge.visible.dimmed {
+  stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>

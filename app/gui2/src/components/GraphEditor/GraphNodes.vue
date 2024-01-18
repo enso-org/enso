@@ -29,6 +29,7 @@ function nodeIsDragged(movedId: ExprId, offset: Vec2) {
 }
 
 function hoverNode(id: ExprId | undefined) {
+  console.log('hoverNode', id, selection != null)
   if (selection != null) selection.hoveredNode = id
 }
 
