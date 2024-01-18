@@ -149,6 +149,7 @@ interface CallInfo {
   notAppliedArguments?: number[] | undefined
   suggestion?: SuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
+  subjectAsSelf?: boolean | undefined
 }
 
 export class ArgumentApplication {
@@ -182,12 +183,8 @@ export class ArgumentApplication {
     )
   }
 
-  private static FromInterpretedPrefix(
-    interpreted: InterpretedPrefix,
-    callInfo: CallInfo,
-    stripSelfArgument: boolean,
-  ) {
-    const { notAppliedArguments, suggestion, widgetCfg } = callInfo
+  private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
+    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
     const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
@@ -196,7 +193,7 @@ export class ArgumentApplication {
     // when this is a method application with applied 'self', the subject of the access operator is
     // treated as a 'self' argument.
     if (
-      stripSelfArgument &&
+      subjectAsSelf &&
       knownArguments?.[0]?.name === 'self' &&
       getAccessOprSubject(interpreted.func) != null
     ) {
@@ -352,12 +349,11 @@ export class ArgumentApplication {
   static FromInterpretedWithInfo(
     interpreted: InterpretedCall,
     callInfo: CallInfo = {},
-    stripSelfArgument: boolean = false,
   ): ArgumentApplication | Ast.Ast {
     if (interpreted.kind === 'infix') {
       return ArgumentApplication.FromInterpretedInfix(interpreted, callInfo)
     } else {
-      return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo, stripSelfArgument)
+      return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo)
     }
   }
 

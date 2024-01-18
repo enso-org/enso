@@ -71,31 +71,16 @@ const application = computed(() => {
   if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
-  console.log('app:', props.input.value.code())
-  const notAppliedArguments =
-    noArgsCall != null &&
-    (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
-      ? noArgsCall.notAppliedArguments
-      : undefined
-
-  console.log('subjectTypeMatchesMethod', subjectTypeMatchesMethod.value)
-  console.log('selfArgumentPreapplied', selfArgumentPreapplied.value)
-  console.log('notAppliedArguments', notAppliedArguments)
-  console.log('subjectInfo', subjectInfo.value)
-  console.log('noArgsCall', noArgsCall)
-  console.log('methodCallInfo', methodCallInfo.value)
-  console.log('exprInfo', graph.db.getExpressionInfo(props.input.value.exprId))
-
-  const info = methodCallInfo.value
-  return ArgumentApplication.FromInterpretedWithInfo(
-    call,
-    {
-      suggestion: info?.suggestion,
-      widgetCfg: widgetConfiguration.value,
-      notAppliedArguments,
-    },
-    selfArgumentPreapplied.value,
-  )
+  return ArgumentApplication.FromInterpretedWithInfo(call, {
+    suggestion: methodCallInfo.value?.suggestion,
+    widgetCfg: widgetConfiguration.value,
+    subjectAsSelf: selfArgumentPreapplied.value,
+    notAppliedArguments:
+      noArgsCall != null &&
+      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+        ? noArgsCall.notAppliedArguments
+        : undefined,
+  })
 })
 
 const innerInput = computed(() => {

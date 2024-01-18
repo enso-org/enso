@@ -87,14 +87,11 @@ test.each`
     }
 
     const interpreted = interpretCall(ast, allowInfix)
-    const call = ArgumentApplication.FromInterpretedWithInfo(
-      interpreted,
-      {
-        suggestion: mockSuggestion,
-        widgetCfg: configuration,
-      },
-      true,
-    )
+    const call = ArgumentApplication.FromInterpretedWithInfo(interpreted, {
+      suggestion: mockSuggestion,
+      widgetCfg: configuration,
+      subjectAsSelf: true,
+    })
     assert(call instanceof ArgumentApplication)
     expect(printArgPattern(call)).toEqual(expectedPattern)
     checkArgsConfig(call, argsParameters)
