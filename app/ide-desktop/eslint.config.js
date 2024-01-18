@@ -141,6 +141,11 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `foo() {}` instead of `foo = () => {}`',
     },
     {
+        // This lint intentionally excludes classes and readonly arrays.
+        selector: 'TSInterfaceBody:has(TSPropertySignature[readonly=false])',
+        message: 'Add `readonly` modifier to all interface properties',
+    },
+    {
         selector: `TSAsExpression:not(:has(TSTypeReference > Identifier[name=const]))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },

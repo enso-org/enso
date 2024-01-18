@@ -118,8 +118,8 @@ export interface ListVersionsResponseBody {
 
 /** Information for a cached default version. */
 interface DefaultVersionInfo {
-    version: backendModule.VersionNumber
-    lastUpdatedEpochMs: number
+    readonly version: backendModule.VersionNumber
+    readonly lastUpdatedEpochMs: number
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */

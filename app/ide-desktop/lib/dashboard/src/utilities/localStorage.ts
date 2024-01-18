@@ -24,6 +24,8 @@ export enum LocalStorageKey {
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
+// This interface needs to be mutable.
+// eslint-disable-next-line no-restricted-syntax
 interface LocalStorageData {
     [LocalStorageKey.page]: pageSwitcher.Page
     [LocalStorageKey.backendType]: backend.BackendType

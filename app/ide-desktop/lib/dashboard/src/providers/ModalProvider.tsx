@@ -60,8 +60,8 @@ export default function ModalProvider(props: ModalProviderProps) {
 
 /** Props for a {@link ModalProvider}. */
 interface InternalModalStaticProviderProps extends Readonly<React.PropsWithChildren> {
-    setModal: React.Dispatch<React.SetStateAction<Modal | null>>
-    modalRef: React.RefObject<Modal>
+    readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
+    readonly modalRef: React.RefObject<Modal>
 }
 
 /** A React provider containing a function to set the currently active modal. */

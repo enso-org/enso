@@ -103,10 +103,10 @@ export enum MouseButton {
  *
  * If a key is omitted, the shortcut will be triggered regardless of its value in the event. */
 interface Modifiers {
-    ctrl?: boolean
-    alt?: boolean
-    shift?: boolean
-    meta?: boolean
+    readonly ctrl?: boolean
+    readonly alt?: boolean
+    readonly shift?: boolean
+    readonly meta?: boolean
 }
 
 /** A keyboard shortcut. */
@@ -184,12 +184,12 @@ function makeKeyboardActionMap<T>(
 
 /** Data needed to render a keyboard shortcut in a context menu. */
 export interface ShortcutInfo {
-    name: string
+    readonly name: string
     /** A URL to the image representing this shortcut. */
-    icon: string
+    readonly icon: string
     /** A Tailwind class for the desired color of the icon. It should be in the form `text-<color>`,
      * where `<color>` is replaced with the actual color. */
-    colorClass?: string
+    readonly colorClass?: string
 }
 
 // ===============================

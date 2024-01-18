@@ -54,8 +54,8 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
 
 /** {@link AutocompleteProps} when the text cannot be edited. */
 interface WithoutText {
-    text?: never
-    setText?: never
+    readonly text?: never
+    readonly setText?: never
 }
 
 /** {@link AutocompleteProps} when the text can be edited. */

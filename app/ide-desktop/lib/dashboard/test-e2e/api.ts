@@ -85,10 +85,10 @@ export async function mockApi(page: test.Page) {
                 /** The type for the search query for this endpoint. */
                 interface Query {
                     /* eslint-disable @typescript-eslint/naming-convention */
-                    parent_id?: string
-                    filter_by?: backend.FilterBy
-                    labels?: backend.LabelName[]
-                    recent_projects?: boolean
+                    readonly parent_id?: string
+                    readonly filter_by?: backend.FilterBy
+                    readonly labels?: backend.LabelName[]
+                    readonly recent_projects?: boolean
                     /* eslint-enable @typescript-eslint/naming-convention */
                 }
                 // The type of the body sent by this app is statically known.
@@ -219,7 +219,7 @@ export async function mockApi(page: test.Page) {
             async (route, request) => {
                 /** The type for the JSON request payload for this endpoint. */
                 interface Body {
-                    parentDirectoryId: backend.DirectoryId
+                    readonly parentDirectoryId: backend.DirectoryId
                 }
                 const assetId = request.url().match(/assets[/](.+?)[/]copy/)?.[1]
                 // eslint-disable-next-line no-restricted-syntax

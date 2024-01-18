@@ -7,7 +7,7 @@
 /** An interface specifying the variant of a newtype. */
 interface NewtypeVariant<TypeName extends string> {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    _$type: TypeName
+    readonly _$type: TypeName
 }
 
 /** Used to create a "branded type",
@@ -34,7 +34,7 @@ type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & Newtype
 /** An interface that matches a type if and only if it is not a newtype. */
 export interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    _$type?: never
+    readonly _$type?: never
 }
 
 /** Converts a value that is not a newtype, to a value that is a newtype.

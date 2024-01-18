@@ -10,7 +10,7 @@ import * as shortcutsModule from '#/utilities/shortcuts'
 
 /** State contained in a `ShortcutsContext`. */
 export interface ShortcutsContextType {
-    shortcuts: shortcutsModule.ShortcutRegistry
+    readonly shortcuts: shortcutsModule.ShortcutRegistry
 }
 
 // @ts-expect-error The default value will never be exposed as using this without a `Provider`
@@ -19,7 +19,7 @@ const ShortcutsContext = React.createContext<ShortcutsContextType>(null)
 
 /** Props for a {@link ShortcutsProvider}. */
 export interface ShortcutsProviderProps extends Readonly<React.PropsWithChildren> {
-    shortcuts?: shortcutsModule.ShortcutRegistry
+    readonly shortcuts?: shortcutsModule.ShortcutRegistry
 }
 
 // =========================

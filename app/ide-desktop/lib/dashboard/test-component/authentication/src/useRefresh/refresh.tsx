@@ -11,12 +11,12 @@ import * as useRefresh from '../../../../src/hooks/refreshHooks'
 export type RefreshState = useRefresh.RefreshState
 
 /** Props for a {@link Refresh}. */
-interface InternalRefreshProps {
-    onRefresh: (refreshState: RefreshState) => void
+export interface RefreshProps {
+    readonly onRefresh: (refreshState: RefreshState) => void
 }
 
 /** A component for testing the `useRefresh` hook. */
-export default function Refresh(props: InternalRefreshProps) {
+export default function Refresh(props: RefreshProps) {
     const { onRefresh } = props
     const [refresh, doRefresh] = useRefresh.useRefresh()
     React.useEffect(() => {

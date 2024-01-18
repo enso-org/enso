@@ -432,12 +432,12 @@ export enum AssetType {
 
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType {
-    [AssetType.project]: ProjectId
-    [AssetType.file]: FileId
-    [AssetType.secret]: SecretId
-    [AssetType.directory]: DirectoryId
-    [AssetType.specialLoading]: LoadingAssetId
-    [AssetType.specialEmpty]: EmptyAssetId
+    readonly [AssetType.project]: ProjectId
+    readonly [AssetType.file]: FileId
+    readonly [AssetType.secret]: SecretId
+    readonly [AssetType.directory]: DirectoryId
+    readonly [AssetType.specialLoading]: LoadingAssetId
+    readonly [AssetType.specialEmpty]: EmptyAssetId
 }
 
 /** The english name of each asset type. */

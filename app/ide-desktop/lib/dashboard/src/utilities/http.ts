@@ -17,6 +17,11 @@ enum HttpMethod {
 // === Client ===
 // ==============
 
+/** A {@link Response} with a properly typed return type for `response.json()`. */
+export interface ResponseWithTypedJson<U> extends Response {
+    readonly json: () => Promise<U>
+}
+
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class Client {
     /** Create a new HTTP client with the specified headers to be sent on every request. */
@@ -80,9 +85,4 @@ export class Client {
             ...(payload != null ? { body: payload } : {}),
         }) as Promise<ResponseWithTypedJson<T>>
     }
-}
-
-/** A {@link Response} with a properly typed return type for `response.json()`. */
-export interface ResponseWithTypedJson<U> extends Response {
-    json: () => Promise<U>
 }

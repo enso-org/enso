@@ -120,7 +120,7 @@ export interface AmplifyConfig {
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
-    urlOpener?: OAuthUrlOpener
+    readonly urlOpener?: OAuthUrlOpener
 }
 
 /** OAuth configuration for a {@link NestedAmplifyConfig}. */
