@@ -6,6 +6,7 @@ import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.util.ImmutableBitSet;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -60,29 +61,32 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
-    BitSet values = storage.getValues();
-    BitSet missing = storage.getIsMissing();
+    int size = storage.size();
+    ImmutableBitSet values = new ImmutableBitSet(storage.getValues(), size);
+    ImmutableBitSet missing = new ImmutableBitSet(storage.getIsMissing(), size);
     boolean negated = storage.isNegated();
-    int size = values.size();
 
-    BitSet newValues;
-    BitSet newMissing;
+    ImmutableBitSet newValues;
+    ImmutableBitSet newMissing;
 
-    BitSet falz = ImmutableBitSet.allFalse(size);
-    BitSet tru = ImmutableBitSet.allTrue(size);
+    ImmutableBitSet falz = ImmutableBitSet.allFalse(size);
+    ImmutableBitSet tru = ImmutableBitSet.allTrue(size);
 
-    if (hasTrue && !hasFalse) {
-      newValues = storage.isNegated() ? and(not(missing), not(vals)) : and(not(missing), vals);
-      newMissing = hasNull ? or(missing, not(vals)) : missing;
-    } else if (!hasTrue && hasFalse) {
-      newValues = storage.isNegated() ? and(not(missing), vals) : and(not(missing), not(vals));
-      newMissing = hasNull ? or(missing, vals) : missing;
-    } else if (hasTrue && hasFalse) {
-      newValues = not(missing);
+    if (hadTrue && !hadFalse) {
+      newValues = storage.isNegated() ? missing.not().and(values.not()) : missing.not().and(values);
+      newMissing = hadNull ? missing.or(values.not()) : missing;
+    } else if (!hadTrue && hadFalse) {
+      newValues = storage.isNegated() ? missing.not().and(values) : missing.not().and(values.not());
+      newMissing = hadNull ? missing.or(values) : missing;
+    } else if (hadTrue && hadFalse) {
+      newValues = missing.not();
       newMissing = missing;
     } else {
-      newValues = falz; newMissing = hasNull ? tru : falz;
+      newValues = falz;
+      newMissing = hadNull ? tru : falz;
     }
+
+    return new BoolStorage(newValues.toBitSet(), newMissing.toBitSet(), size, false);
 
     /*
     BitSet values = storage.getValues();
