@@ -268,7 +268,7 @@ export class GraphDb {
   getMethodCallInfo(
     id: ExprId,
   ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; staticallyApplied: boolean }
+    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
     | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
@@ -280,8 +280,8 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const staticallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, staticallyApplied }
+    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
+    return { methodCall, suggestion, partiallyApplied }
   }
 
   getNodeColorStyle(id: ExprId): string {
