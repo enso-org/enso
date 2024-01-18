@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.logging.Level;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
 
@@ -202,17 +204,27 @@ final class PerInputImpl implements Input {
     res = cache.readResolve().apply(res);
     var prev = cache.cache().put(at, res);
     if (prev != null) {
-      throw raise(
-          RuntimeException.class,
-          new IOException(
-              "Adding at "
-                  + at
-                  + " object: "
-                  + res.getClass().getName()
-                  + " but there already is "
-                  + prev.getClass().getName()));
+      var bothObjectsAreTheSame = Objects.equals(res, prev);
+      var sb = new StringBuilder();
+      sb.append("Adding at ").append(at).append(" object:\n  ");
+      dumpObject(sb, res);
+      sb.append("\nbut there already is:\n  ");
+      dumpObject(sb, prev);
+      sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
+      var ex = new IOException(sb.toString());
+      if (bothObjectsAreTheSame) {
+        PerUtils.LOG.log(Level.WARNING, sb.toString(), ex);
+      } else {
+        throw raise(RuntimeException.class, ex);
+      }
     }
     return res;
+  }
+
+  private static void dumpObject(StringBuilder sb, Object obj) {
+    sb.append(obj.getClass().getName())
+        .append("@")
+        .append(Integer.toHexString(System.identityHashCode(obj)));
   }
 
   @SuppressWarnings("unchecked")
