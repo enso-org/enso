@@ -7,11 +7,14 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
+import org.graalvm.polyglot.Context;
 
 public class FileLineReader {
   private static final Logger LOGGER = Logger.getLogger("enso-file-line-reader");
@@ -47,8 +50,9 @@ public class FileLineReader {
     while (moreToRead(c, buffer)) {
       result.write(c);
       c = readByte(buffer);
+      Context.getCurrent().safepoint();
     }
-    return c != -1;
+    return c != -1 && (c != '\r' || buffer.hasRemaining());
   }
 
   // ** Scans forward one line.
@@ -57,8 +61,9 @@ public class FileLineReader {
     int c = readByte(buffer);
     while (moreToRead(c, buffer)) {
       c = readByte(buffer);
+      Context.getCurrent().safepoint();
     }
-    return c != -1;
+    return c != -1 && (c != '\r' || buffer.hasRemaining());
   }
 
   // ** Reads a line from a file at the given index using the existing rowMap. */
@@ -108,7 +113,20 @@ public class FileLineReader {
     }
 
     // Start at the last known line and scan forward.
-    return readLines(file, rowMap, size - 1, index, charset, filter, null);
+    return forEachLine(file, rowMap, size - 1, index, charset, filter, null);
+  }
+
+  public static List<String> readLines(
+      File file,
+      LongArrayList rowMap,
+      int startAt,
+      int endAt,
+      Charset charset,
+      Function<String, Boolean> filter)
+      throws IOException {
+    List<String> result = new ArrayList<>();
+    forEachLine(file, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
+    return result;
   }
 
   // ** Scans forward in a file reading line by line.
@@ -118,10 +136,10 @@ public class FileLineReader {
   // * @param endAt The index to end at (inclusive).
   // * @param charset The charset to use.
   // * @param filter The filter to apply to each line.
-  // * @param action The action to apply to each line.
+  // * @param action The action to apply to each line (optional).
   // * @return The last line read or null if end of file is reached.
   // * *//
-  public static String readLines(
+  public static String forEachLine(
       File file,
       LongArrayList rowMap,
       int startAt,
@@ -130,7 +148,7 @@ public class FileLineReader {
       Function<String, Boolean> filter,
       BiFunction<Integer, String, Boolean> action)
       throws IOException {
-    LOGGER.log(Level.INFO, "readLines: {0} {1}", new Object[] {startAt, endAt});
+    LOGGER.log(Level.INFO, "forEachLine: {0} {1}", new Object[] {startAt, endAt});
 
     if (startAt >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(startAt);
@@ -156,6 +174,10 @@ public class FileLineReader {
 
       // Loop until we either reach the required record or run out of data.
       while ((endAt == -1 || index <= endAt) && (truncated || buffer.hasRemaining())) {
+        if (action != null && index == 960969) {
+          LOGGER.log(Level.WARNING, "Debug Me!");
+        }
+
         var linePosition = buffer.position() + position;
 
         // Read a line.
@@ -172,6 +194,9 @@ public class FileLineReader {
 
             if (action != null) {
               line = line == null ? outputStream.toString(charset) : line;
+              if (line.isEmpty()) {
+                LOGGER.log(Level.WARNING, "Empty line at index {0}", index);
+              }
               action.apply(index, line);
             }
 

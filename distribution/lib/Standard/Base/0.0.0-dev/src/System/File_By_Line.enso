@@ -75,7 +75,9 @@ type File_By_Line
 
     ## Returns the lines in the file as a vector.
     to_vector : Vector Text
-    to_vector self = self.map x->x
+    to_vector self = File_Error.handle_java_exceptions self.file <|
+        end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
+        FileLineReader.readLines self.java_file self.row_map 0 end_at self.charset self.filter_func
 
     ## Performs an action on each line.
 
@@ -103,6 +105,17 @@ type File_By_Line
     map self action =
         builder = Vector.new_builder
         wrapped_action _ t = builder.append (action t)
+        self.each_with_index wrapped_action
+        builder.to_vector
+
+    ## Transforms each line in the file and returns the result as a vector.
+
+       Arguments
+       - action: The action to perform on each line.
+    map_with_index : (Integer -> Text -> Any) -> Vector Any
+    map_with_index self action =
+        builder = Vector.new_builder
+        wrapped_action i t = builder.append (action i t)
         self.each_with_index wrapped_action
         builder.to_vector
 
@@ -178,4 +191,4 @@ for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) actio
 
     ## Now we can read the lines we need.
     if row_map.getOrLast start_at >= java_file.length then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else
-        FileLineReader.readLines java_file row_map start_at (end_at.if_nothing -1) charset file.filter_func action
+        FileLineReader.forEachLine java_file row_map start_at (end_at.if_nothing -1) charset file.filter_func action
