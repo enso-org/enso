@@ -12,14 +12,23 @@ from Standard.Test_New import all
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
 
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
 
 add_specs suite_builder setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
     is_case_sensitive = setup.test_selection.supports_case_sensitive_columns
     suite_builder.group setup.prefix+"Column Naming edge cases" group_builder->
+        data = Data.setup create_connection_fn
+
         group_builder.specify "case insensitive name collisions - set" <|
-            t1 = table_builder [["X", [1]]]
+            t1 = table_builder [["X", [1]]] connection=data.connection
             Problems.assume_no_problems (t1.at "X" . rename "x")
             t2 = t1.set "[X] + 100" "x"
             case is_case_sensitive of
@@ -51,7 +60,7 @@ add_specs suite_builder setup =
                         t6.at "Right x" . to_vector . should_equal [101, 101, 101, 101]
 
         group_builder.specify "case insensitive name collisions - rename" <|
-            t1 = table_builder [["X", [1]], ["Y", [2]]]
+            t1 = table_builder [["X", [1]], ["Y", [2]]] connection=data.connection
             t2 = t1.rename_columns [["X", "A"], ["Y", "a"]]
             case is_case_sensitive of
                 True ->
@@ -71,7 +80,7 @@ add_specs suite_builder setup =
                     Problems.expect_only_warning Duplicate_Output_Column_Names t3
 
         group_builder.specify "case insensitive name collisions - aggregate" <|
-            t1 = table_builder [["X", [2, 1, 3, 2]]]
+            t1 = table_builder [["X", [2, 1, 3, 2]]] connection=data.connection
             t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
 
             case is_case_sensitive of
@@ -91,8 +100,8 @@ add_specs suite_builder setup =
             t3.at 1 . to_vector . should_equal [1]
 
         group_builder.specify "case insensitive name collisions - joins" <|
-            t1 = table_builder [["X", [1, 2]], ["a", [3, 4]]]
-            t2 = table_builder [["X", [2, 1]], ["A", [5, 6]]]
+            t1 = table_builder [["X", [1, 2]], ["a", [3, 4]]] connection=data.connection
+            t2 = table_builder [["X", [2, 1]], ["A", [5, 6]]] connection=data.connection
 
             t3 = t1.join t2 on="X" join_kind=Join_Kind.Inner
             case is_case_sensitive of
@@ -118,7 +127,7 @@ add_specs suite_builder setup =
             t5.column_names . should_equal ["X", "a"]
 
         group_builder.specify "case insensitive name collisions - cross_tab" <|
-            t0 = table_builder [["X", ["a", "A", "b"]], ["Y", [4, 5, 6]]]
+            t0 = table_builder [["X", ["a", "A", "b"]], ["Y", [4, 5, 6]]] connection=data.connection
             t1 = t0.cross_tab group_by=[] name_column="X" values=[Aggregate_Column.First "Y"] . sort_columns
             case setup.is_database of
                 # TODO remove this check once implemented
@@ -136,7 +145,7 @@ add_specs suite_builder setup =
                             t1.should_fail_with Clashing_Column_Name
 
         group_builder.specify "case insensitive name collisions - transpose" <|
-            t0 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t0 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] connection=data.connection
             t1 = t0.transpose attribute_column_name="a" value_column_name="A"
             case setup.is_database of
                 # TODO remove this check once implemented
@@ -154,8 +163,8 @@ add_specs suite_builder setup =
         group_builder.specify "unicode-normalized-equality vs selecting columns" <|
             ## In Enso column 'ś' and 's\u0301' are the same entity.
                But in Databases, quite not necessarily.
-            t1 = table_builder [['ś', [1, 2]], ['X', ['a', 'b']]]
-            t2 = table_builder [['s\u0301', [2, 1]], ['Y', ['x', 'y']]]
+            t1 = table_builder [['ś', [1, 2]], ['X', ['a', 'b']]] connection=data.connection
+            t2 = table_builder [['s\u0301', [2, 1]], ['Y', ['x', 'y']]] connection=data.connection
 
             # The two representations of the same string just address the same column:
             t1.at 'ś' . to_vector . should_equal [1, 2]

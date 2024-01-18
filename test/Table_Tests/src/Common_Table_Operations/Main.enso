@@ -44,7 +44,8 @@ type Test_Setup
          table using the tested backend.
        - table_builder: A function used to build a table using the tested
          backend from a vector of columns represented as pairs of name and
-         vector of values.
+         vector of values. The second optional argument is connection or Nothing.
+         An example signature of the method is `table_builder cols connection=Nothing`.
        - materialize: A helper function which materializes a table from the
          tested backend as an in-memory table. Used to easily inspect results of
          a particular query/operation.
@@ -57,7 +58,7 @@ type Test_Setup
          support particular features.
        - create_connection_func: A function that takes Nothing and creates a related
          database connection or Nothing for in-memory tests.
-    Config prefix table_fn empty_table_fn table_builder materialize is_database test_selection aggregate_test_selection create_connection_func
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func
 
     ## Specifies if the given Table backend supports custom Enso types.
 

@@ -11,13 +11,23 @@ from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import all
 
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"Table.set with Column_Operation" group_builder->
+        data = Data.setup create_connection_fn
+
         group_builder.specify "arithmetics" <|
-            t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
+            t = table_builder [["A", [1, 2]], ["B", [10, 40]]] connection=data.connection
             t.set (Column_Operation.Add (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [11, 42]
             t.set (Column_Operation.Add 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [110, 140]
             t.set (Column_Operation.Add (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [101, 102]
@@ -38,7 +48,7 @@ add_specs suite_builder setup =
             t.set (Column_Operation.Divide 1 (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [1, 0.5]
             t.set (Column_Operation.Divide 1 2) "C" . at "C" . to_vector . should_equal [0.5, 0.5]
 
-            t2 = table_builder [["A", [23, 42]], ["B", [10, 3]]]
+            t2 = table_builder [["A", [23, 42]], ["B", [10, 3]]] connection=data.connection
             t2.set (Column_Operation.Mod (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [3, 0]
             t2.set (Column_Operation.Mod (Column_Ref.Name "A") 10) "C" . at "C" . to_vector . should_equal [3, 2]
             t2.set (Column_Operation.Mod 7 5) "C" . at "C" . to_vector . should_equal [2, 2]
@@ -52,7 +62,7 @@ add_specs suite_builder setup =
             t.set (Column_Operation.Add 42 "y") . should_fail_with Illegal_Argument
 
         group_builder.specify "rounding" <|
-            t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
+            t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]] connection=data.connection
             t.set (Column_Operation.Round (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
             t.set (Column_Operation.Round (Column_Ref.Name "A") precision=1) "Z" . at "Z" . to_vector . should_equal [1.1, 122.7, 32.5, -12.7]
             t.set (Column_Operation.Round (Column_Ref.Name "A") precision=-1) "Z" . at "Z" . to_vector . should_equal [0, 120, 30, -10]
@@ -65,7 +75,7 @@ add_specs suite_builder setup =
             Test.expect_panic Type_Error <| t.set (Column_Operation.Truncate "1.23")
 
         group_builder.specify "date/time" pending=pending_datetime <|
-            t = table_builder [["A", [Date_Time.new 2023 1 12 12 45, Date_Time.new 2020 5 12 1 45]], ["B", [Date_Time.new 2023 1 15 18 45, Date_Time.new 2020 6 12 22 20]], ["x", [1, 3]]]
+            t = table_builder [["A", [Date_Time.new 2023 1 12 12 45, Date_Time.new 2020 5 12 1 45]], ["B", [Date_Time.new 2023 1 15 18 45, Date_Time.new 2020 6 12 22 20]], ["x", [1, 3]]] connection=data.connection
 
             # TODO ticket for truncate for DB
             if setup.is_database.not then
@@ -80,7 +90,7 @@ add_specs suite_builder setup =
             t.set (Column_Operation.Date_Part (Column_Ref.Name "A") Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [2023, 2020]
             t.set (Column_Operation.Date_Part (Column_Ref.Name "A") Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal [45, 45]
 
-            t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]]
+            t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]] connection=data.connection
             t2.set (Column_Operation.Date_Add (Column_Ref.Name "C") 5 Date_Period.Month) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
             t2.set (Column_Operation.Date_Add (Column_Ref.Name "D") 15 Time_Period.Hour) "Z" . at "Z" . to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
 
@@ -97,7 +107,7 @@ add_specs suite_builder setup =
             Test.expect_panic Type_Error <| t2.set (Column_Operation.Date_Diff 42 "x" Date_Period.Year)
 
         group_builder.specify "boolean" <|
-            t = table_builder [["A", [True, False]], ["T", [True, True]]]
+            t = table_builder [["A", [True, False]], ["T", [True, True]]] connection=data.connection
 
             t.set (Column_Operation.And (Column_Ref.Name "A") (Column_Ref.Name "T")) "Z" . at "Z" . to_vector . should_equal [True, False]
             t.set (Column_Operation.And (Column_Ref.Name "A") False) "Z" . at "Z" . to_vector . should_equal [False, False]
@@ -114,14 +124,14 @@ add_specs suite_builder setup =
             Test.expect_panic_with (t.set (Column_Operation.Or (Column_Ref.Name "A") "x")) Type_Error
 
         group_builder.specify "if" <|
-            t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
+            t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]] connection=data.connection
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=20) "T" "F") "Z" . at "Z" . to_vector . should_equal ["F", "T"]
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Less than=20) (Column_Ref.Name "B") (Column_Ref.Name "C")) "Z" . at "Z" . to_vector . should_equal [10, 55]
 
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than="X") "T" "F") . should_fail_with Invalid_Value_Type
 
-            t2 = table_builder [["A", ["a", "c"]], ["B", ["c", "b"]], ["C", [23, 55]]]
+            t2 = table_builder [["A", ["a", "c"]], ["B", ["c", "b"]], ["C", [23, 55]]] connection=data.connection
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B")) (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 55]
             t2.set (Column_Operation.If "A" (Filter_Condition.Greater than="B") (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 0]
@@ -134,7 +144,7 @@ add_specs suite_builder setup =
 
             # Passing a column does not work row-by-row, but looks at whole column contents.
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t2.at "B")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
-            t3 = table_builder [["x", ["e", "e", "a"]]]
+            t3 = table_builder [["x", ["e", "e", "a"]]] connection=data.connection
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t3.at "x")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
 
             # Thus, passing a Column_Ref into Is_In/Not_In is not allowed as it would be confusing.
@@ -143,7 +153,7 @@ add_specs suite_builder setup =
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In [Column_Ref.Name "B", "X"]) "TT" "FF") . should_fail_with Illegal_Argument
 
         group_builder.specify "text" <|
-            t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]
+            t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]] connection=data.connection
 
             t.set (Column_Operation.Trim (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal ["a", "b"]
             t.set (Column_Operation.Trim (Column_Ref.Name "A") Location.End) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
@@ -156,11 +166,11 @@ add_specs suite_builder setup =
             t.set (Column_Operation.Add (Column_Ref.Name "A") "!") "Z" . at "Z" . to_vector . should_equal ["  a !", "b!"]
             t.set (Column_Operation.Add "O" "!") "Z" . at "Z" . to_vector . should_equal ["O!", "O!"]
 
-            t2 = table_builder [["A", [42]]]
+            t2 = table_builder [["A", [42]]] connection=data.connection
             t2.set (Column_Operation.Trim (Column_Ref.Name "A")) . should_fail_with Invalid_Value_Type
 
         group_builder.specify "min/max" <|
-            t = table_builder [["A", [1, 20]], ["B", [10, 2]]]
+            t = table_builder [["A", [1, 20]], ["B", [10, 2]]] connection=data.connection
 
             t.set (Column_Operation.Min (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal [1, 2]
             t.set (Column_Operation.Min (Column_Ref.Name "A") 5) "Z" . at "Z" . to_vector . should_equal [1, 5]
@@ -171,7 +181,7 @@ add_specs suite_builder setup =
             t.set (Column_Operation.Max 2 5) "Z" . at "Z" . to_vector . should_equal [5, 5]
             t.set (Column_Operation.Min 2 5) "Z" . at "Z" . to_vector . should_equal [2, 2]
 
-            t2 = table_builder [["A", ["aardvark", "zebra"]], ["B", ["cat", "dog"]], ["x", [1, 20]]]
+            t2 = table_builder [["A", ["aardvark", "zebra"]], ["B", ["cat", "dog"]], ["x", [1, 20]]] connection=data.connection
             t2.set (Column_Operation.Min (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["aardvark", "dog"]
             t2.set (Column_Operation.Max (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["cat", "zebra"]
             t2.set (Column_Operation.Min (Column_Ref.Name "A") "animal") "Z" . at "Z" . to_vector . should_equal ["aardvark", "animal"]
@@ -183,23 +193,25 @@ add_specs suite_builder setup =
             t2.set (Column_Operation.Min (Column_Ref.Name "x") (Column_Ref.Name "A")) . should_fail_with Invalid_Value_Type
 
             if pending_datetime.is_nothing then
-                t3 = table_builder [["A", [Date.new 2002 12 10, Date.new 2005 01 01]]]
+                t3 = table_builder [["A", [Date.new 2002 12 10, Date.new 2005 01 01]]] connection=data.connection
                 t3.set (Column_Operation.Min (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2002 12 10, Date.new 2003 01 01]
                 t3.set (Column_Operation.Max (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 01 01, Date.new 2005 01 01]
 
         group_builder.specify "allows also indexing columns numerically" <|
-            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]] connection=data.connection
             t.set (Column_Operation.Add (Column_Ref.Index 0) (Column_Ref.Index 1)) "Z" . at "Z" . to_vector . should_equal [4, 6]
 
         group_builder.specify "will forward column resolution errors" <|
-            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]] connection=data.connection
             t.set (Column_Operation.Add (Column_Ref.Name "X") (Column_Ref.Name "Z")) . should_fail_with No_Such_Column
             t.set (Column_Operation.Not (Column_Ref.Name "zzz")) . should_fail_with No_Such_Column
             t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds
 
     suite_builder.group prefix+"Unique derived column names" group_builder->
+        data = Data.setup create_connection_fn
+
         group_builder.specify "Should not disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add_Or_Update" <|
-            t = table_builder [["X", [1, 2, 3]]]
+            t = table_builder [["X", [1, 2, 3]]] connection=data.connection
             column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
             t2 = t.set column_op . set column_op
             t2.column_names . should_equal ["X", "[2] ^ [X]"]
@@ -207,7 +219,7 @@ add_specs suite_builder setup =
             t2.at "[2] ^ [X]" . to_vector . should_equal [2, 4, 8]
 
         group_builder.specify "Should disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add" <|
-            t = table_builder [["X", [1, 2, 3]]]
+            t = table_builder [["X", [1, 2, 3]]] connection=data.connection
             column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
             t2 = t.set column_op set_mode=Set_Mode.Add . set column_op set_mode=Set_Mode.Add
             t2.column_names . should_equal ["X", "[2] ^ [X]", "[2] ^ [X] 1"]
@@ -216,7 +228,7 @@ add_specs suite_builder setup =
             t2.at "[2] ^ [X] 1" . to_vector . should_equal [2, 4, 8]
 
         group_builder.specify "Should disambiguate two derived columns that would otherwise have had the same name, within the same expression" <|
-            t = table_builder [["X", [1, 2, 3]]]
+            t = table_builder [["X", [1, 2, 3]]] connection=data.connection
             expression = "2 + (2 * 2) + (2 ^ [X])"
             t2 = t.set expression
             t2.column_names . should_equal ["X", expression]
@@ -224,7 +236,7 @@ add_specs suite_builder setup =
             t2.at expression . to_vector . should_equal [8, 10, 14]
 
         group_builder.specify "Should use .pretty to distinguish string constants from regular column names" <|
-            t = table_builder [["X", ["a", "b", "c"]]]
+            t = table_builder [["X", ["a", "b", "c"]]] connection=data.connection
             expression = '"foo" + [X] + "bar"'
             t2 = t.set expression
             t2.column_names . should_equal ["X", expression]
@@ -232,7 +244,7 @@ add_specs suite_builder setup =
             t2.at expression . to_vector . should_equal ["fooabar", "foobbar", "foocbar"]
 
         group_builder.specify "Should disambiguate between a column reference and a literal string" <|
-            t = table_builder [["X", ["a", "b", "c"]]]
+            t = table_builder [["X", ["a", "b", "c"]]] connection=data.connection
             t2 = t.set (Column_Operation.Add "prefix" (Column_Ref.Name "X"))
             t3 = t2.set (Column_Operation.Add "prefix" "X")
 
@@ -241,13 +253,13 @@ add_specs suite_builder setup =
             t3.at "['prefix'] + 'X'" . to_vector . should_equal ["prefixX", "prefixX", "prefixX"]
 
         group_builder.specify "Should not disambiguate if set_mode is Update" <|
-            t = table_builder [["X", [1, 2, 3]]]
+            t = table_builder [["X", [1, 2, 3]]] connection=data.connection
             t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) set_mode=Set_Mode.Update
             t2.column_names . should_equal ["X"]
             t2.at "X" . to_vector . should_equal [2, 3, 4]
 
         group_builder.specify "Should not disambiguate if set_mode is Add_Or_Update" <|
-            t = table_builder [["X", [1, 2, 3]], ["[X] + 1", [10, 20, 30]]]
+            t = table_builder [["X", [1, 2, 3]], ["[X] + 1", [10, 20, 30]]] connection=data.connection
             # set_mode=Set_Mode.Add_Or_Update is the default
             t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1)
             t2.column_names . should_equal ["X", "[X] + 1"]
@@ -255,7 +267,7 @@ add_specs suite_builder setup =
             t2.at "[X] + 1" . to_vector . should_equal [2, 3, 4]
 
         group_builder.specify "Should not disambiguate if the new name is explicitly set" <|
-            t = table_builder [["X", [1, 2, 3]]]
+            t = table_builder [["X", [1, 2, 3]]] connection=data.connection
             t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) new_name="X"
             t2.column_names . should_equal ["X"]
             t2.at "X" . to_vector . should_equal [2, 3, 4]

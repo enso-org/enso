@@ -272,8 +272,10 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 
 sqlite_spec suite_builder prefix create_connection_func =
     name_counter = Ref.new 0
-    table_builder columns =
-        connection = create_connection_func Nothing
+    # The default `connection` parameter always create a new connection.
+    # In some tests, for example, where we are joining tables, we have to specify
+    # exactly the same connection.
+    table_builder columns connection=(create_connection_func Nothing) =
         ix = name_counter.get
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text

@@ -11,6 +11,7 @@ expect_column_names names table =
    context of a specific backend. However, for the purpose of testing we provide
    a shortcut that allows to run these tests with the in-memory backend.
 run_default_backend suite =
+    _ = suite
     Panic.throw "Unimplemented"
 
 ## Adds a clue which will display the provided table next to the failed test

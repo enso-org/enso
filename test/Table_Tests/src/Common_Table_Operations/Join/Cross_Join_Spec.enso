@@ -14,15 +14,23 @@ from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
 
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
     suite_builder.group prefix+"Table.cross_join" group_builder->
+        data = Data.setup create_connection_fn
+
         group_builder.specify "should allow to create a cross product of two tables in the right order" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]] connection=data.connection
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]] connection=data.connection
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Z", "W"] t3
@@ -41,8 +49,8 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should work correctly with empty tables" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a']], ["W", ['c']]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]] connection=data.connection
+            t2 = table_builder [["Z", ['a']], ["W", ['c']]] connection=data.connection
             # Workaround to easily create empty table until table builder allows that directly.
             empty = t2.filter "Z" Filter_Condition.Is_Nothing
             empty.row_count . should_equal 0
@@ -58,10 +66,10 @@ add_specs suite_builder setup =
             t4.at "X" . to_vector . should_equal []
 
         group_builder.specify "should respect the right row limit" <|
-            t2 = table_builder [["X", [1, 2]]]
-            t3 = table_builder [["X", [1, 2, 3]]]
-            t100 = table_builder [["Y", 0.up_to 100 . to_vector]]
-            t101 = table_builder [["Y", 0.up_to 101 . to_vector]]
+            t2 = table_builder [["X", [1, 2]]] connection=data.connection
+            t3 = table_builder [["X", [1, 2, 3]]] connection=data.connection
+            t100 = table_builder [["Y", 0.up_to 100 . to_vector]] connection=data.connection
+            t101 = table_builder [["Y", 0.up_to 101 . to_vector]] connection=data.connection
 
             t2.cross_join t100 . row_count . should_equal 200
             t101.cross_join t2 . row_count . should_equal 202
@@ -75,8 +83,8 @@ add_specs suite_builder setup =
             t2.cross_join t3 right_row_limit=2 on_problems=Problem_Behavior.Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
 
         group_builder.specify "should ensure 1-1 mapping even with duplicate rows" <|
-            t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]
-            t2 = table_builder [["Z", ['a', 'b', 'a', 'b']]]
+            t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]] connection=data.connection
+            t2 = table_builder [["Z", ['a', 'b', 'a', 'b']]] connection=data.connection
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Z"] t3
@@ -93,7 +101,7 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should allow self-joins" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]] connection=data.connection
             t2 = t1.cross_join t1
 
             expect_column_names ["X", "Y", "Right X", "Right Y"] t2
@@ -110,8 +118,8 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should rename columns of the right table to avoid duplicates" <|
-            t1 = table_builder [["X", [1]], ["Y", [5]], ["Right Y", [10]]]
-            t2 = table_builder [["X", ['a']], ["Y", ['d']]]
+            t1 = table_builder [["X", [1]], ["Y", [5]], ["Right Y", [10]]] connection=data.connection
+            t2 = table_builder [["X", ['a']], ["Y", ['d']]] connection=data.connection
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Right Y", "Right X", "Right Y 1"] t3
@@ -127,13 +135,13 @@ add_specs suite_builder setup =
 
             expect_column_names ["X", "Y", "Right Y", "X 1", "Y 1"] (t1.cross_join t2 right_prefix="")
 
-            t4 = table_builder [["X", [1]], ["Right X", [5]]]
+            t4 = table_builder [["X", [1]], ["Right X", [5]]] connection=data.connection
             expect_column_names ["X", "Y", "Right Y", "Right X 1", "Right X"] (t1.cross_join t4)
             expect_column_names ["X", "Right X", "Right X 1", "Y", "Right Y"] (t4.cross_join t1)
 
         group_builder.specify "should respect the column ordering" <|
-            t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'd', 'd']]]
+            t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]] connection=data.connection
+            t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'd', 'd']]] connection=data.connection
 
             t3 = t1.order_by "X"
             t4 = t2.order_by ([Sort_Column.Name "Z" Sort_Direction.Descending])
@@ -156,12 +164,12 @@ add_specs suite_builder setup =
                 False -> r.should_equal expected_rows
 
         group_builder.specify "Cross join is not possible via call to .join" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
-            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]] connection=data.connection
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]] connection=data.connection
             Test.expect_panic_with (t1.join t2 join_kind=Join_Kind_Cross.Cross on=[]) Type_Error
 
         group_builder.specify "should gracefully handle tables from different backends" <|
-            t1 = table_builder [["A", ["a", "b"]]]
+            t1 = table_builder [["A", ["a", "b"]]] connection=data.connection
             alternative_connection = Database.connect (SQLite In_Memory)
             t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
 

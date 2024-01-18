@@ -20,18 +20,21 @@ type Test_Selection
 type Data
     Value ~data
 
-    table self = self.data.at 0
-    empty_table self = self.data.at 1
+    connection self = self.data.at 0
+    table self = self.data.at 1
+    empty_table self = self.data.at 2
 
-    setup table_fn empty_table_fn = Data.Value <|
+    setup create_connection_fn table_fn empty_table_fn = Data.Value <|
+        connection = create_connection_fn Nothing
         table = table_fn Nothing
         empty_table = empty_table_fn Nothing
-        [table, empty_table]
+        [connection, table, empty_table]
 
 
 ## Runs the common aggregate tests.
 add_specs suite_builder setup =
     prefix = setup.prefix
+    create_connection_fn = setup.create_connection_func
     table_fn = setup.table_fn
     empty_table_fn = setup.empty_table_fn
     table_builder = setup.table_builder
@@ -51,7 +54,7 @@ add_specs suite_builder setup =
         if enabled_flag.not then "Not supported." else Nothing
 
     suite_builder.group prefix+"Table.aggregate should summarize whole table" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate [Count]
@@ -217,7 +220,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . length . should_equal 7500
 
     suite_builder.group prefix+"Table.aggregate should summarize empty table" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         group_builder.specify "should be able to count" <|
             grouped = data.empty_table.aggregate [Count]
@@ -342,7 +345,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . should_equal Nothing
 
     suite_builder.group prefix+"Table.aggregate should not summarize empty table when grouped" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         group_builder.specify "should be able to count" <|
             grouped = data.empty_table.aggregate [Group_By 0, Count]
@@ -455,7 +458,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Concatenate Code"
 
     suite_builder.group prefix+"Table.aggregate should be able to group on single field" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate [Group_By "Index", Count]
@@ -659,7 +662,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . at idx . length . should_equal 783
 
     suite_builder.group prefix+"Table.aggregate should be able to group on multiple fields not in left columns" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate [Group_By "Flag", Count, Group_By "Index"]
@@ -889,8 +892,10 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . to_vector . should_equal ["f"]
 
     suite_builder.group prefix+"Table.aggregate Concatenate" (pending = resolve_pending test_selection.text_concat) group_builder->
+        data = Data.setup create_connection_fn table_fn empty_table_fn
+
         group_builder.specify "should insert the separator, add prefix and suffix" <|
-            table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
+            table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]] connection=data.connection
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
             materialized = materialize result . order_by ([Sort_Column.Name "A"])
@@ -902,7 +907,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . to_vector . should_equal ["[[b]]", "[[a; c; d]]"]
 
         group_builder.specify "should correctly escape separator and quote characters but only if necessary" <|
-            table = table_builder [["A", ["1,0", "b", "'c", "''", ","]]]
+            table = table_builder [["A", ["1,0", "b", "'c", "''", ","]]] connection=data.connection
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -912,7 +917,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',b,'''c','''''',',']]"]
 
         group_builder.specify "should correctly handle missing values and empty values with quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]] connection=data.connection
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -922,7 +927,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',A,'','',B,,,C]]"]
 
         group_builder.specify "will not be able to distinguish missing values from empty values without quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]] connection=data.connection
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -937,7 +942,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[[1,0,A,,,B,,,C]]"]
 
         group_builder.specify "should work with empty separator" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]] connection=data.connection
             result = table.aggregate [(Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -947,7 +952,7 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
 
         group_builder.specify "should work with empty separator but non-empty quote" <|
-            table = table_builder [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = table_builder [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]] connection=data.connection
             result = table.aggregate [(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
@@ -957,6 +962,8 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
 
     suite_builder.group prefix+"Table.aggregate Count_Distinct" group_builder->
+        data = Data.setup create_connection_fn table_fn empty_table_fn
+
         group_builder.specify "should correctly count missing values" <|
             get_value t =
                 columns = materialize t . columns
@@ -966,7 +973,7 @@ add_specs suite_builder setup =
 
             ## TODO currently our builder does not allow all-null tables, so we
                create one with a 0 and remove it by filter. See #6159.
-            t0 = table_builder [["A", [0]]]
+            t0 = table_builder [["A", [0]]] connection=data.connection
             t1 = t0.filter "A" (Filter_Condition.Is_Nothing)
             t1.row_count . should_equal 0
             t1.at "A" . to_vector . should_equal []
@@ -976,7 +983,7 @@ add_specs suite_builder setup =
 
             ## TODO currently our builder does not allow all-null tables, so we
                create one with a 0 and remove it by filter. See #6159.
-            t0_2 = table_builder [["A", [0, Nothing, Nothing]]]
+            t0_2 = table_builder [["A", [0, Nothing, Nothing]]] connection=data.connection
             t2 = t0_2.filter "A" (Filter_Condition.Is_Nothing)
             t2.row_count . should_equal 2
             t2.at "A" . to_vector . should_equal [Nothing, Nothing]
@@ -984,15 +991,15 @@ add_specs suite_builder setup =
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 1
 
-            t3 = table_builder [["A", [1, 2]]]
+            t3 = table_builder [["A", [1, 2]]] connection=data.connection
             get_value (t3.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
             get_value (t3.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 2
 
-            t4 = table_builder [["A", [1, 2, Nothing, Nothing]]]
+            t4 = table_builder [["A", [1, 2, Nothing, Nothing]]] connection=data.connection
             get_value (t4.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
             get_value (t4.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 3
 
-            t5 = table_builder [["G", ["foo", "foo", "bar", "foo"]], ["A", [Nothing, 0, Nothing, Nothing]]]
+            t5 = table_builder [["G", ["foo", "foo", "bar", "foo"]], ["A", [Nothing, 0, Nothing, Nothing]]]  connection=data.connection
 
             r1 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
@@ -1009,7 +1016,7 @@ add_specs suite_builder setup =
             m2.columns.second.to_vector . should_equal [1, 2]
 
         group_builder.specify "should correctly count all-null keys in multi-column mode" (pending = resolve_pending test_selection.multi_distinct) <|
-            table = table_builder [["A", ["foo", "foo", Nothing, Nothing, Nothing]], ["B", ["baz", Nothing, Nothing, Nothing, "baz"]], ["C", [1, 2, 3, Nothing, 5]]]
+            table = table_builder [["A", ["foo", "foo", Nothing, Nothing, Nothing]], ["B", ["baz", Nothing, Nothing, Nothing, "baz"]], ["C", [1, 2, 3, Nothing, 5]]] connection=data.connection
 
             r2 = table.aggregate [Count_Distinct ["A", "B"] (ignore_nothing=False)]
             r2.row_count.should_equal 1
@@ -1085,17 +1092,19 @@ add_specs suite_builder setup =
             Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
 
     suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
+        data = Data.setup create_connection_fn table_fn empty_table_fn
         pos_inf = 1/0
         neg_inf = -1/0
+
         group_builder.specify "on Average" <|
-            t1 = table_builder [["X", [Nothing, pos_inf, pos_inf, 0]]]
+            t1 = table_builder [["X", [Nothing, pos_inf, pos_inf, 0]]] connection=data.connection
             r1 = t1.aggregate [Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
-            t2 = table_builder [["X", [Nothing, pos_inf, neg_inf, 0]]]
+            t2 = table_builder [["X", [Nothing, pos_inf, neg_inf, 0]]] connection=data.connection
             r2 = t2.aggregate [Average "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
@@ -1103,28 +1112,28 @@ add_specs suite_builder setup =
             expect_null_or_nan <| m2.columns.first.at 0
 
         group_builder.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
-            t1 = table_builder [["X", [Nothing, neg_inf, pos_inf, 0, pos_inf, pos_inf]]]
+            t1 = table_builder [["X", [Nothing, neg_inf, pos_inf, 0, pos_inf, pos_inf]]] connection=data.connection
             r1 = t1.aggregate [Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
-            t2 = table_builder [["X", [pos_inf, pos_inf, neg_inf, neg_inf]]]
+            t2 = table_builder [["X", [pos_inf, pos_inf, neg_inf, neg_inf]]] connection=data.connection
             r2 = t2.aggregate [Median "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count . should_equal 1
             expect_null_or_nan <| m2.columns.first.at 0
 
-            t3 = table_builder [["X", [pos_inf, pos_inf, Nothing, 0, 10, 20, neg_inf, neg_inf]]]
+            t3 = table_builder [["X", [pos_inf, pos_inf, Nothing, 0, 10, 20, neg_inf, neg_inf]]] connection=data.connection
             r3 = t3.aggregate [Median "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
             m3.column_count . should_equal 1
             m3.columns.first.at 0 . should_equal 10
 
-            t4 = table_builder [["X", [Nothing, pos_inf, pos_inf, 10, 12]]]
+            t4 = table_builder [["X", [Nothing, pos_inf, pos_inf, 10, 12]]] connection=data.connection
             r4 = t4.aggregate [Median "X"]
             r4.row_count.should_equal 1
             m4 = materialize r4
@@ -1132,21 +1141,21 @@ add_specs suite_builder setup =
             m4.columns.first.at 0 . should_equal pos_inf
 
         group_builder.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
-            t1 = table_builder [["X", [Nothing, neg_inf, 2, 3, 4, pos_inf]]]
+            t1 = table_builder [["X", [Nothing, neg_inf, 2, 3, 4, pos_inf]]] connection=data.connection
             r1 = t1.aggregate [Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2.2
 
-            t2 = table_builder [["X", [Nothing, neg_inf, neg_inf, 3, 4, pos_inf]]]
+            t2 = table_builder [["X", [Nothing, neg_inf, neg_inf, 3, 4, pos_inf]]] connection=data.connection
             r2 = t2.aggregate [Percentile 0.25 "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count . should_equal 1
             m2.columns.first.at 0 . should_equal neg_inf
 
-            t3 = table_builder [["X", [Nothing, neg_inf, neg_inf, pos_inf, pos_inf, pos_inf]]]
+            t3 = table_builder [["X", [Nothing, neg_inf, neg_inf, pos_inf, pos_inf, pos_inf]]] connection=data.connection
             r3 = t3.aggregate [Percentile 0.3 "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
@@ -1154,7 +1163,7 @@ add_specs suite_builder setup =
             expect_null_or_nan <| m3.columns.first.at 0
 
         group_builder.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
-            t1 = table_builder [["X", [neg_inf, 1]]]
+            t1 = table_builder [["X", [neg_inf, 1]]] connection=data.connection
             r1 = t1.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
             m1 = materialize r1
@@ -1301,7 +1310,7 @@ add_specs suite_builder setup =
                 r1.to_display_text . should_contain "`First`"
 
     suite_builder.group prefix+"Table.aggregate+Expressions" group_builder->
-        data = Data.setup table_fn empty_table_fn
+        data = Data.setup create_connection_fn table_fn empty_table_fn
 
         ## TODO we probably should check all kinds of aggregate columns
            to verify that  all of them correctly support expressions.
