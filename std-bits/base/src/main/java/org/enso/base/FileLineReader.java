@@ -174,10 +174,6 @@ public class FileLineReader {
 
       // Loop until we either reach the required record or run out of data.
       while ((endAt == -1 || index <= endAt) && (truncated || buffer.hasRemaining())) {
-        if (action != null && index == 960969) {
-          LOGGER.log(Level.WARNING, "Debug Me!");
-        }
-
         var linePosition = buffer.position() + position;
 
         // Read a line.
@@ -194,9 +190,6 @@ public class FileLineReader {
 
             if (action != null) {
               line = line == null ? outputStream.toString(charset) : line;
-              if (line.isEmpty()) {
-                LOGGER.log(Level.WARNING, "Empty line at index {0}", index);
-              }
               action.apply(index, line);
             }
 

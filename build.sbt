@@ -2599,7 +2599,8 @@ lazy val `std-base` = project
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

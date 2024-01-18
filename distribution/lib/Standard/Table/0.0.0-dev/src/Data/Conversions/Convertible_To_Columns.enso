@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Data.Java_Json.Jackson_Object
 
 ## PRIVATE
    A special type describing how to convert an object into a set of table
@@ -13,6 +14,10 @@ type Convertible_To_Columns
 
 ## PRIVATE
 Convertible_To_Columns.from (that:JS_Object) =
+    Convertible_To_Columns.Value that.field_names that.get
+
+## PRIVATE
+Convertible_To_Columns.from (that:Jackson_Object) =
     Convertible_To_Columns.Value that.field_names that.get
 
 ## PRIVATE
