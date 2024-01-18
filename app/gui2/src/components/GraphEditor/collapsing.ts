@@ -133,8 +133,6 @@ const MODULE_NAME = 'Main'
 const COLLAPSED_FUNCTION_NAME = 'collapsed'
 
 interface CollapsingResult {
-  /** Ast edits to the module. */
-  edit: Ast.MutableModule
   /** The ID of the node refactored to the collapsed function call. */
   refactoredNodeId: ExprId
   /** IDs of nodes inside the collapsed function, except the output node.
@@ -149,6 +147,7 @@ interface CollapsingResult {
 export function performCollapse(
   info: CollapsedInfo,
   module: Ast.Module,
+  edit: Ast.MutableModule,
   topLevel: Ast.BodyBlock,
   db: GraphDb,
   currentMethodName: string,
@@ -166,7 +165,6 @@ export function performCollapse(
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
   const collapsed = []
   const refactored = []
-  const edit = module.edit()
   const lines = functionBlock.lines()
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
@@ -202,7 +200,7 @@ export function performCollapse(
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.new(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
-  return { edit, refactoredNodeId, collapsedNodeIds, outputNodeId }
+  return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
 /** Prepare a method call expression for collapsed method. */

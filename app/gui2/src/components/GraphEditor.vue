@@ -272,9 +272,11 @@ const graphBindingsHandler = graphBindings.handler({
       if (!topLevel) {
         bail('BUG: no top level, collapsing not possible.')
       }
-      const { edit, refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+      const edit = module.edit()
+      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
         module,
+        edit,
         topLevel,
         graphStore.db,
         currentMethodName,
