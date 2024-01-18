@@ -5,7 +5,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 /** Represents a type constructor definition. */
 @NodeInfo(shortName = "Cons", description = "Represents a constructor definition")
@@ -45,7 +46,7 @@ public abstract class ConstructorNode extends ExpressionNode {
       return false;
     }
     if (constructor.getArity() == 0) {
-      return constructor.newInstance();
+      return AtomNewInstanceNode.getUncached().newInstance(constructor);
     }
     return constructor;
   }

@@ -390,13 +390,14 @@ final class TreeToIr {
 
       case Tree.Function fun -> {
         Name name;
+        boolean isOperator = false;
         if (fun.getName() instanceof Tree.Ident ident) {
-          var isMethod = ident.getToken().isOperatorLexically();
-          name = buildName(getIdentifiedLocation(fun.getName()), ident.getToken(), isMethod);
+          isOperator = ident.getToken().isOperatorLexically();
+          name = buildName(getIdentifiedLocation(fun.getName()), ident.getToken(), isOperator);
         } else {
           name = buildNameOrQualifiedName(fun.getName());
         }
-        var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
+        var ir = translateFunction(fun, name, isOperator, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
         yield join(ir, appendTo);
       }
 
@@ -405,7 +406,7 @@ final class TreeToIr {
       case Tree.Assignment assignment -> {
         var name = buildName(assignment.getPattern());
         java.util.List<ArgumentDefinition> args = java.util.Collections.emptyList();
-        var ir = translateFunction(assignment, name, args, assignment.getExpr(), null);
+        var ir = translateFunction(assignment, name, false, args, assignment.getExpr(), null);
         yield join(ir, appendTo);
       }
 
@@ -498,7 +499,10 @@ final class TreeToIr {
         return new Operator.Binary(fn, in, args.head(), getIdentifiedLocation(app), meta(), diag());
       }
     }
-    private Expression translateFunction(Tree fun, Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody, Expression returnType) {
+    private Expression translateFunction(
+      Tree fun, Name name, boolean isOperator,
+      java.util.List<ArgumentDefinition> arguments, final Tree treeBody, Expression returnType
+    ) {
       List<DefinitionArgument> args;
       try {
         args = translateArgumentsDefinition(arguments);
@@ -531,6 +535,9 @@ final class TreeToIr {
       } else {
         if (body == null) {
           return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        }
+        if (isOperator && args.size() != 2) {
+          return translateSyntaxError(fun, Syntax.InvalidOperator$.MODULE$);
         }
 
         var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
@@ -996,7 +1003,11 @@ final class TreeToIr {
       }
       case Tree.Function fun -> {
         var name = buildName(fun.getName());
-        yield translateFunction(fun, name, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
+        boolean isOperator = false;
+        if (fun.getName() instanceof Tree.Ident ident) {
+          isOperator = ident.getToken().isOperatorLexically();
+        }
+        yield translateFunction(fun, name, isOperator, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
       }
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->

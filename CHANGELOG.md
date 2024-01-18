@@ -1020,6 +1020,7 @@
 - [Added opt-in type checks of return type][8502]
 - [Introduce Arrow language][8512]
 - [DataflowError.withoutTrace doesn't store stacktrace][8608]
+- [Derive --in-project from --run source location][8775]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1173,6 +1174,7 @@
 [8502]: https://github.com/enso-org/enso/pull/8502
 [8512]: https://github.com/enso-org/enso/pull/8512
 [8608]: https://github.com/enso-org/enso/pull/8608
+[8775]: https://github.com/enso-org/enso/pull/8775
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

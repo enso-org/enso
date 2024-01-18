@@ -236,8 +236,8 @@ object Syntax {
     override def explanation: String = "Named argument in operator section"
   }
 
-  case object InvalidOperatorName extends Reason {
-    override def explanation: String = "Invalid operator name"
+  case object InvalidOperator extends Reason {
+    override def explanation: String = "Operator must have two arguments"
   }
 
   case class InvalidForeignDefinition(details: String) extends Reason {

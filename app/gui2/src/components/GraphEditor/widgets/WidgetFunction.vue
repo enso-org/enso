@@ -24,6 +24,7 @@ import {
   getAccessOprSubject,
   interpretCall,
 } from '@/util/callTree'
+import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -46,22 +47,40 @@ const interpreted = computed(() => {
   return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
+const subjectInfo = computed(() => {
+  const analyzed = interpreted.value
+  if (analyzed.kind !== 'prefix') return
+  const subject = getAccessOprSubject(analyzed.func)
+  if (!subject) return
+  return graph.db.getExpressionInfo(subject.exprId)
+})
+
+const selfArgumentPreapplied = computed(() => {
+  const info = methodCallInfo.value
+  const funcType = info?.methodCall.methodPointer.definedOnType
+  return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+})
+
+const subjectTypeMatchesMethod = computed(() => {
+  const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
+  return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
+})
+
 const application = computed(() => {
   const call = interpreted.value
   if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
-  const info = methodCallInfo.value
-  return ArgumentApplication.FromInterpretedWithInfo(
-    call,
-    {
-      noArgsCall,
-      appMethodCall: info?.methodCall,
-      suggestion: info?.suggestion,
-      widgetCfg: widgetConfiguration.value,
-    },
-    !info?.staticallyApplied,
-  )
+  return ArgumentApplication.FromInterpretedWithInfo(call, {
+    suggestion: methodCallInfo.value?.suggestion,
+    widgetCfg: widgetConfiguration.value,
+    subjectAsSelf: selfArgumentPreapplied.value,
+    notAppliedArguments:
+      noArgsCall != null &&
+      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+        ? noArgsCall.notAppliedArguments
+        : undefined,
+  })
 })
 
 const innerInput = computed(() => {
@@ -84,10 +103,12 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
     return analyzed.lhs?.exprId
   } else {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      knownArguments?.[0]?.name === 'self'
-        ? getAccessOprSubject(analyzed.func)
-        : analyzed.args[0]?.argument
+      hasSelfArgument && !selfArgumentPreapplied.value
+        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+
     return selfArgument?.exprId
   }
 })
@@ -161,13 +182,32 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
+      edit.takeAndReplaceValue(argApp.appTree.exprId, (oldAppTree) =>
         Ast.App.new(oldAppTree, name, newArg, edit),
       )
       props.onUpdate({ edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
+
+      // HACK: Temporarily modify expression info to include the deleted argument on a list, so it
+      // immediately appears back as a placeholder after deletion, before the engine respones.
+      // The engine will soon send another expression update, overwriting this change anyway.
+      //
+      // This update is unfortunately not saved in the undo stack. Undoing and redoing the edit will
+      // still cause the placeholder to glitch out temporarily, but this is good enough for now.
+      // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
+      // saved in the undo transaction.
+      const deletedArgIdx = argApp.argument.index
+      if (deletedArgIdx != null) {
+        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
+        if (notAppliedArguments != null) {
+          const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
+          // Insert the deleted argument back to the method info. This directly modifies observable
+          // data in `ComputedValueRegistry`. That's on purpose.
+          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+        }
+      }
 
       if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
         /* Case: Removing named prefix argument. */
@@ -264,7 +304,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
     if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
     const info = db.getMethodCallInfo(ast.exprId)
-    if (prevFunctionState != null && info?.staticallyApplied === true && ast instanceof Ast.Ident) {
+    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
       return Score.Mismatch
     }
     return info != null ? Score.Perfect : Score.Mismatch

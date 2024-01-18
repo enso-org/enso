@@ -120,7 +120,6 @@ noted. The documentation syntax supports the following tags:
 - `PRIVATE`: Used to describe constructs that are private in the language.
 - `REMOVED`: Used to describe constructs that have been removed and are no
   longer functional.
-- `TEXT_ONLY`: Items that do not apply to the graphical mode.
 - `UNSTABLE`: Used for items that are not yet considered stable.
 - `UPCOMING`: Used to describe constructs that will be added in future versions
   of the library.
