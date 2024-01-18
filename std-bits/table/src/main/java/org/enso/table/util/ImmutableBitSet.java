@@ -46,6 +46,31 @@ public class ImmutableBitSet {
         return new ImmutableBitSet(result, size);
     }
 
+    public ImmutableBitSet notAnd(ImmutableBitSet other) {
+        assert size == other.size;
+        BitSet result = (BitSet) bitSet.clone();
+        result.flip(0, size);
+        result.and(other.bitSet);
+        return new ImmutableBitSet(result, size);
+    }
+
+    public ImmutableBitSet notAndNot(ImmutableBitSet other) {
+        assert size == other.size;
+        BitSet result = (BitSet) bitSet.clone();
+        result.flip(0, size);
+        result.andNot(other.bitSet);
+        return new ImmutableBitSet(result, size);
+    }
+
+    public ImmutableBitSet orNot(ImmutableBitSet other) {
+        assert size == other.size;
+        BitSet result = (BitSet) bitSet.clone();
+        BitSet otherNegated = (BitSet) other.bitSet.clone();
+        otherNegated.flip(0, size);
+        result.or(otherNegated);
+        return new ImmutableBitSet(result, size);
+    }
+
     public static ImmutableBitSet allFalse(int size) {
         return new ImmutableBitSet(new BitSet(), size);
     }
