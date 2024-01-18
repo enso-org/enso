@@ -14,92 +14,129 @@ from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
+main = run_default_backend add_specs
+
+type Data
+    Value ~table
+
+    setup create_connection_fn table_builder =
+        connection = create_connection_fn Nothing
+        table =
+            col1 = ["foo", [1,2,3]]
+            col2 = ["bar", [4,5,6]]
+            col3 = ["Baz", [7,8,9]]
+            col4 = ["foo 1", [10,11,12]]
+            col5 = ["foo 2", [13,14,15]]
+            col6 = ["ab.+123", [16,17,18]]
+            col7 = ["abcd123", [19,20,21]]
+            table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
+        Data.Value table
+
+type Rows_Data
+    Value ~table
+
+    setup create_connection_fn table_builder =
+        connection = create_connection_fn Nothing
+        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]] connection=connection
+        Rows_Data.Value table
+
+type Read_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t_big self = self.data.at 1
+    t_small self = self.data.at 2
+
+    setup create_connection_fn table_builder = Read_Data.Value <|
+        connection = create_connection_fn Nothing
+        t_big = table_builder [["X", (0.up_to 1500)]] connection=connection
+        t_small = table_builder [["X", (0.up_to 10)]] connection=connection
+        [connection, t_big, t_small]
+
+
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    table_fn =
-        col1 = ["foo", [1,2,3]]
-        col2 = ["bar", [4,5,6]]
-        col3 = ["Baz", [7,8,9]]
-        col4 = ["foo 1", [10,11,12]]
-        col5 = ["foo 2", [13,14,15]]
-        col6 = ["ab.+123", [16,17,18]]
-        col7 = ["abcd123", [19,20,21]]
-        table_builder [col1, col2, col3, col4, col5, col6, col7]
-    table = table_fn
+    create_connection_fn = setup.create_connection_func
 
     suite_builder.group prefix+"Table.at" group_builder->
+        data = Data.setup create_connection_fn table_builder
+        
         group_builder.specify "should allow selecting columns by name" <|
-            column_1 = table.at "bar"
+            column_1 = data.table.at "bar"
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column
+            data.table.at "nonexistent column name" . should_fail_with No_Such_Column
 
         group_builder.specify "should allow selecting columns by index" <|
-            column_1 = table.at
+            column_1 = data.table.at
             column_1.name . should_equal "foo"
             column_1.to_vector . should_equal [1, 2, 3]
 
-            column_2 = table.at 2
+            column_2 = data.table.at 2
             column_2.name . should_equal "Baz"
             column_2.to_vector . should_equal [7, 8, 9]
 
-            column_3 = table.at -1
+            column_3 = data.table.at -1
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            column_4 = table.first_column
+            column_4 = data.table.first_column
             column_4.name . should_equal "foo"
             column_4.to_vector . should_equal [1, 2, 3]
 
-            column_5 = table.second_column
+            column_5 = data.table.second_column
             column_5.name . should_equal "bar"
             column_5.to_vector . should_equal [4, 5, 6]
 
-            column_6 = table.last_column
+            column_6 = data.table.last_column
             column_6.name . should_equal "abcd123"
             column_6.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds
+            data.table.at 100 . should_fail_with Index_Out_Of_Bounds
 
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
-            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument
-            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
+            data.table.at (Pair.new 1 2) . should_fail_with Illegal_Argument
+            data.table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     suite_builder.group prefix+"Table.get" group_builder->
+        data = Data.setup create_connection_fn table_builder
+
         group_builder.specify "should allow selecting columns by name" <|
-            column_1 = table.get "bar"
+            column_1 = data.table.get "bar"
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.get "nonexistent column name" . should_equal Nothing
-            table.get "nonexistent column name" column_1 . name . should_equal "bar"
+            data.table.get "nonexistent column name" . should_equal Nothing
+            data.table.get "nonexistent column name" column_1 . name . should_equal "bar"
 
         group_builder.specify "should allow selecting columns by index" <|
-            column_1 = table.get
+            column_1 = data.table.get
             column_1.name . should_equal "foo"
             column_1.to_vector . should_equal [1, 2, 3]
 
-            column_2 = table.get 2
+            column_2 = data.table.get 2
             column_2.name . should_equal "Baz"
             column_2.to_vector . should_equal [7, 8, 9]
 
-            column_3 = table.get -1
+            column_3 = data.table.get -1
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            table.get 100 . should_equal Nothing
-            table.get 100 column_1 . name . should_equal "foo"
+            data.table.get 100 . should_equal Nothing
+            data.table.get 100 column_1 . name . should_equal "foo"
 
         group_builder.specify "should fail with Type Error is not an Integer or Text" <|
-            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument
-            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
+            data.table.get (Pair.new 1 2) . should_fail_with Illegal_Argument
+            data.table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     suite_builder.group prefix+"Table.set" group_builder->
+        data = Data.setup create_connection_fn table_builder
+
         group_builder.specify "should allow adding a column" <|
-            bar2 = table.get "bar" . rename "bar2"
-            t2 = table.set bar2
+            bar2 = data.table.get "bar" . rename "bar2"
+            t2 = data.table.set bar2
             t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar2"]
             t2.get "bar2" . to_vector . should_equal [4, 5, 6]
 
@@ -107,11 +144,11 @@ add_specs suite_builder setup =
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar2", "bar3"]
 
         group_builder.specify "should not allow illegal column names" <|
-            table.set (table.get "bar") new_name='a\0b' . should_fail_with Invalid_Column_Names
+            data.table.set (data.table.get "bar") new_name='a\0b' . should_fail_with Invalid_Column_Names
 
         group_builder.specify "should allow replacing a column" <|
-            foo = table.get "bar" . rename "foo"
-            t2 = table.set foo
+            foo = data.table.get "bar" . rename "foo"
+            t2 = data.table.set foo
             t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
             t2.get "foo" . to_vector . should_equal [4, 5, 6]
 
@@ -119,11 +156,11 @@ add_specs suite_builder setup =
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar3"]
 
         group_builder.specify "should allow adding a column" <|
-            bar2 = table.get "bar" . rename "bar2"
-            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column
+            bar2 = data.table.get "bar" . rename "bar2"
+            data.table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column
 
-            foo = table.get "bar" . rename "foo"
-            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
+            foo = data.table.get "bar" . rename "foo"
+            data.table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
 
         group_builder.specify "should not affect existing columns that depended on the old column being replaced" <|
             t1 = table_builder [["X", [1,2,3]]]
@@ -175,26 +212,31 @@ add_specs suite_builder setup =
                 False -> r1.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Table.column_names" group_builder->
+        data = Data.setup create_connection_fn table_builder
+
         group_builder.specify "should return the names of all columns" <|
-            table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            data.table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
 
         group_builder.specify "should allow weird column names in all backends" <|
             columns = weird_names.map_with_index ix-> name->
                 [name, [100+ix, 2, 3]]
-            table = table_builder columns
-            table.column_names . should_equal weird_names
+            data.table = table_builder columns
+            data.table.column_names . should_equal weird_names
 
             weird_names.map_with_index ix-> name->
-                table.at name . to_vector . should_equal [100+ix, 2, 3]
+                data.table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     suite_builder.group prefix+"Table.column_count" group_builder->
+        data = Data.setup create_connection_fn table_builder
+
         group_builder.specify "should allow getting the column count" <|
-            table.column_count . should_equal 7
+            data.table.column_count . should_equal 7
 
     suite_builder.group prefix+"Table.rows" group_builder->
-        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
+        data = Rows_Data.setup create_connection_fn table_builder
+
         group_builder.specify "should allow to get a Vector of Table rows" <|
-            rows = table.rows
+            rows = data.table.rows
             rows.length . should_equal 4
 
             first_row = rows.first
@@ -226,51 +268,50 @@ add_specs suite_builder setup =
             rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
 
         group_builder.specify "should let you get the first row" <|
-            first_row = table.first_row
+            first_row = data.table.first_row
             first_row . length . should_equal 3
             first_row.at "X" . should_equal 1
             first_row.at "Y" . should_equal 5
             first_row.at "Z" . should_equal "A"
 
         group_builder.specify "should let you get the second row" <|
-            second_row = table.second_row
+            second_row = data.table.second_row
             second_row . length . should_equal 3
             second_row.at "X" . should_equal 2
             second_row.at "Y" . should_equal 6
             second_row.at "Z" . should_equal "B"
 
         group_builder.specify "should let you get the last row" <|
-            last_row = table.last_row
+            last_row = data.table.last_row
             last_row . length . should_equal 3
             last_row.at "X" . should_equal 4
             last_row.at "Y" . should_equal 8
             last_row.at "Z" . should_equal "D"
 
         group_builder.specify "should fetch rows up to the specified limit" <|
-            table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
+            data.table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
         group_builder.specify "should correctly handle errors" <|
-            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds
-            err = table.rows.at -6
+            data.table.rows.at 5 . should_fail_with Index_Out_Of_Bounds
+            err = data.table.rows.at -6
             err.should_fail_with Index_Out_Of_Bounds
             err.catch . should_equal (Index_Out_Of_Bounds.Error -6 4)
 
-            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds
-            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
-            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
+            data.table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds
+            data.table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
+            data.table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
 
 
     suite_builder.group prefix+"Table.read" group_builder->
-        t_big = table_builder [["X", (0.up_to 1500)]]
-        t_small = table_builder [["X", (0.up_to 10)]]
+        data = Read_Data.setup create_connection_fn table_builder
 
         has_default_row_limit = setup.is_database
 
         group_builder.specify "should have a row limit by default and warn about it" <|
-            t_big.row_count . should_equal 1500
-            t_small.row_count . should_equal 10
+            data.t_big.row_count . should_equal 1500
+            data.t_small.row_count . should_equal 10
 
-            t1 = t_big.read
+            t1 = data.t_big.read
             case has_default_row_limit of
                 True ->
                     t1.row_count . should_equal 1000
@@ -280,46 +321,46 @@ add_specs suite_builder setup =
                     t1.row_count . should_equal 1500
                     Problems.assume_no_problems t1
 
-            t2 = t_small.read
+            t2 = data.t_small.read
             t2.row_count . should_equal 10
             Problems.assume_no_problems t2
 
         group_builder.specify "should allow to set the row limit" <|
-            t1 = t_big.read max_rows=23
+            t1 = data.t_big.read max_rows=23
             t1.row_count . should_equal 23
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 23
             w1.to_display_text . should_contain "some rows have been dropped"
 
-            t2 = t_big.read max_rows=1500
+            t2 = data.t_big.read max_rows=1500
             t2.row_count . should_equal 1500
             Problems.assume_no_problems t2
 
-            t3 = t_small.read max_rows=1
+            t3 = data.t_small.read max_rows=1
             t3.row_count . should_equal 1
             w3 = Problems.expect_only_warning Not_All_Rows_Downloaded t3
             w3.max_rows . should_equal 1
 
         group_builder.specify "should allow to have no row limit" <|
-            t1 = t_big.read max_rows=Nothing
+            t1 = data.t_big.read max_rows=Nothing
             t1.row_count . should_equal 1500
             Problems.assume_no_problems t1
 
         group_builder.specify "should allow to turn off the warning" <|
-            t1 = t_big.read warn_if_more_rows=False
+            t1 = data.t_big.read warn_if_more_rows=False
             t1.row_count . should_equal (if has_default_row_limit then 1000 else 1500)
             Problems.assume_no_problems t1
 
-            t2 = t_big.read max_rows=123 warn_if_more_rows=False
+            t2 = data.t_big.read max_rows=123 warn_if_more_rows=False
             t2.row_count . should_equal 123
             Problems.assume_no_problems t2
 
-            t3 = t_big.read max_rows=12300 warn_if_more_rows=False
+            t3 = data.t_big.read max_rows=12300 warn_if_more_rows=False
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
         group_builder.specify "should also work as Column.read" <|
-            c1 = t_big.at "X"
+            c1 = data.t_big.at "X"
             c1.length . should_equal 1500
 
             r2 = c1.read
@@ -348,24 +389,23 @@ add_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            connection = setup.connection_fn Nothing
-            connection.query t_big.name . row_count . should_equal 1500
+            data.connection.query data.t_big.name . row_count . should_equal 1500
 
-            t1 = connection.read t_big.name
+            t1 = data.connection.read data.t_big.name
             t1.row_count . should_equal 1000
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = connection.read t_big.name limit=42
+            t2 = data.connection.read data.t_big.name limit=42
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = connection.read t_big.name limit=Nothing
+            t3 = data.connection.read data.t_big.name limit=Nothing
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = connection.read t_big.name warn_if_more_rows=False
+            t4 = data.connection.read data.t_big.name warn_if_more_rows=False
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 
