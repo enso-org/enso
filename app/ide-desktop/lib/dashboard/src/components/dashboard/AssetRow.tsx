@@ -24,7 +24,8 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import Visibility, * as visibilityModule from '#/utilities/visibility'
 
-import type * as column from '#/components/dashboard/column'
+import * as columnModule from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
@@ -37,6 +38,16 @@ const DRAG_EXPAND_DELAY_MS = 500
 
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
+
+/** The default {@link assetsTable.AssetRowState} associated with a {@link AssetRow}. */
+export const INITIAL_ROW_STATE: assetsTable.AssetRowState = Object.freeze({
+    setVisibility: () => {
+        // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
+    },
+    isEditingName: false,
+    temporarilyAddedLabels: set.EMPTY,
+    temporarilyRemovedLabels: set.EMPTY,
+})
 
 // ================
 // === AssetRow ===
@@ -55,13 +66,10 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
     extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
-    keyProp: backendModule.AssetId
-    tableRowRef?: React.RefObject<HTMLTableRowElement>
     item: assetTreeNode.AssetTreeNode
     state: assetsTable.AssetsTableState
     hidden: boolean
-    initialRowState: assetsTable.AssetRowState
-    columns: column.AssetColumn[]
+    columns: columnUtils.Column[]
     selected: boolean
     setSelected: (selected: boolean) => void
     isSoleSelectedItem: boolean
@@ -75,9 +83,19 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-    const { keyProp: key, item: rawItem, initialRowState, hidden, selected } = props
-    const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
-    const { tableRowRef, columns, onClick } = props
+    const {
+        item: rawItem,
+        hidden,
+        selected,
+        isSoleSelectedItem,
+        setSelected,
+        allowContextMenu,
+        onContextMenu,
+        state,
+        columns,
+        onClick,
+        ...passthrough
+    } = props
     const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
     const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
@@ -91,8 +109,9 @@ export default function AssetRow(props: AssetRowProps) {
     const asset = item.item
     const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-        object.merge(initialRowState, { setVisibility: setInsertionVisibility })
+        object.merge(INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
     )
+    const key = assetTreeNode.AssetTreeNode.getKey(item)
     const isCloud = backend.type === backendModule.BackendType.remote
     const visibility = visibilities.get(key) ?? insertionVisibility
 
@@ -537,7 +556,8 @@ export default function AssetRow(props: AssetRowProps) {
                 <>
                     {!hidden && insertionVisibility !== Visibility.hidden && (
                         <tr
-                            ref={tableRowRef}
+                            {...passthrough}
+                            draggable
                             tabIndex={-1}
                             onClick={event => {
                                 unsetModal()
@@ -639,9 +659,12 @@ export default function AssetRow(props: AssetRowProps) {
                             {columns.map(column => {
                                 // This is a React component even though it does not contain JSX.
                                 // eslint-disable-next-line no-restricted-syntax
-                                const Render = column.render
+                                const Render = columnModule.COLUMN_RENDERER[column]
                                 return (
-                                    <td key={column.id} className={column.className ?? ''}>
+                                    <td
+                                        key={column}
+                                        className={columnUtils.COLUMN_CSS_CLASS[column]}
+                                    >
                                         <Render
                                             keyProp={key}
                                             item={item}

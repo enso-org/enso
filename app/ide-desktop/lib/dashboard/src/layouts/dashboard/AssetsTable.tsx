@@ -38,9 +38,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
-import type * as assetRow from '#/components/dashboard/AssetRow'
+import * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
-import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
@@ -283,16 +282,6 @@ export interface AssetRowState {
     temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
     temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
-
-/** The default {@link AssetRowState} associated with a {@link AssetRow}. */
-const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
-    setVisibility: () => {
-        // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
-    },
-    isEditingName: false,
-    temporarilyAddedLabels: set.EMPTY,
-    temporarilyRemovedLabels: set.EMPTY,
-})
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
@@ -1803,21 +1792,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         [displayItems, previouslySelectedKey, shortcuts, /* should never change */ setSelectedKeys]
     )
 
-    const columns = columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
-        id: column,
-        className: columnUtils.COLUMN_CSS_CLASS[column],
-        heading: columnHeading.COLUMN_HEADING[column],
-        render: columnModule.COLUMN_RENDERER[column],
-    }))
+    const columns = columnUtils.getColumnList(backend.type, extraColumns)
 
     const headerRow = (
         <tr ref={headerRowRef} className="sticky top-0">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
-                const Heading = column.heading
+                const Heading = columnHeading.COLUMN_HEADING[column]
                 return (
-                    <th key={column.id} className={`text-sm font-semibold ${column.className}`}>
+                    <th
+                        key={column}
+                        className={`text-sm font-semibold ${columnUtils.COLUMN_CSS_CLASS[column]}`}
+                    >
                         <Heading state={state} />
                     </th>
                 )
@@ -1872,16 +1859,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             return (
                 <AssetRow
-                    columns={columns}
-                    // The following two lines are safe; the type error occurs because a property
-                    // with a conditional type is being destructured.
-                    // eslint-disable-next-line no-restricted-syntax
-                    state={state as never}
-                    // eslint-disable-next-line no-restricted-syntax
-                    initialRowState={INITIAL_ROW_STATE as never}
                     key={key}
-                    keyProp={key}
+                    columns={columns}
                     item={item}
+                    state={state}
                     hidden={visibilities.get(item.key) === Visibility.hidden}
                     selected={isSelected}
                     setSelected={selected => {
@@ -1900,13 +1881,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                             setSelectedKeys(new Set([key]))
                         }
                     }}
-                    draggable={true}
                     onDragStart={event => {
                         if (!selectedKeys.has(key)) {
                             setPreviouslySelectedKey(key)
                             setSelectedKeys(new Set([key]))
                         }
-
                         setSelectedKeys(oldSelectedKeys => {
                             const nodes = assetTree
                                 .preorderTraversal()
@@ -1935,7 +1914,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                 // Default states.
                                                 isSoleSelectedItem={false}
                                                 selected={false}
-                                                rowState={INITIAL_ROW_STATE}
+                                                rowState={assetRow.INITIAL_ROW_STATE}
                                                 // The drag placeholder cannot be interacted with.
                                                 setSelected={() => {}}
                                                 setItem={() => {}}
