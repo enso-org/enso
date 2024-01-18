@@ -2079,12 +2079,14 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"  % commonsCliVersion,
-      "com.monovore"       %% "decline"      % declineVersion,
-      "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion
+      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"         % "commons-cli"     % commonsCliVersion,
+      "com.monovore"       %% "decline"         % declineVersion,
+      "org.jline"           % "jline"           % jlineVersion,
+      "org.typelevel"      %% "cats-core"       % catsVersion,
+      "junit"               % "junit"           % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
