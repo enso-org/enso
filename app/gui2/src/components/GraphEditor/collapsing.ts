@@ -2,6 +2,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { moduleMethodNames } from '@/util/ast/abstract'
+import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
@@ -132,6 +133,17 @@ function findSafeMethodName(module: Ast.Module, baseName: string): string {
 const MODULE_NAME = 'Main'
 const COLLAPSED_FUNCTION_NAME = 'collapsed'
 
+interface CollapsingResult {
+  /** The ID of the node refactored to the collapsed function call. */
+  refactoredNodeId: ExprId
+  /** IDs of nodes inside the collapsed function, except the output node.
+   * The order of these IDs is reversed comparing to the order of nodes in the source code.
+   */
+  collapsedNodeIds: ExprId[]
+  /** ID of the output node inside the collapsed function. */
+  outputNodeId?: ExprId | undefined
+}
+
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
@@ -139,7 +151,7 @@ export function performCollapse(
   topLevel: Ast.BodyBlock,
   db: GraphDb,
   currentMethodName: string,
-) {
+): CollapsingResult {
   const functionAst = Ast.findModuleMethod(edit, currentMethodName)
   if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
     throw new Error(`Expected a collapsable function, found ${functionAst}.`)
@@ -154,6 +166,11 @@ export function performCollapse(
   const collapsed = []
   const refactored = []
   const lines = functionBlock.lines()
+  const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
+    info,
+    collapsedName,
+    edit,
+  )
   for (const line of lines) {
     const astId = line.expression?.node.exprId
     const ast = astId != null ? edit.get(astId) : null
@@ -161,24 +178,29 @@ export function performCollapse(
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
       if (astId === astIdToReplace) {
-        const newAst = collapsedCallAst(info, collapsedName, edit)
-        refactored.push({ expression: { node: newAst } })
+        refactored.push({ expression: { node: refactoredAst } })
       }
     } else {
       refactored.push({ expression: { node: ast } })
     }
   }
+  const collapsedNodeIds = collapsed.map((ast) => nodeFromAst(ast).rootSpan.exprId).reverse()
+  let outputNodeId: ExprId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {
-    collapsed.push(Ast.Ident.new(edit, outputIdentifier))
+    const ident = Ast.Ident.new(edit, outputIdentifier)
+    collapsed.push(ident)
+    outputNodeId = ident.exprId
   }
-  // Update the definition of refactored function.
+  // Update the definiton of the refactored function.
   const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
   edit.replaceRef(functionBlock.exprId, refactoredBlock)
 
+  // Insert a new function.
   const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
+  return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
 /** Prepare a method call expression for collapsed method. */
@@ -186,13 +208,14 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: string,
   edit: Ast.MutableModule,
-): Ast.Ast {
+): { ast: Ast.Ast; nodeId: ExprId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`
   const expression = functionName + (args.length > 0 ? ' ' : '') + args.join(' ')
-  const assignment = Ast.Assignment.new(edit, pattern, Ast.parse(expression, edit))
-  return assignment
+  const expressionAst = Ast.parse(expression, edit)
+  const ast = Ast.Assignment.new(edit, pattern, expressionAst)
+  return { ast, nodeId: expressionAst.exprId }
 }
 
 /** Find the position before the current method to insert a collapsed one. */
