@@ -48,7 +48,7 @@ type Metadata_Data
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
             t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
-        Data.Value [connection, tinfo, t]
+        Metadata_Data.Value [connection, tinfo, t]
 
 type Tables_And_Table_Types_Data
     Value ~data
@@ -378,26 +378,26 @@ suite = Test.build suite_builder->
             Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
 
         group_builder.specify "should not recognise nonexistent or empty files for reading" <|
-            r1 = Data.read (enso_project.data / "nonexistent-data.db")
+            r1 = data.read (enso_project.data / "nonexistent-data.db")
             r1.should_fail_with File_Error
             r1.catch . should_be_a File_Error.Not_Found
 
             empty = enso_project.data / "transient" / "empty-data.db"
             "".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-            r2 = Data.read empty
+            r2 = data.read empty
             r2.should_fail_with File_Error
             r2.catch . should_be_a File_Error.Unsupported_Type
             empty.delete_if_exists
 
             broken = enso_project.data / "transient" / "empty-data.db"
             "SOME_RANDOM_DATA".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-            r3 = Data.read broken
+            r3 = data.read broken
             r3.should_fail_with File_Error
             r3.catch . should_be_a File_Error.Unsupported_Type
             broken.delete_if_exists
 
         group_builder.specify "should connect to a db file" <|
-            connection = Data.read data.file
+            connection = data.read data.file
             tables = connection.tables
             tables.row_count . should_not_equal 0
             connection.close

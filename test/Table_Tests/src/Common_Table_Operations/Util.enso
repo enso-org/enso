@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.In_Memory.Common_Spec as In_Memory_Table_Spec
 
@@ -11,8 +10,8 @@ expect_column_names names table =
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
    a shortcut that allows to run these tests with the in-memory backend.
-run_default_backend spec =
-    Test_Suite.run_main (In_Memory_Table_Spec.run_common_spec spec)
+run_default_backend suite =
+    Panic.throw "Unimplemented"
 
 ## Adds a clue which will display the provided table next to the failed test
    description.

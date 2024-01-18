@@ -348,7 +348,7 @@ add_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            connection = setup.connection
+            connection = setup.connection_fn Nothing
             connection.query t_big.name . row_count . should_equal 1500
 
             t1 = connection.read t_big.name
