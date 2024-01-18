@@ -58,46 +58,6 @@ export class MutableModule {
     }
     this.apply(edit)
   }
-
-  iterAllNodeIds(): IterableIterator<AstId> {
-    const parentIter = this.base?.iterAllNodeIds()
-    let parentDone = parentIter == null
-    const nodeIter = this.nodes.entries()
-    const editedVisited = new Set()
-    return createIterator(() => {
-      for (;;) {
-        if (!parentDone) {
-          const result = parentIter?.next()
-          if (result?.done) parentDone = true
-          else if (result?.value) {
-            const id = result.value
-            const edited = this.nodes.get(id)
-            if (edited !== undefined) editedVisited.add(id)
-            if (edited === null) continue
-            return result
-          }
-        } else {
-          const next = nodeIter.next()
-          if (next.done === true) return next
-          const [id, ast] = next.value
-          if (ast !== null && !editedVisited.has(id)) {
-            return {
-              done: false,
-              value: id,
-            }
-          }
-        }
-      }
-    })
-  }
-
-  iterAllNodes(): IterableIterator<Ast> {
-    return mapIterator(this.iterAllNodeIds(), (id) => {
-      const node = this.get(id)
-      assert(node != null)
-      return node
-    })
-  }
 }
 
 export function normalize(rootIn: Ast): Ast {
@@ -166,15 +126,24 @@ function cloneObject<T extends Object>(object: T): T {
   return Object.assign(Object.create(Object.getPrototypeOf(object)), properties)
 }
 
-function spaced<T>(node: T): NodeChild<T> {
+function spaced<T extends object | string>(node: T): NodeChild<T>
+function spaced<T extends object | string>(node: T | null): NodeChild<T> | null
+function spaced<T extends object | string>(node: T | null): NodeChild<T> | null {
+  if (node === null) return node
   return { whitespace: ' ', node }
 }
 
-function unspaced<T>(node: T): NodeChild<T> {
+function unspaced<T extends object | string>(node: T): NodeChild<T>
+function unspaced<T extends object | string>(node: T | null): NodeChild<T> | null
+function unspaced<T extends object | string>(node: T | null): NodeChild<T> | null {
+  if (node === null) return node
   return { whitespace: '', node }
 }
 
-function autospaced<T>(node: T): NodeChild<T> {
+function autospaced<T extends object | string>(node: T): NodeChild<T>
+function autospaced<T extends object | string>(node: T | null): NodeChild<T> | null
+function autospaced<T extends object | string>(node: T | null): NodeChild<T> | null {
+  if (node === null) return node
   return { node }
 }
 
@@ -210,8 +179,6 @@ export interface IModule {
   getAst(id: AstId | null): Ast | null
   getExtended(id: AstId): RawAstExtended | undefined
   edit(): Module
-  iterAllNodeIds(): IterableIterator<AstId>
-  iterAllNodes(): IterableIterator<Ast>
   has(id: AstId): boolean
 }
 class Module implements IModule {
@@ -581,7 +548,29 @@ function concreteChild(
   module: Module,
   child: NodeChild<Owned<Ast>>,
   parent: AstId,
-): NodeChild<AstId> {
+): NodeChild<AstId>
+function concreteChild(
+  module: Module,
+  child: NodeChild<Owned<Ast>> | null,
+  parent: AstId,
+): NodeChild<AstId> | null
+function concreteChild(
+  module: Module,
+  child: NodeChild<Owned<Ast> | Token>,
+  parent: AstId,
+): NodeChild<AstId | Token>
+function concreteChild(
+  module: Module,
+  child: NodeChild<Owned<Ast> | Token> | null,
+  parent: AstId,
+): NodeChild<AstId | Token> | null
+function concreteChild(
+  module: Module,
+  child: NodeChild<Owned<Ast> | Token> | null,
+  parent: AstId,
+): NodeChild<AstId | Token> | null {
+  if (!child) return null
+  if (child.node instanceof Token) return child as NodeChild<Token>
   return { ...child, node: claimChild(module, child.node, parent) }
 }
 
@@ -617,21 +606,32 @@ export class App extends Ast {
     super(module, fields)
   }
 
+  static concrete(
+    module: Module,
+    func: NodeChild<Owned<Ast>>,
+    parens: { open: NodeChild<Token>; close: NodeChild<Token> } | null,
+    nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | null,
+    argument: NodeChild<Owned<Ast>>,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('App')
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      function: concreteChild(module, func, id_),
+      parens,
+      nameSpecification,
+      argument: concreteChild(module, argument, id_),
+    })
+    return asOwned(new App(module, fields))
+  }
+
   static new(
     module: Module,
     func: Owned<Ast>,
     argumentName: string | Token | null,
     argument: Owned<Ast>,
   ) {
-    const base = module.baseObject('App')
-    const id = base.get('id')
-    const fields = setAll(base, {
-      function: unspaced(claimChild(module, func, id)),
-      parens: null,
-      nameSpecification: nameSpecification(argumentName),
-      argument: autospaced(claimChild(module, argument, id)),
-    })
-    return asOwned(new App(module, fields))
+    return App.concrete(module, unspaced(func), null, nameSpecification(argumentName), autospaced(argument))
   }
 
   get function(): Ast {
@@ -674,44 +674,6 @@ export class App extends Ast {
   }
 }
 
-function positionalApp(
-  module: Module,
-  id: AstId | undefined,
-  func: NodeChild<Owned<Ast>>,
-  argument: NodeChild<Owned<Ast>>,
-) {
-  const base = module.baseObject('App', id)
-  const id_ = base.get('id')
-  const fields = setAll(base, {
-    function: concreteChild(module, func, id_),
-    parens: null,
-    nameSpecification: null,
-    argument: concreteChild(module, argument, id_),
-  })
-  return asOwned(new App(module, fields))
-}
-
-function namedApp(
-  module: Module,
-  id: AstId | undefined,
-  func: NodeChild<Owned<Ast>>,
-  open: NodeChild<Token> | null,
-  name: NodeChild<Token>,
-  equals: NodeChild<Token>,
-  argument: NodeChild<Owned<Ast>>,
-  close: NodeChild<Token> | null,
-) {
-  const base = module.baseObject('App', id)
-  const id_ = base.get('id')
-  const fields = setAll(base, {
-    function: concreteChild(module, func, id_),
-    parens: open && close ? { open, close } : null,
-    nameSpecification: { name, equals },
-    argument: concreteChild(module, argument, id_),
-  })
-  return asOwned(new App(module, fields))
-}
-
 type UnaryOprAppFields = {
   operator: NodeChild<Token>
   argument: NodeChild<AstId> | null
@@ -722,14 +684,18 @@ export class UnaryOprApp extends Ast {
     super(module, fields)
   }
 
-  static new(module: Module, operator: Token, argument: Owned<Ast> | null) {
-    const base = module.baseObject('UnaryOprApp')
-    const id = base.get('id')
+  static concrete(module: Module, operator: NodeChild<Token>, argument: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
+    const base = module.baseObject(this.typeName())
+    const id_ = base.get('id')
     const fields = setAll(base, {
-      operator: unspaced(operator),
-      argument: argument ? autospaced(claimChild(module, argument, id)) : null,
+      operator,
+      argument: concreteChild(module, argument, id_),
     })
-    return asOwned(new UnaryOprApp(module, fields))
+    return asOwned(new this(module, fields))
+  }
+
+  static new(module: Module, operator: Token, argument: Owned<Ast> | null) {
+    return this.concrete(module, unspaced(operator), argument ? autospaced(argument) : null)
   }
 
   get operator(): Token {
@@ -756,23 +722,17 @@ export class UnaryOprApp extends Ast {
       this.setArgument(replacement)
     }
   }
+
+  protected static typeName() { return 'UnaryOprApp' }
 }
 
 export class NegationOprApp extends UnaryOprApp {
-  static new(module: Module, operator: Token, argument: Owned<Ast> | null): Owned<NegationOprApp> {
-    const base = module.baseObject('NegationOprApp')
-    const id = base.get('id')
-    const fields = setAll(base, {
-      operator: unspaced(operator),
-      argument: argument ? autospaced(claimChild(module, argument, id)) : null,
-    })
-    return asOwned(new NegationOprApp(module, fields))
-  }
+  protected static typeName() { return 'NegationOprApp' }
 }
 
 type OprAppFields = {
   lhs: NodeChild<AstId> | null
-  operator: NodeChild[]
+  operators: NodeChild<Token>[]
   rhs: NodeChild<AstId> | null
 }
 export class OprApp extends Ast {
@@ -781,15 +741,19 @@ export class OprApp extends Ast {
     super(module, fields)
   }
 
-  static new(module: Module, lhs: Owned<Ast> | null, operator: Token, rhs: Owned<Ast> | null) {
-    const base = module.baseObject('OprApp')
-    const id = base.get('id')
+  static concrete(module: Module, lhs: NodeChild<Owned<Ast>> | null, operators: NodeChild<Token>[], rhs: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
+    const base = module.baseObject(this.typeName(), id)
+    const id_ = base.get('id')
     const fields = setAll(base, {
-      lhs: lhs ? autospaced(claimChild(module, lhs, id)) : null,
-      operator: [unspaced(operator)],
-      rhs: rhs ? autospaced(claimChild(module, rhs, id)) : null,
+      lhs: concreteChild(module, lhs, id_),
+      operators,
+      rhs: concreteChild(module, rhs, id_),
     })
-    return asOwned(new OprApp(module, fields))
+    return asOwned(new this(module, fields))
+  }
+
+  static new(module: Module, lhs: Owned<Ast> | null, operator: Token, rhs: Owned<Ast> | null) {
+    return OprApp.concrete(module, unspaced(lhs), [autospaced(operator)], autospaced(rhs))
   }
 
   get lhs(): Ast | null {
@@ -799,12 +763,12 @@ export class OprApp extends Ast {
     this.fields.set('lhs', autospaced(this.claimChild(value)))
   }
   get operator(): Result<Token, NodeChild[]> {
-    const operators = this.fields.get('operator')
+    const operators = this.fields.get('operators')
     const [opr] = operators
     return opr?.node instanceof Token ? Ok(opr.node) : Err(operators)
   }
   setOperator(value: Token) {
-    this.fields.set('operator', [unspaced(value)])
+    this.fields.set('operators', [unspaced(value)])
   }
   get rhs(): Ast | null {
     return this.module.get(this.fields.get('lhs')?.node ?? null)
@@ -814,9 +778,9 @@ export class OprApp extends Ast {
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    const { lhs, operator, rhs } = getAll(this.fields)
+    const { lhs, operators, rhs } = getAll(this.fields)
     if (lhs) yield lhs
-    yield* operator
+    yield* operators
     if (rhs) yield rhs
   }
 
@@ -827,18 +791,14 @@ export class OprApp extends Ast {
       this.setRhs(replacement)
     }
   }
+
+  protected static typeName() { return 'OprApp' }
 }
 
 export class PropertyAccess extends OprApp {
-  static new(module: Module, lhs: Owned<Ast>, operator: Token | undefined, rhs: Token | string) {
-    const base = module.baseObject('PropertyAccess')
-    const id = base.get('id')
-    const fields = setAll(base, {
-      lhs: autospaced(claimChild(module, lhs, id)),
-      operator: [unspaced(operator ?? new Token('.', newTokenId(), RawAst.Token.Type.Operator))],
-      rhs: autospaced(claimChild(module, Ident.new(module, toIdent(rhs)), id)),
-    })
-    return asOwned(new PropertyAccess(module, fields))
+  static new(module: Module, lhs: Owned<Ast>, rhs: Token | string) {
+    const dot = unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))
+    return this.concrete(module, unspaced(lhs), [dot], unspaced(Ident.new(module, toIdent(rhs))))
   }
 
   static Sequence(
@@ -856,10 +816,12 @@ export class PropertyAccess extends OprApp {
     let path
     for (const s of segments) {
       const t = toIdent(s)
-      path = path ? PropertyAccess.new(module, path, undefined, t) : Ident.new(module, t)
+      path = path ? this.new(module, path, t) : Ident.new(module, t)
     }
     return path
   }
+
+  protected static typeName() { return 'PropertyAccess' }
 }
 
 type GenericFields = {
@@ -869,6 +831,15 @@ export class Generic extends Ast {
   declare fields: FixedMap<AstFields & GenericFields>
   constructor(module: Module, fields: FixedMap<AstFields & GenericFields>) {
     super(module, fields)
+  }
+
+  static concrete(module: Module, children: NodeChild<Owned<Ast> | Token>[], id?: AstId | undefined, id?: AstId | undefined) {
+    const base = module.baseObject('Generic', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      children: children.map((child) => concreteChild(module, child, id_)),
+    })
+    return asOwned(new this(module, fields))
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
@@ -884,25 +855,35 @@ export class Generic extends Ast {
   }
 }
 
-type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
-function multiSegmentAppSegment(header: string, body: AstId): MultiSegmentAppSegment
-function multiSegmentAppSegment(header: string, body: AstId | null): MultiSegmentAppSegment | null
-function multiSegmentAppSegment(header: string, body: AstId | null): MultiSegmentAppSegment | null {
-  return body
-    ? {
-        header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-        body: spaced(body),
-      }
-    : null
+type RawMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
+type OwnedMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<Owned<Ast>> | null }
+function multiSegmentAppSegment(header: string, body: Owned<Ast>): OwnedMultiSegmentAppSegment
+function multiSegmentAppSegment(header: string, body: Owned<Ast> | null): OwnedMultiSegmentAppSegment | null
+function multiSegmentAppSegment(header: string, body: Owned<Ast> | null): OwnedMultiSegmentAppSegment | null {
+  return {
+    header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
+    body: spaced(body),
+  }
+}
+
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: AstId): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: AstId): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: AstId): RawMultiSegmentAppSegment | null
+function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: AstId): RawMultiSegmentAppSegment | null {
+  if (!msas) return null
+  return {
+    ...msas,
+    body: concreteChild(module, msas.body, parent),
+  }
 }
 
 type ImportFields = {
-  polyglot: MultiSegmentAppSegment | null
-  from: MultiSegmentAppSegment | null
-  import: MultiSegmentAppSegment
+  polyglot: RawMultiSegmentAppSegment | null
+  from: RawMultiSegmentAppSegment | null
+  import: RawMultiSegmentAppSegment
   all: NodeChild<Token> | null
-  as: MultiSegmentAppSegment | null
-  hiding: MultiSegmentAppSegment | null
+  as: RawMultiSegmentAppSegment | null
+  hiding: RawMultiSegmentAppSegment | null
 }
 export class Import extends Ast {
   declare fields: FixedMap<AstFields & ImportFields>
@@ -929,39 +910,64 @@ export class Import extends Ast {
     return this.module.get(this.fields.get('hiding')?.body?.node ?? null)
   }
 
+  private toRaw(msas: OwnedMultiSegmentAppSegment): RawMultiSegmentAppSegment
+  private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null
+  private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null {
+    return multiSegmentAppSegmentToRaw(this.module, msas, this.exprId)
+  }
+
   setPolyglot<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('polyglot', multiSegmentAppSegment('polyglot', this.claimChild(value)))
+    this.fields.set('polyglot', this.toRaw(multiSegmentAppSegment('polyglot', value)))
   }
   setFrom<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('from', multiSegmentAppSegment('from', this.claimChild(value)))
+    this.fields.set('from', this.toRaw(multiSegmentAppSegment('from', value)))
   }
   setImport<T extends Ast>(value: Owned<T>) {
-    this.fields.set('import', multiSegmentAppSegment('import', this.claimChild(value)))
+    this.fields.set('import', this.toRaw(multiSegmentAppSegment('import', value)))
   }
   setAll(value: Token | null) {
-    this.fields.set('all', value ? spaced(value) : null)
+    this.fields.set('all', spaced(value))
   }
   setAs<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('as', multiSegmentAppSegment('as', this.claimChild(value)))
+    this.fields.set('as', this.toRaw(multiSegmentAppSegment('as', value)))
   }
   setHiding<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('hiding', multiSegmentAppSegment('hiding', this.claimChild(value)))
+    this.fields.set('hiding', this.toRaw(multiSegmentAppSegment('hiding', value)))
+  }
+
+  static concrete(module: Module,
+                  polyglot: OwnedMultiSegmentAppSegment | null,
+                  from: OwnedMultiSegmentAppSegment | null,
+                  import_: OwnedMultiSegmentAppSegment,
+                  all: NodeChild<Token> | null,
+                  as: OwnedMultiSegmentAppSegment | null,
+                  hiding: OwnedMultiSegmentAppSegment | null,
+                  id?: AstId | undefined) {
+    const base = module.baseObject('Import', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      polyglot: multiSegmentAppSegmentToRaw(module, polyglot, id_),
+      from: multiSegmentAppSegmentToRaw(module, from, id_),
+      import: multiSegmentAppSegmentToRaw(module, import_, id_),
+      all,
+      as: multiSegmentAppSegmentToRaw(module, as, id_),
+      hiding: multiSegmentAppSegmentToRaw(module, hiding, id_),
+    })
+    return asOwned(new this(module, fields))
   }
 
   static Qualified(path: string[], module: Module): Owned<Import> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    const base = module.baseObject('Import')
-    const id = base.get('id')
-    const fields = setAll(base, {
-      polyglot: null,
-      from: null,
-      import: multiSegmentAppSegment('import', claimChild(module, path_, id)),
-      all: null,
-      as: null,
-      hiding: null,
-    })
-    return asOwned(new Import(module, fields))
+    return this.concrete(
+      module,
+      null,
+      null,
+      multiSegmentAppSegment('import', path_),
+      null,
+      null,
+      null,
+    )
   }
 
   static Unqualified(
@@ -972,21 +978,18 @@ export class Import extends Ast {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
     const name_ = Ident.new(module, name)
-    const base = module.baseObject('Import')
-    const id = base.get('id')
-    const fields = setAll(base, {
-      polyglot: null,
-      from: multiSegmentAppSegment('from', claimChild(module, path_, id)),
-      import: multiSegmentAppSegment('import', claimChild(module, name_, id)),
-      all: null,
-      as: null,
-      hiding: null,
-    })
-    return asOwned(new Import(module, fields))
+    return this.concrete(module,
+      null,
+      multiSegmentAppSegment('from', path_),
+      multiSegmentAppSegment('import', name_),
+      null,
+      null,
+      null,
+    )
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    const segment = (segment: MultiSegmentAppSegment | null) => {
+    const segment = (segment: RawMultiSegmentAppSegment | null) => {
       const parts = []
       if (segment) parts.push(segment.header)
       if (segment?.body) parts.push(segment.body)
@@ -1029,18 +1032,23 @@ export class TextLiteral extends Ast {
     super(module, fields)
   }
 
+  static concrete(module: Module, open: NodeChild<Token> | null, newline: NodeChild<Token> | null, elements: NodeChild<Owned<Ast> | Token>[], close: NodeChild<Token> | null, id?: AstId | undefined) {
+    const base = module.baseObject('TextLiteral', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      open,
+      newline,
+      elements: elements.map((elem) => concreteChild(module, elem, id_)),
+      close,
+    })
+    return asOwned(new this(module, fields))
+  }
+
   static new(rawText: string, module: Module) {
     const open = unspaced(Token.new("'"))
     const elements = [unspaced(Token.new(escape(rawText)))]
     const close = unspaced(Token.new("'"))
-    const base = module.baseObject('TextLiteral')
-    const fields = setAll(base, {
-      open,
-      newline: null,
-      elements,
-      close,
-    })
-    return asOwned(new TextLiteral(module, fields))
+    return this.concrete(module, open, null, elements, close)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1072,11 +1080,23 @@ export class Documented extends Ast {
     super(module, fields)
   }
 
+  static concrete(module: Module, open: NodeChild<Token> | null, elements: NodeChild<Owned<Ast> | Token>[], newlines: NodeChild<Token>[], expression: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
+    const base = module.baseObject('TextLiteral', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      open,
+      elements: elements.map((elem) => concreteChild(module, elem, id_)),
+      newlines,
+      expression: concreteChild(module, expression, id_),
+    })
+    return asOwned(new this(module, fields))
+  }
+
   get expression(): Ast | null {
     return this.module.get(this.fields.get('expression')?.node ?? null)
   }
   setExpression<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('expression', value ? unspaced(this.claimChild(value)) : null)
+    this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1107,6 +1127,13 @@ export class Invalid extends Ast {
     super(module, fields)
   }
 
+  static concrete(module: Module, expression: NodeChild<Owned<Ast>>, id?: AstId | undefined) {
+    const base = module.baseObject('Invalid', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, { expression: concreteChild(module, expression, id_) })
+    return asOwned(new this(module, fields))
+  }
+
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
   }
@@ -1125,9 +1152,9 @@ export class Invalid extends Ast {
 }
 
 type GroupFields = {
-  open: NodeChild<Token>
+  open: NodeChild<Token> | null
   expression: NodeChild<AstId> | null
-  close: NodeChild<Token>
+  close: NodeChild<Token> | null
 }
 export class Group extends Ast {
   declare fields: FixedMap<AstFields & GroupFields>
@@ -1135,18 +1162,25 @@ export class Group extends Ast {
     super(module, fields)
   }
 
+  static concrete(module: Module, open: NodeChild<Token> | null, expression: NodeChild<Owned<Ast>> | null, close: NodeChild<Token> | null, id?: AstId | undefined) {
+    const base = module.baseObject('Group', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, { open, expression: concreteChild(module, expression, id_), close })
+    return asOwned(new this(module, fields))
+  }
+
   get expression(): Ast | null {
     return this.module.get(this.fields.get('expression')?.node ?? null)
   }
   setExpression<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('expression', value ? unspaced(this.claimChild(value)) : null)
+    this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     const { open, expression, close } = getAll(this.fields)
-    yield open
+    if (open) yield open
     if (expression) yield expression
-    yield close
+    if (close) yield close
   }
 
   replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
@@ -1156,7 +1190,7 @@ export class Group extends Ast {
 }
 
 type NumericLiteralFields = {
-  tokens: NodeChild[]
+  tokens: NodeChild<Token>[]
 }
 export class NumericLiteral extends Ast {
   declare fields: FixedMap<AstFields & NumericLiteralFields>
@@ -1164,17 +1198,17 @@ export class NumericLiteral extends Ast {
     super(module, fields)
   }
 
+  static concrete(module: Module, tokens: NodeChild<Token>[], id?: AstId | undefined) {
+    const base = module.baseObject('NumericLiteral', id)
+    const fields = setAll(base, { tokens })
+    return asOwned(new this(module, fields))
+  }
+
   concreteChildren(): IterableIterator<NodeChild> {
     return this.fields.get('tokens')[Symbol.iterator]()
   }
 
-  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {
-    const replacement_ = autospaced(this.claimChild(replacement))
-    this.fields.set(
-      'tokens',
-      this.fields.get('tokens').map((child) => (child.node === target ? replacement_ : child)),
-    )
-  }
+  replaceChild<T extends Ast>(target: AstId, replacement: Owned<T>) {}
 }
 
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
@@ -1228,29 +1262,44 @@ export class Function extends Ast {
     this.fields.set('name', unspaced(this.claimChild(value)))
   }
   setBody<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('body', value ? unspaced(this.claimChild(value)) : null)
+    this.fields.set('body', unspaced(this.claimChild(value)))
   }
   setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
     this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.exprId))
+  }
+
+  static concrete(
+    module: Module,
+    name: NodeChild<Owned<Ast>>,
+    argumentDefinitions: OwnedArgumentDefinition[],
+    equals: NodeChild<Token>,
+    body: NodeChild<Owned<Ast>> | null,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('Function', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      name: concreteChild(module, name, id_),
+      argumentDefinitions: argumentDefinitionsToRaw(module, argumentDefinitions, id_),
+      equals,
+      body: concreteChild(module, body, id_),
+    })
+    return asOwned(new Function(module, fields))
   }
 
   static new(
     module: Module,
     name: Token | string,
     argumentDefinitions: OwnedArgumentDefinition[],
-    body: Owned<BodyBlock>,
+    body: Owned<Ast>,
   ): Owned<Function> {
-    const base = module.baseObject('Function')
-    const id = base.get('id')
-    const bodyId = claimChild(module, body, id)
-    const path = claimChild(module, PropertyAccess.Sequence([name], module), id)
-    const fields = setAll(base, {
-      name: unspaced(path),
-      argumentDefinitions: argumentDefinitionsToRaw(module, argumentDefinitions, id),
-      equals: spaced(makeEquals()),
-      body: bodyId ? autospaced(bodyId) : null,
-    })
-    return asOwned(new Function(module, fields))
+    return Function.concrete(
+      module,
+      unspaced(PropertyAccess.Sequence([name], module)),
+      argumentDefinitions,
+      spaced(makeEquals()),
+      autospaced(body),
+    )
   }
 
   /** Construct a function with simple (name-only) arguments and a body block. */
@@ -1269,7 +1318,7 @@ export class Function extends Ast {
     }
     const argumentDefinitions = argumentNames.map((name) => [unspaced(Ident.new(module, name))])
     const body = BodyBlock.new(statements_, module)
-    return Function.new(module, name, argumentDefinitions, body)
+    return this.new(module, name, argumentDefinitions, body)
   }
 
   *bodyExpressions(): IterableIterator<Ast> {
@@ -1318,15 +1367,19 @@ export class Assignment extends Ast {
     super(module, fields)
   }
 
-  static new(module: Module, ident: string | Token, expression: Owned<Ast>) {
+  static concrete(module: Module, pattern: NodeChild<Owned<Ast>>, equals: NodeChild<Token>, expression: NodeChild<Owned<Ast>>, id?: AstId | undefined) {
     const base = module.baseObject('Assignment')
-    const id = base.get('id')
+    const id_ = base.get('id')
     const fields = setAll(base, {
-      pattern: unspaced(claimChild(module, Ident.new(module, ident), id)),
-      equals: spaced(makeEquals()),
-      expression: spaced(claimChild(module, expression, id)),
+      pattern: concreteChild(module, pattern, id_),
+      equals,
+      expression: concreteChild(module, expression, id_),
     })
     return asOwned(new Assignment(module, fields))
+  }
+
+  static new(module: Module, ident: string | Token, expression: Owned<Ast>) {
+    return Assignment.concrete(module, unspaced(Ident.new(module, ident)), spaced(makeEquals()), spaced(expression))
   }
 
   get pattern(): Ast {
@@ -1371,13 +1424,17 @@ export class BodyBlock extends Ast {
     super(module, fields)
   }
 
-  static new(lines: OwnedBlockLine[], module: Module) {
+  static concrete(module: Module, lines: OwnedBlockLine[], id?: AstId | undefined) {
     const base = module.baseObject('BodyBlock')
-    const id = base.get('id')
+    const id_ = base.get('id')
     const fields = setAll(base, {
-      lines: lines.map((line) => lineToRaw(line, module, id)),
+      lines: lines.map((line) => lineToRaw(line, module, id_)),
     })
     return asOwned(new BodyBlock(module, fields))
+  }
+
+  static new(lines: OwnedBlockLine[], module: Module) {
+    return BodyBlock.concrete(module, lines)
   }
 
   get lines(): BlockLine[] {
@@ -1522,12 +1579,14 @@ export class Ident extends Ast {
     this.fields.set('token', unspaced(toIdent(ident)))
   }
 
-  static new(module: Module, ident: Token | string) {
+  static concrete(module: Module, token: NodeChild<Token>, id?: AstId | undefined) {
     const base = module.baseObject('Ident')
-    const fields = setAll(base, {
-      token: unspaced(toIdent(ident)),
-    })
+    const fields = setAll(base, { token })
     return asOwned(new Ident(module, fields))
+  }
+
+  static new(module: Module, ident: Token | string) {
+    return Ident.concrete(module, unspaced(toIdent(ident)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1550,12 +1609,15 @@ export class Wildcard extends Ast {
     return this.fields.get('token').node
   }
 
-  static new(module: Module) {
+  static concrete(module: Module, token: NodeChild<Token>, id?: AstId | null) {
     const base = module.baseObject('Wildcard')
-    const fields = setAll(base, {
-      token: unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)),
-    })
-    return asOwned(new Wildcard(module, fields))
+    const fields = setAll(base, { token })
+    return asOwned(new this(module, fields))
+  }
+
+  static new(module: Module) {
+    const token = new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)
+    return this.concrete(module, unspaced(token))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1604,12 +1666,12 @@ function abstractTree(
   nodesExpected: NodeSpanMap,
   tokens: TokenSpanMap,
   tokensOut: TokenSpanMap,
-): { whitespace: string | undefined; node: Ast } {
+): { whitespace: string | undefined; node: Owned<Ast> } {
   const recurseTree = (tree: RawAst.Tree) =>
     abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
   const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokens, tokensOut)
   const visitChildren = (tree: LazyObject) => {
-    const children: NodeChild<Ast | Token>[] = []
+    const children: NodeChild<Owned<Ast> | Token>[] = []
     const visitor = (child: LazyObject) => {
       if (RawAst.Tree.isInstance(child)) {
         children.push(recurseTree(child))
@@ -1630,33 +1692,31 @@ function abstractTree(
   // but each node does so separately because we must pop the tree's span from the ID map
   // *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
-  let node: AstId
+  let node: Owned<Ast>
   switch (tree.type) {
     case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = recurseToken(line.newline)
         let expression = line.expression ? recurseTree(line.expression) : null
-        return {
-          newline,
-          expression: expression ? { ...expression, node: expression.node.exprId } : null,
-        }
+        return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new BodyBlock(module, id, lines).exprId
+      node = BodyBlock.concrete(module, lines, id)
       break
     }
     case RawAst.Tree.Type.Function: {
       const name = recurseTree(tree.name)
-      const args = Array.from(tree.args, (arg) => visitChildren(arg))
+      const argumentDefinitions = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = recurseToken(tree.equals)
       const body = tree.body !== undefined ? recurseTree(tree.body) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Function(module, id, name, args, equals, body).exprId
+      node = Function.concrete(module, name, argumentDefinitions, equals, body, id)
       break
     }
     case RawAst.Tree.Type.Ident: {
+      const token = recurseToken(tree.token)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Ident(module, id, recurseToken(tree.token)).exprId
+      node = Ident.concrete(module, token, id)
       break
     }
     case RawAst.Tree.Type.Assignment: {
@@ -1664,25 +1724,27 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const value = recurseTree(tree.expr)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Assignment(module, id, pattern, equals, value).exprId
+      node = Assignment.concrete(module, pattern, equals, value, id)
       break
     }
     case RawAst.Tree.Type.App: {
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(module, id, func, arg).exprId
+      node = App.concrete(module, func, null, null, arg, id)
       break
     }
     case RawAst.Tree.Type.NamedApp: {
       const func = recurseTree(tree.func)
-      const leftParen = tree.open ? recurseToken(tree.open) : null
+      const open = tree.open ? recurseToken(tree.open) : null
       const name = recurseToken(tree.name)
       const equals = recurseToken(tree.equals)
       const arg = recurseTree(tree.arg)
-      const rightParen = tree.close ? recurseToken(tree.close) : null
+      const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = namedApp(module, id, func, leftParen, name, equals, arg, rightParen).exprId
+      const parens = open && close ? { open, close } : null
+      const nameSpecification = { name, equals }
+      node = App.concrete(module, func, parens, nameSpecification, arg, id)
       break
     }
     case RawAst.Tree.Type.UnaryOprApp: {
@@ -1690,9 +1752,9 @@ function abstractTree(
       const arg = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.node.code() === '-') {
-        node = new NegationOprApp(module, id, opr, arg).exprId
+        node = NegationOprApp.concrete(module, opr, arg, id)
       } else {
-        node = new UnaryOprApp(module, id, opr, arg).exprId
+        node = UnaryOprApp.concrete(module, opr, arg, id)
       }
       break
     }
@@ -1700,27 +1762,32 @@ function abstractTree(
       const lhs = tree.lhs ? recurseTree(tree.lhs) : null
       const opr = tree.opr.ok
         ? [recurseToken(tree.opr.value)]
-        : visitChildren(tree.opr.error.payload)
+        : Array.from(tree.opr.error.payload.operators, recurseToken)
       const rhs = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      if (opr.length === 1 && opr[0]?.node instanceof Token && opr[0].node.code() === '.') {
-        // Propagate inferred type.
-        const token = { whitespace: opr[0].whitespace, node: opr[0].node }
-        node = new PropertyAccess(module, id, lhs, token, rhs).exprId
+      if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof Ident) {
+        node = PropertyAccess.concrete(module, lhs, opr, rhs, id)
       } else {
-        node = new OprApp(module, id, lhs, opr, rhs).exprId
+        node = OprApp.concrete(module, lhs, opr, rhs, id)
       }
       break
     }
     case RawAst.Tree.Type.Number: {
+      const tokens = []
+      if (tree.base) tokens.push(recurseToken(tree.base))
+      if (tree.integer) tokens.push(recurseToken(tree.integer))
+      if (tree.fractionalDigits) {
+        tokens.push(recurseToken(tree.fractionalDigits.dot))
+        tokens.push(recurseToken(tree.fractionalDigits.digits))
+      }
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new NumericLiteral(module, id, visitChildren(tree)).exprId
+      node = NumericLiteral.concrete(module, tokens, id)
       break
     }
     case RawAst.Tree.Type.Wildcard: {
       const token = recurseToken(tree.token)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Wildcard(module, id, token).exprId
+      node = Wildcard.concrete(module, token, id)
       break
     }
     // These expression types are (or will be) used for backend analysis.
@@ -1734,15 +1801,15 @@ function abstractTree(
     case RawAst.Tree.Type.Invalid: {
       const expression = recurseTree(tree.ast)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Invalid(module, id, expression).exprId
+      node = Invalid.concrete(module, expression, id)
       break
     }
     case RawAst.Tree.Type.Group: {
-      const open = tree.open ? recurseToken(tree.open) : undefined
+      const open = tree.open ? recurseToken(tree.open) : null
       const expression = tree.body ? recurseTree(tree.body) : null
-      const close = tree.close ? recurseToken(tree.close) : undefined
+      const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Group(module, id, open, expression, close).exprId
+      node = Group.concrete(module, open, expression, close, id)
       break
     }
     case RawAst.Tree.Type.TextLiteral: {
@@ -1754,7 +1821,7 @@ function abstractTree(
       }
       const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new TextLiteral(module, id, open, newline, elements, close).exprId
+      node = TextLiteral.concrete(module, open, newline, elements, close, id)
       break
     }
     case RawAst.Tree.Type.Documented: {
@@ -1764,16 +1831,15 @@ function abstractTree(
         elements.push(...visitChildren(e))
       }
       const newlines = Array.from(tree.documentation.newlines, recurseToken)
-      const id = nodesExpected.get(spanKey)?.pop()
       const expression = tree.expression ? recurseTree(tree.expression) : null
-      node = new Documented(module, id, open, elements, newlines, expression).exprId
+      const id = nodesExpected.get(spanKey)?.pop()
+      node = Documented.concrete(module, open, elements, newlines, expression, id)
       break
     }
     case RawAst.Tree.Type.Import: {
       const recurseBody = (tree: RawAst.Tree) => {
         const body = recurseTree(tree)
-        const bodyAst = module.get(body.node)
-        if (bodyAst instanceof Invalid && bodyAst.code() === '') return null
+        if (body instanceof Invalid && body.code() === '') return null
         return body
       }
       const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
@@ -1787,12 +1853,12 @@ function abstractTree(
       const as = tree.as ? recurseSegment(tree.as) : null
       const hiding = tree.hiding ? recurseSegment(tree.hiding) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Import(module, id, polyglot, from, import_, all, as, hiding).exprId
+      node = Import.concrete(module, polyglot, from, import_, all, as, hiding, id)
       break
     }
     default: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Generic(module, id, visitChildren(tree), tree.type).exprId
+      node = Generic.concrete(module, visitChildren(tree), id)
     }
   }
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
