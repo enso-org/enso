@@ -627,7 +627,9 @@ public final class TypeInference implements IRPass {
     if (isFunctionLike(expected) != isFunctionLike(provided)) {
       // If we are matching a function-like type with a non-function-like type, they are not compatible.
       // TODO later check: this may not work well with a function that has all-default arguments
-      return TypeCompatibility.NEVER_COMPATIBLE;
+      // TODO also here we have to check if there exists a conversion (TypeOf{expected}.from (that : Function) = ...) if {provided} is a function
+      // return TypeCompatibility.NEVER_COMPATIBLE;
+      return TypeCompatibility.UNKNOWN;
     }
 
     return TypeCompatibility.UNKNOWN;
