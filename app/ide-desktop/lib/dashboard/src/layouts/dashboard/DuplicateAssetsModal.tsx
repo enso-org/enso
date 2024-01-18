@@ -84,7 +84,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     const otherProjectsText =
         otherProjectsCount === 0
             ? ''
-            : `and ${otherProjectsCount} other ${pluralizeProject(otherProjectsCount)}`
+            : `and ${otherProjectsCount}${
+                  conflictingFiles.length > 0 ? '' : ' other'
+              } ${pluralizeProject(otherProjectsCount)}`
 
     React.useEffect(() => {
         for (const name of siblingFileNamesRaw) {
