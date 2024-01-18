@@ -196,8 +196,9 @@ add_specs suite_builder setup =
 
     if setup.is_database then suite_builder.group prefix+"Table.add_row_number (Database specific)" group_builder->
         group_builder.specify "will use the primary key by default" <|
-            src = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]]
-            db_table = src.select_into_database_table setup.connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
+            connection = setup.create_connection_func Nothing
+            src = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]] connection=connection
+            db_table = src.select_into_database_table connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
 
             t2 = db_table.add_row_number |> materialize |> _.order_by ["Y"]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]

@@ -220,11 +220,11 @@ add_specs suite_builder setup =
         group_builder.specify "should allow weird column names in all backends" <|
             columns = weird_names.map_with_index ix-> name->
                 [name, [100+ix, 2, 3]]
-            data.table = table_builder columns
-            data.table.column_names . should_equal weird_names
+            table = table_builder columns
+            table.column_names . should_equal weird_names
 
             weird_names.map_with_index ix-> name->
-                data.table.at name . to_vector . should_equal [100+ix, 2, 3]
+                table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     suite_builder.group prefix+"Table.column_count" group_builder->
         data = Data.setup create_connection_fn table_builder
