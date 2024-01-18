@@ -27,7 +27,7 @@ const REGISTRATION_QUERY_PARAMS = {
     email: 'email',
     organizationId: 'organization_id',
     redirectTo: 'redirect_to',
-} as const
+}
 
 // ====================
 // === Registration ===

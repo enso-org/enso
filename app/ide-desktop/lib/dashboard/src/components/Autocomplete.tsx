@@ -14,42 +14,42 @@ const ZWSP = '\u200b'
 
 /** Base props for a {@link Autocomplete}. */
 interface InternalBaseAutocompleteProps<T> {
-    multiple?: boolean
-    type?: React.HTMLInputTypeAttribute
-    inputRef?: React.MutableRefObject<HTMLInputElement | null>
-    placeholder?: string
-    values: T[]
-    autoFocus?: boolean
+    readonly multiple?: boolean
+    readonly type?: React.HTMLInputTypeAttribute
+    readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
+    readonly placeholder?: string
+    readonly values: T[]
+    readonly autoFocus?: boolean
     /** This may change as the user types in the input. */
-    items: T[]
-    itemToKey: (item: T) => string
-    itemToString: (item: T) => string
-    itemsToString?: (items: T[]) => string
-    matches: (item: T, text: string) => boolean
-    className?: string
-    inputClassName?: string
-    optionsClassName?: string
-    text?: string | null
-    setText?: (text: string | null) => void
+    readonly items: T[]
+    readonly itemToKey: (item: T) => string
+    readonly itemToString: (item: T) => string
+    readonly itemsToString?: (items: T[]) => string
+    readonly matches: (item: T, text: string) => boolean
+    readonly className?: string
+    readonly inputClassName?: string
+    readonly optionsClassName?: string
+    readonly text?: string | null
+    readonly setText?: (text: string | null) => void
 }
 
 /** {@link AutocompleteProps} when `multiple` is `false`. */
 interface InternalSingleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
     /** Whether selecting multiple values is allowed. */
-    multiple?: false
-    setValues: (value: [T]) => void
-    itemsToString?: never
+    readonly multiple?: false
+    readonly setValues: (value: [T]) => void
+    readonly itemsToString?: never
 }
 
 /** {@link AutocompleteProps} when `multiple` is `true`. */
 interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
     /** Whether selecting multiple values is allowed. */
-    multiple: true
+    readonly multiple: true
     /** This is `null` when multiple values are selected, causing the input to switch to a
      * {@link HTMLTextAreaElement}. */
-    inputRef?: React.MutableRefObject<HTMLInputElement | null>
-    setValues: (value: T[]) => void
-    itemsToString: (items: T[]) => string
+    readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
+    readonly setValues: (value: T[]) => void
+    readonly itemsToString: (items: T[]) => string
 }
 
 /** {@link AutocompleteProps} when the text cannot be edited. */
@@ -60,8 +60,8 @@ interface WithoutText {
 
 /** {@link AutocompleteProps} when the text can be edited. */
 interface WithText {
-    text: string | null
-    setText: (text: string | null) => void
+    readonly text: string | null
+    readonly setText: (text: string | null) => void
 }
 
 /** Props for a {@link Autocomplete}. */

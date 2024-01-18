@@ -17,3 +17,8 @@ export function merge<T extends object>(object: T, update: Partial<T>): T {
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
     return object => Object.assign({ ...object }, update)
 }
+
+/** Makes all properties readonly at the type level. They are still mutable at the runtime level. */
+export function readonly<T extends object>(object: T): Readonly<T> {
+    return object
+}

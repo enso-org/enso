@@ -23,10 +23,7 @@ import SubmitButton from '#/components/SubmitButton'
 // === Constants ===
 // =================
 
-const RESET_PASSWORD_QUERY_PARAMS = {
-    email: 'email',
-    verificationCode: 'verification_code',
-} as const
+const RESET_PASSWORD_QUERY_PARAMS = { email: 'email', verificationCode: 'verification_code' }
 
 // =====================
 // === ResetPassword ===

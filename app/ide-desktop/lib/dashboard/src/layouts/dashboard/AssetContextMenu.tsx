@@ -35,14 +35,17 @@ import MenuEntry from '#/components/MenuEntry'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
-    hidden?: boolean
-    innerProps: assetRow.AssetRowInnerProps
-    event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
-    eventTarget: HTMLElement | null
-    doDelete: () => void
-    doCopy: () => void
-    doCut: () => void
-    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+    readonly hidden?: boolean
+    readonly innerProps: assetRow.AssetRowInnerProps
+    readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+    readonly eventTarget: HTMLElement | null
+    readonly doDelete: () => void
+    readonly doCopy: () => void
+    readonly doCut: () => void
+    readonly doPaste: (
+        newParentKey: backendModule.AssetId,
+        newParentId: backendModule.DirectoryId
+    ) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */

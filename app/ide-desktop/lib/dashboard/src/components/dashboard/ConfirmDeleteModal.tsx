@@ -16,8 +16,8 @@ import Modal from '#/components/Modal'
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
     /** Must fit in the sentence "Are you sure you want to delete <description>?". */
-    description: string
-    doDelete: () => void
+    readonly description: string
+    readonly doDelete: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */

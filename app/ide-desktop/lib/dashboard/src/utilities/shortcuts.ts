@@ -113,15 +113,15 @@ interface Modifiers {
 export interface KeyboardShortcut extends Modifiers {
     // Every printable character is a valid value for `key`, so unions and enums are both
     // not an option here.
-    key: string
-    action: KeyboardAction
+    readonly key: string
+    readonly action: KeyboardAction
 }
 
 /** A mouse shortcut. If a key is omitted, that means its value does not matter. */
 export interface MouseShortcut extends Modifiers {
-    button: MouseButton
-    action: MouseAction
-    clicks: number
+    readonly button: MouseButton
+    readonly action: MouseAction
+    readonly clicks: number
 }
 
 /** All possible modifier keys. */
@@ -130,11 +130,9 @@ export type ModifierKey = (typeof MODIFIERS)[number]
 /** A list of all possible modifier keys, in order. */
 export const MODIFIERS =
     detect.platform() === detect.Platform.macOS
-        ? // This is required to derive the `ModifierKey` type above.
-          // eslint-disable-next-line no-restricted-syntax
+        ? // These MUST be `as const` to derive the `ModifierKey` type above.
           (['Meta', 'Shift', 'Alt', 'Ctrl'] as const)
-        : // eslint-disable-next-line no-restricted-syntax
-          (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
+        : (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
 
 // ========================
 // === isTextInputEvent ===
@@ -170,7 +168,9 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 // =============================
 
 /** Create a mapping from {@link KeyboardAction} to `T`. */
-function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<KeyboardAction, T> {
+function makeKeyboardActionMap<T>(
+    make: (action: KeyboardAction) => T
+): Readonly<Record<KeyboardAction, T>> {
     // This is SAFE, as the types of the keys are statically known.
     // eslint-disable-next-line no-restricted-syntax
     return Object.fromEntries(
@@ -240,14 +240,16 @@ function modifiersMatchEvent(
 /** Holds all keyboard and mouse shortcuts, and provides functions to detect them. */
 export class ShortcutRegistry {
     keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
-    allKeyboardHandlers: Record<
-        KeyboardAction,
-        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-        ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+    allKeyboardHandlers: Readonly<
+        Record<
+            KeyboardAction,
+            // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+            ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+        >
     > = makeKeyboardActionMap(() => [])
     /** The last handler (if any) for each action in
      * {@link ShortcutRegistry.allKeyboardHandlers}. */
-    activeKeyboardHandlers: Record<
+    readonly activeKeyboardHandlers: Record<
         KeyboardAction,
         // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
         ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
@@ -255,9 +257,9 @@ export class ShortcutRegistry {
 
     /** Create a {@link ShortcutRegistry}. */
     constructor(
-        public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
-        public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
-        public keyboardShortcutInfo: Record<KeyboardAction, ShortcutInfo>
+        public keyboardShortcuts: Readonly<Record<KeyboardAction, KeyboardShortcut[]>>,
+        public mouseShortcuts: Readonly<Record<MouseAction, MouseShortcut[]>>,
+        public keyboardShortcutInfo: Readonly<Record<KeyboardAction, ShortcutInfo>>
     ) {
         this.updateKeyboardShortcutsByKey()
     }
@@ -430,7 +432,7 @@ const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** The default keyboard shortcuts. */
-const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
+const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortcut[]>> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
     [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
     [KeyboardAction.close]: [],
@@ -473,7 +475,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 }
 
 /** The default UI data for every keyboard shortcut. */
-const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
+const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutInfo>> = {
     [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
     [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
     [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
@@ -548,7 +550,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
 }
 
 /** The default mouse shortcuts. */
-const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
+const DEFAULT_MOUSE_SHORTCUTS: Readonly<Record<MouseAction, MouseShortcut[]>> = {
     [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
     [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
     [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],

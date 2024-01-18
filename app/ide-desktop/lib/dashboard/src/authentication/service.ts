@@ -90,15 +90,15 @@ const AMPLIFY_CONFIGS = {
 /** Configuration for the authentication service. */
 export interface AuthConfig {
     /** Logger for the authentication service. */
-    logger: loggerProvider.Logger
+    readonly logger: loggerProvider.Logger
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
-    supportsDeepLinks: boolean
+    readonly supportsDeepLinks: boolean
     /** Function to navigate to a given (relative) URL.
      *
      * Used to redirect to pages like the password reset page with the query parameters set in the
      * URL (e.g., `?verification_code=...`). */
-    navigate: (url: string) => void
+    readonly navigate: (url: string) => void
 }
 
 // ===================
@@ -108,9 +108,9 @@ export interface AuthConfig {
 /** API for the authentication service. */
 export interface AuthService {
     /** @see {@link cognito.Cognito}. */
-    cognito: cognito.Cognito
+    readonly cognito: cognito.Cognito
     /** @see {@link listen.ListenFunction}. */
-    registerAuthEventListener: listen.ListenFunction
+    readonly registerAuthEventListener: listen.ListenFunction
 }
 
 /** Create an instance of the authentication service.

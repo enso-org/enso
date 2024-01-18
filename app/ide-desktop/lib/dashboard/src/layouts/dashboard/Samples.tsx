@@ -34,10 +34,10 @@ const DUMMY_LIKE_COUNT = 10
 
 /** Template metadata. */
 export interface Sample {
-    title: string
-    description: string
-    id: string
-    background?: string
+    readonly title: string
+    readonly description: string
+    readonly id: string
+    readonly background?: string
 }
 
 /** The full list of templates. */
@@ -83,7 +83,7 @@ export const SAMPLES: Sample[] = [
 
 /** Props for an {@link ProjectsEntry}. */
 interface InternalProjectsEntryProps {
-    onTemplateClick: (
+    readonly onTemplateClick: (
         name: null,
         onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
     ) => void
@@ -134,8 +134,8 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
-    template: Sample
-    onTemplateClick: (
+    readonly template: Sample
+    readonly onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
     ) => void
@@ -218,7 +218,7 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-    onTemplateClick: (
+    readonly onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
     ) => void

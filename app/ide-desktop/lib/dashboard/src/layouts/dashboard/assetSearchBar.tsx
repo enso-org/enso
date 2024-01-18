@@ -12,17 +12,17 @@ import Label from '#/components/dashboard/Label'
 
 /** A suggested query based on */
 export interface Suggestion {
-    render: () => React.ReactNode
-    addToQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
-    deleteFromQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
+    readonly render: () => React.ReactNode
+    readonly addToQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
+    readonly deleteFromQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
 }
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    labels: backend.Label[]
-    suggestions: Suggestion[]
+    readonly query: assetQuery.AssetQuery
+    readonly setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    readonly labels: backend.Label[]
+    readonly suggestions: Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */

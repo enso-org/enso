@@ -19,10 +19,10 @@ const IDE_ELEMENT_ID = 'root'
 /** The `id` attribute of the element into which the new IDE will be rendered. */
 const IDE2_ELEMENT_ID = 'app'
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
-const JS_EXTENSION: Record<backendModule.BackendType, string> = {
+const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
     [backendModule.BackendType.remote]: '.js.gz',
     [backendModule.BackendType.local]: '.js',
-} as const
+}
 
 // =================
 // === Component ===
@@ -30,10 +30,10 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-    hidden: boolean
-    supportsLocalBackend: boolean
-    projectStartupInfo: backendModule.ProjectStartupInfo | null
-    appRunner: AppRunner
+    readonly hidden: boolean
+    readonly supportsLocalBackend: boolean
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+    readonly appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */

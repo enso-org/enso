@@ -27,25 +27,25 @@ export enum MissingComponentAction {
 
 /** Metadata for a JSON-RPC error. */
 interface JSONRPCError {
-    code: number
-    message: string
-    data?: unknown
+    readonly code: number
+    readonly message: string
+    readonly data?: unknown
 }
 
 /** Fields common to all return values of any JSON-RPC call. */
 interface JSONRPCBaseResponse {
-    jsonrpc: '2.0'
-    id: number
+    readonly jsonrpc: '2.0'
+    readonly id: number
 }
 
 /** The return value of a successful JSON-RPC call. */
 interface JSONRPCSuccessResponse<T> extends JSONRPCBaseResponse {
-    result: T
+    readonly result: T
 }
 
 /** The return value of a failed JSON-RPC call. */
 interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
-    error: JSONRPCError
+    readonly error: JSONRPCError
 }
 
 /** The return value of a JSON-RPC call. */
@@ -73,49 +73,49 @@ export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
 
 /** Details for a project. */
 export interface ProjectMetadata {
-    name: ProjectName
-    namespace: string
-    id: ProjectId
-    engineVersion: string | null
-    created: UTCDateTime
-    lastOpened: UTCDateTime | null
+    readonly name: ProjectName
+    readonly namespace: string
+    readonly id: ProjectId
+    readonly engineVersion: string | null
+    readonly created: UTCDateTime
+    readonly lastOpened: UTCDateTime | null
 }
 
 /** A value specifying the hostname and port of a socket. */
 export interface IpWithSocket {
-    host: string
-    port: number
+    readonly host: string
+    readonly port: number
 }
 
 /** The return value of the "list projects" endpoint. */
 export interface ProjectList {
-    projects: ProjectMetadata[]
+    readonly projects: ProjectMetadata[]
 }
 
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
-    projectId: ProjectId
+    readonly projectId: ProjectId
 }
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
-    engineVersion: string
-    languageServerJsonAddress: IpWithSocket
-    languageServerBinaryAddress: IpWithSocket
-    projectName: ProjectName
-    projectNormalizedName: string
-    projectNamespace: string
+    readonly engineVersion: string
+    readonly languageServerJsonAddress: IpWithSocket
+    readonly languageServerBinaryAddress: IpWithSocket
+    readonly projectName: ProjectName
+    readonly projectNormalizedName: string
+    readonly projectNamespace: string
 }
 
 /** The return value of the "list available engine versions" endpoint. */
 export interface EngineVersion {
-    version: string
-    markedAsBroken: boolean
+    readonly version: string
+    readonly markedAsBroken: boolean
 }
 
 /** The return value of the "list available engine versions" endpoint. */
 export interface VersionList {
-    versions: EngineVersion[]
+    readonly versions: EngineVersion[]
 }
 
 // ================================
@@ -124,37 +124,37 @@ export interface VersionList {
 
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
-    projectId: ProjectId
-    missingComponentAction: MissingComponentAction
+    readonly projectId: ProjectId
+    readonly missingComponentAction: MissingComponentAction
 }
 
 /** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
-    projectId: ProjectId
+    readonly projectId: ProjectId
 }
 
 /** Parameters for the "list projects" endpoint. */
 export interface ListProjectsParams {
-    numberOfProjects?: number
+    readonly numberOfProjects?: number
 }
 
 /** Parameters for the "create project" endpoint. */
 export interface CreateProjectParams {
-    name: ProjectName
-    projectTemplate?: string
-    version?: string
-    missingComponentAction?: MissingComponentAction
+    readonly name: ProjectName
+    readonly projectTemplate?: string
+    readonly version?: string
+    readonly missingComponentAction?: MissingComponentAction
 }
 
 /** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
-    projectId: ProjectId
-    name: ProjectName
+    readonly projectId: ProjectId
+    readonly name: ProjectName
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
-    projectId: ProjectId
+    readonly projectId: ProjectId
 }
 
 // =======================

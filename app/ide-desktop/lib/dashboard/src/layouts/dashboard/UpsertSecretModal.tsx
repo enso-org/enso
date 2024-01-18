@@ -16,9 +16,9 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
-    id: backend.SecretId | null
-    name: string | null
-    doCreate: (name: string, value: string) => void
+    readonly id: backend.SecretId | null
+    readonly name: string | null
+    readonly doCreate: (name: string, value: string) => void
 }
 
 /** A modal for creating and editing a secret. */

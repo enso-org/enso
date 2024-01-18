@@ -11,9 +11,9 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {
-    to: string
-    icon: string
-    text: string
+    readonly to: string
+    readonly icon: string
+    readonly text: string
 }
 
 /** A styled colored link with an icon. */

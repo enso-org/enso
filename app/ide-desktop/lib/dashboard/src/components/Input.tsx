@@ -14,10 +14,10 @@ import SvgIcon from '#/components/SvgIcon'
 
 /** Props for a {@link Input}. */
 export interface InputProps extends controlledInput.ControlledInputProps {
-    allowShowingPassword?: boolean
-    label: string | null
-    icon: string
-    footer?: React.ReactNode
+    readonly allowShowingPassword?: boolean
+    readonly label: string | null
+    readonly icon: string
+    readonly footer?: React.ReactNode
 }
 
 /** A styled input that includes an icon. */

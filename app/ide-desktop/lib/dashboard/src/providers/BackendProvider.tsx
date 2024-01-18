@@ -12,9 +12,9 @@ import * as localStorageModule from '#/utilities/localStorage'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-    backend: backendModule.Backend
-    setBackend: (backend: backendModule.Backend) => void
-    setBackendWithoutSavingType: (backend: backendModule.Backend) => void
+    readonly backend: backendModule.Backend
+    readonly setBackend: (backend: backendModule.Backend) => void
+    readonly setBackendWithoutSavingType: (backend: backendModule.Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -22,8 +22,8 @@ export interface BackendContextType {
 const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
-export interface BackendProviderProps extends React.PropsWithChildren<object> {
-    initialBackend: backendModule.Backend
+export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
+    readonly initialBackend: backendModule.Backend
 }
 
 // =======================

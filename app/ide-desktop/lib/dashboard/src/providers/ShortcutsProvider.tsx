@@ -18,7 +18,7 @@ export interface ShortcutsContextType {
 const ShortcutsContext = React.createContext<ShortcutsContextType>(null)
 
 /** Props for a {@link ShortcutsProvider}. */
-export interface ShortcutsProviderProps extends React.PropsWithChildren<object> {
+export interface ShortcutsProviderProps extends Readonly<React.PropsWithChildren> {
     shortcuts?: shortcutsModule.ShortcutRegistry
 }
 

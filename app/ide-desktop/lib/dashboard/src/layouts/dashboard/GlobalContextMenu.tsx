@@ -15,12 +15,15 @@ import MenuEntry from '#/components/MenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
-    hidden?: boolean
-    hasCopyData: boolean
-    directoryKey: backendModule.DirectoryId | null
-    directoryId: backendModule.DirectoryId | null
-    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+    readonly hidden?: boolean
+    readonly hasCopyData: boolean
+    readonly directoryKey: backendModule.DirectoryId | null
+    readonly directoryId: backendModule.DirectoryId | null
+    readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    readonly doPaste: (
+        newParentKey: backendModule.AssetId,
+        newParentId: backendModule.DirectoryId
+    ) => void
 }
 
 /** A context menu available everywhere in the directory. */

@@ -9,10 +9,10 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link SvgIcon}. */
 export interface SvgIconProps {
-    src: string
-    className?: string
-    positionClassName?: string
-    onClick?: React.MouseEventHandler<HTMLDivElement>
+    readonly src: string
+    readonly className?: string
+    readonly positionClassName?: string
+    readonly onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** A fixed-size container for a SVG image. */

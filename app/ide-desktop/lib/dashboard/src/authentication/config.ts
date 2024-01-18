@@ -102,16 +102,16 @@ export const OAUTH_RESPONSE_TYPE = OAuthResponseType('code')
  * The values in this object are not secret, and can be swapped out for testing values to avoid
  * creating authenticated users in the production environment. */
 export interface AmplifyConfig {
-    region: AwsRegion
-    userPoolId: UserPoolId
-    userPoolWebClientId: UserPoolWebClientId
-    urlOpener: OAuthUrlOpener | null
-    saveAccessToken: AccessTokenSaver | null
-    domain: OAuthDomain
-    scope: OAuthScope[]
-    redirectSignIn: OAuthRedirect
-    redirectSignOut: OAuthRedirect
-    responseType: OAuthResponseType
+    readonly region: AwsRegion
+    readonly userPoolId: UserPoolId
+    readonly userPoolWebClientId: UserPoolWebClientId
+    readonly urlOpener: OAuthUrlOpener | null
+    readonly saveAccessToken: AccessTokenSaver | null
+    readonly domain: OAuthDomain
+    readonly scope: OAuthScope[]
+    readonly redirectSignIn: OAuthRedirect
+    readonly redirectSignOut: OAuthRedirect
+    readonly responseType: OAuthResponseType
 }
 
 // ===========================
@@ -125,20 +125,20 @@ interface OauthAmplifyConfigOptions {
 
 /** OAuth configuration for a {@link NestedAmplifyConfig}. */
 interface OauthAmplifyConfig {
-    options: OauthAmplifyConfigOptions
-    domain: OAuthDomain
-    scope: OAuthScope[]
-    redirectSignIn: OAuthRedirect
-    redirectSignOut: OAuthRedirect
-    responseType: OAuthResponseType
+    readonly options: OauthAmplifyConfigOptions
+    readonly domain: OAuthDomain
+    readonly scope: OAuthScope[]
+    readonly redirectSignIn: OAuthRedirect
+    readonly redirectSignOut: OAuthRedirect
+    readonly responseType: OAuthResponseType
 }
 
 /** Same as {@link AmplifyConfig}, but in a format recognized by the AWS Amplify library. */
 export interface NestedAmplifyConfig {
-    region: AwsRegion
-    userPoolId: UserPoolId
-    userPoolWebClientId: UserPoolWebClientId
-    oauth: OauthAmplifyConfig
+    readonly region: AwsRegion
+    readonly userPoolId: UserPoolId
+    readonly userPoolWebClientId: UserPoolWebClientId
+    readonly oauth: OauthAmplifyConfig
 }
 
 /** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.

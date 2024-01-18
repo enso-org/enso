@@ -16,13 +16,13 @@ type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.Intrins
 
 /** Props for an {@link EditableSpan}. */
 export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'onSubmit'> {
-    editable?: boolean
-    checkSubmittable?: (value: string) => boolean
-    onSubmit: (value: string) => void
-    onCancel: () => void
-    inputPattern?: string
-    inputTitle?: string
-    children: string
+    readonly editable?: boolean
+    readonly checkSubmittable?: (value: string) => boolean
+    readonly onSubmit: (value: string) => void
+    readonly onCancel: () => void
+    readonly inputPattern?: string
+    readonly inputTitle?: string
+    readonly children: string
 }
 
 /** A `<span>` that can turn into an `<input type="text">`. */

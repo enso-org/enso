@@ -18,7 +18,7 @@ const REGISTRATION_QUERY_PARAMS = {
     verificationCode: 'verification_code',
     email: 'email',
     redirectUrl: 'redirect_url',
-} as const
+}
 
 // ===========================
 // === ConfirmRegistration ===

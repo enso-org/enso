@@ -10,7 +10,7 @@ import * as fontawesome from '@fortawesome/react-fontawesome'
 
 /** Props for a {@link FontAwesomeIcon}. */
 export interface FontAwesomeIconProps {
-    icon: fontawesomeIcons.IconDefinition
+    readonly icon: fontawesomeIcons.IconDefinition
 }
 
 /** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */

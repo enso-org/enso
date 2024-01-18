@@ -25,23 +25,25 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 /** The subset of {@link AssetSettingsPanelProps} that are required to be supplied by the row. */
 export interface AssetSettingsPanelRequiredProps {
-    item: assetTreeNode.AssetTreeNode
-    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+    readonly item: assetTreeNode.AssetTreeNode
+    readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
 }
 
 /** Props for a {@link AssetSettingsPanel}. */
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
-    supportsLocalBackend: boolean
-    page: pageSwitcher.Page
-    category: Category
-    isHelpChatOpen: boolean
-    setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
-    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    projectAsset: backendModule.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-    doRemoveSelf: () => void
-    onSignOut: () => void
+    readonly supportsLocalBackend: boolean
+    readonly page: pageSwitcher.Page
+    readonly category: Category
+    readonly isHelpChatOpen: boolean
+    readonly setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
+    readonly setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+    readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    readonly projectAsset: backendModule.ProjectAsset | null
+    readonly setProjectAsset: React.Dispatch<
+        React.SetStateAction<backendModule.ProjectAsset>
+    > | null
+    readonly doRemoveSelf: () => void
+    readonly onSignOut: () => void
 }
 
 /** A panel containing the description and settings for an asset. */

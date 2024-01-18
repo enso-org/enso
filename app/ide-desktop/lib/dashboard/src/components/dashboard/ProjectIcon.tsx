@@ -36,7 +36,7 @@ const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
-const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
@@ -48,7 +48,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend. */
-const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
@@ -65,14 +65,14 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
-    keyProp: string
-    item: backendModule.ProjectAsset
-    setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-    assetEvents: assetEvent.AssetEvent[]
+    readonly keyProp: string
+    readonly item: backendModule.ProjectAsset
+    readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+    readonly assetEvents: assetEvent.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
-    doOpenManually: (projectId: backendModule.ProjectId) => void
-    onClose: () => void
-    openIde: (switchPage: boolean) => void
+    readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+    readonly onClose: () => void
+    readonly openIde: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */

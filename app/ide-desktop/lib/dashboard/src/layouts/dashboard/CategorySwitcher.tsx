@@ -24,17 +24,17 @@ import SvgMask from '#/components/SvgMask'
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
     /** When true, the button is not faded out even when not hovered. */
-    active?: boolean
+    readonly active?: boolean
     /** When true, the button is not clickable. */
-    disabled?: boolean
+    readonly disabled?: boolean
     /** A title that is only shown when `disabled` is true. */
-    hidden: boolean
-    image: string
-    name: string
-    iconClassName?: string
-    onClick: () => void
-    onDragOver: (event: React.DragEvent) => void
-    onDrop: (event: React.DragEvent) => void
+    readonly hidden: boolean
+    readonly image: string
+    readonly name: string
+    readonly iconClassName?: string
+    readonly onClick: () => void
+    readonly onDragOver: (event: React.DragEvent) => void
+    readonly onDrop: (event: React.DragEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
@@ -75,7 +75,7 @@ const CATEGORIES: Category[] = [
     Category.trash,
 ]
 
-const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
+const IS_NOT_YET_IMPLEMENTED: Readonly<Record<Category, boolean>> = {
     [Category.recent]: false,
     [Category.drafts]: true,
     [Category.home]: false,
@@ -83,7 +83,7 @@ const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
     [Category.trash]: false,
 }
 
-const CATEGORY_ICONS: Record<Category, string> = {
+const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
     [Category.recent]: RecentIcon,
     [Category.drafts]: TempIcon,
     [Category.home]: Home2Icon,
@@ -91,19 +91,19 @@ const CATEGORY_ICONS: Record<Category, string> = {
     [Category.trash]: Trash2Icon,
 }
 
-const CATEGORY_CLASS_NAMES: Record<Category, string> = {
+const CATEGORY_CLASS_NAMES: Readonly<Record<Category, string>> = {
     [Category.recent]: '-ml-0.5',
     [Category.drafts]: '-ml-0.5',
     [Category.home]: '',
     [Category.root]: '',
     [Category.trash]: '',
-} as const
+}
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-    category: Category
-    setCategory: (category: Category) => void
-    dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+    readonly category: Category
+    readonly setCategory: (category: Category) => void
+    readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */

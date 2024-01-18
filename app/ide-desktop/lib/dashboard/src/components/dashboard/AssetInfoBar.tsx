@@ -11,9 +11,9 @@ import Button from '#/components/Button'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-    canToggleSettingsPanel: boolean
-    isSettingsPanelVisible: boolean
-    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+    readonly canToggleSettingsPanel: boolean
+    readonly isSettingsPanelVisible: boolean
+    readonly setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A toolbar for displaying asset information. */

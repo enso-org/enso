@@ -18,24 +18,26 @@ import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
     /** Whether the application may have the local backend running. */
-    supportsLocalBackend: boolean
-    page: pageSwitcher.Page
-    setPage: (page: pageSwitcher.Page) => void
-    projectAsset: backendModule.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-    isEditorDisabled: boolean
-    setBackendType: (backendType: backendModule.BackendType) => void
-    isHelpChatOpen: boolean
-    setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    labels: backendModule.Label[]
-    suggestions: assetSearchBar.Suggestion[]
-    canToggleSettingsPanel: boolean
-    isSettingsPanelVisible: boolean
-    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-    doRemoveSelf: () => void
-    onSignOut: () => void
+    readonly supportsLocalBackend: boolean
+    readonly page: pageSwitcher.Page
+    readonly setPage: (page: pageSwitcher.Page) => void
+    readonly projectAsset: backendModule.ProjectAsset | null
+    readonly setProjectAsset: React.Dispatch<
+        React.SetStateAction<backendModule.ProjectAsset>
+    > | null
+    readonly isEditorDisabled: boolean
+    readonly setBackendType: (backendType: backendModule.BackendType) => void
+    readonly isHelpChatOpen: boolean
+    readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
+    readonly query: assetQuery.AssetQuery
+    readonly setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    readonly labels: backendModule.Label[]
+    readonly suggestions: assetSearchBar.Suggestion[]
+    readonly canToggleSettingsPanel: boolean
+    readonly isSettingsPanelVisible: boolean
+    readonly setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+    readonly doRemoveSelf: () => void
+    readonly onSignOut: () => void
 }
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,

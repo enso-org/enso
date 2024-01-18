@@ -44,10 +44,10 @@ import type * as spinner from '#/components/Spinner'
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     /** Whether the application may have the local backend running. */
-    supportsLocalBackend: boolean
-    appRunner: AppRunner
-    initialProjectName: string | null
-    projectManagerUrl: string | null
+    readonly supportsLocalBackend: boolean
+    readonly appRunner: AppRunner
+    readonly initialProjectName: string | null
+    readonly projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */

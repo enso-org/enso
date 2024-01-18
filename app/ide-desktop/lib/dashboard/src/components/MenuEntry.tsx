@@ -13,13 +13,13 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
-    hidden?: boolean
-    action: shortcutsModule.KeyboardAction
+    readonly hidden?: boolean
+    readonly action: shortcutsModule.KeyboardAction
     /** When true, the button is not clickable. */
-    disabled?: boolean
-    title?: string
-    paddingClassName?: string
-    doAction: () => void
+    readonly disabled?: boolean
+    readonly title?: string
+    readonly paddingClassName?: string
+    readonly doAction: () => void
 }
 
 /** An item in a menu. */

@@ -21,8 +21,8 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
-    supportsLocalBackend: boolean
-    onSignOut: () => void
+    readonly supportsLocalBackend: boolean
+    readonly onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */

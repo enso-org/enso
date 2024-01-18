@@ -36,37 +36,37 @@ import type * as spinner from '#/components/Spinner'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-    supportsLocalBackend: boolean
-    hidden: boolean
-    page: pageSwitcher.Page
-    initialProjectName: string | null
+    readonly supportsLocalBackend: boolean
+    readonly hidden: boolean
+    readonly page: pageSwitcher.Page
+    readonly initialProjectName: string | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
-    queuedAssetEvents: assetEvent.AssetEvent[]
-    assetListEvents: assetListEvent.AssetListEvent[]
-    dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-    assetEvents: assetEvent.AssetEvent[]
-    dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    labels: backendModule.Label[]
-    setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-    projectStartupInfo: backendModule.ProjectStartupInfo | null
-    setAssetSettingsPanelProps: React.Dispatch<
+    readonly queuedAssetEvents: assetEvent.AssetEvent[]
+    readonly assetListEvents: assetListEvent.AssetListEvent[]
+    readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
+    readonly assetEvents: assetEvent.AssetEvent[]
+    readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+    readonly query: assetQuery.AssetQuery
+    readonly setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    readonly labels: backendModule.Label[]
+    readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+    readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+    readonly setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
-    doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (
+    readonly doCreateProject: (templateId: string | null) => void
+    readonly doOpenEditor: (
         project: backendModule.ProjectAsset,
         setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
         switchPage: boolean
     ) => void
-    doCloseEditor: (project: backendModule.ProjectAsset) => void
-    loadingProjectManagerDidFail: boolean
-    isListingRemoteDirectoryWhileOffline: boolean
-    isListingLocalDirectoryAndWillFail: boolean
-    isListingRemoteDirectoryAndWillFail: boolean
+    readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+    readonly loadingProjectManagerDidFail: boolean
+    readonly isListingRemoteDirectoryWhileOffline: boolean
+    readonly isListingLocalDirectoryAndWillFail: boolean
+    readonly isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */

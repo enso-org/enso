@@ -7,7 +7,7 @@ import * as React from 'react'
 
 /** Props for a {@link ContextMenuSeparator}. */
 export interface ContextMenuSeparatorProps {
-    hidden?: boolean
+    readonly hidden?: boolean
 }
 
 /** A horizontal line dividing two sections in the context menu. */

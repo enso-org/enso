@@ -5,7 +5,7 @@ import * as backend from '#/services/backend'
 
 /** Props for a {@link ColorPicker}. */
 export interface ColorPickerProps {
-    setColor: (color: backend.LChColor) => void
+    readonly setColor: (color: backend.LChColor) => void
 }
 
 /** A color picker to select from a predetermined list of colors. */

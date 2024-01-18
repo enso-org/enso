@@ -44,30 +44,30 @@ const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folde
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
-    key: backendModule.AssetId
-    item: assetTreeNode.AssetTreeNode
-    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
-    state: assetsTable.AssetsTableState
-    rowState: assetsTable.AssetRowState
-    setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+    readonly key: backendModule.AssetId
+    readonly item: assetTreeNode.AssetTreeNode
+    readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+    readonly state: assetsTable.AssetsTableState
+    readonly rowState: assetsTable.AssetRowState
+    readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
     extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
-    keyProp: backendModule.AssetId
-    tableRowRef?: React.RefObject<HTMLTableRowElement>
-    item: assetTreeNode.AssetTreeNode
-    state: assetsTable.AssetsTableState
-    hidden: boolean
-    initialRowState: assetsTable.AssetRowState
-    columns: column.AssetColumn[]
-    selected: boolean
-    setSelected: (selected: boolean) => void
-    isSoleSelectedItem: boolean
-    allowContextMenu: boolean
-    onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-    onContextMenu?: (
+    readonly keyProp: backendModule.AssetId
+    readonly tableRowRef?: React.RefObject<HTMLTableRowElement>
+    readonly item: assetTreeNode.AssetTreeNode
+    readonly state: assetsTable.AssetsTableState
+    readonly hidden: boolean
+    readonly initialRowState: assetsTable.AssetRowState
+    readonly columns: column.AssetColumn[]
+    readonly selected: boolean
+    readonly setSelected: (selected: boolean) => void
+    readonly isSoleSelectedItem: boolean
+    readonly allowContextMenu: boolean
+    readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
+    readonly onContextMenu?: (
         props: AssetRowInnerProps,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void

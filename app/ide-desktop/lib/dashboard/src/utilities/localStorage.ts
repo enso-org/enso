@@ -37,7 +37,7 @@ interface LocalStorageData {
 /** Whether each {@link LocalStorageKey} is user specific.
  * The type annotation ensures that this object MUST be edited when a new {@link LocalStorageKey}
  * is added. */
-const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
+const IS_USER_SPECIFIC: Readonly<Record<LocalStorageKey, boolean>> = {
     [LocalStorageKey.page]: false,
     [LocalStorageKey.backendType]: false,
     [LocalStorageKey.extraColumns]: false,

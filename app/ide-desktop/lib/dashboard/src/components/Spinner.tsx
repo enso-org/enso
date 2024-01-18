@@ -15,18 +15,18 @@ export enum SpinnerState {
     done = 'done',
 }
 
-export const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
+export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
     [SpinnerState.loadingSlow]: 'dasharray-75 duration-90000 ease-linear',
     [SpinnerState.loadingMedium]: 'dasharray-75 duration-5000 ease-linear',
     [SpinnerState.loadingFast]: 'dasharray-75 duration-1000 ease-linear',
     [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
-} as const
+}
 
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
-    size: number
-    state: SpinnerState
+    readonly size: number
+    readonly state: SpinnerState
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */

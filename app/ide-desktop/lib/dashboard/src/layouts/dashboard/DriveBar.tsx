@@ -25,13 +25,13 @@ import Button from '#/components/Button'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    category: Category
-    canDownloadFiles: boolean
-    doCreateProject: (templateId: string | null) => void
-    doCreateDirectory: () => void
-    doCreateDataConnector: (name: string, value: string) => void
-    doUploadFiles: (files: File[]) => void
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    readonly category: Category
+    readonly canDownloadFiles: boolean
+    readonly doCreateProject: (templateId: string | null) => void
+    readonly doCreateDirectory: () => void
+    readonly doCreateDataConnector: (name: string, value: string) => void
+    readonly doUploadFiles: (files: File[]) => void
+    readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,

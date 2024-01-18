@@ -12,8 +12,8 @@ import type * as spinner from '#/components/Spinner'
 
 /** Props for a {@link Home}. */
 export interface HomeProps {
-    hidden: boolean
-    onTemplateClick: (
+    readonly hidden: boolean
+    readonly onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
     ) => void

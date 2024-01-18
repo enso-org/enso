@@ -79,37 +79,37 @@ export async function waitUntilProjectIsReady(
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-    users: backendModule.SimpleUser[]
+    readonly users: backendModule.SimpleUser[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListDirectoryResponseBody {
-    assets: backendModule.AnyAsset[]
+    readonly assets: backendModule.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListProjectsResponseBody {
-    projects: backendModule.ListedProjectRaw[]
+    readonly projects: backendModule.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-    files: backendModule.File[]
+    readonly files: backendModule.File[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
 export interface ListSecretsResponseBody {
-    secrets: backendModule.SecretInfo[]
+    readonly secrets: backendModule.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-    tags: backendModule.Label[]
+    readonly tags: backendModule.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
 export interface ListVersionsResponseBody {
-    versions: [backendModule.Version, ...backendModule.Version[]]
+    readonly versions: [backendModule.Version, ...backendModule.Version[]]
 }
 
 // =====================

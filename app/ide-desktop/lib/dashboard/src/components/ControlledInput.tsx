@@ -13,12 +13,13 @@ const DEBOUNCE_MS = 1000
 // =======================
 
 /** Props for a {@link ControlledInput}. */
-export interface ControlledInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    value: string
-    error?: string
-    validate?: boolean
-    setValue: (value: string) => void
-    shouldReportValidityRef?: React.MutableRefObject<boolean>
+export interface ControlledInputProps
+    extends Readonly<React.InputHTMLAttributes<HTMLInputElement>> {
+    readonly value: string
+    readonly error?: string
+    readonly validate?: boolean
+    readonly setValue: (value: string) => void
+    readonly shouldReportValidityRef?: React.MutableRefObject<boolean>
 }
 
 /** A component for authentication from inputs, with preset styles. */

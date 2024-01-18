@@ -186,7 +186,7 @@ function insertArbitraryAssetTreeNodeChildren(
     const nodes = (item.children ?? []).filter(
         node => node.item.type !== backendModule.AssetType.specialEmpty
     )
-    const byType: Record<backendModule.AssetType, backendModule.AnyAsset[]> = {
+    const byType: Readonly<Record<backendModule.AssetType, backendModule.AnyAsset[]>> = {
         [backendModule.AssetType.directory]: [],
         [backendModule.AssetType.project]: [],
         [backendModule.AssetType.file]: [],
@@ -225,7 +225,7 @@ function insertArbitraryAssetTreeNodeChildren(
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
+const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
     [Category.recent]: null,
     [Category.drafts]: null,
     [Category.home]: backendModule.FilterBy.active,
@@ -239,54 +239,59 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-    numberOfSelectedItems: number
-    visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
-    category: Category
-    labels: Map<backendModule.LabelName, backendModule.Label>
-    deletedLabelNames: Set<backendModule.LabelName>
-    hasPasteData: boolean
-    setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
-    sortColumn: columnUtils.SortableColumn | null
-    setSortColumn: (column: columnUtils.SortableColumn | null) => void
-    sortDirection: sorting.SortDirection | null
-    setSortDirection: (sortDirection: sorting.SortDirection | null) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-    assetEvents: assetEvent.AssetEvent[]
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    setAssetSettingsPanelProps: React.Dispatch<
+    readonly numberOfSelectedItems: number
+    readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
+    readonly category: Category
+    readonly labels: Map<backendModule.LabelName, backendModule.Label>
+    readonly deletedLabelNames: Set<backendModule.LabelName>
+    readonly hasPasteData: boolean
+    readonly setPasteData: (
+        pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>
+    ) => void
+    readonly sortColumn: columnUtils.SortableColumn | null
+    readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
+    readonly sortDirection: sorting.SortDirection | null
+    readonly setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    readonly query: assetQuery.AssetQuery
+    readonly setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+    readonly assetEvents: assetEvent.AssetEvent[]
+    readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    readonly setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
-    nodeMap: Readonly<
+    readonly nodeMap: Readonly<
         React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
     >
-    doToggleDirectoryExpansion: (
+    readonly doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
         title?: string | null,
         override?: boolean
     ) => void
     /** Called when the project is opened via the `ProjectActionButton`. */
-    doOpenManually: (projectId: backendModule.ProjectId) => void
-    doOpenIde: (
+    readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+    readonly doOpenIde: (
         project: backendModule.ProjectAsset,
         setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
         switchPage: boolean
     ) => void
-    doCloseIde: (project: backendModule.ProjectAsset) => void
-    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
-    doCopy: () => void
-    doCut: () => void
-    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+    readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+    readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+    readonly doCopy: () => void
+    readonly doCut: () => void
+    readonly doPaste: (
+        newParentKey: backendModule.AssetId,
+        newParentId: backendModule.DirectoryId
+    ) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-    setVisibility: (visibility: Visibility) => void
-    isEditingName: boolean
-    temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
-    temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
+    readonly setVisibility: (visibility: Visibility) => void
+    readonly isEditingName: boolean
+    readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
+    readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
@@ -301,36 +306,36 @@ const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    setCanDownloadFiles: (canDownloadFiles: boolean) => void
-    category: Category
-    allLabels: Map<backendModule.LabelName, backendModule.Label>
-    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-    initialProjectName: string | null
-    projectStartupInfo: backendModule.ProjectStartupInfo | null
-    deletedLabelNames: Set<backendModule.LabelName>
+    readonly query: assetQuery.AssetQuery
+    readonly setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
+    readonly category: Category
+    readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
+    readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+    readonly initialProjectName: string | null
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+    readonly deletedLabelNames: Set<backendModule.LabelName>
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
-    queuedAssetEvents: assetEvent.AssetEvent[]
-    assetListEvents: assetListEvent.AssetListEvent[]
-    dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-    assetEvents: assetEvent.AssetEvent[]
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    setAssetSettingsPanelProps: React.Dispatch<
+    readonly queuedAssetEvents: assetEvent.AssetEvent[]
+    readonly assetListEvents: assetListEvent.AssetListEvent[]
+    readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+    readonly assetEvents: assetEvent.AssetEvent[]
+    readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    readonly setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
-    doOpenIde: (
+    readonly doOpenIde: (
         project: backendModule.ProjectAsset,
         setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
         switchPage: boolean
     ) => void
-    doCloseIde: (project: backendModule.ProjectAsset) => void
-    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
-    loadingProjectManagerDidFail: boolean
-    isListingRemoteDirectoryWhileOffline: boolean
-    isListingLocalDirectoryAndWillFail: boolean
-    isListingRemoteDirectoryAndWillFail: boolean
+    readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+    readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+    readonly loadingProjectManagerDidFail: boolean
+    readonly isListingRemoteDirectoryWhileOffline: boolean
+    readonly isListingLocalDirectoryAndWillFail: boolean
+    readonly isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** The table of project assets. */

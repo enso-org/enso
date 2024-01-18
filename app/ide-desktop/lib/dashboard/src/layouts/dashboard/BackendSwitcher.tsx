@@ -15,7 +15,7 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link BackendSwitcher}. */
 export interface BackendSwitcherProps {
-    setBackendType: (backendType: backendModule.BackendType) => void
+    readonly setBackendType: (backendType: backendModule.BackendType) => void
 }
 
 /** Switcher for choosing the project management backend. */
