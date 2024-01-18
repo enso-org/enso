@@ -63,11 +63,13 @@ public class ImmutableBitSet {
     }
 
     public ImmutableBitSet orNot(ImmutableBitSet other) {
+        // Doing an extra operation to avoid doing an extra allocation.
+        // a || !b => !(!a && b) 
         assert size == other.size;
         BitSet result = (BitSet) bitSet.clone();
-        BitSet otherNegated = (BitSet) other.bitSet.clone();
-        otherNegated.flip(0, size);
-        result.or(otherNegated);
+        result.flip(0, size);
+        result.and(other.bitSet);
+        result.flip(0, size);
         return new ImmutableBitSet(result, size);
     }
 
