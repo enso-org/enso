@@ -30,7 +30,7 @@ any changes) and then starts the JVM in debug mode trying to attach to port
 `5005`:
 
 ```sh
-sbt:enso> runEngineDistribution --debug --run ./test/Tests/src/Data/Numbers_Spec.enso
+sbt:enso> runEngineDistribution --debug --run ./test/Base_Tests/src/Data/Numbers_Spec.enso
 ```
 
 The second options gives one a complete control as it launches everything from a
@@ -39,7 +39,7 @@ special JVM arguments when launching the `bin/enso` from the engine
 distribution:
 
 ```bash
-enso$ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=n,address=5005 ./built-distribution/enso-engine-*/enso-*/bin/enso --run ./test/Tests/src/Data/Numbers_Spec.enso
+enso$ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=n,address=5005 ./built-distribution/enso-engine-*/enso-*/bin/enso --run ./test/Base_Tests/src/Data/Numbers_Spec.enso
 ```
 
 Both of the approaches launch the JVM in a _debug mode_. Once the JVM is

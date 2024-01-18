@@ -9,15 +9,9 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
-import {
-  qnJoin,
-  qnLastSegment,
-  qnSegments,
-  tryQualifiedName,
-  type Identifier,
-} from '@/util/qualifiedName'
+import { qnLastSegment, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

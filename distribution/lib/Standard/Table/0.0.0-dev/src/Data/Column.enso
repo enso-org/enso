@@ -2656,4 +2656,4 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
-Column.from (that:Date_Range) (name:Text="Date Range") = Column.from_vector name that.to_vector
+Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector

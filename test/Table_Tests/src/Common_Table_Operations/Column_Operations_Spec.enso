@@ -16,7 +16,7 @@ from Standard.Database.Errors import all
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-import enso_dev.Tests.Data.Round_Spec
+import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
