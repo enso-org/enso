@@ -20,6 +20,8 @@ import enso_dev.Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
+main = run_default_backend add_specs
+
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
