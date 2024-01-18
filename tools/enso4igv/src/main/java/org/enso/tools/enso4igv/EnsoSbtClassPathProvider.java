@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
@@ -53,12 +54,13 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     public ClassPath findClassPath(FileObject file, String type) {
         for (var g : sources) {
             if (g instanceof EnsoSources i && i.controlsSource(file)) {
-                return switch (type) {
+                var cp = switch (type) {
                     case SOURCE -> i.srcCp;
                     case COMPILE -> i.cp;
                     case BOOT -> i.platform.getBootstrapLibraries();
                     default -> null;
                 };
+                return cp;
             }
         }
         return null;
@@ -152,15 +154,15 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                     inputDir = inputDir.getParent();
                   }
                   srcRoots.add(inputDir);
-                }
-
-                var srcDir = prj.getProjectDirectory().getFileObject("src");
-                if (srcDir != null) {
-                    for (var group : srcDir.getChildren()) {
-                        if (group.isFolder()) {
-                            for (var child : group.getChildren()) {
-                                if (child.isFolder()) {
-                                    srcRoots.add(child);
+                } else {
+                    var srcDir = prj.getProjectDirectory().getFileObject("src");
+                    if (srcDir != null) {
+                        for (var group : srcDir.getChildren()) {
+                            if (group.isFolder()) {
+                                for (var child : group.getChildren()) {
+                                    if (child.isFolder()) {
+                                        srcRoots.add(child);
+                                    }
                                 }
                             }
                         }
