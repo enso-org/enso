@@ -16,10 +16,6 @@ test.test('sort', async ({ page }) => {
     const assetRows = actions.locateAssetRows(page)
     const nameHeading = actions.locateNameColumnHeading(page)
     const modifiedHeading = actions.locateModifiedColumnHeading(page)
-
-    await page.goto('/')
-    await actions.login({ page })
-
     const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
     const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
     const date3 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
@@ -28,7 +24,6 @@ test.test('sort', async ({ page }) => {
     const date6 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
     const date7 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
     const date8 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
-
     api.addDirectory('a directory', { modifiedAt: date4 })
     api.addDirectory('G directory', { modifiedAt: date6 })
     api.addProject('C project', { modifiedAt: date7 })
@@ -46,6 +41,8 @@ test.test('sort', async ({ page }) => {
     // g directory
     // c project
     // d file
+    await page.goto('/')
+    await actions.login({ page })
 
     // By default, assets should be grouped by type.
     // Assets in each group are ordered by insertion order.
