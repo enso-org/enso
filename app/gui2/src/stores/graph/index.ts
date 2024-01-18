@@ -22,7 +22,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
-import type { StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -450,6 +450,10 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    db.mockExpressionUpdate(binding, update)
+  }
+
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
     const edit = astModule.edit()
     const metadataUpdates = scope(edit)
@@ -518,6 +522,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     transact,
     db: markRaw(db),
+    mockExpressionUpdate,
     imports,
     editedNodeInfo,
     unconnectedEdge,
