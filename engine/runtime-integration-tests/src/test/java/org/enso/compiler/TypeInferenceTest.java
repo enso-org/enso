@@ -623,6 +623,31 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals("x3 should not contain any warnings", List.of(), getDescendantsDiagnostics(x3.expression()));
   }
 
+  /**
+   * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places for documentation purposes, so it should not be triggering any errors.
+   */
+  @Test
+  public void noErrorInParametricTypeSignatures() throws Exception {
+    final URI uri = new URI("memory://noErrorInParametricTypeSignatures.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type a
+                    Value v
+                type Other_Type
+                    Value (v : My_Type Other_Type)
+                    
+                foo1 : My_Type Other_Type -> My_Type Other_Type
+                foo1 v = v
+                
+                foo2 (v : My_Type Other_Type) -> My_Type Other_Type = v
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    assertEquals(List.of(), getDescendantsDiagnostics(module));
+  }
+
   @Test
   public void typeErrorFromAscription() throws Exception {
     final URI uri = new URI("memory://typeErrorFromAscription.enso");
