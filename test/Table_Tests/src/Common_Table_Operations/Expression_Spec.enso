@@ -15,6 +15,7 @@ from Standard.Test_New import all
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
+main = run_default_backend (add_specs detailed=True)
 
 add_specs suite_builder detailed setup =
     prefix = setup.prefix
