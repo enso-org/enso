@@ -658,11 +658,11 @@ async function mockDate({ page }: MockParams) {
     await page.addInitScript(`{
         Date = class extends Date {
             constructor(...args) {
-            if (args.length === 0) {
-                super(${MOCK_DATE});
-            } else {
-                super(...args);
-            }
+                if (args.length === 0) {
+                    super(${MOCK_DATE});
+                } else {
+                    super(...args);
+                }
             }
         }
         const __DateNowOffset = ${MOCK_DATE} - Date.now();
