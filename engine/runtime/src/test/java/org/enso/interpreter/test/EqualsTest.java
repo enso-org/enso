@@ -343,9 +343,16 @@ public class EqualsTest extends TestBase {
   }
 
   @Test
-  public void testUnresolvedConversion() throws Exception {
+  public void testUnresolvedConversionInNamedModules() throws Exception {
     var mod1 = context.eval(Source.newBuilder("enso", "one = 'one'", "one.enso").build());
     var mod2 = context.eval(Source.newBuilder("enso", "two = 'two'", "two.enso").build());
+    assertUnresolvedConversions(mod1, mod2);
+  }
+
+  @Test
+  public void testUnresolvedConversionInUnamedModules() throws Exception {
+    var mod1 = context.eval("enso", "one = 'one'");
+    var mod2 = context.eval("enso", "two = 'two'");
     assertUnresolvedConversions(mod1, mod2);
   }
 
