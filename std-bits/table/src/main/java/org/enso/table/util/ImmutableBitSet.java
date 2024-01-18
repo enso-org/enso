@@ -33,6 +33,13 @@ public class ImmutableBitSet {
         return new ImmutableBitSet(result, size);
     }
 
+    public ImmutableBitSet andNot(ImmutableBitSet other) {
+        assert size == other.size;
+        BitSet result = (BitSet) bitSet.clone();
+        result.andNot(other.bitSet);
+        return new ImmutableBitSet(result, size);
+    }
+
     public ImmutableBitSet not() {
         BitSet result = (BitSet) bitSet.clone();
         result.flip(0, size);
