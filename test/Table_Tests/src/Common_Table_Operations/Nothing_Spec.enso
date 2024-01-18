@@ -145,7 +145,7 @@ spec setup =
                 t0.at "n" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"Boolean is_in" <|
-        make_containing_values  had_null had_true had_false =
+        make_containing_values had_null had_true had_false =
             null_maybe = if had_null then [Nothing] else []
             true_maybe = if had_true then [True] else []
             false_maybe = if had_false then [False] else []
