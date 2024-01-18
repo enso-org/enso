@@ -759,6 +759,32 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   @Test
+  public void noTypeErrorIfConversionExistsFunctions() throws Exception {
+    final URI uri = new URI("memory://noTypeErrorIfConversionExistsFunctions.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                from Standard.Base import Function
+                type My_Type
+                    Value v
+                
+                My_Type.from (that : Function) = My_Type.Value (that 0)
+                foo =
+                    f x = x+100
+                    y = (f : My_Type)
+                    y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var y = findAssignment(foo, "y");
+    assertEquals("valid conversion should ensure there is no type error", List.of(), getDescendantsDiagnostics(y.expression()));
+  }
+
+  @Ignore("We cannot report type errors until we check there are no Conversions")
+  @Test
   public void typeErrorFunctionToObject() throws Exception {
     final URI uri = new URI("memory://typeErrorFunctionToObject.enso");
     final Source src =
