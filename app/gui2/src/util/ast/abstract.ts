@@ -129,23 +129,23 @@ function cloneObject<T extends Object>(object: T): T {
 }
 
 function spaced<T extends object | string>(node: T): NodeChild<T>
-function spaced<T extends object | string>(node: T | null): NodeChild<T> | null
-function spaced<T extends object | string>(node: T | null): NodeChild<T> | null {
-  if (node === null) return node
+function spaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+function spaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+  if (node === undefined) return node
   return { whitespace: ' ', node }
 }
 
 function unspaced<T extends object | string>(node: T): NodeChild<T>
-function unspaced<T extends object | string>(node: T | null): NodeChild<T> | null
-function unspaced<T extends object | string>(node: T | null): NodeChild<T> | null {
-  if (node === null) return node
+function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+  if (node === undefined) return node
   return { whitespace: '', node }
 }
 
 function autospaced<T extends object | string>(node: T): NodeChild<T>
-function autospaced<T extends object | string>(node: T | null): NodeChild<T> | null
-function autospaced<T extends object | string>(node: T | null): NodeChild<T> | null {
-  if (node === null) return node
+function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+  if (node === undefined) return node
   return { node }
 }
 
@@ -154,7 +154,7 @@ function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
 }
 
 /*
-function makeChild<T extends Ast>(module: Module, child: Owned<T>, parent: AstId): AstId {
+function makeChild<T extends MutableAst>(module: MutableModule, child: Owned<T>, parent: AstId): AstId {
   const oldParent = child.parentId
   assert(
     !oldParent || !module.has(oldParent),
@@ -164,43 +164,86 @@ function makeChild<T extends Ast>(module: Module, child: Owned<T>, parent: AstId
   spliced.parent = parent
   return spliced.exprId
 }
-
-function setParent(module: Module, parent: AstId, ...children: (NodeChild | null)[]) {
-  for (const child of children) {
-    if (child && !(child.node instanceof Token)) module.get(child.node)!.parent = parent
-  }
-}
  */
 
 ////////////////////////////////////////////////////////
 
-class Module {
+export interface Module {
+  edit(): MutableModule
+  get(id: SyncAstId): Ast
+  get(id: SyncAstId | undefined): Ast | undefined
+  tryGet(id: SyncAstId): Ast | undefined
+  tryGet(id: SyncAstId | undefined): Ast | undefined
+  has(id: SyncAstId): boolean
+
+  spans: Map<AstId, SourceRange> | undefined
+}
+
+type Mutable<T extends Ast> = T extends App
+  ? MutableApp
+  : T extends Assignment
+  ? MutableAssignment
+  : T extends BodyBlock
+  ? MutableBodyBlock
+  : T extends Documented
+  ? MutableDocumented
+  : T extends Function
+  ? MutableFunction
+  : T extends Generic
+  ? MutableGeneric
+  : T extends Group
+  ? MutableGroup
+  : T extends Ident
+  ? MutableIdent
+  : T extends Import
+  ? MutableImport
+  : T extends Invalid
+  ? MutableInvalid
+  : T extends NegationOprApp
+  ? MutableNegationOprApp
+  : T extends NumericLiteral
+  ? MutableNumericLiteral
+  : T extends OprApp
+  ? MutableOprApp
+  : T extends PropertyAccess
+  ? MutablePropertyAccess
+  : T extends TextLiteral
+  ? MutableTextLiteral
+  : T extends UnaryOprApp
+  ? MutableUnaryOprApp
+  : T extends Wildcard
+  ? MutableWildcard
+  : MutableAst
+
+export class MutableModule implements Module {
   private readonly nodes: Map<SyncAstId, Map<string, unknown>>
-  spans: Map<AstId, SourceRange> | null
+  spans: Map<AstId, SourceRange> | undefined
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
-  find(ast: Ast) {
-    return this.tryGet(syncId(ast))
+  find<T extends Ast>(ast: T): Mutable<T> | undefined {
+    const clone = this.tryGet(syncId(ast))
+    if (!clone) return
+    return clone as Mutable<T>
   }
 
-  edit(): Module {
+  edit(): MutableModule {
     throw new Error('TODO')
   }
 
-  static SyncRoot() {
-    // TODO: YJs
-    return new this(new Map(), null)
-  }
-
   static Transient() {
-    return new this(new Map(), null)
+    return new this(new Map(), undefined)
   }
 
   static Observable() {
     return new this(reactive(new Map()), reactive(new Map()))
   }
 
-  constructor(nodes: Map<SyncAstId, Map<string, unknown>>, spans: Map<AstId, SourceRange> | null) {
+  /////////////////////////////////////////////
+
+  constructor(
+    nodes: Map<SyncAstId, Map<string, unknown>>,
+    spans: Map<AstId, SourceRange> | undefined,
+  ) {
     this.nodes = nodes
     this.spans = spans
   }
@@ -213,39 +256,41 @@ class Module {
       id,
       exprId: exprId ?? newAstId(),
       type: type,
-      parent: null,
+      parent: undefined,
     })
     this.nodes.set(id, fields as any)
     return fields
   }
 
   /** @internal */
-  get(id: SyncAstId): Ast
-  get(id: SyncAstId | null): Ast | null
-  get(id: SyncAstId | null): Ast | null {
-    if (!id) return null
+  get(id: SyncAstId): MutableAst
+  get(id: SyncAstId | undefined): MutableAst | undefined
+  get(id: SyncAstId | undefined): MutableAst | undefined {
+    if (!id) return undefined
     const ast = this.tryGet(id)
     assert(ast !== undefined)
     return ast
   }
 
   /** @internal */
-  tryGet(id: SyncAstId): Ast | undefined
-  tryGet(id: SyncAstId | null): Ast | null | undefined
-  tryGet(id: SyncAstId | null): Ast | null | undefined {
-    if (!id) return null
+  tryGet(id: SyncAstId): MutableAst | undefined
+  tryGet(id: SyncAstId | undefined): MutableAst | undefined
+  tryGet(id: SyncAstId | undefined): MutableAst | undefined {
+    if (!id) return undefined
     const nodeData = this.nodes.get(id)
     if (!nodeData) return undefined
     const fields = nodeData as any
     return materialize(this, fields)
   }
 
-  /** Copy the given node and all its descendants into this module. */
-  splice(ast: Ast): Ast
-  splice(ast: Ast | null): Ast | null
-  splice(ast: Ast | undefined): Ast | undefined
-  splice(ast: Ast | null | undefined): Ast | null | undefined {
-    if (!ast || ast.module === this) return ast
+  /** @internal Copy the given node and all its descendants into this module. */
+  splice(ast: Ast): MutableAst
+  splice(ast: Ast | undefined): MutableAst | undefined {
+    if (!ast) return ast
+    if (ast.module === this) {
+      if (ast instanceof MutableAst) return ast
+      return materialize(this, ast.fields as any)
+    }
     const id = newSyncId(typeName(ast))
     const fields = ast.fields.clone()
     fields.set('id', id)
@@ -255,57 +300,66 @@ class Module {
     return ast_
   }
 
+  /** @internal */
   delete(id: SyncAstId) {
     this.nodes.delete(id)
   }
 
+  /** @internal */
   has(id: SyncAstId) {
     return this.nodes.has(id)
   }
 }
 
-function materialize(module: Module, fields: FixedMap<any>): Ast {
+function materialize(module: MutableModule, fields: FixedMap<any>): MutableAst {
   const type = fields.get('type')
   switch (type) {
     case 'App':
-      return new App(module, fields)
+      return new MutableApp(module, fields)
     case 'UnaryOprApp':
-      return new UnaryOprApp(module, fields)
+      return new MutableUnaryOprApp(module, fields)
+    case 'NegationOprApp':
+      return new MutableNegationOprApp(module, fields)
     case 'OprApp':
-      return new OprApp(module, fields)
+      return new MutableOprApp(module, fields)
+    case 'PropertyAccess':
+      return new MutablePropertyAccess(module, fields)
     case 'Generic':
-      return new Generic(module, fields)
+      return new MutableGeneric(module, fields)
     case 'Import':
-      return new Import(module, fields)
+      return new MutableImport(module, fields)
     case 'TextLiteral':
-      return new TextLiteral(module, fields)
+      return new MutableTextLiteral(module, fields)
     case 'Documented':
-      return new Documented(module, fields)
+      return new MutableDocumented(module, fields)
     case 'Invalid':
-      return new Invalid(module, fields)
+      return new MutableInvalid(module, fields)
     case 'Group':
-      return new Group(module, fields)
+      return new MutableGroup(module, fields)
     case 'NumericLiteral':
-      return new NumericLiteral(module, fields)
+      return new MutableNumericLiteral(module, fields)
     case 'Function':
-      return new Function(module, fields)
+      return new MutableFunction(module, fields)
     case 'Assignment':
-      return new Assignment(module, fields)
+      return new MutableAssignment(module, fields)
     case 'BodyBlock':
-      return new BodyBlock(module, fields)
+      return new MutableBodyBlock(module, fields)
     case 'Ident':
-      return new Ident(module, fields)
+      return new MutableIdent(module, fields)
     case 'Wildcard':
-      return new Wildcard(module, fields)
+      return new MutableWildcard(module, fields)
   }
   bail(`Invalid type: ${type}`)
 }
 
-type FixedMap<Fields> = {
+type FixedMapView<Fields> = {
   get<Key extends string & keyof Fields>(key: Key): Fields[Key]
-  set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
+}
+
+type FixedMap<Fields> = FixedMapView<Fields> & {
+  set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
 }
 
 function getAll<Fields extends object>(map: FixedMap<Fields>): Fields {
@@ -325,15 +379,15 @@ function setAll<Fields1, Fields2 extends object>(
   return map_
 }
 
-type Removed<T> = { node: Owned<T>; placeholder: Wildcard }
+type Removed<T extends MutableAst> = { node: Owned<T>; placeholder: MutableWildcard }
 
 type AstFields = {
   id: SyncAstId
   exprId: AstId
   type: string
-  parent: SyncAstId | null
+  parent: SyncAstId | undefined
 }
-function parentId(ast: Ast): SyncAstId | null {
+function parentId(ast: Ast): SyncAstId | undefined {
   return ast.fields.get('parent')
 }
 function syncId(ast: Ast): SyncAstId {
@@ -346,7 +400,7 @@ function typeName(ast: Ast): string {
 export abstract class Ast {
   readonly module: Module
   /** @internal */
-  readonly fields: FixedMap<AstFields>
+  readonly fields: FixedMapView<AstFields>
 
   get exprId(): AstId {
     return this.fields.get('exprId')
@@ -359,66 +413,6 @@ export abstract class Ast {
    */
   is<T extends Ast>(other: T): boolean {
     return this.fields === other.fields
-  }
-
-  /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
-  replace<T extends Ast>(replacement: Owned<T>): Owned<typeof this> {
-    const parent = this.module.get(parentId(this))
-    assert(parent !== null)
-    parent.replaceChild(this.syncId, replacement)
-    this.fields.set('parent', null)
-    return asOwned(this)
-  }
-
-  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
-   *  Returns the old value, with a new (unreferenced) ID.
-   */
-  replaceValue<T extends Ast>(replacement: Owned<T>): Owned<typeof this> {
-    const old = this.replace(replacement)
-    replacement.fields.set('exprId', old.exprId)
-    old.fields.set('exprId', newAstId())
-    return old
-  }
-
-  /** Replace the parent of this object with a reference to a new placeholder object. Return the object, now parentless. */
-  take(): Removed<typeof this> {
-    const placeholder = Wildcard.new(this.module)
-    const node = this.replace(placeholder)
-    return { node, placeholder }
-  }
-
-  takeIfParented<T extends Ast>(): Owned<typeof this> {
-    const parent = parentId(this)
-    if (parent) {
-      const parentAst = this.module.get(parent)
-      const placeholder = Wildcard.new(this.module)
-      parentAst.replaceChild(this.syncId, placeholder)
-      this.fields.set('parent', null)
-    }
-    return asOwned(this)
-  }
-
-  /** Replace the value assigned to the given ID with a placeholder.
-   *  Returns the removed value, with a new unreferenced ID.
-   **/
-  takeValue(): Removed<typeof this> {
-    const placeholder = Wildcard.new(this.module)
-    const node = this.replaceValue(placeholder)
-    return { node, placeholder }
-  }
-
-  takeAndReplace<T extends Ast>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
-    const taken = this.take()
-    const replacement = wrap(taken.node)
-    taken.placeholder.replace(replacement)
-    return replacement
-  }
-
-  takeAndReplaceValue<T extends Ast>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
-    const taken = this.takeValue()
-    const replacement = wrap(taken.node)
-    taken.placeholder.replaceValue(replacement)
-    return replacement
   }
 
   /** Return this node's span, if it belongs to a module with an associated span map. */
@@ -435,30 +429,6 @@ export abstract class Ast {
     return print(this).code
   }
 
-  /** Parse the input as a block. */
-  static parseBlock(source: PrintedSource | string, inModule?: Module) {
-    const code = typeof source === 'object' ? source.code : source
-    const ids = typeof source === 'object' ? source.info : undefined
-    const tree = parseEnso(code)
-    const module = inModule ?? Module.Transient()
-    const ast = abstract(module, tree, code, ids).node
-    // The root of the tree produced by the parser is always a `BodyBlock`.
-    const block = ast as BodyBlock
-    return asOwned(block)
-  }
-
-  /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
-  static parse(source: PrintedSource | string, module?: Module): Owned<Ast> {
-    const module_ = module ?? Module.Transient()
-    const ast = Ast.parseBlock(source, module_)
-    const [expr] = ast.statements()
-    if (!expr) return ast
-    const parent = parentId(expr)
-    if (parent) module_.delete(parent)
-    expr.fields.set('parent', null)
-    return asOwned(expr)
-  }
-
   visitRecursive(visit: (node: Ast | Token) => void) {
     visit(this)
     for (const child of this.concreteChildren()) {
@@ -470,14 +440,10 @@ export abstract class Ast {
     }
   }
 
-  printSubtree(
-    info: InfoMap,
-    offset: number,
-    parentIndent: string | null,
-  ): string {
+  printSubtree(info: InfoMap, offset: number, parentIndent: string | undefined): string {
     let code = ''
     for (const child of this.concreteChildren()) {
-      if (!(child.node instanceof Token) && this.module.get(child.node) === null) continue
+      if (!(child.node instanceof Token) && this.module.get(child.node) === undefined) continue
       if (child.whitespace != null) {
         code += child.whitespace
       } else if (code.length != 0) {
@@ -516,7 +482,7 @@ export abstract class Ast {
     const nodes = new Map(unsafeEntries(parsed.info.nodes))
     const tokens = new Map(unsafeEntries(parsed.info.tokens))
     const tokensOut = new Map()
-    const module = Module.Transient()
+    const module = MutableModule.Transient()
     const tree = parseEnso(parsed.code)
     return abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
   }
@@ -535,20 +501,9 @@ export abstract class Ast {
 
   ////////////////////
 
-  protected constructor(module: Module, fields: FixedMap<AstFields>) {
+  protected constructor(module: Module, fields: FixedMapView<AstFields>) {
     this.module = module
     this.fields = fields
-  }
-
-  /** @internal */
-  importReferences(module: Module) {
-    for (const child of this.concreteChildren()) {
-      if (!(child.node instanceof Token)) {
-        const childInForeignModule = module.get(child.node)
-        assert(childInForeignModule !== null)
-        this.replaceChild(child.node, asOwned(childInForeignModule))
-      }
-    }
   }
 
   /** @internal
@@ -556,81 +511,169 @@ export abstract class Ast {
    */
   abstract concreteChildren(): IterableIterator<NodeChild>
 
-  protected abstract replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>): void
-
-  protected claimChild<T extends Ast>(child: Owned<T>): SyncAstId
-  protected claimChild<T extends Ast>(child: Owned<T> | null): SyncAstId | null
-  protected claimChild<T extends Ast>(child: Owned<T> | null): SyncAstId | null {
-    return child ? claimChild(this.module, child, this.syncId) : null
-  }
-
   protected get syncId() {
     return syncId(this)
   }
 }
 
-function claimChild<T extends Ast>(module: Module, child: Owned<T>, parent: SyncAstId): SyncAstId {
+interface MutableAst {}
+abstract class MutableAst extends Ast {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields>
+
+  /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
+  replace<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
+    const parent = this.module.get(parentId(this))
+    assert(parent !== undefined)
+    parent.replaceChild(this.syncId, replacement)
+    this.fields.set('parent', undefined)
+    return asOwned(this)
+  }
+
+  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
+   *  Returns the old value, with a new (unreferenced) ID.
+   */
+  replaceValue<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
+    const old = this.replace(replacement)
+    replacement.fields.set('exprId', old.exprId)
+    old.fields.set('exprId', newAstId())
+    return old
+  }
+
+  /** Replace the parent of this object with a reference to a new placeholder object. Return the object, now parentless. */
+  take(): Removed<typeof this> {
+    const placeholder = Wildcard.new(this.module)
+    const node = this.replace(placeholder)
+    return { node, placeholder }
+  }
+
+  takeIfParented<T extends MutableAst>(): Owned<typeof this> {
+    const parent = parentId(this)
+    if (parent) {
+      const parentAst = this.module.get(parent)
+      const placeholder = Wildcard.new(this.module)
+      parentAst.replaceChild(this.syncId, placeholder)
+      this.fields.set('parent', undefined)
+    }
+    return asOwned(this)
+  }
+
+  /** Replace the value assigned to the given ID with a placeholder.
+   *  Returns the removed value, with a new unreferenced ID.
+   **/
+  takeValue(): Removed<typeof this> {
+    const placeholder = Wildcard.new(this.module)
+    const node = this.replaceValue(placeholder)
+    return { node, placeholder }
+  }
+
+  takeAndReplace<T extends MutableAst>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+    const taken = this.take()
+    const replacement = wrap(taken.node)
+    taken.placeholder.replace(replacement)
+    return replacement
+  }
+
+  takeAndReplaceValue<T extends MutableAst>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+    const taken = this.takeValue()
+    const replacement = wrap(taken.node)
+    taken.placeholder.replaceValue(replacement)
+    return replacement
+  }
+
+  /** @internal */
+  importReferences(module: Module) {
+    if (module === this.module) return
+    for (const child of this.concreteChildren()) {
+      if (!(child.node instanceof Token)) {
+        const childInForeignModule = module.get(child.node)
+        assert(childInForeignModule !== undefined)
+        const importedChild = this.module.splice(childInForeignModule)
+        importedChild.fields.set('parent', undefined)
+        this.replaceChild(child.node, asOwned(importedChild))
+      }
+    }
+  }
+
+  protected abstract replaceChild<T extends MutableAst>(
+    target: SyncAstId,
+    replacement: Owned<T>,
+  ): void
+
+  protected claimChild<T extends MutableAst>(child: Owned<T>): SyncAstId
+  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): SyncAstId | undefined
+  protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): SyncAstId | undefined {
+    return child ? claimChild(this.module, child, this.syncId) : undefined
+  }
+}
+
+function claimChild<T extends MutableAst>(
+  module: MutableModule,
+  child: Owned<T>,
+  parent: SyncAstId,
+): SyncAstId {
   const child_ = module.splice(child)
   child_.fields.set('parent', parent)
   return syncId(child_)
 }
 
 function concreteChild(
-  module: Module,
-  child: NodeChild<Owned<Ast>>,
+  module: MutableModule,
+  child: NodeChild<Owned<MutableAst>>,
   parent: SyncAstId,
 ): NodeChild<SyncAstId>
 function concreteChild(
-  module: Module,
-  child: NodeChild<Owned<Ast>> | null,
+  module: MutableModule,
+  child: NodeChild<Owned<MutableAst>> | undefined,
   parent: SyncAstId,
-): NodeChild<SyncAstId> | null
+): NodeChild<SyncAstId> | undefined
 function concreteChild(
-  module: Module,
-  child: NodeChild<Owned<Ast> | Token>,
+  module: MutableModule,
+  child: NodeChild<Owned<MutableAst> | Token>,
   parent: SyncAstId,
 ): NodeChild<SyncAstId | Token>
 function concreteChild(
-  module: Module,
-  child: NodeChild<Owned<Ast> | Token> | null,
+  module: MutableModule,
+  child: NodeChild<Owned<MutableAst> | Token> | undefined,
   parent: SyncAstId,
-): NodeChild<SyncAstId | Token> | null
+): NodeChild<SyncAstId | Token> | undefined
 function concreteChild(
-  module: Module,
-  child: NodeChild<Owned<Ast> | Token> | null,
+  module: MutableModule,
+  child: NodeChild<Owned<MutableAst> | Token> | undefined,
   parent: SyncAstId,
-): NodeChild<SyncAstId | Token> | null {
-  if (!child) return null
+): NodeChild<SyncAstId | Token> | undefined {
+  if (!child) return undefined
   if (child.node instanceof Token) return child as NodeChild<Token>
   return { ...child, node: claimChild(module, child.node, parent) }
 }
 
 function toIdent(ident: string | Token): Token
-function toIdent(ident: string | Token | null): Token | null
-function toIdent(ident: string | Token | null): Token | null {
+function toIdent(ident: string | Token | undefined): Token | undefined
+function toIdent(ident: string | Token | undefined): Token | undefined {
   return ident
     ? ident instanceof Token
       ? ident
       : new Token(ident, newTokenId(), RawAst.Token.Type.Ident)
-    : null
+    : undefined
 }
 function makeEquals(): Token {
   return new Token('=', newTokenId(), RawAst.Token.Type.Operator)
 }
 
 function nameSpecification(
-  name: string | Token | null,
-): { name: NodeChild<Token>; equals: NodeChild<Token> } | null {
-  if (name === null) return null
+  name: string | Token | undefined,
+): { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined {
+  if (name === undefined) return undefined
   return { name: autospaced(toIdent(name)), equals: unspaced(makeEquals()) }
 }
 
 type AppFields = {
   function: NodeChild<SyncAstId>
-  parens: { open: NodeChild<Token>; close: NodeChild<Token> } | null
-  nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | null
+  parens: { open: NodeChild<Token>; close: NodeChild<Token> } | undefined
+  nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined
   argument: NodeChild<SyncAstId>
 }
+
 export class App extends Ast {
   declare fields: FixedMap<AstFields & AppFields>
   constructor(module: Module, fields: FixedMap<AstFields & AppFields>) {
@@ -638,14 +681,14 @@ export class App extends Ast {
   }
 
   static concrete(
-    module: Module,
-    func: NodeChild<Owned<Ast>>,
-    parens: { open: NodeChild<Token>; close: NodeChild<Token> } | null,
-    nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | null,
-    argument: NodeChild<Owned<Ast>>,
+    module: MutableModule,
+    func: NodeChild<Owned<MutableAst>>,
+    parens: { open: NodeChild<Token>; close: NodeChild<Token> } | undefined,
+    nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined,
+    argument: NodeChild<Owned<MutableAst>>,
     id?: AstId | undefined,
   ) {
-    const base = module.baseObject('App')
+    const base = module.baseObject('App', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       function: concreteChild(module, func, id_),
@@ -653,35 +696,32 @@ export class App extends Ast {
       nameSpecification,
       argument: concreteChild(module, argument, id_),
     })
-    return asOwned(new App(module, fields))
+    return asOwned(new MutableApp(module, fields))
   }
 
   static new(
-    module: Module,
-    func: Owned<Ast>,
-    argumentName: string | Token | null,
-    argument: Owned<Ast>,
+    module: MutableModule,
+    func: Owned<MutableAst>,
+    argumentName: string | Token | undefined,
+    argument: Owned<MutableAst>,
   ) {
-    return App.concrete(module, unspaced(func), null, nameSpecification(argumentName), autospaced(argument))
+    return App.concrete(
+      module,
+      unspaced(func),
+      undefined,
+      nameSpecification(argumentName),
+      autospaced(argument),
+    )
   }
 
   get function(): Ast {
     return this.module.get(this.fields.get('function').node)
   }
-  setFunction<T extends Ast>(func: Owned<T>) {
-    this.fields.set('function', unspaced(this.claimChild(func)))
-  }
-  get argumentName(): Token | null {
-    return this.fields.get('nameSpecification')?.name.node ?? null
-  }
-  setArgumentName(name: string | Token | null) {
-    this.fields.set('nameSpecification', nameSpecification(name))
+  get argumentName(): Token | undefined {
+    return this.fields.get('nameSpecification')?.name.node
   }
   get argument(): Ast {
     return this.module.get(this.fields.get('argument').node)
-  }
-  setArgument<T extends Ast>(argument: Owned<T>) {
-    this.fields.set('argument', { node: this.claimChild(argument) })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -695,8 +735,23 @@ export class App extends Ast {
     yield argument
     if (parens) yield parens.close
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableApp extends App implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & AppFields>
+
+  setFunction<T extends MutableAst>(func: Owned<T>) {
+    this.fields.set('function', unspaced(this.claimChild(func)))
+  }
+  setArgumentName(name: string | Token | undefined) {
+    this.fields.set('nameSpecification', nameSpecification(name))
+  }
+  setArgument<T extends MutableAst>(argument: Owned<T>) {
+    this.fields.set('argument', { node: this.claimChild(argument) })
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('function').node === target) {
       this.setFunction(replacement)
     } else if (this.fields.get('argument').node === target) {
@@ -704,10 +759,14 @@ export class App extends Ast {
     }
   }
 }
+export interface MutableApp extends App, MutableAst {
+  get function(): MutableAst
+  get argument(): MutableAst
+}
 
 type UnaryOprAppFields = {
   operator: NodeChild<Token>
-  argument: NodeChild<SyncAstId> | null
+  argument: NodeChild<SyncAstId> | undefined
 }
 export class UnaryOprApp extends Ast {
   declare fields: FixedMap<AstFields & UnaryOprAppFields>
@@ -715,31 +774,30 @@ export class UnaryOprApp extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, operator: NodeChild<Token>, argument: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
-    const base = module.baseObject(this.typeName())
+  static concrete(
+    module: MutableModule,
+    operator: NodeChild<Token>,
+    argument: NodeChild<Owned<MutableAst>> | undefined,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('UnaryOprApp', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       operator,
       argument: concreteChild(module, argument, id_),
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableUnaryOprApp(module, fields))
   }
 
-  static new(module: Module, operator: Token, argument: Owned<Ast> | null) {
-    return this.concrete(module, unspaced(operator), argument ? autospaced(argument) : null)
+  static new(module: MutableModule, operator: Token, argument: Owned<MutableAst> | undefined) {
+    return this.concrete(module, unspaced(operator), argument ? autospaced(argument) : undefined)
   }
 
   get operator(): Token {
     return this.fields.get('operator').node
   }
-  setOperator(value: Token) {
-    this.fields.set('operator', unspaced(value))
-  }
-  get argument(): Ast | null {
-    return this.module.get(this.fields.get('argument')?.node ?? null)
-  }
-  setArgument<T extends Ast>(argument: Owned<T>) {
-    this.fields.set('argument', autospaced(this.claimChild(argument)))
+  get argument(): Ast | undefined {
+    return this.module.get(this.fields.get('argument')?.node)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -747,24 +805,90 @@ export class UnaryOprApp extends Ast {
     yield operator
     if (argument) yield argument
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableUnaryOprApp extends UnaryOprApp implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & UnaryOprAppFields>
+
+  setOperator(value: Token) {
+    this.fields.set('operator', unspaced(value))
+  }
+  setArgument<T extends MutableAst>(argument: Owned<T>) {
+    this.fields.set('argument', autospaced(this.claimChild(argument)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('argument')?.node === target) {
       this.setArgument(replacement)
     }
   }
-
-  protected static typeName() { return 'UnaryOprApp' }
+}
+export interface MutableUnaryOprApp extends UnaryOprApp, MutableAst {
+  get argument(): MutableAst | undefined
 }
 
-export class NegationOprApp extends UnaryOprApp {
-  protected static typeName() { return 'NegationOprApp' }
+export class NegationOprApp extends Ast {
+  declare fields: FixedMap<AstFields & UnaryOprAppFields>
+  constructor(module: Module, fields: FixedMap<AstFields & UnaryOprAppFields>) {
+    super(module, fields)
+  }
+
+  static concrete(
+    module: MutableModule,
+    operator: NodeChild<Token>,
+    argument: NodeChild<Owned<MutableAst>> | undefined,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('NegationOprApp', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      operator,
+      argument: concreteChild(module, argument, id_),
+    })
+    return asOwned(new MutableNegationOprApp(module, fields))
+  }
+
+  static new(module: MutableModule, operator: Token, argument: Owned<MutableAst> | undefined) {
+    return this.concrete(module, unspaced(operator), argument ? autospaced(argument) : undefined)
+  }
+
+  get operator(): Token {
+    return this.fields.get('operator').node
+  }
+  get argument(): Ast | undefined {
+    return this.module.get(this.fields.get('argument')?.node)
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    const { operator, argument } = getAll(this.fields)
+    yield operator
+    if (argument) yield argument
+  }
+}
+
+export class MutableNegationOprApp extends NegationOprApp implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & UnaryOprAppFields>
+
+  setArgument<T extends MutableAst>(argument: Owned<T>) {
+    this.fields.set('argument', autospaced(this.claimChild(argument)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
+    if (this.fields.get('argument')?.node === target) {
+      this.setArgument(replacement)
+    }
+  }
+}
+export interface MutableNegationOprApp extends NegationOprApp, MutableAst {
+  get argument(): MutableAst | undefined
 }
 
 type OprAppFields = {
-  lhs: NodeChild<SyncAstId> | null
+  lhs: NodeChild<SyncAstId> | undefined
   operators: NodeChild<Token>[]
-  rhs: NodeChild<SyncAstId> | null
+  rhs: NodeChild<SyncAstId> | undefined
 }
 export class OprApp extends Ast {
   declare fields: FixedMap<AstFields & OprAppFields>
@@ -772,40 +896,42 @@ export class OprApp extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, lhs: NodeChild<Owned<Ast>> | null, operators: NodeChild<Token>[], rhs: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
-    const base = module.baseObject(this.typeName(), id)
+  static concrete(
+    module: MutableModule,
+    lhs: NodeChild<Owned<MutableAst>> | undefined,
+    operators: NodeChild<Token>[],
+    rhs: NodeChild<Owned<MutableAst>> | undefined,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('OprApp', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       lhs: concreteChild(module, lhs, id_),
       operators,
       rhs: concreteChild(module, rhs, id_),
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableOprApp(module, fields))
   }
 
-  static new(module: Module, lhs: Owned<Ast> | null, operator: Token, rhs: Owned<Ast> | null) {
+  static new(
+    module: MutableModule,
+    lhs: Owned<MutableAst> | undefined,
+    operator: Token,
+    rhs: Owned<MutableAst> | undefined,
+  ) {
     return OprApp.concrete(module, unspaced(lhs), [autospaced(operator)], autospaced(rhs))
   }
 
-  get lhs(): Ast | null {
-    return this.module.get(this.fields.get('lhs')?.node ?? null)
-  }
-  setLhs<T extends Ast>(value: Owned<T>) {
-    this.fields.set('lhs', autospaced(this.claimChild(value)))
+  get lhs(): Ast | undefined {
+    return this.module.get(this.fields.get('lhs')?.node)
   }
   get operator(): Result<Token, NodeChild[]> {
     const operators = this.fields.get('operators')
     const [opr] = operators
     return opr?.node instanceof Token ? Ok(opr.node) : Err(operators)
   }
-  setOperator(value: Token) {
-    this.fields.set('operators', [unspaced(value)])
-  }
-  get rhs(): Ast | null {
-    return this.module.get(this.fields.get('lhs')?.node ?? null)
-  }
-  setRhs<T extends Ast>(value: Owned<T>) {
-    this.fields.set('rhs', autospaced(this.claimChild(value)))
+  get rhs(): Ast | undefined {
+    return this.module.get(this.fields.get('rhs')?.node)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -814,36 +940,63 @@ export class OprApp extends Ast {
     yield* operators
     if (rhs) yield rhs
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableOprApp extends OprApp implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & OprAppFields>
+
+  setLhs<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('lhs', autospaced(this.claimChild(value)))
+  }
+  setOperator(value: Token) {
+    this.fields.set('operators', [unspaced(value)])
+  }
+  setRhs<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('rhs', autospaced(this.claimChild(value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('lhs')?.node === target) {
       this.setLhs(replacement)
     } else if (this.fields.get('rhs')?.node === target) {
       this.setRhs(replacement)
     }
   }
-
-  protected static typeName() { return 'OprApp' }
+}
+export interface MutableOprApp extends OprApp, MutableAst {
+  get lhs(): MutableAst | undefined
+  get rhs(): MutableAst | undefined
 }
 
-export class PropertyAccess extends OprApp {
-  static new(module: Module, lhs: Owned<Ast>, rhs: Token | string) {
+type PropertyAccessFields = {
+  lhs: NodeChild<SyncAstId> | undefined
+  operator: NodeChild<Token>
+  rhs: NodeChild<SyncAstId>
+}
+export class PropertyAccess extends Ast {
+  declare fields: FixedMap<AstFields & PropertyAccessFields>
+  constructor(module: Module, fields: FixedMap<AstFields & PropertyAccessFields>) {
+    super(module, fields)
+  }
+
+  static new(module: MutableModule, lhs: Owned<MutableAst>, rhs: Token | string) {
     const dot = unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))
-    return this.concrete(module, unspaced(lhs), [dot], unspaced(Ident.new(module, toIdent(rhs))))
+    return this.concrete(module, unspaced(lhs), dot, unspaced(Ident.new(module, toIdent(rhs))))
   }
 
   static Sequence(
-    segments: [(Token | string), ...(Token | string)[]],
-    module: Module,
-  ): Owned<PropertyAccess> | Owned<Ident>
+    segments: [Token | string, ...(Token | string)[]],
+    module: MutableModule,
+  ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   static Sequence(
     segments: (Token | string)[],
-    module: Module,
-  ): Owned<PropertyAccess> | Owned<Ident> | undefined
+    module: MutableModule,
+  ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
   static Sequence(
     segments: (Token | string)[],
-    module: Module,
-  ): Owned<PropertyAccess> | Owned<Ident> | undefined {
+    module: MutableModule,
+  ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined {
     let path
     for (const s of segments) {
       const t = toIdent(s)
@@ -852,7 +1005,64 @@ export class PropertyAccess extends OprApp {
     return path
   }
 
-  protected static typeName() { return 'PropertyAccess' }
+  static concrete(
+    module: MutableModule,
+    lhs: NodeChild<Owned<MutableAst>> | undefined,
+    operator: NodeChild<Token>,
+    rhs: NodeChild<Owned<MutableIdent>>,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('PropertyAccess', id)
+    const id_ = base.get('id')
+    const fields = setAll(base, {
+      lhs: concreteChild(module, lhs, id_),
+      operator,
+      rhs: concreteChild(module, rhs, id_),
+    })
+    return asOwned(new MutablePropertyAccess(module, fields))
+  }
+
+  get lhs(): Ast | undefined {
+    return this.module.get(this.fields.get('lhs')?.node)
+  }
+  get operator(): Token {
+    return this.fields.get('operator').node
+  }
+  get rhs(): Token {
+    const ast = this.module.get(this.fields.get('rhs').node)
+    assert(ast instanceof MutableIdent)
+    return ast.token
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    const { lhs, operator, rhs } = getAll(this.fields)
+    if (lhs) yield lhs
+    yield operator
+    yield rhs
+  }
+}
+export class MutablePropertyAccess extends PropertyAccess implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & PropertyAccessFields>
+
+  setLhs<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('lhs', autospaced(this.claimChild(value)))
+  }
+  setRhs(ident: Token) {
+    this.fields.set('rhs', autospaced(this.claimChild(Ident.new(this.module, ident))))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
+    if (this.fields.get('lhs')?.node === target) {
+      this.setLhs(replacement)
+    } else if (this.fields.get('rhs')?.node === target) {
+      assert(replacement instanceof MutableIdent)
+      this.setRhs(replacement.token)
+    }
+  }
+}
+export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
+  get lhs(): MutableAst | undefined
 }
 
 type GenericFields = {
@@ -864,20 +1074,29 @@ export class Generic extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, children: NodeChild<Owned<Ast> | Token>[], id?: AstId | undefined) {
+  static concrete(
+    module: MutableModule,
+    children: NodeChild<Owned<MutableAst> | Token>[],
+    id?: AstId | undefined,
+  ) {
     const base = module.baseObject('Generic', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       children: children.map((child) => concreteChild(module, child, id_)),
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableGeneric(module, fields))
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
     return this.fields.get('children')[Symbol.iterator]()
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableGeneric extends Generic implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & GenericFields>
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     const replacement_ = autospaced(this.claimChild(replacement))
     this.fields.set(
       'children',
@@ -885,23 +1104,55 @@ export class Generic extends Ast {
     )
   }
 }
+export interface MutableGeneric extends Generic, MutableAst {}
 
-type RawMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<SyncAstId> | null }
-type OwnedMultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<Owned<Ast>> | null }
-function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T>): OwnedMultiSegmentAppSegment
-function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T> | null): OwnedMultiSegmentAppSegment | null
-function multiSegmentAppSegment<T extends Ast>(header: string, body: Owned<T> | null): OwnedMultiSegmentAppSegment | null {
+type RawMultiSegmentAppSegment = {
+  header: NodeChild<Token>
+  body: NodeChild<SyncAstId> | undefined
+}
+type OwnedMultiSegmentAppSegment = {
+  header: NodeChild<Token>
+  body: NodeChild<Owned<MutableAst>> | undefined
+}
+function multiSegmentAppSegment<T extends MutableAst>(
+  header: string,
+  body: Owned<T>,
+): OwnedMultiSegmentAppSegment
+function multiSegmentAppSegment<T extends MutableAst>(
+  header: string,
+  body: Owned<T> | undefined,
+): OwnedMultiSegmentAppSegment | undefined
+function multiSegmentAppSegment<T extends MutableAst>(
+  header: string,
+  body: Owned<T> | undefined,
+): OwnedMultiSegmentAppSegment | undefined {
   return {
     header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-    body: spaced(body ? body as any : null),
+    body: spaced(body ? (body as any) : undefined),
   }
 }
 
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: SyncAstId): RawMultiSegmentAppSegment
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment, parent: SyncAstId): RawMultiSegmentAppSegment
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: SyncAstId): RawMultiSegmentAppSegment | null
-function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppSegment | null, parent: SyncAstId): RawMultiSegmentAppSegment | null {
-  if (!msas) return null
+function multiSegmentAppSegmentToRaw(
+  module: MutableModule,
+  msas: OwnedMultiSegmentAppSegment,
+  parent: SyncAstId,
+): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(
+  module: MutableModule,
+  msas: OwnedMultiSegmentAppSegment,
+  parent: SyncAstId,
+): RawMultiSegmentAppSegment
+function multiSegmentAppSegmentToRaw(
+  module: MutableModule,
+  msas: OwnedMultiSegmentAppSegment | undefined,
+  parent: SyncAstId,
+): RawMultiSegmentAppSegment | undefined
+function multiSegmentAppSegmentToRaw(
+  module: MutableModule,
+  msas: OwnedMultiSegmentAppSegment | undefined,
+  parent: SyncAstId,
+): RawMultiSegmentAppSegment | undefined {
+  if (!msas) return undefined
   return {
     ...msas,
     body: concreteChild(module, msas.body, parent),
@@ -909,12 +1160,12 @@ function multiSegmentAppSegmentToRaw(module: Module, msas: OwnedMultiSegmentAppS
 }
 
 type ImportFields = {
-  polyglot: RawMultiSegmentAppSegment | null
-  from: RawMultiSegmentAppSegment | null
+  polyglot: RawMultiSegmentAppSegment | undefined
+  from: RawMultiSegmentAppSegment | undefined
   import: RawMultiSegmentAppSegment
-  all: NodeChild<Token> | null
-  as: RawMultiSegmentAppSegment | null
-  hiding: RawMultiSegmentAppSegment | null
+  all: NodeChild<Token> | undefined
+  as: RawMultiSegmentAppSegment | undefined
+  hiding: RawMultiSegmentAppSegment | undefined
 }
 export class Import extends Ast {
   declare fields: FixedMap<AstFields & ImportFields>
@@ -922,58 +1173,35 @@ export class Import extends Ast {
     super(module, fields)
   }
 
-  get polyglot(): Ast | null {
-    return this.module.get(this.fields.get('polyglot')?.body?.node ?? null)
+  get polyglot(): Ast | undefined {
+    return this.module.get(this.fields.get('polyglot')?.body?.node)
   }
-  get from(): Ast | null {
-    return this.module.get(this.fields.get('from')?.body?.node ?? null)
+  get from(): Ast | undefined {
+    return this.module.get(this.fields.get('from')?.body?.node)
   }
-  get import_(): Ast | null {
-    return this.module.get(this.fields.get('import').body?.node ?? null)
+  get import_(): Ast | undefined {
+    return this.module.get(this.fields.get('import').body?.node)
   }
-  get all(): Token | null {
-    return this.fields.get('all')?.node ?? null
+  get all(): Token | undefined {
+    return this.fields.get('all')?.node
   }
-  get as(): Ast | null {
-    return this.module.get(this.fields.get('as')?.body?.node ?? null)
+  get as(): Ast | undefined {
+    return this.module.get(this.fields.get('as')?.body?.node)
   }
-  get hiding(): Ast | null {
-    return this.module.get(this.fields.get('hiding')?.body?.node ?? null)
-  }
-
-  private toRaw(msas: OwnedMultiSegmentAppSegment): RawMultiSegmentAppSegment
-  private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null
-  private toRaw(msas: OwnedMultiSegmentAppSegment | null): RawMultiSegmentAppSegment | null {
-    return multiSegmentAppSegmentToRaw(this.module, msas, this.syncId)
+  get hiding(): Ast | undefined {
+    return this.module.get(this.fields.get('hiding')?.body?.node)
   }
 
-  setPolyglot<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('polyglot', value ? this.toRaw(multiSegmentAppSegment('polyglot', value)) : null)
-  }
-  setFrom<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('from', value ? this.toRaw(multiSegmentAppSegment('from', value)) : value)
-  }
-  setImport<T extends Ast>(value: Owned<T>) {
-    this.fields.set('import', this.toRaw(multiSegmentAppSegment('import', value)))
-  }
-  setAll(value: Token | null) {
-    this.fields.set('all', spaced(value))
-  }
-  setAs<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('as', this.toRaw(multiSegmentAppSegment('as', value)))
-  }
-  setHiding<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('hiding', this.toRaw(multiSegmentAppSegment('hiding', value)))
-  }
-
-  static concrete(module: Module,
-                  polyglot: OwnedMultiSegmentAppSegment | null,
-                  from: OwnedMultiSegmentAppSegment | null,
-                  import_: OwnedMultiSegmentAppSegment,
-                  all: NodeChild<Token> | null,
-                  as: OwnedMultiSegmentAppSegment | null,
-                  hiding: OwnedMultiSegmentAppSegment | null,
-                  id?: AstId | undefined) {
+  static concrete(
+    module: MutableModule,
+    polyglot: OwnedMultiSegmentAppSegment | undefined,
+    from: OwnedMultiSegmentAppSegment | undefined,
+    import_: OwnedMultiSegmentAppSegment,
+    all: NodeChild<Token> | undefined,
+    as: OwnedMultiSegmentAppSegment | undefined,
+    hiding: OwnedMultiSegmentAppSegment | undefined,
+    id?: AstId | undefined,
+  ) {
     const base = module.baseObject('Import', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
@@ -984,43 +1212,44 @@ export class Import extends Ast {
       as: multiSegmentAppSegmentToRaw(module, as, id_),
       hiding: multiSegmentAppSegmentToRaw(module, hiding, id_),
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableImport(module, fields))
   }
 
-  static Qualified(path: string[], module: Module): Owned<Import> | undefined {
+  static Qualified(path: string[], module: MutableModule): Owned<MutableImport> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    return this.concrete(
+    return MutableImport.concrete(
       module,
-      null,
-      null,
+      undefined,
+      undefined,
       multiSegmentAppSegment('import', path_),
-      null,
-      null,
-      null,
+      undefined,
+      undefined,
+      undefined,
     )
   }
 
   static Unqualified(
     path: (Token | string)[],
     name: Token | string,
-    module: Module,
-  ): Owned<Import> | undefined {
+    module: MutableModule,
+  ): Owned<MutableImport> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
     const name_ = Ident.new(module, name)
-    return this.concrete(module,
-      null,
+    return MutableImport.concrete(
+      module,
+      undefined,
       multiSegmentAppSegment('from', path_),
       multiSegmentAppSegment('import', name_),
-      null,
-      null,
-      null,
+      undefined,
+      undefined,
+      undefined,
     )
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    const segment = (segment: RawMultiSegmentAppSegment | null) => {
+    const segment = (segment: RawMultiSegmentAppSegment | undefined) => {
       const parts = []
       if (segment) parts.push(segment.header)
       if (segment?.body) parts.push(segment.body)
@@ -1034,8 +1263,45 @@ export class Import extends Ast {
     yield* segment(as)
     yield* segment(hiding)
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableImport extends Import implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & ImportFields>
+
+  private toRaw(msas: OwnedMultiSegmentAppSegment): RawMultiSegmentAppSegment
+  private toRaw(
+    msas: OwnedMultiSegmentAppSegment | undefined,
+  ): RawMultiSegmentAppSegment | undefined
+  private toRaw(
+    msas: OwnedMultiSegmentAppSegment | undefined,
+  ): RawMultiSegmentAppSegment | undefined {
+    return multiSegmentAppSegmentToRaw(this.module, msas, this.syncId)
+  }
+
+  setPolyglot<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set(
+      'polyglot',
+      value ? this.toRaw(multiSegmentAppSegment('polyglot', value)) : undefined,
+    )
+  }
+  setFrom<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('from', value ? this.toRaw(multiSegmentAppSegment('from', value)) : value)
+  }
+  setImport<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('import', this.toRaw(multiSegmentAppSegment('import', value)))
+  }
+  setAll(value: Token | undefined) {
+    this.fields.set('all', spaced(value))
+  }
+  setAs<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('as', this.toRaw(multiSegmentAppSegment('as', value)))
+  }
+  setHiding<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('hiding', this.toRaw(multiSegmentAppSegment('hiding', value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     const { polyglot, from, import: import_, as, hiding } = getAll(this.fields)
     ;(polyglot?.body?.node === target
       ? this.setPolyglot
@@ -1050,12 +1316,19 @@ export class Import extends Ast {
       : bail(`Failed to find child ${target} in node ${this.exprId}.`))(replacement)
   }
 }
+export interface MutableImport extends Import, MutableAst {
+  get polyglot(): MutableAst | undefined
+  get from(): MutableAst | undefined
+  get import_(): MutableAst | undefined
+  get as(): MutableAst | undefined
+  get hiding(): MutableAst | undefined
+}
 
 type TextLiteralFields = {
-  open: NodeChild<Token> | null
-  newline: NodeChild<Token> | null
+  open: NodeChild<Token> | undefined
+  newline: NodeChild<Token> | undefined
   elements: NodeChild[]
-  close: NodeChild<Token> | null
+  close: NodeChild<Token> | undefined
 }
 export class TextLiteral extends Ast {
   declare fields: FixedMap<AstFields & TextLiteralFields>
@@ -1063,7 +1336,14 @@ export class TextLiteral extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, open: NodeChild<Token> | null, newline: NodeChild<Token> | null, elements: NodeChild<Owned<Ast> | Token>[], close: NodeChild<Token> | null, id?: AstId | undefined) {
+  static concrete(
+    module: MutableModule,
+    open: NodeChild<Token> | undefined,
+    newline: NodeChild<Token> | undefined,
+    elements: NodeChild<Owned<MutableAst> | Token>[],
+    close: NodeChild<Token> | undefined,
+    id?: AstId | undefined,
+  ) {
     const base = module.baseObject('TextLiteral', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
@@ -1072,14 +1352,14 @@ export class TextLiteral extends Ast {
       elements: elements.map((elem) => concreteChild(module, elem, id_)),
       close,
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableTextLiteral(module, fields))
   }
 
-  static new(rawText: string, module: Module) {
+  static new(rawText: string, module: MutableModule) {
     const open = unspaced(Token.new("'"))
     const elements = [unspaced(Token.new(escape(rawText)))]
     const close = unspaced(Token.new("'"))
-    return this.concrete(module, open, null, elements, close)
+    return this.concrete(module, open, undefined, elements, close)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1089,8 +1369,13 @@ export class TextLiteral extends Ast {
     yield* elements
     if (close) yield close
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableTextLiteral extends TextLiteral implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & TextLiteralFields>
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     const replacement_ = autospaced(this.claimChild(replacement))
     this.fields.set(
       'elements',
@@ -1098,12 +1383,13 @@ export class TextLiteral extends Ast {
     )
   }
 }
+export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 
 type DocumentedFields = {
-  open: NodeChild<Token> | null
+  open: NodeChild<Token> | undefined
   elements: NodeChild[]
   newlines: NodeChild<Token>[]
-  expression: NodeChild<SyncAstId> | null
+  expression: NodeChild<SyncAstId> | undefined
 }
 export class Documented extends Ast {
   declare fields: FixedMap<AstFields & DocumentedFields>
@@ -1111,8 +1397,15 @@ export class Documented extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, open: NodeChild<Token> | null, elements: NodeChild<Owned<Ast> | Token>[], newlines: NodeChild<Token>[], expression: NodeChild<Owned<Ast>> | null, id?: AstId | undefined) {
-    const base = module.baseObject('TextLiteral', id)
+  static concrete(
+    module: MutableModule,
+    open: NodeChild<Token> | undefined,
+    elements: NodeChild<Owned<MutableAst> | Token>[],
+    newlines: NodeChild<Token>[],
+    expression: NodeChild<Owned<MutableAst>> | undefined,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('Documented', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       open,
@@ -1120,14 +1413,11 @@ export class Documented extends Ast {
       newlines,
       expression: concreteChild(module, expression, id_),
     })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableDocumented(module, fields))
   }
 
-  get expression(): Ast | null {
-    return this.module.get(this.fields.get('expression')?.node ?? null)
-  }
-  setExpression<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('expression', unspaced(this.claimChild(value)))
+  get expression(): Ast | undefined {
+    return this.module.get(this.fields.get('expression')?.node)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1137,8 +1427,17 @@ export class Documented extends Ast {
     yield* newlines
     if (expression) yield expression
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableDocumented extends Documented implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & DocumentedFields>
+
+  setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     if (this.fields.get('expression')?.node === target) {
       this.setExpression(replacement)
     } else {
@@ -1150,6 +1449,9 @@ export class Documented extends Ast {
     }
   }
 }
+export interface MutableDocumented extends Documented, MutableAst {
+  get expression(): MutableAst | undefined
+}
 
 type InvalidFields = { expression: NodeChild<SyncAstId> }
 export class Invalid extends Ast {
@@ -1158,34 +1460,49 @@ export class Invalid extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, expression: NodeChild<Owned<Ast>>, id?: AstId | undefined) {
+  static concrete(
+    module: MutableModule,
+    expression: NodeChild<Owned<MutableAst>>,
+    id?: AstId | undefined,
+  ) {
     const base = module.baseObject('Invalid', id)
     const id_ = base.get('id')
     const fields = setAll(base, { expression: concreteChild(module, expression, id_) })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableInvalid(module, fields))
   }
 
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
   }
-  setExpression<T extends Ast>(value: Owned<T>) {
-    this.fields.set('expression', unspaced(this.claimChild(value)))
-  }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.fields.get('expression')
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableInvalid extends Invalid implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & InvalidFields>
+
+  /** Private, because it makes more sense to `.replace` the `Invalid` node. */
+  private setExpression<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     assertEqual(this.fields.get('expression').node, target)
     this.setExpression(replacement)
   }
 }
+export interface MutableInvalid extends Invalid, MutableAst {
+  /** The `expression` getter is intentionally not narrowed to provide mutable access:
+   *  It makes more sense to `.replace` the `Invalid` node. */
+}
 
 type GroupFields = {
-  open: NodeChild<Token> | null
-  expression: NodeChild<SyncAstId> | null
-  close: NodeChild<Token> | null
+  open: NodeChild<Token> | undefined
+  expression: NodeChild<SyncAstId> | undefined
+  close: NodeChild<Token> | undefined
 }
 export class Group extends Ast {
   declare fields: FixedMap<AstFields & GroupFields>
@@ -1193,18 +1510,21 @@ export class Group extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, open: NodeChild<Token> | null, expression: NodeChild<Owned<Ast>> | null, close: NodeChild<Token> | null, id?: AstId | undefined) {
+  static concrete(
+    module: MutableModule,
+    open: NodeChild<Token> | undefined,
+    expression: NodeChild<Owned<MutableAst>> | undefined,
+    close: NodeChild<Token> | undefined,
+    id?: AstId | undefined,
+  ) {
     const base = module.baseObject('Group', id)
     const id_ = base.get('id')
     const fields = setAll(base, { open, expression: concreteChild(module, expression, id_), close })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableGroup(module, fields))
   }
 
-  get expression(): Ast | null {
-    return this.module.get(this.fields.get('expression')?.node ?? null)
-  }
-  setExpression<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('expression', unspaced(this.claimChild(value)))
+  get expression(): Ast | undefined {
+    return this.module.get(this.fields.get('expression')?.node)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1213,11 +1533,23 @@ export class Group extends Ast {
     if (expression) yield expression
     if (close) yield close
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableGroup extends Group implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & GroupFields>
+
+  setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     assertEqual(this.fields.get('expression')?.node, target)
     this.setExpression(replacement)
   }
+}
+export interface MutableGroup extends Group, MutableAst {
+  get expression(): MutableAst | undefined
 }
 
 type NumericLiteralFields = {
@@ -1229,27 +1561,33 @@ export class NumericLiteral extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, tokens: NodeChild<Token>[], id?: AstId | undefined) {
+  static concrete(module: MutableModule, tokens: NodeChild<Token>[], id?: AstId | undefined) {
     const base = module.baseObject('NumericLiteral', id)
     const fields = setAll(base, { tokens })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableNumericLiteral(module, fields))
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
     return this.fields.get('tokens')[Symbol.iterator]()
   }
-
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
+
+export class MutableNumericLiteral extends NumericLiteral implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & NumericLiteralFields>
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {}
+}
+export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 
 /** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
  *  GUI. We just need to represent them faithfully and create the simple cases. */
 type ArgumentDefinition = NodeChild<Ast | Token>[]
 type RawArgumentDefinition = NodeChild[]
-type OwnedArgumentDefinition = NodeChild<Owned<Ast> | Token>[]
+type OwnedArgumentDefinition = NodeChild<Owned<MutableAst> | Token>[]
 
 function argumentDefinitionsToRaw(
-  module: Module,
+  module: MutableModule,
   defs: OwnedArgumentDefinition[],
   parent: SyncAstId,
 ): RawArgumentDefinition[] {
@@ -1265,7 +1603,7 @@ type FunctionFields = {
   name: NodeChild<SyncAstId>
   argumentDefinitions: RawArgumentDefinition[]
   equals: NodeChild<Token>
-  body: NodeChild<SyncAstId> | null
+  body: NodeChild<SyncAstId> | undefined
 }
 export class Function extends Ast {
   declare fields: FixedMap<AstFields & FunctionFields>
@@ -1276,35 +1614,24 @@ export class Function extends Ast {
   get name(): Ast {
     return this.module.get(this.fields.get('name').node)
   }
-  get body(): Ast | null {
-    return this.module.get(this.fields.get('body')?.node ?? null)
+  get body(): Ast | undefined {
+    return this.module.get(this.fields.get('body')?.node)
   }
   get argumentDefinitions(): ArgumentDefinition[] {
-    return this.fields
-      .get('argumentDefinitions')
-      .map((raw) =>
-        raw.map((part) => ({
-          ...part,
-          node: part.node instanceof Token ? part.node : this.module.get(part.node),
-        })),
-      )
-  }
-  setName<T extends Ast>(value: Owned<T>) {
-    this.fields.set('name', unspaced(this.claimChild(value)))
-  }
-  setBody<T extends Ast>(value: Owned<T> | null) {
-    this.fields.set('body', unspaced(this.claimChild(value)))
-  }
-  setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
-    this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.syncId))
+    return this.fields.get('argumentDefinitions').map((raw) =>
+      raw.map((part) => ({
+        ...part,
+        node: part.node instanceof Token ? part.node : this.module.get(part.node),
+      })),
+    )
   }
 
   static concrete(
-    module: Module,
-    name: NodeChild<Owned<Ast>>,
+    module: MutableModule,
+    name: NodeChild<Owned<MutableAst>>,
     argumentDefinitions: OwnedArgumentDefinition[],
     equals: NodeChild<Token>,
-    body: NodeChild<Owned<Ast>> | null,
+    body: NodeChild<Owned<MutableAst>> | undefined,
     id?: AstId | undefined,
   ) {
     const base = module.baseObject('Function', id)
@@ -1315,16 +1642,16 @@ export class Function extends Ast {
       equals,
       body: concreteChild(module, body, id_),
     })
-    return asOwned(new Function(module, fields))
+    return asOwned(new MutableFunction(module, fields))
   }
 
   static new(
-    module: Module,
+    module: MutableModule,
     name: Token | string,
     argumentDefinitions: OwnedArgumentDefinition[],
-    body: Owned<Ast>,
-  ): Owned<Function> {
-    return Function.concrete(
+    body: Owned<MutableAst>,
+  ): Owned<MutableFunction> {
+    return MutableFunction.concrete(
       module,
       unspaced(PropertyAccess.Sequence([name], module)),
       argumentDefinitions,
@@ -1335,28 +1662,28 @@ export class Function extends Ast {
 
   /** Construct a function with simple (name-only) arguments and a body block. */
   static fromStatements(
-    module: Module,
+    module: MutableModule,
     name: Token | string,
     argumentNames: (Token | string)[],
-    statements: Owned<Ast>[],
+    statements: Owned<MutableAst>[],
     trailingNewline?: boolean,
-  ): Owned<Function> {
+  ): Owned<MutableFunction> {
     const statements_: OwnedBlockLine[] = statements.map((statement) => ({
       expression: unspaced(statement),
     }))
     if (trailingNewline) {
-      statements_.push({ expression: null })
+      statements_.push({ expression: undefined })
     }
     const argumentDefinitions = argumentNames.map((name) => [unspaced(Ident.new(module, name))])
     const body = BodyBlock.new(statements_, module)
-    return this.new(module, name, argumentDefinitions, body)
+    return MutableFunction.new(module, name, argumentDefinitions, body)
   }
 
   *bodyExpressions(): IterableIterator<Ast> {
     const body = this.body
     if (body instanceof BodyBlock) {
       yield* body.statements()
-    } else if (body !== null) {
+    } else if (body) {
       yield body
     }
   }
@@ -1368,9 +1695,24 @@ export class Function extends Ast {
     yield { whitespace: equals.whitespace ?? ' ', node: equals.node }
     if (body) yield body
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
-    const { name, argumentDefinitions, equals, body } = getAll(this.fields)
+export class MutableFunction extends Function implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & FunctionFields>
+
+  setName<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('name', unspaced(this.claimChild(value)))
+  }
+  setBody<T extends MutableAst>(value: Owned<T> | undefined) {
+    this.fields.set('body', unspaced(this.claimChild(value)))
+  }
+  setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
+    this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.syncId))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
+    const { name, argumentDefinitions, body } = getAll(this.fields)
     if (name.node === target) {
       this.setName(replacement)
     } else if (body?.node === target) {
@@ -1386,6 +1728,10 @@ export class Function extends Ast {
     }
   }
 }
+export interface MutableFunction extends Function, MutableAst {
+  get name(): MutableAst
+  get body(): MutableAst | undefined
+}
 
 type AssignmentFields = {
   pattern: NodeChild<SyncAstId>
@@ -1398,19 +1744,30 @@ export class Assignment extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, pattern: NodeChild<Owned<Ast>>, equals: NodeChild<Token>, expression: NodeChild<Owned<Ast>>, id?: AstId | undefined) {
-    const base = module.baseObject('Assignment')
+  static concrete(
+    module: MutableModule,
+    pattern: NodeChild<Owned<MutableAst>>,
+    equals: NodeChild<Token>,
+    expression: NodeChild<Owned<MutableAst>>,
+    id?: AstId | undefined,
+  ) {
+    const base = module.baseObject('Assignment', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       pattern: concreteChild(module, pattern, id_),
       equals,
       expression: concreteChild(module, expression, id_),
     })
-    return asOwned(new Assignment(module, fields))
+    return asOwned(new MutableAssignment(module, fields))
   }
 
-  static new(module: Module, ident: string | Token, expression: Owned<Ast>) {
-    return Assignment.concrete(module, unspaced(Ident.new(module, ident)), spaced(makeEquals()), spaced(expression))
+  static new(module: MutableModule, ident: string | Token, expression: Owned<MutableAst>) {
+    return Assignment.concrete(
+      module,
+      unspaced(Ident.new(module, ident)),
+      spaced(makeEquals()),
+      spaced(expression),
+    )
   }
 
   get pattern(): Ast {
@@ -1418,12 +1775,6 @@ export class Assignment extends Ast {
   }
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
-  }
-  setPattern<T extends Ast>(value: Owned<T>) {
-    this.fields.set('pattern', unspaced(this.claimChild(value)))
-  }
-  setExpression<T extends Ast>(value: Owned<T>) {
-    this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1435,8 +1786,20 @@ export class Assignment extends Ast {
     }
     yield expression
   }
+}
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
+export class MutableAssignment extends Assignment implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & AssignmentFields>
+
+  setPattern<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('pattern', unspaced(this.claimChild(value)))
+  }
+  setExpression<T extends MutableAst>(value: Owned<T>) {
+    this.fields.set('expression', unspaced(this.claimChild(value)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
     const { pattern, expression } = getAll(this.fields)
     if (pattern.node === target) {
       this.setPattern(replacement)
@@ -1444,6 +1807,10 @@ export class Assignment extends Ast {
       this.setExpression(replacement)
     }
   }
+}
+export interface MutableAssignment extends Assignment, MutableAst {
+  get pattern(): MutableAst
+  get expression(): MutableAst
 }
 
 type BodyBlockFields = {
@@ -1455,24 +1822,21 @@ export class BodyBlock extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: Module, lines: OwnedBlockLine[], id?: AstId | undefined) {
-    const base = module.baseObject('BodyBlock')
+  static concrete(module: MutableModule, lines: OwnedBlockLine[], id?: AstId | undefined) {
+    const base = module.baseObject('BodyBlock', id)
     const id_ = base.get('id')
     const fields = setAll(base, {
       lines: lines.map((line) => lineToRaw(line, module, id_)),
     })
-    return asOwned(new BodyBlock(module, fields))
+    return asOwned(new MutableBodyBlock(module, fields))
   }
 
-  static new(lines: OwnedBlockLine[], module: Module) {
+  static new(lines: OwnedBlockLine[], module: MutableModule) {
     return BodyBlock.concrete(module, lines)
   }
 
   get lines(): BlockLine[] {
     return this.fields.get('lines').map((line) => lineFromRaw(line, this.module))
-  }
-  takeLines(edit: Module): OwnedBlockLine[] {
-    return this.fields.get('lines').map((line) => ownedLineFromRaw(line, edit))
   }
 
   *statements(): IterableIterator<Ast> {
@@ -1481,32 +1845,14 @@ export class BodyBlock extends Ast {
     }
   }
 
-  /** Insert the given statement(s) starting at the specified line index. */
-  insert(module: Module, index: number, ...statements: Owned<Ast>[]) {
-    const before = this.fields.get('lines').slice(0, index)
-    const insertions = statements.map((statement) => ({
-      expression: unspaced(this.claimChild(statement)),
-    }))
-    const after = this.fields.get('lines').slice(index)
-    throw new Error('TODO')
-    //const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
-    //edited.parent = this.parentId
-  }
-
   *concreteChildren(): IterableIterator<NodeChild> {
     for (const line of this.fields.get('lines')) {
       yield line.newline ?? { node: new Token('\n', newTokenId(), RawAst.Token.Type.Newline) }
-      if (line.expression !== null) yield line.expression
+      if (line.expression) yield line.expression
     }
   }
 
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {
-    const replacement_ = this.claimChild(replacement)
-    const updateLine = (line: RawBlockLine) => (line.expression?.node === target) ? { ...line, expression: { ...line.expression, node: replacement_ } } : line
-    this.fields.set('lines', this.fields.get('lines').map(updateLine))
-  }
-
-  printSubtree(info: InfoMap, offset: number, parentIndent: string | null): string {
+  printSubtree(info: InfoMap, offset: number, parentIndent: string | undefined): string {
     let blockIndent: string | undefined
     let code = ''
     for (const line of this.fields.get('lines')) {
@@ -1518,7 +1864,7 @@ export class BodyBlock extends Ast {
         // if it's a zero-length newline, ignore it and print a normal newline.
         code += newlineCode || '\n'
       }
-      if (line.expression !== null) {
+      if (line.expression) {
         if (blockIndent === undefined) {
           if ((line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)) {
             blockIndent = line.expression.whitespace!
@@ -1538,7 +1884,7 @@ export class BodyBlock extends Ast {
     }
     const span = nodeKey(offset, code.length)
     const infos = info.nodes.get(span)
-    if (infos == null) {
+    if (infos == undefined) {
       info.nodes.set(span, [this.exprId])
     } else {
       infos.unshift(this.exprId)
@@ -1547,17 +1893,60 @@ export class BodyBlock extends Ast {
   }
 }
 
+export class MutableBodyBlock extends BodyBlock implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & BodyBlockFields>
+
+  takeLines(): OwnedBlockLine[] {
+    return this.fields.get('lines').map((line) => ownedLineFromRaw(line, this.module))
+  }
+  setLines(lines: OwnedBlockLine[]) {
+    this.fields.set(
+      'lines',
+      lines.map((line) => lineToRaw(line, this.module, this.syncId)),
+    )
+  }
+
+  /** Insert the given statement(s) starting at the specified line index. */
+  insert(index: number, ...statements: Owned<MutableAst>[]) {
+    const before = this.fields.get('lines').slice(0, index)
+    const insertions = statements.map((statement) => ({
+      expression: unspaced(this.claimChild(statement)),
+    }))
+    const after = this.fields.get('lines').slice(index)
+    this.fields.set('lines', [...before, ...insertions, ...after])
+  }
+
+  push(statement: Owned<MutableAst>) {
+    const oldLines = this.fields.get('lines')
+    const newLine = { expression: unspaced(this.claimChild(statement)) }
+    this.fields.set('lines', [...oldLines, newLine])
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {
+    const replacement_ = this.claimChild(replacement)
+    const updateLine = (line: RawBlockLine) =>
+      line.expression?.node === target
+        ? { ...line, expression: { ...line.expression, node: replacement_ } }
+        : line
+    this.fields.set('lines', this.fields.get('lines').map(updateLine))
+  }
+}
+export interface MutableBodyBlock extends BodyBlock, MutableAst {
+  statements(): IterableIterator<MutableAst>
+}
+
 type Line<T> = {
   newline?: NodeChild<Token> | undefined
-  expression: NodeChild<T> | null
+  expression: NodeChild<T> | undefined
 }
 
 type RawBlockLine = Line<SyncAstId>
 type BlockLine = Line<Ast>
-type OwnedBlockLine = Line<Owned<Ast>>
+type OwnedBlockLine = Line<Owned<MutableAst>>
 
 function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
-  const expression = raw.expression ? module.get(raw.expression.node) : null
+  const expression = raw.expression ? module.get(raw.expression.node) : undefined
   return {
     newline: raw.newline,
     expression: expression
@@ -1565,12 +1954,12 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
-      : null,
+      : undefined,
   }
 }
 
-function ownedLineFromRaw(raw: RawBlockLine, module: Module): OwnedBlockLine {
-  const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : null
+function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockLine {
+  const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : undefined
   return {
     newline: raw.newline,
     expression: expression
@@ -1578,11 +1967,11 @@ function ownedLineFromRaw(raw: RawBlockLine, module: Module): OwnedBlockLine {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
-      : null,
+      : undefined,
   }
 }
 
-function lineToRaw(line: OwnedBlockLine, module: Module, block: SyncAstId): RawBlockLine {
+function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: SyncAstId): RawBlockLine {
   return {
     newline: line.newline,
     expression: line.expression
@@ -1590,7 +1979,7 @@ function lineToRaw(line: OwnedBlockLine, module: Module, block: SyncAstId): RawB
           whitespace: line.expression?.whitespace,
           node: claimChild(module, line.expression.node, block),
         }
-      : null,
+      : undefined,
   }
 }
 
@@ -1606,26 +1995,33 @@ export class Ident extends Ast {
   get token(): Token {
     return this.fields.get('token').node
   }
-  setToken(ident: Token | string) {
-    this.fields.set('token', unspaced(toIdent(ident)))
-  }
 
-  static concrete(module: Module, token: NodeChild<Token>, id?: AstId | undefined) {
-    const base = module.baseObject('Ident')
+  static concrete(module: MutableModule, token: NodeChild<Token>, id?: AstId | undefined) {
+    const base = module.baseObject('Ident', id)
     const fields = setAll(base, { token })
-    return asOwned(new Ident(module, fields))
+    return asOwned(new MutableIdent(module, fields))
   }
 
-  static new(module: Module, ident: Token | string) {
+  static new(module: MutableModule, ident: Token | string) {
     return Ident.concrete(module, unspaced(toIdent(ident)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.fields.get('token')
   }
-
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
+
+export class MutableIdent extends Ident implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & IdentFields>
+
+  setToken(ident: Token | string) {
+    this.fields.set('token', unspaced(toIdent(ident)))
+  }
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {}
+}
+export interface MutableIdent extends Ident, MutableAst {}
 
 type WildcardFields = {
   token: NodeChild<Token>
@@ -1640,13 +2036,13 @@ export class Wildcard extends Ast {
     return this.fields.get('token').node
   }
 
-  static concrete(module: Module, token: NodeChild<Token>, id?: AstId | null) {
-    const base = module.baseObject('Wildcard')
+  static concrete(module: MutableModule, token: NodeChild<Token>, id?: AstId | undefined) {
+    const base = module.baseObject('Wildcard', id)
     const fields = setAll(base, { token })
-    return asOwned(new this(module, fields))
+    return asOwned(new MutableWildcard(module, fields))
   }
 
-  static new(module: Module) {
+  static new(module: MutableModule) {
     const token = new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)
     return this.concrete(module, unspaced(token))
   }
@@ -1654,9 +2050,15 @@ export class Wildcard extends Ast {
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.fields.get('token')
   }
-
-  replaceChild<T extends Ast>(target: SyncAstId, replacement: Owned<T>) {}
 }
+
+export class MutableWildcard extends Wildcard implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & WildcardFields>
+
+  replaceChild<T extends MutableAst>(target: SyncAstId, replacement: Owned<T>) {}
+}
+export interface MutableWildcard extends Wildcard, MutableAst {}
 
 const mapping: Record<string, string> = {
   '\b': '\\b',
@@ -1677,7 +2079,7 @@ export function escape(string: string) {
 }
 
 function abstract(
-  module: Module,
+  module: MutableModule,
   tree: RawAst.Tree,
   code: string,
   info: InfoMap | undefined,
@@ -1691,18 +2093,18 @@ function abstract(
 }
 
 function abstractTree(
-  module: Module,
+  module: MutableModule,
   tree: RawAst.Tree,
   code: string,
   nodesExpected: NodeSpanMap,
   tokens: TokenSpanMap,
   tokensOut: TokenSpanMap,
-): { whitespace: string | undefined; node: Owned<Ast> } {
+): { whitespace: string | undefined; node: Owned<MutableAst> } {
   const recurseTree = (tree: RawAst.Tree) =>
     abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
   const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokens, tokensOut)
   const visitChildren = (tree: LazyObject) => {
-    const children: NodeChild<Owned<Ast> | Token>[] = []
+    const children: NodeChild<Owned<MutableAst> | Token>[] = []
     const visitor = (child: LazyObject) => {
       if (RawAst.Tree.isInstance(child)) {
         children.push(recurseTree(child))
@@ -1723,12 +2125,12 @@ function abstractTree(
   // but each node does so separately because we must pop the tree's span from the ID map
   // *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart)
-  let node: Owned<Ast>
+  let node: Owned<MutableAst>
   switch (tree.type) {
     case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = recurseToken(line.newline)
-        let expression = line.expression ? recurseTree(line.expression) : null
+        let expression = line.expression ? recurseTree(line.expression) : undefined
         return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
@@ -1739,7 +2141,7 @@ function abstractTree(
       const name = recurseTree(tree.name)
       const argumentDefinitions = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = recurseToken(tree.equals)
-      const body = tree.body !== undefined ? recurseTree(tree.body) : null
+      const body = tree.body !== undefined ? recurseTree(tree.body) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       node = Function.concrete(module, name, argumentDefinitions, equals, body, id)
       break
@@ -1762,25 +2164,25 @@ function abstractTree(
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = App.concrete(module, func, null, null, arg, id)
+      node = App.concrete(module, func, undefined, undefined, arg, id)
       break
     }
     case RawAst.Tree.Type.NamedApp: {
       const func = recurseTree(tree.func)
-      const open = tree.open ? recurseToken(tree.open) : null
+      const open = tree.open ? recurseToken(tree.open) : undefined
       const name = recurseToken(tree.name)
       const equals = recurseToken(tree.equals)
       const arg = recurseTree(tree.arg)
-      const close = tree.close ? recurseToken(tree.close) : null
+      const close = tree.close ? recurseToken(tree.close) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
-      const parens = open && close ? { open, close } : null
+      const parens = open && close ? { open, close } : undefined
       const nameSpecification = { name, equals }
       node = App.concrete(module, func, parens, nameSpecification, arg, id)
       break
     }
     case RawAst.Tree.Type.UnaryOprApp: {
       const opr = recurseToken(tree.opr)
-      const arg = tree.rhs ? recurseTree(tree.rhs) : null
+      const arg = tree.rhs ? recurseTree(tree.rhs) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.node.code() === '-') {
         node = NegationOprApp.concrete(module, opr, arg, id)
@@ -1790,14 +2192,16 @@ function abstractTree(
       break
     }
     case RawAst.Tree.Type.OprApp: {
-      const lhs = tree.lhs ? recurseTree(tree.lhs) : null
+      const lhs = tree.lhs ? recurseTree(tree.lhs) : undefined
       const opr = tree.opr.ok
         ? [recurseToken(tree.opr.value)]
         : Array.from(tree.opr.error.payload.operators, recurseToken)
-      const rhs = tree.rhs ? recurseTree(tree.rhs) : null
+      const rhs = tree.rhs ? recurseTree(tree.rhs) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
-      if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof Ident) {
-        node = PropertyAccess.concrete(module, lhs, opr, rhs, id)
+      if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
+        // Propagate type.
+        const rhs_ = { ...rhs, node: rhs.node }
+        node = PropertyAccess.concrete(module, lhs, opr[0], rhs_, id)
       } else {
         node = OprApp.concrete(module, lhs, opr, rhs, id)
       }
@@ -1836,21 +2240,21 @@ function abstractTree(
       break
     }
     case RawAst.Tree.Type.Group: {
-      const open = tree.open ? recurseToken(tree.open) : null
-      const expression = tree.body ? recurseTree(tree.body) : null
-      const close = tree.close ? recurseToken(tree.close) : null
+      const open = tree.open ? recurseToken(tree.open) : undefined
+      const expression = tree.body ? recurseTree(tree.body) : undefined
+      const close = tree.close ? recurseToken(tree.close) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       node = Group.concrete(module, open, expression, close, id)
       break
     }
     case RawAst.Tree.Type.TextLiteral: {
-      const open = tree.open ? recurseToken(tree.open) : null
-      const newline = tree.newline ? recurseToken(tree.newline) : null
+      const open = tree.open ? recurseToken(tree.open) : undefined
+      const newline = tree.newline ? recurseToken(tree.newline) : undefined
       const elements = []
       for (const e of tree.elements) {
         elements.push(...visitChildren(e))
       }
-      const close = tree.close ? recurseToken(tree.close) : null
+      const close = tree.close ? recurseToken(tree.close) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       node = TextLiteral.concrete(module, open, newline, elements, close, id)
       break
@@ -1862,7 +2266,7 @@ function abstractTree(
         elements.push(...visitChildren(e))
       }
       const newlines = Array.from(tree.documentation.newlines, recurseToken)
-      const expression = tree.expression ? recurseTree(tree.expression) : null
+      const expression = tree.expression ? recurseTree(tree.expression) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       node = Documented.concrete(module, open, elements, newlines, expression, id)
       break
@@ -1870,19 +2274,19 @@ function abstractTree(
     case RawAst.Tree.Type.Import: {
       const recurseBody = (tree: RawAst.Tree) => {
         const body = recurseTree(tree)
-        if (body instanceof Invalid && body.code() === '') return null
+        if (body instanceof Invalid && body.code() === '') return undefined
         return body
       }
       const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
         header: recurseToken(segment.header),
-        body: segment.body ? recurseBody(segment.body) : null,
+        body: segment.body ? recurseBody(segment.body) : undefined,
       })
-      const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : null
-      const from = tree.from ? recurseSegment(tree.from) : null
+      const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : undefined
+      const from = tree.from ? recurseSegment(tree.from) : undefined
       const import_ = recurseSegment(tree.import)
-      const all = tree.all ? recurseToken(tree.all) : null
-      const as = tree.as ? recurseSegment(tree.as) : null
-      const hiding = tree.hiding ? recurseSegment(tree.hiding) : null
+      const all = tree.all ? recurseToken(tree.all) : undefined
+      const as = tree.as ? recurseSegment(tree.as) : undefined
+      const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
       node = Import.concrete(module, polyglot, from, import_, all, as, hiding, id)
       break
@@ -1963,7 +2367,7 @@ export function print(ast: Ast): PrintedSource {
     tokens: new Map(),
     tokensOut: new Map(),
   }
-  const code = ast.printSubtree(info, 0, null)
+  const code = ast.printSubtree(info, 0, undefined)
   return { info, code }
 }
 
@@ -2007,14 +2411,20 @@ export function moduleMethodNames(topLevel: BodyBlock): Set<string> {
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
-export function findModuleMethod(topLevel: BodyBlock, name: string): Function | null {
+export function findModuleMethod(topLevel: BodyBlock, name: string): Function | undefined {
   for (const statement of topLevel.statements()) {
     const inner = statement.innerExpression()
     if (inner instanceof Function && inner.name.code() === name) {
       return inner
     }
   }
-  return null
+  return undefined
+}
+
+export function functionBlock(topLevel: BodyBlock, name: string) {
+  const func = findModuleMethod(topLevel, name)
+  if (!(func?.body instanceof BodyBlock)) return undefined
+  return func.body
 }
 
 export function parseTransitional(code: string, idMap: IdMap): Ast {
@@ -2057,7 +2467,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     return true
   })
   const tokensOut = new Map()
-  const newRoot = Ast.parseBlock({ info: { nodes, tokens, tokensOut }, code })
+  const newRoot = parseBlock({ info: { nodes, tokens, tokensOut }, code })
   newRoot.module.spans = spans
   idMap.clear()
   // TODO (optimization): Use ID-match info collected while abstracting.
@@ -2081,8 +2491,29 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   return newRoot
 }
 
-export const parseBlock = Ast.parseBlock
-export const parse = Ast.parse
+/** Parse the input as a block. */
+export function parseBlock(source: PrintedSource | string, inModule?: MutableModule) {
+  const code = typeof source === 'object' ? source.code : source
+  const ids = typeof source === 'object' ? source.info : undefined
+  const tree = parseEnso(code)
+  const module = inModule ?? MutableModule.Transient()
+  const ast = abstract(module, tree, code, ids).node
+  // The root of the tree produced by the parser is always a `BodyBlock`.
+  const block = ast as MutableBodyBlock
+  return asOwned(block)
+}
+
+/** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
+export function parse(source: PrintedSource | string, module?: MutableModule): Owned<MutableAst> {
+  const module_ = module ?? MutableModule.Transient()
+  const ast = parseBlock(source, module_)
+  const [expr] = ast.statements()
+  if (!expr) return ast
+  const parent = parentId(expr)
+  if (parent) module_.delete(parent)
+  expr.fields.set('parent', undefined)
+  return asOwned(expr)
+}
 
 export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)
