@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Enso_Cloud.Utils
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
@@ -69,6 +70,15 @@ type Enso_File
         response.code.is_success
 
     ## GROUP Metadata
+       Gets the size of a file in bytes.
+    size : Integer
+    size self = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
+        s3_url = get_s3_url_for_file self
+        response = HTTP.fetch s3_url HTTP_Method.Head []
+        content_length = response.get_header "content-length" if_missing=(Error.throw (Illegal_State.Error "Cannot get file size: missing `Content-Lentth` header."))
+        Integer.parse content_length
+
+    ## GROUP Metadata
        Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
@@ -112,15 +122,9 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self open_options action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
         if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
-            auth_header = Utils.authorization_header
-            response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
-            response.if_not_error <|
-                js_object = response.decode_as_json
-                path = js_object.get "file" . get "path"
-                if path.is_nothing then Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File: "+js_object.to_text) else
-                    url = path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
-                    response = HTTP.fetch url HTTP_Method.Get []
-                    response.if_not_error <| response.body.with_stream action
+            s3_url = get_s3_url_for_file self
+            response = HTTP.fetch s3_url HTTP_Method.Get []
+            response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -272,3 +276,17 @@ Enso_Asset_Type.from (that:Text) = case that of
 
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
+
+## PRIVATE
+get_file_description file:Enso_File -> JS_Object =
+    auth_header = Utils.authorization_header
+    response = HTTP.fetch file.internal_uri HTTP_Method.Get [auth_header]
+    response.if_not_error <|
+        js_object = response.decode_as_json
+        js_object.get "file" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `file` field): "+js_object.to_text))
+
+## PRIVATE
+get_s3_url_for_file file:Enso_File -> Text =
+    file_description = get_file_description file
+    path = file_description.get "path" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `path`): "+file_description.to_text))
+    path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
