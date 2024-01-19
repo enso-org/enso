@@ -322,7 +322,7 @@ spec =
             x.is_nothing . to_vector . should_equal [False, False, True, False]
             x.is_nan . to_vector . should_equal [False, False, Nothing, False]
             x.is_infinite . to_vector . should_equal [False, False, Nothing, False]
-            x.is_in [3, 2^70] . to_vector . should_equal [False, True, False, True]
+            x.is_in [3, 2^70] . to_vector . should_equal [False, True, Nothing, True]
 
         Test.specify "allows arithmetic on Decimal columns and other numeric columns" <|
             t = Table.new [["X", [10^30, 2^70, Nothing, 3]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.5, 3.5, 4.5]]]
