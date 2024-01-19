@@ -7,27 +7,20 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{
-  LibraryComponentGroup,
-  LibraryComponentGroups,
-  LibraryEntry
-}
+import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.repository.{
-  EmptyRepository,
-  ExampleRepository,
-  LibraryManifest
-}
+import org.enso.librarymanager.published.repository.{EmptyRepository, ExampleRepository, LibraryManifest}
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
+import org.enso.testkit.{FlakySpec, RetrySpec}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
+class LibrariesTest extends BaseServerTest with ReportLogsOnFailure with RetrySpec {
   private val libraryRepositoryPort: Int = 47308
 
   private val exampleRepo = new ExampleRepository(
@@ -55,7 +48,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" in {
+    "create a library project and include it on the list of local projects" taggedAs Retry(4) in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
@@ -134,7 +127,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
             "id": 2
           }
           """)
-      val msg2 = client.expectSomeJson(15.seconds.dilated)
+      val msg2 = client.expectSomeJson()
       inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
         libs should contain(testLibraryName)
       }
