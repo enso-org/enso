@@ -111,5 +111,64 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
 
             bytes.should_equal expected_file_text.utf_8
 
+        Test.specify "should be able to read file metadata" <|
+            Enso_File.root.exists . should_be_true
+            # TODO what semantics we choose here?
+            Enso_File.root.parent . should_equal Enso_File.root
+            Enso_File.root.path . should_equal "enso://"
+            Enso_File.root.name . should_equal "/"
+
+            # TODO this structure should be created once we get file writing
+            dir = Enso_File.root / "test-directory"
+            dir.exists.should_be_true
+
+            dir.name . should_equal "test-directory"
+            dir.extension . should_fail_with Illegal_Argument
+            dir.size . should_fail_with Illegal_Argument
+            dir.path . should_equal "enso://test-directory/"
+            dir.parent . should_equal Enso_File.root
+            dir.is_child_of Enso_File.root . should_be_true
+            Enso_File.root.is_child_of dir . should_be_false
+            dir.is_directory.should_be_true
+            dir.is_regular_file.should_be_false
+            dir.creation_time . should_be_a Date_Time
+            dir.last_modified_time . should_be_a Date_Time
+
+            nested_file = dir / "another.txt"
+            nested_file.exists.should_be_true
+
+            nested_file.name . should_equal "another.txt"
+            nested_file.extension . should_equal "txt"
+            nested_file.size . should_equal nested_file.read_bytes.length
+            nested_file.path . should_equal "enso://test-directory/another.txt"
+            nested_file.parent . should_equal dir
+            nested_file.is_child_of dir . should_be_true
+            nested_file.is_child_of Enso_File.root . should_be_true
+            nested_file.is_directory.should_be_false
+            nested_file.is_regular_file.should_be_true
+            nested_file.creation_time . should_be_a Date_Time
+            nested_file.last_modified_time . should_be_a Date_Time
+
+        Test.specify "should be able to read other file metadata" pending="TODO do we want that?" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+
+            nested_file.is_absolute.should_be_true
+            nested_file.absolute . should_equal nested_file
+            nested_file.normalize . should_equal nested_file
+            nested_file.posix_permissions . should_be_a File_Permissions
+            nested_file.is_writable . should_be_a Boolean
+
+        Test.specify "should be able to copy a file" pending="TODO Cloud file writing" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+            ## TODO currently `/` only works if the file already exists, so how will we construct a path for a copy target?
+               We either need to make all files just paths (like on regular File), or we need to have concrete files (with ID) and abstract files (just path).
+            new_file = nested_file.copy_to "TODO this needs design"
+            nested_file.exists.should_be_true
+            new_file.exists.should_be_true
+
+        Test.specify "should be able to move a file" pending="TODO Cloud file writing" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+            nested_file.move_to "TODO this needs design"
+            nested_file.exists . should_be_false
 
 main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)

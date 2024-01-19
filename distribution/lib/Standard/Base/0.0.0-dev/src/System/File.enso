@@ -428,7 +428,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.creation_time
-    creation_time : Time_Of_Day ! File_Error
+    creation_time : Date_Time ! File_Error
     creation_time self =
         File_Error.handle_java_exceptions self <| self.creation_time_builtin
 
@@ -441,7 +441,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.last_modified_time
-    last_modified_time : Time_Of_Day ! File_Error
+    last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         File_Error.handle_java_exceptions self <| self.last_modified_time_builtin
 
