@@ -27,10 +27,7 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
   extractMatches(expression: Ast.Ast): MatchResult<T> {
     const matches = Object.fromEntries(
       Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
-        const matchIds = pattern.match(expression)
-        const matches = matchIds
-          ? Array.from(matchIds, (id) => expression.module.get(id)!)
-          : undefined
+        const matches = pattern.match(expression)
         const lastMatch = matches != null ? matches[matches.length - 1] : undefined
         if (lastMatch) expression = lastMatch
         return [name, matches]
@@ -40,20 +37,20 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
   }
 
   modify(
-    edit: Ast.MutableModule,
-    expression: Ast.Ast,
-    replacements: Partial<Record<keyof T, Ast.Ast[] | undefined>>,
+    expression: Ast.MutableAst,
+    replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>,
   ) {
+    const edit = expression.module
     const matches = this.extractMatches(expression)
-    let result = matches.innerExpr
+    let result = edit.get(matches.innerExpr)!.take().node
     for (const key of unsafeKeys(this.prefixes).reverse()) {
       if (key in replacements && !replacements[key]) continue
-      const replacement: Ast.Ast[] | undefined = replacements[key] ?? matches.matches[key]
+      const replacement: Ast.Owned[] | undefined =
+        replacements[key] ?? matches.matches[key]?.map((match) => edit.get(match)!.take().node)
       if (!replacement) continue
       const pattern = this.prefixes[key]
       const parts = [...replacement, result]
-      const partsIds = Array.from(parts, (ast) => ast.exprId)
-      result = pattern.instantiate(edit, partsIds)
+      result = pattern.instantiate(edit, parts)
     }
     return result
   }

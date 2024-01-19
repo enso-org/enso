@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
 
@@ -377,8 +377,12 @@ test('Insert new expression', () => {
   const edit = root.module.edit()
   const rhs = Ast.parse('42', edit)
   const assignment = Ast.Assignment.new(edit, 'baz', rhs)
-  edit.find(main)!.push(assignment)
-  const printed = edit.find(root)!.code()
+  const main_ = edit.get(main)
+  assertDefined(main_)
+  main_.push(assignment)
+  const root_ = edit.get(root)
+  assertDefined(root_)
+  const printed = root_.code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
 
@@ -403,11 +407,11 @@ test('Modify subexpression', () => {
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
   const oldExprId = assignment.expression!.exprId
-  const assignment_ = edit.find(assignment)!
+  const assignment_ = edit.get(assignment)!
   assignment_.expression!.replaceValue(newValue)
   expect(assignment_.expression!.exprId).toBe(oldExprId)
   expect(assignment_.expression?.code()).toBe("'bar'")
-  const printed = edit.find(root)!.code()
+  const printed = edit.get(root)!.code()
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
@@ -417,12 +421,12 @@ test('Replace subexpression', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  const assignment_ = edit.find(assignment)!
+  const assignment_ = edit.get(assignment)!
   assignment_.expression!.replace(newValue)
   assert(assignment_ instanceof Ast.Assignment)
   expect(assignment_.expression!.exprId).toBe(newValue.exprId)
   expect(assignment_.expression?.code()).toBe("'bar'")
-  const printed = edit.find(root)?.code()
+  const printed = edit.get(root)?.code()
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
@@ -430,21 +434,21 @@ test('Change ID of node', () => {
   const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
-  const assignment_ = edit.find(assignment)!
+  const assignment_ = edit.get(assignment)!
   const removal = assignment_.expression!.takeValue()!
   expect(removal.node.code()).toBe('"foo"')
-  removal.placeholder.replace(removal.node)
+  removal.placeholder!.replace(removal.node)
   assert(assignment_ instanceof Ast.Assignment)
   expect(assignment_.expression!.exprId).not.toBe(assignment.expression!.exprId)
   expect(assignment_.expression!.code()).toBe('"foo"')
-  const printed = edit.find(root)!.code()
+  const printed = edit.get(root)!.code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n')
 })
 
 test('Block lines interface', () => {
   const block = Ast.parseBlock('VLE  \nSISI\nGNIK \n')
   const edit = block.module.edit()
-  const block_ = edit.find(block)!
+  const block_ = edit.get(block)!
   // Sort alphabetically, but keep the blank line at the end.
   const reordered = block_.takeLines().sort((a, b) => {
     if (a.expression?.node.code() === b.expression?.node.code()) return 0
