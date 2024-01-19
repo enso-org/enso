@@ -10,13 +10,15 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
-import * as validation from '#/utilities/validation'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as validation from '#/utilities/validation'
 
 // =================
 // === Constants ===

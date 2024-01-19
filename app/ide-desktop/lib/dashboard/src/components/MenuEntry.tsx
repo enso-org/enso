@@ -2,10 +2,11 @@
 import * as React from 'react'
 
 import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
 import SvgMask from '#/components/SvgMask'
+
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =================
 // === MenuEntry ===

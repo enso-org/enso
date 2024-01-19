@@ -6,6 +6,7 @@
 import * as detect from 'enso-common/src/detect'
 
 import Backend, * as backend from '#/services/Backend'
+
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import * as projectManager from '#/utilities/ProjectManager'

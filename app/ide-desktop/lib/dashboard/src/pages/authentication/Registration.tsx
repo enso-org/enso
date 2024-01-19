@@ -9,15 +9,17 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as localStorageModule from '#/utilities/LocalStorage'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as localStorageModule from '#/utilities/LocalStorage'
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
 
 // =================
 // === Constants ===

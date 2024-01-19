@@ -5,9 +5,10 @@ import DocsIcon from 'enso-assets/docs.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as backendModule from '#/services/Backend'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {

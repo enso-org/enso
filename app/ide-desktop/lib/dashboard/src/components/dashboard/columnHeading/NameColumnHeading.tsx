@@ -3,10 +3,10 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
-import * as sorting from '#/utilities/sorting'
-
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+
+import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {

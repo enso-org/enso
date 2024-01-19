@@ -4,12 +4,20 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
+
+import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as navigateHooks from '#/hooks/navigateHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
@@ -18,17 +26,15 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
+
+import type * as spinner from '#/components/Spinner'
+
 import * as backendModule from '#/services/Backend'
+
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as github from '#/utilities/github'
 import * as localStorageModule from '#/utilities/LocalStorage'
 import * as uniqueString from '#/utilities/uniqueString'
-
-import type * as spinner from '#/components/Spinner'
 
 // =============
 // === Drive ===

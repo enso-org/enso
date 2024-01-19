@@ -3,24 +3,29 @@ import * as React from 'react'
 
 import ConnectorIcon from 'enso-assets/connector.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
+import type * as column from '#/components/dashboard/column'
+import EditableSpan from '#/components/EditableSpan'
+
 import * as backendModule from '#/services/Backend'
+
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
 
 // =====================
 // === ConnectorName ===

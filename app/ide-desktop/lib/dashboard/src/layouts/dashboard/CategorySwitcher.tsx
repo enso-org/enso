@@ -5,15 +5,18 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as drag from '#/utilities/drag'
-import * as localStorageModule from '#/utilities/LocalStorage'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 
 import SvgMask from '#/components/SvgMask'
+
+import * as drag from '#/utilities/drag'
+import * as localStorageModule from '#/utilities/LocalStorage'
 
 // ============================
 // === CategorySwitcherItem ===

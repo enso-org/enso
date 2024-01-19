@@ -41,16 +41,9 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as authServiceModule from '#/authentication/service'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
-import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
-import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import Login from '#/pages/authentication/Login'
-import Registration from '#/pages/authentication/Registration'
-import ResetPassword from '#/pages/authentication/ResetPassword'
-import SetUsername from '#/pages/authentication/SetUsername'
-import Dashboard from '#/pages/dashboard/Dashboard'
+
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import LocalStorageProvider from '#/providers/LocalStorageProvider'
@@ -59,9 +52,22 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import SessionProvider from '#/providers/SessionProvider'
 import ShortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
+import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
+import ForgotPassword from '#/pages/authentication/ForgotPassword'
+import Login from '#/pages/authentication/Login'
+import Registration from '#/pages/authentication/Registration'
+import ResetPassword from '#/pages/authentication/ResetPassword'
+import SetUsername from '#/pages/authentication/SetUsername'
+import Dashboard from '#/pages/dashboard/Dashboard'
+
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+
 import ShortcutManager, * as shortcutManagerModule from '#/utilities/ShortcutManager'
+
+import * as authServiceModule from '#/authentication/service'
 
 // ======================
 // === getMainPageUrl ===

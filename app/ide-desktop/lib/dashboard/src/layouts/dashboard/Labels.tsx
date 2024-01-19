@@ -4,19 +4,22 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backend from '#/services/Backend'
-import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/AssetQuery'
-import type AssetQuery from '#/utilities/AssetQuery'
-import * as drag from '#/utilities/drag'
+
+import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
 
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import DragModal from '#/components/DragModal'
 import SvgMask from '#/components/SvgMask'
+
+import type * as backend from '#/services/Backend'
+
+import * as array from '#/utilities/array'
+import * as assetQuery from '#/utilities/AssetQuery'
+import type AssetQuery from '#/utilities/AssetQuery'
+import * as drag from '#/utilities/drag'
 
 // ==============
 // === Labels ===

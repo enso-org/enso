@@ -3,24 +3,21 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import RemoteBackend from '#/services/RemoteBackend'
-import HttpClient from '#/utilities/HttpClient'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
@@ -28,6 +25,14 @@ import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
+
+import * as backendModule from '#/services/Backend'
+import RemoteBackend from '#/services/RemoteBackend'
+
+import HttpClient from '#/utilities/HttpClient'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 // ========================
 // === AssetContextMenu ===

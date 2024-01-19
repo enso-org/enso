@@ -6,10 +6,12 @@ import AssetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import BackendSwitcher from '#/layouts/dashboard/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import type * as backendModule from '#/services/Backend'
-import type AssetQuery from '#/utilities/AssetQuery'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
+
+import type * as backendModule from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
 
 // ==============
 // === TopBar ===

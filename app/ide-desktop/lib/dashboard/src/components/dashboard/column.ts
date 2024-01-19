@@ -1,7 +1,5 @@
 /** @file Column types and column display modes. */
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import type * as backendModule from '#/services/Backend'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import DocsColumn from '#/components/dashboard/column/DocsColumn'
@@ -10,6 +8,10 @@ import LastModifiedColumn from '#/components/dashboard/column/LastModifiedColumn
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import PlaceholderColumn from '#/components/dashboard/column/PlaceholderColumn'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+
+import type * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 // ===================
 // === AssetColumn ===

@@ -6,8 +6,10 @@
 import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
+
 import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+
 import * as config from '#/utilities/config'
 import * as errorModule from '#/utilities/error'
 import type HttpClient from '#/utilities/HttpClient'

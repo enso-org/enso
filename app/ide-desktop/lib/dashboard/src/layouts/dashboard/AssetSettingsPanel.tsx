@@ -3,21 +3,26 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+
+import type * as assetEvent from '#/events/assetEvent'
+
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import type * as backendModule from '#/services/Backend'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
 
 import Button from '#/components/Button'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+
+import type * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 
 // ==========================
 // === AssetSettingsPanel ===

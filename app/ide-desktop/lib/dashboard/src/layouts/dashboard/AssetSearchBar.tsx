@@ -3,12 +3,13 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
+import Label from '#/components/dashboard/Label'
+
 import type * as backend from '#/services/Backend'
+
 import * as array from '#/utilities/array'
 import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
 import * as shortcutManager from '#/utilities/ShortcutManager'
-
-import Label from '#/components/dashboard/Label'
 
 // =============
 // === Types ===

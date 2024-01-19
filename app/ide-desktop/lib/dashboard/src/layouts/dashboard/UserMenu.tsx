@@ -4,16 +4,20 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as github from '#/utilities/github'
-import * as shortcutManager from '#/utilities/ShortcutManager'
+
+import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
+
+import * as github from '#/utilities/github'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 // ================
 // === UserMenu ===

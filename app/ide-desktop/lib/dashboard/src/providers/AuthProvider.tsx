@@ -12,20 +12,25 @@ import * as toast from 'react-toastify'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
+
 import * as errorModule from '#/utilities/error'
 import HttpClient from '#/utilities/HttpClient'
 import * as localStorageModule from '#/utilities/LocalStorage'
+
+import * as cognitoModule from '#/authentication/cognito'
+import type * as authServiceModule from '#/authentication/service'
 
 // =================
 // === Constants ===

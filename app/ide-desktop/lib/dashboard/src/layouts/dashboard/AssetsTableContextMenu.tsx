@@ -2,26 +2,30 @@
  * are selected. */
 import * as React from 'react'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import type * as assetListEvent from '#/events/assetListEvent'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
+
+import ContextMenu from '#/components/ContextMenu'
+import ContextMenus from '#/components/ContextMenus'
+import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
+import MenuEntry from '#/components/MenuEntry'
+
 import * as backendModule from '#/services/Backend'
+
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
-
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenus from '#/components/ContextMenus'
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
-import MenuEntry from '#/components/MenuEntry'
 
 // =================
 // === Constants ===

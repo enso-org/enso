@@ -1,24 +1,28 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import type * as column from '#/components/dashboard/column'
+import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
+
 import * as backendModule from '#/services/Backend'
+
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
 // ================
 // === FileName ===

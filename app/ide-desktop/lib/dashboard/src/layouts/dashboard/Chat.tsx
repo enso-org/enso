@@ -10,15 +10,17 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
 import * as gtag from 'enso-common/src/gtag'
 
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
+import Twemoji from '#/components/Twemoji'
+
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
-
-import Twemoji from '#/components/Twemoji'
 
 // ================
 // === Newtypes ===
