@@ -7,6 +7,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Not_Found
@@ -79,6 +80,16 @@ type Enso_File
         Integer.parse content_length
 
     ## GROUP Metadata
+       Gets the creation time of a file.
+    creation_time : Date_Time
+    creation_time self = Unimplemented.throw "Enso_File.creation_time is not implemented"
+
+    ## GROUP Metadata
+       Gets the last modified time of a file.
+    last_modified_time : Date_Time
+    last_modified_time self = Unimplemented.throw "Enso_File.creation_time is not implemented"
+
+    ## GROUP Metadata
        Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
@@ -87,6 +98,23 @@ type Enso_File
        Checks if this is a regular file
     is_regular_file : Boolean
     is_regular_file self = self.asset_type == Enso_Asset_Type.File
+
+    ## GROUP Metadata
+       Finds the parent Enso_File for this file.
+    parent : Enso_File | Nothing
+    parent self = Unimplemented.throw "Enso_File.parent is not implemented"
+
+    ## GROUP Metadata
+       Returns the path of this file.
+    path : Text
+    path self = Unimplemented.throw "Enso_File.path is not implemented"
+
+    ## GROUP Metadata
+       Checks if `self` is a child path of `other`.
+    is_child_of : Enso_File -> Boolean
+    is_child_of self (other : Enso_File) =
+        _ = other
+        Unimplemented.throw "Enso_File.is_child_of is not implemented"
 
     ## PRIVATE
        ADVANCED

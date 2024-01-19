@@ -134,8 +134,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             nested_file.size . should_equal nested_file.read_bytes.length
 
         Test.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata" <|
-            # TODO what semantics we choose here?
-            Enso_File.root.parent . should_equal Enso_File.root
+            Enso_File.root.parent . should_equal Nothing
             Enso_File.root.path . should_equal "enso://"
 
             dir = Enso_File.root / "test-directory"
