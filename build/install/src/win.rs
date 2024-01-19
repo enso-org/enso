@@ -33,7 +33,7 @@ pub mod uninstall;
 pub fn classes_key() -> Result<RegKey> {
     RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey_with_flags(r"Software\Classes", KEY_READ | KEY_WRITE)
-        .with_context(|| format!(r#"Failed to open HKEY_CURRENT_USER\Software\Classes key."#))
+        .context(r"Failed to open `HKEY_CURRENT_USER\Software\Classes` key.")
 }
 
 

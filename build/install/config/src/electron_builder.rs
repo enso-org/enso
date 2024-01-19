@@ -41,6 +41,10 @@ pub struct Config {
     /// Configuration for the output directories. Example: `{ "output":
     /// "/home/mwu/Desktop/enso/dist/ide2" }`.
     pub directories: Directories,
+
+    // === OUR EXTENSIONS ===
+    /// Publisher (company) name. Example: `"New Byte Order sp. z o.o."`.
+    pub publisher: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -78,6 +82,13 @@ pub struct FileAssociation {
 
     /// Name of the file type. Example: `"Enso Source File"`.
     pub name: String,
+
+    // === OUR EXTENSIONS ===
+    /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the file type. Example: `"Enso.Source"`.
+    pub prog_id: String,
+
+    /// MIME type of the file type. Example: `"text/plain"`.
+    pub mime_type: String,
 }
 
 #[derive(Serialize, Deserialize)]

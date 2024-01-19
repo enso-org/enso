@@ -1,5 +1,7 @@
 use enso_install::prelude::*;
 
+use enso_install::sanitized_electron_builder_config;
+
 
 
 pub const FAILED_TO_ACQUIRE_LOCK: &str =
@@ -22,7 +24,7 @@ fn parent_directory() -> Result<PathBuf> {
 /// This must be invoked before deleting the install directory, if the uninstaller is located in the
 /// install directory. Otherwise, the executable makes the directory non-deletable.
 fn self_delete(parent_path: &Path) -> Result {
-    self_replace::self_delete_outside_path(&parent_path).with_context(|| {
+    self_replace::self_delete_outside_path(parent_path).with_context(|| {
         format!(
             "Failed to delete the Enso executable. \
             Please delete the file manually: {}",
@@ -67,7 +69,7 @@ pub async fn main() -> Result {
     info!("Remove Add/Remove Programs entry.");
     handle_error(
         &mut errors,
-        enso_install::win::uninstall::remove_from_registry(&enso_install::uninstall_key()),
+        enso_install::win::uninstall::remove_from_registry(enso_install::uninstall_key()),
     );
 
     info!("Removing self (uninstaller) executable.");
@@ -77,7 +79,8 @@ pub async fn main() -> Result {
     handle_error(&mut errors, ide_ci::fs::remove_dir_if_exists(&install_dir));
 
     // Remove prog id but leave file extensions - see https://learn.microsoft.com/en-us/windows/win32/shell/fa-file-types#deleting-registry-information-during-uninstallation
-    for prog_id in enso_install::config::PROG_IDS {
+    for file_association in &sanitized_electron_builder_config().file_associations {
+        let prog_id = &file_association.prog_id;
         info!("Removing ProgID `{prog_id}`.");
         handle_error(&mut errors, enso_install::win::prog_id::delete(prog_id));
     }

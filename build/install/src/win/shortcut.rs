@@ -44,7 +44,7 @@ impl Location {
     #[context("Failed to remove {self} shortcut `{}`.", name)]
     pub fn remove_shortcut(&self, name: &str) -> Result {
         let shortcut_path = self.shortcut_path(name)?;
-        ide_ci::fs::remove_file_if_exists(&shortcut_path)
+        ide_ci::fs::remove_file_if_exists(shortcut_path)
     }
 }
 
@@ -65,7 +65,7 @@ impl Location {
 pub fn create_shortcut_customized(
     shortcut_path: &Path,
     target: &Path,
-    f: impl FnOnce(&mut mslnk::ShellLink) -> (),
+    f: impl FnOnce(&mut mslnk::ShellLink),
 ) -> Result {
     // Paths with verbatim prefix (i.e. `\\?\`) are not supported by the Windows Shell API.
     let target = target.without_verbatim_prefix();

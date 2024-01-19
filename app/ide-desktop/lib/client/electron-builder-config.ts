@@ -286,12 +286,38 @@ export function createElectronBuilderConfig(passedArgs: Arguments) {
     }
 }
 
+/** Write the configuration to a JSON file for debugging purposes.
+ *
+ * The configuration will be extended with additional information needed by the `enso-installer`.
+ */
 async function dumpConfiguration(configPath: string, config: electronBuilder.Configuration) {
+    // We cannot extend the configuration in-place, as the electron-builder does a validation that errors out
+    // if it encounters unknown fields. So we do a deep copy and add the necessary bits.
+    /* eslint-disable */
     const configCopy = JSON.parse(JSON.stringify(config))
-    configCopy.publisherName = common.COMPANY_NAME
+    if (configCopy.fileAssociations.length !== 2) {
+        throw new Error(
+            `Expected exactly two file associations, got ${configCopy.fileAssociations.length}`
+        )
+    }
+    if (configCopy.fileAssociations[0].ext !== fileAssociations.SOURCE_FILE_EXTENSION) {
+        throw new Error(
+            `Expected file association for ${fileAssociations.SOURCE_FILE_EXTENSION} to be first`
+        )
+    }
+    if (configCopy.fileAssociations[1].ext !== fileAssociations.BUNDLED_PROJECT_EXTENSION) {
+        throw new Error(
+            `Expected file association for ${fileAssociations.BUNDLED_PROJECT_EXTENSION} to be second`
+        )
+    }
+    configCopy.publisher = common.COMPANY_NAME
     configCopy.fileAssociations[0].progId = 'Enso.Source'
-    const jsonConfig = JSON.stringify(configCopy, null, 2)
+    configCopy.fileAssociations[0].mimeType = 'text/plain'
+    configCopy.fileAssociations[1].progId = 'Enso.ProjectBundle'
+    configCopy.fileAssociations[1].mimeType = 'application/gzip'
+    const jsonConfig = JSON.stringify(configCopy)
     await fs.writeFile(configPath, jsonConfig)
+    /* eslint-enable */
 }
 
 /** Build the IDE package with Electron Builder. */

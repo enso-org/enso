@@ -20,7 +20,7 @@ pub fn get_binary(name: &str) -> Result<&'static [u8]> {
         let resource =
             LibraryLoader::FindResourceW(None, &HSTRING::from(name), crate::win::RT_RCDATA);
         Foundation::GetLastError()
-            .with_context(|| format!("Failed to find resource: {:?}", name,))
+            .with_context(|| format!("Failed to find resource: {name:?}"))
             .unwrap();
         let global = LibraryLoader::LoadResource(None, resource).unwrap();
         let data = LibraryLoader::LockResource(global);

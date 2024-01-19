@@ -108,7 +108,7 @@ pub fn open_uninstall_key() -> Result<RegKey> {
     RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey_with_flags(UNINSTALL_KEY_PATH, KEY_READ | KEY_WRITE)
         .with_context(|| {
-            format!("Failed to open the uninstall key in the registry: {}", UNINSTALL_KEY_PATH)
+            format!("Failed to open the uninstall key in the registry: {UNINSTALL_KEY_PATH}")
         })
 }
 
@@ -118,8 +118,7 @@ pub fn remove_from_registry(app_key: &str) -> Result {
     let uninstall_key = open_uninstall_key()?;
     uninstall_key.delete_subkey_all(app_key).with_context(|| {
         format!(
-            "Failed to delete the '{}' subkey from the '{}' in the registry.",
-            app_key, UNINSTALL_KEY_PATH
+            "Failed to delete the '{app_key}' subkey from the '{UNINSTALL_KEY_PATH}' in the registry."
         )
     })
 }

@@ -380,8 +380,7 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
-        let _client_build = self
-            .npm()?
+        self.npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .try_applying(&pm_bundle)?

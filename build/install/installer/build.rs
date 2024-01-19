@@ -15,7 +15,7 @@ fn main() {
     if let Ok(archive) = ENSO_INSTALL_ARCHIVE_PATH.get() {
         // We need to either replace backslashes with forward slashes or escape them, as RC file is
         // kinda-compiled. The former is easier.
-        let sanitized_path = archive.as_str().replace("\\", "/");
+        let sanitized_path = archive.as_str().replace('\\', "/");
         let contents = format!(r#"{INSTALLER_PAYLOAD_ID} RCDATA "{sanitized_path}""#);
         ide_ci::fs::write(&rc_file, contents).unwrap();
         embed_resource::compile(&rc_file, embed_resource::NONE);

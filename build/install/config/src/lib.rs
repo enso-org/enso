@@ -59,16 +59,16 @@ pub fn electron_builder_config_path_from_env() -> Result<PathBuf> {
 /// Build-time script (build.rs) that retrieves the electron-builder configuration from the
 /// file designated by the [`ENSO_INSTALL_ELECTRON_BUILDER_CONFIG`] environment variable.
 pub fn electron_builder_config_from_env() -> Result<electron_builder::Config> {
-    ide_ci::fs::read_json(&electron_builder_config_path_from_env()?)
+    ide_ci::fs::read_json(electron_builder_config_path_from_env()?)
 }
 
+/// Location where the sanitized electron-builder configuration is placed.
+///
+/// Should be used only `build.rs`-time.
+///
+/// Runtime installer-dependent crates should embed the file.
 pub fn sanitized_electron_builder_config_path() -> Result<PathBuf> {
     Ok(OUT_DIR.get()?.join("electron-builder-config.json"))
-}
-
-
-pub fn sanitized_electron_builder_config() -> Result<electron_builder::Config> {
-    ide_ci::fs::read_json(&sanitized_electron_builder_config_path()?)
 }
 
 /// Place electron-builder configuration under the output directory.
@@ -132,25 +132,6 @@ impl Display for ResourceType {
     }
 }
 
-/// Embeds a resource from a file.
-pub fn embed_resource_contents(
-    resource_id: &str,
-    resource_type: ResourceType,
-    resource_path: &Path,
-) -> Result {
-    let rc_file = OUT_DIR.get().unwrap().join(resource_id).with_extension("rc");
-    println!("cargo:rerun-if-changed={}", rc_file.display());
-    println!("cargo:rerun-if-changed={OUT_DIR}");
-    // We need to either replace backslashes with forward slashes or escape them, as RC file is
-    // kinda-compiled. The former is easier.
-    let sanitized_path = resource_path.to_str().unwrap().replace("\\", "/");
-    println!("cargo:rerun-if-changed={sanitized_path}");
-    let contents = format!(r#"{resource_id} {resource_type} "{sanitized_path}""#);
-    ide_ci::fs::write(&rc_file, contents)?;
-    embed_resource::compile(&rc_file, embed_resource::NONE);
-    Ok(())
-}
-
 
 /// Embeds a resource from a file.
 pub fn embed_resource_from_file(
@@ -163,7 +144,7 @@ pub fn embed_resource_from_file(
     println!("cargo:rerun-if-changed={OUT_DIR}");
     // We need to either replace backslashes with forward slashes or escape them, as RC file is
     // kinda-compiled. The former is easier.
-    let sanitized_path = resource_path.to_str().unwrap().replace("\\", "/");
+    let sanitized_path = resource_path.to_str().unwrap().replace('\\', "/");
     println!("cargo:rerun-if-changed={sanitized_path}");
     let contents = format!(r#"{resource_id} {resource_type} "{sanitized_path}""#);
     ide_ci::fs::write(&rc_file, contents)?;

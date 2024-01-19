@@ -43,11 +43,10 @@ fn main() {
 #define IDS_VERSION_INFO 1
 
 VS_VERSION_INFO VERSIONINFO
-FILEFLAGSMASK 0x3fL
-FILEFLAGS 0x0L
-FILEOS 0x40004L
-FILETYPE 0x1L
-FILESUBTYPE 0x0L
+FILEVERSION {major},{minor},{patch},0
+PRODUCTVERSION {major},{minor},{patch},0
+FILEOS 0x4
+FILETYPE 0x1
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -55,15 +54,24 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "{company}"
             VALUE "FileVersion", "{version}"
+            VALUE "LegalCopyright", "{copyright}"
             VALUE "ProductName", "{name}"
             VALUE "ProductVersion", "{version}"
         END
     END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
 END
 "#,
+            major = config.extra_metadata.version.major,
+            minor = config.extra_metadata.version.minor,
+            patch = config.extra_metadata.version.patch,
             company = config.copyright,
             name = config.product_name,
-            version = config.extra_metadata.version
+            version = config.extra_metadata.version,
+            copyright = config.copyright
         );
         let path = OUT_DIR.get().unwrap().join("version.rc");
         ide_ci::fs::write(&path, version_rc).unwrap();

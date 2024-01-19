@@ -17,20 +17,6 @@ use crate::win::registry::create_subkey;
 
 
 
-/// The file extension description.
-///
-/// Apart from some basic information, it directs to the ProgID of the file type.
-pub struct FileExtension {
-    /// The file extension including the leading dot, e.g. `.enso`.
-    pub extension:      String,
-    /// The `ProgID` of the file type.
-    pub prog_id:        String,
-    /// The MIME type of the file.
-    pub mime_type:      String,
-    /// A broad category for the file type, e.g. `text`.
-    pub perceived_type: PerceivedType,
-}
-
 /// A set of broad categories for file types hard-coded into Windows.
 ///
 /// See: https://learn.microsoft.com/en-us/windows/win32/api/shtypes/ne-shtypes-perceived
@@ -49,6 +35,31 @@ pub enum PerceivedType {
     Application,
     Gamemedia,
     Contacts,
+}
+
+impl PerceivedType {
+    /// Deduce `PerceivedType` from MIME type.
+    pub fn from_mime_type(mime_type: &str) -> Result<Self> {
+        Ok(match mime_type {
+            "text/plain" => Self::Text,
+            "application/gzip" | "application/zip" => Self::Compressed,
+            _ => bail!("MIME type without a corresponding perceived type: '{mime_type}'."),
+        })
+    }
+}
+
+/// The file extension description.
+///
+/// Apart from some basic information, it directs to the ProgID of the file type.
+pub struct FileExtension {
+    /// The file extension including the leading dot, e.g. `.enso`.
+    pub extension:      String,
+    /// The `ProgID` of the file type.
+    pub prog_id:        String,
+    /// The MIME type of the file.
+    pub mime_type:      String,
+    /// A broad category for the file type, e.g. `text`.
+    pub perceived_type: PerceivedType,
 }
 
 impl FileExtension {
@@ -165,8 +176,8 @@ pub fn register_url_protocol(executable_path: &Path, protocol: &str) -> Result {
     // Register the URL protocol.
     let (url_key, _) = RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey_with_flags(r"Software\Classes", KEY_READ | KEY_WRITE)
-        .with_context(|| format!(r#"Failed to open `HKEY_CURRENT_USER\Software\Classes` key."#))?
-        .create_subkey(&protocol)
+        .context("Failed to open `HKEY_CURRENT_USER\\Software\\Classes` key.")?
+        .create_subkey(protocol)
         .with_context(|| format!(r#"Failed to create subkey for protocol `{protocol}`"#))?;
 
     url_key.set_value("", &format!("URL:{protocol}"))?;

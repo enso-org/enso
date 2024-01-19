@@ -31,7 +31,7 @@ pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config 
         let data = include_str!(env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG"));
         serde_json::from_str(data).expect("Failed to parse the electron-builder config.")
     });
-    &*CONFIG
+    &CONFIG
 }
 
 /// The name of the Windows registry key where uninstall information is stored.
@@ -54,19 +54,19 @@ pub fn shortcut_name() -> &'static str {
     &sanitized_electron_builder_config().product_name
 }
 
-pub mod config {
-    /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Source File.
-    pub const SOURCE_FILE_PROG_ID: &str = "Enso.Source";
-
-    /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Project Bundle.
-    pub const PROJECT_BUNDLE_PROG_ID: &str = "Enso.ProjectBundle";
-
-    /// The [programmatic identifiers](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) registered by the Enso installer.
-    pub const PROG_IDS: &[&str] = &[SOURCE_FILE_PROG_ID, PROJECT_BUNDLE_PROG_ID];
-
-    /// The publisher name that will be displayed in the Add/Remove Programs dialog.
-    pub const PUBLISHER_NAME: &str = "New Byte Order sp. z o.o.";
-}
+// pub mod config {
+//
+//     pub const SOURCE_FILE_PROG_ID: &str = "Enso.Source";
+//
+//     /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Project Bundle.
+//     pub const PROJECT_BUNDLE_PROG_ID: &str = "Enso.ProjectBundle";
+//
+//     /// The [programmatic identifiers](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) registered by the Enso installer.
+//     pub const PROG_IDS: &[&str] = &[SOURCE_FILE_PROG_ID, PROJECT_BUNDLE_PROG_ID];
+//
+//     /// The publisher name that will be displayed in the Add/Remove Programs dialog.
+//     pub const PUBLISHER_NAME: &str = "New Byte Order sp. z o.o.";
+// }
 
 /// Acquire a named file lock.
 ///

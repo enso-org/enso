@@ -50,7 +50,7 @@ impl Program for SignTool {
 /// Heuristically locate the Windows SDK.
 pub fn locate_windows_sdk() -> Result<PathBuf> {
     let program_files = crate::env::known::win::PROGRAMFILES_X86.get()?;
-    let sdk_dir = program_files.join_iter(&["Windows Kits", "10"]);
+    let sdk_dir = program_files.join_iter(["Windows Kits", "10"]);
     // TODO: If we ever want anything more fancy, we should use the `InstallationFolder` key at
     //       `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0`
     //       For now we don't need it, and using `winreg` crate is too much trouble cross-platform.

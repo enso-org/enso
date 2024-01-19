@@ -2,36 +2,19 @@ use ide_ci::prelude::*;
 
 
 
-pub fn register_file_association(executable_path: impl AsRef<Path>) -> Result {
-    let enso_file_type = enso_install::win::prog_id::FileType {
-        application_path: executable_path.as_ref().to_path_buf(),
-        prog_id:          enso_install::config::SOURCE_FILE_PROG_ID.to_string(),
-        friendly_name:    "Enso Source File".to_string(),
-        info_tip:         "Enso Source File".to_string(),
-    };
-    let enso_extension = enso_install::win::prog_id::FileExtension {
-        extension:      ".enso".to_string(),
-        prog_id:        enso_install::config::SOURCE_FILE_PROG_ID.to_string(),
-        mime_type:      "text/plain".to_string(),
-        perceived_type: enso_install::win::prog_id::PerceivedType::Text,
-    };
-    enso_extension.register()?;
-    enso_file_type.register()?;
+pub fn register_file_associations(
+    file_associations: &[(
+        enso_install::win::prog_id::FileType,
+        enso_install::win::prog_id::FileExtension,
+    )],
+) -> Result {
+    for (file_type, file_extension) in file_associations {
+        info!("Registering file extension '{}'.", file_extension.extension);
+        file_extension.register()?;
 
-    let enso_bundle_file_type = enso_install::win::prog_id::FileType {
-        application_path: executable_path.as_ref().to_path_buf(),
-        prog_id:          enso_install::config::PROJECT_BUNDLE_PROG_ID.to_string(),
-        friendly_name:    "Enso Project Bundle".to_string(),
-        info_tip:         "Enso Project Bundle".to_string(),
-    };
-    let enso_bundle_extension = enso_install::win::prog_id::FileExtension {
-        extension:      ".enso-project".to_string(),
-        prog_id:        enso_install::config::PROJECT_BUNDLE_PROG_ID.to_string(),
-        mime_type:      "application/gzip".to_string(), // it's renamed tar.gz
-        perceived_type: enso_install::win::prog_id::PerceivedType::Text,
-    };
-    enso_bundle_extension.register()?;
-    enso_bundle_file_type.register()?;
+        info!("Registering file type '{}'.", file_type.prog_id);
+        file_type.register()?;
+    }
 
     info!("Refreshing file associations in the shell.");
     enso_install::win::refresh_file_associations();
@@ -75,7 +58,7 @@ pub fn install(
 ) -> Result {
     let install_location = install_location.as_ref();
     info!("Removing old installation files (if present).");
-    ide_ci::fs::reset_dir(&install_location)?;
+    ide_ci::fs::reset_dir(install_location)?;
 
     let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
         Some(install_location.join(path_in_archive))
@@ -89,7 +72,7 @@ pub fn install(
     ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
 
     info!("Registering file types.");
-    register_file_association(&executable_location)?;
+    register_file_associations(&config.file_associations)?;
 
     for protocol in &config.url_protocols {
         info!("Registering URL protocol '{protocol}'.");
@@ -101,11 +84,7 @@ pub fn install(
     app_paths_info.write_to_registry()?;
 
     info!("Registering the uninstaller.");
-    register_uninstaller(
-        &config,
-        install_location,
-        &install_location.join("enso-uninstaller.exe"),
-    )?;
+    register_uninstaller(config, install_location, &install_location.join("enso-uninstaller.exe"))?;
 
     info!("Creating Start Menu entry.");
     enso_install::win::shortcut::Location::Menu
@@ -155,16 +134,39 @@ pub struct Config {
 
 
 pub fn fill_config() -> Result<Config> {
-    let electron = enso_install_config::sanitized_electron_builder_config()?;
+    let electron = enso_install::sanitized_electron_builder_config();
 
     let executable_filename = electron.product_name.with_executable_extension();
-    let publisher = enso_install::config::PUBLISHER_NAME.to_string();
+    let publisher = electron.publisher.clone();
     let pretty_name = electron.product_name.clone();
     let shortcut_name = pretty_name.clone();
     let uninstall_key = pretty_name.clone();
     let version = electron.extra_metadata.version.clone();
     let url_protocols = electron.protocols.iter().flat_map(|p| &p.schemes).map_into().collect();
-    let file_associations = default();
+    let file_associations = electron
+        .file_associations
+        .iter()
+        .map(|file_association| {
+            let prog_id = file_association.prog_id.clone();
+            let extension = file_association.ext.clone();
+            let mime_type = file_association.mime_type.clone();
+            let perceived_type =
+                enso_install::win::prog_id::PerceivedType::from_mime_type(&mime_type)?;
+            let file_type = enso_install::win::prog_id::FileType {
+                application_path: executable_filename.clone(),
+                prog_id:          prog_id.clone(),
+                friendly_name:    file_association.name.clone(),
+                info_tip:         file_association.name.clone(),
+            };
+            let file_extension = enso_install::win::prog_id::FileExtension {
+                extension,
+                prog_id,
+                mime_type,
+                perceived_type,
+            };
+            Result::Ok((file_type, file_extension))
+        })
+        .try_collect()?;
     Ok(Config {
         executable_filename,
         publisher,
