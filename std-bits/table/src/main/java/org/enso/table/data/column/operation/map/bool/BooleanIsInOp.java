@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.map.bool;
 
-import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -71,10 +70,12 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
 
     if (hadTrue && !hadFalse) {
       newValues = storage.isNegated() ? missing.notAndNot(values) : missing.notAnd(values);
-      newMissing = hadNull ? (storage.isNegated() ? missing.or(values) : missing.orNot(values)) : missing;
+      newMissing =
+          hadNull ? (storage.isNegated() ? missing.or(values) : missing.orNot(values)) : missing;
     } else if (!hadTrue && hadFalse) {
       newValues = storage.isNegated() ? missing.notAnd(values) : missing.notAndNot(values);
-      newMissing = hadNull ? (storage.isNegated() ? missing.orNot(values) : missing.or(values)) : missing;
+      newMissing =
+          hadNull ? (storage.isNegated() ? missing.orNot(values) : missing.or(values)) : missing;
     } else if (hadTrue && hadFalse) {
       newValues = missing.not();
       newMissing = missing;
