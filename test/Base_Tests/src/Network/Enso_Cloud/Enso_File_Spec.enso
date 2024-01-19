@@ -48,6 +48,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
                 # my_dir.exists . should_be_false
 
         Test.specify "should allow to find a file by name" <|
+            # TODO the file should be created programmatically when write is implemented
             f = Enso_File.root / "test_file.json"
             f.should_succeed
             f.name . should_equal "test_file.json"
@@ -59,6 +60,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             f.should_fail_with Not_Found
 
         Test.specify "should not allow to create a directory inside of a regular file" <|
+            # TODO the file should be created programmatically when write is implemented
             test_file = Enso_File.root / "test_file.json"
             test_file.exists . should_be_true
 
@@ -81,5 +83,33 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
 
         Test.specify "should not allow to delete the root directory" <|
             Enso_File.root.delete . should_fail_with Illegal_Argument
+
+        Test.specify "should be able to create and delete a file" pending="TODO: Cloud file write support" <|
+            Error.throw "TODO"
+
+        expected_file_text = '[1, 2, 3, "foo"]'
+        Test.specify "should be able to read and decode a file using various formats" <|
+            # TODO the file should be created programmatically when write is implemented
+            test_file = Enso_File.root / "test_file.json"
+            test_file.exists . should_be_true
+
+            test_file.read Plain_Text . should_equal expected_file_text
+
+            # auto-detection of JSON format:
+            json = test_file.read
+            json.should_be_a Vector
+            json.should_equal [1, 2, 3, "foo"]
+
+            test_file.read_bytes . should_equal expected_file_text.utf_8
+
+        Test.specify "should be able to open a file as input stream" <|
+            test_file = Enso_File.root / "test_file.json"
+            test_file.exists . should_be_true
+
+            bytes = test_file.with_input_stream [File_Access.Read] stream->
+                stream.read_all_bytes
+
+            bytes.should_equal expected_file_text.utf_8
+
 
 main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)
