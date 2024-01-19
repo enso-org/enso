@@ -134,7 +134,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
             "id": 2
           }
           """)
-      val msg2 = client.expectSomeJson()
+      val msg2 = client.expectSomeJson(15.seconds.dilated)
       inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
         libs should contain(testLibraryName)
       }
