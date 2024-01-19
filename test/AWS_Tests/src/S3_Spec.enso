@@ -8,6 +8,9 @@ from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error,
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
 spec =
     bucket_name = "enso-data-samples"
     not_a_bucket_name = "not_a_bucket_enso"
@@ -15,6 +18,7 @@ spec =
     folder_name = "examples/"
     sub_folder_name = "examples/folder 1/"
     api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
+    cloud_setup = Cloud_Tests_Setup.prepare
 
     Test.group "S3.parse_uri" <|
         Test.specify "parse bucket only uris" <|
@@ -40,6 +44,20 @@ spec =
 
         Test.specify "should handle auth issues" <|
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+        Test.specify "should not work with invalid credentials" <|
+            S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
+
+        Test.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
+            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
+            secret_key_id.should_succeed
+            Panic.with_finalizer secret_key_id.delete <|
+                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" (Environment.get "AWS_SECRET_ACCESS_KEY")
+                secret_key_value.should_succeed
+                Panic.with_finalizer secret_key_value.delete <| with_retries <|
+                    r2 = S3.list_buckets (AWS_Credential.Key secret_key_id secret_key_value)
+                    r2.should_succeed
+                    r2.should_be_a Vector
 
     ## Rest of tests need a functional S3 connection
     pending = if bucket_name.is_nothing then "No S3 bucket set." else if buckets.get.is_error then "S3 Access Failed." else if buckets.get.contains bucket_name then Nothing else "S3 Bucket Not Found."

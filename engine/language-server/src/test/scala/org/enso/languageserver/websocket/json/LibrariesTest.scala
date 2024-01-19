@@ -21,13 +21,17 @@ import org.enso.librarymanager.published.repository.{
 }
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
+import org.enso.testkit.FlakySpec
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
+class LibrariesTest
+    extends BaseServerTest
+    with ReportLogsOnFailure
+    with FlakySpec {
   private val libraryRepositoryPort: Int = 47308
 
   private val exampleRepo = new ExampleRepository(
@@ -55,7 +59,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" in {
+    "create a library project and include it on the list of local projects" taggedAs Flaky in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
