@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 import * as object from '#/utilities/object'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'

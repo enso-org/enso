@@ -19,9 +19,10 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as backendModule from '#/services/backend'
-import * as localBackend from '#/services/localBackend'
-import * as remoteBackend from '#/services/remoteBackend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
 import * as errorModule from '#/utilities/error'
 import HttpClient from '#/utilities/HttpClient'
 import * as localStorageModule from '#/utilities/LocalStorage'
@@ -121,11 +122,7 @@ interface AuthContextType {
     goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
-    setUsername: (
-        backend: backendModule.Backend,
-        username: string,
-        email: string
-    ) => Promise<boolean>
+    setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
     signInWithGoogle: () => Promise<boolean>
     signInWithGitHub: () => Promise<boolean>
     signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -204,12 +201,12 @@ export default function AuthProvider(props: AuthProviderProps) {
         sentry.setUser(null)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
+            setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
             const client = new HttpClient([['Authorization', '']])
-            setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
+            setBackendWithoutSavingType(new RemoteBackend(client, logger))
         }
     }, [
         /* should never change */ projectManagerUrl,
@@ -259,7 +256,7 @@ export default function AuthProvider(props: AuthProviderProps) {
                 }
             } else {
                 const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-                const backend = new remoteBackend.RemoteBackend(client, logger)
+                const backend = new RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
                 if (
@@ -450,7 +447,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         return result.ok
     }
 
-    const setUsername = async (backend: backendModule.Backend, username: string, email: string) => {
+    const setUsername = async (backend: Backend, username: string, email: string) => {
         if (backend.type === backendModule.BackendType.local) {
             toastError('You cannot set your username on the local backend.')
             return false

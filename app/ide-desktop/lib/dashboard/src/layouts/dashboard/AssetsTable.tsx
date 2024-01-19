@@ -18,8 +18,8 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -32,7 +32,7 @@ import type * as pasteDataModule from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -325,7 +325,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
@@ -795,8 +795,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [pasteData])
 
     React.useEffect(() => {
-        return shortcuts.registerKeyboardHandlers({
-            [shortcutsModule.KeyboardAction.cancelCut]: () => {
+        return shortcutManager.registerKeyboardHandlers({
+            [shortcutManagerModule.KeyboardAction.cancelCut]: () => {
                 if (pasteDataRef.current == null) {
                     return false
                 } else {
@@ -809,7 +809,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             },
         })
-    }, [/* should never change */ shortcuts, /* should never change */ dispatchAssetEvent])
+    }, [/* should never change */ shortcutManager, /* should never change */ dispatchAssetEvent])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -1694,12 +1694,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
             if (
-                !shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditional,
+                !shortcutManager.matchesMouseAction(
+                    shortcutManagerModule.MouseAction.selectAdditional,
                     event
                 ) &&
-                !shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditionalRange,
+                !shortcutManager.matchesMouseAction(
+                    shortcutManagerModule.MouseAction.selectAdditionalRange,
                     event
                 ) &&
                 selectedKeys.size !== 0
@@ -1711,7 +1711,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return () => {
             document.removeEventListener('click', onDocumentClick)
         }
-    }, [selectedKeys, /* should never change */ setSelectedKeys, shortcuts])
+    }, [selectedKeys, /* should never change */ setSelectedKeys, shortcutManager])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -1746,11 +1746,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     return selectedItems.map(AssetTreeNode.getKey)
                 }
             }
-            if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
+            if (
+                shortcutManager.matchesMouseAction(
+                    shortcutManagerModule.MouseAction.selectRange,
+                    event
+                )
+            ) {
                 setSelectedKeys(new Set(getNewlySelectedKeys()))
             } else if (
-                shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditionalRange,
+                shortcutManager.matchesMouseAction(
+                    shortcutManagerModule.MouseAction.selectAdditionalRange,
                     event
                 )
             ) {
@@ -1758,7 +1763,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
                 )
             } else if (
-                shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event)
+                shortcutManager.matchesMouseAction(
+                    shortcutManagerModule.MouseAction.selectAdditional,
+                    event
+                )
             ) {
                 setSelectedKeys(oldSelectedItems => {
                     const newItems = new Set(oldSelectedItems)
@@ -1774,7 +1782,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             setPreviouslySelectedKey(key)
         },
-        [displayItems, previouslySelectedKey, shortcuts, /* should never change */ setSelectedKeys]
+        [
+            displayItems,
+            previouslySelectedKey,
+            shortcutManager,
+            /* should never change */ setSelectedKeys,
+        ]
     )
 
     const columns = columnUtils.getColumnList(backend.type, extraColumns)

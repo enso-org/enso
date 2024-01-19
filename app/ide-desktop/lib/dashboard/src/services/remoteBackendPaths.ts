@@ -1,5 +1,5 @@
 /** @file Paths used by the `RemoteBackend`. */
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 
 // =============
 // === Paths ===

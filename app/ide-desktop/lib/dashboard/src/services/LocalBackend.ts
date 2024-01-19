@@ -5,10 +5,11 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
-import * as backend from '#/services/backend'
+import Backend, * as backend from '#/services/Backend'
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
-import * as projectManager from '#/utilities/projectManager'
+import * as projectManager from '#/utilities/ProjectManager'
+import ProjectManager from '#/utilities/ProjectManager'
 
 // =============================
 // === ipWithSocketToAddress ===
@@ -25,16 +26,16 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
-export class LocalBackend extends backend.Backend {
+export default class LocalBackend extends Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    private readonly projectManager: projectManager.ProjectManager
+    private readonly projectManager: ProjectManager
 
     /** Create a {@link LocalBackend}. */
     constructor(projectManagerUrl: string | null) {
         super()
-        this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
+        this.projectManager = ProjectManager.default(projectManagerUrl)
         if (detect.IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.

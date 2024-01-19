@@ -1,6 +1,6 @@
 /** @file Column types and column display modes. */
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import type * as backendModule from '#/services/backend'
+import type * as backendModule from '#/services/Backend'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'

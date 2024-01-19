@@ -5,7 +5,7 @@ import * as toastify from 'react-toastify'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 import * as errorModule from '#/utilities/error'
 
 import Modal from '#/components/Modal'

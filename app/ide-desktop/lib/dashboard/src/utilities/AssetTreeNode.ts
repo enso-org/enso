@@ -1,5 +1,5 @@
 /** @file A node in the drive's item tree. */
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 
 // =====================
 // === AssetTreeNode ===

@@ -13,9 +13,9 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as backendModule from '#/services/Backend'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 import Button from '#/components/Button'
 
@@ -41,28 +41,33 @@ export default function DriveBar(props: DriveBarProps) {
     const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
     const isHomeCategory = category === Category.home || !isCloud
 
     React.useEffect(() => {
-        return shortcuts.registerKeyboardHandlers({
+        return shortcutManager.registerKeyboardHandlers({
             ...(backend.type !== backendModule.BackendType.local
                 ? {
-                      [shortcutsModule.KeyboardAction.newFolder]: () => {
+                      [shortcutManagerModule.KeyboardAction.newFolder]: () => {
                           doCreateDirectory()
                       },
                   }
                 : {}),
-            [shortcutsModule.KeyboardAction.newProject]: () => {
+            [shortcutManagerModule.KeyboardAction.newProject]: () => {
                 doCreateProject(null)
             },
-            [shortcutsModule.KeyboardAction.uploadFiles]: () => {
+            [shortcutManagerModule.KeyboardAction.uploadFiles]: () => {
                 uploadFilesRef.current?.click()
             },
         })
-    }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
+    }, [
+        backend.type,
+        doCreateDirectory,
+        doCreateProject,
+        /* should never change */ shortcutManager,
+    ])
 
     return (
         <div className="flex h-8 py-0.5">

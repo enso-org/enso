@@ -1,4 +1,4 @@
-/** @file A registry for keyboard and mouse shortcuts. */
+/** @file A registry for keyboard and mouse shortcutManager. */
 import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
@@ -38,7 +38,7 @@ export const ICON_SIZE_PX = 16
 // === Types ===
 // =============
 
-/** All possible mouse actions for which shortcuts can be registered. */
+/** All possible mouse actions for which shortcutManager can be registered. */
 export enum MouseAction {
     open = 'open',
     /** Run without opening the editor. */
@@ -49,7 +49,7 @@ export enum MouseAction {
     selectAdditionalRange = 'select-additional-range',
 }
 
-/** All possible keyboard actions for which shortcuts can be registered. */
+/** All possible keyboard actions for which shortcutManager can be registered. */
 export enum KeyboardAction {
     open = 'open',
     /** Run without opening the editor. */
@@ -159,7 +159,7 @@ export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
     )
 }
 
-/** Whether `event` will produce text. This excludes shortcuts, as they do not produce text. */
+/** Whether `event` will produce text. This excludes shortcutManager, as they do not produce text. */
 export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
     // Allow `alt` key to be pressed in case it is being used to enter special characters.
     return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
@@ -202,7 +202,7 @@ export function getModifierKeysOfShortcut(event: KeyboardShortcut | MouseShortcu
     return detect.isOnMacOS()
         ? [
               // The order SHOULD be Control, Option, Shift, Command. See:
-              // https://developer.apple.com/design/human-interface-guidelines/keyboards#Custom-keyboard-shortcuts
+              // https://developer.apple.com/design/human-interface-guidelines/keyboards#Custom-keyboard-shortcutManager
               ...(event.meta === true ? (['Meta'] satisfies ModifierKey[]) : []),
               ...(event.shift === true ? (['Shift'] satisfies ModifierKey[]) : []),
               ...(event.alt === true ? (['Alt'] satisfies ModifierKey[]) : []),
@@ -233,12 +233,12 @@ function modifiersMatchEvent(
     )
 }
 
-// ========================
-// === ShortcutRegistry ===
-// ========================
+// =======================
+// === ShortcutManager ===
+// =======================
 
-/** Holds all keyboard and mouse shortcuts, and provides functions to detect them. */
-export class ShortcutRegistry {
+/** Holds all keyboard and mouse shortcutManager, and provides functions to detect them. */
+export default class ShortcutManager {
     keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
     allKeyboardHandlers: Record<
         KeyboardAction,
@@ -246,14 +246,14 @@ export class ShortcutRegistry {
         ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
     > = makeKeyboardActionMap(() => [])
     /** The last handler (if any) for each action in
-     * {@link ShortcutRegistry.allKeyboardHandlers}. */
+     * {@link ShortcutManager.allKeyboardHandlers}. */
     activeKeyboardHandlers: Record<
         KeyboardAction,
         // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
         ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
     > = makeKeyboardActionMap(() => null)
 
-    /** Create a {@link ShortcutRegistry}. */
+    /** Create a {@link ShortcutManager}. */
     constructor(
         public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
         public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
@@ -262,7 +262,7 @@ export class ShortcutRegistry {
         this.updateKeyboardShortcutsByKey()
     }
 
-    /** Create a new {@link ShortcutRegistry} with default values. */
+    /** Create a new {@link ShortcutManager} with default values. */
     static createWithDefaults() {
         return new this(
             { ...DEFAULT_KEYBOARD_SHORTCUTS },
@@ -334,11 +334,11 @@ export class ShortcutRegistry {
         return false
     }
 
-    /** Regenerate {@link ShortcutRegistry.keyboardShortcutsByKey}. */
+    /** Regenerate {@link ShortcutManager.keyboardShortcutsByKey}. */
     updateKeyboardShortcutsByKey() {
         this.keyboardShortcutsByKey = {}
-        for (const shortcuts of Object.values(this.keyboardShortcuts)) {
-            for (const shortcut of shortcuts) {
+        for (const shortcutManager of Object.values(this.keyboardShortcuts)) {
+            for (const shortcut of shortcutManager) {
                 const byKey = this.keyboardShortcutsByKey[shortcut.key.toUpperCase()]
                 if (byKey != null) {
                     byKey.unshift(shortcut)
@@ -349,7 +349,7 @@ export class ShortcutRegistry {
         }
     }
 
-    /** Regenerate {@link ShortcutRegistry.activeKeyboardHandlers}. */
+    /** Regenerate {@link ShortcutManager.activeKeyboardHandlers}. */
     updateActiveKeyboardHandlers() {
         for (const action of Object.values(KeyboardAction)) {
             const handlers = this.allKeyboardHandlers[action]
@@ -429,7 +429,7 @@ const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 /** The key known as the `Delete` key for the current platform. */
 const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
-/** The default keyboard shortcuts. */
+/** The default keyboard shortcutManager. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
     [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
@@ -547,7 +547,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }
 
-/** The default mouse shortcuts. */
+/** The default mouse shortcutManager. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
     [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
     [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],

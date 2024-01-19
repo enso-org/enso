@@ -6,7 +6,7 @@ import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
 import * as sorting from '#/utilities/sorting'
 
 // =============

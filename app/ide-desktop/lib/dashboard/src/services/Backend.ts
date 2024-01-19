@@ -836,7 +836,7 @@ export function stripProjectExtension(name: string) {
 // ===============
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export abstract class Backend {
+export default abstract class Backend {
     abstract readonly type: BackendType
 
     /** Return a list of all users in the same organization. */

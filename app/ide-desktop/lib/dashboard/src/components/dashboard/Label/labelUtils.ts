@@ -1,5 +1,5 @@
 /** @file Constants related to labels. */
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 
 // =================
 // === Constants ===

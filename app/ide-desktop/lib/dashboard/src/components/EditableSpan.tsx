@@ -4,8 +4,8 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ====================
 // === EditableSpan ===
@@ -37,7 +37,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         inputTitle,
         ...passthrough
     } = props
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const [isSubmittable, setIsSubmittable] = React.useState(true)
     const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -49,8 +49,8 @@ export default function EditableSpan(props: EditableSpanProps) {
 
     React.useEffect(() => {
         if (editable) {
-            return shortcuts.registerKeyboardHandlers({
-                [shortcutsModule.KeyboardAction.cancelEditName]: () => {
+            return shortcutManager.registerKeyboardHandlers({
+                [shortcutManagerModule.KeyboardAction.cancelEditName]: () => {
                     onCancel()
                     inputRef.current?.blur()
                 },
@@ -58,7 +58,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         } else {
             return
         }
-    }, [editable, shortcuts, onCancel])
+    }, [editable, shortcutManager, onCancel])
 
     if (editable) {
         return (

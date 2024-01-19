@@ -1,7 +1,7 @@
 /** @file The icon and name of an {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 
 import type * as column from '#/components/dashboard/column'
 import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'

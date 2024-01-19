@@ -3,7 +3,7 @@ import * as common from 'enso-common'
 
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'

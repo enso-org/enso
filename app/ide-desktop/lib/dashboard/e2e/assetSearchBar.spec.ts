@@ -1,7 +1,7 @@
 /** @file Test the search bar and its suggestions. */
 import * as test from '@playwright/test'
 
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
 
 import * as actions from './actions'
 

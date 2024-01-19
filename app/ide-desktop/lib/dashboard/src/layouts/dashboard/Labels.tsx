@@ -6,7 +6,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/AssetQuery'
 import type AssetQuery from '#/utilities/AssetQuery'

@@ -3,10 +3,10 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
-import * as shortcuts from '#/utilities/shortcuts'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 import Label from '#/components/dashboard/Label'
 
@@ -157,14 +157,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
                 (!(event.target instanceof Node) ||
                     rootRef.current?.contains(event.target) !== true) &&
-                shortcuts.isTextInputEvent(event)
+                shortcutManager.isTextInputEvent(event)
             ) {
                 searchRef.current?.focus()
             }
             if (
                 event.target instanceof Node &&
                 rootRef.current?.contains(event.target) === true &&
-                shortcuts.isPotentiallyShortcut(event)
+                shortcutManager.isPotentiallyShortcut(event)
             ) {
                 searchRef.current?.focus()
             }

@@ -10,12 +10,12 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
@@ -38,7 +38,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const { doToggleDirectoryExpansion } = state
     const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
@@ -126,7 +126,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     ((selected && numberOfSelectedItems === 1) ||
-                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+                        shortcutManager.matchesMouseAction(
+                            shortcutManagerModule.MouseAction.editName,
+                            event
+                        ))
                 ) {
                     setRowState(object.merger({ isEditingName: true }))
                 } else if (eventModule.isDoubleClick(event)) {

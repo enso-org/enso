@@ -10,7 +10,7 @@ import UserMenu from '#/layouts/dashboard/UserMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 
 import Button from '#/components/Button'
 

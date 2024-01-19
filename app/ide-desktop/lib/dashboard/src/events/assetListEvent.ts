@@ -1,6 +1,6 @@
 /** @file Events related to changes in the asset list. */
 import type AssetListEventType from '#/events/AssetListEventType'
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 
 import type * as spinner from '#/components/Spinner'
 

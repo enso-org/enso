@@ -10,7 +10,7 @@ import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as github from '#/utilities/github'
-import * as shortcuts from '#/utilities/shortcuts'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
@@ -59,7 +59,7 @@ export default function UserMenu(props: UserMenuProps) {
                         <div className="flex flex-col">
                             {canChangePassword && (
                                 <MenuEntry
-                                    action={shortcuts.KeyboardAction.changeYourPassword}
+                                    action={shortcutManager.KeyboardAction.changeYourPassword}
                                     paddingClassName="p-1"
                                     doAction={() => {
                                         setModal(<ChangePasswordModal />)
@@ -68,7 +68,7 @@ export default function UserMenu(props: UserMenuProps) {
                             )}
                             {!supportsLocalBackend && (
                                 <MenuEntry
-                                    action={shortcuts.KeyboardAction.downloadApp}
+                                    action={shortcutManager.KeyboardAction.downloadApp}
                                     paddingClassName="p-1"
                                     doAction={async () => {
                                         unsetModal()
@@ -84,7 +84,7 @@ export default function UserMenu(props: UserMenuProps) {
                                 />
                             )}
                             <MenuEntry
-                                action={shortcuts.KeyboardAction.signOut}
+                                action={shortcutManager.KeyboardAction.signOut}
                                 paddingClassName="p-1"
                                 doAction={() => {
                                     onSignOut()
@@ -103,7 +103,7 @@ export default function UserMenu(props: UserMenuProps) {
                         </div>
                         <div className="flex flex-col">
                             <MenuEntry
-                                action={shortcuts.KeyboardAction.signIn}
+                                action={shortcutManager.KeyboardAction.signIn}
                                 paddingClassName="p-1"
                                 doAction={() => {
                                     navigate(appUtils.LOGIN_PATH)

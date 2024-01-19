@@ -2,7 +2,7 @@
  * on its item, for a specific type of item. */
 import * as React from 'react'
 
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 // ===================

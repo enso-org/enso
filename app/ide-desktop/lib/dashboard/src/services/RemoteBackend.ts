@@ -6,7 +6,7 @@
 import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import * as backendModule from '#/services/backend'
+import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as config from '#/utilities/config'
 import * as errorModule from '#/utilities/error'
@@ -51,7 +51,7 @@ const CHECK_STATUS_INTERVAL_MS = 5000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
-    backend: backendModule.Backend,
+    backend: Backend,
     item: backendModule.ProjectAsset,
     abortController: AbortController = new AbortController()
 ) {
@@ -123,7 +123,7 @@ interface DefaultVersionInfo {
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export class RemoteBackend extends backendModule.Backend {
+export default class RemoteBackend extends Backend {
     readonly type = backendModule.BackendType.remote
     protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 

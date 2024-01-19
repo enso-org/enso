@@ -10,11 +10,11 @@ import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
-import * as shortcuts from '#/utilities/shortcuts'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -120,7 +120,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 <ContextMenu hidden={hidden}>
                     <MenuEntry
                         hidden={hidden}
-                        action={shortcuts.KeyboardAction.restoreAllFromTrash}
+                        action={shortcutManager.KeyboardAction.restoreAllFromTrash}
                         doAction={doRestoreAll}
                     />
                 </ContextMenu>
@@ -130,8 +130,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         return null
     } else {
         const deleteAction = isCloud
-            ? shortcuts.KeyboardAction.moveAllToTrash
-            : shortcuts.KeyboardAction.deleteAll
+            ? shortcutManager.KeyboardAction.moveAllToTrash
+            : shortcutManager.KeyboardAction.deleteAll
         return (
             <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
                 {selectedKeys.size !== 0 && (
@@ -146,21 +146,21 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                         {isCloud && (
                             <MenuEntry
                                 hidden={hidden}
-                                action={shortcuts.KeyboardAction.copyAll}
+                                action={shortcutManager.KeyboardAction.copyAll}
                                 doAction={doCopy}
                             />
                         )}
                         {isCloud && ownsAllSelectedAssets && (
                             <MenuEntry
                                 hidden={hidden}
-                                action={shortcuts.KeyboardAction.cutAll}
+                                action={shortcutManager.KeyboardAction.cutAll}
                                 doAction={doCut}
                             />
                         )}
                         {pasteData != null && pasteData.data.size > 0 && (
                             <MenuEntry
                                 hidden={hidden}
-                                action={shortcuts.KeyboardAction.pasteAll}
+                                action={shortcutManager.KeyboardAction.pasteAll}
                                 doAction={() => {
                                     const [firstKey] = selectedKeys
                                     const selectedNode =

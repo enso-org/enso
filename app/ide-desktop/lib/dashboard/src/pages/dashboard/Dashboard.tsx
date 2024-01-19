@@ -23,16 +23,16 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as localBackendModule from '#/services/localBackend'
-import * as remoteBackendModule from '#/services/remoteBackend'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as backendModule from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
-import * as projectManager from '#/utilities/projectManager'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as projectManager from '#/utilities/ProjectManager'
+import * as shortcutRegistryModule from '#/utilities/ShortcutManager'
 
 import TheModal from '#/components/dashboard/TheModal'
 import type * as spinner from '#/components/Spinner'
@@ -61,7 +61,7 @@ export default function Dashboard(props: DashboardProps) {
     const { modalRef } = modalProvider.useModalRef()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const [initialized, setInitialized] = React.useState(false)
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
@@ -126,7 +126,7 @@ export default function Dashboard(props: DashboardProps) {
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+            currentBackend = new LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
         const savedProjectStartupInfo = localStorage.get(
@@ -159,10 +159,7 @@ export default function Dashboard(props: DashboardProps) {
                         const httpClient = new HttpClient(
                             new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                         )
-                        const remoteBackend = new remoteBackendModule.RemoteBackend(
-                            httpClient,
-                            logger
-                        )
+                        const remoteBackend = new RemoteBackend(httpClient, logger)
                         void (async () => {
                             const abortController = new AbortController()
                             setOpenProjectAbortController(abortController)
@@ -200,7 +197,7 @@ export default function Dashboard(props: DashboardProps) {
                 if (currentBackend.type === backendModule.BackendType.local) {
                     setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
                 } else {
-                    const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+                    const localBackend = new LocalBackend(projectManagerUrl)
                     void (async () => {
                         await localBackend.openProject(
                             savedProjectStartupInfo.projectAsset.id,
@@ -305,8 +302,8 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        return shortcuts.registerKeyboardHandlers({
-            [shortcutsModule.KeyboardAction.closeModal]: () => {
+        return shortcutManager.registerKeyboardHandlers({
+            [shortcutRegistryModule.KeyboardAction.closeModal]: () => {
                 unsetModal()
                 if (modalRef.current == null) {
                     // eslint-disable-next-line no-restricted-syntax
@@ -314,20 +311,20 @@ export default function Dashboard(props: DashboardProps) {
                 }
             },
         })
-    }, [shortcuts, /* should never change */ modalRef, /* should never change */ unsetModal])
+    }, [shortcutManager, /* should never change */ modalRef, /* should never change */ unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
+                        setBackend(new LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
                         const client = new HttpClient([
                             ['Authorization', `Bearer ${session.accessToken ?? ''}`],
                         ])
-                        setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                        setBackend(new RemoteBackend(client, logger))
                         break
                     }
                 }

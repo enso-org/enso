@@ -1,7 +1,7 @@
 /** @file Tests for the asset panel. */
 import * as test from '@playwright/test'
 
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 
 import * as actions from './actions'
