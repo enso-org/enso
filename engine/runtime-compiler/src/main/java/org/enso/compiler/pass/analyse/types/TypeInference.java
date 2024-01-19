@@ -13,7 +13,6 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.*;
@@ -164,29 +163,6 @@ public final class TypeInference implements IRPass {
         }
 
         setInferredType(ir, new InferredType(ascribedType));
-      }
-    }
-  }
-
-  private static class LocalBindingsTyping {
-    private final Map<AliasAnalysis.Graph, Map<Integer, TypeRepresentation>> map = new HashMap<>();
-
-    public static LocalBindingsTyping create() {
-      return new LocalBindingsTyping();
-    }
-
-    private Map<Integer, TypeRepresentation> accessGraph(AliasAnalysis.Graph graph) {
-      return map.computeIfAbsent(graph, (g) -> new HashMap<>());
-    }
-
-    TypeRepresentation getBindingType(AliasAnalysis.Graph graph, int id) {
-      return accessGraph(graph).get(id);
-    }
-
-    void registerBindingType(AliasAnalysis.Graph graph, int id, TypeRepresentation type) {
-      var previous = accessGraph(graph).put(id, type);
-      if (previous != null) {
-        throw new IllegalStateException("Duplicate binding " + id + " in graph " + graph);
       }
     }
   }
