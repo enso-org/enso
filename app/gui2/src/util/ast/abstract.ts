@@ -25,41 +25,6 @@ function asOwned<T>(t: T): Owned<T> {
   return t as Owned<T>
 }
 
-/*
-export class MutableModule {
-  apply(editIn: Module) {
-    const edit = editIn.raw
-    if (edit.spans) {
-      const spans = this.spans ?? new Map()
-      for (const [id, ast] of edit.spans.entries()) {
-        spans.set(id, ast)
-      }
-      this.spans = spans
-    }
-    for (const [id, ast] of edit.nodes.entries()) {
-      if (ast === null) {
-        this.nodes.delete(id)
-        this.spans?.delete(id)
-      } else {
-        this.nodes.set(id, ast)
-      }
-    }
-  }
-
-  // Replace the contents of this module with the contents of the specified module.
-  replace(editIn: Module) {
-    const edit = editIn.raw
-    for (const id of this.nodes.keys()) {
-      if (!edit.nodes.has(id)) {
-        this.nodes.delete(id)
-        this.spans?.delete(id)
-      }
-    }
-    this.apply(edit)
-  }
-}
-*/
-
 export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
   const module = MutableModule.Transient()
@@ -161,19 +126,6 @@ function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
   return { whitespace: isSpaced ? ' ' : '', node }
 }
 
-/*
-function makeChild<T extends MutableAst>(module: MutableModule, child: Owned<T>, parent: AstId): AstId {
-  const oldParent = child.parentId
-  assert(
-    !oldParent || !module.has(oldParent),
-    'Owned object is not owned. Was it obtained from a different module?',
-  )
-  const spliced = module.splice(child)
-  spliced.parent = parent
-  return spliced.exprId
-}
- */
-
 ////////////////////////////////////////////////////////
 
 export interface Module {
@@ -190,8 +142,13 @@ export interface Module {
   getToken(token: SyncTokenId | undefined): Token | undefined
   getAny(node: SyncId | SyncTokenId): Ast | Token
   has(id: SyncId): boolean
+  getSpan(id: SyncId): SourceRange | undefined
+}
 
-  spans: Map<AstId, SourceRange> | undefined
+interface ModuleUpdate {
+  addNodes: SyncId[]
+  deleteNodes: SyncId[]
+  updateNodes: { id: SyncId; fields: [string, unknown][] }[]
 }
 
 export class ReactiveModule implements Module {
@@ -210,11 +167,36 @@ export class ReactiveModule implements Module {
 
   private readonly ymodule: MutableModule
   private readonly nodes: Map<SyncId, FixedMapView<AstFields>>
-  spans: Map<AstId, SourceRange> | undefined
+  private readonly spans: Map<SyncId, SourceRange>
 
   constructor(base: MutableModule) {
-    this.nodes = reactive(new Map())
     this.ymodule = base
+    this.nodes = reactive(new Map())
+    this.spans = reactive(new Map())
+    base.observe((update) => {
+      for (const id of update.addNodes) this.nodes.set(id, new Map() as any)
+      for (const id of update.deleteNodes) this.nodes.delete(id)
+      for (const { id, fields } of update.updateNodes) {
+        const node = this.nodes.get(id)
+        assertDefined(node)
+        for (const [key, value] of fields) {
+          const node_ = node as unknown as Map<string, unknown>
+          node_.set(key, value)
+        }
+      }
+      this.rebuildSpans()
+    })
+  }
+
+  private rebuildSpans() {
+    const root = this.root()
+    if (!root) return
+    const printed = print(root)
+    printed.info
+  }
+
+  getSpan(id: SyncId): SourceRange | undefined {
+    return this.spans.get(id)
   }
 
   getAst(id: SyncId): Ast
@@ -254,7 +236,6 @@ type YNodes = Y.Map<YNode>
 
 export class MutableModule implements Module {
   private readonly nodes: YNodes
-  spans: Map<AstId, SourceRange> | undefined
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
   get<T extends Ast>(ast: T): Mutable<T> | undefined {
@@ -267,16 +248,16 @@ export class MutableModule implements Module {
     const state = Y.encodeStateAsUpdateV2(this.nodes.doc!)
     const doc = new Y.Doc()
     Y.applyUpdateV2(doc, state)
-    return new MutableModule(doc, undefined)
+    return new MutableModule(doc)
   }
 
   root(): MutableAst | undefined {
-    return asRootPointer(this.getAst(rootId))?.expression
+    return this.rootPointer()?.expression
   }
 
   replaceRoot(newRoot: Owned | undefined): Owned | undefined {
     if (newRoot) {
-      const rootPointer = asRootPointer(this.getAst(rootId))
+      const rootPointer = this.rootPointer()
       if (rootPointer) {
         return rootPointer.expression.replace(newRoot)
       } else {
@@ -305,20 +286,66 @@ export class MutableModule implements Module {
   }
 
   static Transient() {
-    return new this(new Y.Doc(), undefined)
+    return new this(new Y.Doc())
   }
 
-  static Observable() {
-    // TODO
-    //(reactive(new Map()), reactive(new Map()))
-    return this.Transient()
+  observe(observer: (update: ModuleUpdate) => void) {
+    this.nodes.observeDeep((events) => {
+      const addNodes = []
+      const deleteNodes = []
+      const updateNodes = []
+      for (const event of events) {
+        const path = event.path
+        assertEqual(path.shift(), 'nodes')
+        if (path.length === 0) {
+          for (const [key, change] of event.changes.keys) {
+            const id = key as SyncId
+            switch (change.action) {
+              case 'add':
+                addNodes.push(id)
+                break
+              case 'update':
+                break
+              case 'delete':
+                deleteNodes.push(id)
+                break
+            }
+          }
+        } else {
+          assert(path.length === 1)
+          const id = path[0] as SyncId
+          const node = this.nodes.get(id)
+          assertDefined(node)
+          const fields: [string, unknown][] = []
+          for (const [key, change] of event.changes.keys) {
+            switch (change.action) {
+              case 'add':
+              case 'update':
+                fields.push([key, node.get(key)])
+                break
+              case 'delete':
+                fields.push([key, undefined])
+                break
+            }
+          }
+          updateNodes.push({ id, fields })
+        }
+      }
+      observer({ addNodes, deleteNodes, updateNodes })
+    })
   }
 
   /////////////////////////////////////////////
 
-  constructor(doc: Y.Doc, spans: Map<AstId, SourceRange> | undefined) {
+  getSpan(id: SyncId) { return undefined }
+
+  constructor(doc: Y.Doc) {
     this.nodes = doc.getMap<YNode>('nodes')
-    this.spans = spans
+  }
+
+  private rootPointer(): MutableRootPointer | undefined {
+    const rootPointer = this.getAst(rootId)
+    if (rootPointer) return rootPointer as MutableRootPointer
   }
 
   /** @internal */
@@ -387,10 +414,6 @@ export class MutableModule implements Module {
   has(id: SyncId) {
     return this.nodes.has(id)
   }
-}
-
-function asRootPointer(rootPointer: MutableAst | undefined): MutableRootPointer | undefined {
-  if (rootPointer) return rootPointer as MutableRootPointer
 }
 
 type Mutable<T extends Ast> = T extends App
@@ -585,7 +608,7 @@ export abstract class Ast {
 
   /** Return this node's span, if it belongs to a module with an associated span map. */
   get span(): SourceRange | undefined {
-    return this.module.spans?.get(this.exprId)
+    return this.module.getSpan(this.syncId)
   }
 
   innerExpression(): Ast {
@@ -2724,7 +2747,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   })
   const tokensOut = new Map()
   const newRoot = parseBlock({ info: { nodes, tokens, tokensOut }, code })
-  newRoot.module.spans = spans
+  //newRoot.module.spans = spans
   idMap.clear()
   // TODO (optimization): Use ID-match info collected while abstracting.
   /*
