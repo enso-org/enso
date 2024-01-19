@@ -3,7 +3,6 @@ package org.enso.compiler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

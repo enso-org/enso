@@ -1,13 +1,18 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.*;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 
-import java.util.*;
-
 public sealed interface TypeRepresentation
-    permits TypeRepresentation.ArrowType, TypeRepresentation.AtomType, TypeRepresentation.IntersectionType, TypeRepresentation.SumType, TypeRepresentation.TopType, TypeRepresentation.TypeObject, TypeRepresentation.UnresolvedSymbol {
+    permits TypeRepresentation.ArrowType,
+        TypeRepresentation.AtomType,
+        TypeRepresentation.IntersectionType,
+        TypeRepresentation.SumType,
+        TypeRepresentation.TopType,
+        TypeRepresentation.TypeObject,
+        TypeRepresentation.UnresolvedSymbol {
   record TopType() implements TypeRepresentation {
     @Override
     public String toString() {
@@ -22,7 +27,8 @@ public sealed interface TypeRepresentation
     }
   }
 
-  record ArrowType(TypeRepresentation argType, TypeRepresentation resultType) implements TypeRepresentation {
+  record ArrowType(TypeRepresentation argType, TypeRepresentation resultType)
+      implements TypeRepresentation {
     @Override
     public String toString() {
       return "(" + argType + " -> " + resultType + ")";
@@ -38,7 +44,11 @@ public sealed interface TypeRepresentation
 
     @Override
     public String toString() {
-      String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " | " + b).orElse("");
+      String repr =
+          types.stream()
+              .map(TypeRepresentation::toString)
+              .reduce((a, b) -> a + " | " + b)
+              .orElse("");
       return "(" + repr + ")";
     }
 
@@ -76,17 +86,23 @@ public sealed interface TypeRepresentation
 
     @Override
     public String toString() {
-      String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " & " + b).orElse("");
+      String repr =
+          types.stream()
+              .map(TypeRepresentation::toString)
+              .reduce((a, b) -> a + " & " + b)
+              .orElse("");
       return "(" + repr + ")";
     }
   }
 
   /**
    * Represents a type object, i.e. an object that is an instance of a type's identity.
-   * <p>
-   * This object allows to call static methods on that type or create instances of this type using its constructors.
-   * <p>
-   * TODO I'm not sure if storing BindingsMap.Type here is the best idea, later we may want to reduce coupling; however for now, I'm just trying to keep it simple to make the PoC work.
+   *
+   * <p>This object allows to call static methods on that type or create instances of this type
+   * using its constructors.
+   *
+   * <p>TODO I'm not sure if storing BindingsMap.Type here is the best idea, later we may want to
+   * reduce coupling; however for now, I'm just trying to keep it simple to make the PoC work.
    *
    * @param name the qualified name of the type
    * @param shape the type that this type object represents
@@ -97,7 +113,10 @@ public sealed interface TypeRepresentation
       return "(type " + name.item() + ")";
     }
 
-    /** Creates a TypeRepresentation representing a constructed instance of the type represented by this TypeObject. */
+    /**
+     * Creates a TypeRepresentation representing a constructed instance of the type represented by
+     * this TypeObject.
+     */
     public TypeRepresentation instantiate() {
       return fromQualifiedName(name);
     }
@@ -110,7 +129,8 @@ public sealed interface TypeRepresentation
     }
   }
 
-  static TypeRepresentation buildFunction(List<TypeRepresentation> arguments, TypeRepresentation result) {
+  static TypeRepresentation buildFunction(
+      List<TypeRepresentation> arguments, TypeRepresentation result) {
     var reversed = new ArrayList<>(arguments);
     Collections.reverse(reversed);
     return reversed.stream().reduce(result, (acc, arg) -> new ArrowType(arg, acc));
@@ -144,10 +164,13 @@ public sealed interface TypeRepresentation
   // TODO maybe we should stop?
   default TypeRepresentation toAbstract() {
     return switch (this) {
-      case ArrowType arrowType -> new ArrowType(arrowType.argType.toAbstract(), arrowType.resultType.toAbstract());
+      case ArrowType arrowType -> new ArrowType(
+          arrowType.argType.toAbstract(), arrowType.resultType.toAbstract());
       case AtomType atomType -> atomType;
-      case IntersectionType intersectionType -> new IntersectionType(intersectionType.types.stream().map(TypeRepresentation::toAbstract).toList());
-      case SumType sumType -> new SumType(sumType.types.stream().map(TypeRepresentation::toAbstract).toList());
+      case IntersectionType intersectionType -> new IntersectionType(
+          intersectionType.types.stream().map(TypeRepresentation::toAbstract).toList());
+      case SumType sumType -> new SumType(
+          sumType.types.stream().map(TypeRepresentation::toAbstract).toList());
       case TopType topType -> topType;
       case TypeObject typeObject -> new TypeObject(typeObject.name, typeObject.shape);
       case UnresolvedSymbol unresolvedSymbol -> unresolvedSymbol;

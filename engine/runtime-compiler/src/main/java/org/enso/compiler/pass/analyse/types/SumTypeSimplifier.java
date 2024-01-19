@@ -23,7 +23,8 @@ public class SumTypeSimplifier {
     if (hasAny) {
       return TypeRepresentation.ANY;
     } else if (parts.isEmpty()) {
-      throw new IllegalStateException("SumTypeSimplifier: build may be called after at least one traverse call.");
+      throw new IllegalStateException(
+          "SumTypeSimplifier: build may be called after at least one traverse call.");
     } else if (parts.size() == 1) {
       return parts.iterator().next();
     } else {
