@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.service.ExecutionService;
@@ -102,14 +103,16 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     this.env = env;
     env.registerService(this);
-    Handler handler = new Handler();
-    this.handler = handler;
+    ServiceLoader<Handler> loader =
+        ServiceLoader.load(Handler.class, RuntimeServerInstrument.class.getClassLoader());
+    var loadedHandler = loader.findFirst();
+    this.handler = loadedHandler.orElse(new HandlerImpl());
 
     try {
       MessageEndpoint client =
-          env.startServer(URI.create(RuntimeServerInfo.URI), handler.endpoint());
+          env.startServer(URI.create(RuntimeServerInfo.URI), this.handler.endpoint());
       if (client != null) {
-        handler.endpoint().setClient(client);
+        this.handler.endpoint().setClient(client);
       } else {
         env.getLogger(RuntimeServerInstrument.class)
             .warning(

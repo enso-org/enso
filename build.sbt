@@ -1926,7 +1926,7 @@ lazy val `runtime-instrument-runtime-server` =
       instrumentationSettings
     )
     .dependsOn(LocalProject("runtime"))
-    .dependsOn(`runtime-instrument-common`)
+    .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
 
 /** A "meta" project that exists solely to provide logic for assembling the `runtime.jar` fat Jar.
   * We do not want to put this task into any other existing project, as it internally copies some
