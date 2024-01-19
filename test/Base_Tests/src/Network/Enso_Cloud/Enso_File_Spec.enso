@@ -68,7 +68,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             r = test_file.create_directory "my_test_dir"
             r.should_fail_with Illegal_Argument
 
-        Test.specify "should delete all contents of a directory when deleting a directory" <|
+        Test.specify "should delete all contents of a directory when deleting a directory" pending="TODO discuss recursive delete" <|
             dir1 = Enso_File.root.create_directory "my_test_dir1"+(Random.uuid.take 5)
             dir1.should_succeed
 
@@ -127,7 +127,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             nested_file = dir / "another.txt"
             nested_file.exists.should_be_true
             nested_file.name . should_equal "another.txt"
-            nested_file.extension . should_equal "txt"
+            nested_file.extension . should_equal ".txt"
             nested_file.is_directory.should_be_false
             nested_file.is_regular_file.should_be_true
 

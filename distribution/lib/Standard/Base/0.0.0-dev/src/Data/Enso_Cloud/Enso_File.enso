@@ -11,6 +11,7 @@ import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
@@ -115,11 +116,11 @@ type Enso_File
             response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
             response.if_not_error <|
                 js_object = response.decode_as_json
-                path = js_object.get "path"
-                if path.is_nothing then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
+                path = js_object.get "file" . get "path"
+                if path.is_nothing then Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File: "+js_object.to_text) else
                     url = path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
                     response = HTTP.fetch url HTTP_Method.Get []
-                    response.if_not_error <| response.with_stream action
+                    response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -149,7 +150,9 @@ type Enso_File
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                     self.read real_format on_problems
             _ ->
-                metadata = File_Format_Metadata.Value file_name=self.name
+                # TODO this is just a placeholder, until we implement the proper path
+                path = "enso://"+self.id
+                metadata = File_Format_Metadata.Value path=path name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
