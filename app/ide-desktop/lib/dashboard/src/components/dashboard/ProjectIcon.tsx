@@ -18,7 +18,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import Spinner, * as spinner from '#/components/Spinner'

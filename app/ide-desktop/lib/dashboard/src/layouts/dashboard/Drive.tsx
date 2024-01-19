@@ -25,7 +25,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as github from '#/utilities/github'
-import * as localStorageModule from '#/utilities/localStorage'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as spinner from '#/components/Spinner'

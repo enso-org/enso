@@ -28,8 +28,8 @@ import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import AssetQuery from '#/utilities/AssetQuery'
-import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
+import HttpClient from '#/utilities/HttpClient'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as projectManager from '#/utilities/projectManager'
 import * as shortcutsModule from '#/utilities/shortcuts'
@@ -156,7 +156,7 @@ export default function Dashboard(props: DashboardProps) {
                         ])
                     } else {
                         setPage(pageSwitcher.Page.drive)
-                        const httpClient = new http.Client(
+                        const httpClient = new HttpClient(
                             new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                         )
                         const remoteBackend = new remoteBackendModule.RemoteBackend(
@@ -324,7 +324,7 @@ export default function Dashboard(props: DashboardProps) {
                         setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
-                        const client = new http.Client([
+                        const client = new HttpClient([
                             ['Authorization', `Bearer ${session.accessToken ?? ''}`],
                         ])
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))

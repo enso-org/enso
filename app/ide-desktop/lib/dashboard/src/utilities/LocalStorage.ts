@@ -48,7 +48,7 @@ const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
 }
 
 /** A LocalStorage data manager. */
-export class LocalStorage {
+export default class LocalStorage {
     localStorageKey = common.PRODUCT_NAME.toLowerCase()
     protected values: Partial<LocalStorageData>
 

@@ -23,8 +23,8 @@ import * as backendModule from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
-import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
+import HttpClient from '#/utilities/HttpClient'
+import * as localStorageModule from '#/utilities/LocalStorage'
 
 // =================
 // === Constants ===
@@ -208,7 +208,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
-            const client = new http.Client([['Authorization', '']])
+            const client = new HttpClient([['Authorization', '']])
             setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
         }
     }, [
@@ -258,7 +258,7 @@ export default function AuthProvider(props: AuthProviderProps) {
                     setUserSession(null)
                 }
             } else {
-                const client = new http.Client([['Authorization', `Bearer ${session.accessToken}`]])
+                const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.

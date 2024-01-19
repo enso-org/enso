@@ -17,7 +17,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
-import * as http from '#/utilities/http'
+import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
@@ -173,7 +173,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                 toastAndLog('Cannot upload to cloud in offline mode')
                             } else {
                                 try {
-                                    const client = new http.Client([
+                                    const client = new HttpClient([
                                         ['Authorization', `Bearer ${accessToken}`],
                                     ])
                                     const remoteBackend = new remoteBackendModule.RemoteBackend(

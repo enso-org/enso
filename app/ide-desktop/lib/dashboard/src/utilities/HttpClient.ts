@@ -18,7 +18,7 @@ enum HttpMethod {
 // ==============
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
-export class Client {
+export default class HttpClient {
     /** Create a new HTTP client with the specified headers to be sent on every request. */
     constructor(
         /** A map of default headers that are included in every HTTP request sent by this client.

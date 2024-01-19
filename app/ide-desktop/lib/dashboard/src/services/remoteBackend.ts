@@ -10,7 +10,7 @@ import * as backendModule from '#/services/backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as config from '#/utilities/config'
 import * as errorModule from '#/utilities/error'
-import type * as http from '#/utilities/http'
+import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 // =================
@@ -130,7 +130,7 @@ export class RemoteBackend extends backendModule.Backend {
     /** Create a new instance of the {@link RemoteBackend} API client.
      * @throws An error if the `Authorization` header is not set on the given `client`. */
     constructor(
-        private readonly client: http.Client,
+        private readonly client: HttpClient,
         private readonly logger: loggerProvider.Logger
     ) {
         super()

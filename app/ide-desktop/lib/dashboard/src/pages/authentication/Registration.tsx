@@ -11,7 +11,7 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as localStorageModule from '#/utilities/localStorage'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
