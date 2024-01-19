@@ -1,4 +1,3 @@
-import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
 
