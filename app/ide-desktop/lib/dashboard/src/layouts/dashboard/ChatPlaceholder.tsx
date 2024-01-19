@@ -33,9 +33,9 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
     } else {
         return reactDom.createPortal(
             <div
-                className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
+                className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 transition-transform ${
                     page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
-                } ${isOpen ? '' : '-right-84'}`}
+                } ${isOpen ? '' : 'translate-x-full'}`}
             >
                 <div className="flex text-sm font-semibold mx-4 mt-2">
                     <div className="grow" />

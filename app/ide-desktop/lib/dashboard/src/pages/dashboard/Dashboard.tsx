@@ -11,7 +11,7 @@ import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import Chat, * as chat from '#/layouts/dashboard/Chat'
+import Chat from '#/layouts/dashboard/Chat'
 import ChatPlaceholder from '#/layouts/dashboard/ChatPlaceholder'
 import Drive from '#/layouts/dashboard/Drive'
 import Editor from '#/layouts/dashboard/Editor'
@@ -64,7 +64,6 @@ export default function Dashboard(props: DashboardProps) {
     const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const [initialized, setInitialized] = React.useState(false)
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-    const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
@@ -270,22 +269,6 @@ export default function Dashboard(props: DashboardProps) {
     }, [/* should never change */ unsetModal])
 
     React.useEffect(() => {
-        // The types come from a third-party API and cannot be changed.
-        // eslint-disable-next-line no-restricted-syntax
-        let handle: number | undefined
-        if (isHelpChatOpen) {
-            setIsHelpChatVisible(true)
-        } else {
-            handle = window.setTimeout(() => {
-                setIsHelpChatVisible(false)
-            }, chat.ANIMATION_DURATION_MS)
-        }
-        return () => {
-            clearTimeout(handle)
-        }
-    }, [isHelpChatOpen])
-
-    React.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
             setLoadingProjectManagerDidFail(true)
         }
@@ -477,7 +460,7 @@ export default function Dashboard(props: DashboardProps) {
                         appRunner={appRunner}
                     />
                     {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-                    {isHelpChatVisible && session.accessToken != null ? (
+                    {session.accessToken != null ? (
                         <Chat
                             page={page}
                             isOpen={isHelpChatOpen}
