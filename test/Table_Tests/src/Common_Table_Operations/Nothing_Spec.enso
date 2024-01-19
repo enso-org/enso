@@ -16,7 +16,7 @@ type My_Type
 
 
 spec setup =
-    prefix = setup.prefix+"asdfasdf"
+    prefix = setup.prefix
     table_builder = setup.table_builder
     table_builder_typed columns value_type =
         cast_columns = columns.map c->

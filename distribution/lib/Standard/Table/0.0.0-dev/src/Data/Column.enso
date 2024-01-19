@@ -212,11 +212,6 @@ type Column
     == self other =
         new_name = naming_helper.binary_operation_name "==" self other
         fallback problem_builder a b =
-            IO.println 'AAA == fallback'
-            IO.println self.value_type
-            IO.println other
-            if other.is_a Column then
-               IO.println other.value_type
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
