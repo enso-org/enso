@@ -193,7 +193,7 @@ add_specs suite_builder =
             table.expand_column "b" . should_equal expected
 
             table2 = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[My_Mod_Type.Value 12, "x"], [My_Mod_Type.Value 23, "y"]], Map.from_vector [[My_Mod_Type.Value 32, "z"]]]]]
-            expected2 = Table.new [["a", [1, 2]], ["b x%10=2", ["x", "z"]], ["b x%10=3", ["y", Nothing]]]
+            expected2 = Table.new [["a", [1, 2]], ["b x%10=3", ["y", Nothing]], ["b x%10=2", ["x", "z"]]]
             table2.expand_column "b" . should_equal expected2
 
         group_builder.specify "will fail if text representation of keys is not unique" <|
