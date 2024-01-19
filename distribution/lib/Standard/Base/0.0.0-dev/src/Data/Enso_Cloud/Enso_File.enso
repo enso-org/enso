@@ -33,6 +33,18 @@ type Enso_File
     root : Enso_File
     root = Enso_File.Value "" "" "" Enso_Asset_Type.Directory
 
+    ## Represents the current working directory.
+
+       If the workflow is running on the Cloud, this will be the directory
+       containing the current project.
+
+       If the workflow is running locally, this will default to the root
+       directory.
+    current_working_directory : Enso_File
+    current_working_directory =
+        # TODO
+        Enso_File.root
+
     ## PRIVATE
        Target URI for the api
     internal_uri : Text
