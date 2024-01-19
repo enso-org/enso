@@ -8,8 +8,8 @@ from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error,
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-import enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 spec =
     bucket_name = "enso-data-samples"
