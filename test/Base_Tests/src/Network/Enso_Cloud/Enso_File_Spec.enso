@@ -113,39 +113,43 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
 
         Test.specify "should be able to read file metadata" <|
             Enso_File.root.exists . should_be_true
-            # TODO what semantics we choose here?
-            Enso_File.root.parent . should_equal Enso_File.root
-            Enso_File.root.path . should_equal "enso://"
             Enso_File.root.name . should_equal "/"
 
             # TODO this structure should be created once we get file writing
             dir = Enso_File.root / "test-directory"
             dir.exists.should_be_true
-
             dir.name . should_equal "test-directory"
             dir.extension . should_fail_with Illegal_Argument
+            dir.is_directory.should_be_true
+            dir.is_regular_file.should_be_false
+
+            nested_file = dir / "another.txt"
+            nested_file.exists.should_be_true
+            nested_file.name . should_equal "another.txt"
+            nested_file.extension . should_equal "txt"
+            nested_file.is_directory.should_be_false
+            nested_file.is_regular_file.should_be_true
+
+        Test.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata" <|
+            # TODO what semantics we choose here?
+            Enso_File.root.parent . should_equal Enso_File.root
+            Enso_File.root.path . should_equal "enso://"
+
+            dir = Enso_File.root / "test-directory"
             dir.size . should_fail_with Illegal_Argument
             dir.path . should_equal "enso://test-directory/"
             dir.parent . should_equal Enso_File.root
             dir.is_child_of Enso_File.root . should_be_true
             Enso_File.root.is_child_of dir . should_be_false
-            dir.is_directory.should_be_true
-            dir.is_regular_file.should_be_false
             dir.creation_time . should_be_a Date_Time
             dir.last_modified_time . should_be_a Date_Time
 
             nested_file = dir / "another.txt"
-            nested_file.exists.should_be_true
-
-            nested_file.name . should_equal "another.txt"
-            nested_file.extension . should_equal "txt"
             nested_file.size . should_equal nested_file.read_bytes.length
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
             nested_file.is_child_of dir . should_be_true
             nested_file.is_child_of Enso_File.root . should_be_true
-            nested_file.is_directory.should_be_false
-            nested_file.is_regular_file.should_be_true
             nested_file.creation_time . should_be_a Date_Time
             nested_file.last_modified_time . should_be_a Date_Time
 

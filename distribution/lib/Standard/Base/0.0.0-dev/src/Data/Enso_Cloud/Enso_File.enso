@@ -32,7 +32,7 @@ type Enso_File
 
     ## Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "" "" "" Enso_Asset_Type.Directory
+    root = Enso_File.Value "/" "" "" Enso_Asset_Type.Directory
 
     ## Represents the current working directory.
 
@@ -71,6 +71,11 @@ type Enso_File
        Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
+
+    ## GROUP Metadata
+       Checks if this is a regular file
+    is_regular_file : Boolean
+    is_regular_file self = self.asset_type == Enso_Asset_Type.File
 
     ## PRIVATE
        ADVANCED
