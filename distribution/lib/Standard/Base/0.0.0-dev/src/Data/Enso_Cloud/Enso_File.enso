@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -210,6 +211,14 @@ type Enso_File
         auth_header = Utils.authorization_header
         response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
         response.if_not_error <| Nothing
+
+    ## UNSTABLE
+       Resolves a file or directory within this directory.
+    / : Text -> Enso_File
+    / self (name : Text) -> Enso_File ! Not_Found =
+        if self.is_directory.not then Error.throw (Illegal_Argument.Error "/ can only be used for directories") else
+            if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
+                self.list . find f-> f.name == name
 
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
