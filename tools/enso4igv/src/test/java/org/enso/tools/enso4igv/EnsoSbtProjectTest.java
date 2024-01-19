@@ -3,6 +3,7 @@ package org.enso.tools.enso4igv;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.Sources;
 import org.netbeans.junit.NbTestCase;
@@ -36,6 +37,23 @@ public class EnsoSbtProjectTest extends NbTestCase {
 
     var javaGroups = s.getSourceGroups("java");
     assertEquals("1 bench, 2 tests, 4 main: " + Arrays.toString(javaGroups), 7, javaGroups.length);
+
+    var javaFile = root.getFileObject("src/main/java/MainJava.java");
+    assertNotNull("Main java found", javaFile);
+    var javaCp = ClassPath.getClassPath(javaFile, ClassPath.SOURCE);
+    assertNotNull("java classpath found", javaCp);
+
+    assertNotNull("Main java is on source path", javaCp.findResource("MainJava.java"));
+    assertNotNull("Main scala is on source path", javaCp.findResource("MainScala.scala"));
+    assertNull("Test scala is not on source path", javaCp.findResource("TestScala.scala"));
+
+    var scalaTestFile = root.getFileObject("src/test/scala/TestScala.scala");
+    assertNotNull("Test scala found", scalaTestFile);
+    for (var g : javaGroups) {
+      if (g.contains(scalaTestFile)) {
+        assertEquals("test/scala", g.getName());
+      }
+    }
   }
 
   private static FileObject setLanguageServerProjectUp() throws IOException {
@@ -46,11 +64,14 @@ public class EnsoSbtProjectTest extends NbTestCase {
     var srcBenchScala = srcBench.createFolder("scala");
     var srcTest = src.createFolder("test");
     var srcTestScala = srcTest.createFolder("scala");
+    var srcTestScalaFile = srcTestScala.createData("TestScala.scala");
     var srcTestResources = srcTest.createFolder("resources");
     var srcMain = src.createFolder("main");
     var srcMainJava = srcMain.createFolder("java");
+    var srcMainJavaFile = srcMainJava.createData("MainJava.java");
     var srcMainResources = srcMain.createFolder("resources");
     var srcMainScala = srcMain.createFolder("scala");
+    var srcMainScalaFile = srcMainScala.createData("MainScala.scala");
     var srcMainSchema = srcMain.createFolder("schema");
     var ensoSources = root.createData(".enso-sources");
     try (var os = root.createAndOpen(".enso-sources-classes")) {

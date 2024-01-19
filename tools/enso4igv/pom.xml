@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.15-SNAPSHOT</version>
+    <version>1.21-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -63,16 +63,15 @@
                     <dependency>
                         <groupId>org.frgaal</groupId>
                         <artifactId>compiler-maven-plugin</artifactId>
-                        <version>19.0.0</version>
+                        <version>21.0.0</version>
                     </dependency>
                 </dependencies>
                 <configuration>
                     <compilerId>frgaal</compilerId>
-                    <source>19</source>
+                    <source>21</source>
                     <target>1.8</target>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
-                        <arg>--enable-preview</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
