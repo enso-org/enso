@@ -21,7 +21,7 @@ import org.enso.librarymanager.published.repository.{
 }
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.RetrySpec
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
