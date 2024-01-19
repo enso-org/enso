@@ -53,46 +53,46 @@ spec setup =
                 value = triple.at 0
                 value_type = triple.at 2
 
-                t0 = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
+                table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
 
                 Test.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing value" <|
-                    c0 = comparison (t0.at "x") Nothing
-                    c0.to_vector . should_equal [Nothing]
+                    co = comparison (table.at "x") Nothing
+                    co.to_vector . should_equal [Nothing]
 
                 Test.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing column" <|
-                    c0 = comparison (t0.at "x") (t0.at "n")
-                    c0.to_vector . should_equal [Nothing]
+                    co = comparison (table.at "x") (table.at "n")
+                    co.to_vector . should_equal [Nothing]
 
                 Test.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+value_type.to_text <|
-                    c0 = comparison (t0.at "n") (t0.at "x")
-                    c0.to_vector . should_equal [Nothing]
+                    co = comparison (table.at "n") (table.at "x")
+                    co.to_vector . should_equal [Nothing]
 
     Test.group prefix+"between" <|
         values_with_nothing.map triple->
             value = triple.at 0
             value_type = triple.at 2
 
-            t0 = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
+            table = table_builder_typed [["x", [value]], ["y", [value]], ["n", [Nothing]]] value_type
 
             Test.specify "Correctly handle Nothing in: Nothing column between "+value_type.to_text+" and "+value_type.to_text <|
-                c0 = t0.at "n" . between (t0.at "x") (t0.at "y")
-                c0.to_vector . should_equal [Nothing]
+                co = table.at "n" . between (table.at "x") (table.at "y")
+                co.to_vector . should_equal [Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing column and "+value_type.to_text <|
-                c0 = t0.at "x" . between (t0.at "n") (t0.at "y")
-                c0.to_vector . should_equal [Nothing]
+                co = table.at "x" . between (table.at "n") (table.at "y")
+                co.to_vector . should_equal [Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing column" <|
-                c0 = t0.at "x" . between (t0.at "y") (t0.at "n")
-                c0.to_vector . should_equal [Nothing]
+                co = table.at "x" . between (table.at "y") (table.at "n")
+                co.to_vector . should_equal [Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+" between Nothing value and "+value_type.to_text <|
-                c0 = t0.at "x" . between Nothing (t0.at "y")
-                c0.to_vector . should_equal [Nothing]
+                co = table.at "x" . between Nothing (table.at "y")
+                co.to_vector . should_equal [Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+" between "+value_type.to_text+" and Nothing value" <|
-                c0 = t0.at "x" . between (t0.at "y") Nothing
-                c0.to_vector . should_equal [Nothing]
+                co = table.at "x" . between (table.at "y") Nothing
+                co.to_vector . should_equal [Nothing]
 
     Test.group prefix+"is_nothing" <|
         values_with_nothing.map triple->
@@ -100,47 +100,47 @@ spec setup =
             value_type = triple.at 2
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_nothing" <|
-                t0 = table_builder_typed [["x", [value]]] value_type
-                c0 = t0.at "x" . is_nothing
-                c0.to_vector . should_equal [value == Nothing]
+                table = table_builder_typed [["x", [value]]] value_type
+                co = table.at "x" . is_nothing
+                co.to_vector . should_equal [value == Nothing]
 
     Test.group prefix+"not" <|
         Test.specify "Correctly handle Nothing in .not" <|
-            t0 = table_builder [["x", [True, False, Nothing]]]
-            t0.at "x" . not . to_vector . should_equal [False, True, Nothing]
+            table = table_builder [["x", [True, False, Nothing]]]
+            table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
     Test.group prefix+"is_in" <|
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
             value_type = triple.at 2
-            t0 = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
+            table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
 
             true_if_not_nothing = if value == Nothing then Nothing else True
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column (returning True)" <|
-                t0.at "x" . is_in (t0.at "z") . to_vector . should_equal [true_if_not_nothing, Nothing]
+                table.at "x" . is_in (table.at "z") . to_vector . should_equal [true_if_not_nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning True)" <|
-                t0.at "x" . is_in (t0.at "x") . to_vector . should_equal [true_if_not_nothing, Nothing]
+                table.at "x" . is_in (table.at "x") . to_vector . should_equal [true_if_not_nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning Nothing)" <|
-                t0.at "x" . is_in (t0.at "y") . to_vector . should_equal [Nothing, Nothing]
+                table.at "x" . is_in (table.at "y") . to_vector . should_equal [Nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: Nothing.is_in Column with Nothings (returning Nothing)" <|
-                t0.at "n" . is_in (t0.at "x") . to_vector . should_equal [Nothing, Nothing]
+                table.at "n" . is_in (table.at "x") . to_vector . should_equal [Nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector (returning True)" <|
-                t0.at "x" . is_in (t0.at "z" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
+                table.at "x" . is_in (table.at "z" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning True)" <|
-                t0.at "x" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
+                table.at "x" . is_in (table.at "x" . to_vector) . to_vector . should_equal [true_if_not_nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Vector with Nothings (returning Nothing)" <|
-                t0.at "x" . is_in (t0.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+                table.at "x" . is_in (table.at "y" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
             Test.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
-                t0.at "n" . is_in (t0.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
+                table.at "n" . is_in (table.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
     Test.group prefix+"Boolean is_in" <|
         make_containing_values had_null had_true had_false =
@@ -220,17 +220,17 @@ spec setup =
             value_type = triple.at 2
 
             Test.specify "Correctly handle Nothing in .distinct for "+value_type.to_text <|
-                t0 = table_builder [["x", [value, other_value, other_value, Nothing, value, Nothing]]]
-                t1 = t0 . distinct ["x"]
-                v0 = t1.at "x" . to_vector
-                v0 . length . should_equal 3
-                v0 . should_contain_the_same_elements_as [value, other_value, Nothing]
+                table = table_builder [["x", [value, other_value, other_value, Nothing, value, Nothing]]]
+                t1 = table . distinct ["x"]
+                v = t1.at "x" . to_vector
+                v . length . should_equal 3
+                v . should_contain_the_same_elements_as [value, other_value, Nothing]
 
         Test.specify "Correctly handle Nothing in .distinct for Nothing" <|
-            t0 = table_builder_typed [["x", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]]] Value_Type.Char
-            t1 = t0 . distinct ["x"]
-            v0 = t1.at "x" . to_vector
-            v0 . should_equal [Nothing]
+            table = table_builder_typed [["x", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]]] Value_Type.Char
+            t1 = table . distinct ["x"]
+            v = t1.at "x" . to_vector
+            v . should_equal [Nothing]
 
     Test.group prefix+"order_by" <|
         values_with_nothing.map triple->
@@ -241,12 +241,12 @@ spec setup =
             is_comparable = Default_Comparator.compare value other_value != Nothing
 
             if is_comparable then
-                t0 = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
+                table = table_builder_typed [["x", [value, Nothing, other_value, other_value, Nothing, value, Nothing]]] value_type
 
                 Test.specify "Correctly handle Nothing in .order_by (asc) for "+value_type.to_text <|
-                    t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
+                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Ascending]
                     t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
                 Test.specify "Correctly handle Nothing in .order_by (desc) for "+value_type.to_text <|
-                    t1 = t0 . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
+                    t1 = table . order_by [Sort_Column.Name "x" Sort_Direction.Descending]
                     t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]
