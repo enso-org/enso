@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
@@ -7,7 +6,7 @@ import Standard.Test.Test_Environment
 import Standard.Test.Extensions
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.pending <|
