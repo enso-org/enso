@@ -175,11 +175,12 @@ spec setup =
             + [[Nothing, False, True, False, Nothing]]
             + [[Nothing, False, False, False, False]]
 
+        # To test negated columns, we invert the values before putting them into the Storage, and set the negated bit.
         negate : Vector | Column -> Vector | Column
         negate vorc = case vorc of
-            _ : Vector -> vorc.map (x-> x.if_not_nothing x.not)
-            _ : Column -> vorc.not
-            _ : Database_Column -> vorc.not
+            _ : Vector -> vorc.map (x-> x.if_not_nothing x.not) # Invert values first
+            _ : Column -> vorc.not                              # Set negated bit
+            _ : Database_Column -> vorc.not                     # Set negated bit
         negation_cases = [["normal input, normal argument", identity, identity]]
             + [["negated input, normal argument", negate, identity]]
             + [["normal input, negated argument", identity, negate]]
