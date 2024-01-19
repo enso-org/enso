@@ -10,6 +10,17 @@ from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retrie
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.real_cloud_pending <|
+        Test.specify "should be able to list the root directory" <|
+            assets = Enso_File.root.list
+            # We don't a priori know the contents, so we can only check very generic properties
+            assets . should_be_a Vector
+            assets.each f-> f.should_be_a Enso_File
+
+            ## We assume that it contains a test file `test_file.json`
+               TODO in future iterations this file will be created by the test suite itself, to make it self-contained
+               The file is expected to contain:
+               [1, 2, 3, "foo"]
+            assets.map .name . should_contain "test_file.json"
         Test.specify "should allow to create and delete a directory" <|
             my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
