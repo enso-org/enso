@@ -2,30 +2,39 @@ from Standard.Base import all
 
 from Standard.Table import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
-spec =
-    c_1 = ["a", ["1", "4", "7", "10"]]
-    c_2 = ["b", [2, Nothing, 8, 11]]
-    c_3 = ["c", [Nothing, 6, 9, 12]]
-    expected_table = Table.new [c_1, c_2, c_3]
+type Data
+    Value ~expected_table
 
-    Test.group "Table.from Text" <|
-        Test.specify "should create a table from a textual CSV" <|
+    setup =
+        c_1 = ["a", ["1", "4", "7", "10"]]
+        c_2 = ["b", [2, Nothing, 8, 11]]
+        c_3 = ["c", [Nothing, 6, 9, 12]]
+        expected_table = Table.new [c_1, c_2, c_3]
+        Data.Value expected_table
+
+
+add_specs suite_builder =
+    suite_builder.group "Table.from Text" group_builder->
+        data = Data.setup
+
+        group_builder.specify "should create a table from a textual CSV" <|
             file_contents = (enso_project.data / "simple_empty.csv") . read_text
             table = Table.from file_contents (format = Delimited ",")
-            table.should_equal expected_table
+            table.should_equal data.expected_table
 
-    Test.group "File.read (Delimited)" <|
-        Test.specify "should create a table from a CSV in a file" <|
+    suite_builder.group "File.read (Delimited)" group_builder->
+        data = Data.setup
+
+        group_builder.specify "should create a table from a CSV in a file" <|
             file = (enso_project.data / "simple_empty.csv")
             table = file.read
-            table.should_equal expected_table
+            table.should_equal data.expected_table
 
-        Test.specify "should correctly infer types of varied-type columns" <|
+        group_builder.specify "should correctly infer types of varied-type columns" <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             c_1 = ["Column 1", ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]]
             # We can re-enable this once date support is improved.
@@ -38,15 +47,15 @@ spec =
             expected = Table.new [c_1, c_3, c_4, c_5, c_6]
             varied_column.select_columns [0, 2, 3, 4, 5] . should_equal expected
 
-        Test.specify "should handle duplicated columns" <|
+        group_builder.specify "should handle duplicated columns" <|
             csv = """
                 name,x,y,x,y
                 foo,10,20,30,20
             t = Table.from csv (format = Delimited ",")
             t.columns.map .name . should_equal ['name', 'x', 'y', 'x 1', 'y 1']
 
-    Test.group 'Writing' <|
-        Test.specify 'should properly serialize simple tables' <|
+    suite_builder.group 'Writing' group_builder->
+        group_builder.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             res = Text.from varied_column format=(Delimited ",")
             exp = normalize_lines <| '''
@@ -61,7 +70,7 @@ spec =
                 2005-03-08,2005-03-08,8,8,8.0,osiem
             res.should_equal exp
 
-        Test.specify 'should properly handle quoting of records and allow specifying separators' <|
+        group_builder.specify 'should properly handle quoting of records and allow specifying separators' <|
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
@@ -75,7 +84,7 @@ spec =
             res = Text.from t format=(Delimited ";")
             res.should_equal expected
 
-        Test.specify 'should allow forced quoting of records' <|
+        group_builder.specify 'should allow forced quoting of records' <|
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
@@ -90,7 +99,7 @@ spec =
             res.should_equal expected
 
 
-        Test.specify 'should write CSV to a file' <|
+        group_builder.specify 'should write CSV to a file' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             out = enso_project.data / "transient" / "out.csv"
             out.delete_if_exists
@@ -108,8 +117,8 @@ spec =
             out.read_text.should_equal exp
             out.delete_if_exists
 
-    Test.group "Integration" <|
-        Test.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
+    suite_builder.group "Integration" group_builder->
+        group_builder.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
             names = ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍', '', 'null?\0?', 'FFFD', '\uFFFD', '\r\n', 'a\r\nb\n\rc\rd\ne', 'what about these # ?? // /* hmm */ is it included?', 'and the rare \v vertical tab?']
             d = Date_Time.new 2015 10 29 23 55 49
             t = Table.new [['name', names], ['header\nspanning\nmultiple\nlines', names.map_with_index ix-> _-> ix*10], ['dates', names.map_with_index ix-> _-> d + Duration.new hours=3*ix]]
@@ -136,4 +145,8 @@ spec =
 
             out2.delete_if_exists
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
