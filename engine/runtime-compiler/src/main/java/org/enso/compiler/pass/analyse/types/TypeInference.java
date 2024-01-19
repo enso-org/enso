@@ -82,9 +82,9 @@ public final class TypeInference implements IRPass {
 
           yield mapped;
         }
-        case Definition.Type typ -> typ
+        case Definition.Type typ -> typ;
         default -> {
-          logger.trace("UNEXPECTED definition " + def.getClass().getCanonicalName());
+          logger.trace("UNEXPECTED definition {}", def.getClass().getCanonicalName());
           yield def;
         }
       });
@@ -144,9 +144,9 @@ public final class TypeInference implements IRPass {
         var previouslyInferredType = getInferredType(ir);
         if (previouslyInferredType != null) {
           if (previouslyInferredType.equals(ascribedType)) {
-            logger.debug("redundant type ascription: " + ir.showCode() + " - confirming inferred type " + previouslyInferredType.type());
+            logger.debug("redundant type ascription: {} - confirming inferred type {}", ir.showCode(), previouslyInferredType.type());
           } else {
-            logger.debug("type ascription: " + ir.showCode() + " - overwriting inferred type " + previouslyInferredType.type());
+            logger.debug("type ascription: {} - overwriting inferred type {}", ir.showCode(), previouslyInferredType.type());
           }
 
           TypeRepresentation expected = ascribedType;
@@ -213,7 +213,7 @@ public final class TypeInference implements IRPass {
         setInferredType(caseExpr, new InferredType(TypeRepresentation.buildSimplifiedSumType(innerTypes)));
       }
       default -> {
-        logger.trace("type propagation: UNKNOWN branch: " + ir.getClass().getCanonicalName());
+        logger.trace("type propagation: UNKNOWN branch: {}", ir.getClass().getCanonicalName());
       }
     }
   }
@@ -222,7 +222,7 @@ public final class TypeInference implements IRPass {
     var metadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(binding);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
-      logger.debug("registerBinding " + binding.showCode() + ": missing occurrence in graph for " + metadata);
+      logger.debug("registerBinding {}: missing occurrence in graph for {}", binding.showCode(), metadata);
       return;
     }
 
@@ -253,7 +253,7 @@ public final class TypeInference implements IRPass {
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
     var localLink = occurrenceMetadata.graph().defLinkFor(occurrenceMetadata.id());
     if (localLink.isDefined() && global.isPresent()) {
-      logger.debug("processName: " + literalName.showCode() + " - BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrenceMetadata);
+      logger.debug("processName: {} - BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? {}", literalName.showCode(), occurrenceMetadata);
     }
 
     boolean isLocalReference = localLink.isDefined();
@@ -289,7 +289,7 @@ public final class TypeInference implements IRPass {
         setInferredType(literalName, new InferredType(type));
       }
       default ->
-          logger.trace("processGlobalName: " + literalName.showCode() + " - global scope reference to " + resolution + " - currently global inference is unsupported");
+          logger.trace("processGlobalName: {} - global scope reference to {} - currently global inference is unsupported", literalName.showCode(), resolution);
     }
   }
 
@@ -311,7 +311,7 @@ public final class TypeInference implements IRPass {
   @SuppressWarnings("unchecked")
   private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
     if (arguments.isEmpty()) {
-      logger.warn("processApplication: " + relatedIR.showCode() + " - unexpected - no arguments in a function application");
+      logger.warn("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
       return functionType;
     }
 
@@ -468,7 +468,7 @@ public final class TypeInference implements IRPass {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
           yield TypeRepresentation.fromQualifiedName(target.qualifiedName());
         } else {
-          logger.warn("resolveTypeExpression: " + type.showCode() + " - Missing expected TypeName resolution metadata");
+          logger.warn("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
           yield TypeRepresentation.UNKNOWN;
         }
       }
