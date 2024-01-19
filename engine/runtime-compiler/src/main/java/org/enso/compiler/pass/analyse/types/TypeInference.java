@@ -69,7 +69,6 @@ public final class TypeInference implements IRPass {
         Option.empty()
     );
 
-    log("TypeInference.runModule: " + moduleContext.getName());
     var mappedBindings = ir.bindings().map((def) -> switch (def) {
         case Method.Explicit b -> {
           var mapped = def.mapExpressions(
@@ -83,12 +82,9 @@ public final class TypeInference implements IRPass {
 
           yield mapped;
         }
-        case Definition.Type typ -> {
-          log("type definition " + typ.name().name() + " - no type inference");
-          yield typ;
-        }
+        case Definition.Type typ -> typ
         default -> {
-          log("UNEXPECTED definition " + def.getClass().getCanonicalName());
+          logger.trace("UNEXPECTED definition " + def.getClass().getCanonicalName());
           yield def;
         }
       });
@@ -135,13 +131,6 @@ public final class TypeInference implements IRPass {
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
-
-    var inferredType = getInferredType(mappedIr);
-    if (inferredType != null) {
-      log("inferred type", mappedIr, inferredType.type().toString());
-    } else {
-      log("inferred type", mappedIr, "NONE");
-    }
     return mappedIr;
   }
 
@@ -150,12 +139,15 @@ public final class TypeInference implements IRPass {
         getOptionalMetadata(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
     if (ascribedSignature.isPresent()) {
       TypeSignatures.Signature s = ascribedSignature.get();
-      log("type signature", ir, s.signature().showCode());
       TypeRepresentation ascribedType = resolveTypeExpression(s.signature());
       if (ascribedType != null) {
         var previouslyInferredType = getInferredType(ir);
         if (previouslyInferredType != null) {
-          log("type signature", ir, "overwriting previously inferred type " + previouslyInferredType.type());
+          if (previouslyInferredType.equals(ascribedType)) {
+            logger.debug("redundant type ascription: " + ir.showCode() + " - confirming inferred type " + previouslyInferredType.type());
+          } else {
+            logger.debug("type ascription: " + ir.showCode() + " - overwriting inferred type " + previouslyInferredType.type());
+          }
 
           TypeRepresentation expected = ascribedType;
           TypeRepresentation provided = previouslyInferredType.type();
@@ -218,11 +210,10 @@ public final class TypeInference implements IRPass {
                   }
                 })
                 .toList();
-        log("type propagation", caseExpr, "case branches: " + innerTypes);
         setInferredType(caseExpr, new InferredType(TypeRepresentation.buildSimplifiedSumType(innerTypes)));
       }
       default -> {
-        log("type propagation", ir, "UNKNOWN: " + ir.getClass().getCanonicalName());
+        logger.trace("type propagation: UNKNOWN branch: " + ir.getClass().getCanonicalName());
       }
     }
   }
@@ -231,13 +222,12 @@ public final class TypeInference implements IRPass {
     var metadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(binding);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
-      log("registerBinding " + binding.showCode() + ": missing occurrence in graph for " + metadata);
+      logger.debug("registerBinding " + binding.showCode() + ": missing occurrence in graph for " + metadata);
       return;
     }
 
     var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
     localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
-    log("registerBinding " + binding.showCode() + ": registered " + def.id() + " as " + type);
   }
 
   private void registerPattern(Pattern pattern, LocalBindingsTyping localBindingsTyping) {
@@ -263,14 +253,13 @@ public final class TypeInference implements IRPass {
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
     var localLink = occurrenceMetadata.graph().defLinkFor(occurrenceMetadata.id());
     if (localLink.isDefined() && global.isPresent()) {
-      log("processName", literalName, "BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrenceMetadata);
+      logger.debug("processName: " + literalName.showCode() + " - BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? " + occurrenceMetadata);
     }
 
     boolean isLocalReference = localLink.isDefined();
     if (isLocalReference) {
       int target = localLink.get().target();
       TypeRepresentation type = localBindingsTyping.getBindingType(occurrenceMetadata.graph(), target);
-      log("processName", literalName, "local reference to " + target + " --> type: " + type);
       if (type != null) {
         setInferredType(literalName, new InferredType(type));
       }
@@ -278,7 +267,7 @@ public final class TypeInference implements IRPass {
       BindingsMap.ResolvedName resolution = global.get().target();
       processGlobalName(literalName, resolution);
     } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
-      log("processName", literalName, "from conversion - currently unsupported");
+      // TODO support from conversions
     } else {
       var type = new TypeRepresentation.UnresolvedSymbol(literalName.name());
       setInferredType(literalName, new InferredType(type));
@@ -288,9 +277,7 @@ public final class TypeInference implements IRPass {
   private void processGlobalName(Name.Literal literalName, BindingsMap.ResolvedName resolution) {
     switch (resolution) {
       case BindingsMap.ResolvedConstructor ctor -> {
-        // TODO when do these appear??
-        log("processGlobalName", literalName, "RESOLVED CONTRUCTOR");
-
+        // TODO check when do these appear?? I did not yet see them in the wild
         var constructorFunctionType = buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
         if (constructorFunctionType != null) {
           setInferredType(literalName, new InferredType(constructorFunctionType));
@@ -302,7 +289,7 @@ public final class TypeInference implements IRPass {
         setInferredType(literalName, new InferredType(type));
       }
       default ->
-          log("processGlobalName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
+          logger.trace("processGlobalName: " + literalName.showCode() + " - global scope reference to " + resolution + " - currently global inference is unsupported");
     }
   }
 
@@ -324,7 +311,7 @@ public final class TypeInference implements IRPass {
   @SuppressWarnings("unchecked")
   private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
     if (arguments.isEmpty()) {
-      log("WARNING processApplication", relatedIR, "unexpected - no arguments in a function application");
+      logger.warn("processApplication: " + relatedIR.showCode() + " - unexpected - no arguments in a function application");
       return functionType;
     }
 
@@ -343,7 +330,7 @@ public final class TypeInference implements IRPass {
 
   private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
     if (argument.name().isDefined()) {
-      log("processSingleApplication: " + argument + " - named arguments are not yet supported");
+      // TODO named arguments are not yet supported
       return null;
     }
 
@@ -365,7 +352,6 @@ public final class TypeInference implements IRPass {
       }
 
       default -> {
-        log("type propagation: Expected a function type but got: " + functionType);
         relatedIR.diagnostics().add(new Warning.NotInvokable(relatedIR.location(), functionType.toString()));
       }
     }
@@ -391,7 +377,6 @@ public final class TypeInference implements IRPass {
       }
 
       default -> {
-        log("processing " + function + " application on " + argumentType.type() + " - currently unsupported");
         return null;
       }
     }
@@ -400,7 +385,6 @@ public final class TypeInference implements IRPass {
   private TypeRepresentation buildAtomConstructorType(TypeRepresentation.TypeObject parentType, BindingsMap.Cons constructor) {
     if (constructor.anyFieldsDefaulted()) {
       // TODO implement handling of default arguments - not only ctors will need this!
-      log("buildAtomConstructorType(" + parentType.name() + ", " + constructor.name() + "): constructors with default arguments are not supported yet.");
       return null;
     }
 
@@ -484,7 +468,7 @@ public final class TypeInference implements IRPass {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
           yield TypeRepresentation.fromQualifiedName(target.qualifiedName());
         } else {
-          log("resolveTypeExpression", type, "Missing TypeName resolution metadata");
+          logger.warn("resolveTypeExpression: " + type.showCode() + " - Missing expected TypeName resolution metadata");
           yield TypeRepresentation.UNKNOWN;
         }
       }
@@ -516,7 +500,7 @@ public final class TypeInference implements IRPass {
       case Type.Error error -> resolveTypeExpression(error.typed());
 
       default -> {
-        log("resolveTypeExpression", type, "UNKNOWN BRANCH");
+        logger.warn("resolveTypeExpression: {} UNKNOWN BRANCH", type);
         yield TypeRepresentation.UNKNOWN;
       }
     };
@@ -524,7 +508,6 @@ public final class TypeInference implements IRPass {
 
   private void checkTypeCompatibility(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
     TypeCompatibility compatibility = TypeCompatibility.computeTypeCompatibility(expected, provided);
-    log("CHECK", relatedIr, provided + " <:< " + expected + " ==> " + compatibility);
     if (compatibility == TypeCompatibility.NEVER_COMPATIBLE) {
       relatedIr.diagnostics().add(new Warning.TypeMismatch(relatedIr.location(), expected.toString(), provided.toString()));
     }
@@ -553,24 +536,5 @@ public final class TypeInference implements IRPass {
     return optional.get();
   }
 
-  private void log(String prefix, IR relatedIr, String suffix) {
-    String name = relatedIr.getClass().getCanonicalName();
-    name = name.substring(name.indexOf("ir.") + 3);
-
-    String suffixStr = suffix == null ? "" : " ==> " + suffix;
-    log(prefix + ": " + name + " - " + relatedIr.showCode() + suffixStr);
-  }
-
-  private void log(String message) {
-    if (logToStdOut) {
-      System.out.println(message);
-    } else {
-      logger.trace(message);
-    }
-  }
-
   private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
-
-  // FIXME this is a temporary simplification, because regular logs seem to not be displayed in tests
-  private static final boolean logToStdOut = false;
 }
