@@ -3,38 +3,23 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import type * as assetListEvent from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
+import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
+import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
-import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-
-import Button from '#/components/Button'
-import * as assetRow from '#/components/dashboard/AssetRow'
-import AssetRow from '#/components/dashboard/AssetRow'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import * as columnHeading from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
-import DragModal from '#/components/DragModal'
-import Spinner, * as spinner from '#/components/Spinner'
-
 import * as backendModule from '#/services/Backend'
-
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -48,10 +33,20 @@ import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
-import * as sorting from '#/utilities/sorting'
+import SortDirection from '#/utilities/SortDirection'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
+
+import Button from '#/components/Button'
+import * as assetRow from '#/components/dashboard/AssetRow'
+import AssetRow from '#/components/dashboard/AssetRow'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import NameColumn from '#/components/dashboard/column/NameColumn'
+import * as columnHeading from '#/components/dashboard/columnHeading'
+import Label from '#/components/dashboard/Label'
+import DragModal from '#/components/DragModal'
+import Spinner, * as spinner from '#/components/Spinner'
 
 // =================
 // === Constants ===
@@ -242,8 +237,8 @@ export interface AssetsTableState {
     setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
     sortColumn: columnUtils.SortableColumn | null
     setSortColumn: (column: columnUtils.SortableColumn | null) => void
-    sortDirection: sorting.SortDirection | null
-    setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    sortDirection: SortDirection | null
+    setSortDirection: (sortDirection: SortDirection | null) => void
     query: AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -336,7 +331,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
     const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
-    const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
+    const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
         Set<backendModule.AssetId>
@@ -487,8 +482,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             return assetTree.preorderTraversal()
         } else {
             const multiplier = {
-                [sorting.SortDirection.ascending]: 1,
-                [sorting.SortDirection.descending]: -1,
+                [SortDirection.ascending]: 1,
+                [SortDirection.descending]: -1,
             }[sortDirection]
             let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
             switch (sortColumn) {

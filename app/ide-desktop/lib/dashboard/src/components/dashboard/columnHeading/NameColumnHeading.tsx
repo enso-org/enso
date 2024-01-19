@@ -3,10 +3,10 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
+import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
+
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-
-import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
@@ -19,7 +19,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             title={
                 !isSortActive
                     ? 'Sort by name'
-                    : sortDirection === sorting.SortDirection.ascending
+                    : sortDirection === SortDirection.ascending
                     ? 'Sort by name descending'
                     : 'Stop sorting by name'
             }
@@ -33,10 +33,12 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             onClick={event => {
                 event.stopPropagation()
                 if (sortColumn === columnUtils.Column.name) {
-                    setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    setSortDirection(
+                        sortDirectionModule.NEXT_SORT_DIRECTION[sortDirection ?? 'null']
+                    )
                 } else {
                     setSortColumn(columnUtils.Column.name)
-                    setSortDirection(sorting.SortDirection.ascending)
+                    setSortDirection(SortDirection.ascending)
                 }
             }}
         >
@@ -45,7 +47,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             </span>
             <img
                 alt={
-                    !isSortActive || sortDirection === sorting.SortDirection.ascending
+                    !isSortActive || sortDirection === SortDirection.ascending
                         ? 'Sort Ascending'
                         : 'Sort Descending'
                 }

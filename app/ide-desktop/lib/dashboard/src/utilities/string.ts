@@ -1,5 +1,9 @@
 /** @file Utilities for manipulating strings. */
 
+// ===========================
+// === String manipulation ===
+// ===========================
+
 /** Return a function returning the singular or plural form of a word depending on the count of
  * items. */
 export function makePluralize(singular: string, plural: string) {

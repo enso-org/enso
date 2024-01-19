@@ -4,11 +4,11 @@ import * as React from 'react'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
+import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
+
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
-
-import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
@@ -21,7 +21,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             title={
                 !isSortActive
                     ? 'Sort by modification date'
-                    : sortDirection === sorting.SortDirection.ascending
+                    : sortDirection === SortDirection.ascending
                     ? 'Sort by modification date descending'
                     : 'Stop sorting by modification date'
             }
@@ -35,10 +35,12 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             onClick={event => {
                 event.stopPropagation()
                 if (sortColumn === columnUtils.Column.modified) {
-                    setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    setSortDirection(
+                        sortDirectionModule.NEXT_SORT_DIRECTION[sortDirection ?? 'null']
+                    )
                 } else {
                     setSortColumn(columnUtils.Column.modified)
-                    setSortDirection(sorting.SortDirection.ascending)
+                    setSortDirection(SortDirection.ascending)
                 }
             }}
         >
@@ -48,7 +50,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             </span>
             <img
                 alt={
-                    !isSortActive || sortDirection === sorting.SortDirection.ascending
+                    !isSortActive || sortDirection === SortDirection.ascending
                         ? 'Sort Ascending'
                         : 'Sort Descending'
                 }

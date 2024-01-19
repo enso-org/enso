@@ -1,8 +1,8 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
 
-// ==================
-// === HttpMethod ===
-// ==================
+// =============
+// === Types ===
+// =============
 
 /** HTTP method variants that can be used in an HTTP request. */
 enum HttpMethod {
@@ -13,9 +13,9 @@ enum HttpMethod {
     delete = 'DELETE',
 }
 
-// ==============
-// === Client ===
-// ==============
+// ==================
+// === HttpClient ===
+// ==================
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export default class HttpClient {
