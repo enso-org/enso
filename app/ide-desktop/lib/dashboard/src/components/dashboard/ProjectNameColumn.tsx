@@ -6,12 +6,12 @@ import NetworkIcon from 'enso-assets/network.svg'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -49,7 +49,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`ProjectNameColumn` can only display project assets.')
     }
-    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const setAsset = setAssetHooks.useSetAsset(asset, setItem)
     const ownPermission =
         asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
         null

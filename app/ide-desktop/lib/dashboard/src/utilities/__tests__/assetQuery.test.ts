@@ -1,7 +1,7 @@
-/** @file Tests for {@link assetQuery.AssetQuery}. */
+/** @file Tests for {@link AssetQuery}. */
 import * as v from 'vitest'
 
-import * as assetQuery from '#/utilities/assetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 
 v.test.each([
     { query: '' },
@@ -53,7 +53,7 @@ v.test.each([
         nos,
         negativeNos,
     }) => {
-        const parsed = assetQuery.AssetQuery.fromString(query)
+        const parsed = AssetQuery.fromString(query)
         v.expect(parsed.keywords, `Keywords in '${query}'`).toEqual(keywords ?? [])
         v.expect(parsed.negativeKeywords, `Negative keywords in '${query}'`).toEqual(
             negativeKeywords ?? []
@@ -76,7 +76,7 @@ v.test.each([
 v.test.each([{ query: 'a', updates: { keywords: [['b']] }, newQuery: 'a b' }])(
     'AssetQuery#add',
     ({ query, updates, newQuery }) => {
-        const parsed = assetQuery.AssetQuery.fromString(query)
+        const parsed = AssetQuery.fromString(query)
         v.expect(
             parsed.add(updates).toString(),
             `'${query}' with ${JSON.stringify(updates)} added should be '${newQuery}'`
@@ -90,7 +90,7 @@ v.test.each([
     // Edge cases. The exact result should not matter, as long as it is reasonable.
     { query: 'a a', updates: { keywords: [['a']] }, newQuery: '' },
 ])('AssetQuery#delete', ({ query, updates, newQuery }) => {
-    const parsed = assetQuery.AssetQuery.fromString(query)
+    const parsed = AssetQuery.fromString(query)
     v.expect(
         parsed.delete(updates).toString(),
         `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
@@ -100,7 +100,7 @@ v.test.each([
 v.test.each([{ query: 'a', updates: { keywords: ['b'] }, newQuery: 'a,b' }])(
     'AssetQuery#addToLastTerm',
     ({ query, updates, newQuery }) => {
-        const parsed = assetQuery.AssetQuery.fromString(query)
+        const parsed = AssetQuery.fromString(query)
         v.expect(
             parsed.addToLastTerm(updates).toString(),
             `'${query}' with ${JSON.stringify(updates)} added should be '${newQuery}'`
@@ -117,7 +117,7 @@ v.test.each([
     { query: 'a', updates: { keywords: ['a'] }, newQuery: '' },
     { query: 'a b c', updates: { keywords: ['b', 'c'] }, newQuery: 'a b' },
 ])('AssetQuery#deleteFromLastTerm', ({ query, updates, newQuery }) => {
-    const parsed = assetQuery.AssetQuery.fromString(query)
+    const parsed = AssetQuery.fromString(query)
     v.expect(
         parsed.deleteFromLastTerm(updates).toString(),
         `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
@@ -134,7 +134,7 @@ v.test.each([
     { query: 'a', updates: { keywords: ['a'] }, newQuery: '' },
     { query: 'a b c', updates: { keywords: ['b', 'c'] }, newQuery: 'a' },
 ])('AssetQuery#deleteFromEveryTerm', ({ query, updates, newQuery }) => {
-    const parsed = assetQuery.AssetQuery.fromString(query)
+    const parsed = AssetQuery.fromString(query)
     v.expect(
         parsed.deleteFromEveryTerm(updates).toString(),
         `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`

@@ -7,7 +7,7 @@ import BackendSwitcher from '#/layouts/dashboard/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
 import type * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
+import type AssetQuery from '#/utilities/AssetQuery'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
@@ -27,8 +27,8 @@ export interface TopBarProps {
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     labels: backendModule.Label[]
     suggestions: assetSearchBar.Suggestion[]
     canToggleSettingsPanel: boolean

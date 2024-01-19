@@ -4,11 +4,11 @@ import * as React from 'react'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
@@ -41,7 +41,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`FileNameColumn` can only display file assets.')
     }
-    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.

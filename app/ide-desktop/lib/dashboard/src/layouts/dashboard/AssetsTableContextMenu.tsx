@@ -11,7 +11,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
@@ -42,9 +42,7 @@ export interface AssetsTableContextMenuProps {
     pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
     selectedKeys: Set<backendModule.AssetId>
     setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-    nodeMapRef: React.MutableRefObject<
-        ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
-    >
+    nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
     event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void

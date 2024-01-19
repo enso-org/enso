@@ -6,13 +6,13 @@ import ConnectorIcon from 'enso-assets/connector.svg'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -44,7 +44,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`SecretNameColumn` can only display secrets.')
     }
-    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.

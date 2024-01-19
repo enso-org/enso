@@ -23,7 +23,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
+import type AssetQuery from '#/utilities/AssetQuery'
 import * as github from '#/utilities/github'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -47,8 +47,8 @@ export interface DriveProps {
     dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
     assetEvents: assetEvent.AssetEvent[]
     dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     labels: backendModule.Label[]
     setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
     setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void

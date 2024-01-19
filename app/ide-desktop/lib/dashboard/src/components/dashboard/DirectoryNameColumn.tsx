@@ -7,11 +7,11 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -44,7 +44,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`DirectoryNameColumn` can only display directory assets.')
     }
-    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {

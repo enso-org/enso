@@ -6,6 +6,7 @@ import BlankIcon from 'enso-assets/blank.svg'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
@@ -13,7 +14,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
@@ -56,8 +57,8 @@ export const INITIAL_ROW_STATE: assetsTable.AssetRowState = Object.freeze({
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
     key: backendModule.AssetId
-    item: assetTreeNode.AssetTreeNode
-    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+    item: AssetTreeNode
+    setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
     state: assetsTable.AssetsTableState
     rowState: assetsTable.AssetRowState
     setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -66,7 +67,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
     extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
-    item: assetTreeNode.AssetTreeNode
+    item: AssetTreeNode
     state: assetsTable.AssetsTableState
     hidden: boolean
     columns: columnUtils.Column[]
@@ -111,7 +112,7 @@ export default function AssetRow(props: AssetRowProps) {
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
         object.merge(INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
     )
-    const key = assetTreeNode.AssetTreeNode.getKey(item)
+    const key = AssetTreeNode.getKey(item)
     const isCloud = backend.type === backendModule.BackendType.remote
     const visibility = visibilities.get(key) ?? insertionVisibility
 
@@ -123,7 +124,7 @@ export default function AssetRow(props: AssetRowProps) {
         // re - rendering the parent.
         rawItem.item = asset
     }, [asset, rawItem])
-    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
     React.useEffect(() => {
         if (selected && insertionVisibility !== Visibility.visible) {

@@ -21,8 +21,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/assetQuery'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
+import type * as assetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
@@ -148,18 +149,18 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
 /** Return a directory, with new children added into its list of children.
  * All children MUST have the same asset type. */
 function insertAssetTreeNodeChildren(
-    item: assetTreeNode.AssetTreeNode,
+    item: AssetTreeNode,
     children: backendModule.AnyAsset[],
     directoryKey: backendModule.AssetId,
     directoryId: backendModule.DirectoryId
-): assetTreeNode.AssetTreeNode {
+): AssetTreeNode {
     const depth = item.depth + 1
     const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
     const nodes = (item.children ?? []).filter(
         node => node.item.type !== backendModule.AssetType.specialEmpty
     )
     const nodesToInsert = children.map(asset =>
-        assetTreeNode.AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
+        AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
     )
     const newNodes = array.splicedBefore(
         nodes,
@@ -172,12 +173,12 @@ function insertAssetTreeNodeChildren(
 /** Return a directory, with new children added into its list of children.
  * The children MAY be of different asset types. */
 function insertArbitraryAssetTreeNodeChildren(
-    item: assetTreeNode.AssetTreeNode,
+    item: AssetTreeNode,
     children: backendModule.AnyAsset[],
     directoryKey: backendModule.AssetId,
     directoryId: backendModule.DirectoryId,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
-): assetTreeNode.AssetTreeNode {
+): AssetTreeNode {
     const depth = item.depth + 1
     const nodes = (item.children ?? []).filter(
         node => node.item.type !== backendModule.AssetType.specialEmpty
@@ -199,13 +200,7 @@ function insertArbitraryAssetTreeNodeChildren(
         if (firstChild) {
             const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
             const nodesToInsert = childrenOfSpecificType.map(asset =>
-                assetTreeNode.AssetTreeNode.fromAsset(
-                    asset,
-                    directoryKey,
-                    directoryId,
-                    depth,
-                    getKey
-                )
+                AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth, getKey)
             )
             newNodes = array.splicedBefore(
                 newNodes,
@@ -244,17 +239,15 @@ export interface AssetsTableState {
     setSortColumn: (column: columnUtils.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
     assetEvents: assetEvent.AssetEvent[]
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
-    nodeMap: Readonly<
-        React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
-    >
+    nodeMap: Readonly<React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>>
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -285,8 +278,8 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     setCanDownloadFiles: (canDownloadFiles: boolean) => void
     category: Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
@@ -349,9 +342,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
         [organization]
     )
-    const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
+    const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
         const rootParentDirectoryId = backendModule.DirectoryId('')
-        return assetTreeNode.AssetTreeNode.fromAsset(
+        return AssetTreeNode.fromAsset(
             backendModule.createRootDirectoryAsset(rootDirectoryId),
             rootParentDirectoryId,
             rootParentDirectoryId,
@@ -367,19 +360,19 @@ export default function AssetsTable(props: AssetsTableProps) {
             : PLACEHOLDER
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-    const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode>(assetTree)
+    const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
     const pasteDataRef = React.useRef<pasteDataModule.PasteData<Set<backendModule.AssetId>> | null>(
         null
     )
-    const nodeMapRef = React.useRef<
-        ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
-    >(new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>())
+    const nodeMapRef = React.useRef<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>(
+        new Map<backendModule.AssetId, AssetTreeNode>()
+    )
     const filter = React.useMemo(() => {
         const globCache: Record<string, RegExp> = {}
         if (/^\s*$/.test(query.query)) {
             return null
         } else {
-            return (node: assetTreeNode.AssetTreeNode) => {
+            return (node: AssetTreeNode) => {
                 const assetType =
                     node.item.type === backendModule.AssetType.directory
                         ? 'folder'
@@ -492,7 +485,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 [sorting.SortDirection.ascending]: 1,
                 [sorting.SortDirection.descending]: -1,
             }[sortDirection]
-            let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
+            let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
             switch (sortColumn) {
                 case columnUtils.Column.name: {
                     compare = (a, b) => {
@@ -539,7 +532,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree, sortColumn, sortDirection])
     const visibilities = React.useMemo(() => {
         const map = new Map<backendModule.AssetId, Visibility>()
-        const processNode = (node: assetTreeNode.AssetTreeNode) => {
+        const processNode = (node: AssetTreeNode) => {
             let displayState = Visibility.hidden
             const visible = filter?.(node) ?? true
             for (const child of node.children ?? []) {
@@ -580,7 +573,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         const nodeToSuggestion = (
-            node: assetTreeNode.AssetTreeNode,
+            node: AssetTreeNode,
             key: assetQuery.AssetQueryKey = 'names'
         ): assetSearchBar.Suggestion => ({
             render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
@@ -602,7 +595,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             allVisibleNodes().map(node =>
                 nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
             )
-        const terms = assetQuery.AssetQuery.terms(query.query)
+        const terms = AssetQuery.terms(query.query)
         const term =
             terms.find(otherTerm => otherTerm.values.length === 0) ?? terms[terms.length - 1]
         const termValues = term?.values ?? []
@@ -650,7 +643,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             new Set(extensions),
                             (extension): assetSearchBar.Suggestion => ({
                                 render: () =>
-                                    assetQuery.AssetQuery.termToString({
+                                    AssetQuery.termToString({
                                         tag: `${negative ? '-' : ''}extension`,
                                         values: [extension],
                                     }),
@@ -682,7 +675,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             new Set(['today', ...modifieds]),
                             (modified): assetSearchBar.Suggestion => ({
                                 render: () =>
-                                    assetQuery.AssetQuery.termToString({
+                                    AssetQuery.termToString({
                                         tag: `${negative ? '-' : ''}modified`,
                                         values: [modified],
                                     }),
@@ -720,7 +713,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             new Set(owners),
                             (owner): assetSearchBar.Suggestion => ({
                                 render: () =>
-                                    assetQuery.AssetQuery.termToString({
+                                    AssetQuery.termToString({
                                         tag: `${negative ? '-' : ''}owner`,
                                         values: [owner],
                                     }),
@@ -856,18 +849,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 setInitialized(true)
                 const rootParentDirectoryId = backendModule.DirectoryId('')
                 const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-                const newRootNode = new assetTreeNode.AssetTreeNode(
+                const newRootNode = new AssetTreeNode(
                     rootDirectoryId,
                     rootDirectory,
                     rootParentDirectoryId,
                     rootParentDirectoryId,
                     newAssets.map(asset =>
-                        assetTreeNode.AssetTreeNode.fromAsset(
-                            asset,
-                            rootDirectory.id,
-                            rootDirectory.id,
-                            0
-                        )
+                        AssetTreeNode.fromAsset(asset, rootDirectory.id, rootDirectory.id, 0)
                     ),
                     -1
                 )
@@ -954,9 +942,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.AssetId,
                             backendModule.AnyAsset[]
                         >()
-                        const withChildren = (
-                            node: assetTreeNode.AssetTreeNode
-                        ): assetTreeNode.AssetTreeNode => {
+                        const withChildren = (node: AssetTreeNode): AssetTreeNode => {
                             const queuedListing = queuedDirectoryListings.get(node.item.id)
                             if (
                                 queuedListing == null ||
@@ -969,7 +955,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 return node.with({
                                     children: queuedListing.map(asset =>
                                         withChildren(
-                                            assetTreeNode.AssetTreeNode.fromAsset(
+                                            AssetTreeNode.fromAsset(
                                                 asset,
                                                 directoryAsset.id,
                                                 directoryAsset.id,
@@ -1147,7 +1133,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             ? item
                             : item.with({
                                   children: [
-                                      assetTreeNode.AssetTreeNode.fromAsset(
+                                      AssetTreeNode.fromAsset(
                                           backendModule.createSpecialLoadingAsset(directoryId),
                                           key,
                                           directoryId,
@@ -1193,7 +1179,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     const childAssetNodes = Array.from(
                                         childAssetsMap.values(),
                                         child =>
-                                            assetTreeNode.AssetTreeNode.fromAsset(
+                                            AssetTreeNode.fromAsset(
                                                 child,
                                                 key,
                                                 directoryId,
@@ -1208,7 +1194,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     const children =
                                         specialEmptyAsset != null
                                             ? [
-                                                  assetTreeNode.AssetTreeNode.fromAsset(
+                                                  AssetTreeNode.fromAsset(
                                                       specialEmptyAsset,
                                                       key,
                                                       directoryId,
@@ -1219,7 +1205,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               initialChildren.length === 0
                                             ? childAssetNodes
                                             : [...initialChildren, ...childAssetNodes].sort(
-                                                  assetTreeNode.AssetTreeNode.compare
+                                                  AssetTreeNode.compare
                                               )
                                     return item.with({ children })
                                 }
@@ -1748,17 +1734,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     return [key]
                 } else {
                     const index1 = displayItems.findIndex(
-                        innerItem =>
-                            assetTreeNode.AssetTreeNode.getKey(innerItem) === previouslySelectedKey
+                        innerItem => AssetTreeNode.getKey(innerItem) === previouslySelectedKey
                     )
                     const index2 = displayItems.findIndex(
-                        innerItem => assetTreeNode.AssetTreeNode.getKey(innerItem) === key
+                        innerItem => AssetTreeNode.getKey(innerItem) === key
                     )
                     const selectedItems =
                         index1 <= index2
                             ? displayItems.slice(index1, index2 + 1)
                             : displayItems.slice(index2, index1 + 1)
-                    return selectedItems.map(assetTreeNode.AssetTreeNode.getKey)
+                    return selectedItems.map(AssetTreeNode.getKey)
                 }
             }
             if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
@@ -1822,7 +1807,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tr>
     ) : (
         displayItems.map(item => {
-            const key = assetTreeNode.AssetTreeNode.getKey(item)
+            const key = AssetTreeNode.getKey(item)
             const isSelected = selectedKeys.has(key)
             const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
             return (

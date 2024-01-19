@@ -36,7 +36,7 @@ interface AssetQueryTerm {
 }
 
 /** Parsing and representation of the search query. */
-export class AssetQuery {
+export default class AssetQuery {
     static plainValueRegex = interpolateRegex(/^(?:|[^"]\S*)$/)
     static jsonValueRegex = interpolateRegex(/^(<json>)$/)
     static termsRegex = interpolateRegex(/(?:([^\s:]*):)?((?:(?:<json>|(?:[^,\s"][^,\s]*)),?)*|)/g)

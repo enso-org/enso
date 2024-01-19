@@ -8,7 +8,8 @@ import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
 import * as modalProvider from '#/providers/ModalProvider'
 import type * as backend from '#/services/backend'
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/assetQuery'
+import * as assetQuery from '#/utilities/AssetQuery'
+import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
 
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
@@ -24,8 +25,8 @@ import SvgMask from '#/components/SvgMask'
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
     labels: backend.Label[]
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     doCreateLabel: (name: string, color: backend.LChColor) => void
     doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
     newLabelNames: Set<backend.LabelName>

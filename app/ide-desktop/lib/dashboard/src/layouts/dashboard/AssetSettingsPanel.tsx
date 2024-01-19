@@ -11,7 +11,7 @@ import UserBar from '#/layouts/dashboard/UserBar'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import type * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -25,8 +25,8 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 /** The subset of {@link AssetSettingsPanelProps} that are required to be supplied by the row. */
 export interface AssetSettingsPanelRequiredProps {
-    item: assetTreeNode.AssetTreeNode
-    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+    item: AssetTreeNode
+    setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
 }
 
 /** Props for a {@link AssetSettingsPanel}. */
@@ -57,7 +57,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const { backend } = backendProvider.useBackend()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
     const setItem = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
+        (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
             innerSetItem(valueOrUpdater)
             rawSetItem(valueOrUpdater)
         },

@@ -5,7 +5,7 @@ import FindIcon from 'enso-assets/find.svg'
 
 import type * as backend from '#/services/backend'
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/assetQuery'
+import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
 import * as shortcuts from '#/utilities/shortcuts'
 
 import Label from '#/components/dashboard/Label'
@@ -30,8 +30,8 @@ enum QuerySource {
 /** A suggested query. */
 export interface Suggestion {
     render: () => React.ReactNode
-    addToQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
-    deleteFromQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
+    addToQuery: (query: AssetQuery) => AssetQuery
+    deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
 // ======================
@@ -40,8 +40,8 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
-    query: assetQuery.AssetQuery
-    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    query: AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
     labels: backend.Label[]
     suggestions: Suggestion[]
 }
@@ -219,7 +219,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 onChange={event => {
                     if (querySource.current !== QuerySource.internal) {
                         querySource.current = QuerySource.typing
-                        setQuery(assetQuery.AssetQuery.fromString(event.target.value))
+                        setQuery(AssetQuery.fromString(event.target.value))
                     }
                 }}
                 onKeyDown={event => {
@@ -244,7 +244,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             data-testid="asset-search-tag-names"
                             className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
                         >
-                            {assetQuery.AssetQuery.tagNames.flatMap(entry => {
+                            {AssetQuery.tagNames.flatMap(entry => {
                                 const [key, tag] = entry
                                 return tag == null || isShiftPressed !== tag.startsWith('-')
                                     ? []

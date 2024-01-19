@@ -27,7 +27,7 @@ import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
-import * as assetQuery from '#/utilities/assetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 import * as http from '#/utilities/http'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as object from '#/utilities/object'
@@ -70,7 +70,7 @@ export default function Dashboard(props: DashboardProps) {
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
     const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
+    const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
