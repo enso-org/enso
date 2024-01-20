@@ -45,7 +45,9 @@ export default function BackendProvider(props: BackendProviderProps) {
     )
 
     return (
-        <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
+        <BackendContext.Provider
+            value={{ backend, setBackend, setBackendWithoutSavingType }}
+        >
             {children}
         </BackendContext.Provider>
     )

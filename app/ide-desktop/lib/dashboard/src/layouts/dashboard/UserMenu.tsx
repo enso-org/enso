@@ -83,6 +83,14 @@ export default function UserMenu(props: UserMenuProps) {
                                     }}
                                 />
                             )}
+                            {/* FIXME [NP]: remove */}
+                            <MenuEntry
+                                action={shortcuts.KeyboardAction.subscribe}
+                                paddingClassName="p-1"
+                                doAction={() => {
+                                    navigate(appUtils.SUBSCRIBE_PATH)
+                                }}
+                            />
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signOut}
                                 paddingClassName="p-1"

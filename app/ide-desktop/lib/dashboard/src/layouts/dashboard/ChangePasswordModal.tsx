@@ -19,7 +19,8 @@ import SubmitButton from '#/components/SubmitButton'
 
 /** A modal for changing the user's password. */
 export default function ChangePasswordModal() {
-    const { changePassword } = authProvider.useAuth()
+    const { organization } = auth.useNonPartialUserSession()
+    const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
     const [oldPassword, setOldPassword] = React.useState('')
@@ -46,6 +47,7 @@ export default function ChangePasswordModal() {
                 }}
             >
                 <div className="self-center text-xl">Change your password</div>
+                <input type="text" hidden value={organization?.email} />
                 <Input
                     autoFocus
                     required

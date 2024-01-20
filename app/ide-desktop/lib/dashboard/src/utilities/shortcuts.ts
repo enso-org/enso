@@ -86,6 +86,8 @@ export enum KeyboardAction {
     changeYourPassword = 'change-your-password',
     signIn = 'sign-in',
     signOut = 'sign-out',
+    // FIXME [NP]: remove
+    subscribe = 'subscribe',
     downloadApp = 'download-app',
 }
 
@@ -467,6 +469,8 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
     [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
     [KeyboardAction.changeYourPassword]: [],
+    // FIXME [NP]: remove
+    [KeyboardAction.subscribe]: [],
     [KeyboardAction.signIn]: [],
     [KeyboardAction.signOut]: [],
     [KeyboardAction.downloadApp]: [],
@@ -533,10 +537,9 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     // These should not appear in any context menus.
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
-    [KeyboardAction.changeYourPassword]: {
-        name: 'Change Your Password',
-        icon: ChangePasswordIcon,
-    },
+    [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
+    // FIXME [NP]: remove
+    [KeyboardAction.subscribe]: { name: 'Subscribe', icon: ChangePasswordIcon },
     [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
     [KeyboardAction.signOut]: {
         name: 'Logout',

@@ -67,6 +67,13 @@ const AMPLIFY_CONFIGS = {
         domain: auth.OAuthDomain('npekin-enso-domain.auth.eu-west-1.amazoncognito.com'),
         ...BASE_AMPLIFY_CONFIG,
     } satisfies Partial<auth.AmplifyConfig>,
+    /** Configuration for @indiv0's Cognito user pool. */
+    npekin2: {
+        userPoolId: auth.UserPoolId('eu-west-1_FWbSTq3fV'),
+        userPoolWebClientId: auth.UserPoolWebClientId('1e54ioss6ct6qfuek44g8hi1p0'),
+        domain: auth.OAuthDomain('npekin2-enso-domain.auth.eu-west-1.amazoncognito.com'),
+        ...BASE_AMPLIFY_CONFIG,
+    } satisfies Partial<auth.AmplifyConfig>,
     /** Configuration for @pbuchu's Cognito user pool. */
     pbuchu: {
         userPoolId: auth.UserPoolId('eu-west-1_jSF1RbgPK'),

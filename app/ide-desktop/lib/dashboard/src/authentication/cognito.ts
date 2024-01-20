@@ -74,6 +74,7 @@ interface UserAttributes {
     sub: string
     'custom:fromDesktop'?: string
     'custom:organizationId'?: string
+    'custom:requestedPlan'?: string
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -197,22 +198,34 @@ export class Cognito {
     /** Returns the associated organization ID of the current user, which is passed during signup,
      * or `null` if the user is not associated with an existing organization. */
     async organizationId() {
-        // This `any` comes from a third-party API and cannot be avoided.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+        const userInfo = await this.userInfo()
         return userInfo.attributes['custom:organizationId'] ?? null
+    }
+
+    /** Returns the associated organization ID of the current user, which is passed during signup,
+     * or `null` if the user is not associated with an existing organization. */
+    async requestedPlan() {
+        return "plan-enso-solo"
+        //const userInfo = await this.userInfo()
+        //return userInfo.attributes['custom:requestedPlan'] ?? null
     }
 
     /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    async signUp(username: string, password: string, organizationId: string | null) {
+    async signUp(
+        username: string,
+        password: string,
+        organizationId: string | null,
+        plan: string | null
+    ) {
         const result = await results.Result.wrapAsync(async () => {
             const params = intoSignUpParams(
                 this.supportsDeepLinks,
                 username,
                 password,
-                organizationId
+                organizationId,
+                plan
             )
             await amplify.Auth.signUp(params)
         })
@@ -330,6 +343,14 @@ export class Cognito {
         }
     }
 
+    /** Returns the information associated by Amplify with the current user. */
+    protected async userInfo() {
+        // This `any` comes from a third-party API and cannot be avoided.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+        return userInfo
+    }
+
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
      * is done so we get a chance to fix the location history. The location history is the history
@@ -417,7 +438,8 @@ function intoSignUpParams(
     supportsDeepLinks: boolean,
     username: string,
     password: string,
-    organizationId: string | null
+    organizationId: string | null,
+    requestedPlan: string | null
 ): amplify.SignUpParams {
     return {
         username,
@@ -437,6 +459,8 @@ function intoSignUpParams(
             ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            ...(requestedPlan != null ? { 'custom:requestedPlan': requestedPlan } : {}),
         },
     }
 }

@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 import type * as React from 'react'
 
+import * as array from '#/utilities/array'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as permissions from '#/utilities/permissions'
@@ -273,6 +274,18 @@ export enum VersionLifecycle {
     development = 'Development',
 }
 
+/** Subscription plans. */
+export enum Plan {
+    solo = 'solo',
+    team = 'team',
+}
+
+export const PLANS = Object.values(Plan)
+
+// This is a function, even though it does not look like one.
+// eslint-disable-next-line no-restricted-syntax
+export const isPlan = array.includesPredicate(PLANS)
+
 /** Version number of an IDE or backend. */
 export interface VersionNumber {
     value: string
@@ -288,6 +301,22 @@ export interface Version {
     // so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     version_type: VersionType
+}
+
+/** Metadata uniquely describing a payment checkout session. */
+export interface CheckoutSession {
+    /** ID of the checkout session, suffixed with a secret value. */
+    clientSecret: string,
+    /** ID of the checkout session. */
+    id: string,
+}
+
+/** Metadata describing the status of a payment checkout session. */
+export interface CheckoutSessionStatus {
+    /** Status of the payment for the checkout session. */
+    paymentStatus: string
+    /** Status of the checkout session. */
+    status: string
 }
 
 /** Resource usage of a VM. */
@@ -736,6 +765,11 @@ export interface CreateTagRequestBody {
     color: LChColor
 }
 
+/** HTTP request body for the "create checkout session" endpoint. */
+export interface CreateCheckoutSessionRequestBody {
+    plan: Plan
+}
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId: string | null
@@ -755,6 +789,11 @@ export interface UploadFileRequestParams {
 export interface ListVersionsRequestParams {
     versionType: VersionType
     default: boolean
+}
+
+/** URL query string parameters for the "get checkout session" endpoint. */
+export interface GetCheckoutSessionRequestParams {
+    sessionId: string
 }
 
 // ==============================
@@ -933,4 +972,8 @@ export abstract class Backend {
     abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
+    /** Create a payment checkout session. */
+    abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+    /** Get the status of a payment checkout session. */
+    abstract getCheckoutSession(sessionId: string): Promise<CheckoutSessionStatus>
 }

@@ -715,6 +715,44 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Create a payment checkout session.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async createCheckoutSession(
+        plan: backendModule.Plan
+    ): Promise<backendModule.CheckoutSession> {
+        const response = await this.post<backendModule.CheckoutSession>(
+            remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
+            { plan } satisfies backendModule.CreateCheckoutSessionRequestBody
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Could not create checkout session for plan '${plan}'.`)
+        } else {
+            return await response.json()
+        }
+    }
+
+    /** Gets the status of a payment checkout session.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async getCheckoutSession(
+        sessionId: string
+    ): Promise<backendModule.CheckoutSessionStatus> {
+        const response = await this.get<backendModule.CheckoutSessionStatus>(
+            remoteBackendPaths.GET_CHECKOUT_SESSION_PATH +
+                '?' +
+                new URLSearchParams({
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    session_id: sessionId,
+                }).toString()
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not get checkout session for session ID '${sessionId}'.`
+            )
+        } else {
+            return await response.json()
+        }
+    }
+
     /** Get the default version given the type of version (IDE or backend). */
     protected async getDefaultVersion(versionType: backendModule.VersionType) {
         const cached = this.defaultVersions[versionType]
