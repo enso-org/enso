@@ -13,9 +13,8 @@ class SlowEditFileCmd(request: Api.EditFileNotification, counter: Int)
     ec: ExecutionContext
   ): Unit = {
     if (counter % 2 == 1) {
-      Thread.sleep(1000)
+      Thread.sleep(2000)
     }
-    println("Custom handler?")
     super.executeSynchronously(ctx, ec)
   }
 }

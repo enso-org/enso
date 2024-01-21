@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.command
 import org.enso.polyglot.runtime.Runtime.Api
 
-class MockedCommandFactory extends CommandFactory {
+object MockedCommandFactory extends CommandFactory {
 
   private var editRequestCounter = 0
 

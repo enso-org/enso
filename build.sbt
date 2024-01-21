@@ -1707,7 +1707,12 @@ lazy val runtime = (project in file("engine/runtime"))
         (LocalProject(
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
-        (LocalProject("refactoring-utils") / Compile / productDirectories).value
+        (LocalProject(
+          "refactoring-utils"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Test / productDirectories).value
       // Patch test-classes into the runtime module. This is standard way to deal with the
       // split package problem in unit tests. For example, Maven's surefire plugin does this.
       val testClassesDir = (Test / productDirectories).value.head
@@ -1727,7 +1732,8 @@ lazy val runtime = (project in file("engine/runtime"))
         runtimeModName -> Seq(
           "ALL-UNNAMED",
           testInstrumentsModName,
-          "truffle.tck.tests"
+          "truffle.tck.tests",
+          "org.openide.util.lookup.RELEASE180"
         ),
         testInstrumentsModName -> Seq(runtimeModName)
       )

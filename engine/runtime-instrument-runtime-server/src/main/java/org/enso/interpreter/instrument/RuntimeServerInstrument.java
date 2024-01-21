@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.service.ExecutionService;
@@ -20,6 +19,7 @@ import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
+import org.openide.util.Lookup;
 
 /**
  * An instrument exposing a server for other services to connect to, in order to control the current
@@ -103,10 +103,8 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     this.env = env;
     env.registerService(this);
-    ServiceLoader<Handler> loader =
-        ServiceLoader.load(Handler.class, RuntimeServerInstrument.class.getClassLoader());
-    var loadedHandler = loader.findFirst();
-    this.handler = loadedHandler.orElse(new HandlerImpl());
+    var loadedHandler = Lookup.getDefault().lookup(HandlerFactory.class);
+    this.handler = loadedHandler != null ? loadedHandler.create() : HandlerFactoryImpl.create();
 
     try {
       MessageEndpoint client =
