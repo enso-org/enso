@@ -1,7 +1,7 @@
 /** @file Tests for `dateTime.ts`. */
 import * as v from 'vitest'
 
-import ShortcutManager, * as shortcutManager from '../ShortcutManager'
+import ShortcutManager, * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =============
 // === Tests ===
@@ -13,27 +13,27 @@ import ShortcutManager, * as shortcutManager from '../ShortcutManager'
 v.test.each([
     {
         event: new KeyboardEvent('keydown', { key: 'N', ctrlKey: true }),
-        action: shortcutManager.KeyboardAction.newProject,
+        action: shortcutManagerModule.KeyboardAction.newProject,
     },
     {
         event: new KeyboardEvent('keydown', { key: 'N', ctrlKey: true, shiftKey: true }),
-        action: shortcutManager.KeyboardAction.newFolder,
+        action: shortcutManagerModule.KeyboardAction.newFolder,
     },
     {
         event: new KeyboardEvent('keydown', { key: 'N', ctrlKey: true, altKey: true }),
-        action: shortcutManager.KeyboardAction.newDataConnector,
+        action: shortcutManagerModule.KeyboardAction.newDataConnector,
     },
     {
         event: new KeyboardEvent('keydown', { key: 'C', ctrlKey: true }),
-        action: shortcutManager.KeyboardAction.copy,
+        action: shortcutManagerModule.KeyboardAction.copy,
     },
     {
         event: new KeyboardEvent('keydown', { key: 'X', ctrlKey: true }),
-        action: shortcutManager.KeyboardAction.cutAll,
+        action: shortcutManagerModule.KeyboardAction.cutAll,
     },
     {
         event: new KeyboardEvent('keydown', { key: 'V', ctrlKey: true }),
-        action: shortcutManager.KeyboardAction.paste,
+        action: shortcutManagerModule.KeyboardAction.paste,
     },
     // Disallow extra modifier keys
     {
@@ -51,7 +51,7 @@ v.test.each([
     },
 ])('Keyboard shortcut handling', ({ event, action }) => {
     const shortcutManager = ShortcutManager.createWithDefaults()
-    const matchedAction = v.vi.fn((shortcut: shortcutManager.KeyboardAction) => shortcut)
+    const matchedAction = v.vi.fn((shortcut: shortcutManagerModule.KeyboardAction) => shortcut)
     shortcutManager.registerKeyboardHandlers(
         new Proxy(
             {},
@@ -60,7 +60,7 @@ v.test.each([
                 get(_, key) {
                     // This is SAFE, as all keys are known at typecheck time.
                     // eslint-disable-next-line no-restricted-syntax
-                    return () => matchedAction(key as shortcutManager.KeyboardAction)
+                    return () => matchedAction(key as shortcutManagerModule.KeyboardAction)
                 },
             }
         )
@@ -92,60 +92,60 @@ v.test.each([
     // === Should match ===
     {
         event: new MouseEvent('mousedown', { detail: 2 }),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
     },
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, detail: 1 }),
-        action: shortcutManager.MouseAction.selectAdditional,
+        action: shortcutManagerModule.MouseAction.selectAdditional,
     },
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, shiftKey: true, detail: 1 }),
-        action: shortcutManager.MouseAction.selectAdditionalRange,
+        action: shortcutManagerModule.MouseAction.selectAdditionalRange,
     },
     {
         event: new MouseEvent('mousedown', { shiftKey: true, detail: 1 }),
-        action: shortcutManager.MouseAction.selectRange,
+        action: shortcutManagerModule.MouseAction.selectRange,
     },
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, detail: 1 }),
-        action: shortcutManager.MouseAction.editName,
+        action: shortcutManagerModule.MouseAction.editName,
     },
     // Triple click or double click instead of single click SHOULD match
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, detail: 3 }),
-        action: shortcutManager.MouseAction.selectAdditional,
+        action: shortcutManagerModule.MouseAction.selectAdditional,
     },
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, detail: 2 }),
-        action: shortcutManager.MouseAction.selectAdditional,
+        action: shortcutManagerModule.MouseAction.selectAdditional,
     },
     // Triple click instead of double click SHOULD match
     {
         event: new MouseEvent('mousedown', { detail: 3 }),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
     },
     // === Should not match ===
     // Single click instad of double click
     {
         event: new MouseEvent('mousedown', { detail: 1 }),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
         match: false,
     },
     // 0 clicks instad of double click
     {
         event: new MouseEvent('mousedown', { detail: 0 }),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
         match: false,
     },
     {
         event: new MouseEvent('mousedown'),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
         match: false,
     },
     // Missing modifier keys
     {
         event: new MouseEvent('mousedown', { ctrlKey: true, detail: 2 }),
-        action: shortcutManager.MouseAction.selectAdditionalRange,
+        action: shortcutManagerModule.MouseAction.selectAdditionalRange,
         match: false,
     },
     // Extra modifier keys
@@ -156,12 +156,12 @@ v.test.each([
             metaKey: true,
             detail: 2,
         }),
-        action: shortcutManager.MouseAction.selectAdditional,
+        action: shortcutManagerModule.MouseAction.selectAdditional,
         match: false,
     },
     {
         event: new MouseEvent('mousedown', { ctrlKey: true }),
-        action: shortcutManager.MouseAction.open,
+        action: shortcutManagerModule.MouseAction.open,
         match: false,
     },
 ])('Mouse shortcut handling', ({ event, action, match = true }) => {
