@@ -10,6 +10,15 @@ interface NewtypeVariant<TypeName extends string> {
     readonly _$type: TypeName
 }
 
+/** An interface specifying the variant of a newtype, where the discriminator is mutable.
+ * This is safe, as the discriminator should be a string literal type anyway. */
+// This is required for compatibility with the dependency `enso-chat`.
+// eslint-disable-next-line no-restricted-syntax
+interface MutableNewtypeVariant<TypeName extends string> {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    _$type: TypeName
+}
+
 /** Used to create a "branded type",
  * which contains a property that only exists at compile time.
  *
@@ -27,7 +36,10 @@ export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
 /** Extracts the original type out of a {@link Newtype}.
  * Its only use is in {@link newtypeConstructor}. */
-type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
+type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U &
+    MutableNewtypeVariant<T['_$type']>
+    ? U
+    : T extends infer U & NewtypeVariant<T['_$type']>
     ? U
     : NotNewtype & Omit<T, '_$type'>
 
