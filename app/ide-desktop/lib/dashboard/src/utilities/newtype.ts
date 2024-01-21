@@ -36,11 +36,10 @@ export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
 /** Extracts the original type out of a {@link Newtype}.
  * Its only use is in {@link newtypeConstructor}. */
-type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U &
-    MutableNewtypeVariant<T['_$type']>
-    ? U
-    : T extends infer U & NewtypeVariant<T['_$type']>
-    ? U
+type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
+    ? U extends infer V & MutableNewtypeVariant<T['_$type']>
+        ? V
+        : U
     : NotNewtype & Omit<T, '_$type'>
 
 /** An interface that matches a type if and only if it is not a newtype. */
