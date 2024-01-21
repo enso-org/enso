@@ -21,16 +21,6 @@ import * as localStorageModule from '#/utilities/LocalStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
-// =================
-// === Constants ===
-// =================
-
-const REGISTRATION_QUERY_PARAMS = {
-    email: 'email',
-    organizationId: 'organization_id',
-    redirectTo: 'redirect_to',
-} as const
-
 // ====================
 // === Registration ===
 // ====================
@@ -40,8 +30,13 @@ export default function Registration() {
     const auth = authProvider.useAuth()
     const location = router.useLocation()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const { email: urlEmail, organizationId, redirectTo } = parseUrlSearchParams(location.search)
-    const [email, setEmail] = React.useState(urlEmail ?? '')
+
+    const query = new URLSearchParams(location.search)
+    const initialEmail = query.get('email')
+    const organizationId = query.get('organization_id')
+    const redirectTo = query.get('redirect_to')
+
+    const [email, setEmail] = React.useState(initialEmail ?? '')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
     const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -110,13 +105,4 @@ export default function Registration() {
             <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
         </div>
     )
-}
-
-/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
-function parseUrlSearchParams(search: string) {
-    const query = new URLSearchParams(search)
-    const email = query.get(REGISTRATION_QUERY_PARAMS.email)
-    const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
-    const redirectTo = query.get(REGISTRATION_QUERY_PARAMS.redirectTo)
-    return { email, organizationId, redirectTo }
 }

@@ -38,22 +38,6 @@ import type * as authServiceModule from '#/authentication/service'
 
 /** The minimum delay between two requests. */
 const REQUEST_DELAY_MS = 200
-const MESSAGES = {
-    signUpSuccess: 'We have sent you an email with further instructions!',
-    confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
-    confirmSignUpFailure: 'Incorrect email or confirmation code.',
-    setUsernameLoading: 'Setting username...',
-    setUsernameSuccess: 'Your username has been set!',
-    setUsernameFailure: 'Could not set your username.',
-    signInWithPasswordSuccess: 'Successfully logged in!',
-    forgotPasswordSuccess: 'We have sent you an email with further instructions!',
-    changePasswordSuccess: 'Successfully changed password!',
-    resetPasswordSuccess: 'Successfully reset password!',
-    signOutLoading: 'Logging out...',
-    signOutSuccess: 'Successfully logged out!',
-    signOutError: 'Could not log out, please try again.',
-    pleaseWait: 'Please wait...',
-} as const
 
 // ===================
 // === UserSession ===
@@ -375,7 +359,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     const withLoadingToast =
         <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
         async (...args: T) => {
-            toast.toast.loading(MESSAGES.pleaseWait, { toastId })
+            toast.toast.loading('Please wait...', { toastId })
             return await action(...args)
         }
 
@@ -407,7 +391,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         gtag.event('cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
-            toastSuccess(MESSAGES.signUpSuccess)
+            toastSuccess('We have sent you an email with further instructions!')
             navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
@@ -423,14 +407,14 @@ export default function AuthProvider(props: AuthProviderProps) {
                 case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
                     break
                 case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
-                    toastError(MESSAGES.confirmSignUpFailure)
+                    toastError('Incorrect email or confirmation code.')
                     navigate(appUtils.LOGIN_PATH)
                     return false
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
             }
         }
-        toastSuccess(MESSAGES.confirmSignUpSuccess)
+        toastSuccess('Your account has been confirmed! Please log in.')
         navigate(appUtils.LOGIN_PATH)
         return result.ok
     }
@@ -439,7 +423,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         gtag.event('cloud_sign_in', { provider: 'Email' })
         const result = await cognito.signInWithPassword(email, password)
         if (result.ok) {
-            toastSuccess(MESSAGES.signInWithPasswordSuccess)
+            toastSuccess('Successfully logged in!')
         } else {
             if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 // It may not be safe to pass the user's password in the URL.
@@ -472,9 +456,9 @@ export default function AuthProvider(props: AuthProviderProps) {
                                 : null,
                     }),
                     {
-                        success: MESSAGES.setUsernameSuccess,
-                        error: MESSAGES.setUsernameFailure,
-                        pending: MESSAGES.setUsernameLoading,
+                        success: 'Your username has been set!',
+                        error: 'Could not set your username.',
+                        pending: 'Setting username...',
                     }
                 )
                 const redirectTo = localStorage.get(
@@ -496,7 +480,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     const forgotPassword = async (email: string) => {
         const result = await cognito.forgotPassword(email)
         if (result.ok) {
-            toastSuccess(MESSAGES.forgotPasswordSuccess)
+            toastSuccess('We have sent you an email with further instructions!')
             navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
@@ -507,7 +491,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     const resetPassword = async (email: string, code: string, password: string) => {
         const result = await cognito.forgotPasswordSubmit(email, code, password)
         if (result.ok) {
-            toastSuccess(MESSAGES.resetPasswordSuccess)
+            toastSuccess('Successfully reset password!')
             navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
@@ -518,7 +502,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     const changePassword = async (oldPassword: string, newPassword: string) => {
         const result = await cognito.changePassword(oldPassword, newPassword)
         if (result.ok) {
-            toastSuccess(MESSAGES.changePasswordSuccess)
+            toastSuccess('Successfully changed password!')
         } else {
             toastError(result.val.message)
         }
@@ -538,9 +522,9 @@ export default function AuthProvider(props: AuthProviderProps) {
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {
-            success: MESSAGES.signOutSuccess,
-            error: MESSAGES.signOutError,
-            pending: MESSAGES.signOutLoading,
+            success: 'Successfully logged out!',
+            error: 'Could not log out, please try again.',
+            pending: 'Logging out...',
         })
         return true
     }
