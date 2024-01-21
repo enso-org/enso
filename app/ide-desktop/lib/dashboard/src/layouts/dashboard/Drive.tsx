@@ -155,15 +155,17 @@ export default function Drive(props: DriveProps) {
 
     const doCreateProject = React.useCallback(
         (
-            templateId: string | null,
-            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+            templateId: string | null = null,
+            templateName: string | null = null,
+            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
         ) => {
             dispatchAssetListEvent({
                 type: AssetListEventType.newProject,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
-                templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange ?? null,
+                templateId: templateId,
+                templateName: templateName,
+                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
         [rootDirectoryId, /* should never change */ dispatchAssetListEvent]

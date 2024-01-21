@@ -13,15 +13,16 @@ import type * as spinner from '#/components/Spinner'
 /** Props for a {@link Home}. */
 export interface HomeProps {
     hidden: boolean
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+    createProject: (
+        templateId?: string | null,
+        templateName?: string | null,
+        onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null
     ) => void
 }
 
 /** Home screen. */
 export default function Home(props: HomeProps) {
-    const { hidden, onTemplateClick } = props
+    const { hidden, createProject } = props
     return (
         <div
             className={`flex flex-col flex-1 overflow-auto scroll-hidden gap-12 ${
@@ -40,7 +41,7 @@ export default function Home(props: HomeProps) {
                 </h2>
             </div>
             <WhatsNew />
-            <Samples onTemplateClick={onTemplateClick} />
+            <Samples createProject={createProject} />
         </div>
     )
 }

@@ -71,11 +71,6 @@ const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the curren
 /** The placeholder row for the Trash category. */
 const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 
-/** The {@link RegExp} matching a directory name following the default naming convention. */
-const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
-/** The default prefix of an automatically generated directory. */
-const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
-
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
     {
         render: () => 'no:label',
@@ -1228,8 +1223,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     const getNewProjectName = React.useCallback(
-        (templateId: string | null, parentKey: backendModule.DirectoryId | null) => {
-            const prefix = `${templateId ?? 'New_Project'}_`
+        (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
+            const prefix = `${templateName ?? 'New Project'} `
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
             const siblings =
                 parentKey == null
@@ -1302,12 +1297,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const directoryIndices = siblings
                     .map(node => node.item)
                     .filter(backendModule.assetIsDirectory)
-                    .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
+                    .map(item => /^New_Folder_(?<directoryIndex>\d+)$/.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-                const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
-                    Math.max(0, ...directoryIndices) + 1
-                }`
+                const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
                 const placeholderItem: backendModule.DirectoryAsset = {
                     type: backendModule.AssetType.directory,
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
@@ -1328,7 +1321,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case AssetListEventType.newProject: {
-                const projectName = getNewProjectName(event.templateId, event.parentId)
+                const projectName = getNewProjectName(event.templateName, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
                     type: backendModule.AssetType.project,
