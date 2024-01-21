@@ -413,7 +413,7 @@ case object AliasAnalysis extends IRPass {
             Occurrence.Def(
               occurrenceId,
               name.name,
-              binding.getId,
+              binding.getId(),
               binding.getExternalId,
               isSuspended
             )
@@ -525,7 +525,7 @@ case object AliasAnalysis extends IRPass {
         val definition = Graph.Occurrence.Def(
           occurrenceId,
           selfName.name,
-          arg.getId,
+          arg.getId(),
           arg.getExternalId
         )
         scope.addDefinition(definition)
@@ -557,7 +557,7 @@ case object AliasAnalysis extends IRPass {
           val definition = Graph.Occurrence.Def(
             occurrenceId,
             name.name,
-            arg.getId,
+            arg.getId(),
             arg.getExternalId,
             susp
           )
@@ -1010,16 +1010,10 @@ case object AliasAnalysis extends IRPass {
     def resolveLocalUsage(
       occurrence: Graph.Occurrence.Use
     ): Option[Graph.Link] = {
-      scopeFor(occurrence.id) match {
-        case Some(scope) =>
-          scope.resolveUsage(occurrence) match {
-            case Some(link) =>
-              links += link
-              Some(link)
-            case None => None
-          }
-        case None => None
-      }
+      scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
+        links += link
+        link
+      })
     }
 
     /** Resolves any links for the given usage of a symbol, assuming the symbol
@@ -1457,20 +1451,35 @@ case object AliasAnalysis extends IRPass {
       def scopeFor(id: Graph.Id): Option[Scope] = {
         val possibleCandidates = occurrences.filter(o => o.id == id)
 
-        if (possibleCandidates.size == 1) {
-          Some(this)
-        } else if (possibleCandidates.isEmpty) {
-          val childCandidates = childScopes.map(_.scopeFor(id)).collect {
-            case Some(scope) => scope
-          }
-
-          if (childCandidates.length == 1) {
-            Some(childCandidates.head)
-          } else if (childCandidates.isEmpty) {
+        if (possibleCandidates.isEmpty) {
+          if (childScopes.isEmpty) {
             None
           } else {
-            throw new CompilerError(s"ID $id defined in multiple scopes.")
+            var childCandidate: Scope = null
+            val iter                  = childScopes.iterator
+            var moreThanOne           = false
+            while (iter.hasNext && !moreThanOne) {
+              iter.next().scopeFor(id) match {
+                case Some(s) =>
+                  if (childCandidate == null) {
+                    childCandidate = s
+                  } else {
+                    moreThanOne = true
+                  }
+                case None =>
+              }
+            }
+
+            if (childCandidate == null) {
+              None
+            } else if (moreThanOne) {
+              throw new CompilerError(s"ID $id defined in multiple scopes.")
+            } else {
+              Some(childCandidate)
+            }
           }
+        } else if (possibleCandidates.size == 1) {
+          Some(this)
         } else {
           throw new CompilerError(s"Multiple occurrences found for ID $id.")
         }

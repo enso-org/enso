@@ -55,3 +55,31 @@ export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean
 export function arrayEquals<T>(a: T[], b: T[]): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
 }
+
+/**
+ * Return the rightmost index of an array element that passes the predicate. Returns `undefined` if
+ * no such element has been found.
+ */
+export function findLastIndex<T>(array: T[], pred: (elem: T) => boolean): number | undefined {
+  for (let i = array.length - 1; i >= 0; --i) {
+    if (pred(array[i]!)) return i
+  }
+}
+
+/**
+ * Split array into two arrays based on predicate.
+ *
+ * The predicate passed to `partition` can return true, or false. `partition` returns a pair, all of
+ * the elements for which it returned true, and all of the elements for which it returned false.
+ */
+export function partition<T>(array: T[], pred: (elem: T) => boolean): [T[], T[]] {
+  const truthy: T[] = []
+  const falsy: T[] = []
+
+  for (const element of array) {
+    const target = pred(element) ? truthy : falsy
+    target.push(element)
+  }
+
+  return [truthy, falsy]
+}

@@ -24,10 +24,19 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
+      - name: Find out pom & micro versions
+        working-directory: tools/enso4igv
+        run: |
+          # Why do we subtract a number? Read versioning policy!
+          # https://github.com/enso-org/enso/pull/7861#discussion_r1333133490
+          echo "POM_VERSION=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`" >> "$GITHUB_ENV"
+          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 2100`" >> "$GITHUB_ENV"
+
       - name: Update project version
         working-directory: tools/enso4igv
         run: |
-          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.`expr $GITHUB_RUN_NUMBER - 1666`
+          echo "Setting version to $POM_VERSION.$MICRO_VERSION"
+          mvn versions:set -DnewVersion="$POM_VERSION.$MICRO_VERSION"
 
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml

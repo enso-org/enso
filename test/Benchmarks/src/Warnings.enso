@@ -1,0 +1,80 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Bench
+
+import project.Vector.Utils
+
+polyglot java import java.util.ArrayList
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 3) . set_measure (Bench.phase_conf 3 3)
+
+vector_size = 100000
+
+type Lazy
+    Value ~value
+
+type My_Error
+    Error msg
+
+type Data
+    Value ~no_warnings ~one_warning ~ten_percent_warnings ~all_warnings
+
+    map self f = Data.Value (f self.no_warnings) (f self.one_warning) (f self.ten_percent_warnings) (f self.all_warnings)
+
+# Vector elements are not inspected
+create_vec size = Vector.new size i->i
+
+add_one_warning vec =
+    an_index = Random.integer 0 vec.length
+    vec.map_with_index i-> x->
+        if i == an_index then Warning.attach (My_Error.Error "warning") x else x
+
+add_ten_percent_warnings vec =
+    vec.map x->
+        should_attach_warning = (Random.integer 0 10) == 0
+        if should_attach_warning then Warning.attach (My_Error.Error "warning") x else x
+
+add_all_warnings vec =
+    vec.map x-> Warning.attach (My_Error.Error "warning") x
+
+collect_benches = Bench.build builder->
+    raw_vec = Lazy.Value (create_vec vector_size)
+    unaltered_data = Data.Value raw_vec.value (add_one_warning raw_vec.value) (add_ten_percent_warnings raw_vec.value) (add_all_warnings raw_vec.value)
+
+    type_group vector_type alter =
+        data = unaltered_data.map alter
+
+        builder.group "warnings_get_all_"+vector_type options group_builder->
+            group_builder.specify "no_warnings" <|
+                Warning.get_all data.no_warnings
+            group_builder.specify "one_warning" <|
+                Warning.get_all data.one_warning
+            group_builder.specify "ten_percent_warning" <|
+                Warning.get_all data.ten_percent_warnings
+            group_builder.specify "all_warnings" <|
+                Warning.get_all data.all_warnings
+
+        builder.group "warnings_get_all_wrapped_"+vector_type options group_builder->
+            group_builder.specify "no_warnings" <|
+                Warning.get_all wrap_errors=True data.no_warnings
+            group_builder.specify "one_warning" <|
+                Warning.get_all wrap_errors=True data.one_warning
+            group_builder.specify "ten_percent_warning" <|
+                Warning.get_all wrap_errors=True data.ten_percent_warnings
+            group_builder.specify "all_warnings" <|
+                Warning.get_all wrap_errors=True data.all_warnings
+
+    type_group "Vector" identity
+    type_group "Array" (v -> v.to_array)
+    ## We omit JavaArrayList and Array_Proxy since they cannot store values with
+       warnings attached.
+    type_group "Slice" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
+
+main = collect_benches . run_main

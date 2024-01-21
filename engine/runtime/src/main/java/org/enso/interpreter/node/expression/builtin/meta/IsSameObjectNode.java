@@ -50,7 +50,13 @@ public abstract class IsSameObjectNode extends Node {
    *
    * @return True if the qualified names of the meta objects are same.
    */
-  @Specialization(guards = {"interop.isMetaObject(metaLeft)", "interop.isMetaObject(metaRight)"})
+  @Specialization(
+      guards = {
+        "!interop.isNull(metaLeft)",
+        "interop.isMetaObject(metaLeft)",
+        "!interop.isNull(metaRight)",
+        "interop.isMetaObject(metaRight)"
+      })
   boolean isSameMetaObjects(
       Object metaLeft,
       Object metaRight,

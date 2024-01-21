@@ -20,7 +20,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -72,6 +72,8 @@ const outputPortsSet = computed(() => {
 
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => props.node.rootSpan.exprId)
+
+onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
@@ -177,24 +179,23 @@ const isOutputContextOverridden = computed({
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
-    const replacements = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode)]
-      : undefined
     const edit = props.node.rootSpan.module.edit()
-    const newAst = prefixes.modify(
-      edit,
-      props.node.rootSpan,
-      projectStore.isOutputContextEnabled
-        ? {
-            enableOutputContext: undefined,
-            disableOutputContext: replacements,
-          }
-        : {
-            enableOutputContext: replacements,
-            disableOutputContext: undefined,
-          },
-    )
-    graph.setNodeContent(props.node.rootSpan.exprId, newAst.code())
+    const replacementText = shouldOverride
+      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+      : undefined
+    const replacements = projectStore.isOutputContextEnabled
+      ? {
+          enableOutputContext: undefined,
+          disableOutputContext: replacementText,
+        }
+      : {
+          enableOutputContext: replacementText,
+          disableOutputContext: undefined,
+        }
+    const expression = props.node.rootSpan
+    const newAst = prefixes.modify(edit, expression, replacements)
+    const code = newAst.code()
+    graph.setNodeContent(props.node.rootSpan.exprId, code)
   },
 })
 

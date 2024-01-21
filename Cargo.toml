@@ -91,6 +91,7 @@ octocrab = { git = "https://github.com/enso-org/octocrab", default-features = fa
   "rustls",
 ] }
 platforms = { version = "3.2.0", features = ["serde"] }
+portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }

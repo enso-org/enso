@@ -1,0 +1,17 @@
+import project.Data.Text.Text
+import project.Data.Text.Encoding.Encoding
+import project.Errors.Encoding_Error.Encoding_Error
+from project.Data.Text.Extensions import all
+
+polyglot java import java.util.Base64
+
+## A helper utility for handling base64 encoding.
+type Base_64
+    ## Converts a string to bytes using the specified encoding, and encodes that
+       to base64.
+    encode_text (text : Text) (encoding : Encoding = Encoding.utf_8) -> Text =
+        Base64.getEncoder.encodeToString (text.bytes encoding)
+
+    ## Decodes a base64 encoded string, using the provided encoding.
+    decode_text (encoded_text : Text) (encoding : Encoding = Encoding.utf_8) -> Text ! Encoding_Error =
+        Text.from_bytes (Base64.getDecoder.decode encoded_text) encoding

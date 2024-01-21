@@ -84,7 +84,7 @@ class ReceivesTreeUpdatesHandlerTest
       // create file
       val path = Paths.get(testContentRoot.file.toString, "oneone.txt")
       Files.createFile(path)
-      client1.expectJson(json"""
+      client1.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -92,11 +92,12 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Added"
+               "kind": "Added",
+               "attributes": "*"
              }
           }
           """)
-      client2.expectJson(json"""
+      client2.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -104,14 +105,15 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Added"
+               "kind": "Added",
+               "attributes": "*"
              }
           }
           """)
 
       // update file
       Files.write(path, "Hello".getBytes())
-      client1.expectJson(json"""
+      client1.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -119,11 +121,12 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Modified"
+               "kind": "Modified",
+               "attributes": "*"
              }
           }
           """)
-      client2.expectJson(json"""
+      client2.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -131,7 +134,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Modified"
+               "kind": "Modified",
+               "attributes": "*"
              }
           }
           """)
@@ -150,7 +154,8 @@ class ReceivesTreeUpdatesHandlerTest
                   "rootId": $testContentRootId,
                   "segments": [ "oneone.txt" ]
                },
-               "kind": "Removed"
+               "kind": "Removed",
+               "attributes": null
              }
           }
           """)

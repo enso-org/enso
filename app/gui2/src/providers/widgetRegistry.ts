@@ -129,9 +129,23 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
-export type UpdatePayload =
-  | { type: 'set'; value: Owned<Ast.Ast> | string | undefined; origin: PortId }
-  | { type: 'edit'; edit: MutableModule }
+/**
+ * Information about widget update.
+ *
+ * When widget want's to change its value, it should emit this with `portUpdate` set (as their
+ * port may not represent any existing AST node) with `edit` containing any additional modifications
+ * (like inserting necessary imports).
+ *
+ * The handlers interested in a specific port update should apply it using received edit. The edit
+ * is committed in {@link NodeWidgetTree}.
+ */
+export interface WidgetUpdate {
+  edit: MutableModule
+  portUpdate?: {
+    value: Owned<Ast.Ast> | string | undefined
+    origin: PortId
+  }
+}
 
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
@@ -147,22 +161,21 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     nesting: { type: Number, required: true },
     onUpdate: {
-      type: Function as PropType<(update: UpdatePayload) => void>,
+      type: Function as PropType<(update: WidgetUpdate) => void>,
       required: true,
     },
   } as const
 }
 
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
-type InputMatcherSymbol<T extends WidgetInput> = symbol & keyof T
-type InputMatcher<T extends WidgetInput> = InputMatcherSymbol<T> | InputMatcherFn<T>
+type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
 type InputTy<M> = M extends (infer T)[]
   ? InputTy<T>
   : M extends InputMatcherFn<infer T>
   ? T
-  : M extends symbol & keyof WidgetInput
-  ? WidgetInput & { [S in M]: Required<WidgetInput>[S] }
+  : M extends keyof WidgetInput
+  ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {

@@ -158,3 +158,52 @@ pub fn handle_fs_extra_error(error: fs_extra::error::Error) -> anyhow::Error {
     }
     .context(message)
 }
+
+/// Remove files using [glob patterns](https://docs.rs/glob/latest/glob/struct.Pattern.html).
+#[tracing::instrument(skip_all, fields(pattern = %glob_pattern), err)]
+#[context("Failed to remove files using glob pattern `{}`.", glob_pattern)]
+pub fn remove_glob(glob_pattern: &str) -> Result {
+    for entry in glob::glob(glob_pattern)? {
+        let path = entry?;
+        remove_if_exists(&path)?;
+    }
+    Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remove_glob_test() -> Result {
+        let temp = tempfile::tempdir()?;
+        crate::env::try_with_current_dir(&temp, || {
+            let pattern_to_remove = "**/file1.txt";
+            write("file1.txt", "file1")?;
+            write("file2.txt", "file2")?;
+            write("dir1/file1.txt", "file1")?;
+            write("dir1/file2.txt", "file2")?;
+
+            remove_glob(pattern_to_remove)?;
+            assert!(!Path::new("file1.txt").exists());
+            assert!(Path::new("file2.txt").exists());
+            assert!(!Path::new("dir1/file1.txt").exists());
+            assert!(Path::new("dir1/file2.txt").exists());
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn remove_glob_test2() -> Result {
+        // Make sure that `**` can expand to nothing outside the current directory.
+        let temp = tempfile::tempdir()?;
+        let pattern_to_remove = "**/file1.txt";
+        let file1 = temp.path().join("file1.txt");
+
+        write(&file1, "file1")?;
+        remove_glob(temp.path().join(pattern_to_remove).as_str())?;
+        assert!(!file1.exists());
+        Ok(())
+    }
+}

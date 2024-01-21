@@ -17,7 +17,7 @@ app.use(createPinia())
 provideGuiConfig._mock(
   ref({
     startup: {
-      project: 'Mock Project',
+      project: 'Mock',
       displayedProjectName: 'Mock Project',
     },
     engine: { rpcUrl: 'mock://engine', dataUrl: 'mock://data' },

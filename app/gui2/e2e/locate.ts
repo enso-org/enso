@@ -160,6 +160,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
 }
 
+export const navBreadcrumb = componentLocator('NavBreadcrumb')
 export const componentBrowserInput = componentLocator('CBInput')
 export const jsonVisualization = componentLocator('JSONVisualization')
 export const tableVisualization = componentLocator('TableVisualization')

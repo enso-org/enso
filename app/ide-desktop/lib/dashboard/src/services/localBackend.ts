@@ -392,6 +392,11 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Invalid operation. */
+    override getFileDetails() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
     override createSecret() {
         return this.invalidOperation()
     }

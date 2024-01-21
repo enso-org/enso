@@ -1,6 +1,7 @@
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { bail } from '@/util/assert'
 import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
@@ -12,7 +13,12 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
+import {
+  methodPointerEquals,
+  type ExpressionUpdate,
+  type MethodCall,
+  type StackItem,
+} from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -137,16 +143,29 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
-      for (const usage of info.usages) {
-        const targetNode = db.getExpressionNodeId(usage)
-        // Display only connections to existing targets and different than source node
-        if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage]
-      }
-    }
-    return Array.from(allTargets(this))
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
+
+  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
+   * e.g. input arguments of the collapsed function.
+   */
+  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
+    const srcNode = this.getPatternExpressionNodeId(alias)
+    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
+  })
+
+  private *connectionsFromBindings(
+    info: BindingInfo,
+    alias: ExprId,
+    srcNode: ExprId | undefined,
+  ): Generator<[ExprId, ExprId]> {
+    for (const usage of info.usages) {
+      const targetNode = this.getExpressionNodeId(usage)
+      // Display only connections to existing targets and different than source node.
+      if (targetNode == null || targetNode === srcNode) continue
+      yield [alias, usage]
+    }
+  }
 
   /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
   nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -206,6 +225,10 @@ export class GraphDb {
     return this.bindings.bindings.get(source)?.identifier
   }
 
+  allIdentifiers(): string[] {
+    return [...this.bindings.identifierToBindingId.allForward()].map(([ident, _]) => ident)
+  }
+
   identifierUsed(ident: string): boolean {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
@@ -222,10 +245,36 @@ export class GraphDb {
     )
   }
 
+  /**
+   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
+   */
+  dependantNodes(id: ExprId): Set<ExprId> {
+    const toVisit = [id]
+    const result = new Set<ExprId>()
+
+    let currentNode: ExprId | undefined
+    while ((currentNode = toVisit.pop())) {
+      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
+      for (const outputPort of outputPorts) {
+        const connectedPorts = this.connections.lookup(outputPort)
+        for (const port of connectedPorts) {
+          const portNode = this.getExpressionNodeId(port)
+          if (portNode == null) continue
+          if (!result.has(portNode)) {
+            result.add(portNode)
+            toVisit.push(portNode)
+          }
+        }
+      }
+    }
+
+    return result
+  }
+
   getMethodCallInfo(
     id: ExprId,
   ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; staticallyApplied: boolean }
+    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
     | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
@@ -237,8 +286,8 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const staticallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, staticallyApplied }
+    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
+    return { methodCall, suggestion, partiallyApplied }
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -247,6 +296,20 @@ export class GraphDb {
 
   moveNodeToTop(id: ExprId) {
     this.nodeIdToNode.moveToLast(id)
+  }
+
+  /** Get the method name from the stack item. */
+  stackItemToMethodName(item: StackItem): string | undefined {
+    switch (item.type) {
+      case 'ExplicitCall': {
+        return item.methodPointer.name
+      }
+      case 'LocalCall': {
+        const exprId = item.expressionId
+        const info = this.getExpressionInfo(exprId)
+        return info?.methodCall?.methodPointer.name
+      }
+    }
   }
 
   readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
@@ -325,6 +388,20 @@ export class GraphDb {
     this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
+  }
+
+  mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    const nodeId = this.getIdentDefiningNode(binding)
+    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
+    const update_: ExpressionUpdate = {
+      expressionId: nodeId,
+      profilingInfo: update.profilingInfo ?? [],
+      fromCache: update.fromCache ?? false,
+      payload: update.payload ?? { type: 'Value' },
+      ...(update.type ? { type: update.type } : {}),
+      ...(update.methodCall ? { methodCall: update.methodCall } : {}),
+    }
+    this.valuesRegistry.processUpdates([update_])
   }
 }
 

@@ -1,8 +1,10 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { moduleMethodNames } from '@/util/ast/abstract'
+import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
-import assert from 'assert'
 import * as set from 'lib0/set'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 
@@ -38,10 +40,10 @@ interface Output {
 interface RefactoredInfo {
   /** The id of the refactored node. */
   id: ExprId
-  /** The pattern of the refactored node. Included for convinience, collapsing does not affect it. */
+  /** The pattern of the refactored node. Included for convenience, collapsing does not affect it. */
   pattern: string
-  /** The new expression of the refactored node. A call to the extracted function with the list of necessary arguments. */
-  expression: string
+  /** The list of necessary arguments for a call of the collapsed function. */
+  arguments: Identifier[]
 }
 
 // === prepareCollapsedInfo ===
@@ -55,19 +57,20 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
   const leaves = new Set([...selected])
   const inputs: Identifier[] = []
   let output: Output | null = null
-  for (const [targetExprId, sourceExprIds] of graphDb.connections.allReverse()) {
+  for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
     const target = graphDb.getExpressionNodeId(targetExprId)
-    if (target == null) throw new Error(`Connection target node for id ${targetExprId} not found.`)
+    if (target == null) continue
     for (const sourceExprId of sourceExprIds) {
       const source = graphDb.getPatternExpressionNodeId(sourceExprId)
-      if (source == null)
-        throw new Error(`Connection source node for id ${sourceExprId} not found.`)
-      const startsInside = selected.has(source)
+      const startsInside = source != null && selected.has(source)
       const endsInside = selected.has(target)
       const stringIdentifier = graphDb.getOutputPortIdentifier(sourceExprId)
-      if (stringIdentifier == null) throw new Error(`Source node (${source}) has no pattern.`)
+      if (stringIdentifier == null)
+        throw new Error(`Source node (${source}) has no output identifier.`)
       const identifier = unwrap(tryIdentifier(stringIdentifier))
-      leaves.delete(source)
+      if (source != null) {
+        leaves.delete(source)
+      }
       if (!startsInside && endsInside) {
         inputs.push(identifier)
       } else if (startsInside && !endsInside) {
@@ -86,12 +89,13 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
   // If there is no output found so far, it means that none of our nodes is used outside
   // the extracted function. In such we will return value from arbitrarily chosen leaf.
   if (output == null) {
-    const arbitaryLeaf = set.first(leaves)
-    if (arbitaryLeaf == null) throw new Error('Cannot select the output node, no leaf nodes found.')
-    const outputNode = graphDb.nodeIdToNode.get(arbitaryLeaf)
-    if (outputNode == null) throw new Error(`The node with id ${arbitaryLeaf} not found.`)
+    const arbitraryLeaf = set.first(leaves)
+    if (arbitraryLeaf == null)
+      throw new Error('Cannot select the output node, no leaf nodes found.')
+    const outputNode = graphDb.nodeIdToNode.get(arbitraryLeaf)
+    if (outputNode == null) throw new Error(`The node with id ${arbitraryLeaf} not found.`)
     const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
-    output = { node: arbitaryLeaf, identifier }
+    output = { node: arbitraryLeaf, identifier }
   }
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
@@ -105,21 +109,128 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
     refactored: {
       id: output.node,
       pattern,
-      expression: 'Main.collapsed' + (inputs.length > 0 ? ' ' : '') + inputs.join(' '),
+      arguments: inputs,
     },
   }
 }
 
-// === performRefactoring ===
+/** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
+function findSafeMethodName(module: Ast.Module, baseName: string): string {
+  const allIdentifiers = moduleMethodNames(module)
+  if (!allIdentifiers.has(baseName)) {
+    return baseName
+  }
+  let index = 1
+  while (allIdentifiers.has(`${baseName}${index}`)) {
+    index++
+  }
+  return `${baseName}${index}`
+}
+
+// === performCollapse ===
+
+// We support working inside `Main` module of the project at the moment.
+const MODULE_NAME = 'Main'
+const COLLAPSED_FUNCTION_NAME = 'collapsed'
+
+interface CollapsingResult {
+  /** The ID of the node refactored to the collapsed function call. */
+  refactoredNodeId: ExprId
+  /** IDs of nodes inside the collapsed function, except the output node.
+   * The order of these IDs is reversed comparing to the order of nodes in the source code.
+   */
+  collapsedNodeIds: ExprId[]
+  /** ID of the output node inside the collapsed function. */
+  outputNodeId?: ExprId | undefined
+}
 
 /** Perform the actual AST refactoring for collapsing nodes. */
-export function performCollapse(_info: CollapsedInfo) {
-  // The general flow of this function:
-  // 1. Create a new function with a unique name and a list of arguments from the `ExtractedInfo`.
-  // 2. Move all nodes with `ids` from the `ExtractedInfo` into this new function. Use the order of their original definition.
-  // 3. Use a single identifier `output.identifier` as the return value of the function.
-  // 4. Change the expression of the `RefactoredInfo.id` node to the `RefactoredINfo.expression`
-  throw new Error('Not yet implemented, requires AST editing.')
+export function performCollapse(
+  info: CollapsedInfo,
+  edit: Ast.MutableModule,
+  topLevel: Ast.BodyBlock,
+  db: GraphDb,
+  currentMethodName: string,
+): CollapsingResult {
+  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
+  if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
+    throw new Error(`Expected a collapsable function, found ${functionAst}.`)
+  }
+  const functionBlock = functionAst.body
+  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
+  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
+  const astIdsToExtract = new Set(
+    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
+  )
+  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
+  const collapsed = []
+  const refactored = []
+  const lines = functionBlock.lines()
+  const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
+    info,
+    collapsedName,
+    edit,
+  )
+  for (const line of lines) {
+    const astId = line.expression?.node.exprId
+    const ast = astId != null ? edit.get(astId) : null
+    if (ast == null) continue
+    if (astIdsToExtract.has(astId)) {
+      collapsed.push(ast)
+      if (astId === astIdToReplace) {
+        refactored.push({ expression: { node: refactoredAst } })
+      }
+    } else {
+      refactored.push({ expression: { node: ast } })
+    }
+  }
+  const collapsedNodeIds = collapsed.map((ast) => nodeFromAst(ast).rootSpan.exprId).reverse()
+  let outputNodeId: ExprId | undefined
+  const outputIdentifier = info.extracted.output?.identifier
+  if (outputIdentifier != null) {
+    const ident = Ast.Ident.new(edit, outputIdentifier)
+    collapsed.push(ident)
+    outputNodeId = ident.exprId
+  }
+  // Update the definiton of the refactored function.
+  const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
+  edit.replaceRef(functionBlock.exprId, refactoredBlock)
+
+  // Insert a new function.
+  const args: Ast.Ast[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
+  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
+  topLevel.insert(edit, posToInsert, collapsedFunction)
+  return { refactoredNodeId, collapsedNodeIds, outputNodeId }
+}
+
+/** Prepare a method call expression for collapsed method. */
+function collapsedCallAst(
+  info: CollapsedInfo,
+  collapsedName: string,
+  edit: Ast.MutableModule,
+): { ast: Ast.Ast; nodeId: ExprId } {
+  const pattern = info.refactored.pattern
+  const args = info.refactored.arguments
+  const functionName = `${MODULE_NAME}.${collapsedName}`
+  const expression = functionName + (args.length > 0 ? ' ' : '') + args.join(' ')
+  const expressionAst = Ast.parse(expression, edit)
+  const ast = Ast.Assignment.new(edit, pattern, expressionAst)
+  return { ast, nodeId: expressionAst.exprId }
+}
+
+/** Find the position before the current method to insert a collapsed one. */
+function findInsertionPos(
+  module: Ast.Module,
+  topLevel: Ast.BodyBlock,
+  currentMethodName: string,
+): number {
+  const currentFuncPosition = topLevel.lines().findIndex((line) => {
+    const node = line.expression?.node
+    const expr = node ? module.get(node.exprId)?.innerExpression() : null
+    return expr instanceof Ast.Function && expr.name?.code() === currentMethodName
+  })
+
+  return currentFuncPosition === -1 ? 0 : currentFuncPosition
 }
 
 // === Tests ===
@@ -148,7 +259,7 @@ if (import.meta.vitest) {
       }
       refactored: {
         replace: string
-        with: { pattern: string; expression: string }
+        with: { pattern: string; arguments: string[] }
       }
     }
   }
@@ -166,7 +277,7 @@ if (import.meta.vitest) {
         },
         refactored: {
           replace: 'c = A + B',
-          with: { pattern: 'c', expression: 'Main.collapsed a' },
+          with: { pattern: 'c', arguments: ['a'] },
         },
       },
     },
@@ -182,7 +293,7 @@ if (import.meta.vitest) {
         },
         refactored: {
           replace: 'd = a + b',
-          with: { pattern: 'd', expression: 'Main.collapsed a b' },
+          with: { pattern: 'd', arguments: ['a', 'b'] },
         },
       },
     },
@@ -198,7 +309,7 @@ if (import.meta.vitest) {
         },
         refactored: {
           replace: 'c = 50 + d',
-          with: { pattern: 'c', expression: 'Main.collapsed' },
+          with: { pattern: 'c', arguments: [] },
         },
       },
     },
@@ -219,7 +330,7 @@ if (import.meta.vitest) {
         },
         refactored: {
           replace: 'vector = range.to_vector',
-          with: { pattern: 'vector', expression: 'Main.collapsed number1 number2' },
+          with: { pattern: 'vector', arguments: ['number1', 'number2'] },
         },
       },
     },
@@ -261,6 +372,6 @@ if (import.meta.vitest) {
     expect(extracted.ids).toEqual(new Set(expectedIds))
     expect(refactored.id).toEqual(expectedRefactoredId)
     expect(refactored.pattern).toEqual(expectedRefactored.with.pattern)
-    expect(refactored.expression).toEqual(expectedRefactored.with.expression)
+    expect(refactored.arguments).toEqual(expectedRefactored.with.arguments)
   })
 }
