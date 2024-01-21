@@ -58,7 +58,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
     category: Category
     isHelpChatOpen: boolean
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
-    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+    setVisibility: React.Dispatch<React.SetStateAction<boolean>>
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     projectAsset: backend.ProjectAsset | null
     setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
@@ -69,7 +69,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
     const { item, setItem, supportsLocalBackend, page, category } = props
-    const { isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
+    const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
     const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
     const { localStorage } = localStorageProvider.useLocalStorage()
@@ -130,9 +130,9 @@ export default function AssetPanel(props: AssetPanelProps) {
                 <div className="grow" />
                 <div className="flex gap-2">
                     <AssetInfoBar
-                        canToggleSettingsPanel={true}
-                        isSettingsPanelVisible={true}
-                        setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+                        canToggleAssetPanel={true}
+                        isAssetPanelVisible={true}
+                        setIsAssetPanelVisible={setVisibility}
                     />
                     <UserBar
                         supportsLocalBackend={supportsLocalBackend}

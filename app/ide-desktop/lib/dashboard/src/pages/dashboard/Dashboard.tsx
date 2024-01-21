@@ -470,9 +470,9 @@ export default function Dashboard(props: DashboardProps) {
                         setQuery={setQuery}
                         labels={labels}
                         suggestions={suggestions}
-                        canToggleSettingsPanel={assetPanelProps != null}
-                        isSettingsPanelVisible={isAssetPanelVisible && assetPanelProps != null}
-                        setIsSettingsPanelVisible={setIsAssetPanelVisible}
+                        canToggleAssetPanel={assetPanelProps != null}
+                        isAssetPanelVisible={isAssetPanelVisible && assetPanelProps != null}
+                        setIsAssetPanelVisible={setIsAssetPanelVisible}
                         doRemoveSelf={doRemoveSelf}
                         onSignOut={() => {
                             if (page === pageSwitcher.Page.editor) {
@@ -549,7 +549,7 @@ export default function Dashboard(props: DashboardProps) {
                             category={Category.home}
                             isHelpChatOpen={isHelpChatOpen}
                             setIsHelpChatOpen={setIsHelpChatOpen}
-                            setIsSettingsPanelVisible={setIsAssetPanelVisible}
+                            setVisibility={setIsAssetPanelVisible}
                             dispatchAssetEvent={dispatchAssetEvent}
                             projectAsset={projectStartupInfo?.projectAsset ?? null}
                             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
