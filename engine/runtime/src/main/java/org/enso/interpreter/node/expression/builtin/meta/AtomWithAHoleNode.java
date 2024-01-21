@@ -18,11 +18,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -173,13 +173,12 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     int findHoleIndex(Atom atom, HoleInAtom lazy) {
-      var arr = structs.getFields(atom);
-      if (lastIndex >= 0 && lastIndex < arr.length) {
-        if (arr[lastIndex] == lazy) {
+      if (lastIndex >= 0 && lastIndex < atom.getConstructor().getArity()) {
+        if (structs.getField(atom, lastIndex) == lazy) {
           return lastIndex;
         }
       }
-      int index = findHoleIndexLoop(arr, lazy);
+      int index = findHoleIndexLoop(atom, lazy);
       if (index == -1) {
         return -1;
       }
@@ -197,9 +196,9 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private int findHoleIndexLoop(Object[] arr, HoleInAtom lazy) {
-      for (int i = 0; i < arr.length; i++) {
-        if (arr[i] == lazy) {
+    private int findHoleIndexLoop(Atom atom, HoleInAtom lazy) {
+      for (int i = 0; i < atom.getConstructor().getArity(); i++) {
+        if (structs.getField(atom, i) == lazy) {
           return i;
         }
       }

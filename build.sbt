@@ -293,6 +293,7 @@ lazy val enso = (project in file("."))
     `runtime-parser`,
     `runtime-compiler`,
     `runtime-language-epb`,
+    `runtime-language-arrow`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
@@ -496,6 +497,7 @@ val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
+val apacheArrowVersion      = "14.0.1"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -1487,6 +1489,50 @@ lazy val `runtime-language-epb` =
       )
     )
 
+lazy val `runtime-language-arrow` =
+  (project in file("engine/runtime-language-arrow"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      crossPaths := false,
+      autoScalaLibrary := false,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings,
+      libraryDependencies ++= GraalVM.modules ++ Seq(
+        "junit"            % "junit"              % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
+        "org.slf4j"        % "slf4j-nop"          % slf4jVersion       % Test,
+        "org.slf4j"        % "slf4j-api"          % slf4jVersion       % Test,
+        "org.apache.arrow" % "arrow-vector"       % apacheArrowVersion % Test,
+        "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
+      ),
+      javaModuleName := "org.enso.interpreter.arrow",
+      modulePath := {
+        val updateReport = (Test / update).value
+        JPMSUtils.filterModulesFromUpdate(
+          updateReport,
+          GraalVM.modules,
+          streams.value.log,
+          shouldContainAll = true
+        ) ++ Seq(
+          (LocalProject(
+            "runtime-language-arrow"
+          ) / Compile / productDirectories).value.head
+        )
+      },
+      Test / patchModules := {
+        val testClassesDir = (Test / productDirectories).value.head
+        Map(javaModuleName.value -> Seq(testClassesDir))
+      },
+      Test / addModules := Seq(javaModuleName.value),
+      Test / javaOptions ++= Seq(
+        s"--add-opens=java.base/java.nio=${javaModuleName.value}", // DirectByteBuffer in MemoryUtil init is in-accessible
+        "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
+      ),
+      Test / addReads := {
+        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
+      }
+    )
+
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`
   * project, so if you need access to classes from `runtime`, you need to use reflection.
@@ -1503,7 +1549,11 @@ lazy val `runtime-test-instruments` =
         JPMSUtils.filterModulesFromUpdate(
           update.value,
           GraalVM.modules ++ Seq(
-            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
           ),
           streams.value.log,
           shouldContainAll = true
@@ -1511,7 +1561,11 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
@@ -1553,6 +1607,12 @@ lazy val runtime = (project in file("engine/runtime"))
     },
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / javaOptions ++= Seq(
+      "-Dtck.values=java-host,enso",
+      "-Dtck.language=enso",
+      "-Dtck.inlineVerifierInstrument=false",
+      "-Dpolyglot.engine.AllowExperimentalOptions=true"
+    ),
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
@@ -1562,8 +1622,9 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % Test,
+      "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % Test,
+      "org.graalvm.truffle"  % "truffle-tck-tests"       % graalMavenPackagesVersion % Test,
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
@@ -1599,8 +1660,12 @@ lazy val runtime = (project in file("engine/runtime"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+          "org.slf4j"           % "slf4j-api"               % slf4jVersion,
+          "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
+          "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1659,7 +1724,11 @@ lazy val runtime = (project in file("engine/runtime"))
       Map(
         // We patched the test-classes into the runtime module. These classes access some stuff from
         // unnamed module. Thus, let's add ALL-UNNAMED.
-        runtimeModName         -> Seq("ALL-UNNAMED", testInstrumentsModName),
+        runtimeModName -> Seq(
+          "ALL-UNNAMED",
+          testInstrumentsModName,
+          "truffle.tck.tests"
+        ),
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
@@ -1668,7 +1737,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
-      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
+      "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
     Test / compile := (Test / compile)
       .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
@@ -2009,12 +2079,14 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"  % commonsCliVersion,
-      "com.monovore"       %% "decline"      % declineVersion,
-      "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion
+      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"         % "commons-cli"     % commonsCliVersion,
+      "com.monovore"       %% "decline"         % declineVersion,
+      "org.jline"           % "jline"           % jlineVersion,
+      "org.typelevel"      %% "cats-core"       % catsVersion,
+      "junit"               % "junit"           % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
@@ -2054,7 +2126,8 @@ lazy val `engine-runner` = project
             "com.sun.imageio",
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
-            "akka.http"
+            "akka.http",
+            "org.enso.interpreter.arrow.util.MemoryUtil"
           )
         )
         .dependsOn(assembly)
@@ -2545,12 +2618,12 @@ lazy val `common-polyglot-core-utils` = project
   )
 
 lazy val `enso-test-java-helpers` = project
-  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
@@ -2928,11 +3001,19 @@ lazy val `http-test-helper` = project
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
     Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
-    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons"        % "commons-text" % commonsTextVersion,
-      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
+      "org.apache.commons"         % "commons-text"     % commonsTextVersion,
+      "org.apache.httpcomponents"  % "httpclient"       % httpComponentsVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    },
+    assembly / mainClass := (Compile / run / mainClass).value,
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true
   )

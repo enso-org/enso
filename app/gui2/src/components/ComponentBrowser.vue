@@ -91,6 +91,11 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, () => {
   selected.value = input.autoSelectFirstComponent.value ? 0 : null
   scrolling.targetScroll.value = { type: 'bottom' }
+
+  // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
+  if (selectedPosition.value != null) {
+    highlightPosition.value = selectedPosition.value
+  }
   animatedHighlightPosition.skip()
   animatedHighlightHeight.skip()
 })
@@ -233,18 +238,10 @@ const selectedSuggestion = computed(() => {
   return suggestionDbStore.entries.get(id) ?? null
 })
 
-watch(
-  selectedPosition,
-  (newPos) => {
-    if (newPos == null) return
-    highlightPosition.value = newPos
-    if (animatedHighlightHeight.value <= 1.0) {
-      animatedHighlightPosition.skip()
-    }
-  },
-  // Needs to be synchronous to make skipping highlight animation work.
-  { flush: 'sync' },
-)
+watch(selectedPosition, (newPos) => {
+  if (newPos == null) return
+  highlightPosition.value = newPos
+})
 
 const highlightClipPath = computed(() => {
   let height = animatedHighlightHeight.value

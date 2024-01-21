@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useVisualizationStore } from '@/stores/visualization'
 import { useAutoBlur } from '@/util/autoBlur'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
-import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
@@ -13,21 +11,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
 
-// This dynamic import is required to break the circular import chain:
-// `VisualizationSelector.vue` -> `compilerMessaging.ts` -> `VisualizationContainer.vue` ->
-// `VisualizationSelector.vue`
-const visualizationStore = computedAsync<{
-  icon: (type: VisualizationIdentifier) => Icon | URLString | undefined
-}>(
-  async () => {
-    return (await import('@/stores/visualization')).useVisualizationStore()
-  },
-  {
-    icon() {
-      return 'columns_increasing'
-    },
-  },
-)
+const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
 useAutoBlur(rootNode)

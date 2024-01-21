@@ -30,16 +30,7 @@ export function useStackNavigator() {
   })
 
   function stackItemToLabel(item: StackItem): string {
-    switch (item.type) {
-      case 'ExplicitCall': {
-        return item.methodPointer.name
-      }
-      case 'LocalCall': {
-        const exprId = item.expressionId
-        const info = graphStore.db.getExpressionInfo(exprId)
-        return info?.methodCall?.methodPointer.name ?? 'unknown'
-      }
-    }
+    return graphStore.db.stackItemToMethodName(item) ?? 'unknown'
   }
 
   function handleBreadcrumbClick(index: number) {

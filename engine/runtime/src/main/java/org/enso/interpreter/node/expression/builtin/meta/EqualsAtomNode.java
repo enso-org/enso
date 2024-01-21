@@ -18,11 +18,11 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 @GenerateUncached
@@ -61,14 +61,11 @@ public abstract class EqualsAtomNode extends Node {
     if (constructorsNotEqualProfile.profile(self.getConstructor() != other.getConstructor())) {
       return false;
     }
-    var selfFields = structsLib.getFields(self);
-    var otherFields = structsLib.getFields(other);
-    assert selfFields.length == otherFields.length
-        : "Constructors are same, atoms should have the same number of fields";
-
     CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     for (int i = 0; i < fieldsLenCached; i++) {
-      boolean fieldsAreEqual = fieldEqualsNodes[i].execute(selfFields[i], otherFields[i]);
+      var selfValue = structsLib.getField(self, i);
+      var otherValue = structsLib.getField(other, i);
+      var fieldsAreEqual = fieldEqualsNodes[i].execute(selfValue, otherValue);
       if (!fieldsAreEqual) {
         return false;
       }
@@ -121,13 +118,10 @@ public abstract class EqualsAtomNode extends Node {
           compareFunc,
           invokeFuncNode);
     }
-    Object[] selfFields = StructsLibrary.getUncached().getFields(self);
-    Object[] otherFields = StructsLibrary.getUncached().getFields(other);
-    if (selfFields.length != otherFields.length) {
-      return false;
-    }
-    for (int i = 0; i < selfFields.length; i++) {
-      boolean areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+    for (int i = 0; i < self.getConstructor().getArity(); i++) {
+      var selfField = StructsLibrary.getUncached().getField(self, i);
+      var otherField = StructsLibrary.getUncached().getField(other, i);
+      boolean areFieldsSame = EqualsNodeGen.getUncached().execute(selfField, otherField);
       if (!areFieldsSame) {
         return false;
       }

@@ -30,7 +30,8 @@ import org.graalvm.collections.EconomicSet;
 final class Array implements EnsoObject {
   private final Object[] items;
   private Boolean withWarnings;
-  private Warning[] cachedWarnings;
+  private Warning[] cachedWarningsWrapped;
+  private Warning[] cachedWarningsUnwrapped;
 
   /**
    * Creates a new array
@@ -99,7 +100,7 @@ final class Array implements EnsoObject {
     var v = items[(int) index];
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
-      Warning[] extracted = this.getWarnings(null, warnings);
+      Warning[] extracted = this.getWarnings(null, false, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -179,21 +180,44 @@ final class Array implements EnsoObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      Node location,
+      boolean shouldWrap,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    if (cachedWarnings == null) {
-      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location));
+    Warning[] cache = shouldWrap ? cachedWarningsWrapped : cachedWarningsUnwrapped;
+    if (cache == null) {
+      cache = Warning.fromSetToArray(collectAllWarnings(warnings, location, shouldWrap));
+      if (shouldWrap) {
+        cachedWarningsWrapped = cache;
+      } else {
+        cachedWarningsUnwrapped = cache;
+      }
     }
-    return cachedWarnings;
+    return cache;
   }
 
   @CompilerDirectives.TruffleBoundary
-  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
+  private EconomicSet<Warning> collectAllWarnings(
+      WarningsLibrary warningsLib, Node location, boolean shouldWrap)
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    for (Object item : items) {
-      if (warnings.hasWarnings(item)) {
-        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(item, location)));
+    for (int i = 0; i < this.items.length; i++) {
+      final int finalIndex = i;
+      Object item = this.items[i];
+      if (warningsLib.hasWarnings(item)) {
+        Warning[] warnings = warningsLib.getWarnings(item, location, shouldWrap);
+        Warning[] wrappedWarningsMaybe;
+
+        if (shouldWrap) {
+          wrappedWarningsMaybe =
+              Arrays.stream(warnings)
+                  .map(warning -> Warning.wrapMapError(warningsLib, warning, finalIndex))
+                  .toArray(Warning[]::new);
+        } else {
+          wrappedWarningsMaybe = warnings;
+        }
+
+        setOfWarnings.addAll(Arrays.asList(wrappedWarningsMaybe));
       }
     }
     return setOfWarnings;
@@ -217,7 +241,7 @@ final class Array implements EnsoObject {
   boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
       int limit = EnsoContext.get(warnings).getWarningsLimit();
-      return getWarnings(null, warnings).length >= limit;
+      return getWarnings(null, false, warnings).length >= limit;
     } catch (UnsupportedMessageException e) {
       return false;
     }

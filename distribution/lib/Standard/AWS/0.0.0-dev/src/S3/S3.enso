@@ -10,9 +10,9 @@ import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
-import project.Internal.Auth
 
 polyglot java import java.io.IOException
+polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
@@ -151,8 +151,8 @@ handle_s3_errors ~action bucket="" key="" =
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client
 make_client credentials:(AWS_Credential | Nothing) =
-    provider = Auth.create_provider credentials
-    S3Client.builder.credentialsProvider provider . build
+    builder = ClientBuilder.new (AWS_Credential.as_java credentials)
+    builder.buildS3Client
 
 ## PRIVATE
    Utility method for running an action with Java exceptions mapping.
