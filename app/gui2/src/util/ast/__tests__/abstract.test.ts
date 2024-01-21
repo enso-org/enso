@@ -1,9 +1,6 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import * as fs from 'fs'
 import { expect, test } from 'vitest'
-import { preParseContent } from '../../../../ydoc-server/edits'
-import { deserializeIdMap, serializeIdMap } from '../../../../ydoc-server/serialization'
 import { MutableModule } from '../abstract'
 
 //const disabledCases = [
@@ -456,33 +453,6 @@ test('Delete expression', () => {
   edit.delete(assignment2.exprId)
   const printed = root.code(edit)
   expect(printed).toEqual('main =\n    text1 = "foo"\n')
-})
-
-test('full file IdMap round trip', () => {
-  const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
-  const { code, idMapJson, metadataJson: _ } = preParseContent(content)
-  const idMap = deserializeIdMap(idMapJson!)
-  const ast = Ast.parseTransitional(code, idMap)
-  const ast_ = Ast.parseTransitional(code, deserializeIdMap(idMapJson!))
-  const ast2 = Ast.normalize(ast)
-  const astTT = Ast.tokenTreeWithIds(ast)
-  expect(ast2.code()).toBe(ast.code())
-  expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
-  expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
-
-  const idMapJson2 = serializeIdMap(idMap)
-  expect(idMapJson2).toBe(idMapJson)
-  const META_TAG = '\n\n\n#### METADATA ####'
-  let metaContent = META_TAG + '\n'
-  metaContent += idMapJson2 + '\n'
-  const {
-    code: code_,
-    idMapJson: idMapJson_,
-    metadataJson: __,
-  } = preParseContent(code + metaContent)
-  const idMap_ = deserializeIdMap(idMapJson_!)
-  const ast3 = Ast.parseTransitional(code_, idMap_)
-  expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
 })
 
 test('Block lines interface', () => {

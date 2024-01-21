@@ -43,7 +43,7 @@ public record URIWithSecrets(URI baseUri, List<Pair<String, HideableValue>> quer
   }
 
   public boolean containsSecrets() {
-    return queryParameters.stream().anyMatch(p -> p.getRight().isSecret());
+    return queryParameters.stream().anyMatch(p -> p.getRight().containsSecrets());
   }
 
   private URISchematic makeSchematicForSafeResolve() {

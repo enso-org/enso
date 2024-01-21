@@ -6,6 +6,7 @@
 import diff from 'fast-diff'
 import * as json from 'lib0/json'
 import * as Y from 'yjs'
+import { combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { TextEdit } from '../shared/languageServerTypes'
 import { ModuleDoc, type NodeMetadata, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
@@ -17,8 +18,6 @@ interface AppliedUpdates {
   newMetadata: fileFormat.Metadata
 }
 
-const META_TAG = '\n\n\n#### METADATA ####'
-
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   syncedMeta: fileFormat.Metadata,
@@ -26,7 +25,7 @@ export function applyDocumentUpdates(
   dataKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
   metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
 ): AppliedUpdates {
-  const synced = preParseContent(syncedContent)
+  const synced = splitFileContents(syncedContent)
 
   let codeUpdated = false
   let idMapUpdated = false
@@ -46,25 +45,23 @@ export function applyDocumentUpdates(
     }
   }
 
-  let newContent = ''
+  let newCode: string
+  let idMapJson: string
+  let metadataJson: string
 
   const allEdits: TextEdit[] = []
   if (codeUpdated) {
     const text = doc.getCode()
     allEdits.push(...applyDiffAsTextEdits(0, synced.code, text))
-    newContent += text
+    newCode = text
   } else {
-    newContent += synced.code
+    newCode = synced.code
   }
 
-  const metaStartLine = (newContent.match(/\n/g) ?? []).length
-  let metaContent = META_TAG + '\n'
-
   if (idMapUpdated || synced.idMapJson == null) {
-    const idMapJson = serializeIdMap(doc.getIdMap())
-    metaContent += idMapJson + '\n'
+    idMapJson = serializeIdMap(doc.getIdMap())
   } else {
-    metaContent += (synced.idMapJson ?? '[]') + '\n'
+    idMapJson = synced.idMapJson
   }
 
   let newMetadata = syncedMeta
@@ -97,20 +94,26 @@ export function applyDocumentUpdates(
     newMetadata = { ...syncedMeta }
     newMetadata.ide = { ...syncedMeta.ide }
     newMetadata.ide.node = nodeMetadata
-    const metadataJson = json.stringify(newMetadata)
-    metaContent += metadataJson
+    metadataJson = json.stringify(newMetadata)
   } else {
-    metaContent += synced.metadataJson ?? '{}'
+    metadataJson = synced.metadataJson ?? '{}'
   }
 
+  const newContent = combineFileParts({
+    code: newCode,
+    idMapJson,
+    metadataJson,
+  })
+
   const oldMetaContent = syncedContent.slice(synced.code.length)
+  const metaContent = newContent.slice(newCode.length)
+  const metaStartLine = (newCode.match(/\n/g) ?? []).length
   allEdits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
-  newContent += metaContent
 
   return {
     edits: allEdits,
     newContent,
-    newMetadata: newMetadata,
+    newMetadata,
   }
 }
 
@@ -159,29 +162,6 @@ export function translateVisualizationFromFile(
     identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
   }
-}
-
-interface PreParsedContent {
-  code: string
-  idMapJson: string | null
-  metadataJson: string | null
-}
-
-export function preParseContent(content: string): PreParsedContent {
-  const splitPoint = content.lastIndexOf(META_TAG)
-  if (splitPoint < 0) {
-    return {
-      code: content,
-      idMapJson: null,
-      metadataJson: null,
-    }
-  }
-  const code = content.slice(0, splitPoint)
-  const metadataString = content.slice(splitPoint + META_TAG.length)
-  const metaLines = metadataString.trim().split('\n')
-  const idMapJson = metaLines[0] ?? null
-  const metadataJson = metaLines[1] ?? null
-  return { code, idMapJson, metadataJson }
 }
 
 export function applyDiffAsTextEdits(

@@ -663,7 +663,8 @@ type Table
     take self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
@@ -1305,7 +1306,7 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS cartesian join
+    ## ALIAS cartesian join, append
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -2336,7 +2337,8 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata 
+       GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of

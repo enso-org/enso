@@ -1,4 +1,5 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Data.Enso_Cloud.Utils as Cloud_Utils
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
@@ -8,7 +9,6 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 
-polyglot java import java.util.Base64
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Header
@@ -19,7 +19,7 @@ type Header
        Arguments:
        - name: The header name.
        - value: The header value.
-    Value name:Text value:(Text|Enso_Secret)
+    Value name:Text value:(Text|Enso_Secret|Derived_Secret_Value)
 
     ## ALIAS Build a Header
 
@@ -36,7 +36,7 @@ type Header
 
              example_new = Header.new "My_Header" "my header's value"
     new : Text -> Text | Enso_Secret -> Header
-    new name:Text value:(Text | Enso_Secret) = Header.Value name value
+    new name:Text value:(Text | Enso_Secret | Derived_Secret_Value) = Header.Value name value
 
     ## Create an "Accept" header.
 
@@ -76,8 +76,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth = Header.authorization "foo"
-    authorization : Text -> Header
-    authorization value = Header.Value "Authorization" value
+    authorization : Text | Enso_Secret | Derived_Secret_Value -> Header
+    authorization (value : Text | Enso_Secret | Derived_Secret_Value) = Header.Value "Authorization" value
 
     ## Create HTTP basic auth header.
 
@@ -91,17 +91,20 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth_basic = Header.authorization_basic "user" "pass"
-    authorization_basic : Text -> Text -> Header
-    authorization_basic user pass =
-        Header.authorization (make_basic_auth user pass)
+    authorization_basic : Text | Enso_Secret | Derived_Secret_Value -> Text | Enso_Secret | Derived_Secret_Value -> Header
+    authorization_basic (user : Text | Enso_Secret | Derived_Secret_Value) (pass : Text | Enso_Secret | Derived_Secret_Value) =
+        pair = (Derived_Secret_Value.from user) + (Derived_Secret_Value.from ":") + (Derived_Secret_Value.from pass)
+        value = (Derived_Secret_Value.from "Basic ") + (Derived_Secret_Value.Base_64_Encode pair)
+        Header.authorization value.simplify
 
     ## Create bearer token auth header.
 
        Arguments:
        - token: The token.
     authorization_bearer : Text -> Header
-    authorization_bearer token:Text =
-        Header.authorization ("Bearer " + token)
+    authorization_bearer (token : Text | Enso_Secret | Derived_Secret_Value) =
+        value = ((Derived_Secret_Value.from "Bearer ") + (Derived_Secret_Value.from token))
+        Header.authorization value.simplify
 
     ## Create "Content-Type" header.
 
@@ -214,9 +217,3 @@ type Header_Comparator
 
 ## PRIVATE
 Comparable.from (_:Header) = Header_Comparator
-
-## PRIVATE
-make_basic_auth : Text -> Text -> Text
-make_basic_auth user:Text pass:Text =
-    base64 = Base64.getEncoder.encodeToString (user + ":" + pass).utf_8
-    "Basic " + base64

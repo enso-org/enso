@@ -46,7 +46,7 @@ pub const LIBRARIES_TO_TEST: [&str; 7] = [
     // Temporarily disabled due to https://www.pivotaltracker.com/story/show/184042416
     // "Meta_Test_Suite_Tests",
     "Table_Tests",
-    "Tests",
+    "Base_Tests",
     "AWS_Tests",
     "Visualization_Tests",
 ];

@@ -29,8 +29,8 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
-import enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 postgres_specific_spec connection db_name setup =
     Test.group "[PostgreSQL] Schemas and Databases" <|

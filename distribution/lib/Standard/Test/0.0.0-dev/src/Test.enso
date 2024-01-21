@@ -177,7 +177,8 @@ type Test
     ## PRIVATE
     enrich_message_with_clue : Text -> Text
     enrich_message_with_clue message =
-        case State.get Clue of
+        clue = Panic.catch Uninitialized_State (State.get Clue) _->Nothing
+        case clue of
             Clue.Value add_clue -> add_clue message
             _                   -> message
 
