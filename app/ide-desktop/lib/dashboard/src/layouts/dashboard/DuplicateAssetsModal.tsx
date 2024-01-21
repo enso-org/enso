@@ -21,9 +21,6 @@ import Modal from '#/components/Modal'
 const pluralizeFile = string.makePluralize('file', 'files')
 // This is a function, even though it does not look like one.
 // eslint-disable-next-line no-restricted-syntax
-const pluralizeFileUppercase = string.makePluralize('File', 'Files')
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
 const pluralizeProject = string.makePluralize('project', 'projects')
 
 // =============
