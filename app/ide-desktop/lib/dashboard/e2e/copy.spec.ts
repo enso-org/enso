@@ -23,7 +23,7 @@ test.test('copy', async ({ page }) => {
     // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(3)
     await test.expect(assetRows.nth(2)).toBeVisible()
-    await test.expect(assetRows.nth(2)).toHaveText(/^New_Folder_2 [(]copy[)]/)
+    await test.expect(assetRows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(2))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -44,7 +44,7 @@ test.test('copy (keyboard)', async ({ page }) => {
     // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(3)
     await test.expect(assetRows.nth(2)).toBeVisible()
-    await test.expect(assetRows.nth(2)).toHaveText(/^New_Folder_2 [(]copy[)]/)
+    await test.expect(assetRows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(2))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -68,7 +68,7 @@ test.test('move', async ({ page }) => {
     // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(assetRows.nth(1)).toBeVisible()
-    await test.expect(assetRows.nth(1)).toHaveText(/^New_Folder_2/)
+    await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -85,7 +85,7 @@ test.test('move (drag)', async ({ page }) => {
     // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(assetRows.nth(1)).toBeVisible()
-    await test.expect(assetRows.nth(1)).toHaveText(/^New_Folder_2/)
+    await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -105,9 +105,9 @@ test.test('move to trash', async ({ page }) => {
     await actions.locateTrashCategory(page).click()
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(assetRows.nth(0)).toBeVisible()
-    await test.expect(assetRows.nth(0)).toHaveText(/^New_Folder_1/)
+    await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1/)
     await test.expect(assetRows.nth(1)).toBeVisible()
-    await test.expect(assetRows.nth(1)).toHaveText(/^New_Folder_2/)
+    await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
 })
 
 test.test('move (keyboard)', async ({ page }) => {
@@ -125,7 +125,7 @@ test.test('move (keyboard)', async ({ page }) => {
     // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(assetRows.nth(1)).toBeVisible()
-    await test.expect(assetRows.nth(1)).toHaveText(/^New_Folder_2/)
+    await test.expect(assetRows.nth(1)).toHaveText(/^New Folder 2/)
     const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
     const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
     test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -154,7 +154,7 @@ test.test('duplicate', async ({ page }) => {
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
     await test.expect(assetRows.nth(0)).toBeVisible()
-    await test.expect(assetRows.nth(0)).toHaveText(/^New_Folder_1 [(]copy[)]/)
+    await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
 })
 
 test.test('duplicate (keyboard)', async ({ page }) => {
@@ -167,5 +167,5 @@ test.test('duplicate (keyboard)', async ({ page }) => {
     // Assets: [0: Folder 1 (copy), 1: Folder 1]
     await test.expect(assetRows).toHaveCount(2)
     await test.expect(assetRows.nth(0)).toBeVisible()
-    await test.expect(assetRows.nth(0)).toHaveText(/^New_Folder_1 [(]copy[)]/)
+    await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1 [(]copy[)]/)
 })

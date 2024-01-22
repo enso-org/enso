@@ -12,7 +12,7 @@ test.test('create folder', async ({ page }) => {
     // Assets: [0: Folder 1]
     await test.expect(assetRows).toHaveCount(1)
     await test.expect(assetRows.nth(0)).toBeVisible()
-    await test.expect(assetRows.nth(0)).toHaveText(/^New_Folder_1/)
+    await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1/)
 })
 
 test.test('create project', async ({ page }) => {
