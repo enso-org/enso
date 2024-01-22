@@ -492,22 +492,18 @@ export default [
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugState',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugEffect',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugMemo',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
