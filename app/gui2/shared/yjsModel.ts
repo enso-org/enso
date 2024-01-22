@@ -168,11 +168,13 @@ export class DistributedModule {
 }
 
 export type SourceRange = readonly [start: number, end: number]
+declare const brandSourceRangeKey: unique symbol
+export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
 
 export class IdMap {
-  private readonly rangeToExpr: Map<string, ExprId>
+  private readonly rangeToExpr: Map<SourceRangeKey, ExprId>
 
-  constructor(entries?: [string, ExprId][]) {
+  constructor(entries?: [SourceRangeKey, ExprId][]) {
     this.rangeToExpr = new Map(entries ?? [])
   }
 
@@ -180,11 +182,11 @@ export class IdMap {
     return new IdMap([])
   }
 
-  public static keyForRange(range: SourceRange): string {
-    return `${range[0].toString(16)}:${range[1].toString(16)}`
+  public static keyForRange(range: SourceRange): SourceRangeKey {
+    return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
   }
 
-  public static rangeForKey(key: string): SourceRange {
+  public static rangeForKey(key: SourceRangeKey): SourceRange {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
@@ -196,6 +198,13 @@ export class IdMap {
   getIfExist(range: SourceRange): ExprId | undefined {
     const key = IdMap.keyForRange(range)
     return this.rangeToExpr.get(key)
+  }
+
+  delete(range: SourceRange) {
+    this.deleteKey(IdMap.keyForRange(range))
+  }
+  deleteKey(key: SourceRangeKey) {
+    this.rangeToExpr.delete(key)
   }
 
   getOrInsertUniqueId(range: SourceRange): ExprId {
@@ -210,7 +219,7 @@ export class IdMap {
     }
   }
 
-  entries(): [string, ExprId][] {
+  entries(): [SourceRangeKey, ExprId][] {
     return [...this.rangeToExpr]
   }
 
@@ -245,7 +254,7 @@ export class IdMap {
   // Debugging.
   compare(other: IdMap) {
     console.info(`IdMap.compare -------`)
-    const allKeys = new Set<string>()
+    const allKeys = new Set<SourceRangeKey>()
     for (const key of this.rangeToExpr.keys()) allKeys.add(key)
     for (const key of other.rangeToExpr.keys()) allKeys.add(key)
     for (const key of allKeys) {

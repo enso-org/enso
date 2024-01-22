@@ -1,7 +1,6 @@
 import * as RawAst from '@/generated/ast'
 import { assert, assertDefined, assertEqual, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
-import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
@@ -9,7 +8,7 @@ import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import * as Y from 'yjs'
-import { IdMap, type ExprId, type SourceRange } from '../../../shared/yjsModel'
+import { IdMap, type ExprId, type SourceRange, type SourceRangeKey } from '../../../shared/yjsModel'
 
 declare const brandOwned: unique symbol
 /** Used to mark references required to be unique.
@@ -29,7 +28,8 @@ export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
   const module = MutableModule.Transient()
   const tree = parseEnso(printed.code)
-  return abstract(module, tree, printed.code, printed.info).node
+  // TODO: Transfer metadata (exprIds)
+  return abstract(module, tree, printed.code).root
 }
 
 export type NodeChild<T = SyncId | SyncTokenId> = { whitespace?: string | undefined; node: T }
@@ -62,7 +62,7 @@ interface SyncTokenId {
   tokenType_: RawAst.Token.Type | undefined
 }
 export class Token implements SyncTokenId {
-  readonly exprId: TokenId
+  exprId: TokenId
   code_: string
   tokenType_: RawAst.Token.Type | undefined
 
@@ -72,8 +72,8 @@ export class Token implements SyncTokenId {
     this.tokenType_ = type
   }
 
-  static new(code: string, type?: RawAst.Token.Type, id?: TokenId) {
-    return new this(code, id ?? newTokenId(), type)
+  static new(code: string, type?: RawAst.Token.Type) {
+    return new this(code, newTokenId(), type)
   }
 
   code(): string {
@@ -184,15 +184,19 @@ export class ReactiveModule implements Module {
           node_.set(key, value)
         }
       }
-      this.rebuildSpans()
+      this.rebuildSpans(update.deleteNodes)
     })
   }
 
-  private rebuildSpans() {
+  private rebuildSpans(deleted: SyncId[]) {
+    for (const id of deleted) this.spans.delete(id)
     const root = this.root()
     if (!root) return
     const printed = print(root)
-    printed.info
+    for (const [key, nodes] of printed.info.nodes) {
+      const range = IdMap.rangeForKey(key)
+      for (const node of nodes) this.spans.set(syncId(node), range)
+    }
   }
 
   getSpan(id: SyncId): SourceRange | undefined {
@@ -219,7 +223,7 @@ export class ReactiveModule implements Module {
   getToken(token: SyncTokenId | undefined): Token | undefined {
     if (!token) return token
     if (token instanceof Token) return token
-    return Token.new(token.code_, token.tokenType_, token.exprId)
+    return new Token(token.code_, token.exprId, token.tokenType_)
   }
 
   getAny(node: SyncId | SyncTokenId): Ast | Token {
@@ -337,7 +341,9 @@ export class MutableModule implements Module {
 
   /////////////////////////////////////////////
 
-  getSpan(id: SyncId) { return undefined }
+  getSpan(id: SyncId) {
+    return undefined
+  }
 
   constructor(doc: Y.Doc) {
     this.nodes = doc.getMap<YNode>('nodes')
@@ -390,7 +396,7 @@ export class MutableModule implements Module {
   getToken(token: SyncTokenId | undefined): Token | undefined {
     if (!token) return token
     if (token instanceof Token) return token
-    return Token.new(token.code_, token.tokenType_, token.exprId)
+    return new Token(token.code_, token.exprId, token.tokenType_)
   }
 
   getAny(node: SyncId | SyncTokenId): MutableAst | Token {
@@ -631,7 +637,7 @@ export abstract class Ast {
     }
   }
 
-  printSubtree(info: InfoMap, offset: number, parentIndent: string | undefined): string {
+  printSubtree(info: SpanMap, offset: number, parentIndent: string | undefined): string {
     let code = ''
     for (const child of this.concreteChildren()) {
       if (!isTokenId(child.node) && this.module.getAst(child.node) === undefined) continue
@@ -642,10 +648,10 @@ export abstract class Ast {
       }
       if (isTokenId(child.node)) {
         const tokenStart = offset + code.length
-        const tokenCode = this.module.getToken(child.node).code()
-        const span = tokenKey(tokenStart, tokenCode.length)
-        info.tokens.set(span, child.node.exprId)
-        code += tokenCode
+        const token = this.module.getToken(child.node)
+        const span = tokenKey(tokenStart, token.code().length)
+        info.tokens.set(span, token)
+        code += token.code()
       } else {
         const childNode = this.module.getAst(child.node)
         assert(childNode != null)
@@ -659,8 +665,8 @@ export abstract class Ast {
       }
     }
     const span = nodeKey(offset, code.length)
-    const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
-    infos.unshift(this.exprId)
+    const infos = map.setIfUndefined(info.nodes, span, (): Ast[] => [])
+    infos.push(this)
     return code
   }
 
@@ -672,10 +678,11 @@ export abstract class Ast {
     const parsed: SerializedPrintedSource = JSON.parse(serialized)
     const nodes = new Map(unsafeEntries(parsed.info.nodes))
     const tokens = new Map(unsafeEntries(parsed.info.tokens))
-    const tokensOut = new Map()
     const module = MutableModule.Transient()
     const tree = parseEnso(parsed.code)
-    return abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
+    const ast = abstract(module, tree, parsed.code)
+    // TODO: ast <- nodes,tokens
+    return ast.root
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
@@ -690,11 +697,11 @@ export abstract class Ast {
     }
   }
 
-  static parseBlock(source: PrintedSource | string, inModule?: MutableModule) {
+  static parseBlock(source: string, inModule?: MutableModule) {
     return parseBlock(source, inModule)
   }
 
-  static parse(source: PrintedSource | string, module?: MutableModule) {
+  static parse(source: string, module?: MutableModule) {
     return parse(source, module)
   }
 
@@ -899,9 +906,8 @@ export class App extends Ast {
     parens: { open: NodeChild<Token>; close: NodeChild<Token> } | undefined,
     nameSpecification: { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined,
     argument: NodeChild<Owned>,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('App', id)
+    const base = module.baseObject('App')
     const id_ = base.get('id')
     const fields = setAll(base, {
       function: concreteChild(module, func, id_),
@@ -1015,9 +1021,8 @@ export class UnaryOprApp extends Ast {
     module: MutableModule,
     operator: NodeChild<Token>,
     argument: NodeChild<Owned> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('UnaryOprApp', id)
+    const base = module.baseObject('UnaryOprApp')
     const id_ = base.get('id')
     const fields = setAll(base, {
       operator,
@@ -1076,13 +1081,8 @@ export class NegationOprApp extends Ast {
     super(module, fields)
   }
 
-  static concrete(
-    module: MutableModule,
-    operator: NodeChild<Token>,
-    argument: NodeChild<Owned>,
-    id?: AstId | undefined,
-  ) {
-    const base = module.baseObject('NegationOprApp', id)
+  static concrete(module: MutableModule, operator: NodeChild<Token>, argument: NodeChild<Owned>) {
+    const base = module.baseObject('NegationOprApp')
     const id_ = base.get('id')
     const fields = setAll(base, {
       operator,
@@ -1144,9 +1144,8 @@ export class OprApp extends Ast {
     lhs: NodeChild<Owned> | undefined,
     operators: NodeChild<Token>[],
     rhs: NodeChild<Owned> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('OprApp', id)
+    const base = module.baseObject('OprApp')
     const id_ = base.get('id')
     const fields = setAll(base, {
       lhs: concreteChild(module, lhs, id_),
@@ -1258,9 +1257,8 @@ export class PropertyAccess extends Ast {
     lhs: NodeChild<Owned> | undefined,
     operator: NodeChild<Token>,
     rhs: NodeChild<Owned<MutableIdent>>,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('PropertyAccess', id)
+    const base = module.baseObject('PropertyAccess')
     const id_ = base.get('id')
     const fields = setAll(base, {
       lhs: concreteChild(module, lhs, id_),
@@ -1325,12 +1323,8 @@ export class Generic extends Ast {
     super(module, fields)
   }
 
-  static concrete(
-    module: MutableModule,
-    children: NodeChild<Owned | Token>[],
-    id?: AstId | undefined,
-  ) {
-    const base = module.baseObject('Generic', id)
+  static concrete(module: MutableModule, children: NodeChild<Owned | Token>[]) {
+    const base = module.baseObject('Generic')
     const id_ = base.get('id')
     const fields = setAll(base, {
       children: children.map((child) => concreteChild(module, child, id_)),
@@ -1452,9 +1446,8 @@ export class Import extends Ast {
     all: NodeChild<Token> | undefined,
     as: OwnedMultiSegmentAppSegment | undefined,
     hiding: OwnedMultiSegmentAppSegment | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('Import', id)
+    const base = module.baseObject('Import')
     const id_ = base.get('id')
     const fields = setAll(base, {
       polyglot: multiSegmentAppSegmentToRaw(module, polyglot, id_),
@@ -1595,9 +1588,8 @@ export class TextLiteral extends Ast {
     newline: NodeChild<Token> | undefined,
     elements: NodeChild<Owned | Token>[],
     close: NodeChild<Token> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('TextLiteral', id)
+    const base = module.baseObject('TextLiteral')
     const id_ = base.get('id')
     const fields = setAll(base, {
       open,
@@ -1657,9 +1649,8 @@ export class Documented extends Ast {
     elements: NodeChild<Owned | Token>[],
     newlines: NodeChild<Token>[],
     expression: NodeChild<Owned> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('Documented', id)
+    const base = module.baseObject('Documented')
     const id_ = base.get('id')
     const fields = setAll(base, {
       open,
@@ -1715,8 +1706,8 @@ export class Invalid extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: MutableModule, expression: NodeChild<Owned>, id?: AstId | undefined) {
-    const base = module.baseObject('Invalid', id)
+  static concrete(module: MutableModule, expression: NodeChild<Owned>) {
+    const base = module.baseObject('Invalid')
     return asOwned(new MutableInvalid(module, invalidFields(module, base, expression)))
   }
 
@@ -1777,9 +1768,8 @@ export class Group extends Ast {
     open: NodeChild<Token> | undefined,
     expression: NodeChild<Owned> | undefined,
     close: NodeChild<Token> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('Group', id)
+    const base = module.baseObject('Group')
     const id_ = base.get('id')
     const fields = setAll(base, { open, expression: concreteChild(module, expression, id_), close })
     return asOwned(new MutableGroup(module, fields))
@@ -1824,8 +1814,8 @@ export class NumericLiteral extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: MutableModule, tokens: NodeChild<Token>[], id?: AstId | undefined) {
-    const base = module.baseObject('NumericLiteral', id)
+  static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
+    const base = module.baseObject('NumericLiteral')
     const fields = setAll(base, { tokens })
     return asOwned(new MutableNumericLiteral(module, fields))
   }
@@ -1896,9 +1886,8 @@ export class Function extends Ast {
     argumentDefinitions: OwnedArgumentDefinition[],
     equals: NodeChild<Token>,
     body: NodeChild<Owned> | undefined,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('Function', id)
+    const base = module.baseObject('Function')
     const id_ = base.get('id')
     const fields = setAll(base, {
       name: concreteChild(module, name, id_),
@@ -2014,9 +2003,8 @@ export class Assignment extends Ast {
     pattern: NodeChild<Owned>,
     equals: NodeChild<Token>,
     expression: NodeChild<Owned>,
-    id?: AstId | undefined,
   ) {
-    const base = module.baseObject('Assignment', id)
+    const base = module.baseObject('Assignment')
     const id_ = base.get('id')
     const fields = setAll(base, {
       pattern: concreteChild(module, pattern, id_),
@@ -2088,8 +2076,8 @@ export class BodyBlock extends Ast {
     super(module, fields)
   }
 
-  static concrete(module: MutableModule, lines: OwnedBlockLine[], id?: AstId | undefined) {
-    const base = module.baseObject('BodyBlock', id)
+  static concrete(module: MutableModule, lines: OwnedBlockLine[]) {
+    const base = module.baseObject('BodyBlock')
     const id_ = base.get('id')
     const fields = setAll(base, {
       lines: lines.map((line) => lineToRaw(line, module, id_)),
@@ -2118,7 +2106,7 @@ export class BodyBlock extends Ast {
     }
   }
 
-  printSubtree(info: InfoMap, offset: number, parentIndent: string | undefined): string {
+  printSubtree(info: SpanMap, offset: number, parentIndent: string | undefined): string {
     let blockIndent: string | undefined
     let code = ''
     for (const line of this.fields.get('lines')) {
@@ -2149,12 +2137,7 @@ export class BodyBlock extends Ast {
       }
     }
     const span = nodeKey(offset, code.length)
-    const infos = info.nodes.get(span)
-    if (infos == undefined) {
-      info.nodes.set(span, [this.exprId])
-    } else {
-      infos.unshift(this.exprId)
-    }
+    map.setIfUndefined(info.nodes, span, (): Ast[] => []).push(this)
     return code
   }
 }
@@ -2273,8 +2256,8 @@ export class Ident extends Ast {
     return this.module.getToken(this.fields.get('token').node)
   }
 
-  static concrete(module: MutableModule, token: NodeChild<Token>, id?: AstId | undefined) {
-    const base = module.baseObject('Ident', id)
+  static concrete(module: MutableModule, token: NodeChild<Token>) {
+    const base = module.baseObject('Ident')
     const fields = setAll(base, { token })
     return asOwned(new MutableIdent(module, fields))
   }
@@ -2314,8 +2297,8 @@ export class Wildcard extends Ast {
     return this.module.getToken(this.fields.get('token').node)
   }
 
-  static concrete(module: MutableModule, token: NodeChild<Token>, id?: AstId | undefined) {
-    const base = module.baseObject('Wildcard', id)
+  static concrete(module: MutableModule, token: NodeChild<Token>) {
+    const base = module.baseObject('Wildcard')
     const fields = setAll(base, { token })
     return asOwned(new MutableWildcard(module, fields))
   }
@@ -2361,27 +2344,23 @@ function abstract(
   module: MutableModule,
   tree: RawAst.Tree,
   code: string,
-  info: InfoMap | undefined,
-): { whitespace: string | undefined; node: Ast } {
-  const nodesExpected = new Map(
-    Array.from(info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
-  )
-  const tokens = info?.tokens ?? new Map()
-  const tokensOut = info?.tokensOut ?? new Map()
-  return abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
+): { root: Owned; spans: SpanMap } {
+  const tokens = new Map()
+  const nodes = new Map()
+  const root = abstractTree(module, tree, code, nodes, tokens).node
+  const spans = { tokens, nodes }
+  return { root, spans }
 }
 
 function abstractTree(
   module: MutableModule,
   tree: RawAst.Tree,
   code: string,
-  nodesExpected: NodeSpanMap,
-  tokens: TokenSpanMap,
+  nodesOut: NodeSpanMap,
   tokensOut: TokenSpanMap,
 ): { whitespace: string | undefined; node: Owned } {
-  const recurseTree = (tree: RawAst.Tree) =>
-    abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
-  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokens, tokensOut)
+  const recurseTree = (tree: RawAst.Tree) => abstractTree(module, tree, code, nodesOut, tokensOut)
+  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokensOut)
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild<Owned | Token>[] = []
     const visitor = (child: LazyObject) => {
@@ -2400,9 +2379,6 @@ function abstractTree(
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  // All node types use this value in the same way to obtain the ID type,
-  // but each node does so separately because we must pop the tree's span from the ID map
-  // *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart)
   let node: Owned
   switch (tree.type) {
@@ -2412,8 +2388,7 @@ function abstractTree(
         let expression = line.expression ? recurseTree(line.expression) : undefined
         return { newline, expression }
       })
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = BodyBlock.concrete(module, lines, id)
+      node = BodyBlock.concrete(module, lines)
       break
     }
     case RawAst.Tree.Type.Function: {
@@ -2421,29 +2396,25 @@ function abstractTree(
       const argumentDefinitions = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = recurseToken(tree.equals)
       const body = tree.body !== undefined ? recurseTree(tree.body) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Function.concrete(module, name, argumentDefinitions, equals, body, id)
+      node = Function.concrete(module, name, argumentDefinitions, equals, body)
       break
     }
     case RawAst.Tree.Type.Ident: {
       const token = recurseToken(tree.token)
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Ident.concrete(module, token, id)
+      node = Ident.concrete(module, token)
       break
     }
     case RawAst.Tree.Type.Assignment: {
       const pattern = recurseTree(tree.pattern)
       const equals = recurseToken(tree.equals)
       const value = recurseTree(tree.expr)
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Assignment.concrete(module, pattern, equals, value, id)
+      node = Assignment.concrete(module, pattern, equals, value)
       break
     }
     case RawAst.Tree.Type.App: {
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = App.concrete(module, func, undefined, undefined, arg, id)
+      node = App.concrete(module, func, undefined, undefined, arg)
       break
     }
     case RawAst.Tree.Type.NamedApp: {
@@ -2453,20 +2424,18 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const arg = recurseTree(tree.arg)
       const close = tree.close ? recurseToken(tree.close) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
       const parens = open && close ? { open, close } : undefined
       const nameSpecification = { name, equals }
-      node = App.concrete(module, func, parens, nameSpecification, arg, id)
+      node = App.concrete(module, func, parens, nameSpecification, arg)
       break
     }
     case RawAst.Tree.Type.UnaryOprApp: {
       const opr = recurseToken(tree.opr)
       const arg = tree.rhs ? recurseTree(tree.rhs) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
       if (arg && opr.node.code() === '-') {
-        node = NegationOprApp.concrete(module, opr, arg, id)
+        node = NegationOprApp.concrete(module, opr, arg)
       } else {
-        node = UnaryOprApp.concrete(module, opr, arg, id)
+        node = UnaryOprApp.concrete(module, opr, arg)
       }
       break
     }
@@ -2476,13 +2445,12 @@ function abstractTree(
         ? [recurseToken(tree.opr.value)]
         : Array.from(tree.opr.error.payload.operators, recurseToken)
       const rhs = tree.rhs ? recurseTree(tree.rhs) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
       if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
         // Propagate type.
         const rhs_ = { ...rhs, node: rhs.node }
-        node = PropertyAccess.concrete(module, lhs, opr[0], rhs_, id)
+        node = PropertyAccess.concrete(module, lhs, opr[0], rhs_)
       } else {
-        node = OprApp.concrete(module, lhs, opr, rhs, id)
+        node = OprApp.concrete(module, lhs, opr, rhs)
       }
       break
     }
@@ -2494,14 +2462,12 @@ function abstractTree(
         tokens.push(recurseToken(tree.fractionalDigits.dot))
         tokens.push(recurseToken(tree.fractionalDigits.digits))
       }
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = NumericLiteral.concrete(module, tokens, id)
+      node = NumericLiteral.concrete(module, tokens)
       break
     }
     case RawAst.Tree.Type.Wildcard: {
       const token = recurseToken(tree.token)
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Wildcard.concrete(module, token, id)
+      node = Wildcard.concrete(module, token)
       break
     }
     // These expression types are (or will be) used for backend analysis.
@@ -2514,16 +2480,14 @@ function abstractTree(
     }
     case RawAst.Tree.Type.Invalid: {
       const expression = recurseTree(tree.ast)
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Invalid.concrete(module, expression, id)
+      node = Invalid.concrete(module, expression)
       break
     }
     case RawAst.Tree.Type.Group: {
       const open = tree.open ? recurseToken(tree.open) : undefined
       const expression = tree.body ? recurseTree(tree.body) : undefined
       const close = tree.close ? recurseToken(tree.close) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Group.concrete(module, open, expression, close, id)
+      node = Group.concrete(module, open, expression, close)
       break
     }
     case RawAst.Tree.Type.TextLiteral: {
@@ -2534,8 +2498,7 @@ function abstractTree(
         elements.push(...visitChildren(e))
       }
       const close = tree.close ? recurseToken(tree.close) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = TextLiteral.concrete(module, open, newline, elements, close, id)
+      node = TextLiteral.concrete(module, open, newline, elements, close)
       break
     }
     case RawAst.Tree.Type.Documented: {
@@ -2546,14 +2509,13 @@ function abstractTree(
       }
       const newlines = Array.from(tree.documentation.newlines, recurseToken)
       const expression = tree.expression ? recurseTree(tree.expression) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Documented.concrete(module, open, elements, newlines, expression, id)
+      node = Documented.concrete(module, open, elements, newlines, expression)
       break
     }
     case RawAst.Tree.Type.Import: {
       const recurseBody = (tree: RawAst.Tree) => {
         const body = recurseTree(tree)
-        if (body instanceof Invalid && body.code() === '') return undefined
+        if (body.node instanceof Invalid && body.node.code() === '') return undefined
         return body
       }
       const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
@@ -2566,15 +2528,14 @@ function abstractTree(
       const all = tree.all ? recurseToken(tree.all) : undefined
       const as = tree.as ? recurseSegment(tree.as) : undefined
       const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Import.concrete(module, polyglot, from, import_, all, as, hiding, id)
+      node = Import.concrete(module, polyglot, from, import_, all, as, hiding)
       break
     }
     default: {
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = Generic.concrete(module, visitChildren(tree), id)
+      node = Generic.concrete(module, visitChildren(tree))
     }
   }
+  map.setIfUndefined(nodesOut, spanKey, (): Ast[] => []).push(node)
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
   return { node, whitespace }
 }
@@ -2582,7 +2543,6 @@ function abstractTree(
 function abstractToken(
   token: RawAst.Token,
   code: string,
-  tokens: TokenSpanMap,
   tokensOut: TokenSpanMap,
 ): { whitespace: string; node: Token } {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
@@ -2592,21 +2552,20 @@ function abstractToken(
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
   const key = tokenKey(codeStart, codeEnd - codeStart)
-  const exprId = tokens.get(key) ?? newTokenId()
-  const node = new Token(tokenCode, exprId, token.type)
-  tokensOut.set(key, exprId)
+  const node = new Token(tokenCode, newTokenId(), token.type)
+  tokensOut.set(key, node)
   return { whitespace, node }
 }
 
 declare const nodeKeyBrand: unique symbol
-type NodeKey = string & { [nodeKeyBrand]: never }
+type NodeKey = SourceRangeKey & { [nodeKeyBrand]: never }
 declare const tokenKeyBrand: unique symbol
-type TokenKey = string & { [tokenKeyBrand]: never }
+type TokenKey = SourceRangeKey & { [tokenKeyBrand]: never }
 function nodeKey(start: number, length: number): NodeKey {
-  return `${start}:${length}` as NodeKey
+  return IdMap.keyForRange([start, start + length]) as NodeKey
 }
 function tokenKey(start: number, length: number): TokenKey {
-  return `${start}:${length}` as TokenKey
+  return IdMap.keyForRange([start, start + length]) as TokenKey
 }
 export function keyToRange(key: NodeKey | TokenKey): { start: number; end: number } {
   const parts = key.split(':')
@@ -2625,26 +2584,24 @@ interface SerializedPrintedSource {
   code: string
 }
 
-type NodeSpanMap = Map<NodeKey, AstId[]>
-type TokenSpanMap = Map<TokenKey, TokenId>
+type NodeSpanMap = Map<NodeKey, Ast[]>
+type TokenSpanMap = Map<TokenKey, Token>
 
-export interface InfoMap {
+interface SpanMap {
   nodes: NodeSpanMap
   tokens: TokenSpanMap
-  tokensOut: TokenSpanMap
 }
 
 interface PrintedSource {
-  info: InfoMap
+  info: SpanMap
   code: string
 }
 
 /** Return stringification with associated ID map. This is only exported for testing. */
 export function print(ast: Ast): PrintedSource {
-  const info: InfoMap = {
+  const info: SpanMap = {
     nodes: new Map(),
     tokens: new Map(),
-    tokensOut: new Map(),
   }
   const code = ast.printSubtree(info, 0, undefined)
   return { info, code }
@@ -2706,86 +2663,46 @@ export function functionBlock(topLevel: BodyBlock, name: string) {
   return func.body
 }
 
-export function parseTransitional(code: string, idMap: IdMap): Ast {
-  const rawAst = RawAstExtended.parse(code, idMap.clone())
-  const nodes = new Map<NodeKey, AstId[]>()
-  const tokens = new Map<TokenKey, TokenId>()
-  const astExtended = new Map<AstId, RawAstExtended>()
-  const spans = new Map<AstId, SourceRange>()
-  rawAst.visitRecursive((nodeOrToken: RawAstExtended<RawAst.Tree | RawAst.Token>) => {
-    const start = nodeOrToken.span()[0]
-    const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
-    if (nodeOrToken.isToken()) {
-      const token: RawAstExtended<RawAst.Token> = nodeOrToken
-      tokens.set(tokenKey(start, length), token.astId as TokenId)
-    } else if (nodeOrToken.isTree()) {
-      const node: RawAstExtended<RawAst.Tree> = nodeOrToken
-      if (
-        node.isTree(RawAst.Tree.Type.OprSectionBoundary) ||
-        node.isTree(RawAst.Tree.Type.TemplateFunction)
-      )
-        return true
-      let id = node.astId as AstId
-      const preexisting = astExtended.get(id)
-      if (preexisting) {
-        if (!preexisting.isTree(RawAst.Tree.Type.Invalid)) {
-          console.warn(`Unexpected duplicate UUID in tree`, id)
-        }
-        id = newAstId()
-      }
-      astExtended.set(id, node)
-      spans.set(id, node.span())
-      const key = nodeKey(start, length)
-      const ids = nodes.get(key)
-      if (ids !== undefined) {
-        ids.push(id)
-      } else {
-        nodes.set(key, [id])
+export function parseWithIdMap(code: string, idMap: IdMap): Ast {
+  const module = MutableModule.Transient()
+  const parsed = parseBlockWithSpans(code, module)
+  for (const [key, id] of idMap.entries()) {
+    const nodes = parsed.spans.nodes.get(key as NodeKey)
+    const token = parsed.spans.tokens.get(key as TokenKey)
+    if (nodes) {
+      for (const node of nodes) {
+        const node_ = module.get(node)!
+        node_.fields.set('exprId', asNodeId(id))
       }
     }
-    return true
-  })
-  const tokensOut = new Map()
-  const newRoot = parseBlock({ info: { nodes, tokens, tokensOut }, code })
-  //newRoot.module.spans = spans
-  idMap.clear()
-  // TODO (optimization): Use ID-match info collected while abstracting.
-  /*
-  for (const [id, ast] of newRoot.module.raw.nodes.entries()) {
-    idMap.insertKnownId( ... )
+    if (token) token.exprId = id as TokenId
+    if (!nodes?.length && !token) idMap.deleteKey(key)
   }
-  for (const [key, id] of tokensOut) {
-    idMap.insertKnownId( ... )
-  }
-   */
-  const printed = print(newRoot)
-  for (const [key, ids] of printed.info.nodes) {
-    const range = keyToRange(key)
-    idMap.insertKnownId([range.start, range.end], ids[0]!)
-  }
-  for (const [key, id] of printed.info.tokens) {
-    const range = keyToRange(key)
-    idMap.insertKnownId([range.start, range.end], id)
-  }
-  return newRoot
+  return parsed.block
 }
 
 /** Parse the input as a block. */
-export function parseBlock(source: PrintedSource | string, inModule?: MutableModule) {
-  const code = typeof source === 'object' ? source.code : source
-  const ids = typeof source === 'object' ? source.info : undefined
+export function parseBlock(code: string, inModule?: MutableModule) {
+  return parseBlockWithSpans(code, inModule).block
+}
+
+function parseBlockWithSpans(
+  code: string,
+  inModule?: MutableModule,
+): { block: Owned<MutableBodyBlock>; spans: SpanMap } {
   const tree = parseEnso(code)
   const module = inModule ?? MutableModule.Transient()
-  const ast = abstract(module, tree, code, ids).node
+  const ast = abstract(module, tree, code)
+  const spans = ast.spans
   // The root of the tree produced by the parser is always a `BodyBlock`.
-  const block = ast as MutableBodyBlock
-  return asOwned(block)
+  const block = ast.root as Owned<MutableBodyBlock>
+  return { block, spans }
 }
 
 /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
-export function parse(source: PrintedSource | string, module?: MutableModule): Owned {
+export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(source, module_)
+  const ast = parseBlock(code, module_)
   const [expr] = ast.statements()
   if (!expr) return ast
   const parent = parentId(expr)
