@@ -227,7 +227,11 @@ impl RunContext {
 
             // Remove the benchmark reports. They are not meant currently to be incrementally
             // updated.
-            ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
+
+            // We remove all "bench-report.xml" files across the repo, as they confuse the
+            // benchmark reporter. See the request: https://github.com/enso-org/enso/pull/8707#issuecomment-1882512361
+            let bench_report_xml = "**/bench-report.xml";
+            ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
 

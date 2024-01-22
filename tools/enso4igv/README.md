@@ -52,7 +52,7 @@ And then just
 in debug mode:
 
 ```bash
-sbt:enso> runEngineDistribution --debug --run test/Tests/src/Data/Vector_Spec.enso
+sbt:enso> runEngineDistribution --debug --run test/Base_Tests/src/Data/Vector_Spec.enso
 ```
 
 After a while the breakpoint is hit and one can inspect variables, step over the

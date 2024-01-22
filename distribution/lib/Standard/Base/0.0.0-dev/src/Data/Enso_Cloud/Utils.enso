@@ -1,4 +1,5 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Error.Error
@@ -55,6 +56,10 @@ type Not_Logged_In
 
 ## PRIVATE
 as_hideable_value : Text | Enso_Secret | Nothing -> HideableValue
-as_hideable_value (value : Text | Enso_Secret) = case value of
+as_hideable_value (value : Text | Enso_Secret | Derived_Secret_Value) = case value of
     text : Text -> HideableValue.PlainValue.new text
     secret : Enso_Secret -> HideableValue.SecretValue.new secret.id
+    Derived_Secret_Value.Plain_Text text -> as_hideable_value text
+    Derived_Secret_Value.Secret_Value secret -> as_hideable_value secret
+    Derived_Secret_Value.Concat left right -> HideableValue.ConcatValues.new (as_hideable_value left) (as_hideable_value right)
+    Derived_Secret_Value.Base_64_Encode inner -> HideableValue.Base64EncodeValue.new (as_hideable_value inner)

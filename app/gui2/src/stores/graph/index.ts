@@ -22,7 +22,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
-import type { StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -67,6 +67,17 @@ export const useGraphStore = defineStore('graph', () => {
   let moduleDirty = false
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
+
+  const topLevel = computed(() => {
+    // The top level of the module is always a block.
+    const root = moduleRoot.value
+    const topLevel = root != null ? astModule.get(root) : null
+    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
+      return null
+    } else {
+      return topLevel
+    }
+  })
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
@@ -246,21 +257,14 @@ export const useGraphStore = defineStore('graph', () => {
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
     if (!newImports.length) return
-    const root = moduleRoot.value
-    if (!root) {
+    const topLevel_ = topLevel.value
+    if (!topLevel_) {
       console.error(`BUG: Cannot add required imports: No module root.`)
       return
     }
     const importsToAdd = filterOutRedundantImports(imports.value, newImports)
     if (!importsToAdd.length) return
-    // The top level of the module is always a block.
-    const topLevel = astModule.get(root)! as Ast.BodyBlock
-    addImports(edit, topLevel, importsToAdd)
-  }
-
-  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
-    const edit = cb(astModule)
-    commitEdit(edit)
+    addImports(edit, topLevel_, importsToAdd)
   }
 
   function deleteNodes(ids: ExprId[]) {
@@ -300,8 +304,6 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
@@ -450,6 +452,10 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    db.mockExpressionUpdate(binding, update)
+  }
+
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
     const edit = astModule.edit()
     const metadataUpdates = scope(edit)
@@ -518,6 +524,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     transact,
     db: markRaw(db),
+    mockExpressionUpdate,
     imports,
     editedNodeInfo,
     unconnectedEdge,
@@ -528,7 +535,6 @@ export const useGraphStore = defineStore('graph', () => {
     vizRects,
     unregisterNodeRect,
     methodAst,
-    editAst,
     astModule,
     createEdgeFromOutput,
     disconnectSource,
@@ -544,6 +550,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
+    topLevel,
     updateNodeRect,
     updateVizRect,
     addPortInstance,

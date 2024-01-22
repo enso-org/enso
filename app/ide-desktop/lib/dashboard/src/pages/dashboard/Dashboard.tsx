@@ -39,8 +39,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
-import * as projectManager from '#/utilities/ProjectManager'
-import * as shortcutRegistryModule from '#/utilities/ShortcutManager'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =================
 // === Dashboard ===
@@ -69,7 +68,6 @@ export default function Dashboard(props: DashboardProps) {
     const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const [initialized, setInitialized] = React.useState(false)
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
@@ -96,15 +94,6 @@ export default function Dashboard(props: DashboardProps) {
         () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
         [session.organization]
     )
-
-    const isListingLocalDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
-    const isListingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote &&
-        session.organization?.isEnabled !== true
-    const isListingRemoteDirectoryWhileOffline =
-        session.type === authProvider.UserSessionType.offline &&
-        backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
         setInitialized(true)
@@ -274,24 +263,8 @@ export default function Dashboard(props: DashboardProps) {
     }, [/* should never change */ unsetModal])
 
     React.useEffect(() => {
-        const onProjectManagerLoadingFailed = () => {
-            setLoadingProjectManagerDidFail(true)
-        }
-        document.addEventListener(
-            projectManager.ProjectManagerEvents.loadingFailed,
-            onProjectManagerLoadingFailed
-        )
-        return () => {
-            document.removeEventListener(
-                projectManager.ProjectManagerEvents.loadingFailed,
-                onProjectManagerLoadingFailed
-            )
-        }
-    }, [])
-
-    React.useEffect(() => {
         return shortcutManager.registerKeyboardHandlers({
-            [shortcutRegistryModule.KeyboardAction.closeModal]: () => {
+            [shortcutManagerModule.KeyboardAction.closeModal]: () => {
                 unsetModal()
                 if (modalRef.current == null) {
                     // eslint-disable-next-line no-restricted-syntax
@@ -329,15 +302,17 @@ export default function Dashboard(props: DashboardProps) {
 
     const doCreateProject = React.useCallback(
         (
-            templateId: string | null,
-            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+            templateId: string | null = null,
+            templateName: string | null = null,
+            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
         ) => {
             dispatchAssetListEvent({
                 type: AssetListEventType.newProject,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
-                templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange ?? null,
+                templateId: templateId,
+                templateName: templateName,
+                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
         [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
@@ -431,7 +406,7 @@ export default function Dashboard(props: DashboardProps) {
                     />
                     <Home
                         hidden={page !== pageSwitcher.Page.home}
-                        onTemplateClick={doCreateProject}
+                        createProject={doCreateProject}
                     />
                     <Drive
                         supportsLocalBackend={supportsLocalBackend}
@@ -453,10 +428,6 @@ export default function Dashboard(props: DashboardProps) {
                         doCreateProject={doCreateProject}
                         doOpenEditor={openEditor}
                         doCloseEditor={closeEditor}
-                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                     />
                     <Editor
                         hidden={page !== pageSwitcher.Page.editor}

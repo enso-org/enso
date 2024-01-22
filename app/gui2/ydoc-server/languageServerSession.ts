@@ -3,6 +3,7 @@ import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
+import { splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
@@ -13,12 +14,7 @@ import {
   type NodeMetadata,
   type Uuid,
 } from '../shared/yjsModel'
-import {
-  applyDocumentUpdates,
-  preParseContent,
-  prettyPrintDiff,
-  translateVisualizationFromFile,
-} from './edits'
+import { applyDocumentUpdates, prettyPrintDiff, translateVisualizationFromFile } from './edits'
 import * as fileFormat from './fileFormat'
 import { deserializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
@@ -473,7 +469,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private syncFileContents(content: string, version: Checksum) {
     this.doc.ydoc.transact(() => {
-      const { code, idMapJson, metadataJson } = preParseContent(content)
+      const { code, idMapJson, metadataJson } = splitFileContents(content)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 

@@ -31,7 +31,7 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 export interface DriveBarProps {
     category: Category
     canDownloadFiles: boolean
-    doCreateProject: (templateId: string | null) => void
+    doCreateProject: () => void
     doCreateDirectory: () => void
     doCreateSecret: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
@@ -60,7 +60,7 @@ export default function DriveBar(props: DriveBarProps) {
                   }
                 : {}),
             [shortcutManagerModule.KeyboardAction.newProject]: () => {
-                doCreateProject(null)
+                doCreateProject()
             },
             [shortcutManagerModule.KeyboardAction.uploadFiles]: () => {
                 uploadFilesRef.current?.click()
@@ -86,7 +86,7 @@ export default function DriveBar(props: DriveBarProps) {
                         : {})}
                     onClick={() => {
                         unsetModal()
-                        doCreateProject(null)
+                        doCreateProject()
                     }}
                 >
                     <span

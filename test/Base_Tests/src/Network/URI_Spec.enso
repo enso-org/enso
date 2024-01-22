@@ -10,8 +10,6 @@ import Standard.Test.Extensions
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
-polyglot java import java.util.Base64
-
 spec =
     ## To run this test locally:
        $ sbt 'http-test-helper/run localhost 8080'

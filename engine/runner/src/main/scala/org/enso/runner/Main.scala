@@ -602,27 +602,15 @@ object Main {
     executionEnvironment: Option[String],
     warningsLimit: Int
   ): Unit = {
-    val file = new File(path)
-    if (!file.exists) {
-      println(s"File $file does not exist.")
+    val fileAndProject =
+      Utils.findFileAndProject(path, projectPath.getOrElse(null))
+    if (fileAndProject == null) {
       exitFail()
     }
-    val projectMode = file.isDirectory
-    val projectRoot =
-      if (projectMode) {
-        projectPath match {
-          case Some(inProject) if inProject != path =>
-            println(
-              "It is not possible to run a project in context of another " +
-              "project, please do not use the `--in-project` option for " +
-              "running projects."
-            )
-            exitFail()
-          case _ =>
-        }
-        file.getAbsolutePath
-      } else projectPath.getOrElse("")
-    val options = new HashMap[String, String]()
+    val projectMode = fileAndProject._1
+    val file        = fileAndProject._2
+    val projectRoot = fileAndProject._3
+    val options     = new HashMap[String, String]()
     if (dump) {
       options.put("engine.TraceCompilation", "true")
       options.put("engine.MultiTier", "false")

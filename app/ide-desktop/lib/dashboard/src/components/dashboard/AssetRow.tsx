@@ -81,19 +81,8 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-    const {
-        item: rawItem,
-        hidden,
-        selected,
-        isSoleSelectedItem,
-        setSelected,
-        allowContextMenu,
-        onContextMenu,
-        state,
-        columns,
-        onClick,
-        ...passthrough
-    } = props
+    const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
+    const { allowContextMenu, onContextMenu, state, columns, onClick } = props
     const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
     const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
@@ -111,11 +100,17 @@ export default function AssetRow(props: AssetRowProps) {
     )
     const key = AssetTreeNode.getKey(item)
     const isCloud = backend.type === backendModule.BackendType.remote
-    const visibility = visibilities.get(key) ?? insertionVisibility
+    const outerVisibility = visibilities.get(key)
+    const visibility =
+        outerVisibility == null || outerVisibility === Visibility.visible
+            ? insertionVisibility
+            : outerVisibility
+    const hidden = hiddenRaw || visibility === Visibility.hidden
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
     React.useEffect(() => {
         // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
         // re - rendering the parent.
@@ -552,9 +547,8 @@ export default function AssetRow(props: AssetRowProps) {
             }
             return (
                 <>
-                    {!hidden && insertionVisibility !== Visibility.hidden && (
+                    {!hidden && (
                         <tr
-                            {...passthrough}
                             draggable
                             tabIndex={-1}
                             className={`h-8 transition duration-300 ease-in-out ${
@@ -598,6 +592,13 @@ export default function AssetRow(props: AssetRowProps) {
                                     )
                                 } else {
                                     onContextMenu?.(innerProps, event)
+                                }
+                            }}
+                            onDragStart={event => {
+                                if (rowState.isEditingName || !isCloud) {
+                                    event.preventDefault()
+                                } else {
+                                    props.onDragStart?.(event)
                                 }
                             }}
                             onDragEnter={event => {

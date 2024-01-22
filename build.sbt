@@ -2079,12 +2079,14 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"  % commonsCliVersion,
-      "com.monovore"       %% "decline"      % declineVersion,
-      "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion
+      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"         % "commons-cli"     % commonsCliVersion,
+      "com.monovore"       %% "decline"         % declineVersion,
+      "org.jline"           % "jline"           % jlineVersion,
+      "org.typelevel"      %% "cats-core"       % catsVersion,
+      "junit"               % "junit"           % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
@@ -2616,12 +2618,12 @@ lazy val `common-polyglot-core-utils` = project
   )
 
 lazy val `enso-test-java-helpers` = project
-  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
