@@ -10,14 +10,14 @@ import NameColumnHeading from '#/components/dashboard/columnHeading/NameColumnHe
 import SharedWithColumnHeading from '#/components/dashboard/columnHeading/SharedWithColumnHeading'
 
 export const COLUMN_HEADING: Record<
-    columnUtils.Column,
-    (props: column.AssetColumnHeadingProps) => JSX.Element
+  columnUtils.Column,
+  (props: column.AssetColumnHeadingProps) => JSX.Element
 > = {
-    [columnUtils.Column.name]: NameColumnHeading,
-    [columnUtils.Column.modified]: ModifiedColumnHeading,
-    [columnUtils.Column.sharedWith]: SharedWithColumnHeading,
-    [columnUtils.Column.labels]: LabelsColumnHeading,
-    [columnUtils.Column.accessedByProjects]: AccessedByProjectsColumnHeading,
-    [columnUtils.Column.accessedData]: AccessedDataColumnHeading,
-    [columnUtils.Column.docs]: DocsColumnHeading,
+  [columnUtils.Column.name]: NameColumnHeading,
+  [columnUtils.Column.modified]: ModifiedColumnHeading,
+  [columnUtils.Column.sharedWith]: SharedWithColumnHeading,
+  [columnUtils.Column.labels]: LabelsColumnHeading,
+  [columnUtils.Column.accessedByProjects]: AccessedByProjectsColumnHeading,
+  [columnUtils.Column.accessedData]: AccessedDataColumnHeading,
+  [columnUtils.Column.docs]: DocsColumnHeading,
 }
