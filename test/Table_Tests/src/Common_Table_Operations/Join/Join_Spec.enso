@@ -31,7 +31,6 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_todo = if setup.is_database.not then Nothing else "ToDo: handling NULLs in equality conditions."
     Test.group prefix+"Table.join" <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
         t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
@@ -359,17 +358,20 @@ spec setup =
             t3.at "Right X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
             t3.at "Right A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
 
-            t4 = table_builder [["X", [Nothing, "a", "B"]], ["Y", ["ą", "b", Nothing]], ["Z", [1, 2, 3]]]
+            t4 = table_builder [["X", [Nothing, "a", "B", "c"]], ["Y", ["ą", "b", "C", Nothing]], ["Z", [1, 2, 3, 4]]]
             t5 = t4.join t4 join_kind=Join_Kind.Inner on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z", "Right X", "Right Y", "Right Z"] t5
-            # TODO enable once we handle nothing properly
-            # t5.at "Y" . to_vector . should_equal [Nothing, "b"]
-            # t5.at "Right X" . to_vector . should_equal [Nothing, "B"]
-
-            # t5.at "X" . to_vector . should_equal ["B", "a"]
-            # t5.at "Z" . to_vector . should_equal [3, 2]
-            # t5.at "Right Y" . to_vector . should_equal ["ą", Nothing]
-            # t5.at "Right Z" . to_vector . should_equal [1, 3]
+            IO.println 'AAA'
+            IO.println t5.display
+            IO.println "ą"
+            IO.println "a"
+            IO.println ("ą".equals_ignore_case "a")
+            t5.at "X" . to_vector . should_equal ["a", "B"]
+            t5.at "Y" . to_vector . should_equal ["b", "C"]
+            t5.at "Z" . to_vector . should_equal [2, 3]
+            t5.at "Right X" . to_vector . should_equal ["B", "c"]
+            t5.at "Right Y" . to_vector . should_equal ["C", Nothing]
+            t5.at "Right Z" . to_vector . should_equal [3, 4]
 
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -464,26 +466,27 @@ spec setup =
                 expected_problems = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
                 Problems.get_attached_warnings r3 . should_contain_the_same_elements_as expected_problems
 
-        Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
-            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
-            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+        Test.specify "should correctly handle nulls in equality conditions" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner |> materialize |> _.order_by ["Y"]
-            expect_column_names ["X", "Y", "Z"] r1
-            r1.at "X" . to_vector . should_equal [Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
-            r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
+            expect_column_names ["X", "Y", "Right X", "Z"] r1
+            r1.at "X" . to_vector . should_equal ["a", "b"]
+            r1.at "Y" . to_vector . should_equal [2, 5]
+            r1.at "Right X" . to_vector . should_equal ["a", "b"]
+            r1.at "Z" . to_vector . should_equal [10, 50]
 
-        Test.specify "should correctly handle nulls in case-insensitive equality conditions" pending=db_todo <|
-            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
-            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+        Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Right X", "Z"] r1
-            r1.at "X" . to_vector . should_equal ["A", Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Right X" . to_vector . should_equal ["a", Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
-            r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
+            r1.at "X" . to_vector . should_equal ["A", "a", "b"]
+            r1.at "Y" . to_vector . should_equal [0, 2, 5]
+            r1.at "Right X" . to_vector . should_equal ["a", "a", "b"]
+            r1.at "Z" . to_vector . should_equal [10, 10, 50]
 
         Test.specify "should correctly handle nulls in Between conditions" <|
             t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
@@ -554,7 +557,7 @@ spec setup =
             t1.join error . should_fail_with Illegal_State
             t1.join t2 on=[error, "X"] . should_fail_with Illegal_State
 
-        Test.specify "should correctly handle all null rows" pending=db_todo <|
+        Test.specify "should correctly handle all null rows" <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
 
@@ -562,11 +565,7 @@ spec setup =
             expect_column_names ["A", "B", "C", "D"] t3
             r3 = materialize t3 . order_by ["A", "B", "D"] . rows . map .to_vector
             within_table t3 <|
-                r3.length . should_equal 5
-                r3.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r3.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
-                r3.at 2 . should_equal [Nothing, 4, Nothing, Nothing]
-                r3.at 3 . should_equal [Nothing, 4, Nothing, 6]
+                r3.length . should_equal 1
                 r3.at 4 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
