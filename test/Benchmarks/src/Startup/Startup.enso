@@ -43,7 +43,7 @@ collect_benches = Bench.build builder->
     data =
         e = find_sibling "Empty_World.enso"
         h = find_sibling "Hello_World.enso"
-        bt = find_sibling_project "Tests"
+        bt = find_sibling_project "Base_Tests"
         tt = find_sibling_project "Table_Tests"
         Data.Value enso_bin e h bt tt
 
