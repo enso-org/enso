@@ -21,40 +21,40 @@ const PORT = 8080
 const OPTS = bundler.bundlerOptions({ outputPath: '/', devMode: true })
 OPTS.define['REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
-    path.resolve(THIS_PATH, 'src', 'index.html'),
-    path.resolve(THIS_PATH, 'src', 'index.ts'),
-    path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
+  path.resolve(THIS_PATH, 'src', 'index.html'),
+  path.resolve(THIS_PATH, 'src', 'index.ts'),
+  path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.write = false
 OPTS.loader['.html'] = 'copy'
 OPTS.plugins.push({
-    name: 'inject-mock-modules',
-    setup: build => {
-        build.onResolve({ filter: /^\..+$/ }, async args => {
-            const importerIsMockFile = /[\\/]lib[\\/]dashboard[\\/]mock[\\/]/.test(args.importer)
-            const sourcePath = path.resolve(path.dirname(args.importer), args.path)
-            if (!importerIsMockFile && /[\\/]lib[\\/]dashboard[\\/]src[\\/]/.test(sourcePath)) {
-                const mockPath = sourcePath
-                    .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
-                    .replace('\\lib\\dashboard\\src\\', '\\lib\\dashboard\\mock\\')
-                try {
-                    await fs.access(mockPath + '.ts', fs.constants.R_OK)
-                    return { path: mockPath + '.ts' }
-                } catch {
-                    try {
-                        await fs.access(mockPath + '.tsx', fs.constants.R_OK)
-                        return { path: mockPath + '.tsx' }
-                    } catch {
-                        return
-                    }
-                }
-            } else {
-                // The `if` case above always returns.
-                // eslint-disable-next-line no-restricted-syntax
-                return
-            }
-        })
-    },
+  name: 'inject-mock-modules',
+  setup: build => {
+    build.onResolve({ filter: /^\..+$/ }, async args => {
+      const importerIsMockFile = /[\\/]lib[\\/]dashboard[\\/]mock[\\/]/.test(args.importer)
+      const sourcePath = path.resolve(path.dirname(args.importer), args.path)
+      if (!importerIsMockFile && /[\\/]lib[\\/]dashboard[\\/]src[\\/]/.test(sourcePath)) {
+        const mockPath = sourcePath
+          .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
+          .replace('\\lib\\dashboard\\src\\', '\\lib\\dashboard\\mock\\')
+        try {
+          await fs.access(mockPath + '.ts', fs.constants.R_OK)
+          return { path: mockPath + '.ts' }
+        } catch {
+          try {
+            await fs.access(mockPath + '.tsx', fs.constants.R_OK)
+            return { path: mockPath + '.tsx' }
+          } catch {
+            return
+          }
+        }
+      } else {
+        // The `if` case above always returns.
+        // eslint-disable-next-line no-restricted-syntax
+        return
+      }
+    })
+  },
 })
 
 // ===============
@@ -63,11 +63,11 @@ OPTS.plugins.push({
 
 /** Start the esbuild watcher. */
 async function serve() {
-    const builder = await esbuild.context(OPTS)
-    await builder.serve({
-        port: PORT,
-        servedir: OPTS.outdir,
-    })
+  const builder = await esbuild.context(OPTS)
+  await builder.serve({
+    port: PORT,
+    servedir: OPTS.outdir,
+  })
 }
 
 void serve()
