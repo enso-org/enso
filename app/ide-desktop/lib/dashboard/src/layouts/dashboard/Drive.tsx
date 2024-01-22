@@ -26,9 +26,28 @@ import * as backendModule from '#/services/backend'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as github from '#/utilities/github'
 import * as localStorageModule from '#/utilities/localStorage'
+import * as projectManager from '#/utilities/projectManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as spinner from '#/components/Spinner'
+
+// ===================
+// === DriveStatus ===
+// ===================
+
+/** The predicted status of project listing. This is used to avoid sending requests to the backend
+ * if it is already known that the request will fail. */
+enum DriveStatus {
+    /** No errors predicted. The request may still error because of an issue in the backend. */
+    ok = 'ok',
+    /** Trying to use the remote backend when offline. The network request will fail. */
+    offline = 'offline',
+    /** The user does not have an active plan, and therefore has no access to the remote backend. */
+    notEnabled = 'not-enabled',
+    /** The connection to the Project Manager timed out. This may happen if the Project Manager
+     * crashed, or was never run in the first place. */
+    noProjectManager = 'no-project-manager',
+}
 
 // =============
 // === Drive ===
@@ -63,10 +82,6 @@ export interface DriveProps {
         switchPage: boolean
     ) => void
     doCloseEditor: (project: backendModule.ProjectAsset) => void
-    loadingProjectManagerDidFail: boolean
-    isListingRemoteDirectoryWhileOffline: boolean
-    isListingLocalDirectoryAndWillFail: boolean
-    isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -75,17 +90,16 @@ export default function Drive(props: DriveProps) {
     const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
     const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
     const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
-    const { loadingProjectManagerDidFail, isListingRemoteDirectoryWhileOffline } = props
-    const { isListingLocalDirectoryAndWillFail, isListingRemoteDirectoryAndWillFail } = props
 
     const navigate = navigateHooks.useNavigate()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
-    const { organization } = authProvider.useNonPartialUserSession()
+    const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { modalRef } = modalProvider.useModalRef()
     const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
+    const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
     const [category, setCategory] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
     )
@@ -102,6 +116,30 @@ export default function Drive(props: DriveProps) {
         [organization]
     )
     const isCloud = backend.type === backendModule.BackendType.remote
+    const status =
+        !isCloud && didLoadingProjectManagerFail
+            ? DriveStatus.noProjectManager
+            : isCloud && organization?.isEnabled !== true
+            ? DriveStatus.notEnabled
+            : isCloud && sessionType === authProvider.UserSessionType.offline
+            ? DriveStatus.offline
+            : DriveStatus.ok
+
+    React.useEffect(() => {
+        const onProjectManagerLoadingFailed = () => {
+            setDidLoadingProjectManagerFail(true)
+        }
+        document.addEventListener(
+            projectManager.ProjectManagerEvents.loadingFailed,
+            onProjectManagerLoadingFailed
+        )
+        return () => {
+            document.removeEventListener(
+                projectManager.ProjectManagerEvents.loadingFailed,
+                onProjectManagerLoadingFailed
+            )
+        }
+    }, [])
 
     React.useEffect(() => {
         if (modalRef.current != null) {
@@ -155,15 +193,17 @@ export default function Drive(props: DriveProps) {
 
     const doCreateProject = React.useCallback(
         (
-            templateId: string | null,
-            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+            templateId: string | null = null,
+            templateName: string | null = null,
+            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
         ) => {
             dispatchAssetListEvent({
                 type: AssetListEventType.newProject,
                 parentKey: rootDirectoryId,
                 parentId: rootDirectoryId,
-                templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange ?? null,
+                templateId: templateId,
+                templateName: templateName,
+                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
         [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
@@ -265,144 +305,155 @@ export default function Drive(props: DriveProps) {
         }
     }, [page, category, /* should never change */ modalRef])
 
-    return isListingRemoteDirectoryWhileOffline ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not logged in.</div>
-                <button
-                    className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
-                    onClick={() => {
-                        navigate(appUtils.LOGIN_PATH)
-                    }}
+    switch (status) {
+        case DriveStatus.offline: {
+            return (
+                <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+                    <div className="flex flex-col gap-4">
+                        <div className="text-base text-center">You are not logged in.</div>
+                        <button
+                            className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                            onClick={() => {
+                                navigate(appUtils.LOGIN_PATH)
+                            }}
+                        >
+                            Login
+                        </button>
+                    </div>
+                </div>
+            )
+        }
+        case DriveStatus.noProjectManager: {
+            return (
+                <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+                    <div className="text-base text-center">
+                        Could not connect to the Project Manager. Please try restarting{' '}
+                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                    </div>
+                </div>
+            )
+        }
+        case DriveStatus.notEnabled: {
+            return (
+                <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+                    <div className="flex flex-col gap-4 text-base text-center">
+                        Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+                        <a
+                            className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+                            href="https://enso.org/pricing"
+                        >
+                            Upgrade
+                        </a>
+                        {!supportsLocalBackend && (
+                            <button
+                                className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+                                onClick={async () => {
+                                    const downloadUrl = await github.getDownloadUrl()
+                                    if (downloadUrl == null) {
+                                        toastAndLog(
+                                            'Could not find a download link for the current OS'
+                                        )
+                                    } else {
+                                        window.open(downloadUrl, '_blank')
+                                    }
+                                }}
+                            >
+                                Download Free Edition
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )
+        }
+        case DriveStatus.ok: {
+            return (
+                <div
+                    data-testid="drive-view"
+                    className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
+                        hidden ? 'hidden' : ''
+                    }`}
                 >
-                    Login
-                </button>
-            </div>
-        </div>
-    ) : isListingLocalDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
-                Could not connect to the Project Manager. Please try restarting{' '}
-                {common.PRODUCT_NAME}, or manually launching the Project Manager.
-            </div>
-        </div>
-    ) : isListingRemoteDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="flex flex-col gap-4 text-base text-center">
-                Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
-                <a
-                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
-                    href="https://enso.org/pricing"
-                >
-                    Upgrade
-                </a>
-                {!supportsLocalBackend && (
-                    <button
-                        className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
-                        onClick={async () => {
-                            const downloadUrl = await github.getDownloadUrl()
-                            if (downloadUrl == null) {
-                                toastAndLog('Could not find a download link for the current OS')
-                            } else {
-                                window.open(downloadUrl, '_blank')
-                            }
-                        }}
-                    >
-                        Download Free Edition
-                    </button>
-                )}
-            </div>
-        </div>
-    ) : (
-        <div
-            data-testid="drive-view"
-            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
-                hidden ? 'hidden' : ''
-            }`}
-        >
-            <div className="flex flex-col self-start gap-3">
-                <h1 className="text-xl font-bold h-9.5 pl-1.5">
-                    {backend.type === backendModule.BackendType.remote
-                        ? 'Cloud Drive'
-                        : 'Local Drive'}
-                </h1>
-                <DriveBar
-                    category={category}
-                    canDownloadFiles={canDownloadFiles}
-                    doCreateProject={doCreateProject}
-                    doUploadFiles={doUploadFiles}
-                    doCreateDirectory={doCreateDirectory}
-                    doCreateDataConnector={doCreateDataConnector}
-                    dispatchAssetEvent={dispatchAssetEvent}
-                />
-            </div>
-            <div className="flex flex-1 gap-3 overflow-hidden">
-                {backend.type === backendModule.BackendType.remote && (
-                    <div className="flex flex-col gap-4 py-1">
-                        <CategorySwitcher
+                    <div className="flex flex-col self-start gap-3">
+                        <h1 className="text-xl font-bold h-9.5 pl-1.5">
+                            {backend.type === backendModule.BackendType.remote
+                                ? 'Cloud Drive'
+                                : 'Local Drive'}
+                        </h1>
+                        <DriveBar
                             category={category}
-                            setCategory={setCategory}
+                            canDownloadFiles={canDownloadFiles}
+                            doCreateProject={doCreateProject}
+                            doUploadFiles={doUploadFiles}
+                            doCreateDirectory={doCreateDirectory}
+                            doCreateDataConnector={doCreateDataConnector}
                             dispatchAssetEvent={dispatchAssetEvent}
                         />
-                        <Labels
-                            labels={labels}
+                    </div>
+                    <div className="flex flex-1 gap-3 overflow-hidden">
+                        {backend.type === backendModule.BackendType.remote && (
+                            <div className="flex flex-col gap-4 py-1">
+                                <CategorySwitcher
+                                    category={category}
+                                    setCategory={setCategory}
+                                    dispatchAssetEvent={dispatchAssetEvent}
+                                />
+                                <Labels
+                                    labels={labels}
+                                    query={query}
+                                    setQuery={setQuery}
+                                    doCreateLabel={doCreateLabel}
+                                    doDeleteLabel={doDeleteLabel}
+                                    newLabelNames={newLabelNames}
+                                    deletedLabelNames={deletedLabelNames}
+                                />
+                            </div>
+                        )}
+                        <AssetsTable
                             query={query}
                             setQuery={setQuery}
-                            doCreateLabel={doCreateLabel}
-                            doDeleteLabel={doDeleteLabel}
-                            newLabelNames={newLabelNames}
+                            setCanDownloadFiles={setCanDownloadFiles}
+                            category={category}
+                            allLabels={allLabels}
+                            setSuggestions={setSuggestions}
+                            initialProjectName={initialProjectName}
+                            projectStartupInfo={projectStartupInfo}
                             deletedLabelNames={deletedLabelNames}
+                            queuedAssetEvents={queuedAssetEvents}
+                            assetEvents={assetEvents}
+                            dispatchAssetEvent={dispatchAssetEvent}
+                            assetListEvents={assetListEvents}
+                            dispatchAssetListEvent={dispatchAssetListEvent}
+                            setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+                            doOpenIde={doOpenEditor}
+                            doCloseIde={doCloseEditor}
+                            doCreateLabel={doCreateLabel}
                         />
                     </div>
-                )}
-                <AssetsTable
-                    query={query}
-                    setQuery={setQuery}
-                    setCanDownloadFiles={setCanDownloadFiles}
-                    category={category}
-                    allLabels={allLabels}
-                    setSuggestions={setSuggestions}
-                    initialProjectName={initialProjectName}
-                    projectStartupInfo={projectStartupInfo}
-                    deletedLabelNames={deletedLabelNames}
-                    queuedAssetEvents={queuedAssetEvents}
-                    assetEvents={assetEvents}
-                    dispatchAssetEvent={dispatchAssetEvent}
-                    assetListEvents={assetListEvents}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                    setAssetSettingsPanelProps={setAssetSettingsPanelProps}
-                    doOpenIde={doOpenEditor}
-                    doCloseIde={doCloseEditor}
-                    doCreateLabel={doCreateLabel}
-                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                />
-            </div>
-            {isFileBeingDragged && organization != null && isCloud ? (
-                <div
-                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
-                    onDragLeave={() => {
-                        setIsFileBeingDragged(false)
-                    }}
-                    onDragOver={event => {
-                        event.preventDefault()
-                    }}
-                    onDrop={event => {
-                        event.preventDefault()
-                        setIsFileBeingDragged(false)
-                        dispatchAssetListEvent({
-                            type: AssetListEventType.uploadFiles,
-                            parentKey: rootDirectoryId,
-                            parentId: rootDirectoryId,
-                            files: Array.from(event.dataTransfer.files),
-                        })
-                    }}
-                >
-                    Drop to upload files.
+                    {isFileBeingDragged && organization != null && isCloud ? (
+                        <div
+                            className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
+                            onDragLeave={() => {
+                                setIsFileBeingDragged(false)
+                            }}
+                            onDragOver={event => {
+                                event.preventDefault()
+                            }}
+                            onDrop={event => {
+                                event.preventDefault()
+                                setIsFileBeingDragged(false)
+                                dispatchAssetListEvent({
+                                    type: AssetListEventType.uploadFiles,
+                                    parentKey: rootDirectoryId,
+                                    parentId: rootDirectoryId,
+                                    files: Array.from(event.dataTransfer.files),
+                                })
+                            }}
+                        >
+                            Drop to upload files.
+                        </div>
+                    ) : null}
                 </div>
-            ) : null}
-        </div>
-    )
+            )
+        }
+    }
 }

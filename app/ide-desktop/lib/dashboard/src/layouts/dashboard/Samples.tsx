@@ -83,32 +83,35 @@ export const SAMPLES: Sample[] = [
 
 /** Props for an {@link ProjectsEntry}. */
 interface InternalProjectsEntryProps {
-    onTemplateClick: (
-        name: null,
-        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
+    createProject: (
+        templateId: null,
+        templateName: null,
+        onSpinnerStateChange: ((state: spinner.SpinnerState | null) => void) | null
     ) => void
 }
 
 /** A button that, when clicked, creates and opens a new blank project. */
 function ProjectsEntry(props: InternalProjectsEntryProps) {
-    const { onTemplateClick } = props
+    const { createProject } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+
+    const onClick = () => {
+        setSpinnerState(spinner.SpinnerState.initial)
+        createProject(null, null, newSpinnerState => {
+            setSpinnerState(newSpinnerState)
+            if (newSpinnerState === spinner.SpinnerState.done) {
+                window.setTimeout(() => {
+                    setSpinnerState(null)
+                }, SPINNER_DONE_DURATION_MS)
+            }
+        })
+    }
 
     return (
         <div className="flex flex-col gap-1.5 h-51">
             <button
                 className="relative grow cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
-                onClick={() => {
-                    setSpinnerState(spinner.SpinnerState.initial)
-                    onTemplateClick(null, newSpinnerState => {
-                        setSpinnerState(newSpinnerState)
-                        if (newSpinnerState === spinner.SpinnerState.done) {
-                            window.setTimeout(() => {
-                                setSpinnerState(null)
-                            }, SPINNER_DONE_DURATION_MS)
-                        }
-                    })
-                }}
+                onClick={onClick}
             >
                 <div className="relative flex rounded-2xl w-full h-full">
                     <div className="flex flex-col text-center items-center gap-3 m-auto">
@@ -134,16 +137,17 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
-    template: Sample
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
+    sample: Sample
+    createProject: (
+        templateId: string,
+        templateName: string,
+        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
     ) => void
 }
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
-    const { template, onTemplateClick } = props
+    const { sample, createProject } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
     const author = DUMMY_AUTHOR
     const opens = DUMMY_OPEN_COUNT
@@ -161,28 +165,28 @@ function ProjectTile(props: InternalProjectTileProps) {
         []
     )
 
+    const onClick = () => {
+        setSpinnerState(spinner.SpinnerState.initial)
+        createProject(sample.id, sample.title, onSpinnerStateChange)
+    }
+
     return (
         <div className="flex flex-col gap-1.5 h-51">
             <button
-                key={template.title}
+                key={sample.title}
                 className="relative flex flex-col grow cursor-pointer text-left"
-                onClick={() => {
-                    setSpinnerState(spinner.SpinnerState.initial)
-                    onTemplateClick(template.id, onSpinnerStateChange)
-                }}
+                onClick={onClick}
             >
                 <div
-                    style={{
-                        background: template.background,
-                    }}
+                    style={{ background: sample.background }}
                     className={`rounded-t-2xl w-full h-25 ${
-                        template.background != null ? '' : 'bg-frame'
+                        sample.background != null ? '' : 'bg-frame'
                     }`}
                 />
                 <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-                    <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
+                    <h2 className="text-sm font-bold leading-144.5 py-0.5">{sample.title}</h2>
                     <div className="text-xs text-ellipsis leading-144.5 pb-px">
-                        {template.description}
+                        {sample.description}
                     </div>
                 </div>
                 {spinnerState != null && (
@@ -218,26 +222,23 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+    createProject: (
+        templateId?: string | null,
+        templateName?: string | null,
+        onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null
     ) => void
 }
 
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
-    const { onTemplateClick } = props
+    const { createProject } = props
     return (
         <div className="flex flex-col gap-4 px-4.75">
             <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
             <div className="grid gap-2 grid-cols-fill-60">
-                <ProjectsEntry onTemplateClick={onTemplateClick} />
-                {SAMPLES.map(template => (
-                    <ProjectTile
-                        key={template.id}
-                        template={template}
-                        onTemplateClick={onTemplateClick}
-                    />
+                <ProjectsEntry createProject={createProject} />
+                {SAMPLES.map(sample => (
+                    <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
                 ))}
             </div>
         </div>

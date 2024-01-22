@@ -71,11 +71,6 @@ const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the curren
 /** The placeholder row for the Trash category. */
 const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 
-/** The {@link RegExp} matching a directory name following the default naming convention. */
-const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
-/** The default prefix of an automatically generated directory. */
-const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
-
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
     {
         render: () => 'no:label',
@@ -327,10 +322,6 @@ export interface AssetsTableProps {
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
     doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
-    loadingProjectManagerDidFail: boolean
-    isListingRemoteDirectoryWhileOffline: boolean
-    isListingLocalDirectoryAndWillFail: boolean
-    isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** The table of project assets. */
@@ -340,9 +331,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { queuedAssetEvents: rawQueuedAssetEvents } = props
     const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
     const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
-    const { doCreateLabel, loadingProjectManagerDidFail } = props
-    const { isListingRemoteDirectoryWhileOffline, isListingLocalDirectoryAndWillFail } = props
-    const { isListingRemoteDirectoryAndWillFail } = props
+    const { doCreateLabel } = props
 
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -780,12 +769,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [backend, category])
 
     React.useEffect(() => {
-        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
-            setIsLoading(false)
-        }
-    }, [loadingProjectManagerDidFail, backend.type])
-
-    React.useEffect(() => {
         assetTreeRef.current = assetTree
         const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
         newNodeMap.set(assetTree.key, assetTree)
@@ -923,7 +906,89 @@ export default function AssetsTable(props: AssetsTableProps) {
         async signal => {
             switch (backend.type) {
                 case backendModule.BackendType.local: {
-                    if (!isListingLocalDirectoryAndWillFail) {
+                    const newAssets = await backend.listDirectory(
+                        {
+                            parentId: null,
+                            filterBy: CATEGORY_TO_FILTER_BY[category],
+                            recentProjects: category === Category.recent,
+                            labels: null,
+                        },
+                        null
+                    )
+                    if (!signal.aborted) {
+                        setIsLoading(false)
+                        overwriteNodes(newAssets)
+                    }
+                    break
+                }
+                case backendModule.BackendType.remote: {
+                    const queuedDirectoryListings = new Map<
+                        backendModule.AssetId,
+                        backendModule.AnyAsset[]
+                    >()
+                    const withChildren = (
+                        node: assetTreeNode.AssetTreeNode
+                    ): assetTreeNode.AssetTreeNode => {
+                        const queuedListing = queuedDirectoryListings.get(node.item.id)
+                        if (queuedListing == null || !backendModule.assetIsDirectory(node.item)) {
+                            return node
+                        } else {
+                            const directoryAsset = node.item
+                            const depth = node.depth + 1
+                            return node.with({
+                                children: queuedListing.map(asset =>
+                                    withChildren(
+                                        assetTreeNode.AssetTreeNode.fromAsset(
+                                            asset,
+                                            directoryAsset.id,
+                                            directoryAsset.id,
+                                            depth
+                                        )
+                                    )
+                                ),
+                            })
+                        }
+                    }
+                    for (const entry of nodeMapRef.current.values()) {
+                        if (backendModule.assetIsDirectory(entry.item) && entry.children != null) {
+                            const id = entry.item.id
+                            void backend
+                                .listDirectory(
+                                    {
+                                        parentId: id,
+                                        filterBy: CATEGORY_TO_FILTER_BY[category],
+                                        recentProjects: category === Category.recent,
+                                        labels: null,
+                                    },
+                                    entry.item.title
+                                )
+                                .then(
+                                    assets => {
+                                        setAssetTree(oldTree => {
+                                            let found = signal.aborted
+                                            const newTree = signal.aborted
+                                                ? oldTree
+                                                : oldTree.map(oldAsset => {
+                                                      if (oldAsset.key === entry.key) {
+                                                          found = true
+                                                          return withChildren(oldAsset)
+                                                      } else {
+                                                          return oldAsset
+                                                      }
+                                                  })
+                                            if (!found) {
+                                                queuedDirectoryListings.set(entry.key, assets)
+                                            }
+                                            return newTree
+                                        })
+                                    },
+                                    error => {
+                                        toastAndLog(null, error)
+                                    }
+                                )
+                        }
+                    }
+                    try {
                         const newAssets = await backend.listDirectory(
                             {
                                 parentId: null,
@@ -937,107 +1002,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                             setIsLoading(false)
                             overwriteNodes(newAssets)
                         }
-                    }
-                    break
-                }
-                case backendModule.BackendType.remote: {
-                    if (
-                        !isListingRemoteDirectoryAndWillFail &&
-                        !isListingRemoteDirectoryWhileOffline
-                    ) {
-                        const queuedDirectoryListings = new Map<
-                            backendModule.AssetId,
-                            backendModule.AnyAsset[]
-                        >()
-                        const withChildren = (
-                            node: assetTreeNode.AssetTreeNode
-                        ): assetTreeNode.AssetTreeNode => {
-                            const queuedListing = queuedDirectoryListings.get(node.item.id)
-                            if (
-                                queuedListing == null ||
-                                !backendModule.assetIsDirectory(node.item)
-                            ) {
-                                return node
-                            } else {
-                                const directoryAsset = node.item
-                                const depth = node.depth + 1
-                                return node.with({
-                                    children: queuedListing.map(asset =>
-                                        withChildren(
-                                            assetTreeNode.AssetTreeNode.fromAsset(
-                                                asset,
-                                                directoryAsset.id,
-                                                directoryAsset.id,
-                                                depth
-                                            )
-                                        )
-                                    ),
-                                })
-                            }
+                    } catch (error) {
+                        if (!signal.aborted) {
+                            setIsLoading(false)
+                            toastAndLog(null, error)
                         }
-                        for (const entry of nodeMapRef.current.values()) {
-                            if (
-                                backendModule.assetIsDirectory(entry.item) &&
-                                entry.children != null
-                            ) {
-                                const id = entry.item.id
-                                void backend
-                                    .listDirectory(
-                                        {
-                                            parentId: id,
-                                            filterBy: CATEGORY_TO_FILTER_BY[category],
-                                            recentProjects: category === Category.recent,
-                                            labels: null,
-                                        },
-                                        entry.item.title
-                                    )
-                                    .then(
-                                        assets => {
-                                            setAssetTree(oldTree => {
-                                                let found = signal.aborted
-                                                const newTree = signal.aborted
-                                                    ? oldTree
-                                                    : oldTree.map(oldAsset => {
-                                                          if (oldAsset.key === entry.key) {
-                                                              found = true
-                                                              return withChildren(oldAsset)
-                                                          } else {
-                                                              return oldAsset
-                                                          }
-                                                      })
-                                                if (!found) {
-                                                    queuedDirectoryListings.set(entry.key, assets)
-                                                }
-                                                return newTree
-                                            })
-                                        },
-                                        error => {
-                                            toastAndLog(null, error)
-                                        }
-                                    )
-                            }
-                        }
-                        try {
-                            const newAssets = await backend.listDirectory(
-                                {
-                                    parentId: null,
-                                    filterBy: CATEGORY_TO_FILTER_BY[category],
-                                    recentProjects: category === Category.recent,
-                                    labels: null,
-                                },
-                                null
-                            )
-                            if (!signal.aborted) {
-                                setIsLoading(false)
-                                overwriteNodes(newAssets)
-                            }
-                        } catch (error) {
-                            if (!signal.aborted) {
-                                toastAndLog(null, error)
-                            }
-                        }
-                    } else {
-                        setIsLoading(false)
                     }
                     break
                 }
@@ -1228,8 +1197,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     const getNewProjectName = React.useCallback(
-        (templateId: string | null, parentKey: backendModule.DirectoryId | null) => {
-            const prefix = `${templateId ?? 'New_Project'}_`
+        (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
+            const prefix = `${templateName ?? 'New Project'} `
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
             const siblings =
                 parentKey == null
@@ -1302,12 +1271,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const directoryIndices = siblings
                     .map(node => node.item)
                     .filter(backendModule.assetIsDirectory)
-                    .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
+                    .map(item => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-                const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
-                    Math.max(0, ...directoryIndices) + 1
-                }`
+                const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
                 const placeholderItem: backendModule.DirectoryAsset = {
                     type: backendModule.AssetType.directory,
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
@@ -1328,7 +1295,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case AssetListEventType.newProject: {
-                const projectName = getNewProjectName(event.templateId, event.parentId)
+                const projectName = getNewProjectName(event.templateName, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
                     type: backendModule.AssetType.project,
