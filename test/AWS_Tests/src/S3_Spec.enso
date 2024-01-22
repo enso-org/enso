@@ -177,6 +177,8 @@ spec =
             root.is_descendant_of hello_txt . should_be_false
 
         Test.specify "should be able to read file metadata" <|
+            root.exists . should_be_true
+            hello_txt.exists . should_be_true
             root.is_directory . should_be_true
             hello_txt.is_directory . should_be_false
             root.is_regular_file . should_be_false
@@ -190,5 +192,59 @@ spec =
             hello_txt.size.should_equal 13
             hello_txt.creation_time . should_be_a Date_Time
             hello_txt.last_modified_time . should_be_a Date_Time
+
+        writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
+        my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")
+        Test.specify "should be able to write and delete a new file" <|
+            new_file = my_writable_dir / "new_file1.txt"
+            "Hello".write new_file . should_succeed
+
+            new_file.exists . should_be_true
+            new_file.read . should_equal "Hello"
+            new_file.size.should_equal 5
+
+            my_writable_dir.list . should_contain new_file
+
+            new_file.delete . should_succeed
+
+            new_file.exists . should_be_false
+            my_writable_dir.list . should_not_contain new_file
+
+        Test.specify "should support .bak logic" pending="TODO" <|
+            Error.throw "TODO"
+
+        Test.specify "should be able to overwrite a file" <|
+            new_file = my_writable_dir / "new_file-overwrite.txt"
+            "Hello".write new_file . should_succeed
+            new_file.read . should_equal "Hello"
+
+            "World".write new_file . should_succeed
+            new_file.read . should_equal "World"
+
+        Test.specify "should not be able to append to a file" <|
+            new_file = my_writable_dir / "new_file-append.txt"
+            "Hello".write new_file . should_succeed
+
+            r = "World".write new_file on_existing_file=Existing_File_Behavior.Append
+            # TODO what exception?
+            r.should_fail_with Any
+            r.catch.to_display_text . should_contain "You can download the file, append locally and then upload it again."
+
+        Test.specify "should be able to write a raw stream" <|
+            new_file = my_writable_dir / "new_file-stream.txt"
+            new_file.with_output_stream [File_Access.Write] stream->
+                stream.write_bytes [1, 2, 3]
+
+            new_file.read_bytes.should_equal [1, 2, 3]
+
+        Test.specify "should be able to write a vector of bytes" <|
+            new_file = my_writable_dir / "new_file-bytes.txt"
+            new_file.write_bytes [4, 5, 6]
+            new_file.read_bytes.should_equal [4, 5, 6]
+
+        Test.specify "should fail to write if Output context is not enabled" <|
+            Context.Output.with_disabled <|
+                new_file = my_writable_dir / "new_file-ctx.txt"
+                "Hello".write new_file . should_fail_with Forbidden_Operation
 
 main = Test_Suite.run_main spec
