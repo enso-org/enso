@@ -24,8 +24,9 @@ import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
-import * as assetRow from '#/components/dashboard/AssetRow'
+import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
@@ -1885,7 +1886,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                 // Default states.
                                                 isSoleSelectedItem={false}
                                                 selected={false}
-                                                rowState={assetRow.INITIAL_ROW_STATE}
+                                                rowState={assetRowUtils.INITIAL_ROW_STATE}
                                                 // The drag placeholder cannot be interacted with.
                                                 setSelected={() => {}}
                                                 setItem={() => {}}

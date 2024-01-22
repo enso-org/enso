@@ -17,6 +17,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
@@ -45,16 +46,6 @@ const DRAG_EXPAND_DELAY_MS = 500
 
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
-
-/** The default {@link assetsTable.AssetRowState} associated with a {@link AssetRow}. */
-export const INITIAL_ROW_STATE: assetsTable.AssetRowState = Object.freeze({
-    setVisibility: () => {
-        // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
-    },
-    isEditingName: false,
-    temporarilyAddedLabels: set.EMPTY,
-    temporarilyRemovedLabels: set.EMPTY,
-})
 
 // ================
 // === AssetRow ===
@@ -116,7 +107,7 @@ export default function AssetRow(props: AssetRowProps) {
     const asset = item.item
     const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-        object.merge(INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
+        object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
     )
     const key = AssetTreeNode.getKey(item)
     const isCloud = backend.type === backendModule.BackendType.remote
