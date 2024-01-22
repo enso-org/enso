@@ -471,9 +471,17 @@ export async function mockApi({ page }: MockParams) {
                     const body: Body = await request.postDataJSON()
                     // This could be an id for an arbitrary asset, but pretend it's a
                     // `DirectoryId` to make TypeScript happy.
-                    const asset = assetMap.get(backend.DirectoryId(assetId))
-                    if (asset != null) {
-                        asset.labels = body.labels
+                    const ids = new Set<backend.AssetId>([backend.DirectoryId(assetId)])
+                    for (const [id, asset] of assetMap) {
+                        if (ids.has(asset.parentId)) {
+                            ids.add(id)
+                        }
+                    }
+                    for (const id of ids) {
+                        const asset = assetMap.get(id)
+                        if (asset != null) {
+                            asset.labels = body.labels
+                        }
                     }
                     const json: Response = {
                         tags: body.labels.flatMap(value => {
