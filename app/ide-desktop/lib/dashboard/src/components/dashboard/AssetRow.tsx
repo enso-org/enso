@@ -75,7 +75,7 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-    const { keyProp: key, item: rawItem, initialRowState, hidden, selected } = props
+    const { keyProp: key, item: rawItem, initialRowState, hidden: hiddenRaw, selected } = props
     const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
     const { tableRowRef, columns, onClick } = props
     const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
@@ -94,11 +94,17 @@ export default function AssetRow(props: AssetRowProps) {
         object.merge(initialRowState, { setVisibility: setInsertionVisibility })
     )
     const isCloud = backend.type === backendModule.BackendType.remote
-    const visibility = visibilities.get(key) ?? insertionVisibility
+    const outerVisibility = visibilities.get(key)
+    const visibility =
+        outerVisibility == null || outerVisibility === Visibility.visible
+            ? insertionVisibility
+            : outerVisibility
+    const hidden = hiddenRaw || visibility === Visibility.hidden
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
     React.useEffect(() => {
         // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
         // re - rendering the parent.
@@ -535,7 +541,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             return (
                 <>
-                    {!hidden && insertionVisibility !== Visibility.hidden && (
+                    {!hidden && (
                         <tr
                             ref={tableRowRef}
                             tabIndex={-1}
@@ -570,6 +576,13 @@ export default function AssetRow(props: AssetRowProps) {
                             className={`h-8 transition duration-300 ease-in-out ${
                                 visibilityModule.CLASS_NAME[visibility]
                             } ${isDraggedOver || selected ? 'selected' : ''}`}
+                            onDragStart={event => {
+                                if (rowState.isEditingName || !isCloud) {
+                                    event.preventDefault()
+                                } else {
+                                    props.onDragStart?.(event)
+                                }
+                            }}
                             onDragEnter={event => {
                                 if (dragOverTimeoutHandle.current != null) {
                                     window.clearTimeout(dragOverTimeoutHandle.current)
