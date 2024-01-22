@@ -1271,7 +1271,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const directoryIndices = siblings
                     .map(node => node.item)
                     .filter(backendModule.assetIsDirectory)
-                    .map(item => /^New_Folder_(?<directoryIndex>\d+)$/.exec(item.title))
+                    .map(item => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
                 const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
