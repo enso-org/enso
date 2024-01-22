@@ -86,6 +86,6 @@ abstract class Handler {
   def cmdFactory: CommandFactory
 }
 
-class HandlerImpl extends Handler {
+private class HandlerImpl extends Handler {
   override def cmdFactory: CommandFactory = CommandFactoryImpl
 }
