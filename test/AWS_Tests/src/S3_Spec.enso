@@ -13,6 +13,7 @@ from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retrie
 
 spec =
     bucket_name = "enso-data-samples"
+    writable_bucket_name = "enso-ci-s3-test-stage"
     not_a_bucket_name = "not_a_bucket_enso"
     object_name = "Bus_Stop_Benches.geojson"
     folder_name = "examples/"
@@ -143,5 +144,52 @@ spec =
 
         Test.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+    Test.group "S3_File" pending=pending <|
+        root = S3_File.new "s3://"+bucket_name+"/"
+        hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
+        Test.specify "should be able to list the bucket's root directory" <|
+            r = root.list
+            r.should_succeed
+
+            r.map .name . should_contain object_name
+
+        Test.specify "should be able to read a file" <|
+            f = root / "locations.json"
+            r = f.read
+            r.should_be_a Vector
+            r.at 0 . get "name" . should_equal "Green St Green"
+
+        Test.specify "should be able to read a file as bytes or stream" <|
+            bytes = hello_txt.read_bytes
+            bytes.should_equal "Hello WORLD!".utf_8
+
+            bytes2 = hello_txt.with_input_stream [File_Access.Read] stream->
+                stream.read_all_bytes
+
+            bytes2.should_equal bytes
+
+        Test.specify "should support path traversal" <|
+            hello_txt.parent.parent.parent . should_equal root
+            hello_txt.parent . should_equal (root / "examples" / "folder 2")
+
+            hello_txt.is_child_of root . should_be_true
+
+        Test.specify "should be able to read file metadata" <|
+            root.is_directory . should_be_true
+            hello_txt.is_directory . should_be_false
+            root.is_regular_file . should_be_false
+            hello_txt.is_regular_file . should_be_true
+
+            root.extension . should_fail_with S3_Error
+            hello_txt.extension . should_equal ".txt"
+
+            root.size.should_fail_with S3_Error
+
+            hello_txt.size.should_equal 13
+            hello_txt.creation_time . should_be_a Date_Time
+            hello_txt.last_modified_time . should_be_a Date_Time
+
+
 
 main = Test_Suite.run_main spec

@@ -129,8 +129,9 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
    Splits a S3 URI into bucket and key.
 parse_uri : Text -> Pair Text Text | Nothing
 parse_uri uri =
-    if uri.starts_with "s3://" . not then Nothing else
-        no_prefix = uri.drop 5
+    prefix = "s3://"
+    if uri.starts_with prefix . not then Nothing else
+        no_prefix = uri.drop prefix.length
         index_of = no_prefix.index_of "/"
         if index_of == 0 then Nothing else
             if index_of.is_nothing then Pair.new no_prefix "" else

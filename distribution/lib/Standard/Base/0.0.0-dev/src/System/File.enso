@@ -749,7 +749,7 @@ type File
                     matcher.matches (Path.of pathStr)
 
     ## GROUP Metadata
-       Checks if `self` is a child path of `other`.
+       Checks if `self` is a descendant of `other`.
     is_child_of : File -> Boolean
     is_child_of self other = self.starts_with other
 
