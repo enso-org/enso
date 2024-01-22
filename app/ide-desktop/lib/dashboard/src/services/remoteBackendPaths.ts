@@ -41,57 +41,57 @@ export const LIST_TAGS_PATH = 'tags'
 export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {
-    return `assets/${assetId}`
+  return `assets/${assetId}`
 }
 /** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
 export function deleteAssetPath(assetId: backend.AssetId) {
-    return `assets/${assetId}`
+  return `assets/${assetId}`
 }
 /** Relative HTTP path to the "copy asset" endpoint of the Cloud backend API. */
 export function copyAssetPath(assetId: backend.AssetId) {
-    return `assets/${assetId}/copy`
+  return `assets/${assetId}/copy`
 }
 /** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
 export function updateDirectoryPath(directoryId: backend.DirectoryId) {
-    return `directories/${directoryId}`
+  return `directories/${directoryId}`
 }
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
 export function closeProjectPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}/close`
+  return `projects/${projectId}/close`
 }
 /** Relative HTTP path to the "get project details" endpoint of the Cloud backend API. */
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}`
+  return `projects/${projectId}`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}/open`
+  return `projects/${projectId}/open`
 }
 /** Relative HTTP path to the "project update" endpoint of the Cloud backend API. */
 export function projectUpdatePath(projectId: backend.ProjectId) {
-    return `projects/${projectId}`
+  return `projects/${projectId}`
 }
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
-    return `files/${fileId}`
+  return `files/${fileId}`
 }
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
 export function checkResourcesPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}/resources`
+  return `projects/${projectId}/resources`
 }
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
-    return `s3cr3tz/${secretId}`
+  return `s3cr3tz/${secretId}`
 }
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
-    return `secrets/${secretId}`
+  return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 export function associateTagPath(assetId: backend.AssetId) {
-    return `assets/${assetId}/labels`
+  return `assets/${assetId}/labels`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 export function deleteTagPath(tagId: backend.TagId) {
-    return `tags/${tagId}`
+  return `tags/${tagId}`
 }

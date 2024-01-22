@@ -10,16 +10,16 @@ import ShortcutManager from '#/utilities/ShortcutManager'
 
 /** State contained in a `ShortcutsContext`. */
 export interface ShortcutManagerContextType {
-    shortcutManager: ShortcutManager
+  shortcutManager: ShortcutManager
 }
 
 const ShortcutManagerContext = React.createContext<ShortcutManagerContextType>({
-    shortcutManager: ShortcutManager.createWithDefaults(),
+  shortcutManager: ShortcutManager.createWithDefaults(),
 })
 
 /** Props for a {@link ShortcutsProvider}. */
 export interface ShortcutsProviderProps extends React.PropsWithChildren<object> {
-    shortcutManager?: ShortcutManager
+  shortcutManager?: ShortcutManager
 }
 
 // ===============================
@@ -28,27 +28,27 @@ export interface ShortcutsProviderProps extends React.PropsWithChildren<object> 
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function ShortcutsProvider(props: ShortcutsProviderProps) {
-    const { shortcutManager: rawShortcutManager, children } = props
-    const [shortcutManager, setShortcutManager] = React.useState(
-        () => rawShortcutManager ?? ShortcutManager.createWithDefaults()
-    )
+  const { shortcutManager: rawShortcutManager, children } = props
+  const [shortcutManager, setShortcutManager] = React.useState(
+    () => rawShortcutManager ?? ShortcutManager.createWithDefaults()
+  )
 
-    React.useEffect(() => {
-        if (rawShortcutManager != null) {
-            setShortcutManager(rawShortcutManager)
-        } else {
-            setShortcutManager(ShortcutManager.createWithDefaults())
-        }
-    }, [rawShortcutManager])
+  React.useEffect(() => {
+    if (rawShortcutManager != null) {
+      setShortcutManager(rawShortcutManager)
+    } else {
+      setShortcutManager(ShortcutManager.createWithDefaults())
+    }
+  }, [rawShortcutManager])
 
-    return (
-        <ShortcutManagerContext.Provider value={{ shortcutManager }}>
-            {children}
-        </ShortcutManagerContext.Provider>
-    )
+  return (
+    <ShortcutManagerContext.Provider value={{ shortcutManager }}>
+      {children}
+    </ShortcutManagerContext.Provider>
+  )
 }
 
 /** Exposes a property to get the shortcut registry. */
 export function useShortcutManager() {
-    return React.useContext(ShortcutManagerContext)
+  return React.useContext(ShortcutManagerContext)
 }

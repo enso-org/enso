@@ -16,21 +16,21 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
  * the correct type. A value of type `T` must be provided as the first parameter to ensure that this
  * has been done. */
 export function useSetAsset<T extends backend.AnyAsset>(
-    _value: T,
-    setNode: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  _value: T,
+  setNode: React.Dispatch<React.SetStateAction<AssetTreeNode>>
 ) {
-    return React.useCallback(
-        (valueOrUpdater: React.SetStateAction<T>) => {
-            setNode(oldNode => {
-                const item =
-                    typeof valueOrUpdater === 'function'
-                        ? // This is SAFE, because it is a mistake for an item to change type.
-                          // eslint-disable-next-line no-restricted-syntax
-                          valueOrUpdater(oldNode.item as T)
-                        : valueOrUpdater
-                return oldNode.with({ item })
-            })
-        },
-        [/* should never change */ setNode]
-    )
+  return React.useCallback(
+    (valueOrUpdater: React.SetStateAction<T>) => {
+      setNode(oldNode => {
+        const item =
+          typeof valueOrUpdater === 'function'
+            ? // This is SAFE, because it is a mistake for an item to change type.
+              // eslint-disable-next-line no-restricted-syntax
+              valueOrUpdater(oldNode.item as T)
+            : valueOrUpdater
+        return oldNode.with({ item })
+      })
+    },
+    [/* should never change */ setNode]
+  )
 }
