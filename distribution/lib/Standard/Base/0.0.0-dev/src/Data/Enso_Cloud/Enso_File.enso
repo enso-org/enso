@@ -111,11 +111,11 @@ type Enso_File
     path self = Unimplemented.throw "Enso_File.path is not implemented"
 
     ## GROUP Metadata
-       Checks if `self` is a child path of `other`.
-    is_child_of : Enso_File -> Boolean
-    is_child_of self (other : Enso_File) =
+       Checks if `self` is a descendant of `other`.
+    is_descendant_of : Enso_File -> Boolean
+    is_descendant_of self (other : Enso_File) =
         _ = other
-        Unimplemented.throw "Enso_File.is_child_of is not implemented"
+        Unimplemented.throw "Enso_File.is_descendant_of is not implemented"
 
     ## PRIVATE
        ADVANCED

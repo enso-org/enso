@@ -173,7 +173,7 @@ spec =
             hello_txt.parent.parent.parent . should_equal root
             hello_txt.parent . should_equal (root / "examples" / "folder 2")
 
-            hello_txt.is_child_of root . should_be_true
+            hello_txt.is_descendant_of root . should_be_true
 
         Test.specify "should be able to read file metadata" <|
             root.is_directory . should_be_true
