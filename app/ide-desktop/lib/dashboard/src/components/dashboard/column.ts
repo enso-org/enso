@@ -17,28 +17,28 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
-    keyProp: backendModule.AssetId
-    item: assetTreeNode.AssetTreeNode
-    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
-    selected: boolean
-    setSelected: (selected: boolean) => void
-    isSoleSelectedItem: boolean
-    state: assetsTable.AssetsTableState
-    rowState: assetsTable.AssetRowState
-    setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+  keyProp: backendModule.AssetId
+  item: assetTreeNode.AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  selected: boolean
+  setSelected: (selected: boolean) => void
+  isSoleSelectedItem: boolean
+  state: assetsTable.AssetsTableState
+  rowState: assetsTable.AssetRowState
+  setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for a {@link AssetColumn}. */
 export interface AssetColumnHeadingProps {
-    state: assetsTable.AssetsTableState
+  state: assetsTable.AssetsTableState
 }
 
 /** Metadata describing how to render a column of the table. */
 export interface AssetColumn {
-    id: string
-    className?: string
-    heading: (props: AssetColumnHeadingProps) => JSX.Element
-    render: (props: AssetColumnProps) => JSX.Element
+  id: string
+  className?: string
+  heading: (props: AssetColumnHeadingProps) => JSX.Element
+  render: (props: AssetColumnProps) => JSX.Element
 }
 
 // =======================
@@ -47,12 +47,12 @@ export interface AssetColumn {
 
 /** React components for every column. */
 export const COLUMN_RENDERER: Record<columnUtils.Column, (props: AssetColumnProps) => JSX.Element> =
-    {
-        [columnUtils.Column.name]: NameColumn,
-        [columnUtils.Column.modified]: LastModifiedColumn,
-        [columnUtils.Column.sharedWith]: SharedWithColumn,
-        [columnUtils.Column.labels]: LabelsColumn,
-        [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
-        [columnUtils.Column.accessedData]: PlaceholderColumn,
-        [columnUtils.Column.docs]: DocsColumn,
-    }
+  {
+    [columnUtils.Column.name]: NameColumn,
+    [columnUtils.Column.modified]: LastModifiedColumn,
+    [columnUtils.Column.sharedWith]: SharedWithColumn,
+    [columnUtils.Column.labels]: LabelsColumn,
+    [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
+    [columnUtils.Column.accessedData]: PlaceholderColumn,
+    [columnUtils.Column.docs]: DocsColumn,
+  }

@@ -10,7 +10,7 @@ import * as shortcutsModule from '#/utilities/shortcuts'
 
 /** State contained in a `ShortcutsContext`. */
 export interface ShortcutsContextType {
-    shortcuts: shortcutsModule.ShortcutRegistry
+  shortcuts: shortcutsModule.ShortcutRegistry
 }
 
 // @ts-expect-error The default value will never be exposed as using this without a `Provider`
@@ -19,7 +19,7 @@ const ShortcutsContext = React.createContext<ShortcutsContextType>(null)
 
 /** Props for a {@link ShortcutsProvider}. */
 export interface ShortcutsProviderProps extends React.PropsWithChildren<object> {
-    shortcuts?: shortcutsModule.ShortcutRegistry
+  shortcuts?: shortcutsModule.ShortcutRegistry
 }
 
 // =========================
@@ -28,15 +28,15 @@ export interface ShortcutsProviderProps extends React.PropsWithChildren<object> 
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function ShortcutsProvider(props: ShortcutsProviderProps) {
-    const { shortcuts: rawShortcuts, children } = props
-    const [shortcuts] = React.useState(
-        () => rawShortcuts ?? shortcutsModule.ShortcutRegistry.createWithDefaults()
-    )
+  const { shortcuts: rawShortcuts, children } = props
+  const [shortcuts] = React.useState(
+    () => rawShortcuts ?? shortcutsModule.ShortcutRegistry.createWithDefaults()
+  )
 
-    return <ShortcutsContext.Provider value={{ shortcuts }}>{children}</ShortcutsContext.Provider>
+  return <ShortcutsContext.Provider value={{ shortcuts }}>{children}</ShortcutsContext.Provider>
 }
 
 /** Exposes a property to get the shortcut registry. */
 export function useShortcuts() {
-    return React.useContext(ShortcutsContext)
+  return React.useContext(ShortcutsContext)
 }
