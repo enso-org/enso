@@ -7,6 +7,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as string from '#/utilities/string'
 
 import AssetSummary from '#/components/dashboard/AssetSummary'
@@ -101,10 +102,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         let title = conflict.file.name
         switch (conflict.new.type) {
             case backendModule.AssetType.file: {
+                const { basename, extension } = fileInfo.basenameAndExtension(title)
                 let i = 1
                 while (true) {
                     i += 1
-                    const candidateTitle = `${title} ${i}`
+                    const candidateTitle = `${basename} (${i}).${extension}`
                     if (!siblingFileNames.current.has(candidateTitle)) {
                         if (commit) {
                             siblingFileNames.current.add(candidateTitle)
@@ -121,7 +123,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 let i = 1
                 while (true) {
                     i += 1
-                    const candidateTitle = `${title} ${i}`
+                    const candidateTitle = `${title} (${i})`
                     if (!siblingProjectNames.current.has(candidateTitle)) {
                         if (commit) {
                             siblingProjectNames.current.add(candidateTitle)

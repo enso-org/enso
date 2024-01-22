@@ -875,7 +875,7 @@ export function stripProjectExtension(name: string) {
     return name.replace(/[.](?:tar[.]gz|zip|enso-project)$/, '')
 }
 
-/** Return both the extension and name of the project file name (if any).
+/** Return both the name and extension of the project file name (if any).
  * Otherwise, returns the entire name as the basename. */
 export function extractProjectExtension(name: string) {
     const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
