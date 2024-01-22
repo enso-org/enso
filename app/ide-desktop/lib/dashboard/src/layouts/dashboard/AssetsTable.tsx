@@ -1908,6 +1908,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 const ids = oldSelectedKeys.has(key)
                                     ? oldSelectedKeys
                                     : new Set([key])
+                                // Expand ids to include ids of children as well.
+                                for (const node of assetTree.preorderTraversal()) {
+                                    if (ids.has(node.key) && node.children != null) {
+                                        for (const child of node.children) {
+                                            ids.add(child.key)
+                                        }
+                                    }
+                                }
                                 let labelsPresent = 0
                                 for (const selectedKey of ids) {
                                     const labels = nodeMapRef.current.get(selectedKey)?.item.labels
