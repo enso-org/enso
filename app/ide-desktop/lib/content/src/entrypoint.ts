@@ -151,10 +151,10 @@ export interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
-    projectManagerUrl: string | null
-    isInAuthenticationFlow: boolean
-    shouldUseAuthentication: boolean
-    initialProjectName: string | null
+    readonly projectManagerUrl: string | null
+    readonly isInAuthenticationFlow: boolean
+    readonly shouldUseAuthentication: boolean
+    readonly initialProjectName: string | null
 }
 
 /** Contains the entrypoint into the IDE. */

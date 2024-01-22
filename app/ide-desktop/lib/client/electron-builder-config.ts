@@ -32,12 +32,12 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 export interface Arguments {
     // The types come from a third-party API and cannot be changed.
     // eslint-disable-next-line no-restricted-syntax
-    target?: string | undefined
-    iconsDist: string
-    guiDist: string
-    ideDist: string
-    projectManagerDist: string
-    platform: electronBuilder.Platform
+    readonly target?: string | undefined
+    readonly iconsDist: string
+    readonly guiDist: string
+    readonly ideDist: string
+    readonly projectManagerDist: string
+    readonly platform: electronBuilder.Platform
 }
 
 //======================================
