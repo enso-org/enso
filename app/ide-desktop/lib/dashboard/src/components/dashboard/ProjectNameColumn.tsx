@@ -51,7 +51,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`ProjectNameColumn` can only display project assets.')
+        throw new Error('`ProjectNameColumn` can only display projects.')
     }
     const setAsset = setAssetHooks.useSetAsset(asset, setItem)
     const ownPermission =
@@ -302,6 +302,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             <EditableSpan
                 data-testid="asset-row-name"
                 editable={rowState.isEditingName}
+                className={`bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName
+                        ? 'cursor-text'
+                        : canExecute && !isOtherUserUsingProject
+                        ? 'cursor-pointer'
+                        : ''
+                }`}
                 checkSubmittable={newTitle =>
                     (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
                         child =>
@@ -323,13 +330,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow leading-170 h-6 py-px ${
-                    rowState.isEditingName
-                        ? 'cursor-text'
-                        : canExecute && !isOtherUserUsingProject
-                        ? 'cursor-pointer'
-                        : ''
-                }`}
             >
                 {asset.title}
             </EditableSpan>

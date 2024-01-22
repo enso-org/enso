@@ -36,14 +36,14 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
     const { item, setItem, selected, state, rowState, setRowState } = props
-    const { assetEvents, dispatchAssetListEvent } = state
+    const { nodeMap, assetEvents, dispatchAssetListEvent } = state
     const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.file) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`FileNameColumn` can only display file assets.')
+        throw new Error('`FileNameColumn` can only display files.')
     }
     const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
@@ -136,6 +136,18 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             <EditableSpan
                 data-testid="asset-row-name"
                 editable={false}
+                className="bg-transparent grow leading-170 h-6 py-px"
+                checkSubmittable={newTitle =>
+                    (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are not directories,
+                            backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
@@ -151,7 +163,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 onCancel={() => {
                     setRowState(object.merger({ isEditingName: false }))
                 }}
-                className="bg-transparent grow leading-170 h-6 py-px"
             >
                 {asset.title}
             </EditableSpan>

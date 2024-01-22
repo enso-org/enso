@@ -12,11 +12,12 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 // === EditableSpan ===
 // ====================
 
-/** Props of an {@link EditableSpan} that are passed through to the base element. */
-type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.IntrinsicElements['span']
-
 /** Props for an {@link EditableSpan}. */
-export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'onSubmit'> {
+export interface EditableSpanProps {
+    // This matches the capitalization of `data-` attributes in React.
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'data-testid'?: string
+    className?: string
     editable?: boolean
     checkSubmittable?: (value: string) => boolean
     onSubmit: (value: string) => void
@@ -28,16 +29,8 @@ export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'o
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 export default function EditableSpan(props: EditableSpanProps) {
-    const {
-        editable = false,
-        checkSubmittable,
-        children,
-        onSubmit,
-        onCancel,
-        inputPattern,
-        inputTitle,
-        ...passthrough
-    } = props
+    const { 'data-testid': dataTestId, className, editable = false, children } = props
+    const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
     const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
     const [isSubmittable, setIsSubmittable] = React.useState(true)
     const inputRef = React.useRef<HTMLInputElement>(null)
@@ -81,19 +74,19 @@ export default function EditableSpan(props: EditableSpanProps) {
                 }}
             >
                 <input
+                    data-testid={dataTestId}
+                    className={className}
                     ref={inputRef}
                     autoFocus
                     type="text"
                     size={1}
                     defaultValue={children}
                     onBlur={event => {
-                        passthrough.onBlur?.(event)
                         if (!cancelled.current) {
                             event.currentTarget.form?.requestSubmit()
                         }
                     }}
                     onKeyDown={event => {
-                        passthrough.onKeyDown?.(event)
                         if (
                             !event.isPropagationStopped() &&
                             ((event.ctrlKey &&
@@ -120,7 +113,6 @@ export default function EditableSpan(props: EditableSpanProps) {
                                   setIsSubmittable(checkSubmittable(event.currentTarget.value))
                               },
                           })}
-                    {...passthrough}
                 />
                 {isSubmittable && (
                     <button type="submit" className="mx-0.5">
@@ -130,9 +122,15 @@ export default function EditableSpan(props: EditableSpanProps) {
                 <button
                     type="button"
                     className="mx-0.5"
+                    onMouseDown={() => {
+                        cancelled.current = true
+                    }}
                     onClick={event => {
                         event.stopPropagation()
                         onCancel()
+                        window.setTimeout(() => {
+                            cancelled.current = false
+                        })
                     }}
                 >
                     <img src={CrossIcon} alt="Cancel Edit" />
@@ -140,6 +138,10 @@ export default function EditableSpan(props: EditableSpanProps) {
             </form>
         )
     } else {
-        return <span {...passthrough}>{children}</span>
+        return (
+            <span data-testid={dataTestId} className={className}>
+                {children}
+            </span>
+        )
     }
 }

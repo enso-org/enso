@@ -47,7 +47,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`DirectoryNameColumn` can only display directory assets.')
+        throw new Error('`DirectoryNameColumn` can only display folders.')
     }
     const setAsset = setAssetHooks.useSetAsset(asset, setItem)
     const isCloud = backend.type === backendModule.BackendType.remote
@@ -161,6 +161,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             <EditableSpan
                 data-testid="asset-row-name"
                 editable={rowState.isEditingName}
+                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
                 checkSubmittable={newTitle =>
                     (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
                         child =>
@@ -176,9 +179,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 onCancel={() => {
                     setRowState(object.merger({ isEditingName: false }))
                 }}
-                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
-                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
-                }`}
             >
                 {asset.title}
             </EditableSpan>

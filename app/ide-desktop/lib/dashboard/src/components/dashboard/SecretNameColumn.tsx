@@ -17,7 +17,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
 
 import * as backendModule from '#/services/Backend'
 
@@ -50,13 +49,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         throw new Error('`SecretNameColumn` can only display secrets.')
     }
     const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-
-    // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-    // context menu entry should be re-added.
-    // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-    const doRename = async () => {
-        await Promise.resolve(null)
-    }
 
     eventHooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
@@ -152,28 +144,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             }}
         >
             <img src={ConnectorIcon} className="m-1" />
-            <EditableSpan
+            {/* Secrets cannot be renamed. */}
+            <span
                 data-testid="asset-row-name"
-                editable={false}
-                onSubmit={async newTitle => {
-                    setRowState(object.merger({ isEditingName: false }))
-                    if (newTitle !== asset.title) {
-                        const oldTitle = asset.title
-                        setAsset(object.merger({ title: newTitle }))
-                        try {
-                            await doRename()
-                        } catch {
-                            setAsset(object.merger({ title: oldTitle }))
-                        }
-                    }
-                }}
-                onCancel={() => {
-                    setRowState(object.merger({ isEditingName: false }))
-                }}
                 className="bg-transparent grow leading-170 h-6 py-px"
             >
                 {asset.title}
-            </EditableSpan>
+            </span>
         </div>
     )
 }
