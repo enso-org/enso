@@ -592,7 +592,7 @@ table_spec =
             Upload_Spec.spec connection_builder "[PostgreSQL] "
 
             cloud_setup = Cloud_Tests_Setup.prepare
-            cloud_setup.with_prepared_environment <| Test.group "[PostgreSQL] Secrets in connection settings" <|
+            cloud_setup.with_prepared_environment <| Test.group "[PostgreSQL] Secrets in connection settings" pending=cloud_setup.pending <|
                 Test.specify "should allow to set up a connection with the password passed as a secret" <|
                     with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
                         my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)

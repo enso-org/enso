@@ -13,20 +13,24 @@ import * as toast from 'react-toastify'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
-import * as debugHooks from '#/hooks/debugHooks'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendModule from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
+
 import * as errorModule from '#/utilities/error'
 import * as http from '#/utilities/http'
 import * as localStorageModule from '#/utilities/localStorage'
+
+import * as cognitoModule from '#/authentication/cognito'
+import type * as authServiceModule from '#/authentication/service'
 
 // =================
 // === Constants ===
@@ -254,7 +258,7 @@ export default function AuthProvider(props: AuthProviderProps) {
    * When invoked, retrieves the access token (if available) from the storage method chosen when
    * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
    * If the token has expired, automatically refreshes the token and returns the new token. */
-  debugHooks.useDebugEffect(() => {
+  React.useEffect(() => {
     const fetchSession = async () => {
       if (!navigator.onLine || forceOfflineMode) {
         goOfflineInternal()
