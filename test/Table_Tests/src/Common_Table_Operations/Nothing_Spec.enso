@@ -142,6 +142,9 @@ spec setup =
             Test.specify "Correctly handle Nothing in: Nothing.is_in Vector with Nothings (returning Nothing)" <|
                 table.at "n" . is_in (table.at "x" . to_vector) . to_vector . should_equal [Nothing, Nothing]
 
+            Test.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in empty Vector (returning False)" <|
+                table.at "x" . is_in [] . to_vector . should_equal [False, False]
+
     Test.group prefix+"Boolean is_in" <|
         make_containing_values had_null had_true had_false =
             null_maybe = if had_null then [Nothing] else []
