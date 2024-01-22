@@ -6,7 +6,7 @@ polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
 type Data
-    Value ~enso_bin:File ~empty_world:File ~hello_world:File
+    Value ~enso_bin:File ~empty_world:File ~hello_world:File ~base_tests:File ~table_tests:File
 
     bench_empty self =
         self.startup [ "--run", self.empty_world.to_text ]
@@ -14,7 +14,13 @@ type Data
     bench_hello self =
         self.startup [ "--run", self.hello_world.to_text ]
 
-    startup self  args =
+    bench_base_tests self =
+        self.startup expected_output="Exiting" [ "--run", self.base_tests.to_text, "exit" ]
+
+    bench_table_tests self =
+        self.startup expected_output="Exiting" [ "--run", self.table_tests.to_text, "exit" ]
+
+    startup self args expected_output="Hello World" =
         exe = self.enso_bin
         result = Process.run exe.path args
         case result.exit_code of
@@ -24,25 +30,39 @@ type Data
                 IO.println result.stderr
                 Panic.throw "Exit code: "+code.to_text
             Exit_Code.Success ->
-                if result.stdout.contains "Hello World" then Nothing else
-                    msg = "Execution should contain 'Hello World', but:\n====\n" + result.stdout + '\n' + result.stderr + "\n===="
+                if result.stdout.contains expected_output then Nothing else
+                    msg = "Execution should contain '"+expected_output+"', but:\n====\n" + result.stdout + '\n' + result.stderr + "\n===="
                     IO.println msg
                     Panic.throw msg
 
 collect_benches = Bench.build builder->
-    options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
+    hello_options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
+    long_options = Bench.options . set_warmup (Bench.phase_conf 2 15) . set_measure (Bench.phase_conf 2 15)
 
 
     data =
-        Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso")
+        e = find_sibling "Empty_World.enso"
+        h = find_sibling "Hello_World.enso"
+        bt = find_sibling_project "Tests"
+        tt = find_sibling_project "Table_Tests"
+        Data.Value enso_bin e h bt tt
 
-    builder.group "Startup" options group_builder->
+    builder.group "Startup" hello_options group_builder->
         group_builder.specify "empty_startup" data.bench_empty
         group_builder.specify "hello_world_startup" data.bench_hello
+        group_builder.specify "base_tests_startup" data.bench_base_tests
+
+    builder.group "Long_Startup" long_options group_builder->
+        group_builder.specify "table_tests_startup" data.bench_table_tests
 
 find_sibling name =
     f = enso_project.root / "src" / "Startup" / name
     if f.is_regular_file.not then Panic.throw "Cannot find "+f.to_text
+    f
+
+find_sibling_project name =
+    f = enso_project.root / ".." / name
+    if f.is_directory.not then Panic.throw "Cannot find "+f.to_text
     f
 
 enso_bin =

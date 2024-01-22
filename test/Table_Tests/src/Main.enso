@@ -1,4 +1,5 @@
 from Standard.Base import all hiding IO
+import Standard.Base.IO as Std_Out
 
 from Standard.Test import Test_Suite
 
@@ -8,7 +9,7 @@ import project.Helpers
 import project.In_Memory
 import project.IO
 
-main = Test_Suite.run_main <|
+main action=Nothing = if action == "exit" then Std_Out.println "Exiting" else Test_Suite.run_main <|
     In_Memory.Main.spec
     IO.Main.spec
     Formatting.Main.spec

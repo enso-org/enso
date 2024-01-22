@@ -88,7 +88,7 @@ import project.System.Temporary_File_Spec
 
 import project.Random_Spec
 
-main = Test_Suite.run_main <|
+main action=Nothing = if action == "exit" then IO.println "Exiting" else Test_Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Array_Proxy_Spec.spec
