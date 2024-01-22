@@ -2056,8 +2056,26 @@ type Column
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self (index : Integer) =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## GROUP Standard.Base.Selections
+       ICON select_row
+       Returns the value contained in this column at the given index.
+
+       Arguments:
+       - index: The index in the column from which to get the value.
+       - default: The value if the index is out of range.
+
+       > Example
+         Get the first element from a column.
+
+             import Standard.Examples
+
+             example_at = Examples.integer_column.get 0 -1
+    get : Integer -> (Any | Nothing)
+    get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
+        if valid_index.not then default else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
