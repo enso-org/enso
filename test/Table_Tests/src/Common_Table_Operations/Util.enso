@@ -3,13 +3,22 @@ from Standard.Table import Table
 
 from Standard.Test_New import all
 
-import project.In_Memory.Common_Spec as In_Memory_Table_Spec
 import project.Common_Table_Operations.Main.Test_Setup
 import project.Common_Table_Operations.Main.Test_Selection
 import project.Common_Table_Operations.Aggregate_Spec
 
 expect_column_names names table =
     table.columns . map .name . should_equal names frames_to_skip=2
+
+type Dummy_Connection
+    Value
+
+    close self = Nothing
+
+    drop_table self table =
+        _ = table
+        Nothing
+
 
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
@@ -34,7 +43,8 @@ run_default_backend add_specs =
         _ = connection
         Table.new cols
 
-    create_connection_func _ = Nothing
+    create_connection_func _ =
+        Dummy_Connection.Value
 
     setup = Test_Setup.Config "[In-Memory] " table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func
     suite = Test.build suite_builder->
