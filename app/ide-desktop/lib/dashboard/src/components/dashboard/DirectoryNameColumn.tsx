@@ -4,21 +4,13 @@ import * as React from 'react'
 import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import * as eventHooks from '#/hooks/eventHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
-
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
-
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -26,6 +18,10 @@ import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as string from '#/utilities/string'
 import Visibility from '#/utilities/visibility'
+
+import type * as column from '#/components/dashboard/column'
+import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
 
 // =====================
 // === DirectoryName ===

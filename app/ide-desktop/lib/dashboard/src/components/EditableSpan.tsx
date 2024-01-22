@@ -5,7 +5,6 @@ import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 // ====================

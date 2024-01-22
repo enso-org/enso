@@ -2,20 +2,11 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as eventHooks from '#/hooks/eventHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-
+import * as eventHooks from '#/hooks/eventHooks'
 import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
@@ -27,19 +18,23 @@ import Editor from '#/layouts/dashboard/Editor'
 import Home from '#/layouts/dashboard/Home'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import TopBar from '#/layouts/dashboard/TopBar'
-
-import TheModal from '#/components/dashboard/TheModal'
-import type * as spinner from '#/components/Spinner'
-
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
-
 import * as assetQuery from '#/utilities/assetQuery'
 import * as http from '#/utilities/http'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
+
+import TheModal from '#/components/dashboard/TheModal'
+import type * as spinner from '#/components/Spinner'
 
 // =================
 // === Dashboard ===

@@ -3,24 +3,16 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
+import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-
-import type * as column from '#/components/dashboard/column'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-
 import * as backendModule from '#/services/backend'
-
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -31,6 +23,9 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import Visibility, * as visibilityModule from '#/utilities/visibility'
+
+import type * as column from '#/components/dashboard/column'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
 // === Constants ===
