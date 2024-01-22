@@ -3,16 +3,24 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+
+import type * as column from '#/components/dashboard/column'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
 import * as backendModule from '#/services/backend'
+
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -23,9 +31,6 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import Visibility, * as visibilityModule from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
 // === Constants ===
@@ -72,12 +77,11 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { keyProp: key, item: rawItem, initialRowState, hidden, selected } = props
+  const { keyProp: key, item: rawItem, initialRowState, hidden: hiddenRaw, selected } = props
   const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
   const { tableRowRef, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doRefresh } = state
   const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { doRefresh } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -92,7 +96,12 @@ export default function AssetRow(props: AssetRowProps) {
     object.merge(initialRowState, { setVisibility: setInsertionVisibility })
   )
   const isCloud = backend.type === backendModule.BackendType.remote
-  const visibility = visibilities.get(key) ?? insertionVisibility
+  const outerVisibility = visibilities.get(key)
+  const visibility =
+    outerVisibility == null || outerVisibility === Visibility.visible
+      ? insertionVisibility
+      : outerVisibility
+  const hidden = hiddenRaw || visibility === Visibility.hidden
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -539,7 +548,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
       return (
         <>
-          {!hidden && insertionVisibility !== Visibility.hidden && (
+          {!hidden && (
             <tr
               ref={tableRowRef}
               tabIndex={-1}
@@ -572,6 +581,13 @@ export default function AssetRow(props: AssetRowProps) {
               className={`h-8 transition duration-300 ease-in-out ${
                 visibilityModule.CLASS_NAME[visibility]
               } ${isDraggedOver || selected ? 'selected' : ''}`}
+              onDragStart={event => {
+                if (rowState.isEditingName || !isCloud) {
+                  event.preventDefault()
+                } else {
+                  props.onDragStart?.(event)
+                }
+              }}
               onDragEnter={event => {
                 if (dragOverTimeoutHandle.current != null) {
                   window.clearTimeout(dragOverTimeoutHandle.current)

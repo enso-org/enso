@@ -3,14 +3,23 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import type * as column from '#/components/dashboard/column'
+import ProjectIcon from '#/components/dashboard/ProjectIcon'
+import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
+
 import * as backendModule from '#/services/backend'
+
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
@@ -20,11 +29,6 @@ import * as permissions from '#/utilities/permissions'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import ProjectIcon from '#/components/dashboard/ProjectIcon'
-import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
 // ===================
 // === ProjectName ===
@@ -306,18 +310,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               child.item.title !== newTitle
           )
         }
-        onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
-          if (newTitle !== asset.title) {
-            const oldTitle = asset.title
-            setAsset(object.merger({ title: newTitle }))
-            try {
-              await doRename(newTitle)
-            } catch {
-              setAsset(object.merger({ title: oldTitle }))
-            }
-          }
-        }}
+        onSubmit={doRename}
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}

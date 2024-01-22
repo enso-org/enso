@@ -7,17 +7,21 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcutsModule from '#/utilities/shortcuts'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/backend'
+
+import * as shortcutsModule from '#/utilities/shortcuts'
 
 // ================
 // === DriveBar ===
@@ -27,7 +31,7 @@ import Button from '#/components/Button'
 export interface DriveBarProps {
   category: Category
   canDownloadFiles: boolean
-  doCreateProject: (templateId: string | null) => void
+  doCreateProject: () => void
   doCreateDirectory: () => void
   doCreateDataConnector: (name: string, value: string) => void
   doUploadFiles: (files: File[]) => void
@@ -56,7 +60,7 @@ export default function DriveBar(props: DriveBarProps) {
           }
         : {}),
       [shortcutsModule.KeyboardAction.newProject]: () => {
-        doCreateProject(null)
+        doCreateProject()
       },
       [shortcutsModule.KeyboardAction.uploadFiles]: () => {
         uploadFilesRef.current?.click()
@@ -77,7 +81,7 @@ export default function DriveBar(props: DriveBarProps) {
             : {})}
           onClick={() => {
             unsetModal()
-            doCreateProject(null)
+            doCreateProject()
           }}
         >
           <span

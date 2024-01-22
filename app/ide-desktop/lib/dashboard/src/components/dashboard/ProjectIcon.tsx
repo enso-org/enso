@@ -9,25 +9,30 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import LogsModal from '#/layouts/dashboard/LogsModal'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import LogsModal from '#/layouts/dashboard/LogsModal'
+
+import Spinner, * as spinner from '#/components/Spinner'
+import SvgMask from '#/components/SvgMask'
+
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
+
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as errorModule from '#/utilities/error'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as object from '#/utilities/object'
-
-import Spinner, * as spinner from '#/components/Spinner'
-import SvgMask from '#/components/SvgMask'
 
 // =================
 // === Constants ===

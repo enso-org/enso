@@ -5,6 +5,7 @@ import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 // ====================
@@ -40,6 +41,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const [isSubmittable, setIsSubmittable] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const cancelled = React.useRef(false)
 
   React.useEffect(() => {
     setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
@@ -52,6 +54,7 @@ export default function EditableSpan(props: EditableSpanProps) {
       return shortcuts.registerKeyboardHandlers({
         [shortcutsModule.KeyboardAction.cancelEditName]: () => {
           onCancel()
+          cancelled.current = true
           inputRef.current?.blur()
         },
       })
@@ -59,6 +62,10 @@ export default function EditableSpan(props: EditableSpanProps) {
       return
     }
   }, [editable, shortcuts, onCancel])
+
+  React.useEffect(() => {
+    cancelled.current = false
+  }, [editable])
 
   if (editable) {
     return (
@@ -79,7 +86,31 @@ export default function EditableSpan(props: EditableSpanProps) {
           type="text"
           size={1}
           defaultValue={children}
-          onBlur={event => event.currentTarget.form?.requestSubmit()}
+          onBlur={event => {
+            passthrough.onBlur?.(event)
+            if (!cancelled.current) {
+              event.currentTarget.form?.requestSubmit()
+            }
+          }}
+          onKeyDown={event => {
+            passthrough.onKeyDown?.(event)
+            if (
+              !event.isPropagationStopped() &&
+              ((event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey &&
+                !event.metaKey &&
+                /^[xcvzy]$/.test(event.key)) ||
+                (event.ctrlKey &&
+                  event.shiftKey &&
+                  !event.altKey &&
+                  !event.metaKey &&
+                  /[Z]/.test(event.key)))
+            ) {
+              // This is an event that will be handled by the input.
+              event.stopPropagation()
+            }
+          }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
           {...(inputTitle == null ? {} : { title: inputTitle })}
           {...(checkSubmittable == null

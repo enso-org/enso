@@ -1,17 +1,21 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import type * as assetListEventModule from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcuts from '#/utilities/shortcuts'
+
+import type * as assetListEventModule from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import MenuEntry from '#/components/MenuEntry'
+
+import * as backendModule from '#/services/backend'
+
+import * as shortcuts from '#/utilities/shortcuts'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -101,6 +105,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               parentKey: directoryKey ?? rootDirectoryId,
               parentId: directoryId ?? rootDirectoryId,
               templateId: null,
+              templateName: null,
               onSpinnerStateChange: null,
             })
           }}
