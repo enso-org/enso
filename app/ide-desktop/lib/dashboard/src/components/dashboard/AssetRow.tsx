@@ -28,6 +28,7 @@ import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as errorModule from '#/utilities/error'
+import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -565,9 +566,24 @@ export default function AssetRow(props: AssetRowProps) {
                             {...passthrough}
                             draggable
                             tabIndex={-1}
+                            className={`h-8 transition duration-300 ease-in-out ${
+                                visibilityModule.CLASS_NAME[visibility]
+                            } ${isDraggedOver || selected ? 'selected' : ''}`}
                             onClick={event => {
                                 unsetModal()
                                 onClick(innerProps, event)
+                                if (
+                                    asset.type === backendModule.AssetType.directory &&
+                                    eventModule.isDoubleClick(event) &&
+                                    !rowState.isEditingName
+                                ) {
+                                    // This must be processed on the next tick, otherwise it will be overridden
+                                    // by the default click handler.
+                                    window.setTimeout(() => {
+                                        setSelected(false)
+                                    })
+                                    doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                                }
                             }}
                             onContextMenu={event => {
                                 if (allowContextMenu) {
@@ -593,9 +609,6 @@ export default function AssetRow(props: AssetRowProps) {
                                     onContextMenu?.(innerProps, event)
                                 }
                             }}
-                            className={`h-8 transition duration-300 ease-in-out ${
-                                visibilityModule.CLASS_NAME[visibility]
-                            } ${isDraggedOver || selected ? 'selected' : ''}`}
                             onDragEnter={event => {
                                 if (dragOverTimeoutHandle.current != null) {
                                     window.clearTimeout(dragOverTimeoutHandle.current)

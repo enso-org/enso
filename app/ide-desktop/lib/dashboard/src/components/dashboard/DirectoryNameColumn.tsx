@@ -37,7 +37,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-    const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
+    const { item, setItem, selected, state, rowState, setRowState } = props
     const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
     const { doToggleDirectoryExpansion } = state
     const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -135,21 +135,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                             event
                         ))
                 ) {
+                    event.stopPropagation()
                     setRowState(object.merger({ isEditingName: true }))
-                } else if (eventModule.isDoubleClick(event)) {
-                    if (!rowState.isEditingName) {
-                        // This must be processed on the next tick, otherwise it will be overridden
-                        // by the default click handler.
-                        window.setTimeout(() => {
-                            setSelected(false)
-                        }, 0)
-                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-                    }
                 }
             }}
         >
             <SvgMask
                 src={TriangleDownIcon}
+                alt={item.children == null ? 'Expand' : 'Collapse'}
                 className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
                     item.children != null ? '' : '-rotate-90'
                 }`}

@@ -65,9 +65,10 @@ export async function mockApi({ page }: MockParams) {
     const labelsByValue = new Map<backend.LabelName, backend.Label>()
     const labelMap = new Map<backend.TagId, backend.Label>()
 
-    const addAsset = (asset: backend.AnyAsset) => {
+    const addAsset = <T extends backend.AnyAsset>(asset: T) => {
         assets.push(asset)
         assetMap.set(asset.id, asset)
+        return asset
     }
 
     const deleteAsset = (assetId: backend.AssetId) => {
@@ -162,19 +163,19 @@ export async function mockApi({ page }: MockParams) {
     })
 
     const addDirectory = (title: string, rest?: Partial<backend.DirectoryAsset>) => {
-        addAsset(createDirectory(title, rest))
+        return addAsset(createDirectory(title, rest))
     }
 
     const addProject = (title: string, rest?: Partial<backend.ProjectAsset>) => {
-        addAsset(createProject(title, rest))
+        return addAsset(createProject(title, rest))
     }
 
     const addFile = (title: string, rest?: Partial<backend.FileAsset>) => {
-        addAsset(createFile(title, rest))
+        return addAsset(createFile(title, rest))
     }
 
     const addSecret = (title: string, rest?: Partial<backend.SecretAsset>) => {
-        addAsset(createSecret(title, rest))
+        return addAsset(createSecret(title, rest))
     }
 
     const addLabel = (value: string, color: backend.LChColor) => {

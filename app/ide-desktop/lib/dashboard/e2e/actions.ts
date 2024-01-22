@@ -165,7 +165,13 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
 
 /** Find all labels in the labels panel (if any) on the current page. */
 export function locateLabelsPanelLabels(page: test.Locator | test.Page) {
-    return locateLabelsPanel(page).getByRole('button')
+    return (
+        locateLabelsPanel(page)
+            .getByRole('button')
+            // The delete button is also a `button`.
+            // eslint-disable-next-line no-restricted-properties
+            .and(page.locator(':nth-child(1)'))
+    )
 }
 
 /** Find a "home" button (if any) on the current page. */
@@ -466,13 +472,30 @@ export function locateEditor(page: test.Page) {
 }
 
 /** Find an assets table (if any) on the current page. */
-export function locateAssetsTable(page: test.Locator | test.Page) {
+export function locateAssetsTable(page: test.Page) {
     return locateDriveView(page).getByRole('table')
 }
 
 /** Find assets table rows (if any) on the current page. */
-export function locateAssetRows(page: test.Locator | test.Page) {
+export function locateAssetRows(page: test.Page) {
     return locateAssetsTable(page).locator('tbody').getByRole('row')
+}
+
+/** Find the name column of the given asset row. */
+export function locateAssetName(locator: test.Locator) {
+    return locator.locator('> :nth-child(1)')
+}
+
+/** Find assets table rows that represent directories that can be expanded (if any)
+ * on the current page. */
+export function locateExpandableDirectories(page: test.Page) {
+    return locateAssetRows(page).filter({ has: page.getByAltText('Expand') })
+}
+
+/** Find assets table rows that represent directories that can be collapsed (if any)
+ * on the current page. */
+export function locateCollapsibleDirectories(page: test.Page) {
+    return locateAssetRows(page).filter({ has: page.getByAltText('Collapse') })
 }
 
 /** Find a "change password" modal (if any) on the current page. */
