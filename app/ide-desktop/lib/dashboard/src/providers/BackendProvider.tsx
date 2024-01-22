@@ -12,9 +12,9 @@ import * as localStorageModule from '#/utilities/localStorage'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-    readonly backend: backendModule.Backend
-    readonly setBackend: (backend: backendModule.Backend) => void
-    readonly setBackendWithoutSavingType: (backend: backendModule.Backend) => void
+  readonly backend: backendModule.Backend
+  readonly setBackend: (backend: backendModule.Backend) => void
+  readonly setBackendWithoutSavingType: (backend: backendModule.Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -23,7 +23,7 @@ const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
-    readonly initialBackend: backendModule.Backend
+  readonly initialBackend: backendModule.Backend
 }
 
 // =======================
@@ -32,33 +32,33 @@ export interface BackendProviderProps extends Readonly<React.PropsWithChildren> 
 
 /** A React Provider that lets components get and set the current backend. */
 export default function BackendProvider(props: BackendProviderProps) {
-    const { initialBackend, children } = props
-    const { localStorage } = localStorageProvider.useLocalStorage()
-    const [backend, setBackendWithoutSavingType] =
-        React.useState<backendModule.Backend>(initialBackend)
-    const setBackend = React.useCallback(
-        (newBackend: backendModule.Backend) => {
-            setBackendWithoutSavingType(newBackend)
-            localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
-        },
-        [/* should never change */ localStorage]
-    )
+  const { initialBackend, children } = props
+  const { localStorage } = localStorageProvider.useLocalStorage()
+  const [backend, setBackendWithoutSavingType] =
+    React.useState<backendModule.Backend>(initialBackend)
+  const setBackend = React.useCallback(
+    (newBackend: backendModule.Backend) => {
+      setBackendWithoutSavingType(newBackend)
+      localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
+    },
+    [/* should never change */ localStorage]
+  )
 
-    return (
-        <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
-            {children}
-        </BackendContext.Provider>
-    )
+  return (
+    <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
+      {children}
+    </BackendContext.Provider>
+  )
 }
 
 /** Exposes a property to get the current backend. */
 export function useBackend() {
-    const { backend } = React.useContext(BackendContext)
-    return { backend }
+  const { backend } = React.useContext(BackendContext)
+  return { backend }
 }
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-    const { setBackend, setBackendWithoutSavingType } = React.useContext(BackendContext)
-    return { setBackend, setBackendWithoutSavingType }
+  const { setBackend, setBackendWithoutSavingType } = React.useContext(BackendContext)
+  return { setBackend, setBackendWithoutSavingType }
 }
