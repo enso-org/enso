@@ -30,6 +30,9 @@ type Test_Data
         connection = create_connection_func Nothing
         Test_Data.Value connection
 
+    teardown self =
+        self.connection.close
+
 
 type Metadata_Data
     Value ~data
@@ -49,6 +52,11 @@ type Metadata_Data
         Panic.rethrow <|
             t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
         Metadata_Data.Value [connection, tinfo, t]
+
+    teardown self =
+        self.connection.drop_table self.t.name
+        self.connection.close
+
 
 type Tables_And_Table_Types_Data
     Value ~data
@@ -71,6 +79,8 @@ type Tables_And_Table_Types_Data
 
         [connection, tinfo, vinfo, temporary_table]
 
+    teardown self =
+        self.connection.close
 
 
 sqlite_specific_spec suite_builder prefix create_connection_func setup =
@@ -78,6 +88,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 
     suite_builder.group prefix+"Schemas and Databases" group_builder->
         data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should be able to get current database and list databases" <|
             data.connection.database . should_equal Nothing
@@ -95,6 +108,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 
     suite_builder.group prefix+"Tables and Table Types" group_builder->
         data = Tables_And_Table_Types_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should be able to list table types" <|
             table_types = data.connection.table_types
@@ -133,6 +149,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 
     suite_builder.group prefix+"Error Handling" group_builder->
         data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should wrap errors" <|
             data.connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error
@@ -173,6 +192,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
     suite_builder.group prefix+"Metadata" group_builder->
         data = Metadata_Data.setup create_connection_func
 
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should return Table information" <|
             i = data.t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
@@ -192,6 +214,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
     suite_builder.group prefix+"Dialect-specific codegen" group_builder->
         data = Metadata_Data.setup create_connection_func
 
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should generate queries for the Distinct operation" <|
             t = data.connection.query (SQL_Query.Table_Name data.tinfo)
             code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM (SELECT "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner" GROUP BY "{Tinfo}_inner"."strs") AS "{Tinfo}"'
@@ -199,8 +224,13 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
     suite_builder.group prefix+"math functions" group_builder->
+        data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "round, trunc, ceil, floor" <|
-            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+            col = (table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] connection=data.connection) . at "x"
 
             col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
@@ -226,49 +256,56 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Integer
             col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Float
 
-        do_op n op =
-            table = table_builder [["x", [n]]]
+        do_op data n op =
+            table = table_builder [["x", [n]]] connection=data.connection
             result = table.at "x" |> op
             result.to_vector.at 0
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        do_round data n dp=0 use_bankers=False = do_op data n (_.round dp use_bankers)
 
         group_builder.specify "Can round correctly near the precision limit" <|
             # This value varies depending on the version of SQLite.
-            do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
-            do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
-            do_round 1.2222222222222235 15 . should_equal 1.222222222222223
-            do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+            do_round data 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
+            do_round data -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
+            do_round data 1.2222222222222235 15 . should_equal 1.222222222222223
+            do_round data -1.2222222222222235 15 . should_equal -1.222222222222223
 
         group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+            do_round data 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round data -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round data 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
 
         group_builder.specify "Can handle NaN/Infinity" <|
             nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
             ops = [.round, .truncate, .ceil, .floor]
             ops.each op->
-                do_op Number.nan op . should_equal nan_result
-                do_op Number.positive_infinity op . should_equal Number.positive_infinity
-                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+                do_op data Number.nan op . should_equal nan_result
+                do_op data Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op data Number.negative_infinity op . should_equal Number.negative_infinity
 
         group_builder.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Float
-            do_round 231.2 0 . should_be_a Float
-            do_round 231.2 . should_be_a Float
-            do_round 231.2 -1 . should_be_a Float
+            do_round data 231.2 1 . should_be_a Float
+            do_round data 231.2 0 . should_be_a Float
+            do_round data 231.2 . should_be_a Float
+            do_round data 231.2 -1 . should_be_a Float
 
         group_builder.specify "round returns the correct type" <|
-            do_round 231 1 . should_be_a Float
-            do_round 231 0 . should_be_a Float
-            do_round 231 . should_be_a Float
-            do_round 231 -1 . should_be_a Float
+            do_round data 231 1 . should_be_a Float
+            do_round data 231 0 . should_be_a Float
+            do_round data 231 . should_be_a Float
+            do_round data 231 -1 . should_be_a Float
 
     suite_builder.group prefix+"Column.const" group_builder->
+        data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "Does not support making a constant column from a Date" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] connection=data.connection
             t.at "x" . const (Date.new 12 4 12) . should_fail_with Unsupported_Database_Operation
+
 
 sqlite_spec suite_builder prefix create_connection_func =
     name_counter = Ref.new 0

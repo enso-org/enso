@@ -30,6 +30,11 @@ type Table_Take_Drop_Data
         empty = table.remove_all_rows
         [connection, table, empty]
 
+    teardown self =
+        self.connection.drop_table self.table.name
+        self.connection.drop_table self.empty.name
+        self.connection.close
+
 
 type Column_Take_Drop_Data
     Value ~data
@@ -56,6 +61,14 @@ type Column_Take_Drop_Data
         
         [connection, table, alpha, beta, empty_alpha, empty_beta]
 
+    teardown self =
+        self.connection.drop_table self.table.name
+        self.connection.drop_table self.alpha.name
+        self.connection.drop_table self.beta.name
+        self.connection.drop_table self.empty_alpha.name
+        self.connection.drop_table self.empty_beta.name
+        self.connection.close
+
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -64,6 +77,9 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.take/drop" group_builder->
         data = Table_Take_Drop_Data.setup create_connection_fn table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should allow selecting first or last N rows" <|
             data.table.take.at "alpha" . to_vector . should_equal [1]
@@ -255,7 +271,10 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Column.take/drop" group_builder->
         data = Column_Take_Drop_Data.setup create_connection_fn table_builder
-        
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should allow selecting first or last N rows" <|
             data.alpha.take.to_vector . should_equal [1]
             data.beta.take.to_vector . should_equal ["A"]

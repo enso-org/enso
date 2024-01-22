@@ -41,6 +41,13 @@ type Data
             table_builder [c, g, h]
         Data.Value [connection, t0, t1, t3, t4]
 
+    teardown self =
+        self.connection.drop_table self.t0.name
+        self.connection.drop_table self.t1.name
+        self.connection.drop_table self.t3.name
+        self.connection.drop_table self.t4.name
+        self.connection.close
+
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -49,6 +56,9 @@ add_specs suite_builder setup =
     test_selection = setup.test_selection
     suite_builder.group prefix+"Dropping Missing Values" group_builder->
         data = Data.setup create_connection_fn table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
             d = data.t0.filter_blank_rows when=Blank_Selector.Any_Cell

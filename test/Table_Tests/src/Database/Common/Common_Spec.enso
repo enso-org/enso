@@ -21,12 +21,10 @@ import project.Database.Helpers.Name_Generator
 upload connection prefix data temporary=True =
     name = Name_Generator.random_name prefix
     table = data.select_into_database_table connection name temporary=temporary primary_key=Nothing
-    IO.println <| "      upload: Created table with name " + name
     table
 
 
 drop_table connection name =
-    IO.println <| "      drop_table: Dropping table with name " + name
     Panic.catch Any (connection.drop_table name) caught_panic->
         IO.println <| "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
 
@@ -42,7 +40,6 @@ type Basic_Data
     big_size self = self.data.at 5
 
     setup create_connection_fn = Basic_Data.Value <|
-        IO.println <| "  Common_Spec_New.Basic_Data.setup"
         big_size = 1000
         connection = create_connection_fn Nothing
         t1 = upload connection "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
@@ -60,12 +57,11 @@ type Basic_Data
         [connection, t1, t2, t4, big_table, big_size]
 
     teardown self =
-        data = self
-        IO.println <| "  Common_Spec_New.Basic_Data.teardown"
-        drop_table data.connection data.t1.name
-        drop_table data.connection data.t2.name
-        drop_table data.connection data.t4.name
-        drop_table data.connection data.big_table.name
+        drop_table self.connection self.t1.name
+        drop_table self.connection self.t2.name
+        drop_table self.connection self.t4.name
+        drop_table self.connection self.big_table.name
+        self.connection.close
 
 
 type Sorting_Data
@@ -80,7 +76,6 @@ type Sorting_Data
     t8 self = self.data.at 6
 
     setup create_connection_fn = Sorting_Data.Value <|
-        IO.println <| "  Common_Spec_New.Sorting_Data.setup"
         connection = create_connection_fn Nothing
         ints = [1, 2, 3, 4, 5]
         reals = [1.3, 4.6, 3.2, 5.2, 1.6]
@@ -93,10 +88,9 @@ type Sorting_Data
         [connection, df, ints, reals, bools, texts, t8]
 
     teardown self =
-        IO.println <| "  Common_Spec_New.Sorting_Data.teardown"
         drop_table self.connection self.df.name
         drop_table self.connection self.t8.name
-
+        self.connection.close
 
 
 type Aggregation_Data
@@ -132,9 +126,8 @@ type Aggregation_Data
         [connection, t9]
 
     teardown self =
-        IO.println <| "  Common_Spec_New.Aggregation_Data.teardown"
         drop_table self.connection self.t9.name
-
+        self.connection.close
 
 
 type Missing_Values_Data
@@ -151,11 +144,11 @@ type Missing_Values_Data
         [connection, t4]
 
     teardown self =
-        IO.println <| "  Common_Spec_New.Missing_Values_Data.teardown"
         drop_table self.connection self.t4.name
+        self.connection.close
 
 
-##
+## Adds common database tests specs to the suite builder.
 
    Arguments:
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
