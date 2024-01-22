@@ -152,31 +152,15 @@ spec setup =
             false_maybe = if had_false then [False] else []
             null_maybe + true_maybe + false_maybe
 
-        # [input, had_null, had_true, had_false, output]
-        cases = [[True, True, True, True, True]]
-            + [[True, True, True, False, True]]
-            + [[True, False, True, True, True]]
-            + [[True, False, True, False, True]]
-            + [[True, True, False, True, Nothing]]
-            + [[True, True, False, False, Nothing]]
-            + [[True, False, False, True, False]]
-            + [[True, False, False, False, False]]
-            + [[False, True, True, True, True]]
-            + [[False, True, False, True, True]]
-            + [[False, False, True, True, True]]
-            + [[False, False, False, True, True]]
-            + [[False, True, True, False, Nothing]]
-            + [[False, True, False, False, Nothing]]
-            + [[False, False, True, False, False]]
-            + [[False, False, False, False, False]]
-            + [[Nothing, True, True, True, Nothing]]
-            + [[Nothing, True, False, True, Nothing]]
-            + [[Nothing, False, True, True, Nothing]]
-            + [[Nothing, False, False, True, Nothing]]
-            + [[Nothing, True, True, False, Nothing]]
-            + [[Nothing, True, False, False, Nothing]]
-            + [[Nothing, False, True, False, Nothing]]
-            + [[Nothing, False, False, False, False]]
+        bools = [True, False]
+        bools_and_nothing = [True, False, Nothing]
+        # Format: [input, had_null, had_true, had_false, output]
+        cases = bools_and_nothing.flat_map input-> bools.flat_map had_null-> bools.flat_map had_true-> bools.map had_false->
+            output = case input of
+                True -> if had_true then True else (if had_null then Nothing else False)
+                False -> if had_false then True else (if had_null then Nothing else False)
+                Nothing -> if had_null || had_true || had_false then Nothing else False
+            [input, had_null, had_true, had_false, output]
 
         # To test negated columns, we invert the values before putting them into the Storage, and set the negated bit.
         negate : Vector | Column -> Vector | Column
