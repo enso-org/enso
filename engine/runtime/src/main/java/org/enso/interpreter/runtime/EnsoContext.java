@@ -666,7 +666,7 @@ public final class EnsoContext {
   }
 
   /**
-   * Checks value of {@link RuntimeOptions#INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY}.
+   * Checks value of {@link RuntimeOptions#INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY}.
    *
    * @return the value of the option
    */

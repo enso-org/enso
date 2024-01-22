@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -103,8 +104,12 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     this.env = env;
     env.registerService(this);
-    var loadedHandler = Lookup.getDefault().lookup(HandlerFactory.class);
-    this.handler = loadedHandler != null ? loadedHandler.create() : HandlerFactoryImpl.create();
+    if (TruffleOptions.AOT) {
+      this.handler = HandlerFactoryImpl.create();
+    } else {
+      var loadedHandler = Lookup.getDefault().lookup(HandlerFactory.class);
+      this.handler = loadedHandler != null ? loadedHandler.create() : HandlerFactoryImpl.create();
+    }
 
     try {
       MessageEndpoint client =
