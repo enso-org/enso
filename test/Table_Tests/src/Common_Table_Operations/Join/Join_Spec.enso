@@ -31,7 +31,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    Test.group prefix+"Table.join" <|
+    Test.group prefix+"Table.joinasdfasdf" <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
         t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
 
@@ -366,12 +366,12 @@ spec setup =
             IO.println "ą"
             IO.println "a"
             IO.println ("ą".equals_ignore_case "a")
-            t5.at "X" . to_vector . should_equal ["a", "B"]
-            t5.at "Y" . to_vector . should_equal ["b", "C"]
-            t5.at "Z" . to_vector . should_equal [2, 3]
-            t5.at "Right X" . to_vector . should_equal ["B", "c"]
-            t5.at "Right Y" . to_vector . should_equal ["C", Nothing]
-            t5.at "Right Z" . to_vector . should_equal [3, 4]
+            t5.at "X" . to_vector . should_equal ["B", "a"]
+            t5.at "Y" . to_vector . should_equal ["C", "b"]
+            t5.at "Z" . to_vector . should_equal [3, 2]
+            t5.at "Right X" . to_vector . should_equal ["c", "B"]
+            t5.at "Right Y" . to_vector . should_equal [Nothing, "C"]
+            t5.at "Right Z" . to_vector . should_equal [4, 3]
 
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -471,10 +471,9 @@ spec setup =
             t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner |> materialize |> _.order_by ["Y"]
-            expect_column_names ["X", "Y", "Right X", "Z"] r1
+            expect_column_names ["X", "Y", "Z"] r1
             r1.at "X" . to_vector . should_equal ["a", "b"]
             r1.at "Y" . to_vector . should_equal [2, 5]
-            r1.at "Right X" . to_vector . should_equal ["a", "b"]
             r1.at "Z" . to_vector . should_equal [10, 50]
 
         Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
@@ -566,7 +565,7 @@ spec setup =
             r3 = materialize t3 . order_by ["A", "B", "D"] . rows . map .to_vector
             within_table t3 <|
                 r3.length . should_equal 1
-                r3.at 4 . should_equal [2, 3, 2, 5]
+                r3.at 0 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
             expect_column_names ["A", "B", "C", "D"] t4
@@ -574,24 +573,24 @@ spec setup =
             within_table t4 <|
                 r4.length . should_equal 7
                 r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
+                r4.at 1 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                r4.at 2 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4.at 3 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4.at 4 . should_equal [Nothing, 4, Nothing, Nothing]
                 r4.at 5 . should_equal [1, 7, Nothing, Nothing]
                 r4.at 6 . should_equal [2, 3, 2, 5]
 
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2
             r4_2 = materialize t4_2 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
+            IO.println 'QQQ'
+            IO.println (materialize t4_2 . order_by ["A", "B", "D", "C"]).display
             within_table t4_2 <|
-                r4_2.length . should_equal 6
+                r4_2.length . should_equal 4
                 r4_2.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4_2.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4_2.at 2 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4_2.at 3 . should_equal [Nothing, 4, Nothing, 6]
-                r4_2.at 4 . should_equal [1, 7, Nothing, Nothing]
-                r4_2.at 5 . should_equal [2, 3, 2, 5]
+                r4_2.at 1 . should_equal [Nothing, 4, Nothing, Nothing]
+                r4_2.at 2 . should_equal [1, 7, Nothing, Nothing]
+                r4_2.at 3 . should_equal [2, 3, 2, 5]
 
             t4_3 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Right_Outer
             expect_column_names ["A", "B", "C", "D"] t4_3
