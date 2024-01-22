@@ -183,6 +183,22 @@ export async function mockApi({ page }: MockParams) {
         labels.push(label)
         labelsByValue.set(label.value, label)
         labelMap.set(label.id, label)
+        return label
+    }
+
+    const setLabels = (id: backend.AssetId, newLabels: backend.LabelName[]) => {
+        const ids = new Set<backend.AssetId>([id])
+        for (const [innerId, asset] of assetMap) {
+            if (ids.has(asset.parentId)) {
+                ids.add(innerId)
+            }
+        }
+        for (const innerId of ids) {
+            const asset = assetMap.get(innerId)
+            if (asset != null) {
+                asset.labels = newLabels
+            }
+        }
     }
 
     await test.test.step('Mock API', async () => {
@@ -471,18 +487,7 @@ export async function mockApi({ page }: MockParams) {
                     const body: Body = await request.postDataJSON()
                     // This could be an id for an arbitrary asset, but pretend it's a
                     // `DirectoryId` to make TypeScript happy.
-                    const ids = new Set<backend.AssetId>([backend.DirectoryId(assetId)])
-                    for (const [id, asset] of assetMap) {
-                        if (ids.has(asset.parentId)) {
-                            ids.add(id)
-                        }
-                    }
-                    for (const id of ids) {
-                        const asset = assetMap.get(id)
-                        if (asset != null) {
-                            asset.labels = body.labels
-                        }
-                    }
+                    setLabels(backend.DirectoryId(assetId), body.labels)
                     const json: Response = {
                         tags: body.labels.flatMap(value => {
                             const label = labelsByValue.get(value)
@@ -692,6 +697,7 @@ export async function mockApi({ page }: MockParams) {
         defaultName: defaultUsername,
         defaultOrganizationId,
         defaultUser,
+        rootDirectoryId: defaultDirectoryId,
         /** Returns the current value of `currentUser`. This is a getter, so its return value
          * SHOULD NOT be cached. */
         get currentUser() {
@@ -713,5 +719,6 @@ export async function mockApi({ page }: MockParams) {
         addSecret,
         createLabel,
         addLabel,
+        setLabels,
     }
 }
