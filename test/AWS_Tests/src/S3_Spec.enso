@@ -1,8 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
+import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.AWS import S3, AWS_Credential
+from Standard.AWS import S3, S3_File, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found
 
 from Standard.Test import Test, Test_Suite
