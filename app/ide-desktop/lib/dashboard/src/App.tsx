@@ -41,18 +41,8 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-
+import * as authServiceModule from '#/authentication/service'
 import * as navigateHooks from '#/hooks/navigateHooks'
-
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
-import LocalStorageProvider from '#/providers/LocalStorageProvider'
-import LoggerProvider from '#/providers/LoggerProvider'
-import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
-import SessionProvider from '#/providers/SessionProvider'
-import ShortcutsProvider from '#/providers/ShortcutsProvider'
-
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
@@ -61,13 +51,17 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-
+import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import BackendProvider from '#/providers/BackendProvider'
+import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import LoggerProvider from '#/providers/LoggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+import ModalProvider from '#/providers/ModalProvider'
+import SessionProvider from '#/providers/SessionProvider'
+import ShortcutsProvider from '#/providers/ShortcutsProvider'
 import type * as backend from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
-
 import * as shortcutsModule from '#/utilities/shortcuts'
-
-import * as authServiceModule from '#/authentication/service'
 
 // ======================
 // === getMainPageUrl ===
