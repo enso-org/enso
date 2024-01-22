@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import com.ibm.icu.text.Normalizer2;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,7 +18,6 @@ import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 import org.graalvm.polyglot.Context;
-import com.ibm.icu.text.Normalizer2;
 
 public class FileLineReader {
   public static class ByteArrayOutputStreamWithContains extends ByteArrayOutputStream {
@@ -196,7 +196,8 @@ public class FileLineReader {
       Function<ByteArrayOutputStreamWithContains, String> filter,
       BiConsumer<Integer, String> action)
       throws IOException {
-    return innerForEachLine(file, rowMap, startAt, endAt, charset, filter, action, new CancellationToken());
+    return innerForEachLine(
+        file, rowMap, startAt, endAt, charset, filter, action, new CancellationToken());
   }
 
   private static String innerForEachLine(
@@ -207,7 +208,8 @@ public class FileLineReader {
       Charset charset,
       Function<ByteArrayOutputStreamWithContains, String> filter,
       BiConsumer<Integer, String> action,
-      CancellationToken cancellationToken) throws IOException {
+      CancellationToken cancellationToken)
+      throws IOException {
     if (startAt >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(startAt);
     }
@@ -231,7 +233,9 @@ public class FileLineReader {
       var buffer = channel.map(FileChannel.MapMode.READ_ONLY, position, bufferSize);
 
       // Loop until we either reach the required record or run out of data.
-      while (!cancellationToken.isCancelled && (endAt == -1 || index <= endAt) && (truncated || buffer.hasRemaining())) {
+      while (!cancellationToken.isCancelled
+          && (endAt == -1 || index <= endAt)
+          && (truncated || buffer.hasRemaining())) {
         var linePosition = buffer.position() + position;
 
         // Read a line.
@@ -291,24 +295,27 @@ public class FileLineReader {
     }
   }
 
-  //** Scans forward in a file reading line by line until it finds a line that matches the new filter. */
+  // ** Scans forward in a file reading line by line until it finds a line that matches the new
+  // filter. */
   public static long findFirstNewFilter(
       File file,
       LongArrayList rowMap,
       int endAt,
       Charset charset,
       Function<ByteArrayOutputStreamWithContains, String> filter,
-      Function<ByteArrayOutputStreamWithContains, String> newFilter) throws IOException {
+      Function<ByteArrayOutputStreamWithContains, String> newFilter)
+      throws IOException {
     final CancellationToken token = new CancellationToken();
     final List<Long> result = new ArrayList<>();
-    BiConsumer<Integer, String> action = (index, line) -> {
-      var bytes = line.getBytes(charset);
-      var outputStream = ByteArrayOutputStreamWithContains.fromByteArray(bytes);
-      if (newFilter.apply(outputStream) != null) {
-        result.add(rowMap.get(index));
-        token.cancel();
-      }
-    };
+    BiConsumer<Integer, String> action =
+        (index, line) -> {
+          var bytes = line.getBytes(charset);
+          var outputStream = ByteArrayOutputStreamWithContains.fromByteArray(bytes);
+          if (newFilter.apply(outputStream) != null) {
+            result.add(rowMap.get(index));
+            token.cancel();
+          }
+        };
     innerForEachLine(file, rowMap, 0, endAt, charset, filter, action, token);
     return result.isEmpty() ? rowMap.get(rowMap.getSize() - 1) : result.get(0);
   }
@@ -323,7 +330,7 @@ public class FileLineReader {
         // Need to use Unicode normalization for equality.
         return (outputStream) -> {
           var line = outputStream.toString(charset);
-          return  Core_Text_Utils.compare_normalized(contains, line)==0 ? line : null;
+          return Core_Text_Utils.compare_normalized(contains, line) == 0 ? line : null;
         };
       }
     }
@@ -343,8 +350,8 @@ public class FileLineReader {
 
   // Joins two filters together. */
   public static Function<ByteArrayOutputStreamWithContains, String> mergeTwoFilters(
-    Function<ByteArrayOutputStreamWithContains, String> first,
-    Function<ByteArrayOutputStreamWithContains, String> second) {
+      Function<ByteArrayOutputStreamWithContains, String> first,
+      Function<ByteArrayOutputStreamWithContains, String> second) {
     return (outputStream) -> {
       var first_result = first.apply(outputStream);
       return first_result != null ? second.apply(outputStream) : null;
@@ -352,6 +359,9 @@ public class FileLineReader {
   }
 
   private static boolean isUnicodeCharset(Charset charset) {
-    return charset == StandardCharsets.UTF_8 || charset == StandardCharsets.UTF_16 || charset == StandardCharsets.UTF_16BE || charset == StandardCharsets.UTF_16LE;
+    return charset == StandardCharsets.UTF_8
+        || charset == StandardCharsets.UTF_16
+        || charset == StandardCharsets.UTF_16BE
+        || charset == StandardCharsets.UTF_16LE;
   }
 }

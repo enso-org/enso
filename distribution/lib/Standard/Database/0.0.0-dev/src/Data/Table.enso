@@ -519,7 +519,7 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error.Error "Column "+column.name)
 
-    ## ALIAS filter rows
+    ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
        ICON preparation
 
