@@ -148,13 +148,25 @@ type File_By_Line
 
        Arguments
        - predicate: The predicate to filter by.
-    filter : (Text -> Boolean) -> File_By_Line
+    filter : Text | (Text -> Boolean) -> File_By_Line
     filter self predicate =
+        ## Create the predicate
+        new_filter = case predicate of
+            _:Text -> FileLineReader.createContainsFilter predicate self.charset
+            _ -> FileLineReader.wrapBooleanFilter predicate self.charset
+
+        ## Find the index of the first line matching the new index.
+        end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines-1
+        first_index = FileLineReader.findFirstNewFilter self.java_file self.row_map end_at self.charset self.filter_func new_filter
+        new_row_map = LongArrayList.new
+        new_row_map.add first_index
+
         ## Merge the two predicates together.
-        new_predicate = if self.filter_func.is_nothing then predicate else (text -> self.filter_func text && predicate text)
+        new_predicate = if self.filter_func.is_nothing then new_filter else
+            FileLineReader.mergeTwoFilters self.filter_func new_filter
 
         ## Need to ensure the parent limit is obeyed - for now we just use it but should be applied on level above
-        File_By_Line.Reader self.file self.encoding self.limit_lines new_predicate self.row_map
+        File_By_Line.Reader self.file self.encoding self.limit_lines new_predicate new_row_map
 
     ## ADVANCED
        Exports the row_map
@@ -176,7 +188,7 @@ type File_By_Line
    Reads a specific line from the file.
 read_line : File_By_Line->Integer->Any->Any
 read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
-    FileLineReader.scanAndReadLine file.java_file file.row_map line file.charset file.filter_func . if_nothing default
+    FileLineReader.readSingleLine file.java_file file.row_map line file.charset file.filter_func . if_nothing default
 
 ## PRIVATE
    Performs an action on each line in the file.
@@ -187,7 +199,7 @@ for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) actio
     charset = file.charset
 
     ## First if we haven't read the found the start_at line we need to find that.
-    if start_at >= row_map.getSize then FileLineReader.scanAndReadLine java_file row_map start_at charset file.filter_func
+    if start_at >= row_map.getSize then FileLineReader.readSingleLine java_file row_map start_at charset file.filter_func
 
     ## Now we can read the lines we need.
     if row_map.getOrLast start_at >= java_file.length then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else

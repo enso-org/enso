@@ -7,16 +7,60 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 import org.graalvm.polyglot.Context;
+import com.ibm.icu.text.Normalizer2;
 
 public class FileLineReader {
+  public static class ByteArrayOutputStreamWithContains extends ByteArrayOutputStream {
+    public ByteArrayOutputStreamWithContains(int size) {
+      super(size);
+    }
+
+    // ** Creates a preloaded stream from a byte array. */
+    public static ByteArrayOutputStreamWithContains fromByteArray(byte[] bytes) {
+      var stream = new ByteArrayOutputStreamWithContains(0);
+      stream.buf = bytes;
+      stream.count = bytes.length;
+      return stream;
+    }
+
+    public boolean contains(byte[] bytes) {
+      if (bytes.length > count) {
+        return false;
+      }
+      for (int i = 0; i < count - bytes.length; i++) {
+        boolean found = true;
+        for (int j = 0; j < bytes.length; j++) {
+          if (buf[i + j] != bytes[j]) {
+            found = false;
+            break;
+          }
+        }
+        if (found) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+
+  private static class CancellationToken {
+    public boolean isCancelled = false;
+
+    public void cancel() {
+      isCancelled = true;
+    }
+  }
+
   private static final Logger LOGGER = Logger.getLogger("enso-file-line-reader");
 
   // ** Amount of data to read at a time for a single line (4KB). */
@@ -104,8 +148,12 @@ public class FileLineReader {
   }
 
   // ** Scans forward in a file and returns the line at the given index. */
-  public static String scanAndReadLine(
-      File file, LongArrayList rowMap, int index, Charset charset, Function<String, Boolean> filter)
+  public static String readSingleLine(
+      File file,
+      LongArrayList rowMap,
+      int index,
+      Charset charset,
+      Function<ByteArrayOutputStreamWithContains, String> filter)
       throws IOException {
     int size = rowMap.getSize();
     if (index != -1 && size > index) {
@@ -122,7 +170,7 @@ public class FileLineReader {
       int startAt,
       int endAt,
       Charset charset,
-      Function<String, Boolean> filter)
+      Function<ByteArrayOutputStreamWithContains, String> filter)
       throws IOException {
     List<String> result = new ArrayList<>();
     forEachLine(file, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
@@ -145,11 +193,21 @@ public class FileLineReader {
       int startAt,
       int endAt,
       Charset charset,
-      Function<String, Boolean> filter,
-      BiFunction<Integer, String, Boolean> action)
+      Function<ByteArrayOutputStreamWithContains, String> filter,
+      BiConsumer<Integer, String> action)
       throws IOException {
-    LOGGER.log(Level.INFO, "forEachLine: {0} {1}", new Object[] {startAt, endAt});
+    return innerForEachLine(file, rowMap, startAt, endAt, charset, filter, action, new CancellationToken());
+  }
 
+  private static String innerForEachLine(
+      File file,
+      LongArrayList rowMap,
+      int startAt,
+      int endAt,
+      Charset charset,
+      Function<ByteArrayOutputStreamWithContains, String> filter,
+      BiConsumer<Integer, String> action,
+      CancellationToken cancellationToken) throws IOException {
     if (startAt >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(startAt);
     }
@@ -162,7 +220,7 @@ public class FileLineReader {
     }
 
     boolean readAll = filter != null || action != null || endAt == -1;
-    var outputStream = new ByteArrayOutputStream(128);
+    var outputStream = new ByteArrayOutputStreamWithContains(128);
     String output = null;
 
     try (var stream = new FileInputStream(file)) {
@@ -173,7 +231,7 @@ public class FileLineReader {
       var buffer = channel.map(FileChannel.MapMode.READ_ONLY, position, bufferSize);
 
       // Loop until we either reach the required record or run out of data.
-      while ((endAt == -1 || index <= endAt) && (truncated || buffer.hasRemaining())) {
+      while (!cancellationToken.isCancelled && (endAt == -1 || index <= endAt) && (truncated || buffer.hasRemaining())) {
         var linePosition = buffer.position() + position;
 
         // Read a line.
@@ -183,14 +241,14 @@ public class FileLineReader {
 
         if (success || !truncated) {
           String line = null;
-          if (filter == null || filter.apply(line = outputStream.toString(charset))) {
+          if (filter == null || (line = filter.apply(outputStream)) != null) {
             if (index >= rowMap.getSize()) {
               rowMap.add(linePosition);
             }
 
             if (action != null) {
               line = line == null ? outputStream.toString(charset) : line;
-              action.apply(index, line);
+              action.accept(index, line);
             }
 
             if (index == endAt) {
@@ -231,5 +289,69 @@ public class FileLineReader {
 
       return output;
     }
+  }
+
+  //** Scans forward in a file reading line by line until it finds a line that matches the new filter. */
+  public static long findFirstNewFilter(
+      File file,
+      LongArrayList rowMap,
+      int endAt,
+      Charset charset,
+      Function<ByteArrayOutputStreamWithContains, String> filter,
+      Function<ByteArrayOutputStreamWithContains, String> newFilter) throws IOException {
+    final CancellationToken token = new CancellationToken();
+    final List<Long> result = new ArrayList<>();
+    BiConsumer<Integer, String> action = (index, line) -> {
+      var bytes = line.getBytes(charset);
+      var outputStream = ByteArrayOutputStreamWithContains.fromByteArray(bytes);
+      if (newFilter.apply(outputStream) != null) {
+        result.add(rowMap.get(index));
+        token.cancel();
+      }
+    };
+    innerForEachLine(file, rowMap, 0, endAt, charset, filter, action, token);
+    return result.isEmpty() ? rowMap.get(rowMap.getSize() - 1) : result.get(0);
+  }
+
+  // ** Creates a filter that checks if the line contains the given string. */
+  public static Function<ByteArrayOutputStreamWithContains, String> createContainsFilter(
+      String contains, Charset charset) {
+    if (isUnicodeCharset(charset)) {
+      var nfcVersion = Normalizer2.getNFCInstance().normalize(contains);
+      var nfdVersion = Normalizer2.getNFDInstance().normalize(contains);
+      if (!nfcVersion.equals(nfdVersion)) {
+        // Need to use Unicode normalization for equality.
+        return (outputStream) -> {
+          var line = outputStream.toString(charset);
+          return  Core_Text_Utils.compare_normalized(contains, line)==0 ? line : null;
+        };
+      }
+    }
+
+    var bytes = contains.getBytes(charset);
+    return (outputStream) -> outputStream.contains(bytes) ? outputStream.toString(charset) : null;
+  }
+
+  // ** Wraps an Enso function filter in a FileLineReader filter. */
+  public static Function<ByteArrayOutputStreamWithContains, String> wrapBooleanFilter(
+      Function<String, Boolean> filter, Charset charset) {
+    return (outputStream) -> {
+      var line = outputStream.toString(charset);
+      return filter.apply(line) ? line : null;
+    };
+  }
+
+  // Joins two filters together. */
+  public static Function<ByteArrayOutputStreamWithContains, String> mergeTwoFilters(
+    Function<ByteArrayOutputStreamWithContains, String> first,
+    Function<ByteArrayOutputStreamWithContains, String> second) {
+    return (outputStream) -> {
+      var first_result = first.apply(outputStream);
+      return first_result != null ? second.apply(outputStream) : null;
+    };
+  }
+
+  private static boolean isUnicodeCharset(Charset charset) {
+    return charset == StandardCharsets.UTF_8 || charset == StandardCharsets.UTF_16 || charset == StandardCharsets.UTF_16BE || charset == StandardCharsets.UTF_16LE;
   }
 }
