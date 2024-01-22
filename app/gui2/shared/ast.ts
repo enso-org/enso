@@ -154,6 +154,12 @@ type YNodes = Y.Map<YNode>
 export class MutableModule implements Module {
   private readonly nodes: YNodes
 
+  get ydoc() {
+    const ydoc = this.nodes.doc
+    assert(ydoc != null)
+    return ydoc
+  }
+
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
   get<T extends Ast>(ast: T): Mutable<T> | undefined {
     const instance = this.tryGetAst(syncId(ast))
@@ -482,12 +488,10 @@ export abstract class Ast {
   }
 
   /**
-   * Return whether `this` and `other` are the same object. If true, changes to either will be immediately visible in the other.
-   *
-   * NOTE: This method should be used in place of `===`. Distinct JS objects may be the same logical object.
+   * Return whether `this` and `other` are the same object, possibly in different modules.
    */
   is<T extends Ast>(other: T): boolean {
-    return this.fields === other.fields
+    return syncId(this) === syncId(other)
   }
 
   /** Return this node's span, if it belongs to a module with an associated span map. */
@@ -558,6 +562,12 @@ export abstract class Ast {
         if (node) yield node
       }
     }
+  }
+
+  parent(): Ast | undefined {
+    const parentId = this.fields.get('parent')
+    if (parentId === 'ROOT_ID') return
+    return this.module.getAst(parentId)
   }
 
   static parseBlock(source: string, inModule?: MutableModule) {
@@ -1850,6 +1860,14 @@ export class MutableFunction extends Function implements MutableAst {
     this.fields.set('argumentDefinitions', argumentDefinitionsToRaw(this.module, defs, this.syncId))
   }
 
+  bodyAsBlock(): MutableBodyBlock {
+    const oldBody = this.body
+    if (oldBody instanceof MutableBodyBlock) return oldBody
+    const newBody = BodyBlock.new([], this.module)
+    if (oldBody) newBody.push(oldBody.take().node)
+    return newBody
+  }
+
   replaceChild<T extends MutableAst>(target: SyncId, replacement: Owned<T>) {
     const { name, argumentDefinitions, body } = getAll(this.fields)
     if (name.node === target) {
@@ -2060,6 +2078,15 @@ export class MutableBodyBlock extends BodyBlock implements MutableAst {
       expression: unspaced(this.claimChild(statement)),
     }
     this.fields.set('lines', [...oldLines, newLine])
+  }
+
+  filter(keep: (ast: MutableAst) => boolean) {
+    const oldLines = this.fields.get('lines')
+    const filteredLines = oldLines.filter((line) => {
+      if (!line.expression) return true
+      return keep(this.module.getAst(line.expression.node))
+    })
+    this.fields.set('lines', filteredLines)
   }
 
   replaceChild<T extends MutableAst>(target: SyncId, replacement: Owned<T>) {

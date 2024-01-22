@@ -11,10 +11,14 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId, Module, Owned } from '@/util/ast/abstract'
-import { MutableModule } from '@/util/ast/abstract'
+import {
+  MutableModule,
+  ReactiveModule,
+  type AstId,
+  type Owned,
+} from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
@@ -24,8 +28,6 @@ import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
-  newIdMap,
-  sourceRangeFromKey,
   visMetadataEquals,
   type ExprId,
   type NodeMetadata,
@@ -33,7 +35,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch, type Ref, type ShallowRef } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -56,36 +58,23 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const data = computed(() => proj.module?.doc.data)
+  const astModule = computed(() => {
+    const yModule = proj.module?.doc.getAst()
+    return yModule ? new ReactiveModule(yModule) : undefined
+  })
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const moduleCode = ref(proj.module?.doc.getCode())
-  // We need casting here, as type changes in Ref when class has private fields.
-  // see https://github.com/vuejs/core/issues/2557
-  const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
-  const astModule: Module = MutableModule.Observable()
-  const moduleRoot = ref<AstId>()
-  let moduleDirty = false
+  const moduleCode = computed(() => astModule.value?.root()?.code())
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
 
   const topLevel = computed(() => {
     // The top level of the module is always a block.
-    const root = moduleRoot.value
-    const topLevel = root != null ? astModule.get(root) : null
-    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
-      return null
-    } else {
+    const topLevel = astModule.value?.root()
+    if (topLevel instanceof Ast.BodyBlock) {
       return topLevel
-    }
-  })
-
-  // Initialize text and idmap once module is loaded (data != null)
-  watch(data, () => {
-    if (!moduleCode.value) {
-      moduleCode.value = proj.module?.doc.getCode()
-      idMap.value = proj.module?.doc.getIdMap()
-      if (moduleCode.value && idMap.value) updateState()
+    } else {
+      return null
     }
   })
 
@@ -102,46 +91,34 @@ export const useGraphStore = defineStore('graph', () => {
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  useObserveYjs(data, (event) => {
-    moduleDirty = false
-    if (!event.changes.keys.size) return
-    const code = proj.module?.doc.getCode()
-    if (code) moduleCode.value = code
-    const ids = proj.module?.doc.getIdMap()
-    if (ids) idMap.value = ids
-    if (code && ids) updateState()
-  })
-
+  watch(astModule, () => updateState())
   function updateState() {
     const module = proj.module
     if (!module) return
-    const idMap_ = idMap.value
-    if (!idMap_) return
+    const astModule_ = astModule.value
+    if (!astModule_) return
     module.transact(() => {
       const meta = module.doc.metadata
-      const textContentLocal = moduleCode.value
-      if (!textContentLocal) return
-
-      const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
-      astModule.replace(newRoot.module)
-      moduleRoot.value = newRoot.exprId
-      module.doc.setIdMap(idMap_)
 
       imports.value = []
-      newRoot.visitRecursive((node) => {
-        if (node instanceof Ast.Import) {
-          const recognized = recognizeImport(node)
-          if (recognized) {
-            imports.value.push({ import: recognized, span: node.span! })
+      const newRoot = astModule_.root()
+      if (newRoot) {
+        newRoot.visitRecursive((node) => {
+          if (node instanceof Ast.Import) {
+            const recognized = recognizeImport(node)
+            if (recognized) {
+              imports.value.push({ import: recognized, span: node.span! })
+            }
+            return false
           }
-          return false
-        }
-        return true
-      })
+          return true
+        })
+      }
 
-      methodAst.value = methodAstInModule(topLevel.value)
-      if (methodAst.value) {
-        currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
+      if (topLevel.value) {
+        const methodAst_ = methodAstInModule(topLevel.value)
+        methodAst.value = methodAst_
+        if (methodAst_) currentNodeIds.value = db.readFunctionAst(methodAst_, (id) => meta.get(id))
       }
     })
   }
@@ -210,7 +187,7 @@ export const useGraphStore = defineStore('graph', () => {
     metadata: NodeMetadata | undefined = undefined,
     withImports: RequiredImport[] | undefined = undefined,
   ): Opt<ExprId> {
-    const mod = proj.module
+    const mod = astModule.value
     if (!mod) return
     const meta = metadata ?? {
       x: position.x,
@@ -220,39 +197,19 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    const edit = astModule.edit()
+    const edit = mod.edit()
     if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
-    const method = Ast.findModuleMethod(topLevel.value, currentFunc)
+    const method = Ast.findModuleMethod(topLevel.value!, currentFunc)
     if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
-
-    let functionBlock: Ast.BodyBlock
-
-    if (method.body instanceof Ast.BodyBlock) {
-      functionBlock = method.body
-    } else if (method.body != null) {
-      functionBlock = edit.takeAndReplaceRef(method.body.exprId, (node) => {
-        return Ast.BodyBlock.new([{ expression: { node } }], edit)
-      })
-    } else {
-      const newMethod: Ast.Function = edit.takeAndReplaceValue(method.exprId, (func) => {
-        assert(func instanceof Ast.Function)
-        assert(func.name != null)
-        const name = edit.take(func.name.exprId)?.node
-        assert(name != null)
-        const body = Ast.BodyBlock.new([], edit)
-        return Ast.Function.new(edit, name, func.argumentDefinitions, body)
-      })
-      assert(newMethod.body instanceof Ast.BodyBlock)
-      functionBlock = newMethod.body
-    }
-
     const rhs = Ast.parse(expression, edit)
-    const assignment = Ast.Assignment.new(edit, ident, rhs)
-    functionBlock.push(edit, assignment)
+    edit
+      .get(method)!
+      .bodyAsBlock()
+      .push(Ast.Assignment.new(edit, ident, rhs))
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
@@ -265,17 +222,21 @@ export const useGraphStore = defineStore('graph', () => {
     }
     const importsToAdd = filterOutRedundantImports(imports.value, newImports)
     if (!importsToAdd.length) return
-    addImports(edit, topLevel_, importsToAdd)
+    addImports(edit.get(topLevel_)!, importsToAdd)
   }
 
   function deleteNodes(ids: ExprId[]) {
-    const edit = astModule.edit()
+    const module = astModule.value
+    if (!module) return
+    const edit = module.edit()
     for (const id of ids) {
       const node = db.nodeIdToNode.get(id)
       if (!node) return
-      proj.module?.doc.metadata.delete(node.outerExprId)
+      proj.module?.doc.metadata.delete(node.outerExpr.exprId)
       nodeRects.delete(id)
-      edit.delete(node.outerExprId)
+      const parent = node.outerExpr.parent()
+      if (parent instanceof Ast.BodyBlock)
+        edit.get(parent)!.filter((statement) => statement !== node.outerExpr)
     }
     commitEdit(edit)
   }
@@ -283,17 +244,15 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: ExprId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    setExpressionContent(node.rootSpan.exprId, content)
+    setExpression(node.rootSpan, Ast.parse(content))
   }
 
-  function setExpression(id: ExprId, content: Ast.Owned<Ast.Ast>) {
-    const edit = astModule.edit()
-    edit.replaceValue(Ast.asNodeId(id), content)
+  function setExpression(ast: Ast.Ast, content: Ast.Owned) {
+    const module = astModule.value
+    if (!module) return
+    const edit = module.edit()
+    edit.get(ast)!.replaceValue(content)
     commitEdit(edit)
-  }
-
-  function setExpressionContent(id: ExprId, content: string) {
-    setExpression(id, Ast.parse(content))
   }
 
   function transact(fn: () => void) {
@@ -397,7 +356,9 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function getPortNodeId(id: PortId): ExprId | undefined {
-    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as ExprId)
+    const primaryInstance = getPortPrimaryInstance(id)?.nodeId
+    if (primaryInstance) return primaryInstance
+    if (id instanceof Ast.Ast) return db.getExpressionNodeId(id.exprId)
   }
 
   /**
@@ -407,40 +368,22 @@ export const useGraphStore = defineStore('graph', () => {
    * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
    * Therefore the passed in `edit` should not be modified afterwards, as it is already committed.
    */
-  function updatePortValue(
-    edit: MutableModule,
-    id: PortId,
-    value: Owned<Ast.Ast> | undefined,
-  ): boolean {
+  function updatePortValue(edit: MutableModule, id: PortId, value: Owned | undefined): boolean {
     const update = getPortPrimaryInstance(id)?.onUpdate
     if (!update) return false
     update({ edit, portUpdate: { value, origin: id } })
     return true
   }
 
-  function commitEdit(edit: Module, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot commit edit: No module root.`)
+  function commitEdit(edit: MutableModule, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
+    if (!edit.root()) {
+      console.error(`Refusing to commit edit with no root node set.`)
       return
     }
-    const printed = Ast.print(edit.find(root))
     const module_ = proj.module
     if (!module_) return
-    if (moduleDirty) {
-      console.warn(
-        `An edit has been committed before a previous edit has been observed. The new edit will supersede the previous edit.`,
-      )
-    }
-    moduleDirty = true
-    const idMap = newIdMap()
-    for (const [tokenKey, id] of printed.info.tokens)
-      idMap.set(sourceRangeFromKey(tokenKey), id.exprId)
-    for (const [nodeKey, ids] of printed.info.nodes)
-      idMap.set(sourceRangeFromKey(nodeKey), ids[0]!.exprId)
     module_.transact(() => {
-      module_.doc.setIdMap(idMap)
-      module_.doc.setCode(printed.code)
+      module_.doc.updateAst(edit)
       if (metadataUpdates) {
         for (const [id, meta] of metadataUpdates) {
           module_.updateNodeMetadata(id, meta)
@@ -454,7 +397,9 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
-    const edit = astModule.edit()
+    const module = astModule.value
+    if (!module) return
+    const edit = module.edit()
     const metadataUpdates = scope(edit)
     commitEdit(edit, metadataUpdates ?? undefined)
   }
@@ -467,17 +412,18 @@ export const useGraphStore = defineStore('graph', () => {
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: ExprId, targetNodeId: ExprId) {
-    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
-    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
-    const body = methodAstInModule(topLevel.value)?.body
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr
+    const method = methodAstInModule(topLevel.value!)
+    const body = method ? edit.get(method)?.bodyAsBlock() : undefined
     console.log('body', body)
     assert(sourceExpr != null)
     assert(targetExpr != null)
-    assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
+    assertDefined(body, 'Current function must be in the module.')
 
-    const lines = body.takeLines(edit)
-    const sourceIdx = lines.findIndex((line) => line.expression?.node.exprId === sourceExpr)
-    const targetIdx = lines.findIndex((line) => line.expression?.node.exprId === targetExpr)
+    const lines = body.takeLines()
+    const sourceIdx = lines.findIndex((line) => line.expression?.node.is(sourceExpr))
+    const targetIdx = lines.findIndex((line) => line.expression?.node.is(targetExpr))
 
     assert(sourceIdx != null)
     assert(targetIdx != null)
@@ -487,13 +433,15 @@ export const useGraphStore = defineStore('graph', () => {
       // Find all transitive dependencies of the moved target node.
       const deps = db.dependantNodes(targetNodeId)
 
-      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      const dependantLines = new Set(
+        Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.exprId),
+      )
       // Include the new target itself in the set of lines that must be placed after source node.
-      dependantLines.add(targetExpr)
+      dependantLines.add(targetExpr.exprId)
 
       // Check if the source depends on target. If that's the case, the edge we are trying to make
       // creates a circular dependency. Reordering doesn't make any sense in that case.
-      if (dependantLines.has(sourceExpr)) {
+      if (dependantLines.has(sourceExpr.exprId)) {
         return 'circular'
       }
 
@@ -509,9 +457,7 @@ export const useGraphStore = defineStore('graph', () => {
       lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
 
       // Finally apply the reordered lines into the body block as AST edit.
-      const ownedBody = edit.take(body.exprId)
-      assert(ownedBody != null)
-      edit.replaceValue(ownedBody.placeholder.exprId, Ast.BodyBlock.new(lines, edit))
+      body.replaceValue(Ast.BodyBlock.new(lines, edit))
       return true
     } else {
       return false
@@ -537,12 +483,10 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
-    moduleRoot,
     createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
     setNodeContent,
-    setExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,

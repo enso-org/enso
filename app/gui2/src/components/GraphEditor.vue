@@ -266,15 +266,18 @@ const graphBindingsHandler = graphBindings.handler({
       }
       const currentFunctionEnv = environmentForNodes(selected.values())
       const module = graphStore.astModule
+      if (!module) {
+        bail('BUG: no top level, collapsing not possible.')
+      }
       const topLevel = graphStore.topLevel
       if (!topLevel) {
         bail('BUG: no top level, collapsing not possible.')
       }
       const edit = module.edit()
+      const topLevel_ = edit.get(topLevel)!
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        edit,
-        topLevel,
+        topLevel_,
         graphStore.db,
         currentMethodName,
       )

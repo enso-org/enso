@@ -119,11 +119,15 @@ export class ModuleDoc {
   getAst(): MutableModule {
     return new MutableModule(this.ydoc)
   }
+
+  updateAst(newState: MutableModule) {
+    Y.applyUpdateV2(this.ydoc, Y.encodeStateAsUpdateV2(newState.ydoc))
+  }
 }
 
 export class DistributedModule {
-  doc: ModuleDoc
-  undoManager: Y.UndoManager
+  readonly doc: ModuleDoc
+  readonly undoManager: Y.UndoManager
 
   static async load(ydoc: Y.Doc): Promise<DistributedModule> {
     ydoc.load()

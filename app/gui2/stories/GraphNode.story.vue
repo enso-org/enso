@@ -36,7 +36,7 @@ const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {
-    outerExprId: '' as any,
+    outerExpr: rootSpan.value,
     pattern: pattern.value,
     position: position.value,
     rootSpan: rootSpan.value,

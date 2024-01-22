@@ -192,8 +192,8 @@ const isOutputContextOverridden = computed({
           enableOutputContext: replacementText,
           disableOutputContext: undefined,
         }
-    const expression = props.node.rootSpan
-    const newAst = prefixes.modify(edit, expression, replacements)
+    const expression = edit.get(props.node.rootSpan)!
+    const newAst = prefixes.modify(expression, replacements)
     const code = newAst.code()
     graph.setNodeContent(props.node.rootSpan.exprId, code)
   },
@@ -309,7 +309,7 @@ watchEffect(() => {
   for (const port of outputPortsSet.value) {
     setIfUndefined(hoverAnimations, port, () =>
       useApproach(
-        () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+        () => (outputHovered.value === port || graph.unconnectedEdge?.target instanceof Ast.Ast && graph.unconnectedEdge.target.exprId === port ? 1 : 0),
         50,
         0.01,
       ),

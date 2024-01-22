@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type Owned } from '@/util/ast/abstract.ts'
+import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -12,7 +12,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 export namespace WidgetInput {
   export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
     return {
-      portId: ast.exprId,
+      portId: ast,
       value: ast,
     }
   }
@@ -142,7 +142,7 @@ export interface WidgetProps<T> {
 export interface WidgetUpdate {
   edit: MutableModule
   portUpdate?: {
-    value: Owned<Ast.Ast> | string | undefined
+    value: Ast.Owned | string | undefined
     origin: PortId
   }
 }

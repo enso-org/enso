@@ -96,7 +96,7 @@ function toggleDropdownWidget() {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  const edit = graph.astModule.edit()
+  const edit = graph.astModule!.edit()
   if (selectedTag.value?.requiredImports)
     graph.addMissingImports(edit, selectedTag.value.requiredImports)
   props.onUpdate({

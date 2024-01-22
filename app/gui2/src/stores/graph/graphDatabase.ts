@@ -324,9 +324,7 @@ export class GraphDb {
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
         node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) {
-          node.outerExprId = newNode.outerExprId
-        }
+        if (!node.outerExpr.is(newNode.outerExpr)) node.outerExpr = newNode.outerExpr
         node.rootSpan = newNode.rootSpan
       }
       if (nodeMeta) {
@@ -361,17 +359,17 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
+  mockNode(binding: string, outerExpr: Ast.Ast, code?: string): Node {
     const pattern = Ast.parse(binding)
     const node: Node = {
-      outerExprId: id,
+      outerExpr,
       pattern,
       rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
     const bindingId = pattern.exprId
-    this.nodeIdToNode.set(id, node)
+    this.nodeIdToNode.set(outerExpr.exprId, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
   }
@@ -392,7 +390,7 @@ export class GraphDb {
 }
 
 export interface Node {
-  outerExprId: Ast.AstId
+  outerExpr: Ast.Ast
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
   position: Vec2
@@ -401,11 +399,12 @@ export interface Node {
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function mockNode(exprId?: Ast.AstId): Node {
+export function mockNode(outerExpr?: Ast.Ast): Node {
+  const rootSpan = Ast.parse('0')
   return {
-    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
+    outerExpr: outerExpr ?? rootSpan,
     pattern: undefined,
-    rootSpan: Ast.parse('0'),
+    rootSpan,
     position: Vec2.Zero,
     vis: undefined,
   }

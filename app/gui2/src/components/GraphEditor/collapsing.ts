@@ -6,7 +6,7 @@ import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
-import { newIdMap, type ExprId } from 'shared/yjsModel'
+import { type ExprId } from 'shared/yjsModel'
 
 // === Types ===
 
@@ -147,22 +147,22 @@ interface CollapsingResult {
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
-  edit: Ast.MutableModule,
-  topLevel: Ast.BodyBlock,
+  topLevel: Ast.MutableBodyBlock,
   db: GraphDb,
   currentMethodName: string,
 ): CollapsingResult {
+  const edit = topLevel.module
   const functionAst = Ast.findModuleMethod(topLevel, currentMethodName)
-  if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
+  if (!(functionAst instanceof Ast.Function)) {
     throw new Error(`Expected a collapsable function, found ${functionAst}.`)
   }
-  const functionBlock = functionAst.body
-  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
+  const functionBlock = edit.get(functionAst)!.bodyAsBlock()
+  const posToInsert = findInsertionPos(topLevel, currentMethodName)
   const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
-    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
+    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExpr.exprId),
   )
-  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
+  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExpr.exprId
   const collapsed = []
   const refactored = []
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
@@ -173,8 +173,7 @@ export function performCollapse(
   const lines = functionBlock.statements()
   for (const line of lines) {
     const astId = line.exprId
-    const ast = edit.take(astId)?.node
-    assert(ast != null)
+    const ast = line.take().node
     if (astIdsToExtract.has(astId)) {
       collapsed.push(ast)
       if (astId === astIdToReplace) {
@@ -192,9 +191,8 @@ export function performCollapse(
     collapsed.push(ident)
     outputNodeId = ident.exprId
   }
-  // Update the definiton of the refactored function.
-  const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
-  edit.replaceRef(functionBlock.exprId, refactoredBlock)
+  // Update the definition of the refactored function.
+  functionBlock.setLines(refactored)
 
   // Insert a new function.
   const argNames: string[] = info.extracted.inputs.map((arg) => arg)
@@ -205,7 +203,7 @@ export function performCollapse(
     collapsed,
     true,
   )
-  topLevel.insert(edit, posToInsert, collapsedFunction)
+  topLevel.insert(posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
@@ -214,7 +212,7 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: string,
   edit: Ast.MutableModule,
-): { ast: Ast.Owned<Ast.Ast>; nodeId: ExprId } {
+): { ast: Ast.Owned; nodeId: ExprId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`
@@ -226,13 +224,11 @@ function collapsedCallAst(
 
 /** Find the position before the current method to insert a collapsed one. */
 function findInsertionPos(
-  module: Ast.Module,
   topLevel: Ast.BodyBlock,
   currentMethodName: string,
 ): number {
-  const currentFuncPosition = topLevel.lines().findIndex((line) => {
-    const node = line.expression?.node
-    const expr = node ? module.get(node.exprId)?.innerExpression() : null
+  const currentFuncPosition = topLevel.lines.findIndex((line) => {
+    const expr = line.expression?.node.innerExpression()
     return expr instanceof Ast.Function && expr.name?.code() === currentMethodName
   })
 
@@ -245,8 +241,7 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
-    const ast = Ast.parseTransitional(code, newIdMap())
-    assert(ast instanceof Ast.BodyBlock)
+    const ast = Ast.parseBlock(code)
     const expressions = Array.from(ast.statements())
     const func = expressions[0]
     assert(func instanceof Ast.Function)

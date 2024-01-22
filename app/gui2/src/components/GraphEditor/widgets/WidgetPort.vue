@@ -106,7 +106,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props, _db) => {
     const portInfo = injectPortInfo(true)
     const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.exprId) {
+    if (portInfo != null && portInfo.portId === value) {
       return Score.Mismatch
     }
 

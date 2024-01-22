@@ -38,16 +38,16 @@ function handleWidgetUpdates(update: WidgetUpdate) {
       edit,
       portUpdate: { value, origin },
     } = update
-    if (!isUuid(origin)) {
-      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+    if (!(origin instanceof Ast.Ast)) {
+      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression.`)
     } else {
       const ast =
         value instanceof Ast.Ast
           ? value
           : value == null
           ? Ast.Wildcard.new(edit)
-          : Ast.RawCode.new(value, edit)
-      edit.replaceValue(origin as Ast.AstId, ast)
+          : Ast.parse(value, edit)
+      edit.get(origin)!.replaceValue(ast)
     }
   }
   graph.commitEdit(update.edit)

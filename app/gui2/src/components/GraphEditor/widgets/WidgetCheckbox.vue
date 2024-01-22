@@ -14,13 +14,13 @@ const value = computed({
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = graph.astModule.edit()
+    const edit = graph.astModule!.edit()
     if (props.input.value instanceof Ast.Ast) {
       const node = getRawBoolNode(props.input.value)
       if (node != null) {
         props.onUpdate({
           edit,
-          portUpdate: { value: value ? 'True' : 'False', origin: node.exprId },
+          portUpdate: { value: value ? 'True' : 'False', origin: node },
         })
       }
     } else {

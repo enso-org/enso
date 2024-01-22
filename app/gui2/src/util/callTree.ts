@@ -86,7 +86,7 @@ export class ArgumentAst {
   }
 
   get portId(): PortId {
-    return this.ast.exprId
+    return this.ast
   }
 }
 
@@ -369,7 +369,7 @@ export class ArgumentApplication {
     return {
       portId:
         this.argument instanceof ArgumentAst
-          ? this.appTree.exprId
+          ? this.appTree
           : (`app:${this.argument.portId}` as PortId),
       value: this.appTree,
       [ArgumentApplicationKey]: this,
