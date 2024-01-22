@@ -1,6 +1,6 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
-import type { UpdatePayload } from '@/providers/widgetRegistry'
+import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
@@ -11,16 +11,18 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, Module, Owned } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
+import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
-import type { StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -43,7 +45,7 @@ export class PortViewInstance {
   constructor(
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: ExprId,
-    public onUpdate: (update: UpdatePayload) => void,
+    public onUpdate: (update: WidgetUpdate) => void,
   ) {}
 }
 
@@ -65,6 +67,17 @@ export const useGraphStore = defineStore('graph', () => {
   let moduleDirty = false
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
+
+  const topLevel = computed(() => {
+    // The top level of the module is always a block.
+    const root = moduleRoot.value
+    const topLevel = root != null ? astModule.get(root) : null
+    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
+      return null
+    } else {
+      return topLevel
+    }
+  })
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
@@ -125,11 +138,15 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
+      methodAst.value = methodAstInModule(astModule)
       if (methodAst.value) {
         currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
+  }
+
+  function methodAstInModule(mod: Module) {
+    return getExecutedMethodAst(mod, proj.executionContext.getStackTop(), db)
   }
 
   useObserveYjs(metadata, (event) => {
@@ -202,44 +219,63 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot add node: No module root.`)
-      return
-    }
     const edit = astModule.edit()
-    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    // The top level of the module is always a block.
-    const topLevel = astModule.get(root)! as Ast.BodyBlock
-    if (importsToAdd) addImports(edit, topLevel, importsToAdd)
+    if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
-    const functionBlock = Ast.functionBlock(astModule, currentFunc)
-    if (!functionBlock) {
+    const method = Ast.findModuleMethod(astModule, currentFunc)
+    if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
+
+    let functionBlock: Ast.BodyBlock
+
+    if (method.body instanceof Ast.BodyBlock) {
+      functionBlock = method.body
+    } else if (method.body != null) {
+      functionBlock = edit.takeAndReplaceRef(method.body.exprId, (node) => {
+        return Ast.BodyBlock.new([{ expression: { node } }], edit)
+      })
+    } else {
+      const newMethod: Ast.Function = edit.takeAndReplaceValue(method.exprId, (func) => {
+        assert(func instanceof Ast.Function)
+        assert(func.name != null)
+        const name = edit.take(func.name.exprId)?.node
+        assert(name != null)
+        const body = Ast.BodyBlock.new([], edit)
+        return Ast.Function.new(edit, name, func.argNodes(), body)
+      })
+      assert(newMethod.body instanceof Ast.BodyBlock)
+      functionBlock = newMethod.body
+    }
+
     const rhs = Ast.parse(expression, edit)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
-  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
-    const edit = cb(astModule)
-    commitEdit(edit)
-  }
-
-  function deleteNode(id: ExprId) {
-    const node = db.nodeIdToNode.get(id)
-    if (!node) return
-    proj.module?.doc.metadata.delete(node.outerExprId)
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot delete node: No module root.`)
+  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
+    if (!newImports.length) return
+    const topLevel_ = topLevel.value
+    if (!topLevel_) {
+      console.error(`BUG: Cannot add required imports: No module root.`)
       return
     }
+    const importsToAdd = filterOutRedundantImports(imports.value, newImports)
+    if (!importsToAdd.length) return
+    addImports(edit, topLevel_, importsToAdd)
+  }
+
+  function deleteNodes(ids: ExprId[]) {
     const edit = astModule.edit()
-    edit.delete(node.outerExprId)
+    for (const id of ids) {
+      const node = db.nodeIdToNode.get(id)
+      if (!node) return
+      proj.module?.doc.metadata.delete(node.outerExprId)
+      nodeRects.delete(id)
+      edit.delete(node.outerExprId)
+    }
     commitEdit(edit)
   }
 
@@ -268,8 +304,6 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
@@ -368,11 +402,18 @@ export const useGraphStore = defineStore('graph', () => {
   /**
    * Emit an value update to a port view under specific ID. Returns `true` if the port view is
    * registered and the update was emitted, or `false` otherwise.
+   *
+   * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
+   * Therefore the passed in `edit` should not be modified afterwards, as it is already committed.
    */
-  function updatePortValue(id: PortId, value: Owned<Ast.Ast> | undefined): boolean {
+  function updatePortValue(
+    edit: MutableModule,
+    id: PortId,
+    value: Owned<Ast.Ast> | undefined,
+  ): boolean {
     const update = getPortPrimaryInstance(id)?.onUpdate
     if (!update) return false
-    update({ type: 'set', value, origin: id })
+    update({ edit, portUpdate: { value, origin: id } })
     return true
   }
 
@@ -411,9 +452,79 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    db.mockExpressionUpdate(binding, update)
+  }
+
+  function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
+    const edit = astModule.edit()
+    const metadataUpdates = scope(edit)
+    commitEdit(edit, metadataUpdates ?? undefined)
+  }
+
+  /**
+   * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
+   * relative order is already correct.
+   *
+   * Additionally all nodes dependent on the `targetNodeId` that end up being before its new line
+   * are also moved after it, keeping their relative order.
+   */
+  function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: ExprId, targetNodeId: ExprId) {
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const body = methodAstInModule(edit)?.body
+    console.log('body', body)
+    assert(sourceExpr != null)
+    assert(targetExpr != null)
+    assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
+
+    const lines = body.lines()
+    const sourceIdx = lines.findIndex((line) => line.expression?.node.exprId === sourceExpr)
+    const targetIdx = lines.findIndex((line) => line.expression?.node.exprId === targetExpr)
+
+    assert(sourceIdx != null)
+    assert(targetIdx != null)
+
+    // If source is placed after its new target, the nodes needs to be reordered.
+    if (sourceIdx > targetIdx) {
+      // Find all transitive dependencies of the moved target node.
+      const deps = db.dependantNodes(targetNodeId)
+
+      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      // Include the new target itself in the set of lines that must be placed after source node.
+      dependantLines.add(targetExpr)
+
+      // Check if the source depends on target. If that's the case, the edge we are trying to make
+      // creates a circular dependency. Reordering doesn't make any sense in that case.
+      if (dependantLines.has(sourceExpr)) {
+        return 'circular'
+      }
+
+      // Pick subset of lines to reorder, i.e. lines between and including target and source.
+      const linesToSort = lines.splice(targetIdx, sourceIdx - targetIdx + 1)
+
+      // Split those lines into two buckets, whether or not they depend on the target.
+      const [linesAfter, linesBefore] = partition(linesToSort, (line) =>
+        dependantLines.has(line.expression?.node.exprId),
+      )
+
+      // Recombine all lines after splitting, keeping existing dependants below the target.
+      lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
+
+      // Finally apply the reordered lines into the body block as AST edit.
+      const ownedBody = edit.take(body.exprId)
+      assert(ownedBody != null)
+      edit.replaceValue(ownedBody.placeholder.exprId, Ast.BodyBlock.new(lines, edit))
+      return true
+    } else {
+      return false
+    }
+  }
+
   return {
     transact,
     db: markRaw(db),
+    mockExpressionUpdate,
     imports,
     editedNodeInfo,
     unconnectedEdge,
@@ -424,7 +535,6 @@ export const useGraphStore = defineStore('graph', () => {
     vizRects,
     unregisterNodeRect,
     methodAst,
-    editAst,
     astModule,
     createEdgeFromOutput,
     disconnectSource,
@@ -432,14 +542,15 @@ export const useGraphStore = defineStore('graph', () => {
     clearUnconnected,
     moduleRoot,
     createNode,
-    deleteNode,
+    deleteNodes,
+    ensureCorrectNodeOrder,
     setNodeContent,
-    setExpression,
     setExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
+    topLevel,
     updateNodeRect,
     updateVizRect,
     addPortInstance,
@@ -450,6 +561,8 @@ export const useGraphStore = defineStore('graph', () => {
     setEditedNode,
     updateState,
     commitEdit,
+    editScope,
+    addMissingImports,
   }
 })
 
@@ -471,7 +584,7 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: Ast.Ast,
+  astModule: Module,
   executionStackTop: StackItem,
   db: GraphDb,
 ): Ast.Function | undefined {
@@ -480,7 +593,7 @@ function getExecutedMethodAst(
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
+      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
@@ -488,7 +601,7 @@ function getExecutedMethodAst(
       if (!info) return undefined
       const ptr = info.methodCall?.methodPointer
       if (!ptr) return undefined
-      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
+      return Ast.findModuleMethod(astModule, ptr.name) ?? undefined
     }
   }
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
   injectWidgetRegistry,
-  type UpdatePayload,
   type WidgetInput,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
@@ -28,7 +28,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-type UpdateHandler = (update: UpdatePayload) => boolean
+type UpdateHandler = (update: WidgetUpdate) => boolean
 
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
@@ -56,7 +56,7 @@ const updateHandler = computed(() => {
     parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))
   if (props.onUpdate != null) {
     const localHandler = props.onUpdate
-    return (payload: UpdatePayload) => {
+    return (payload: WidgetUpdate) => {
       const handled = localHandler(payload)
       if (!handled) nextHandler(payload)
     }
@@ -98,6 +98,7 @@ const spanStart = computed(() => {
     :input="props.input"
     :nesting="nesting"
     :data-span-start="spanStart"
+    :data-port="props.input.portId"
     @update="updateHandler"
   />
   <span

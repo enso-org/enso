@@ -6,7 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
 
 /** Generates stubs of runtime representations of atom constructors, to allow

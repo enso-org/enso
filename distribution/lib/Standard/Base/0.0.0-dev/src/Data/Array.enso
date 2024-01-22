@@ -161,7 +161,8 @@ type Array
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
-    ## GROUP Selections
+    ## ALIAS skip
+       GROUP Selections
        ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 

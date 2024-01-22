@@ -27,7 +27,6 @@ polyglot java import org.graalvm.collections.Pair as Java_Pair
 polyglot java import org.enso.base.enso_cloud.EnsoSecretAccessDenied
 polyglot java import org.enso.base.net.URITransformer
 polyglot java import org.enso.base.net.URIWithSecrets
-polyglot java import org.enso.base.net.UserInfoWithSecrets
 
 ## Represents a Uniform Resource Identifier (URI) reference.
 type URI
@@ -49,7 +48,7 @@ type URI
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
     parse uri:Text =
-        Panic.catch URISyntaxException (URI.Value (Java_URI.new uri) [] Nothing) caught_panic->
+        Panic.catch URISyntaxException (URI.Value (Java_URI.new uri) []) caught_panic->
             message = caught_panic.payload.getMessage
             truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
                 "URI syntax error: " + message
@@ -147,7 +146,7 @@ type URI
 
         segments = if segment == "" then ["", ""] else
             segment.split "/"
-        result = URI.Value (URITransformer.extendPath self.internal_uri segments) self.additional_query_parameters self.user_info_override
+        result = URI.Value (URITransformer.extendPath self.internal_uri segments) self.additional_query_parameters
         Problem_Behavior.Report_Warning.attach_problems_before (has_question_mark+has_hash) result
 
     ## GROUP Metadata
@@ -171,24 +170,13 @@ type URI
        - value: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
     add_query_argument self key:Text value:(Text | Enso_Secret) =
-        URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value] self.user_info_override
+        URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value]
 
     ## GROUP Calculations
        Removes any query parameters within the URI.
     reset_query_arguments : URI
     reset_query_arguments self = handle_resolve_errors <|
-        URI.Value (URITransformer.removeQueryParameters self.internal_uri) [] self.user_info_override
-
-    ## GROUP Calculations
-       Sets the user info for the URI.
-
-       Arguments:
-       - username: The username.
-       - password: The password.
-    set_user_info : Text | Enso_Secret -> Text | Enso_Secret -> URI
-    set_user_info self (username : Text | Enso_Secret) (password : Text | Enso_Secret) =
-        if username.is_a Text && username.contains ":" then Error.throw (Illegal_Argument.Error "The username cannot contain a ':' character.") else
-            URI.Value self.internal_uri self.additional_query_parameters (User_Info.Value username password)
+        URI.Value (URITransformer.removeQueryParameters self.internal_uri) []
 
     ## Get the fragment part of this URI.
 
@@ -259,9 +247,7 @@ type URI
        Arguments:
        - internal_builder: A Java URI that contains parsed URI data.
        - additional_query_parameters: A list of query parameters to add to the URI.
-       - user_info_override: The user and password for the authority part of the URL, if provided.
-         If the `internal_uri` also contains user info, the one provided here will override it.
-    Value (internal_uri : Java_URI) (additional_query_parameters : Vector (Pair Text (Text | Enso_Secret))) (user_info_override : User_Info | Nothing)
+    Value (internal_uri : Java_URI) (additional_query_parameters : Vector (Pair Text (Text | Enso_Secret)))
 
     ## PRIVATE
        Convert to a JavaScript Object representing this URI.
@@ -286,10 +272,7 @@ type URI
     to_java_representation self =
         parameters = self.additional_query_parameters.map p->
             Java_Pair.create p.first (Cloud_Utils.as_hideable_value p.second)
-        java_user_info = self.user_info_override.if_not_nothing <|
-            self.user_info_override.to_java
-
-        URIWithSecrets.new self.internal_uri parameters java_user_info
+        URIWithSecrets.new self.internal_uri parameters
 
     ## PRIVATE
        Convert this to a raw Java URI.
@@ -299,18 +282,6 @@ type URI
 
 ## PRIVATE
 URI.from (that:Text) = URI.parse that
-
-## PRIVATE
-type User_Info
-    ## PRIVATE
-    Value (username : Text | Enso_Secret) (password : Text | Enso_Secret)
-
-    ## PRIVATE
-    to_java : UserInfoWithSecrets
-    to_java self =
-        username = Cloud_Utils.as_hideable_value self.username
-        password = Cloud_Utils.as_hideable_value self.password
-        UserInfoWithSecrets.new username password
 
 ## PRIVATE
 handle_resolve_errors ~action =
@@ -330,7 +301,7 @@ type URI_Comparator
         eq = case java_uri_x.is_error || java_uri_y.is_error of
             # If the URIs contain secrets, they are considered equal only if they yield the same text and have the same internal structure.
             True -> if x.to_text != y.to_text then False else
-                (x.additional_query_parameters == y.additional_query_parameters) && (x.user_info_override == y.user_info_override)
+                (x.additional_query_parameters == y.additional_query_parameters)
             # If the URIs do not contain secrets, they are considered equal if the effective URI they denote is the same.
             False -> java_uri_x == java_uri_y
         if eq then Ordering.Equal else Nothing

@@ -165,7 +165,7 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 
@@ -227,7 +227,7 @@ abstract class Vector implements EnsoObject {
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
-        Warning[] extracted = warnings.getWarnings(this.storage, null);
+        Warning[] extracted = warnings.getWarnings(this.storage, null, false);
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
@@ -263,9 +263,10 @@ abstract class Vector implements EnsoObject {
     @ExportMessage
     Warning[] getWarnings(
         Node location,
+        boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      return warnings.getWarnings(this.storage, location);
+      return warnings.getWarnings(this.storage, location, shouldWrap);
     }
 
     @ExportMessage
@@ -330,7 +331,7 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 
@@ -380,7 +381,7 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 

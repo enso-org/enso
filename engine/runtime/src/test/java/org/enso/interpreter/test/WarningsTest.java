@@ -48,9 +48,9 @@ public class WarningsTest extends TestBase {
     assertEquals(value, with1.getValue());
     assertEquals(value, with2.getValue());
     Assert.assertArrayEquals(
-        new Object[] {warn1}, with1.getWarningsArray(WarningsLibrary.getUncached()));
+        new Object[] {warn1}, with1.getWarningsArray(WarningsLibrary.getUncached(), false));
     Assert.assertArrayEquals(
-        new Object[] {warn1, warn2}, with2.getWarningsArray(WarningsLibrary.getUncached()));
+        new Object[] {warn1, warn2}, with2.getWarningsArray(WarningsLibrary.getUncached(), false));
   }
 
   @Test

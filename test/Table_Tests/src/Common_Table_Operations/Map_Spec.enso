@@ -48,7 +48,7 @@ spec setup =
                     if (x % 2) == 0 then Warning.attach (Illegal_State.Error "MY WARNING "+x.to_text) (2*x + 1) else 2*x + 1
                 c1 = t.at "X" . map f
                 warnings = Problems.get_attached_warnings c1
-                warnings.map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
+                warnings.map Error.unwrap . map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
                 c1.to_vector . should_equal [3, 5, 7, 9]
 
             Test.specify "should respect the expected_value_type" <|
@@ -165,6 +165,7 @@ spec setup =
                 w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
+
             Test.specify "should respect the expected_value_type" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
 

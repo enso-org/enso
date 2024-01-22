@@ -1,6 +1,7 @@
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { bail } from '@/util/assert'
 import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
@@ -12,7 +13,12 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
+import {
+  methodPointerEquals,
+  type ExpressionUpdate,
+  type MethodCall,
+  type StackItem,
+} from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -239,10 +245,36 @@ export class GraphDb {
     )
   }
 
+  /**
+   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
+   */
+  dependantNodes(id: ExprId): Set<ExprId> {
+    const toVisit = [id]
+    const result = new Set<ExprId>()
+
+    let currentNode: ExprId | undefined
+    while ((currentNode = toVisit.pop())) {
+      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
+      for (const outputPort of outputPorts) {
+        const connectedPorts = this.connections.lookup(outputPort)
+        for (const port of connectedPorts) {
+          const portNode = this.getExpressionNodeId(port)
+          if (portNode == null) continue
+          if (!result.has(portNode)) {
+            result.add(portNode)
+            toVisit.push(portNode)
+          }
+        }
+      }
+    }
+
+    return result
+  }
+
   getMethodCallInfo(
     id: ExprId,
   ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; staticallyApplied: boolean }
+    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
     | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
@@ -254,8 +286,8 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const staticallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, staticallyApplied }
+    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
+    return { methodCall, suggestion, partiallyApplied }
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -356,6 +388,20 @@ export class GraphDb {
     this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
+  }
+
+  mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    const nodeId = this.getIdentDefiningNode(binding)
+    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
+    const update_: ExpressionUpdate = {
+      expressionId: nodeId,
+      profilingInfo: update.profilingInfo ?? [],
+      fromCache: update.fromCache ?? false,
+      payload: update.payload ?? { type: 'Value' },
+      ...(update.type ? { type: update.type } : {}),
+      ...(update.methodCall ? { methodCall: update.methodCall } : {}),
+    }
+    this.valuesRegistry.processUpdates([update_])
   }
 }
 

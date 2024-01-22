@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
     return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
-    props.onUpdate({ type: 'set', value: value.toString(), origin: props.input.portId })
+    props.onUpdate({
+      edit: graph.astModule.edit(),
+      portUpdate: { value: value.toString(), origin: props.input.portId },
+    })
   },
 })
 </script>

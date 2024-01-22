@@ -70,8 +70,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     var file = processingEnv.getFiler().createSourceFile(pkg + "." + className);
     try (var out = new PrintWriter(file.openWriter())) {
       out.println("package " + pkg + ";");
-      out.println("import org.enso.interpreter.runtime.callable.atom.Atom;");
-      out.println("import org.enso.interpreter.runtime.callable.atom.AtomConstructor;");
+      out.println("import org.enso.interpreter.runtime.data.atom.Atom;");
+      out.println("import org.enso.interpreter.runtime.data.atom.AtomConstructor;");
       out.println("import com.oracle.truffle.api.dsl.NodeFactory;");
       out.println("import com.oracle.truffle.api.dsl.Specialization;");
       out.println();

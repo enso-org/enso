@@ -130,9 +130,6 @@ pub mod prelude {
 }
 
 use prelude::*;
-use std::net::Ipv4Addr;
-use std::net::SocketAddrV4;
-use std::net::TcpListener;
 
 use ::anyhow::Context;
 
@@ -142,24 +139,11 @@ pub const EMPTY_REQUEST_BODY: Option<&()> = None;
 /// The user agent string name used by our HTTP clients.
 pub const USER_AGENT: &str = "enso-build";
 
-pub const UNREGISTERED_PORTS: Range<u16> = 49152..65535;
-
 pub const RECORD_SEPARATOR: &str = "\u{1E}";
 
-/// Looks up a free port in the IANA private or dynamic port range.
+/// Looks up a free port.
 pub fn get_free_port() -> Result<u16> {
-    let port_range = UNREGISTERED_PORTS;
-    port_range
-        .into_iter()
-        .find(|port| {
-            // Note that we must use Ipv4Addr::UNSPECIFIED. Ipv4Addr::LOCALHOST would not be enough,
-            // as it misses e.g. services spawned by docker subnetworks.
-            // This also makes us write this by hand, rather than use a crate.
-            let ipv4 = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, *port);
-            // FIXME investigate? this can show firewall dialog on windows
-            TcpListener::bind(ipv4).is_ok()
-        })
-        .context("Failed to find a free local port.")
+    portpicker::pick_unused_port().context("Failed to find a free available port.")
 }
 
 pub fn ok_ready_boxed<'a, T: 'a + Send>(t: T) -> BoxFuture<'a, Result<T>> {

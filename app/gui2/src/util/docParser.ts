@@ -17,7 +17,6 @@ export namespace Doc {
     | 'Modified'
     | 'Private'
     | 'Removed'
-    | 'TextOnly'
     | 'Unstable'
     | 'Upcoming'
   export type Mark = 'Important' | 'Info' | 'Example'

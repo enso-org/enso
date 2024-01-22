@@ -14,23 +14,10 @@ import org.graalvm.collections.Pair;
  *
  * <p>This is the common entry point for building a URI with or without secrets.
  */
-public record URISchematic(
-    URI baseUri, List<Pair<String, String>> queryParameters, Pair<String, String> userInfo) {
+public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters) {
   public URI build() throws URISyntaxException {
     StringBuilder authorityBuilder = new StringBuilder();
-    if (userInfo != null) {
-      var username = userInfo.getLeft();
-      var password = userInfo.getRight();
-      if (username.contains(":")) {
-        throw new IllegalArgumentException("Username within an URI cannot contain ':'.");
-      }
-
-      authorityBuilder
-          .append(URITransformer.encode(username))
-          .append(":")
-          .append(URITransformer.encode(password))
-          .append("@");
-    } else if (baseUri.getRawUserInfo() != null) {
+    if (baseUri.getRawUserInfo() != null) {
       authorityBuilder.append(baseUri.getRawUserInfo()).append("@");
     }
 
