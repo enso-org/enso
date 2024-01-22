@@ -10,6 +10,7 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
@@ -40,6 +41,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const toastAndLog = toastAndLogHooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { getText } = textProvider.useText()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
@@ -58,7 +60,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             try {
                 await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
             } catch (error) {
-                toastAndLog('Could not rename folder', error)
+                toastAndLog(getText('renameFolderError'), error)
                 setAsset(object.merger({ title: oldTitle }))
             }
         }
@@ -94,7 +96,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case AssetEventType.newFolder: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Cannot create folders on the local drive')
+                        toastAndLog(getText('localBackendFolderError'))
                     } else {
                         rowState.setVisibility(Visibility.faded)
                         try {
@@ -109,7 +111,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 type: AssetListEventType.delete,
                                 key: item.key,
                             })
-                            toastAndLog('Could not create new folder', error)
+                            toastAndLog(getText('createFolderError'), error)
                         }
                     }
                 }

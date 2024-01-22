@@ -15,6 +15,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
@@ -83,6 +84,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
+    const { getText } = textProvider.useText()
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -369,7 +371,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
+                    <SvgMask
+                        alt={getText('openInEditor')}
+                        className={ICON_CLASSES}
+                        src={PlayIcon}
+                    />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -392,7 +398,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <Spinner size={ICON_SIZE_PX} state={spinnerState} />
                     </div>
                     <SvgMask
-                        alt="Stop execution"
+                        alt={getText('stopExecution')}
                         src={StopIcon}
                         className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
                     />
@@ -419,7 +425,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             <Spinner size={24} state={spinnerState} />
                         </div>
                         <SvgMask
-                            alt="Stop execution"
+                            alt={getText('stopExecution')}
                             src={StopIcon}
                             className={`${ICON_CLASSES} ${
                                 isRunningInBackground ? 'text-green' : ''
@@ -436,7 +442,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             }}
                         >
                             <SvgMask
-                                alt="Open in editor"
+                                alt={getText('openInEditor')}
                                 src={ArrowUpIcon}
                                 className={ICON_CLASSES}
                             />

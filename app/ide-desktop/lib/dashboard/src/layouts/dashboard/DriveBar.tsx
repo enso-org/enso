@@ -14,6 +14,7 @@ import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
@@ -42,6 +43,7 @@ export default function DriveBar(props: DriveBarProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { getText } = textProvider.useText()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
     const isHomeCategory = category === Category.home || !isCloud
@@ -85,17 +87,17 @@ export default function DriveBar(props: DriveBarProps) {
                             !isHomeCategory ? 'opacity-50' : ''
                         }`}
                     >
-                        New Project
+                        {getText('newProject')}
                     </span>
                 </button>
                 <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
-                    {backend.type !== backendModule.BackendType.local && (
+                    {isCloud && (
                         <Button
                             active={isHomeCategory}
                             disabled={!isHomeCategory}
-                            error="You can only create a new folder in Home."
+                            error={getText('newFolderInHomeOnly')}
                             image={AddFolderIcon}
-                            alt="New Folder"
+                            alt={getText('newFolder')}
                             disabledOpacityClassName="opacity-20"
                             onClick={() => {
                                 unsetModal()
@@ -103,13 +105,13 @@ export default function DriveBar(props: DriveBarProps) {
                             }}
                         />
                     )}
-                    {backend.type !== backendModule.BackendType.local && (
+                    {isCloud && (
                         <Button
                             active={isHomeCategory}
                             disabled={!isHomeCategory}
-                            error="You can only create a new data connector in Home."
+                            error={getText('newSecretInHomeOnly')}
                             image={AddConnectorIcon}
-                            alt="New Data Connector"
+                            alt={getText('newSecret')}
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
@@ -145,9 +147,9 @@ export default function DriveBar(props: DriveBarProps) {
                     <Button
                         active={isHomeCategory}
                         disabled={!isHomeCategory}
-                        error="You can only upload files to Home."
+                        error={getText('uploadToHomeOnly')}
                         image={DataUploadIcon}
-                        alt="Upload Files"
+                        alt={getText('uploadFiles')}
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
                             unsetModal()
@@ -158,7 +160,7 @@ export default function DriveBar(props: DriveBarProps) {
                         active={canDownloadFiles}
                         disabled={!canDownloadFiles}
                         image={DataDownloadIcon}
-                        alt="Download Files"
+                        alt={getText('downloadFiles')}
                         error={
                             category === Category.trash
                                 ? 'You cannot download files from Trash.'

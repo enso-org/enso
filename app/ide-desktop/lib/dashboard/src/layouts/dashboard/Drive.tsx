@@ -1,8 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import * as appUtils from '#/appUtils'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -22,6 +20,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as github from '#/utilities/github'
@@ -97,6 +96,7 @@ export default function Drive(props: DriveProps) {
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { modalRef } = modalProvider.useModalRef()
+    const { getText } = textProvider.useText()
     const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
@@ -170,9 +170,9 @@ export default function Drive(props: DriveProps) {
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
-            if (backend.type !== backendModule.BackendType.local && organization == null) {
+            if (isCloud && sessionType === authProvider.UserSessionType.offline) {
                 // This should never happen, however display a nice error message in case it does.
-                toastAndLog('Files cannot be uploaded while offline')
+                toastAndLog(getText('offlineUploadFilesError'))
             } else {
                 dispatchAssetListEvent({
                     type: AssetListEventType.uploadFiles,
@@ -183,10 +183,11 @@ export default function Drive(props: DriveProps) {
             }
         },
         [
-            backend,
-            organization,
+            getText,
+            isCloud,
             rootDirectoryId,
-            toastAndLog,
+            sessionType,
+            /* should never change */ toastAndLog,
             /* should never change */ dispatchAssetListEvent,
         ]
     )
@@ -310,14 +311,14 @@ export default function Drive(props: DriveProps) {
             return (
                 <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
                     <div className="flex flex-col gap-4">
-                        <div className="text-base text-center">You are not logged in.</div>
+                        <div className="text-base text-center">{getText('youAreNotLoggedIn')}</div>
                         <button
                             className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
                             onClick={() => {
                                 navigate(appUtils.LOGIN_PATH)
                             }}
                         >
-                            Login
+                            {getText('login')}
                         </button>
                     </div>
                 </div>
@@ -326,10 +327,7 @@ export default function Drive(props: DriveProps) {
         case DriveStatus.noProjectManager: {
             return (
                 <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-                    <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
-                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
-                    </div>
+                    <div className="text-base text-center">{getText('couldNotConnectToPM')}</div>
                 </div>
             )
         }
@@ -337,12 +335,12 @@ export default function Drive(props: DriveProps) {
             return (
                 <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
                     <div className="flex flex-col gap-4 text-base text-center">
-                        Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+                        {getText('upgradeToUseCloud')}
                         <a
                             className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
                             href="https://enso.org/pricing"
                         >
-                            Upgrade
+                            {getText('upgrade')}
                         </a>
                         {!supportsLocalBackend && (
                             <button
@@ -350,15 +348,13 @@ export default function Drive(props: DriveProps) {
                                 onClick={async () => {
                                     const downloadUrl = await github.getDownloadUrl()
                                     if (downloadUrl == null) {
-                                        toastAndLog(
-                                            'Could not find a download link for the current OS'
-                                        )
+                                        toastAndLog(getText('noAppDownloadError'))
                                     } else {
                                         window.open(downloadUrl, '_blank')
                                     }
                                 }}
                             >
-                                Download Free Edition
+                                {getText('downloadFreeEdition')}
                             </button>
                         )}
                     </div>
@@ -449,7 +445,7 @@ export default function Drive(props: DriveProps) {
                                 })
                             }}
                         >
-                            Drop to upload files.
+                            {getText('dropToUploadFiles')}
                         </div>
                     ) : null}
                 </div>

@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
@@ -44,6 +45,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { getText } = textProvider.useText()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
         // eslint-disable-next-line no-restricted-syntax
@@ -83,7 +85,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     asset.title
                 )
             } catch (error) {
-                toastAndLog('Could not rename project', error)
+                toastAndLog(getText('renameProjectError'), error)
                 setAsset(object.merger({ title: oldTitle }))
             }
         }
@@ -147,7 +149,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             type: AssetListEventType.delete,
                             key: item.key,
                         })
-                        toastAndLog('Error creating new project', error)
+                        toastAndLog(getText('createProjectError'), error)
                     }
                 }
                 break
@@ -220,7 +222,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             type: AssetListEventType.delete,
                             key: item.key,
                         })
-                        toastAndLog('Could not upload project', error)
+                        toastAndLog(getText('uploadProjectError'), error)
                     }
                 }
                 break
