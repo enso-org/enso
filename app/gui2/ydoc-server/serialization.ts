@@ -1,38 +1,38 @@
 /** Translation of `yjsModel` types to and from the `fileFormat` representation. */
 
 import * as json from 'lib0/json'
-import { ExprId, IdMap } from '../shared/yjsModel'
+import { ExprId, IdMap, newIdMap, sourceRangeFromKey } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
-export function deserializeIdMap(idMapJson: string) {
+export function deserializeIdMap(idMapJson: string): IdMap {
   const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
-  const idMap = new IdMap()
+  const idMap = newIdMap()
   for (const [{ index, size }, id] of idMapMeta) {
     const range = [index.value, index.value + size.value]
     if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
       console.error(`Invalid range for id ${id}:`, range)
       continue
     }
-    idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
+    idMap.set([index.value, index.value + size.value], id as ExprId)
   }
   return idMap
 }
 
 export function serializeIdMap(map: IdMap): string {
-  map.validate()
+  //map.validate()
   return json.stringify(idMapToArray(map))
 }
 
 function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
   const entries: fileFormat.IdMapEntry[] = []
-  map.entries().forEach(([rangeBuffer, id]) => {
-    const decoded = IdMap.rangeForKey(rangeBuffer)
+  for (const [rangeBuffer, id] of map) {
+    const decoded = sourceRangeFromKey(rangeBuffer)
     const index = decoded[0]
     const endIndex = decoded[1]
-    if (index == null || endIndex == null) return
+    if (index == null || endIndex == null) continue
     const size = endIndex - index
     entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
+  }
   entries.sort(idMapCmp)
   return entries
 }

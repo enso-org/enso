@@ -63,7 +63,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     :getKey="(ast: Ast.Ast) => ast.exprId"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
-    :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
+    :toDragPayload="(ast: Ast.Ast) => Ast.serialize(ast)"
     :fromDragPayload="Ast.deserialize"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
     class="WidgetVector"

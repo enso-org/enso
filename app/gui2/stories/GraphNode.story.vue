@@ -11,7 +11,7 @@ import { computed, reactive, ref, watchEffect } from 'vue'
 import { IdMap, type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
-const idMap = new IdMap()
+const idMap = newIdMap()
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')

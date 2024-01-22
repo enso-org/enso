@@ -24,7 +24,8 @@ import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
-  IdMap,
+  newIdMap,
+  sourceRangeFromKey,
   visMetadataEquals,
   type ExprId,
   type NodeMetadata,
@@ -432,15 +433,11 @@ export const useGraphStore = defineStore('graph', () => {
       )
     }
     moduleDirty = true
-    const idMap = new IdMap()
-    for (const [tokenKey, id] of printed.info.tokens) {
-      const range = Ast.keyToRange(tokenKey)
-      idMap.insertKnownId([range.start, range.end], id)
-    }
-    for (const [nodeKey, ids] of printed.info.nodes) {
-      const range = Ast.keyToRange(nodeKey)
-      idMap.insertKnownId([range.start, range.end], ids[0]!)
-    }
+    const idMap = newIdMap()
+    for (const [tokenKey, id] of printed.info.tokens)
+      idMap.set(sourceRangeFromKey(tokenKey), id.exprId)
+    for (const [nodeKey, ids] of printed.info.nodes)
+      idMap.set(sourceRangeFromKey(nodeKey), ids[0]!.exprId)
     module_.transact(() => {
       module_.doc.setIdMap(idMap)
       module_.doc.setCode(printed.code)

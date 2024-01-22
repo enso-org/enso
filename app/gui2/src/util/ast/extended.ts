@@ -1,5 +1,3 @@
-import * as Ast from '@/generated/ast'
-import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
@@ -14,8 +12,16 @@ import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-import type { ExprId, IdMap, SourceRange } from 'shared/yjsModel'
+import {
+  newExprId,
+  sourceRangeKey,
+  type ExprId,
+  type IdMap,
+  type SourceRange,
+} from 'shared/yjsModel'
 import { markRaw } from 'vue'
+import * as Ast from '../../../shared/generated/ast'
+import { Token, Tree } from '../../../shared/generated/ast'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
   ? Extract<V, { type: Ts }>
@@ -47,8 +53,7 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     const ast = parseEnso(code)
     if (idMap != null) {
       visitRecursive(ast, (node) => {
-        const range = parsedTreeOrTokenRange(node)
-        idMap.getOrInsertUniqueId(range)
+        idMap.setIfUndefined(parsedTreeOrTokenRange(node), newExprId)
         return true
       })
     }
@@ -96,7 +101,7 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 
   get astId(): CondType<ExprId, HasIdMap> {
     if (this.ctx.idMap != null) {
-      const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
+      const id = this.ctx.idMap.get(parsedTreeOrTokenRange(this.inner))
       assert(id != null, 'All AST nodes should have an assigned ID')
       return id as CondType<ExprId, HasIdMap>
     } else {

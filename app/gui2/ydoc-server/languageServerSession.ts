@@ -3,17 +3,18 @@ import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
+import {
+  asNodeId,
+  parseBlockWithSpans,
+  type NodeKey,
+  type TokenId,
+  type TokenKey,
+} from '../shared/ast'
 import { splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
-import {
-  DistributedProject,
-  IdMap,
-  ModuleDoc,
-  type NodeMetadata,
-  type Uuid,
-} from '../shared/yjsModel'
+import { DistributedProject, ModuleDoc, type NodeMetadata, type Uuid } from '../shared/yjsModel'
 import { applyDocumentUpdates, prettyPrintDiff, translateVisualizationFromFile } from './edits'
 import * as fileFormat from './fileFormat'
 import { deserializeIdMap } from './serialization'
@@ -473,9 +474,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 
-      const idMap = idMapJson ? deserializeIdMap(idMapJson) : new IdMap()
-      this.doc.setIdMap(idMap)
-
       const keysToDelete = new Set(this.doc.metadata.keys())
       for (const [id, meta] of Object.entries(nodeMeta)) {
         if (typeof id !== 'string') continue
@@ -492,7 +490,25 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedVersion = version
       this.syncedMeta = metadata
 
-      this.doc.setCode(code)
+      const module = this.doc.getAst()
+      module.clear()
+      const parsed = parseBlockWithSpans(code, module)
+      if (idMapJson) {
+        const idMap = deserializeIdMap(idMapJson)
+        for (const [key, id] of idMap.entries()) {
+          const nodes = parsed.spans.nodes.get(key as NodeKey)
+          const token = parsed.spans.tokens.get(key as TokenKey)
+          if (nodes) {
+            for (const node of nodes) {
+              const node_ = module.get(node)!
+              node_.setExprId(asNodeId(id))
+            }
+          }
+          if (token) token.exprId = id as TokenId
+          if (!nodes?.length && !token) idMap.delete(key)
+        }
+      }
+      module.replaceRoot(parsed.block)
     }, 'file')
   }
 

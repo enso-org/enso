@@ -1,10 +1,16 @@
+import { MappedKeyMap } from '@/util/containers'
 import * as object from 'lib0/object'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
+import { MutableModule } from './ast'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
+
+export function newExprId() {
+  return random.uuidv4() as ExprId
+}
 
 export type VisualizationModule =
   | { kind: 'Builtin' }
@@ -101,32 +107,17 @@ export interface NodeMetadata {
 }
 
 export class ModuleDoc {
-  ydoc: Y.Doc
-  metadata: Y.Map<NodeMetadata>
-  data: Y.Map<any>
+  readonly ydoc: Y.Doc
+  readonly metadata: Y.Map<NodeMetadata>
+  readonly nodes: Y.Map<Y.Map<unknown>>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
     this.metadata = ydoc.getMap('metadata')
-    this.data = ydoc.getMap('data')
+    this.nodes = ydoc.getMap('nodes')
   }
 
-  setIdMap(map: IdMap) {
-    const oldMap = new IdMap(this.data.get('idmap') ?? [])
-    if (oldMap.isEqual(map)) return
-    this.data.set('idmap', map.entries())
-  }
-
-  getIdMap(): IdMap {
-    const map = this.data.get('idmap')
-    return new IdMap(map ?? [])
-  }
-
-  setCode(code: string) {
-    this.data.set('code', code)
-  }
-
-  getCode(): string {
-    return this.data.get('code') ?? ''
+  getAst(): MutableModule {
+    return new MutableModule(this.ydoc)
   }
 }
 
@@ -142,7 +133,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
+    this.undoManager = new Y.UndoManager([this.doc.nodes, this.doc.metadata])
   }
 
   transact<T>(fn: () => T): T {
@@ -158,10 +149,6 @@ export class DistributedModule {
     return this.doc.metadata.get(id) ?? null
   }
 
-  getIdMap(): IdMap {
-    return new IdMap(this.doc.data.get('idmap') ?? [])
-  }
-
   dispose(): void {
     this.doc.ydoc.destroy()
   }
@@ -171,100 +158,16 @@ export type SourceRange = readonly [start: number, end: number]
 declare const brandSourceRangeKey: unique symbol
 export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
 
-export class IdMap {
-  private readonly rangeToExpr: Map<SourceRangeKey, ExprId>
+export function sourceRangeKey(range: SourceRange): SourceRangeKey {
+  return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
+}
+export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
+  return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+}
 
-  constructor(entries?: [SourceRangeKey, ExprId][]) {
-    this.rangeToExpr = new Map(entries ?? [])
-  }
-
-  static Mock(): IdMap {
-    return new IdMap([])
-  }
-
-  public static keyForRange(range: SourceRange): SourceRangeKey {
-    return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
-  }
-
-  public static rangeForKey(key: SourceRangeKey): SourceRange {
-    return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  }
-
-  insertKnownId(range: SourceRange, id: ExprId) {
-    const key = IdMap.keyForRange(range)
-    this.rangeToExpr.set(key, id)
-  }
-
-  getIfExist(range: SourceRange): ExprId | undefined {
-    const key = IdMap.keyForRange(range)
-    return this.rangeToExpr.get(key)
-  }
-
-  delete(range: SourceRange) {
-    this.deleteKey(IdMap.keyForRange(range))
-  }
-  deleteKey(key: SourceRangeKey) {
-    this.rangeToExpr.delete(key)
-  }
-
-  getOrInsertUniqueId(range: SourceRange): ExprId {
-    const key = IdMap.keyForRange(range)
-    const val = this.rangeToExpr.get(key)
-    if (val !== undefined) {
-      return val
-    } else {
-      const newId = random.uuidv4() as ExprId
-      this.rangeToExpr.set(key, newId)
-      return newId
-    }
-  }
-
-  entries(): [SourceRangeKey, ExprId][] {
-    return [...this.rangeToExpr]
-  }
-
-  get size(): number {
-    return this.rangeToExpr.size
-  }
-
-  clear(): void {
-    this.rangeToExpr.clear()
-  }
-
-  isEqual(other: IdMap): boolean {
-    if (other.size !== this.size) return false
-    for (const [key, value] of this.rangeToExpr.entries()) {
-      const oldValue = other.rangeToExpr.get(key)
-      if (oldValue !== value) return false
-    }
-    return true
-  }
-
-  validate() {
-    const uniqueValues = new Set(this.rangeToExpr.values())
-    if (uniqueValues.size < this.rangeToExpr.size) {
-      console.warn(`Duplicate UUID in IdMap`)
-    }
-  }
-
-  clone(): IdMap {
-    return new IdMap(this.entries())
-  }
-
-  // Debugging.
-  compare(other: IdMap) {
-    console.info(`IdMap.compare -------`)
-    const allKeys = new Set<SourceRangeKey>()
-    for (const key of this.rangeToExpr.keys()) allKeys.add(key)
-    for (const key of other.rangeToExpr.keys()) allKeys.add(key)
-    for (const key of allKeys) {
-      const mine = this.rangeToExpr.get(key)
-      const yours = other.rangeToExpr.get(key)
-      if (mine !== yours) {
-        console.info(`IdMap.compare[${key}]: ${mine} -> ${yours}`)
-      }
-    }
-  }
+export type IdMap = MappedKeyMap<SourceRange, ExprId>
+export function newIdMap(): IdMap {
+  return new MappedKeyMap(sourceRangeKey)
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/

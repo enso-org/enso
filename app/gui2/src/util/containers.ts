@@ -1,6 +1,7 @@
 import { assertDefined, assertEqual } from '@/util/assert'
 import type { NonEmptyArray } from '@/util/data/array'
 import { mapIterator } from 'lib0/iterator'
+import * as map from 'lib0/map'
 
 /**
  * Map that supports Object-based keys.
@@ -28,6 +29,11 @@ export class MappedKeyMap<Key, Value> {
     const innerKey = this.keyMapper(key)
     this.map.set(innerKey, [key, value])
     return this
+  }
+
+  setIfUndefined(key: Key, lazyValue: () => Value) {
+    const innerKey = this.keyMapper(key)
+    map.setIfUndefined(this.map, innerKey, () => [key, lazyValue()])
   }
 
   /** Get the value for the given key, or `undefined` if it does not exist. */

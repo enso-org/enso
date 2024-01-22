@@ -20,7 +20,7 @@ import {
   type StackItem,
 } from 'shared/languageServerTypes'
 import {
-  IdMap,
+  sourceRangeKey,
   visMetadataEquals,
   type ExprId,
   type NodeMetadata,
@@ -96,9 +96,9 @@ export class BindingsDb {
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
   ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<ExprId, SourceRange>] {
-    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(IdMap.keyForRange)
+    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(sourceRangeKey)
     const bindingIdToRange = new Map<ExprId, SourceRange>()
-    const bindingRanges = new MappedSet(IdMap.keyForRange)
+    const bindingRanges = new MappedSet(sourceRangeKey)
     for (const [binding, usages] of analyzer.aliases) {
       bindingRanges.add(binding)
       for (const usage of usages) bindingRanges.add(usage)
@@ -323,25 +323,11 @@ export class GraphDb {
       if (node == null) {
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
-        if (
-          !byteArraysEqual(
-            node.pattern?.astExtended?.contentHash(),
-            newNode.pattern?.astExtended?.contentHash(),
-          )
-        ) {
-          node.pattern = newNode.pattern
-        }
+        node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) {
           node.outerExprId = newNode.outerExprId
         }
-        if (
-          !byteArraysEqual(
-            node.rootSpan.astExtended?.contentHash(),
-            newNode.rootSpan.astExtended?.contentHash(),
-          )
-        ) {
-          node.rootSpan = newNode.rootSpan
-        }
+        node.rootSpan = newNode.rootSpan
       }
       if (nodeMeta) {
         this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
