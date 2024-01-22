@@ -43,15 +43,8 @@ import * as listen from './listen.mock'
 
 // This file exports a subset of the values from the original file.
 /* eslint-disable no-restricted-syntax */
-export {
-    ConfirmSignUpErrorKind,
-    CurrentSessionErrorKind,
-    ForgotPasswordErrorKind,
-    ForgotPasswordSubmitErrorKind,
-    SignInWithPasswordErrorKind,
-    SignUpErrorKind,
-    // @ts-expect-error This is a mock file that needs to reference its original file.
-} from './cognito.ts'
+// @ts-expect-error This is a mock file that needs to reference its original file.
+export { CognitoErrorType } from './cognito.ts'
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -104,7 +97,7 @@ export class Cognito {
             const expirationDate = date + TEN_HOURS_S
             if (!this.isSignedIn) {
                 // eslint-disable-next-line @typescript-eslint/no-throw-literal
-                throw original.CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage
+                throw 'No current user'
             } else {
                 return Promise.resolve<cognito.CognitoUserSession>({
                     isValid: () => true,
@@ -149,7 +142,7 @@ export class Cognito {
                 })
             }
         })
-        const amplifySession = currentSession.mapErr(original.intoCurrentSessionErrorKind)
+        const amplifySession = currentSession.mapErr(original.intoCurrentSessionErrorType)
         return amplifySession.map(parseUserSession).unwrapOr(null)
     }
 

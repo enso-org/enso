@@ -403,15 +403,18 @@ export default function AuthProvider(props: AuthProviderProps) {
         gtag.event('cloud_confirm_sign_up')
         const result = await cognito.confirmSignUp(email, code)
         if (result.err) {
-            switch (result.val.kind) {
-                case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
+            switch (result.val.type) {
+                case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
                     break
-                case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
+                }
+                case cognitoModule.CognitoErrorType.userNotFound: {
                     toastError('Incorrect email or confirmation code.')
                     navigate(appUtils.LOGIN_PATH)
                     return false
-                default:
-                    throw new errorModule.UnreachableCaseError(result.val.kind)
+                }
+                default: {
+                    throw new errorModule.UnreachableCaseError(result.val.type)
+                }
             }
         }
         toastSuccess('Your account has been confirmed! Please log in.')
@@ -425,10 +428,10 @@ export default function AuthProvider(props: AuthProviderProps) {
         if (result.ok) {
             toastSuccess('Successfully logged in!')
         } else {
-            if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
+            if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
                 // It may not be safe to pass the user's password in the URL.
                 navigate(
-                    `${appUtils.REGISTRATION_PATH}?{new URLSearchParams({ email }).toString()}`
+                    `${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`
                 )
             }
             toastError(result.val.message)
