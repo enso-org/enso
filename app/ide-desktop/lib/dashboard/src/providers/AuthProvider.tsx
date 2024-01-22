@@ -6,6 +6,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
@@ -187,7 +188,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     const { children, projectManagerUrl } = props
     const logger = loggerProvider.useLogger()
     const { cognito } = authService
-    const { session, deinitializeSession } = sessionProvider.useSession()
+    const { session, deinitializeSession, onError } = sessionProvider.useSession()
     const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
     // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
@@ -241,6 +242,16 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
     }, [goOffline])
 
+    React.useEffect(
+        () =>
+            onError(error => {
+                if (isNetworkError(error)) {
+                    void goOffline()
+                }
+            }),
+        [onError, goOffline]
+    )
+
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
      * When invoked, retrieves the access token (if available) from the storage method chosen when
@@ -286,10 +297,13 @@ export default function AuthProvider(props: AuthProviderProps) {
                             user = null
                         }
                         break
-                    } catch {
-                        // The value may have changed after the `await`.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        if (!navigator.onLine) {
+                    } catch (error) {
+                        if (
+                            // The value may have changed after the `await`.
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                            !navigator.onLine ||
+                            isNetworkError(error)
+                        ) {
                             goOfflineInternal()
                             // eslint-disable-next-line no-restricted-syntax
                             return
@@ -442,7 +456,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 // It may not be safe to pass the user's password in the URL.
                 navigate(
-                    `${appUtils.REGISTRATION_PATH}?{new URLSearchParams({ email }).toString()}`
+                    `${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`
                 )
             }
             toastError(result.val.message)

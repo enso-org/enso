@@ -34,6 +34,7 @@
     "@heroicons/react": "^2.0.15",
     "@sentry/react": "^7.74.0",
     "enso-common": "^1.0.0",
+    "is-network-error": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
