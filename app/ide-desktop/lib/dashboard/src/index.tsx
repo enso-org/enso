@@ -4,12 +4,13 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
-import type * as app from '#/App'
-import App from '#/App'
 import * as reactDOM from 'react-dom/client'
 import * as reactRouter from 'react-router-dom'
 
 import * as detect from 'enso-common/src/detect'
+
+import type * as app from '#/App'
+import App from '#/App'
 
 import * as config from '#/utilities/config'
 

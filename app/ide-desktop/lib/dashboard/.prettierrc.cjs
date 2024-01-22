@@ -22,6 +22,7 @@ module.exports = {
                     '',
                     '^enso-',
                     '',
+                    '^#[/]App',
                     '^#[/]appUtils',
                     '',
                     '^#[/]hooks[/]',
