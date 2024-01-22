@@ -15,6 +15,7 @@ import * as gtag from 'enso-common/src/gtag'
 import * as appUtils from '#/appUtils'
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
+import * as debugHooks from '#/hooks/debugHooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -240,7 +241,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         if (!navigator.onLine) {
             void goOffline()
         }
-    }, [goOffline])
+    }, [/* should never change */ goOffline])
 
     React.useEffect(
         () =>
@@ -249,7 +250,7 @@ export default function AuthProvider(props: AuthProviderProps) {
                     void goOffline()
                 }
             }),
-        [onError, goOffline]
+        [onError, /* should never change */ goOffline]
     )
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
@@ -257,7 +258,7 @@ export default function AuthProvider(props: AuthProviderProps) {
      * When invoked, retrieves the access token (if available) from the storage method chosen when
      * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
      * If the token has expired, automatically refreshes the token and returns the new token. */
-    React.useEffect(() => {
+    debugHooks.useDebugEffect(() => {
         const fetchSession = async () => {
             if (!navigator.onLine || forceOfflineMode) {
                 goOfflineInternal()
@@ -304,7 +305,7 @@ export default function AuthProvider(props: AuthProviderProps) {
                             !navigator.onLine ||
                             isNetworkError(error)
                         ) {
-                            goOfflineInternal()
+                            void goOffline()
                             // eslint-disable-next-line no-restricted-syntax
                             return
                         }

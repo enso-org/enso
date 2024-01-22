@@ -42,6 +42,7 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 import * as authServiceModule from '#/authentication/service'
+import * as debugHooks from '#/hooks/debugHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -165,10 +166,10 @@ function AppRouter(props: AppProps) {
         }
     }, [shortcuts])
     const mainPageUrl = getMainPageUrl()
-    const authService = React.useMemo(() => {
+    const authService = debugHooks.useDebugMemo(() => {
         const authConfig = { navigate, ...props }
         return authServiceModule.initAuthService(authConfig)
-    }, [navigate, props])
+    }, [props, /* should never change */ navigate])
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
