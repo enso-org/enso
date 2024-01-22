@@ -8,6 +8,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
 
 const projectStore = useProjectStore()
 const mod = projectStore.projectModel.createNewModule('Main.enso')
+projectStore.setObservedFileName('Main.enso')
 mod.doc.ydoc.emit('load', [])
 
 function applyEdits(module: NonNullable<typeof projectStore.module>, newText: string) {

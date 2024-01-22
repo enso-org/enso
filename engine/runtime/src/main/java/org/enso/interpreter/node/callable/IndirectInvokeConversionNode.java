@@ -143,7 +143,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       int thatArgumentPosition,
       @Cached IndirectInvokeConversionNode childDispatch) {
     arguments[thatArgumentPosition] = that.getValue();
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
+    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     Object result =
         childDispatch.execute(
             frame,

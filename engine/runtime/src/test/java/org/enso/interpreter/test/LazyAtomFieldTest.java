@@ -122,6 +122,72 @@ public class LazyAtomFieldTest extends TestBase {
     assertEquals(log, 5050, sum.asLong());
   }
 
+  @Test
+  public void fourAtomIntFields() throws Exception {
+    checkNumHolder(
+        """
+    type Num
+        Holder a b c ~num
+
+        new  = Num.Holder 1 2 3 (R.new.nextInt)
+    """);
+  }
+
+  @Test
+  public void fourAtomObjectFields() throws Exception {
+    checkNumHolder(
+        """
+    type Num
+        Holder a b c ~num
+
+        new  = Num.Holder "a" "b" "c" (R.new.nextInt)
+    """);
+  }
+
+  @Test
+  public void fiveAtomIntFields() throws Exception {
+    checkNumHolder(
+        """
+    type Num
+        Holder a b c d ~num
+
+        new  = Num.Holder 1 2 3 4 (R.new.nextInt)
+    """);
+  }
+
+  @Test
+  public void fiveAtomObjectFields() throws Exception {
+    checkNumHolder(
+        """
+    type Num
+        Holder a b c d ~num
+
+        new  = Num.Holder "a" "b" "c" "d" (R.new.nextInt)
+    """);
+  }
+
+  private void checkNumHolder(String typeDefinition) throws Exception {
+    var code =
+        "polyglot java import java.util.Random as R\n"
+            + typeDefinition
+            + """
+
+      create ignore =
+        fbl = Num.new
+        f = fbl.num
+        n = fbl.num
+        [ f, n ]
+      """;
+    var create = evalCode(code, "create");
+    var tupple = create.execute(0);
+
+    assertEquals("Two values", 2, tupple.getArraySize());
+    var first = tupple.getArrayElement(0).asInt();
+    var second = tupple.getArrayElement(1).asInt();
+
+    assertEquals("Both numbers are the same", first, second);
+  }
+
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);

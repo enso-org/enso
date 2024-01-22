@@ -1,5 +1,9 @@
 /** @file Utilities for manipulating strings. */
 
+// ========================
+// === String utilities ===
+// ========================
+
 /** Return a function returning the singular or plural form of a word depending on the count of
  * items. */
 export function makePluralize(singular: string, plural: string) {
@@ -14,4 +18,9 @@ export function capitalizeFirst(string: string) {
 /** Sanitizes a string for use as a regex. */
 export function regexEscape(string: string) {
     return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
+}
+
+/** Whether a string consists only of whitespace, meaning that the string will not be visible. */
+export function isWhitespaceOnly(string: string) {
+    return /^\s*$/.test(string)
 }

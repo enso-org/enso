@@ -16,6 +16,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
+import * as string from '#/utilities/string'
 import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
@@ -45,15 +46,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         throw new Error('`DirectoryNameColumn` can only display directory assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const isCloud = backend.type === backendModule.BackendType.remote
 
-    const doRename = async (newName: string) => {
-        if (backend.type !== backendModule.BackendType.local) {
+    const doRename = async (newTitle: string) => {
+        setRowState(object.merger({ isEditingName: false }))
+        if (string.isWhitespaceOnly(newTitle)) {
+            // Do nothing.
+        } else if (isCloud && newTitle !== asset.title) {
+            const oldTitle = asset.title
+            setAsset(object.merger({ title: newTitle }))
             try {
-                await backend.updateDirectory(asset.id, { title: newName }, asset.title)
-                return
+                await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
             } catch (error) {
                 toastAndLog('Could not rename folder', error)
-                throw error
+                setAsset(object.merger({ title: oldTitle }))
             }
         }
     }
@@ -165,18 +171,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                             child.item.title !== newTitle
                     )
                 }
-                onSubmit={async newTitle => {
-                    setRowState(object.merger({ isEditingName: false }))
-                    if (newTitle !== asset.title) {
-                        const oldTitle = asset.title
-                        setAsset(object.merger({ title: newTitle }))
-                        try {
-                            await doRename(newTitle)
-                        } catch {
-                            setAsset(object.merger({ title: oldTitle }))
-                        }
-                    }
-                }}
+                onSubmit={doRename}
                 onCancel={() => {
                     setRowState(object.merger({ isEditingName: false }))
                 }}

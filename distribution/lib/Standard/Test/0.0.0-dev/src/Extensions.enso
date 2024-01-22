@@ -11,6 +11,8 @@ from project.Test import Test
    - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
+   - unwrap_errors: If true, remove any wrapping errors from the result before
+     checking against the expected warning.
 
    > Example
      Assert that a computation should return an error of a given type.
@@ -20,8 +22,9 @@ from project.Test import Test
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Any.should_fail_with : Any -> Integer -> Test_Result
-Any.should_fail_with self matcher frames_to_skip=0 =
+Any.should_fail_with : Any -> Integer -> Boolean -> Test_Result
+Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
+    _ = unwrap_errors
     loc = Meta.get_source_location 1+frames_to_skip
     matcher_text = matcher . to_text
     Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
@@ -32,6 +35,8 @@ Any.should_fail_with self matcher frames_to_skip=0 =
    - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
+   - unwrap_errors: If true, remove any wrapping errors from the result before
+     checking against the expected warning.
 
    > Example
      Assert that a computation should return an error of a given type.
@@ -41,9 +46,10 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Error.should_fail_with : Any -> Integer -> Test_Result
-Error.should_fail_with self matcher frames_to_skip=0 =
-    caught = self.catch
+Error.should_fail_with : Any -> Integer -> Boolean -> Test_Result
+Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
+    unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
+    caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         matcher_text = matcher . to_text

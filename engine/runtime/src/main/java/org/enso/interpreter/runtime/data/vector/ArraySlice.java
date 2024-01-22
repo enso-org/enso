@@ -95,7 +95,7 @@ final class ArraySlice implements EnsoObject {
 
     var v = interop.readArrayElement(storage, start + index);
     if (this.hasWarnings(warnings)) {
-      Warning[] extracted = this.getWarnings(null, warnings);
+      Warning[] extracted = this.getWarnings(null, false, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -152,9 +152,11 @@ final class ArraySlice implements EnsoObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      Node location,
+      boolean shouldWrap,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    return warnings.getWarnings(this.storage, location);
+    return warnings.getWarnings(this.storage, location, shouldWrap);
   }
 
   @ExportMessage

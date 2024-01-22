@@ -120,7 +120,7 @@ type HTTP
                     boundary = body_publisher_and_boundary.second
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
                     all_headers = headers + boundary_header_list
-                    mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
+                    mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
                     response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
@@ -178,7 +178,7 @@ type HTTP
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header
 parse_headers headers =
-    headers . map on_problems=No_Wrap.Value h-> case h of
+    headers . map on_problems=No_Wrap h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h
