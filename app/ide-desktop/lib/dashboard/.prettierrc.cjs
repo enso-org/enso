@@ -8,7 +8,7 @@ module.exports = {
             options: {
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 printWidth: 100,
-                tabWidth: 4,
+                tabWidth: 2,
                 semi: false,
                 singleQuote: true,
                 trailingComma: 'es5',
