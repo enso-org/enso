@@ -603,7 +603,8 @@
 - [Added text_length to Column][8606]
 - [Added none delimiter option for Data.Read][8627]
 - [Added text_left and text_right to Column][8691]
-- [Implement relational NULL semantics for Nothing for in-memory Column operations.][5156]
+- [Implement relational `NULL` semantics for `Nothing` for in-memory Column
+  operations.][5156]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
