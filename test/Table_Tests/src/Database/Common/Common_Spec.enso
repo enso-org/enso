@@ -155,8 +155,7 @@ type Missing_Values_Data
 add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) =
 
     Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
-    # TODO:
-    # Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
+    Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->
         data = Basic_Data.setup create_connection_fn
