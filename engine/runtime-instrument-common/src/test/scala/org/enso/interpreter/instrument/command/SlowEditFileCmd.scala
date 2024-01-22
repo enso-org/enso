@@ -12,8 +12,14 @@ class SlowEditFileCmd(request: Api.EditFileNotification, counter: Int)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    if (counter % 2 == 1) {
-      Thread.sleep(2000)
+    if (
+      ctx.executionService.getContext.isRandomDelayedCommandExecution && counter % 2 == 0
+    ) {
+      try {
+        Thread.sleep(2000)
+      } catch {
+        case _: InterruptedException =>
+      }
     }
     super.executeSynchronously(ctx, ec)
   }
