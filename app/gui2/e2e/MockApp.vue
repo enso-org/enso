@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { getMainFile, setMainFile } from '../mock/engine'
 import App from '../src/App.vue'
+import { useGraphStore } from '../src/stores/graph'
 import MockProjectStoreWrapper from '../stories/MockProjectStoreWrapper.vue'
 
 const mainFile = computed({
@@ -11,6 +12,13 @@ const mainFile = computed({
   set(value) {
     setMainFile(value)
   },
+})
+
+const graphStore = useGraphStore()
+
+onMounted(() => {
+  const window_ = window as any
+  window_.mockExpressionUpdate = graphStore.mockExpressionUpdate
 })
 </script>
 

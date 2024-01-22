@@ -7,11 +7,10 @@ import {
   ArgumentPlaceholder,
   interpretCall,
 } from '@/util/callTree'
-import { isSome } from '@/util/data/opt'
-import type { MethodCall } from 'shared/languageServerTypes'
 import { assert, expect, test } from 'vitest'
 
 const prefixFixture = {
+  allowInfix: false,
   mockSuggestion: {
     ...makeModuleMethod('local.Foo.Bar.func'),
     arguments: ['self', 'a', 'b', 'c', 'd'].map((name) => makeArgument(name)),
@@ -21,14 +20,10 @@ const prefixFixture = {
     ['b', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
     ['c', { kind: 'Boolean_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
-  methodPointer: {
-    name: 'func',
-    definedOnType: 'Foo.Bar',
-    module: 'local.Foo.Bar',
-  },
 }
 
 const infixFixture = {
+  allowInfix: true,
   mockSuggestion: {
     ...makeMethod('local.Foo.Bar.Buz.+'),
     arguments: ['lhs', 'rhs'].map((name) => makeArgument(name)),
@@ -37,11 +32,6 @@ const infixFixture = {
     ['lhs', { kind: 'Multi_Choice', display: widgetCfg.DisplayMode.Always }],
     ['rhs', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
-  methodPointer: {
-    name: '+',
-    definedOnType: 'local.Foo.Bar.Buz',
-    module: 'local.Foo.Bar',
-  },
 }
 
 interface TestData {
@@ -51,71 +41,56 @@ interface TestData {
 }
 
 test.each`
-  expression              | expectedPattern     | fixture
-  ${'func              '} | ${'?a ?b ?c ?d'}    | ${prefixFixture}
-  ${'func a=x c=x      '} | ${'=a ?b =c ?d'}    | ${prefixFixture}
-  ${'func a=x x c=x    '} | ${'=a @b =c ?d'}    | ${prefixFixture}
-  ${'func a=x d=x      '} | ${'=a ?b ?c =d'}    | ${prefixFixture}
-  ${'func a=x d=x b=x  '} | ${'=a =d =b ?c'}    | ${prefixFixture}
-  ${'func a=x d=x c=x  '} | ${'=a ?b =d =c'}    | ${prefixFixture}
-  ${'func a=x c=x d=x  '} | ${'=a ?b =c =d'}    | ${prefixFixture}
-  ${'func b=x          '} | ${'?a =b ?c ?d'}    | ${prefixFixture}
-  ${'func b=x c=x      '} | ${'?a =b =c ?d'}    | ${prefixFixture}
-  ${'func b=x x x      '} | ${'=b @a @c ?d'}    | ${prefixFixture}
-  ${'func c=x b=x x    '} | ${'=c =b @a ?d'}    | ${prefixFixture}
-  ${'func d=x          '} | ${'?a ?b ?c =d'}    | ${prefixFixture}
-  ${'func d=x a c=x    '} | ${'=d @a ?b =c'}    | ${prefixFixture}
-  ${'func d=x x        '} | ${'=d @a ?b ?c'}    | ${prefixFixture}
-  ${'func d=x x        '} | ${'=d @a ?b ?c'}    | ${prefixFixture}
-  ${'func d=x x x      '} | ${'=d @a @b ?c'}    | ${prefixFixture}
-  ${'func d=x x x x    '} | ${'=d @a @b @c'}    | ${prefixFixture}
-  ${'func x            '} | ${'@a ?b ?c ?d'}    | ${prefixFixture}
-  ${'func x b=x c=x    '} | ${'@a =b =c ?d'}    | ${prefixFixture}
-  ${'func x b=x x      '} | ${'@a =b @c ?d'}    | ${prefixFixture}
-  ${'func x d=x        '} | ${'@a ?b ?c =d'}    | ${prefixFixture}
-  ${'func x x          '} | ${'@a @b ?c ?d'}    | ${prefixFixture}
-  ${'func x x x        '} | ${'@a @b @c ?d'}    | ${prefixFixture}
-  ${'func x x x x      '} | ${'@a @b @c @d'}    | ${prefixFixture}
-  ${'func a=x x m=x    '} | ${'=a @b ?c ?d =m'} | ${prefixFixture}
-  ${'x + y'}              | ${'@lhs @rhs'}      | ${infixFixture}
-  ${'x +'}                | ${'@lhs ?rhs'}      | ${infixFixture}
+  expression                 | expectedPattern        | fixture
+  ${'func                '}  | ${'?self ?a ?b ?c ?d'} | ${prefixFixture}
+  ${'a.func              '}  | ${'?a ?b ?c ?d'}       | ${prefixFixture}
+  ${'a.func a=x c=x      '}  | ${'=a ?b =c ?d'}       | ${prefixFixture}
+  ${'a.func a=x x c=x    '}  | ${'=a @b =c ?d'}       | ${prefixFixture}
+  ${'a.func a=x d=x      '}  | ${'=a ?b ?c =d'}       | ${prefixFixture}
+  ${'a.func a=x d=x b=x  '}  | ${'=a =d =b ?c'}       | ${prefixFixture}
+  ${'a.func a=x d=x c=x  '}  | ${'=a ?b =d =c'}       | ${prefixFixture}
+  ${'func a=x d=x c=x  '}    | ${'?self =a ?b =d =c'} | ${prefixFixture}
+  ${'func self=x d=x c=x  '} | ${'=self ?a ?b =d =c'} | ${prefixFixture}
+  ${'a.func a=x c=x d=x  '}  | ${'=a ?b =c =d'}       | ${prefixFixture}
+  ${'a.func b=x          '}  | ${'?a =b ?c ?d'}       | ${prefixFixture}
+  ${'a.func b=x c=x      '}  | ${'?a =b =c ?d'}       | ${prefixFixture}
+  ${'a.func b=x x x      '}  | ${'=b @a @c ?d'}       | ${prefixFixture}
+  ${'a.func c=x b=x x    '}  | ${'=c =b @a ?d'}       | ${prefixFixture}
+  ${'a.func d=x          '}  | ${'?a ?b ?c =d'}       | ${prefixFixture}
+  ${'a.func d=x a c=x    '}  | ${'=d @a ?b =c'}       | ${prefixFixture}
+  ${'a.func d=x x        '}  | ${'=d @a ?b ?c'}       | ${prefixFixture}
+  ${'a.func d=x x        '}  | ${'=d @a ?b ?c'}       | ${prefixFixture}
+  ${'a.func d=x x x      '}  | ${'=d @a @b ?c'}       | ${prefixFixture}
+  ${'a.func d=x x x x    '}  | ${'=d @a @b @c'}       | ${prefixFixture}
+  ${'a.func x            '}  | ${'@a ?b ?c ?d'}       | ${prefixFixture}
+  ${'a.func x b=x c=x    '}  | ${'@a =b =c ?d'}       | ${prefixFixture}
+  ${'a.func x b=x x      '}  | ${'@a =b @c ?d'}       | ${prefixFixture}
+  ${'a.func x d=x        '}  | ${'@a ?b ?c =d'}       | ${prefixFixture}
+  ${'a.func x x          '}  | ${'@a @b ?c ?d'}       | ${prefixFixture}
+  ${'a.func x x x        '}  | ${'@a @b @c ?d'}       | ${prefixFixture}
+  ${'a.func x x x x      '}  | ${'@a @b @c @d'}       | ${prefixFixture}
+  ${'a.func a=x x m=x    '}  | ${'=a @b ?c ?d =m'}    | ${prefixFixture}
+  ${'x + y'}                 | ${'@lhs @rhs'}         | ${infixFixture}
+  ${'x +'}                   | ${'@lhs ?rhs'}         | ${infixFixture}
 `(
   "Creating argument application's info: $expression $expectedPattern",
   ({
     expression,
     expectedPattern,
-    fixture: { mockSuggestion, argsParameters, methodPointer },
+    fixture: { allowInfix, mockSuggestion, argsParameters },
   }: TestData) => {
-    const expectedArgs = expectedPattern.split(' ')
-    const notAppliedArguments = expectedArgs
-      .map((p: string) =>
-        p.startsWith('?') ? mockSuggestion.arguments.findIndex((k) => p.slice(1) === k.name) : null,
-      )
-      .filter(isSome)
-
     const ast = Ast.parse(expression.trim())
-
-    const methodCall: MethodCall = {
-      methodPointer,
-      notAppliedArguments,
-    }
-
-    const funcMethodCall: MethodCall = {
-      methodPointer,
-      notAppliedArguments: Array.from(expectedArgs, (_, i) => i + 1),
-    }
 
     const configuration: widgetCfg.FunctionCall = {
       kind: 'FunctionCall',
       parameters: argsParameters,
     }
 
-    const interpreted = interpretCall(ast, true)
+    const interpreted = interpretCall(ast, allowInfix)
     const call = ArgumentApplication.FromInterpretedWithInfo(interpreted, {
-      appMethodCall: methodCall,
-      noArgsCall: funcMethodCall,
       suggestion: mockSuggestion,
       widgetCfg: configuration,
+      subjectAsSelf: true,
     })
     assert(call instanceof ArgumentApplication)
     expect(printArgPattern(call)).toEqual(expectedPattern)
