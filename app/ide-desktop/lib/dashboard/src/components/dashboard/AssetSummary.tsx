@@ -3,10 +3,11 @@ import * as React from 'react'
 
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
-import type * as backend from '#/services/backend'
-import * as dateTime from '#/utilities/dateTime'
-
 import AssetIcon from '#/components/dashboard/AssetIcon'
+
+import type * as backend from '#/services/backend'
+
+import * as dateTime from '#/utilities/dateTime'
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
@@ -35,11 +36,11 @@ export default function AssetSummary(props: AssetSummaryProps) {
                         </>
                     )}
                 </span>
-                <span>
-                    {isNew
-                        ? '\xa0'
-                        : `last modified on ${dateTime.formatDateTime(new Date(asset.modifiedAt))}`}
-                </span>
+                {!isNew && (
+                    <span>
+                        last modified on {dateTime.formatDateTime(new Date(asset.modifiedAt))}
+                    </span>
+                )}
                 <span>{asset.labels}</span>
             </div>
         </div>
