@@ -17,7 +17,7 @@ import Standard.Database.Data.Table.Table as Database_Table
 from Standard.Test_New import all
 
 
-import enso_dev.Tests.Data.Round_Spec
+import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 

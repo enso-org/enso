@@ -28,8 +28,8 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
-import enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
 type Basic_Test_Data
@@ -697,8 +697,8 @@ add_table_specs suite_builder =
             Upload_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
             suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->
-                group_builder.specify "should allow to set up a connection with the password passed as a secret" <|
-                    cloud_setup = Cloud_Tests_Setup.prepare
+                cloud_setup = Cloud_Tests_Setup.prepare
+                group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
                     cloud_setup.with_prepared_environment <|
                         with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
                             my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)

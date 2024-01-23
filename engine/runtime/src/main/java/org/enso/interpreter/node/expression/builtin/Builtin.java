@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A base class for all classes annotated with @BuiltinType */

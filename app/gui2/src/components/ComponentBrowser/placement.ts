@@ -1,4 +1,4 @@
-import { bail } from '@/util/assert'
+import { assert, bail } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
@@ -152,6 +152,10 @@ export function averagePositionPlacement(
     totalPosition = totalPosition.add(rect.pos)
     selectedNodeRectsCount++
   }
+  assert(
+    selectedNodeRectsCount > 0,
+    'averagePositionPlacement works only if at least one node is selected.',
+  )
   const initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
   const nonSelectedNodeRects = []
   outer: for (const rect of nodeRects) {
