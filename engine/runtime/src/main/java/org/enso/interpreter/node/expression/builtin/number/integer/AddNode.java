@@ -12,13 +12,13 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Integer", name = "do_plus", description = "Addition of numbers.")
+@BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends IntegerNode {
   AddNode() {
     super("+");
   }
 
-  public abstract Object execute(VirtualFrame frame, Object self, Object that);
+  public abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   public static AddNode build() {
     return AddNodeGen.create();

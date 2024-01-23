@@ -17,7 +17,7 @@ public abstract class SubtractNode extends IntegerNode {
     super("-");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static SubtractNode build() {
     return SubtractNodeGen.create();

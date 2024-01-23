@@ -12,6 +12,7 @@ import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Number_Builtins import all
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -43,11 +44,8 @@ type Number
          Adding 10 and 15.
 
              10 + 15
-    + self that:Number -> Number =
-        if True then Panic.throw ""+that.to_text
-        self.do_plus that
-
-    do_plus self that = @Builtin_Method "Integer.do_plus"
+    + : Number -> Number
+    + self that = @Builtin_Method "Integer.+"
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -745,10 +743,7 @@ type Integer
          Adding 10 and 15.
 
              10 + 15
-    + self that:Integer -> Integer = self.do_plus that
-
-
-    do_plus self b = @Builtin_Method "Integer.do_plus"
+    + self that:Integer -> Integer = integer_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -761,9 +756,8 @@ type Integer
          Subtract 5 from 2.
 
              2 - 5
-    - self that:Integer -> Integer = self.do_minus that
+    - self that:Integer -> Integer = integer_minus self that
 
-    do_minus self b = @Builtin_Method "Integer.-"
     ## ALIAS multiply, product, times
        GROUP Operators
        Multiply an integer by an arbitrary number.

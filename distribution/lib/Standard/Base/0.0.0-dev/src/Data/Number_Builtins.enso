@@ -1,0 +1,5 @@
+private
+
+integer_plus a b = @Builtin_Method "Integer.+"
+integer_minus a b = @Builtin_Method "Integer.-"
+
