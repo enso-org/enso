@@ -33,7 +33,7 @@ add_specs suite_builder setup =
             data.teardown
 
         table_builder cols =
-            setup.table_builder cols
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "using weird column names with operations and filtering" <|
             columns = weird_names.map_with_index ix-> name->
