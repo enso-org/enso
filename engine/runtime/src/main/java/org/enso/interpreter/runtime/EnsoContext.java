@@ -666,6 +666,15 @@ public final class EnsoContext {
   }
 
   /**
+   * Checks value of {@link RuntimeOptions#INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY}.
+   *
+   * @return the value of the option
+   */
+  public boolean isRandomDelayedCommandExecution() {
+    return getOption(RuntimeOptions.INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY);
+  }
+
+  /**
    * Checks whether the suggestion indexing is enabled for external libraries.
    *
    * @return true if the suggestions indexing is enabled for external libraries.
