@@ -9,7 +9,7 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
-    Test.group "Enso Cloud Files" pending=setup.pending <|
+    Test.group "Enso Cloud Files" pending=setup.real_cloud_pending <|
         Test.specify "should allow to create and delete a directory" <|
             my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
