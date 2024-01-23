@@ -45,8 +45,14 @@ type Suite
     run_all self =
         self.run_with_filter Nothing Nothing
 
-    ## Run only tests that match the provided filters. The filters are converted to
-       a regular expression. If a filter is Nothing, it matches all the names.
+    ## Run only tests that match the provided filters.
+
+       A filter can be either Regex, Text, or Nothing. If Nothing, it matches all the names.
+       If Text, it matches only names that contains that text as a substring.
+       If a Regex, the `regex.match` method is invoked for every name.
+
+       Note that you can specify the regex such that it matches, e.g., exactly two test spec names
+       via something like `Regex.compile "(name1|name2)"`.
 
        Arguments:
        - group_filter: Filter for group names.
