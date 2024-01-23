@@ -27,7 +27,8 @@ interface AssetEvents {
   newProject: AssetNewProjectEvent
   newFolder: AssetNewFolderEvent
   uploadFiles: AssetUploadFilesEvent
-  newDataConnector: AssetNewDataConnectorEvent
+  updateFiles: AssetUpdateFilesEvent
+  newSecret: AssetNewSecretEvent
   openProject: AssetOpenProjectEvent
   closeProject: AssetCloseProjectEvent
   cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
@@ -54,8 +55,7 @@ type SanityCheck<
   T extends {
     [Type in keyof typeof AssetEventType]: AssetBaseEvent<(typeof AssetEventType)[Type]>
   } = AssetEvents,
-  // eslint-disable-next-line no-restricted-syntax
-> = T
+> = [T]
 
 /** A signal to create a project. */
 export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
@@ -74,9 +74,13 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
   files: Map<backendModule.AssetId, File>
 }
 
-/** A signal to create a data connector. */
-export interface AssetNewDataConnectorEvent
-  extends AssetBaseEvent<AssetEventType.newDataConnector> {
+/** A signal to update files with new versions. */
+export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
+  files: Map<backendModule.AssetId, File>
+}
+
+/** A signal to create a secret. */
+export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
   placeholderId: backendModule.SecretId
   value: string
 }

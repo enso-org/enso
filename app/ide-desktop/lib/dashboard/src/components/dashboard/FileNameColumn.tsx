@@ -54,7 +54,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     switch (event.type) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
-      case AssetEventType.newDataConnector:
+      case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
       case AssetEventType.cancelOpeningAllProjects:
@@ -77,14 +77,16 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         // are handled by `AssetRow`.
         break
       }
+      case AssetEventType.updateFiles:
       case AssetEventType.uploadFiles: {
         const file = event.files.get(item.key)
         if (file != null) {
+          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
           try {
             const createdFile = await backend.uploadFile(
               {
-                fileId: null,
+                fileId,
                 fileName: asset.title,
                 parentDirectoryId: asset.parentId,
               },
@@ -93,11 +95,20 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             rowState.setVisibility(Visibility.visible)
             setAsset(object.merge(asset, { id: createdFile.id }))
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
-            toastAndLog('Could not upload file', error)
+            switch (event.type) {
+              case AssetEventType.uploadFiles: {
+                dispatchAssetListEvent({
+                  type: AssetListEventType.delete,
+                  key: item.key,
+                })
+                toastAndLog('Could not upload file', error)
+                break
+              }
+              case AssetEventType.updateFiles: {
+                toastAndLog('Could not update file', error)
+                break
+              }
+            }
           }
         }
         break

@@ -132,7 +132,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 name={null}
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
-                    type: AssetListEventType.newDataConnector,
+                    type: AssetListEventType.newSecret,
                     parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,
