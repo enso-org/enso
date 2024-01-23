@@ -166,7 +166,7 @@ type Ordering
        Compares values and returns an Ordering.
     compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
-        safe_predicate ~action -> False = Panic.recover Type_Error (_-> False) action
+        safe_predicate ~action -> Boolean = Panic.catch Type_Error action=action (_-> False)
 
         if safe_predicate x<y then Ordering.Less else
             if safe_predicate x==y then Ordering.Equal else
