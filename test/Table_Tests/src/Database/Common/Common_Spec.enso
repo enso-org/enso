@@ -100,7 +100,6 @@ type Aggregation_Data
     t9 self = self.data.second
 
     setup create_connection_fn = Aggregation_Data.Value <|
-        IO.println <| "  Common_Spec_New.Aggregation_Data.setup"
         connection = create_connection_fn Nothing
         builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]
         insert v =
@@ -137,7 +136,6 @@ type Missing_Values_Data
     t4 self = self.data.second
 
     setup create_connection_fn = Missing_Values_Data.Value <|
-        IO.println <| "  Common_Spec_New.Missing_Values_Data.setup"
         connection = create_connection_fn Nothing
         t4 = upload connection "T4" <|
             Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
