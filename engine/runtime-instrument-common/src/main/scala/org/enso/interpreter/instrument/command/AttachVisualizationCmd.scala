@@ -27,7 +27,7 @@ class AttachVisualizationCmd(
     ctx.executionService.getLogger.log(
       Level.FINE,
       "Attach visualization cmd for request id [{0}] and visualization id [{1}]",
-      Array(maybeRequestId, request.visualizationId)
+      Array[Object](maybeRequestId.toString, request.visualizationId)
     )
     ctx.endpoint.sendToClient(
       Api.Response(maybeRequestId, Api.VisualizationAttached())

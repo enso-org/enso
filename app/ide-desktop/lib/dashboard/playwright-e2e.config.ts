@@ -9,41 +9,41 @@ import * as test from '@playwright/test'
 /* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/strict-boolean-expressions */
 
 export default test.defineConfig({
-    testDir: './test-e2e',
-    forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    timeout: 10000,
-    ...(process.env.CI ? { workers: 1 } : {}),
-    expect: {
-        toHaveScreenshot: { threshold: 0 },
+  testDir: './test-e2e',
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  timeout: 10000,
+  ...(process.env.CI ? { workers: 1 } : {}),
+  expect: {
+    toHaveScreenshot: { threshold: 0 },
+  },
+  use: {
+    baseURL: 'http://localhost:8080',
+    launchOptions: {
+      ignoreDefaultArgs: ['--headless'],
+      args: [
+        // Much closer to headful Chromium than classic headless.
+        '--headless=new',
+        // Required for `backdrop-filter: blur` to work.
+        '--use-angle=swiftshader',
+        // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+        // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
+        // MUST stay as CI does not have a GPU.
+        '--disable-gpu',
+        // Fully disable GPU process.
+        '--disable-software-rasterizer',
+        // Disable text subpixel antialiasing.
+        '--font-render-hinting=none',
+        '--disable-skia-runtime-opts',
+        '--disable-system-font-check',
+        '--disable-font-subpixel-positioning',
+        '--disable-lcd-text',
+      ],
     },
-    use: {
-        baseURL: 'http://localhost:8080',
-        launchOptions: {
-            ignoreDefaultArgs: ['--headless'],
-            args: [
-                // Much closer to headful Chromium than classic headless.
-                '--headless=new',
-                // Required for `backdrop-filter: blur` to work.
-                '--use-angle=swiftshader',
-                // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-                // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-                // MUST stay as CI does not have a GPU.
-                '--disable-gpu',
-                // Fully disable GPU process.
-                '--disable-software-rasterizer',
-                // Disable text subpixel antialiasing.
-                '--font-render-hinting=none',
-                '--disable-skia-runtime-opts',
-                '--disable-system-font-check',
-                '--disable-font-subpixel-positioning',
-                '--disable-lcd-text',
-            ],
-        },
-    },
-    webServer: {
-        command: 'npx tsx test-server.ts',
-        port: 8080,
-        reuseExistingServer: false,
-    },
+  },
+  webServer: {
+    command: 'npx tsx test-server.ts',
+    port: 8080,
+    reuseExistingServer: false,
+  },
 })
