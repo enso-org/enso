@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.CompilerError;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -81,6 +82,26 @@ public class MethodRootNode extends ClosureRootNode {
       Type type,
       String methodName) {
     return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
+  }
+
+  public static MethodRootNode buildOperator(
+      EnsoLanguage language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      Supplier<ExpressionNode> readLeft,
+      Supplier<ExpressionNode> readRight,
+      Supplier<ExpressionNode> body,
+      SourceSection section,
+      Type type,
+      String methodName) {
+    Supplier<ExpressionNode> supplyWholeBody =
+        () -> {
+          ExpressionNode readLeftNode = readLeft.get();
+          ExpressionNode readRightNode = readRight.get();
+          ExpressionNode exprNode = body.get();
+          return BlockNode.build(new ExpressionNode[] {readLeftNode, readRightNode}, exprNode);
+        };
+    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName);
   }
 
   /**
