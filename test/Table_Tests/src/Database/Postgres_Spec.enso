@@ -688,7 +688,7 @@ add_table_specs suite_builder =
     case create_connection_builder of
         Nothing ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
-            Test.group "[PostgreSQL] Database tests" pending=message (_-> Nothing)
+            suite_builder.group "[PostgreSQL] Database tests" pending=message (_-> Nothing)
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
