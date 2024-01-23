@@ -21,11 +21,12 @@ export const PRODUCT_NAME = 'Enso'
 /** Company name, used as the copyright holder. */
 export const COMPANY_NAME = 'New Byte Order sp. z o.o.'
 
-/** COOP, COEP, and CORP headers: https://web.dev/coop-coep/
+/** @type {[header: string, value: string][]}
+ * COOP, COEP, and CORP headers: https://web.dev/coop-coep/
  *
  * These are required to increase the resolution of `performance.now()` timers,
  * making profiling a lot more accurate and consistent. */
-export const COOP_COEP_CORP_HEADERS: [header: string, value: string][] = [
+export const COOP_COEP_CORP_HEADERS = [
     ['Cross-Origin-Embedder-Policy', 'require-corp'],
     ['Cross-Origin-Opener-Policy', 'same-origin'],
     ['Cross-Origin-Resource-Policy', 'same-origin'],

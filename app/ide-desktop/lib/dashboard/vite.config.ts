@@ -4,6 +4,7 @@ import * as url from 'node:url'
 import vitePluginYaml from '@modyfi/vite-plugin-yaml'
 import vitePluginReact from '@vitejs/plugin-react'
 import * as vite from 'vite'
+import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -18,7 +19,7 @@ const SERVER_PORT = 8080
 /* eslint-disable @typescript-eslint/naming-convention */
 
 export default vite.defineConfig({
-  server: { port: SERVER_PORT },
+  server: { port: SERVER_PORT, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
   plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml()],
   resolve: {
     alias: {
