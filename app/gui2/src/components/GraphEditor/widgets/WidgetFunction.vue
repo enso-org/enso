@@ -175,7 +175,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      let newArg: Ast.Owned<Ast.Ast>
+      let newArg: Ast.Owned
       if (value instanceof Ast.Ast) {
         newArg = value
       } else {

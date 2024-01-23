@@ -22,7 +22,7 @@ declare const brandOwned: unique symbol
  *  We can at least require *obtaining* an `Owned`,
  *  which statically prevents the otherwise most likely usage errors when rearranging ASTs.
  */
-export type Owned<T> = T & { [brandOwned]: never }
+export type Owned<T = Ast> = T & { [brandOwned]: never }
 function asOwned<T>(t: T): Owned<T> {
   return t as Owned<T>
 }
@@ -169,7 +169,7 @@ export class MutableModule implements Module {
   }
 
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
-  replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
+  replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned | undefined {
     const old = this.get(target)
     if (!old || replacement.id === target) {
       return this.replaceValue(target, replacement)
@@ -197,7 +197,7 @@ export class MutableModule implements Module {
   /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
    *  Returns the old value, with a new (unreferenced) ID.
    */
-  replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
+  replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned | undefined {
     const old = this.get(target)
     replacement.parent = old?.parent
     if (replacement.id !== target || replacement.module !== this) {
@@ -216,7 +216,7 @@ export class MutableModule implements Module {
   }
 
   /** Replace the parent of `target`'s reference to it with a reference to a new placeholder object. Return `target`. */
-  take(target: AstId): { node: Owned<Ast>; placeholder: Wildcard } | undefined {
+  take(target: AstId): { node: Owned; placeholder: Wildcard } | undefined {
     const placeholder = Wildcard.new(this)
     const node = this.replaceRef(target, placeholder)
     if (!node) return
@@ -226,11 +226,11 @@ export class MutableModule implements Module {
   /** Replace the value assigned to the given ID with a placeholder.
    *  Returns the removed value, with a new unreferenced ID.
    **/
-  takeValue(target: AstId): Owned<Ast> | undefined {
+  takeValue(target: AstId): Owned | undefined {
     return this.replaceValue(target, Wildcard.new(this))
   }
 
-  takeAndReplaceRef<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
+  takeAndReplaceRef<T extends Ast>(target: AstId, wrap: (x: Owned) => Owned<T>): T {
     const taken = this.take(target)
     assert(!!taken)
     const replacement = wrap(taken.node)
@@ -238,7 +238,7 @@ export class MutableModule implements Module {
     return replacement
   }
 
-  takeAndReplaceValue<T extends Ast>(target: AstId, wrap: (x: Owned<Ast>) => Owned<T>): T {
+  takeAndReplaceValue<T extends Ast>(target: AstId, wrap: (x: Owned) => Owned<T>): T {
     const taken = this.takeValue(target)
     assert(!!taken)
     const replacement = wrap(taken)
@@ -424,7 +424,7 @@ export abstract class Ast {
   }
 
   /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
-  static parse(source: PrintedSource | string, module?: MutableModule): Owned<Ast> {
+  static parse(source: PrintedSource | string, module?: MutableModule): Owned {
     const module_ = module ?? MutableModule.Transient()
     const ast = Ast.parseBlock(source, module_)
     const [expr] = ast.statements()
@@ -559,12 +559,7 @@ export class App extends Ast {
   private readonly arg_: NodeChild<AstId>
   private readonly rightParen_: NodeChild<Token> | null
 
-  static new(
-    func: Owned<Ast>,
-    name: string | Token | null,
-    arg: Owned<Ast>,
-    module?: MutableModule,
-  ) {
+  static new(func: Owned, name: string | Token | null, arg: Owned, module?: MutableModule) {
     const edit = module ?? MutableModule.Transient()
     const id = newAstId()
     const func_ = unspaced(makeChild(edit, func, id))
@@ -760,7 +755,7 @@ export class PropertyAccess extends OprApp {
     super(module, id, lhs, oprs, rhs)
   }
 
-  static new(module: MutableModule, lhs: Owned<Ast> | null, rhs: Owned<Token> | null) {
+  static new(module: MutableModule, lhs: Owned | null, rhs: Token | null) {
     const id = newAstId()
     const lhs_ = lhs ? unspaced(makeChild(module, lhs, id)) : null
     let rhs_ = null
@@ -778,7 +773,7 @@ export class PropertyAccess extends OprApp {
     const module_ = module ?? MutableModule.Transient()
     let path
     for (const s of segments) {
-      const t = asOwned(new Token(s, newTokenId(), RawAst.Token.Type.Ident))
+      const t = new Token(s, newTokenId(), RawAst.Token.Type.Ident)
       if (!path) {
         path = Ident.new(module_, s)
         continue
@@ -1044,9 +1039,9 @@ export class Function extends Ast {
   /** @internal */
   static new(
     module: MutableModule,
-    name: Owned<Ast>,
+    name: Owned,
     args: FunctionArgument[],
-    body: Owned<Ast> | null,
+    body: Owned | null,
   ): Owned<Function> {
     const id = newAstId()
     return asOwned(
@@ -1072,8 +1067,8 @@ export class Function extends Ast {
   static fromExprs(
     module: MutableModule,
     name: string,
-    args: Owned<Ast>[],
-    exprs: Owned<Ast>[],
+    args: Owned[],
+    exprs: Owned[],
     trailingNewline?: boolean,
   ): Owned<Function> {
     const id = newAstId()
@@ -1164,7 +1159,7 @@ export class Assignment extends Ast {
     this.expression_ = expression
   }
 
-  static new(module: MutableModule, ident: string, expression: Owned<Ast>): Owned<Assignment> {
+  static new(module: MutableModule, ident: string, expression: Owned): Owned<Assignment> {
     const id = newAstId()
     const pattern = unspaced(makeChild(module, Ident.new(module, ident), id))
     const expression_ = spaced(makeChild(module, expression, id))
@@ -1213,14 +1208,14 @@ export class BodyBlock extends Ast {
     setParent(module, this.id, ...this.concreteChildren())
   }
 
-  push(module: MutableModule, node: Owned<Ast>) {
+  push(module: MutableModule, node: Owned) {
     const line = { expression: autospaced(makeChild(module, node, this.id)) }
     const edited = new BodyBlock(module, this.id, [...this.lines_, line])
     edited.parent = this.parent
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
-  insert(module: MutableModule, index: number, ...nodes: Owned<Ast>[]) {
+  insert(module: MutableModule, index: number, ...nodes: Owned[]) {
     const before = this.lines_.slice(0, index)
     const insertions = Array.from(nodes, (node) => ({
       expression: unspaced(makeChild(module, node, this.id)),
@@ -1293,7 +1288,7 @@ type Line<T> = {
 
 type RawBlockLine = Line<AstId>
 type BlockLine = Line<Ast>
-type OwnedBlockLine = Line<Owned<Ast>>
+type OwnedBlockLine = Line<Owned>
 
 function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.get(raw.expression.node) : null

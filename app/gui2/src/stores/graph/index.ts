@@ -13,7 +13,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId, Module, Owned } from '@/util/ast/abstract'
+import type { AstId, Module } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import { partition } from '@/util/data/array'
@@ -285,7 +285,7 @@ export const useGraphStore = defineStore('graph', () => {
     setExpression(node.rootSpan.id, Ast.RawCode.new(content))
   }
 
-  function setExpression(id: Ast.AstId, content: Ast.Owned<Ast.Ast>) {
+  function setExpression(id: Ast.AstId, content: Ast.Owned) {
     const edit = astModule.edit()
     edit.replaceValue(id, content)
     commitEdit(edit)
@@ -404,11 +404,7 @@ export const useGraphStore = defineStore('graph', () => {
    * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
    * Therefore the passed in `edit` should not be modified afterwards, as it is already committed.
    */
-  function updatePortValue(
-    edit: MutableModule,
-    id: PortId,
-    value: Owned<Ast.Ast> | undefined,
-  ): boolean {
+  function updatePortValue(edit: MutableModule, id: PortId, value: Ast.Owned | undefined): boolean {
     const update = getPortPrimaryInstance(id)?.onUpdate
     if (!update) return false
     update({ edit, portUpdate: { value, origin: id } })

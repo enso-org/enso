@@ -197,7 +197,7 @@ export function performCollapse(
   edit.replaceRef(functionBlock.id, refactoredBlock)
 
   // Insert a new function.
-  const args: Ast.Owned<Ast.Ast>[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
+  const args: Ast.Owned[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
   const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
   topLevel.insert(edit, posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
@@ -208,7 +208,7 @@ function collapsedCallAst(
   info: CollapsedInfo,
   collapsedName: string,
   edit: Ast.MutableModule,
-): { ast: Ast.Owned<Ast.Ast>; nodeId: NodeId } {
+): { ast: Ast.Owned; nodeId: NodeId } {
   const pattern = info.refactored.pattern
   const args = info.refactored.arguments
   const functionName = `${MODULE_NAME}.${collapsedName}`
