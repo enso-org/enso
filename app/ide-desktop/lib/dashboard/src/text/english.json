@@ -49,6 +49,20 @@
 
   "uploadProjectToCloudSuccess": "Successfully uploaded local project to the cloud!",
 
+  "confirmSignUpError": "Incorrect email or confirmation code.",
+  "setUsernameError": "Could not set your username.",
+
+  "signUpSuccess": "We have sent you an email with further instructions!",
+  "confirmSignUpSuccess": "Your account has been confirmed! Please log in.",
+  "setUsernameSuccess": "Your username has been set!",
+  "signInWithPasswordSuccess": "Successfully logged in!",
+  "forgotPasswordSuccess": "We have sent you an email with further instructions!",
+  "changePasswordSuccess": "Successfully changed password!",
+  "resetPasswordSuccess": "Successfully reset password!",
+
+  "signOutSuccess": "Successfully logged out!",
+  "signOutError": "Could not log out, please try again.",
+
   "newFolderInHomeOnly": "You can only create a new folder in Home.",
   "newProjectInHomeOnly": "You can only create a new project in Home.",
   "newSecretInHomeOnly": "You can only create a new secret in Home.",
@@ -119,6 +133,9 @@
   "theAssetTypeTitle": "the $0 '$1'",
   "notImplemetedYet": "Not implemented yet.",
   "newLabelButtonLabel": "new label",
+  "settingUsername": "Setting username...",
+  "loggingOut": "Logging out...",
+  "pleaseWait": "Please wait...",
   "replyExclamation": "Reply!",
   "noFilesMatchTheCurrentFilters": "No files match the current filters.",
   "youHaveNoFiles": "You have no files. Go ahead and create one using the buttons above, or open a template from the home screen.",

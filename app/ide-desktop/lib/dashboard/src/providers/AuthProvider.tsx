@@ -19,6 +19,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
@@ -32,22 +33,6 @@ import * as localStorageModule from '#/utilities/localStorage'
 
 /** The minimum delay between two requests. */
 const REQUEST_DELAY_MS = 200
-const MESSAGES = {
-  signUpSuccess: 'We have sent you an email with further instructions!',
-  confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
-  confirmSignUpFailure: 'Incorrect email or confirmation code.',
-  setUsernameLoading: 'Setting username...',
-  setUsernameSuccess: 'Your username has been set!',
-  setUsernameFailure: 'Could not set your username.',
-  signInWithPasswordSuccess: 'Successfully logged in!',
-  forgotPasswordSuccess: 'We have sent you an email with further instructions!',
-  changePasswordSuccess: 'Successfully changed password!',
-  resetPasswordSuccess: 'Successfully reset password!',
-  signOutLoading: 'Logging out...',
-  signOutSuccess: 'Successfully logged out!',
-  signOutError: 'Could not log out, please try again.',
-  pleaseWait: 'Please wait...',
-} as const
 
 // ===================
 // === UserSession ===
@@ -186,6 +171,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { session, deinitializeSession } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -365,7 +351,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const withLoadingToast =
     <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
     async (...args: T) => {
-      toast.toast.loading(MESSAGES.pleaseWait, { toastId })
+      toast.toast.loading(getText('pleaseWait'), { toastId })
       return await action(...args)
     }
 
@@ -397,7 +383,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtag.event('cloud_sign_up')
     const result = await cognito.signUp(username, password, organizationId)
     if (result.ok) {
-      toastSuccess(MESSAGES.signUpSuccess)
+      toastSuccess(getText('signUpSuccess'))
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -413,14 +399,14 @@ export default function AuthProvider(props: AuthProviderProps) {
         case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
           break
         case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
-          toastError(MESSAGES.confirmSignUpFailure)
+          toastError(getText('confirmSignUpError'))
           navigate(appUtils.LOGIN_PATH)
           return false
         default:
           throw new errorModule.UnreachableCaseError(result.val.kind)
       }
     }
-    toastSuccess(MESSAGES.confirmSignUpSuccess)
+    toastSuccess(getText('confirmSignUpSuccess'))
     navigate(appUtils.LOGIN_PATH)
     return result.ok
   }
@@ -429,7 +415,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtag.event('cloud_sign_in', { provider: 'Email' })
     const result = await cognito.signInWithPassword(email, password)
     if (result.ok) {
-      toastSuccess(MESSAGES.signInWithPasswordSuccess)
+      toastSuccess(getText('signInWithPasswordSuccess'))
     } else {
       if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
         // It may not be safe to pass the user's password in the URL.
@@ -458,9 +444,9 @@ export default function AuthProvider(props: AuthProviderProps) {
               organizationId != null ? backendModule.UserOrOrganizationId(organizationId) : null,
           }),
           {
-            success: MESSAGES.setUsernameSuccess,
-            error: MESSAGES.setUsernameFailure,
-            pending: MESSAGES.setUsernameLoading,
+            success: getText('setUsernameSuccess'),
+            error: getText('setUsernameError'),
+            pending: getText('settingUsername'),
           }
         )
         const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
@@ -480,7 +466,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const forgotPassword = async (email: string) => {
     const result = await cognito.forgotPassword(email)
     if (result.ok) {
-      toastSuccess(MESSAGES.forgotPasswordSuccess)
+      toastSuccess(getText('forgotPasswordSuccess'))
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -491,7 +477,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const resetPassword = async (email: string, code: string, password: string) => {
     const result = await cognito.forgotPasswordSubmit(email, code, password)
     if (result.ok) {
-      toastSuccess(MESSAGES.resetPasswordSuccess)
+      toastSuccess(getText('resetPasswordSuccess'))
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -502,7 +488,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const changePassword = async (oldPassword: string, newPassword: string) => {
     const result = await cognito.changePassword(oldPassword, newPassword)
     if (result.ok) {
-      toastSuccess(MESSAGES.changePasswordSuccess)
+      toastSuccess(getText('changePasswordSuccess'))
     } else {
       toastError(result.val.message)
     }
@@ -522,9 +508,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     // This should not omit success and error toasts as it is not possible
     // to render this optimistically.
     await toast.toast.promise(cognito.signOut(), {
-      success: MESSAGES.signOutSuccess,
-      error: MESSAGES.signOutError,
-      pending: MESSAGES.signOutLoading,
+      success: getText('signOutSuccess'),
+      error: getText('signOutError'),
+      pending: getText('loggingOut'),
     })
     return true
   }
