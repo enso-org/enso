@@ -9,6 +9,8 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
@@ -35,6 +37,8 @@ const DUMMY_LIKE_COUNT = 10
 /** Template metadata. */
 export interface Sample {
   title: string
+  /** These should ideally be localized, however, as this is planned to be UGC, it is unlikely
+   * that this will be feasible. */
   description: string
   id: string
   background?: string
@@ -93,6 +97,7 @@ interface InternalProjectsEntryProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function ProjectsEntry(props: InternalProjectsEntryProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
   const onClick = () => {
@@ -122,7 +127,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
             ) : (
               <img src={ProjectIcon} />
             )}
-            <p className="font-semibold text-sm">New empty project</p>
+            <p className="font-semibold text-sm">{getText('newEmptyProject')}</p>
           </div>
         </div>
       </button>
@@ -148,6 +153,7 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
+  const { getText } = textProvider.useText()
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
   const opens = DUMMY_OPEN_COUNT
@@ -196,11 +202,11 @@ function ProjectTile(props: InternalProjectTileProps) {
         {/* Normally `flex` */}
         <div className="gap-3 hidden">
           <div title="Views" className="flex gap-1.5">
-            <SvgMask alt="Views" src={OpenCountIcon} />
+            <SvgMask alt={getText('views')} src={OpenCountIcon} />
             <span className="font-bold leading-144.5 pb-px">{opens}</span>
           </div>
           <div title="Likes" className="flex gap-1.5">
-            <SvgMask alt="Likes" src={HeartIcon} />
+            <SvgMask alt={getText('likes')} src={HeartIcon} />
             <span className="font-bold leading-144.5 pb-px">{likes}</span>
           </div>
         </div>
@@ -225,9 +231,10 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   return (
     <div className="flex flex-col gap-4 px-4.75">
-      <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
+      <h2 className="text-xl leading-144.5 py-0.5">{getText('sampleAndCommunityProjects')}</h2>
       <div className="grid gap-2 grid-cols-fill-60">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (

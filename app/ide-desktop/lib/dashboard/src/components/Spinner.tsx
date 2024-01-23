@@ -49,10 +49,7 @@ export default function Spinner(props: SpinnerProps) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth={3}
-        className={
-          'animate-spin-ease origin-center transition-stroke-dasharray ' +
-          `pointer-events-none ${SPINNER_CSS_CLASSES[state]}`
-        }
+        className={`animate-spin-ease origin-center transition-stroke-dasharray pointer-events-none ${SPINNER_CSS_CLASSES[state]}`}
       />
     </svg>
   )

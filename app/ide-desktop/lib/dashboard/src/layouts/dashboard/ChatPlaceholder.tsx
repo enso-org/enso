@@ -10,6 +10,7 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as chat from '#/layouts/dashboard/Chat'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as animations from '#/utilities/animations'
 
 /** Props for a {@link ChatPlaceholder}. */
@@ -23,6 +24,7 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { page, isOpen, doClose } = props
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
   const [right, setTargetRight] = animations.useInterpolateOverTime(
@@ -72,18 +74,14 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
         </div>
         <div className="grow grid place-items-center">
           <div className="flex flex-col gap-3 text-base text-center">
-            <div>
-              Login or register to access live chat
-              <br />
-              with our support team.
-            </div>
+            <div className="px-4">{getText('placeholderChatPrompt')}</div>
             <button
               className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
-              Login
+              {getText('login')}
             </button>
             <button
               className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
@@ -91,7 +89,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
                 navigate(appUtils.REGISTRATION_PATH)
               }}
             >
-              Register
+              {getText('register')}
             </button>
           </div>
         </div>

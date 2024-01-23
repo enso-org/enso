@@ -12,6 +12,7 @@ import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -34,9 +35,6 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-
-/** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
 // ================
 // === AssetRow ===
@@ -81,6 +79,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { organization, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
@@ -139,7 +138,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
         )
       } catch (error) {
-        toastAndLog(`Could not copy '${asset.title}'`, error)
+        toastAndLog(getText('copyAssetError', asset.title), error)
         // Delete the new component representing the asset that failed to insert.
         dispatchAssetListEvent({
           type: AssetListEventType.delete,
@@ -153,6 +152,7 @@ export default function AssetRow(props: AssetRowProps) {
       user,
       asset,
       item.key,
+      getText,
       /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
@@ -187,7 +187,7 @@ export default function AssetRow(props: AssetRowProps) {
           asset.title
         )
       } catch (error) {
-        toastAndLog(`Could not move '${asset.title}'`, error)
+        toastAndLog(getText('moveAssetError', asset.title), error)
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -208,6 +208,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryId,
       item.directoryKey,
       item.key,
+      getText,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -259,14 +260,15 @@ export default function AssetRow(props: AssetRowProps) {
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
-        errorModule.tryGetMessage(error)?.slice(0, -1) ??
-          `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+        errorModule.tryGetMessage(error)?.slice(0, -1) ?? getText('deleteAssetError', asset.title),
+        error
       )
     }
   }, [
     backend,
     dispatchAssetListEvent,
     asset,
+    getText,
     /* should never change */ item.key,
     /* should never change */ toastAndLog,
   ])
@@ -282,12 +284,13 @@ export default function AssetRow(props: AssetRowProps) {
       })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+      toastAndLog(getText('restoreAssetError', asset.title), error)
     }
   }, [
     backend,
     dispatchAssetListEvent,
     asset,
+    getText,
     /* should never change */ item.key,
     /* should never change */ toastAndLog,
   ])
@@ -345,14 +348,14 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.ids.has(item.key)) {
           if (isCloud) {
             if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
+              toastAndLog(getText('downloadNonFileError'))
             } else {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
-                toastAndLog('Could not download file', error)
+                toastAndLog(getText('downloadFileError'), error)
               }
             }
           } else {
@@ -368,14 +371,14 @@ export default function AssetRow(props: AssetRowProps) {
         if (selected) {
           if (isCloud) {
             if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
+              toastAndLog(getText('downloadNonFileError'))
             } else {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
-                toastAndLog('Could not download selected files', error)
+                toastAndLog(getText('downloadSelectedFilesError'), error)
               }
             }
           } else {
@@ -703,7 +706,7 @@ export default function AssetRow(props: AssetRowProps) {
               )}`}
             >
               <img src={BlankIcon} />
-              {EMPTY_DIRECTORY_PLACEHOLDER}
+              <span className="px-2 opacity-75">{getText('thisFolderIsEmpty')}</span>
             </div>
           </td>
         </tr>

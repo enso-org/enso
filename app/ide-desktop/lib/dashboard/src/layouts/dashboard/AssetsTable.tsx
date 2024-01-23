@@ -19,6 +19,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/assetQuery'
@@ -59,17 +60,6 @@ const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
 const COMPARE_LESS_THAN = -1
-/** The default placeholder row. */
-const PLACEHOLDER = (
-  <span className="opacity-75">
-    You have no files. Go ahead and create one using the buttons above, or open a template from the
-    home screen.
-  </span>
-)
-/** A placeholder row for when a query (text or labels) is active. */
-const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
-/** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -332,6 +322,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -358,12 +349,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
   })
   const isCloud = backend.type === backendModule.BackendType.remote
-  const placeholder =
-    category === Category.trash
-      ? TRASH_PLACEHOLDER
-      : query.query !== ''
-      ? QUERY_PLACEHOLDER
-      : PLACEHOLDER
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode>(assetTree)
@@ -1925,7 +1910,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="h-8 hidden first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {placeholder}
+              {category === Category.trash ? (
+                <span className="opacity-75 px-1.5">{getText('yourTrashIsEmpty')}</span>
+              ) : query.query !== '' ? (
+                <span className="opacity-75">{getText('noFilesMatchTheCurrentFilters')}</span>
+              ) : (
+                <span className="opacity-75">{getText('youHaveNoFiles')}</span>
+              )}
             </td>
           </tr>
         </tbody>

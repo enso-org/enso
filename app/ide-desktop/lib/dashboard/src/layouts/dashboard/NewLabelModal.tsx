@@ -5,6 +5,7 @@ import * as toastify from 'react-toastify'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backend from '#/services/backend'
 import * as errorModule from '#/utilities/error'
 
@@ -27,16 +28,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const { labels, eventTarget, doCreate } = props
   const logger = loggerProvider.useLogger()
   const { unsetModal } = modalProvider.useSetModal()
-  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-
+  const { getText } = textProvider.useText()
+  const [value, setName] = React.useState('')
+  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
+  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
   const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
-
-  const [value, setName] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const onSubmit = () => {
@@ -75,13 +75,13 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           onSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">New Label</h1>
+        <h1 className="relative text-sm font-semibold">{getText('newLabel')}</h1>
         <label className="relative flex">
-          <div className="w-12 h-6 py-1">Name</div>
+          <div className="w-12 h-6 py-1">{getText('name')}</div>
           <input
             autoFocus
             size={1}
-            placeholder="Enter the name of the label"
+            placeholder={getText('labelNamePlaceholder')}
             className={`grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
@@ -106,7 +106,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             event.preventDefault()
           }}
         >
-          <div className="w-12 h-6 py-1">Color</div>
+          <div className="w-12 h-6 py-1">{getText('color')}</div>
           <div className="grow flex items-center gap-1">
             <ColorPicker setColor={setColor} />
           </div>
@@ -117,14 +117,14 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             type="submit"
             className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
           >
-            Create
+            {getText('create')}
           </button>
           <button
             type="button"
             className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
             onClick={unsetModal}
           >
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

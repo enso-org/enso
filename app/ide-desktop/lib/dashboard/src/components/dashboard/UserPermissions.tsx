@@ -3,7 +3,8 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as backendModule from '#/services/backend'
+import * as textProvider from '#/providers/TextProvider'
+import type * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
@@ -23,8 +24,10 @@ export default function UserPermissions(props: UserPermissionsProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
+  const assetTypeName = getText(`${asset.type}AssetType`)
 
   React.useEffect(() => {
     setUserPermissions(initialUserPermission)
@@ -42,7 +45,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
     } catch (error) {
       setUserPermissions(userPermissions)
       outerSetUserPermission(userPermissions)
-      toastAndLog(`Could not set permissions of '${newUserPermissions.user.user_email}'`, error)
+      toastAndLog(getText('setPermissionsError', `'${newUserPermissions.user.user_email}'`), error)
     }
   }
 
@@ -51,11 +54,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
       <PermissionSelector
         showDelete
         disabled={isOnlyOwner && userPermissions.user.pk === self.user.pk}
-        error={
-          isOnlyOwner
-            ? `This ${backendModule.ASSET_TYPE_NAME[asset.type]} must have at least one owner.`
-            : null
-        }
+        error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
         selfPermission={self.permission}
         action={userPermissions.permission}
         assetType={asset.type}

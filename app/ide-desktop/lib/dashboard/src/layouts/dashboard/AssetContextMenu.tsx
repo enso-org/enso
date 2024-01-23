@@ -15,6 +15,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import * as http from '#/utilities/http'
@@ -57,6 +58,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { organization, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
   const self = asset.permissions?.find(
@@ -169,7 +171,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
-                toastAndLog('Cannot upload to cloud in offline mode')
+                toastAndLog(getText('offlineUploadFilesError'))
               } else {
                 try {
                   const client = new http.Client([['Authorization', `Bearer ${accessToken}`]])
@@ -190,9 +192,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     },
                     await projectResponse.blob()
                   )
-                  toast.toast.success('Successfully uploaded local project to cloud!')
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {
-                  toastAndLog('Could not upload local project to cloud', error)
+                  toastAndLog(getText('uploadProjectToCloudError'), error)
                 }
               }
             }}
@@ -258,7 +260,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 setModal(
                   <ConfirmDeleteModal
-                    description={`the ${asset.type} '${asset.title}'`}
+                    description={getText('theAssetTypeTitle', asset.type, asset.title)}
                     doDelete={doDelete}
                   />
                 )

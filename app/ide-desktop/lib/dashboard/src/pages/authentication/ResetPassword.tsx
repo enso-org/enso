@@ -3,7 +3,6 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
@@ -11,7 +10,9 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
@@ -36,7 +37,9 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
   const { search } = router.useLocation()
+  const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const { verificationCode, email } = parseUrlSearchParams(search)
 
@@ -45,17 +48,17 @@ export default function ResetPassword() {
 
   React.useEffect(() => {
     if (email == null) {
-      toastify.toast.error('Could not reset password: missing email address')
+      toastAndLog(getText('missingEmailError'))
       navigate(appUtils.LOGIN_PATH)
     } else if (verificationCode == null) {
-      toastify.toast.error('Could not reset password: missing verification code')
+      toastAndLog(getText('missingVerificationCodeError'))
       navigate(appUtils.LOGIN_PATH)
     }
-  }, [email, navigate, verificationCode])
+  }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
 
   const onSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
-      toastify.toast.error('Passwords do not match')
+      toastAndLog(getText('passwordMismatchError'))
       return Promise.resolve()
     } else {
       // These should never be nullish, as the effect should immediately navigate away.
@@ -72,14 +75,14 @@ export default function ResetPassword() {
           await onSubmit()
         }}
       >
-        <div className="font-medium self-center text-xl">Reset your password</div>
+        <div className="font-medium self-center text-xl">{getText('resetYourPassword')}</div>
         <input
           required
           readOnly
           hidden
           type="email"
           autoComplete="email"
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email ?? ''}
         />
         <input
@@ -88,7 +91,7 @@ export default function ResetPassword() {
           hidden
           type="text"
           autoComplete="one-time-code"
-          placeholder="Enter the confirmation code"
+          placeholder={getText('confirmationCodePlaceholder')}
           value={verificationCode ?? ''}
         />
         <Input
@@ -97,9 +100,9 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="New password"
+          label={getText('newPasswordLabel')}
           icon={LockIcon}
-          placeholder="Enter your new password"
+          placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
           error={validation.PASSWORD_ERROR}
           value={newPassword}
@@ -111,9 +114,9 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm new password"
+          label={getText('confirmNewPasswordLabel')}
           icon={LockIcon}
-          placeholder="Confirm your new password"
+          placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}
           error={validation.CONFIRM_PASSWORD_ERROR}
           value={newPasswordConfirm}

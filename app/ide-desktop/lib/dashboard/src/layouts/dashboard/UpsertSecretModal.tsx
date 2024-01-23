@@ -5,6 +5,7 @@ import * as toastify from 'react-toastify'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/backend'
 import * as errorModule from '#/utilities/error'
 
@@ -26,6 +27,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
   const logger = loggerProvider.useLogger()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
@@ -65,14 +67,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">
-          {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
+          {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
         </h1>
         <div className="relative flex">
-          <div className="w-12 h-6 py-1">Name</div>
+          <div className="w-12 h-6 py-1">{getText('name')}</div>
           <input
             autoFocus
             disabled={!isNameEditable}
-            placeholder="Enter the name of the secret"
+            placeholder={getText('secretNamePlaceholder')}
             className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
             value={name}
             onInput={event => {
@@ -81,9 +83,9 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           />
         </div>
         <div className="relative flex">
-          <div className="w-12 h-6 py-1">Value</div>
+          <div className="w-12 h-6 py-1">{getText('value')}</div>
           <input
-            placeholder="Enter the value of the secret"
+            placeholder={getText('secretValuePlaceholder')}
             className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
             onInput={event => {
               setValue(event.currentTarget.value)
@@ -96,14 +98,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             type="submit"
             className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
           >
-            {isCreatingSecret ? 'Create' : 'Update'}
+            {isCreatingSecret ? getText('create') : getText('update')}
           </button>
           <button
             type="button"
             className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
             onClick={unsetModal}
           >
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

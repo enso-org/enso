@@ -65,17 +65,6 @@ export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
   [Column.docs]: DocsIcon,
 }
 
-/** English names for every column except for the name column. */
-export const COLUMN_NAME: Record<Column, string> = {
-  [Column.name]: 'Name',
-  [Column.modified]: 'Modified',
-  [Column.sharedWith]: 'Shared with',
-  [Column.labels]: 'Labels',
-  [Column.accessedByProjects]: 'Accessed by projects',
-  [Column.accessedData]: 'Accessed data',
-  [Column.docs]: 'Docs',
-} as const
-
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
 const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`

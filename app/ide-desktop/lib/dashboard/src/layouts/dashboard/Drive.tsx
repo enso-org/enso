@@ -363,7 +363,7 @@ export default function Drive(props: DriveProps) {
         >
           <div className="flex flex-col self-start gap-3">
             <h1 className="text-xl font-bold h-9.5 pl-1.5">
-              {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
+              {isCloud ? getText('cloudDrive') : getText('localDrive')}
             </h1>
             <DriveBar
               category={category}
@@ -376,7 +376,7 @@ export default function Drive(props: DriveProps) {
             />
           </div>
           <div className="flex flex-1 gap-3 overflow-hidden">
-            {backend.type === backendModule.BackendType.remote && (
+            {isCloud && (
               <div className="flex flex-col gap-4 py-1">
                 <CategorySwitcher
                   category={category}

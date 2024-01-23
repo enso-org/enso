@@ -72,11 +72,7 @@ export default function DriveBar(props: DriveBarProps) {
         <button
           disabled={!isHomeCategory}
           className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          {...(!isHomeCategory
-            ? {
-                title: 'You can only create a new project in Home.',
-              }
-            : {})}
+          {...(!isHomeCategory ? { title: getText('newProjectInHomeOnly') } : {})}
           onClick={() => {
             unsetModal()
             doCreateProject()
@@ -159,8 +155,8 @@ export default function DriveBar(props: DriveBarProps) {
             alt={getText('downloadFiles')}
             error={
               category === Category.trash
-                ? 'You cannot download files from Trash.'
-                : 'You currently can only download files.'
+                ? getText('downloadFromTrashError')
+                : getText('canOnlyDownloadFilesError')
             }
             disabledOpacityClassName="opacity-20"
             onClick={event => {

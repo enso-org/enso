@@ -5,6 +5,7 @@ import * as toastify from 'react-toastify'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as errorModule from '#/utilities/error'
 
 import Modal from '#/components/Modal'
@@ -24,6 +25,7 @@ export interface ConfirmDeleteModalProps {
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { description, doDelete } = props
   const logger = loggerProvider.useLogger()
+  const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
 
   const onSubmit = () => {
@@ -61,20 +63,20 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           onSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to delete {description}?</div>
+        <div className="relative">{getText('confirmDeletePrompt', description)}</div>
         <div className="relative flex gap-2">
           <button
             type="submit"
             className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
           >
-            Delete
+            {getText('delete')}
           </button>
           <button
             type="button"
             className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
             onClick={unsetModal}
           >
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

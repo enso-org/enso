@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as load from '#/utilities/load'
 
@@ -39,6 +40,7 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
   const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
@@ -102,15 +104,15 @@ export default function Editor(props: EditorProps) {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
         if (jsonAddress == null) {
-          toastAndLog("Could not get the address of the project's JSON endpoint")
+          toastAndLog(getText('noJSONEndpointError'))
         } else if (binaryAddress == null) {
-          toastAndLog("Could not get the address of the project's binary endpoint")
+          toastAndLog(getText('noBinaryEndpointError'))
         } else {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
               if (project.ideVersion == null) {
-                toastAndLog('Could not get the IDE version of the project')
+                toastAndLog(getText('noIdeVersionError'))
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
@@ -160,7 +162,7 @@ export default function Editor(props: EditorProps) {
                 { projectId: project.projectId }
               )
             } catch (error) {
-              toastAndLog('Could not open editor', error)
+              toastAndLog(getText('openEditorError'), error)
             }
             if (backendType === backendModule.BackendType.remote) {
               // Restore original URL so that initialization works correctly on refresh.

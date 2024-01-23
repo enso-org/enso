@@ -6,6 +6,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/assetQuery'
@@ -39,11 +40,14 @@ export default function Labels(props: LabelsProps) {
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   return (
     <div data-testid="labels" className="flex flex-col items-start w-30">
       <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Labels</span>
+        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
+          {getText('labels')}
+        </span>
       </div>
       <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
         {labels
@@ -95,7 +99,7 @@ export default function Labels(props: LabelsProps) {
                       event.stopPropagation()
                       setModal(
                         <ConfirmDeleteModal
-                          description={`the label '${label.value}'`}
+                          description={getText('labelAssetDescription', label.value)}
                           doDelete={() => {
                             doDeleteLabel(label.id, label.value)
                           }}
@@ -105,7 +109,7 @@ export default function Labels(props: LabelsProps) {
                   >
                     <SvgMask
                       src={Trash2Icon}
-                      alt="Delete"
+                      alt={getText('delete')}
                       className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
                     />
                   </button>
@@ -130,7 +134,7 @@ export default function Labels(props: LabelsProps) {
             }}
           >
             <img src={PlusIcon} className="w-1.5 h-1.5" />
-            <span className="leading-144.5 h-6 py-0.5">new label</span>
+            <span className="leading-144.5 h-6 py-0.5">{getText('newLabelButtonLabel')}</span>
           </Label>
         </li>
       </ul>

@@ -5,6 +5,7 @@ import DocsIcon from 'enso-assets/docs.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
@@ -22,6 +23,7 @@ export interface AssetInfoBarProps {
 export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { canToggleSettingsPanel, isSettingsPanelVisible, setIsSettingsPanelVisible } = props
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   return (
     <div
       className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto ${
@@ -35,7 +37,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         active={false}
         disabled
         image={DocsIcon}
-        error="Not implemented yet."
+        error={getText('notImplemetedYet')}
         onClick={() => {
           // No backend support yet.
         }}
@@ -44,7 +46,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         active={canToggleSettingsPanel && isSettingsPanelVisible}
         disabled={!canToggleSettingsPanel}
         image={SettingsIcon}
-        error="Select exactly one asset to see its settings."
+        error={getText('multipleAssetsSettingsError')}
         onClick={() => {
           setIsSettingsPanelVisible(oldIsSettingsPanelVisible => !oldIsSettingsPanelVisible)
         }}

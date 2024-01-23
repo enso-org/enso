@@ -10,6 +10,7 @@ import UserMenu from '#/layouts/dashboard/UserMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
@@ -37,6 +38,7 @@ export default function UserBar(props: UserBarProps) {
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const self =
     organization != null
       ? projectAsset?.permissions?.find(
@@ -74,7 +76,7 @@ export default function UserBar(props: UserBarProps) {
             )
           }}
         >
-          Share
+          {getText('share')}
         </button>
       )}
       <button
@@ -89,7 +91,7 @@ export default function UserBar(props: UserBarProps) {
       >
         <img
           src={DefaultUserIcon}
-          alt="Open user menu"
+          alt={getText('openUserMenu')}
           height={28}
           width={28}
           onDragStart={event => {

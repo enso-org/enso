@@ -9,6 +9,7 @@ import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 import SvgMask from '#/components/SvgMask'
@@ -22,35 +23,40 @@ const ICON_SIZE_PX = 13
 
 const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
+/** Props for values of {@link MODIFIER_MAPPINGS}. */
+interface InternalModifierProps {
+  getText: ReturnType<typeof textProvider.useText>['getText']
+}
+
 /** Icons for modifier keys (if they exist). */
 const MODIFIER_MAPPINGS: Record<
   detect.Platform,
-  Partial<Record<shortcutsModule.ModifierKey, React.ReactNode>>
+  Partial<Record<shortcutsModule.ModifierKey, (props: InternalModifierProps) => React.ReactNode>>
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
   /* eslint-disable @typescript-eslint/naming-convention */
   [detect.Platform.macOS]: {
-    Meta: <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
-    Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
-    Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
-    Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
+    Meta: () => <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
+    Shift: () => <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
+    Alt: () => <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
+    Ctrl: () => <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
   },
   [detect.Platform.windows]: {
-    Meta: <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
+    Meta: () => <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
   },
   [detect.Platform.linux]: {
-    Meta: (
+    Meta: props => (
       <span key="Meta" className="leading-170 h-6 py-px">
-        Super
+        {props.getText('superModifier')}
       </span>
     ),
   },
   [detect.Platform.unknown]: {
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
-    Meta: (
+    Meta: props => (
       <span key="Meta" className="leading-170 h-6 py-px">
-        Super
+        {props.getText('superModifier')}
       </span>
     ),
   },
@@ -66,6 +72,7 @@ export interface KeyboardShortcutProps {
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
   const { action } = props
   const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { getText } = textProvider.useText()
   const shortcut = shortcuts.keyboardShortcuts[action][0]
   if (shortcut == null) {
     return null
@@ -74,9 +81,13 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
         {shortcutsModule.getModifierKeysOfShortcut(shortcut).map(
           modifier =>
-            MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
+            MODIFIER_MAPPINGS[detect.platform()][modifier]?.({ getText }) ?? (
               <span key={modifier} className="leading-170 h-6 py-px">
-                {modifier}
+                {
+                  // This is SAFE, as `Lowercase` behaves identically to `toLowerCase`.
+                  // eslint-disable-next-line no-restricted-syntax
+                  getText(`${modifier.toLowerCase() as Lowercase<typeof modifier>}Modifier`)
+                }
               </span>
             )
         )}

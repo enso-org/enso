@@ -9,6 +9,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as github from '#/utilities/github'
 import * as shortcuts from '#/utilities/shortcuts'
 
@@ -32,6 +33,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { signOut } = authProvider.useAuth()
   const { accessToken, organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   // The shape of the JWT payload is statically known.
@@ -74,7 +76,7 @@ export default function UserMenu(props: UserMenuProps) {
                     unsetModal()
                     const downloadUrl = await github.getDownloadUrl()
                     if (downloadUrl == null) {
-                      toastAndLog('Could not find a download link for the current OS')
+                      toastAndLog(getText('noAppDownloadError'))
                     } else {
                       window.open(downloadUrl, '_blank')
                     }
@@ -97,7 +99,7 @@ export default function UserMenu(props: UserMenuProps) {
         ) : (
           <>
             <div className="flex items-center h-7">
-              <span className="leading-170 h-6 py-px">You are not logged in.</span>
+              <span className="leading-170 h-6 py-px">{getText('youAreNotLoggedIn')}</span>
             </div>
             <div className="flex flex-col">
               <MenuEntry

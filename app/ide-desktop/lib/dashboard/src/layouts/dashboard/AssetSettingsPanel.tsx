@@ -10,6 +10,7 @@ import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 import type * as backendModule from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as object from '#/utilities/object'
@@ -55,6 +56,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
   const [description, setDescription] = React.useState('')
   const { organization } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
@@ -84,7 +86,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
           item.item.title
         )
       } catch (error) {
-        toastAndLog('Could not edit asset description')
+        toastAndLog(getText('editDescriptionError'))
         setItem(oldItem =>
           oldItem.with({
             item: object.merge(oldItem.item, { description: oldDescription }),
@@ -124,7 +126,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
       </div>
       <div className="flex flex-col items-start gap-1">
         <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
-          Description
+          {getText('description')}
           {ownsThisAsset && !isEditingDescription && (
             <Button
               image={PenIcon}
@@ -170,19 +172,19 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 className="bg-frame resize-none rounded-lg w-full p-2"
               ></textarea>
               <button type="submit" className="self-start bg-frame-selected rounded-full px-4 py-1">
-                Update
+                {getText('update')}
               </button>
             </form>
           )}
         </div>
       </div>
       <div className="flex flex-col items-start gap-2">
-        <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
+        <span className="text-lg leading-144.5 h-7 py-px">{getText('settings')}</span>
         <table>
           <tbody>
             <tr>
               <td className="min-w-32 px-0 py-1">
-                <span className="inline-block leading-170 h-6 py-px">Shared with</span>
+                <span className="inline-block leading-170 h-6 py-px">{getText('sharedWith')}</span>
               </td>
               <td className="p-0 w-full">
                 <SharedWithColumn

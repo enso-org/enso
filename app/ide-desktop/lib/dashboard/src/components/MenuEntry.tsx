@@ -51,10 +51,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     >
       <div className="flex items-center gap-3">
         <SvgMask
-          style={{
-            width: shortcutsModule.ICON_SIZE_PX,
-            height: shortcutsModule.ICON_SIZE_PX,
-          }}
+          style={{ width: shortcutsModule.ICON_SIZE_PX, height: shortcutsModule.ICON_SIZE_PX }}
           src={info.icon}
           className={info.colorClass}
         />

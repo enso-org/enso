@@ -6,6 +6,7 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
@@ -21,7 +22,7 @@ import SubmitButton from '#/components/SubmitButton'
 export default function ChangePasswordModal() {
   const { changePassword } = authProvider.useAuth()
   const { unsetModal } = modalProvider.useSetModal()
-
+  const { getText } = textProvider.useText()
   const [oldPassword, setOldPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
@@ -45,7 +46,7 @@ export default function ChangePasswordModal() {
           event.stopPropagation()
         }}
       >
-        <div className="self-center text-xl">Change your password</div>
+        <div className="self-center text-xl">{getText('changeYourPassword')}</div>
         <Input
           autoFocus
           required
@@ -55,9 +56,9 @@ export default function ChangePasswordModal() {
           type="password"
           name="old_password"
           autoComplete="current-password"
-          label="Old password"
+          label={getText('oldPasswordLabel')}
           icon={LockIcon}
-          placeholder="Enter your old password"
+          placeholder={getText('oldPasswordPlaceholder')}
           error={validation.PASSWORD_ERROR}
           value={oldPassword}
           setValue={setOldPassword}
@@ -69,9 +70,9 @@ export default function ChangePasswordModal() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="New password"
+          label={getText('newPasswordLabel')}
           icon={LockIcon}
-          placeholder="Enter your new password"
+          placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
           error={validation.PASSWORD_ERROR}
           value={newPassword}
@@ -84,9 +85,9 @@ export default function ChangePasswordModal() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm new password"
+          label={getText('confirmNewPasswordLabel')}
           icon={LockIcon}
-          placeholder="Confirm your new password"
+          placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}
           error={validation.CONFIRM_PASSWORD_ERROR}
           value={confirmNewPassword}

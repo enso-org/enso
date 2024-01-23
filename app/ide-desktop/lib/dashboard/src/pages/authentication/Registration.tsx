@@ -11,6 +11,7 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
@@ -38,6 +39,7 @@ export default function Registration() {
   const auth = authProvider.useAuth()
   const location = router.useLocation()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const { email: urlEmail, organizationId, redirectTo } = parseUrlSearchParams(location.search)
   const [email, setEmail] = React.useState(urlEmail ?? '')
   const [password, setPassword] = React.useState('')
@@ -63,15 +65,15 @@ export default function Registration() {
           setIsSubmitting(false)
         }}
       >
-        <div className="font-medium self-center text-xl">Create a new account</div>
+        <div className="font-medium self-center text-xl">{getText('createANewAccount')}</div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
-          label="Email"
+          label={getText('email')}
           icon={AtIcon}
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email}
           setValue={setEmail}
         />
@@ -81,11 +83,11 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Password"
+          label={getText('password')}
           icon={LockIcon}
-          placeholder="Enter your password"
+          placeholder={getText('passwordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={password}
           setValue={setPassword}
         />
@@ -95,17 +97,17 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm password"
+          label={getText('confirmPasswordLabel')}
           icon={LockIcon}
-          placeholder="Confirm your password"
+          placeholder={getText('confirmPasswordPlaceholder')}
           pattern={string.regexEscape(password)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={confirmPassword}
           setValue={setConfirmPassword}
         />
-        <SubmitButton disabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
+        <SubmitButton disabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
     </div>
   )
 }

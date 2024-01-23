@@ -425,9 +425,9 @@ export enum AssetType {
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
-  specialLoading = 'special-loading',
+  specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing the sole child of an empty directory. */
-  specialEmpty = 'special-empty',
+  specialEmpty = 'specialEmpty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -439,16 +439,6 @@ export interface IdType {
   [AssetType.specialLoading]: LoadingAssetId
   [AssetType.specialEmpty]: EmptyAssetId
 }
-
-/** The english name of each asset type. */
-export const ASSET_TYPE_NAME: Record<AssetType, string> = {
-  [AssetType.directory]: 'folder',
-  [AssetType.project]: 'project',
-  [AssetType.file]: 'file',
-  [AssetType.secret]: 'secret',
-  [AssetType.specialLoading]: 'special loading asset',
-  [AssetType.specialEmpty]: 'special empty asset',
-} as const
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */

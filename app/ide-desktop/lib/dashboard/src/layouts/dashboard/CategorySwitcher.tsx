@@ -12,6 +12,7 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as drag from '#/utilities/drag'
 import * as localStorageModule from '#/utilities/localStorage'
 
@@ -111,6 +112,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
 
   React.useEffect(() => {
     localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)
@@ -119,7 +121,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <div className="flex flex-col items-start w-30">
       <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Category</span>
+        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
+          {getText('category')}
+        </span>
       </div>
       {CATEGORIES.map(currentCategory => (
         <CategorySwitcherItem
@@ -128,7 +132,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           disabled={category === currentCategory}
           hidden={IS_NOT_YET_IMPLEMENTED[currentCategory]}
           image={CATEGORY_ICONS[currentCategory]}
-          name={currentCategory}
+          name={getText(`${currentCategory}Category`)}
           iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
           onClick={() => {
             setCategory(currentCategory)

@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as toastify from 'react-toastify'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -10,9 +9,11 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
 import * as gtag from 'enso-common/src/gtag'
 
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as animations from '#/utilities/animations'
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
@@ -120,7 +121,6 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          // FIXME: Grayscale has the wrong lightness
           className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
             selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
           }`}
@@ -377,7 +377,9 @@ export interface ChatProps {
 export default function Chat(props: ChatProps) {
   const { page, isOpen, doClose } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -602,9 +604,7 @@ export default function Chat(props: ChatProps) {
     (newThreadId: chat.ThreadId) => {
       const threadData = threads.find(thread => thread.id === newThreadId)
       if (threadData == null) {
-        const message = `Unknown thread id '${newThreadId}'.`
-        toastify.toast.error(message)
-        logger.error(message)
+        toastAndLog(getText('unknownThreadIdError', newThreadId))
       } else {
         sendMessage({
           type: chat.ChatMessageDataType.switchThread,
@@ -612,7 +612,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, /* should never change */ sendMessage, /* should never change */ logger]
+    [threads, getText, /* should never change */ sendMessage, /* should never change */ toastAndLog]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -630,7 +630,7 @@ export default function Chat(props: ChatProps) {
           id: MessageId(String(Number(new Date()))),
           isStaffMessage: false,
           avatar: null,
-          name: 'Me',
+          name: getText('me'),
           content,
           reactions: [],
           timestamp: Number(new Date()),
@@ -664,6 +664,7 @@ export default function Chat(props: ChatProps) {
       threadId,
       threadTitle,
       shouldIgnoreMessageLimit,
+      getText,
       /* should never change */ sendMessage,
     ]
   )
@@ -769,7 +770,7 @@ export default function Chat(props: ChatProps) {
             rows={1}
             autoFocus
             required
-            placeholder="Type your message ..."
+            placeholder={getText('chatInputPlaceholder')}
             className="w-full rounded-lg resize-none p-1"
             onKeyDown={event => {
               switch (event.key) {
@@ -806,7 +807,7 @@ export default function Chat(props: ChatProps) {
                 sendCurrentMessage(event, true)
               }}
             >
-              New question? Click to start a new thread!
+              {getText('clickForNewQuestion')}
             </button>
             {/* Spacing. */}
             <div className="w-0.5" />
@@ -817,7 +818,7 @@ export default function Chat(props: ChatProps) {
                 isReplyEnabled ? '' : 'opacity-50'
               }`}
             >
-              Reply!
+              {getText('replyExclamation')}
             </button>
           </div>
         </form>
@@ -826,7 +827,7 @@ export default function Chat(props: ChatProps) {
             className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >
-            Click here to upgrade to Enso Pro and get access to high-priority, live support!
+            {getText('upgradeToProNag')}
           </button>
         )}
       </div>,

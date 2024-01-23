@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
+import * as textProvider from '#/providers/TextProvider'
 import * as sorting from '#/utilities/sorting'
 
 import type * as column from '#/components/dashboard/column'
@@ -12,6 +13,7 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
   const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
+  const { getText } = textProvider.useText()
   const [isHovered, setIsHovered] = React.useState(false)
   const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
   return (
@@ -33,9 +35,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
-      </span>
+      <span className="leading-144.5 h-6 py-0.5">{getText('nameColumnName')}</span>
       <img
         src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
         className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}

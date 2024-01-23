@@ -247,7 +247,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                           })
                         }}
                       >
-                        {tag}:
+                        {`${tag}:`}
                       </button>,
                     ]
               })}

@@ -11,7 +11,7 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
-import * as validation from '#/utilities/validation'
+import * as textProvider from '#/providers/TextProvider'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
@@ -40,6 +40,7 @@ export default function Login(props: LoginProps) {
   const { supportsLocalBackend } = props
   const { search } = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
 
   const initialEmail = parseUrlSearchParams(search)
 
@@ -51,7 +52,7 @@ export default function Login(props: LoginProps) {
   return (
     <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
       <div className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md">
-        <div className="font-medium self-center text-xl">Login to your account</div>
+        <div className="font-medium self-center text-xl">{getText('loginToYourAccount')}</div>
         <div className="flex flex-col gap-6">
           <button
             onMouseDown={() => {
@@ -64,7 +65,7 @@ export default function Login(props: LoginProps) {
             className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-            Sign up or login with Google
+            {getText('signUpOrLoginWithGoogle')}
           </button>
           <button
             onMouseDown={() => {
@@ -77,12 +78,12 @@ export default function Login(props: LoginProps) {
             className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-            Sign up or login with GitHub
+            {getText('signUpOrLoginWithGitHub')}
           </button>
         </div>
         <div className="flex items-center gap-2">
           <div className="grow border-t border-primary/30 h-0" />
-          <span className="text-xs self-center text-primary/60">or login with email</span>
+          <span className="text-xs self-center text-primary/60">{getText('orLoginWithEmail')}</span>
           <div className="grow border-t border-primary/30 h-0" />
         </div>
         <form
@@ -100,9 +101,9 @@ export default function Login(props: LoginProps) {
             validate
             type="email"
             autoComplete="email"
-            label="Email"
+            label={getText('email')}
             icon={AtIcon}
-            placeholder="Enter your email"
+            placeholder={getText('emailPlaceholder')}
             value={email}
             setValue={setEmail}
             shouldReportValidityRef={shouldReportValidityRef}
@@ -113,10 +114,10 @@ export default function Login(props: LoginProps) {
             allowShowingPassword
             type="password"
             autoComplete="current-password"
-            label="Password"
+            label={getText('password')}
             icon={LockIcon}
-            placeholder="Enter your password"
-            error={validation.PASSWORD_ERROR}
+            placeholder={getText('passwordPlaceholder')}
+            error={getText('passwordValidationError')}
             value={password}
             setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
@@ -125,23 +126,23 @@ export default function Login(props: LoginProps) {
                 to={appUtils.FORGOT_PASSWORD_PATH}
                 className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
               >
-                Forgot Your Password?
+                {getText('forgotYourPassword')}
               </router.Link>
             }
           />
-          <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
+          <SubmitButton disabled={isSubmitting} text={getText('login')} icon={ArrowRightIcon} />
         </form>
       </div>
       <Link
         to={appUtils.REGISTRATION_PATH}
         icon={CreateAccountIcon}
-        text="Don't have an account?"
+        text={getText('dontHaveAnAccount')}
       />
       {supportsLocalBackend && (
         <Link
           to={appUtils.ENTER_OFFLINE_MODE_PATH}
           icon={ArrowRightIcon}
-          text="Continue without creating an account"
+          text={getText('continueWithoutCreatingAnAccount')}
         />
       )}
     </div>

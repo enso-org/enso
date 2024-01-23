@@ -16,6 +16,27 @@ type Texts = typeof ENGLISH
 /** All possible text IDs. */
 export type TextId = keyof Texts
 
+/** Overrides the default number of placeholders (0). */
+interface PlaceholderOverrides {
+  copyAssetError: [string]
+  moveAssetError: [string]
+  deleteAssetError: [string]
+  restoreAssetError: [string]
+  setPermissionsError: [string]
+  unknownThreadIdError: [string]
+  needsOwnerError: [string]
+  inviteSuccess: [string]
+  labelAssetDescription: [string]
+  selectedAssetsDescription: [string, string]
+  confirmDeletePrompt: [string]
+  theAssetTypeTitle: [string, string]
+}
+
+/** An tuple of `string` for placeholders for each {@link TextId}. */
+export interface Replacements
+  extends PlaceholderOverrides,
+    Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
+
 // =================
 // === Constants ===
 // =================

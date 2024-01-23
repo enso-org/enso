@@ -8,6 +8,7 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
@@ -20,7 +21,7 @@ import SubmitButton from '#/components/SubmitButton'
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
   const { forgotPassword } = authProvider.useAuth()
-
+  const { getText } = textProvider.useText()
   const [email, setEmail] = React.useState('')
 
   return (
@@ -32,21 +33,21 @@ export default function ForgotPassword() {
           await forgotPassword(email)
         }}
       >
-        <div className="font-medium self-center text-xl">Forgot Your Password?</div>
+        <div className="font-medium self-center text-xl">{getText('forgotYourPassword')}</div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
-          label="Email"
+          label={getText('email')}
           icon={AtIcon}
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email}
           setValue={setEmail}
         />
-        <SubmitButton text="Send link" icon={ArrowRightIcon} />
+        <SubmitButton text={getText('sendLink')} icon={ArrowRightIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
     </div>
   )
 }

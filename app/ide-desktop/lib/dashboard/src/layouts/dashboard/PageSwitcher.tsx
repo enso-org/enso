@@ -5,6 +5,9 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+import type * as text from '#/text'
+
 import Button from '#/components/Button'
 
 // ====================
@@ -19,10 +22,10 @@ export enum Page {
 }
 
 /** Error text for each page. */
-const ERRORS: Record<Page, string | null> = {
+const ERRORS: Record<Page, text.TextId | null> = {
   [Page.home]: null,
   [Page.drive]: null,
-  [Page.editor]: 'No project is currently open.',
+  [Page.editor]: 'noProjectIsCurrentlyOpen',
 }
 
 /** Data describing how to display a button for a pageg. */
@@ -47,6 +50,7 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
+  const { getText } = textProvider.useText()
   return (
     <div
       className={`cursor-default pointer-events-auto flex items-center rounded-full shrink-0 gap-4 ${
@@ -56,13 +60,16 @@ export default function PageSwitcher(props: PageSwitcherProps) {
       {PAGE_DATA.map(pageData => {
         const isDisabled =
           pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
+        const errorId = ERRORS[pageData.page]
         return (
           <Button
             key={pageData.page}
             image={pageData.icon}
             active={page === pageData.page}
+            alt={getText(`${pageData.page}PageAltText`)}
+            title={getText(`${pageData.page}PageTooltip`)}
             disabled={isDisabled}
-            error={ERRORS[pageData.page]}
+            error={errorId == null ? null : getText(errorId)}
             onClick={() => {
               setPage(pageData.page)
             }}

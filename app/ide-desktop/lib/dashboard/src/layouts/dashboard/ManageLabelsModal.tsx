@@ -5,6 +5,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
@@ -39,6 +40,7 @@ export default function ManageLabelsModal<
   const { organization } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
@@ -154,7 +156,7 @@ export default function ManageLabelsModal<
             }}
           >
             <div>
-              <h2 className="text-sm font-bold">Labels</h2>
+              <h2 className="text-sm font-bold">{getText('labels')}</h2>
               {/* Space reserved for other tabs. */}
             </div>
             <div
@@ -175,7 +177,7 @@ export default function ManageLabelsModal<
               <input
                 autoFocus
                 type="text"
-                placeholder="Type labels to search"
+                placeholder={getText('labelSearchPlaceholder')}
                 className="grow bg-transparent leading-170 h-6 px-1 py-px"
                 onChange={event => {
                   setQuery(event.currentTarget.value)
@@ -187,7 +189,7 @@ export default function ManageLabelsModal<
               disabled={!canCreateNewLabel}
               className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
             >
-              <div className="h-6 py-0.5">Create</div>
+              <div className="h-6 py-0.5">{getText('create')}</div>
             </button>
             {canSelectColor && (
               <div className="flex flex-col items-center">

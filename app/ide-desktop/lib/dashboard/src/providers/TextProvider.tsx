@@ -42,7 +42,17 @@ export function useText() {
   const { language, setLanguage } = React.useContext(TextContext)
   const localizedText = text.TEXTS[language]
 
-  const getText = React.useCallback((key: text.TextId) => localizedText[key], [localizedText])
+  const getText = React.useCallback(
+    <K extends text.TextId>(key: K, ...replacements: text.Replacements[K]) => {
+      const template = localizedText[key]
+      return replacements.length === 0
+        ? template
+        : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
+            placeholder === '$' ? '$' : replacements[Number(placeholder)] ?? `$${placeholder}`
+          )
+    },
+    [localizedText]
+  )
 
   return { language, setLanguage, getText }
 }

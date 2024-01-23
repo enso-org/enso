@@ -3,12 +3,12 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
 import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 // =================
 // === Constants ===
@@ -26,7 +26,8 @@ const REGISTRATION_QUERY_PARAMS = {
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-  const logger = loggerProvider.useLogger()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const auth = authProvider.useAuth()
   const location = router.useLocation()
   const navigate = navigateHooks.useNavigate()
@@ -46,10 +47,7 @@ export default function ConfirmRegistration() {
             navigate(appUtils.LOGIN_PATH + location.search.toString())
           }
         } catch (error) {
-          logger.error('Error while confirming sign-up', error)
-          toastify.toast.error(
-            'Something went wrong! Please try again or contact the administrators.'
-          )
+          toastAndLog(getText('registrationError'))
           navigate(appUtils.LOGIN_PATH)
         }
       })()

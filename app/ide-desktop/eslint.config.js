@@ -228,14 +228,17 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `while (true)` instead of `for (;;)`',
     },
     {
-        selector: 'CallExpression[callee.name=toastAndLog][arguments.0.raw=/^\'|^"|^`/]',
-        message: 'Use a `getText()` from `useText` as the first argument to `toastAndLog`',
-    },
-    {
         selector: `:matches(\
-            JSXAttribute[name.name=/^alt$|^error$/][value.raw=/^'|^"|^\`/], \
-            JSXText[value=/\\S/],
-            JSXAttribute[name.name=/^alt$|^error$/]:matches(Literal[raw=/^'|^"|^\`/])\
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text)$/][value.raw=/^'|^"|^\`/], \
+            JSXText[value=/\\S/], \
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text)$/] ConditionalExpression:matches(\
+                [consequent.raw=/^'|^"|^\`/], \
+                [alternate.raw=/^'|^"|^\`/]\
+            ), \
+            CallExpression[callee.name=toastAndLog]:matches(\
+                [arguments.0.raw=/^'|^"|^\`/], \
+                [arguments.0.type=TemplateLiteral]\
+            )\
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },

@@ -10,12 +10,12 @@ import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
-import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -26,14 +26,6 @@ import MenuEntry from '#/components/MenuEntry'
 // =================
 // === Constants ===
 // =================
-
-/** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'item'
-/** The user-facing plural name of this asset type. */
-const ASSET_TYPE_NAME_PLURAL = 'items'
-// This is a function, even though does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -62,13 +54,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const rootDirectoryId = React.useMemo(
     () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [organization]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const pluralized = pluralize(selectedKeys.size)
+  const pluralized = selectedKeys.size === 1 ? getText('itemSingular') : getText('itemPlural')
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
@@ -93,7 +86,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     } else {
       setModal(
         <ConfirmDeleteModal
-          description={`${selectedKeys.size} selected ${pluralized}`}
+          description={getText('selectedAssetsDescription', String(selectedKeys.size), pluralized)}
           doDelete={() => {
             setSelectedKeys(new Set())
             dispatchAssetEvent({

@@ -6,11 +6,11 @@
 
 /** The categories available in the category switcher. */
 enum Category {
-  recent = 'Recent',
-  drafts = 'Drafts',
-  home = 'Home',
-  root = 'Root',
-  trash = 'Trash',
+  recent = 'recent',
+  drafts = 'drafts',
+  home = 'home',
+  root = 'root',
+  trash = 'trash',
 }
 
 // This is REQUIRED, as `export default enum` is invalid syntax.

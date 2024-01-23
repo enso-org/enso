@@ -306,7 +306,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         {...(backend.type === backendModule.BackendType.local
           ? {
               inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
+              inputTitle: getText('projectNameCannotBeEmpty'),
             }
           : {})}
         className={`bg-transparent grow leading-170 h-6 py-px ${

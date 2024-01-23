@@ -1,6 +1,7 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/backend'
 import type * as permissions from '#/utilities/permissions'
 import * as permissionsModule from '#/utilities/permissions'
@@ -48,6 +49,7 @@ export interface PermissionSelectorProps {
 export default function PermissionSelector(props: PermissionSelectorProps) {
   const { showDelete = false, disabled = false, typeSelectorYOffsetPx, error } = props
   const { selfPermission, action: actionRaw, assetType, className, onChange, doDelete } = props
+  const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
@@ -127,7 +129,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
             onClick={doShowPermissionTypeSelector}
           >
-            {permission.type}
+            {getText(`${permission.type}PermissionType`)}
           </button>
           <button
             type="button"
@@ -147,7 +149,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            docs
+            {getText('docsPermissionModifier')}
           </button>
           <button
             type="button"
@@ -169,7 +171,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            exec
+            {getText('execPermissionModifier')}
           </button>
         </div>
       )
@@ -186,7 +188,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           } rounded-full h-6 w-30.25 disabled:opacity-30`}
           onClick={doShowPermissionTypeSelector}
         >
-          {permission.type}
+          {getText(`${permission.type}PermissionType`)}
         </button>
       )
       break
