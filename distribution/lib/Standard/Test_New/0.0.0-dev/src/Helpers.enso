@@ -14,9 +14,12 @@ import project.Test_Reporter
 import project.Test.Test
 
 run_group_with_filter : Group -> Regex -> Vector Test_Result
-run_group_with_filter (group : Group) (spec_filter : Regex) =
+run_group_with_filter (group : Group) (spec_filter : (Regex|Text|Nothing)) =
     filtered_specs = group.specs.filter spec->
-        (spec_filter.match spec.name) != Nothing
+        case spec_filter of
+            regex : Regex -> (regex.match spec.name) != Nothing
+            text : Text -> spec.name.contains text
+            Nothing -> True
     run_specs_from_group filtered_specs group
 
 

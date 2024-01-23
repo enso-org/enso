@@ -57,23 +57,18 @@ type Suite
     run_with_filter : (Regex | Text | Nothing) -> (Regex | Text | Nothing) -> Nothing
     run_with_filter self group_filter=Nothing spec_filter=Nothing =
         config = Suite_Config.from_environment
-        convert_filter filter =
-            case filter of
-                r : Regex -> r
-                t : Text -> Regex.compile t
-                Nothing -> Regex.compile ".*"
-                _ -> Error.throw (Illegal_Argument.Error "Wrong specification of a filter: "+filter.to_text)
-        group_filter_conv = convert_filter group_filter
-        spec_filter_conv = convert_filter spec_filter
         filtered_groups = self.groups.filter group->
-            group_name_matches = (group_filter_conv.match group.name) != Nothing
+            group_name_matches = case group_filter of
+                regex : Regex -> (regex.match group.name) != Nothing
+                text : Text -> group.name.contains text
+                Nothing -> True
             case group_name_matches of
                 False -> False
                 True -> group.pending == Nothing
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
             filtered_groups.each group->
-                results = Helpers.run_group_with_filter group spec_filter_conv
+                results = Helpers.run_group_with_filter group spec_filter
                 Test_Reporter.print_report results config junit_sb_builder
 
     group_names self =
