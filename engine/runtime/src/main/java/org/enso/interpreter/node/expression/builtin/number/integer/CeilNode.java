@@ -11,7 +11,7 @@ public abstract class CeilNode extends IntegerNode {
     super("ceil");
   }
 
-  abstract Object execute(Object self);
+  abstract Object execute(Object own);
 
   public static CeilNode build() {
     return CeilNodeGen.create();

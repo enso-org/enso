@@ -29,3 +29,24 @@ integer_less_equal a b = @Builtin_Method "Integer.<="
 
 round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 integer_parse text radix = @Builtin_Method "Integer.parse"
+
+float_plus a b = @Builtin_Method "Float.+"
+float_minus a b = @Builtin_Method "Float.-"
+float_times a b = @Builtin_Method "Float.*"
+float_divide a b = @Builtin_Method "Float./"
+float_mod a b = @Builtin_Method "Float.%"
+float_div a b = @Builtin_Method "Float.div"
+float_pow a b = @Builtin_Method "Float.^"
+
+float_abs a = @Builtin_Method "Float.abs"
+float_ceil a = @Builtin_Method "Float.ceil"
+float_floor a = @Builtin_Method "Float.floor"
+float_negate a = @Builtin_Method "Float.negate"
+
+float_greater a b = @Builtin_Method "Float.>"
+float_greater_equal a b = @Builtin_Method "Float.>="
+float_less a b = @Builtin_Method "Float.<"
+float_less_equal a b = @Builtin_Method "Float.<="
+
+float_truncate_builtin a = @Builtin_Method "Float.truncate_builtin"
+round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"

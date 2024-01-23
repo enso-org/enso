@@ -423,8 +423,7 @@ type Float
          Adding 10.1 and 15.
 
              10.1 + 15
-    + : Number -> Number
-    + self that = @Builtin_Method "Float.+"
+    + self that:Number -> Number = float_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -437,8 +436,7 @@ type Float
          Subtract 5 from 2.78.
 
              2.78 - 5
-    - : Number -> Number
-    - self that = @Builtin_Method "Float.-"
+    - self that:Number -> Number = float_minus self that
 
     ## ALIAS multiply, product, times
        GROUP Operators
@@ -454,8 +452,7 @@ type Float
          Multiplying 3 by 5.27.
 
              5.27 * 3
-    * : Number -> Number
-    * self that = @Builtin_Method "Float.*"
+    * self that:Number -> Number = float_times self that
 
     ## ALIAS divide
        GROUP Operators
@@ -471,8 +468,7 @@ type Float
          Dividing 10 by 4.5.
 
              10 / 4.5
-    / : Number -> Number
-    / self that = @Builtin_Method "Float./"
+    / self that:Number -> Number = float_divide self that
 
     ## ALIAS modulo, modulus
        GROUP Operators
@@ -493,8 +489,7 @@ type Float
          Computing the fractional part of a number.
 
              10.5 % 1.0 == 0.5
-    % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Float.%"
+    % self that:Number -> Number ! Arithmetic_Error = float_mod self that
 
     ## ALIAS power
        GROUP Operators
@@ -507,8 +502,7 @@ type Float
          Computing 2.2 cubed.
 
              2.2^3
-    ^ : Number -> Number
-    ^ self that = @Builtin_Method "Float.^"
+    ^ self that:Number -> Number = float_pow self that
 
     ## ALIAS greater than
        GROUP Operators
@@ -521,8 +515,7 @@ type Float
          Checking if 10 is greater than 7.3.
 
              10 > 7.3
-    > : Number -> Boolean
-    > self that = @Builtin_Method "Float.>"
+    > self that:Number -> Boolean = float_greater self that
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -535,8 +528,7 @@ type Float
          Checking if 10 is greater than or equal to 7.3.
 
              10 >= 7.3
-    >= : Number -> Boolean
-    >= self that = @Builtin_Method "Float.>="
+    >= self that:Number -> Boolean = float_greater_equal self that
 
     ## ALIAS less than
        GROUP Operators
@@ -549,8 +541,7 @@ type Float
          Checking if 10 is less than 7.3.
 
              10 < 7.3
-    < : Number -> Boolean
-    < self that = @Builtin_Method "Float.<"
+    < self that:Number -> Boolean = float_less self that
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -563,8 +554,7 @@ type Float
          Checking if 10.4 is less than or equal to 7.
 
              10.4 <= 7
-    <= : Number -> Boolean
-    <= self that = @Builtin_Method "Float.<="
+    <= self that:Number -> Boolean = float_less_equal self that
 
     ## GROUP Math
        Computes the absolute value of this.
@@ -576,8 +566,7 @@ type Float
          Computing the absolute value of -10.63.
 
             -10.63.abs
-    abs : Float
-    abs self = @Builtin_Method "Float.abs"
+    abs self -> Float = float_abs self
 
     ## GROUP Rounding
        Computes the nearest integer above this number.
@@ -588,8 +577,7 @@ type Float
          Computing the ceiling of 4.736 (which is 5).
 
              4.736.ceil
-    ceil : Integer
-    ceil self = @Builtin_Method "Float.ceil"
+    ceil self -> Integer = float_ceil self
 
     ## GROUP Rounding
        Computes the nearest integer below this float.
@@ -600,16 +588,14 @@ type Float
          Computing the floor of 4.323 (which is 4).
 
              4.323.floor
-    floor : Integer
-    floor self = @Builtin_Method "Float.floor"
+    floor self -> Integer = float_floor self
 
     ## ALIAS int
        GROUP Rounding
 
        Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
-    truncate : Integer
-    truncate self = self.truncate_builtin
+    truncate self -> Integer = float_truncate_builtin self
 
     ## GROUP Rounding
        Round to a specified number of decimal places.
@@ -668,9 +654,6 @@ type Float
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             Float.round_float_builtin self decimal_places use_bankers
 
-    ## PRIVATE
-    round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
-
     ## GROUP Operators
        Compute the negation of this.
 
@@ -678,8 +661,7 @@ type Float
          Negate 5.1 to get -5.1.
 
              5.1.negate
-    negate : Float
-    negate self = @Builtin_Method "Float.negate"
+    negate self -> Float = float_negate self
 
     ## Convert this to a float.
 
@@ -690,8 +672,7 @@ type Float
          Convert 5.0 to a float to get 5.0.
 
              5.0.to_float
-    to_float : Float
-    to_float self = @Builtin_Method "Float.to_float"
+    to_float self -> Float = self
 
     ## ALIAS from text
        GROUP Conversions
@@ -883,7 +864,7 @@ type Integer
          Computing the absolute value of -10.
 
             -10.abs
-    abs self -> Integer = integer_abs
+    abs self -> Integer = integer_abs self
 
     ## GROUP Rounding
        Computes the nearest integer above this integer.
@@ -895,7 +876,7 @@ type Integer
          Computing the ceiling of 4.
 
              4.ceil
-    ceil self -> Integer = integer_ceil
+    ceil self -> Integer = integer_ceil self
 
     ## GROUP Math
        Computes the integer division of this by that.
