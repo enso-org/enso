@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -13,6 +14,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
+from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
@@ -104,6 +106,14 @@ type Jackson_Object
     field_names : Vector
     field_names self = self.field_array
 
+    ## GROUP Conversions
+       Maps ths object to a Vector of Pairs.
+    map : (Text->Any->Any) -> Vector
+    map self action=[_,_] =
+        self.field_names.map key->
+            value = self.get key
+            action key value
+
     ## GROUP Metadata
        Gets the number of keys in the object.
     length : Number
@@ -141,3 +151,26 @@ make_field_name_selector js_object display=Display.Always =
 ## Extension for Text to allow use.
 Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | Jackson_Object
 Text.parse_fast_json self = Java_Json.parse self
+
+## PRIVATE
+type Jackson_Object_Comparator
+    ## PRIVATE
+    compare : Jackson_Object -> Jackson_Object -> (Ordering|Nothing)
+    compare obj1 obj2 =
+        obj1_keys = obj1.field_names
+        obj2_keys = obj2.field_names
+        same_values = obj1_keys.length == obj2_keys.length && obj1_keys.all key->
+            (obj1.get key == obj2.at key).catch No_Such_Key _->False
+        if same_values then Ordering.Equal else Nothing
+
+    ## PRIVATE
+    hash : Jackson_Object -> Integer
+    hash obj =
+        values_hashes = obj.field_names.map field_name->
+            val = obj.get field_name
+            Comparable.from val . hash val
+        # Return sum, as we don't care about ordering of field names
+        values_hashes.fold 0 (+)
+
+## PRIVATE
+Comparable.from (_:Jackson_Object) = Jackson_Object_Comparator

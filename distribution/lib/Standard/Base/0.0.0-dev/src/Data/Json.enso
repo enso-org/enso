@@ -168,6 +168,14 @@ type JS_Object
     field_names self =
         Vector.from_polyglot_array (get_property_names self.js_object)
 
+    ## GROUP Conversions
+       Maps ths object to a Vector of Pairs.
+    map : (Text->Any->Any) -> Vector
+    map self action=[_,_] =
+        self.field_names.map key->
+            value = self.get key
+            action key value
+
     ## GROUP Metadata
        Gets the number of keys in the object.
     length : Number

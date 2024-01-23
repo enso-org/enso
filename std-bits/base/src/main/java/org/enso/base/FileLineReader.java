@@ -111,13 +111,12 @@ public class FileLineReader {
   }
 
   // ** Reads a line from a file at the given index using the existing rowMap. */
-  private static String readLineByIndex(File file, LongArrayList rowMap, int index, Charset charset)
+  private static String readLineByIndex(File file, long length, LongArrayList rowMap, int index, Charset charset)
       throws IOException {
     if (index >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(index);
     }
 
-    long length = file.length();
     long position = rowMap.get(index);
     if (position >= length) {
       return null;
@@ -150,6 +149,7 @@ public class FileLineReader {
   // ** Scans forward in a file and returns the line at the given index. */
   public static String readSingleLine(
       File file,
+      long length,
       LongArrayList rowMap,
       int index,
       Charset charset,
@@ -157,15 +157,16 @@ public class FileLineReader {
       throws IOException {
     int size = rowMap.getSize();
     if (index != -1 && size > index) {
-      return readLineByIndex(file, rowMap, index, charset);
+      return readLineByIndex(file, length, rowMap, index, charset);
     }
 
     // Start at the last known line and scan forward.
-    return forEachLine(file, rowMap, size - 1, index, charset, filter, null);
+    return forEachLine(file, length, rowMap, size - 1, index, charset, filter, null);
   }
 
   public static List<String> readLines(
       File file,
+      long length,
       LongArrayList rowMap,
       int startAt,
       int endAt,
@@ -173,7 +174,7 @@ public class FileLineReader {
       Function<ByteArrayOutputStreamWithContains, String> filter)
       throws IOException {
     List<String> result = new ArrayList<>();
-    forEachLine(file, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
+    forEachLine(file, length, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
     return result;
   }
 
@@ -189,6 +190,7 @@ public class FileLineReader {
   // * *//
   public static String forEachLine(
       File file,
+      long length,
       LongArrayList rowMap,
       int startAt,
       int endAt,
@@ -197,11 +199,12 @@ public class FileLineReader {
       BiConsumer<Integer, String> action)
       throws IOException {
     return innerForEachLine(
-        file, rowMap, startAt, endAt, charset, filter, action, new CancellationToken());
+        file, length, rowMap, startAt, endAt, charset, filter, action, new CancellationToken());
   }
 
   private static String innerForEachLine(
       File file,
+      long length,
       LongArrayList rowMap,
       int startAt,
       int endAt,
@@ -215,7 +218,6 @@ public class FileLineReader {
     }
     int index = action == null ? rowMap.getSize() - 1 : startAt;
 
-    long length = file.length();
     long position = rowMap.get(index);
     if (position >= length) {
       return null;
@@ -299,6 +301,7 @@ public class FileLineReader {
   // filter. */
   public static long findFirstNewFilter(
       File file,
+      long length,
       LongArrayList rowMap,
       int endAt,
       Charset charset,
@@ -316,7 +319,7 @@ public class FileLineReader {
             token.cancel();
           }
         };
-    innerForEachLine(file, rowMap, 0, endAt, charset, filter, action, token);
+    innerForEachLine(file, length, rowMap, 0, endAt, charset, filter, action, token);
     return result.isEmpty() ? rowMap.get(rowMap.getSize() - 1) : result.get(0);
   }
 
