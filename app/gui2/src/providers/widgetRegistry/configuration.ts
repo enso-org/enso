@@ -140,11 +140,13 @@ export const widgetConfigurationSchema: z.ZodType<
     z.object({ kind: z.literal('Multi_Choice') }).merge(withDisplay),
     z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
-    z.object({ 
-      kind: z.literal('Numeric_Input'),
-      maximum: z.number().optional(),
-      minimum: z.number().optional(),
-    }).merge(withDisplay),
+    z
+      .object({
+        kind: z.literal('Numeric_Input'),
+        maximum: z.number().optional(),
+        minimum: z.number().optional(),
+      })
+      .merge(withDisplay),
     z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z.object({ kind: z.literal('File_Browse') }).merge(withDisplay),

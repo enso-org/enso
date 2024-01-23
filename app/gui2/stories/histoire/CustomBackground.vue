@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { Story, Variant } from 'histoire'
-import { computed } from 'vue';
+import { computed } from 'vue'
 
 const props = defineProps<{
   story: Story
@@ -23,10 +23,7 @@ declare module 'histoire' {
 </script>
 
 <template>
-  <div
-    class="custom-background-wrapper"
-    :style="{ backgroundColor: color }"
-  >
+  <div class="custom-background-wrapper" :style="{ backgroundColor: color }">
     <slot />
   </div>
 </template>

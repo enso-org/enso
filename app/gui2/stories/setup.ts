@@ -7,13 +7,13 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
-import CustomBackground from './histoire/CustomBackground.vue'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
 import type {
   SuggestionEntry,
   SuggestionsDatabaseUpdate,
 } from 'shared/languageServerTypes/suggestions'
 import { ref } from 'vue'
+import CustomBackground from './histoire/CustomBackground.vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
 

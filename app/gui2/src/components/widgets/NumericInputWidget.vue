@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
+import { blurIfNecessary } from '@/util/autoBlur'
 import { getTextWidth } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
-import { blurIfNecessary } from '@/util/autoBlur'
 
-const props = defineProps<{ 
-  modelValue: number | string;
-  limits?: { min: number; max: number } | undefined;
+const props = defineProps<{
+  modelValue: number | string
+  limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number | string] }>()
 
 const inputFieldActive = ref(false)
 const currentInputValue = ref(props.modelValue)
-watch(() => props.modelValue, (newValue) => {
-  currentInputValue.value = newValue
-})
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    currentInputValue.value = newValue
+  },
+)
 const SLIDER_INPUT_THRESHOLD = 4.0
 
 const dragPointer = usePointer(
@@ -24,7 +27,7 @@ const dragPointer = usePointer(
       return
     }
 
-    if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) { 
+    if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
       inputNode.value?.focus()
       inputFieldActive.value = true
       return
@@ -54,7 +57,9 @@ const dragPointer = usePointer(
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
   if (typeof currentInputValue.value === 'string') return undefined
-  return `${((currentInputValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)}%`
+  return `${
+    ((currentInputValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
+  }%`
 })
 
 const inputNode = ref<HTMLInputElement>()
@@ -96,8 +101,8 @@ function blur() {
 }
 
 /** To prevent other elements from stealing mouse events (which breaks blur),
-  * we instead setup our own `pointerdown` handler while the input is focused.
-  * Any click outside of the input field causes `blur`. */
+ * we instead setup our own `pointerdown` handler while the input is focused.
+ * Any click outside of the input field causes `blur`. */
 function setupAutoBlur() {
   const options = { capture: true }
   function callback(event: MouseEvent) {
@@ -111,14 +116,14 @@ function setupAutoBlur() {
 
 <template>
   <div class="SliderWidget" v-on="dragPointer.events">
-    <div class="fraction" v-if="props.limits != null"  :style="{ width: sliderWidth }"></div>
+    <div v-if="props.limits != null" class="fraction" :style="{ width: sliderWidth }"></div>
     <input
       ref="inputNode"
       v-model="currentInputValue"
       class="value"
       :style="inputStyle"
       @blur="blur"
-      @focus="() => inputNode && inputNode.select() || setupAutoBlur()"
+      @focus="() => (inputNode && inputNode.select()) || setupAutoBlur()"
     />
   </div>
 </template>

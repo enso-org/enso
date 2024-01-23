@@ -3,7 +3,13 @@ import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/sugge
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { qnJoin, qnParent, tryQualifiedName, type QualifiedName, normalizeQualifiedName } from '@/util/qualifiedName'
+import {
+  normalizeQualifiedName,
+  qnJoin,
+  qnParent,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'

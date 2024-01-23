@@ -4,8 +4,8 @@ import { computed, ref } from 'vue'
 
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
+import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import PlaceholderWidget from '@/components/widgets/PlaceholderWidget.vue'
-import SliderWidget from '@/components/widgets/SliderWidget.vue'
 
 // === Checkbox props ===
 
@@ -17,7 +17,6 @@ const state = ref(0)
 const min = ref(0)
 const max = ref(100)
 const withLimits = ref(true)
-const allowDecimals = ref(true)
 const sliderLimits = computed(() => {
   return withLimits.value ? { min: min.value, max: max.value } : undefined
 })
@@ -36,19 +35,14 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
       <PlaceholderWidget />
     </Variant>
     <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
-      <CheckboxWidget
-        v-model="checkboxState"
-      />
+      <CheckboxWidget v-model="checkboxState" />
 
       <template #controls>
         <HstCheckbox v-model="checkboxState" title="v-model" />
       </template>
     </Variant>
-    <Variant title="slider" :meta="{ customBackground: backgroundColor }">
-      <SliderWidget
-        v-model="state"
-        :limits="sliderLimits"
-      />
+    <Variant title="numeric" :meta="{ customBackground: backgroundColor }">
+      <NumericInputWidget v-model="state" :limits="sliderLimits" />
 
       <template #controls>
         <HstSlider v-model="state" title="v-model" :min="min" :max="max" />

@@ -2,15 +2,13 @@ import { useEvent } from '@/composables/events'
 import type { Ref } from 'vue'
 
 export function useAutoBlur(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>) {
-  useEvent(
-    window,
-    'pointerdown',
-    (event) => blurIfNecessary(root, event),
-    { capture: true },
-  )
+  useEvent(window, 'pointerdown', (event) => blurIfNecessary(root, event), { capture: true })
 }
 
-export function blurIfNecessary(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>, event: MouseEvent): boolean {
+export function blurIfNecessary(
+  root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>,
+  event: MouseEvent,
+): boolean {
   if (
     !root.value?.contains(document.activeElement) ||
     !(event.target instanceof Element) ||
