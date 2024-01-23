@@ -42,9 +42,6 @@ type Suite
     ## PRIVATE
     Impl (groups : Vector Group)
 
-    run_all self =
-        self.run_with_filter Nothing Nothing
-
     ## Run only tests that match the provided filters.
 
        A filter can be either Regex, Text, or Nothing. If Nothing, it matches all the names.
