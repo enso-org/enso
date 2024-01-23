@@ -205,7 +205,7 @@ list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Erro
      response = HTTP.fetch parent.internal_uri HTTP_Method.Get [auth_header]
      response.if_not_error <|
          js_object = response.decode_as_json
-         assets = js_object.get "assets" []
+         assets = js_object.get "assets" if_missing=(Error.throw (Illegal_Argument.Error "Invalid JSON response from the Cloud."))
          assets.map t-> t.into Enso_File
 
 ## PRIVATE
