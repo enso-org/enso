@@ -213,8 +213,8 @@ export class IdMap {
     }
   }
 
-  entries(): [string, ExternalId][] {
-    return [...this.rangeToExpr]
+  entries(): [SourceRangeKey, ExternalId][] {
+    return [...this.rangeToExpr] as [SourceRangeKey, ExternalId][]
   }
 
   get size(): number {
