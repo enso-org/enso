@@ -270,7 +270,7 @@ type Random_Generator
     ## PRIVATE
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer self (min:Integer) (max:Integer) =
-        range = max - min
+        range = max - min + 1
         if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
           min + (self.java_random.nextInt range)
 
@@ -300,14 +300,14 @@ type Random_Generator
     date : Date -> Date -> Boolean -> Date
     date self start_date:Date end_date:Date =
         date_range = start_date.up_to end_date include_end=True
-        date_range.at (self.integer 0 date_range.length)
+        date_range.at (self.integer 0 (date_range.length - 1))
 
     ## PRIVATE
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
     time self (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
         ## The time range end is inclusive because it is impossible to specify
            an end time after the last second of the day.
-        seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
+        seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds)
         start_time.date_add seconds Time_Period.Second
 
     ## PRIVATE
@@ -320,7 +320,7 @@ type Random_Generator
         case with_replacement of
             True ->
                 len = v.length
-                0.up_to count . map _-> v.at (self.integer 0 len)
+                0.up_to count . map _-> v.at (self.integer 0 (len - 1))
             False ->
                 if count > v.length then Error.throw (Illegal_Argument.Error "`count` cannot be greater than the size of the collection when `with_replacement` is false") else
                   new_array = Random_Utils.sample v count self.java_random

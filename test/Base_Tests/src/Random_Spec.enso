@@ -149,7 +149,7 @@ spec = Test.group "Random" <|
     Test.specify "Can call an instance directly" <|
         Random.new_generator . should_be_a Random_Generator
         Random.new_generator 12345 . should_be_a Random_Generator
-        Random.new_generator 12345 . integer 0 100 . should_equal 51
+        Random.new_generator 12345 . integer 0 99 . should_equal 51
         Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
         Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
 
