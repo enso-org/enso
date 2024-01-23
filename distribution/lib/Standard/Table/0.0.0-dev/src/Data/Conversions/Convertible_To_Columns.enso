@@ -29,6 +29,24 @@ Convertible_To_Columns.from (that:Map) =
     Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
 
 ## PRIVATE
+Convertible_To_Columns.from (that:Pair) =
+    Convertible_To_Columns.Value ["0", "1"] (k-> if k == "0" then that.first else that.second)
+
+## PRIVATE
+Convertible_To_Columns.from (that:Vector) =
+    fields = 0.up_to that.length . map _.to_text
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Array) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Range) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Date_Range) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
 Convertible_To_Columns.from (that:Any) =
     name = "Value"
     Convertible_To_Columns.Value [name] (k-> if k == name then that else Nothing)
