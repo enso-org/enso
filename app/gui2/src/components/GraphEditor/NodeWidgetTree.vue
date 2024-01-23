@@ -46,7 +46,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
           ? value
           : value == null
           ? Ast.Wildcard.new(edit)
-          : Ast.RawCode.new(value, edit)
+          : Ast.parse(value, edit)
       edit.replaceValue(origin as Ast.AstId, ast)
     }
   }

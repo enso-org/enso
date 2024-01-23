@@ -282,12 +282,8 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: NodeId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    setExpression(node.rootSpan.id, Ast.RawCode.new(content))
-  }
-
-  function setExpression(id: Ast.AstId, content: Ast.Owned) {
     const edit = astModule.edit()
-    edit.replaceValue(id, content)
+    edit.replaceValue(node.rootSpan.id, Ast.parse(content, edit))
     commitEdit(edit)
   }
 

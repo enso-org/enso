@@ -1375,25 +1375,6 @@ export class Wildcard extends Ast {
   }
 }
 
-export class RawCode extends Ast {
-  private readonly code_: NodeChild
-
-  constructor(module: MutableModule, id: AstId | undefined, code: NodeChild) {
-    super(module, id)
-    this.code_ = code
-  }
-
-  static new(code: string, moduleIn?: MutableModule, id?: AstId | undefined) {
-    const token = new Token(code, newTokenId(), RawAst.Token.Type.Ident)
-    const module = moduleIn ?? MutableModule.Transient()
-    return asOwned(new RawCode(module, id, unspaced(token)))
-  }
-
-  *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.code_
-  }
-}
-
 function abstract(
   module: MutableModule,
   tree: RawAst.Tree,
