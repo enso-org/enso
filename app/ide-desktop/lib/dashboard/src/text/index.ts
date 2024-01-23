@@ -8,7 +8,7 @@ import ENGLISH from '#/text/english.json' assert { type: 'json' }
 
 /** Possible languages in which to display text. */
 export enum Language {
-    english = 'english',
+  english = 'english',
 }
 
 /** An object containing the corresponding localized text for each text ID. */
@@ -21,5 +21,5 @@ export type TextId = keyof Texts
 // =================
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
-    [Language.english]: ENGLISH,
+  [Language.english]: ENGLISH,
 }
