@@ -12,7 +12,7 @@ export interface RefreshState {}
 
 /** A hook that contains no state. It is used to trigger React re-renders. */
 export function useRefresh() {
-    // Uses an empty object literal because every distinct literal
-    // is a new reference and therefore is not equal to any other object literal.
-    return React.useReducer((): RefreshState => ({}), {})
+  // Uses an empty object literal because every distinct literal
+  // is a new reference and therefore is not equal to any other object literal.
+  return React.useReducer((): RefreshState => ({}), {})
 }

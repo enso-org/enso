@@ -21,14 +21,14 @@ const HTTP_STATUS_OK = 200
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const OPTS = bundler.bundlerOptions({
-    outputPath: '/',
-    devMode: process.env.DEV_MODE !== 'false',
+  outputPath: '/',
+  devMode: process.env.DEV_MODE !== 'false',
 })
 OPTS.define['REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
-    path.resolve(THIS_PATH, 'src', 'index.html'),
-    path.resolve(THIS_PATH, 'src', 'entrypoint.ts'),
-    path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
+  path.resolve(THIS_PATH, 'src', 'index.html'),
+  path.resolve(THIS_PATH, 'src', 'entrypoint.ts'),
+  path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.minify = false
 OPTS.write = false
@@ -36,16 +36,16 @@ OPTS.loader['.html'] = 'copy'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 const REQUIRE = module.default.createRequire(import.meta.url)
 OPTS.plugins.push({
-    name: 'react-dom-profiling',
-    setup: build => {
-        build.onResolve({ filter: /^react-dom$/ }, args => {
-            if (args.kind === 'import-statement') {
-                return { path: REQUIRE.resolve('react-dom/profiling') }
-            } else {
-                return
-            }
-        })
-    },
+  name: 'react-dom-profiling',
+  setup: build => {
+    build.onResolve({ filter: /^react-dom$/ }, args => {
+      if (args.kind === 'import-statement') {
+        return { path: REQUIRE.resolve('react-dom/profiling') }
+      } else {
+        return
+      }
+    })
+  },
 })
 
 // ===============
@@ -54,21 +54,19 @@ OPTS.plugins.push({
 
 /** Start the esbuild watcher. */
 async function watch() {
-    const builder = await esbuild.context(OPTS)
-    await builder.watch()
-    await builder.serve({
-        port: PORT,
-        servedir: OPTS.outdir,
-        /** This function is called on every request.
-         * It is used here to show an error if the file to serve was not found. */
-        onRequest(args) {
-            if (args.status !== HTTP_STATUS_OK) {
-                console.error(
-                    chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`)
-                )
-            }
-        },
-    })
+  const builder = await esbuild.context(OPTS)
+  await builder.watch()
+  await builder.serve({
+    port: PORT,
+    servedir: OPTS.outdir,
+    /** This function is called on every request.
+     * It is used here to show an error if the file to serve was not found. */
+    onRequest(args) {
+      if (args.status !== HTTP_STATUS_OK) {
+        console.error(chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`))
+      }
+    },
+  })
 }
 
 void watch()
