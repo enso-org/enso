@@ -3,6 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
+  averagePositionPlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -26,8 +27,7 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, bail } from '@/util/assert'
-import { BodyBlock } from '@/util/ast/abstract'
+import { bail } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -264,12 +264,30 @@ const graphBindingsHandler = graphBindings.handler({
       if (currentMethodName == null) {
         bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
-      graphStore.editScope((edit) => {
-        if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
-        const topLevel = edit.get(graphStore.moduleRoot)
-        assert(topLevel instanceof BodyBlock)
-        return performCollapse(info, edit, topLevel, graphStore.db, currentMethodName)
-      })
+      const currentFunctionEnv = environmentForNodes(selected.values())
+      const module = graphStore.astModule
+      const topLevel = graphStore.topLevel
+      if (!topLevel) {
+        bail('BUG: no top level, collapsing not possible.')
+      }
+      const edit = module.edit()
+      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+        info,
+        edit,
+        topLevel,
+        graphStore.db,
+        currentMethodName,
+      )
+      const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
+      // For collapsed function, only selected nodes would affect placement of the output node.
+      collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
+      graphStore.commitEdit(edit)
+      const { position } = averagePositionPlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
+      graphStore.setNodePosition(refactoredNodeId, position)
+      if (outputNodeId != null) {
+        const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
+        graphStore.setNodePosition(outputNodeId, position)
+      }
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }

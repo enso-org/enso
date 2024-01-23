@@ -257,9 +257,9 @@ export class ShortcutRegistry {
 
   /** Create a {@link ShortcutRegistry}. */
   constructor(
-    public keyboardShortcuts: Readonly<Record<KeyboardAction, KeyboardShortcut[]>>,
-    public mouseShortcuts: Readonly<Record<MouseAction, MouseShortcut[]>>,
-    public keyboardShortcutInfo: Readonly<Record<KeyboardAction, ShortcutInfo>>
+    public readonly keyboardShortcuts: Readonly<Record<KeyboardAction, KeyboardShortcut[]>>,
+    public readonly mouseShortcuts: Readonly<Record<MouseAction, MouseShortcut[]>>,
+    public readonly keyboardShortcutInfo: Readonly<Record<KeyboardAction, ShortcutInfo>>
   ) {
     this.updateKeyboardShortcutsByKey()
   }

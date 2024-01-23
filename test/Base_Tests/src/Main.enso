@@ -27,6 +27,7 @@ import project.Data.Array_Spec
 import project.Data.Array_Polyglot_Spec
 import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
+import project.Data.Base_64_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
@@ -94,6 +95,7 @@ main = Test_Suite.run_main <|
     Array_Proxy_Spec.spec
     Array_Polyglot_Spec.spec
     Bool_Spec.spec
+    Base_64_Spec.spec
     Function_Spec.spec
     Case_Spec.spec
     Conversion_Spec.spec

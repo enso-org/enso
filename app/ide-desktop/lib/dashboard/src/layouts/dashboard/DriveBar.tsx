@@ -27,7 +27,7 @@ import Button from '#/components/Button'
 export interface DriveBarProps {
   readonly category: Category
   readonly canDownloadFiles: boolean
-  readonly doCreateProject: (templateId: string | null) => void
+  readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateDataConnector: (name: string, value: string) => void
   readonly doUploadFiles: (files: File[]) => void
@@ -56,7 +56,7 @@ export default function DriveBar(props: DriveBarProps) {
           }
         : {}),
       [shortcutsModule.KeyboardAction.newProject]: () => {
-        doCreateProject(null)
+        doCreateProject()
       },
       [shortcutsModule.KeyboardAction.uploadFiles]: () => {
         uploadFilesRef.current?.click()
@@ -77,7 +77,7 @@ export default function DriveBar(props: DriveBarProps) {
             : {})}
           onClick={() => {
             unsetModal()
-            doCreateProject(null)
+            doCreateProject()
           }}
         >
           <span

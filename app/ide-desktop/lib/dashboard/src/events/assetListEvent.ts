@@ -59,6 +59,7 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly templateId: string | null
+  readonly templateName: string | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
