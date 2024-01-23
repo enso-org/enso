@@ -318,8 +318,7 @@ type Number
          Check if 1 is equal to 1.0000001 within 0.001.
 
              1.equals 1.0000001 epsilon=0.001
-    equals : Number -> Number -> Boolean ! Incomparable_Values
-    equals self that epsilon=0.0 =
+    equals self that:Number epsilon=0.0:Number -> Boolean ! Incomparable_Values =
         (self == that) || ((self - that).abs <= epsilon)
 
     ## GROUP Math
@@ -652,7 +651,7 @@ type Float
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Float.round_float_builtin self decimal_places use_bankers
+            round_float_builtin self decimal_places use_bankers
 
     ## GROUP Operators
        Compute the negation of this.
@@ -813,7 +812,7 @@ type Integer
          Checking if 10 is greater than 7.
 
              10 > 7
-    > self that:Integer -> Boolean = integer_greater self that
+    > self that:Number -> Boolean = integer_greater self that
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -826,7 +825,7 @@ type Integer
          Checking if 10 is greater than or equal to 7.
 
              10 >= 7
-    >= self that:Integer -> Boolean = integer_greater_equal self that
+    >= self that:Number -> Boolean = integer_greater_equal self that
 
     ## ALIAS less than
        GROUP Operators
@@ -839,7 +838,7 @@ type Integer
          Checking if 10 is less than 7.
 
              10 < 7
-    < self that:Integer -> Boolean = integer_less self that
+    < self that:Number -> Boolean = integer_less self that
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -852,7 +851,7 @@ type Integer
          Checking if 10 is less than or equal to 7.
 
              10 <= 7
-    <= self that:Integer -> Boolean = integer_less_equal self that
+    <= self that:Number -> Boolean = integer_less_equal self that
 
     ## GROUP Math
        Computes the absolute value of this.
@@ -961,7 +960,7 @@ type Integer
         Rounding_Helpers.check_round_input self <|
             report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
-                Integer.round_integer_builtin self decimal_places use_bankers
+                round_integer_builtin self decimal_places use_bankers
 
     ## GROUP Operators
        Compute the negation of this.
