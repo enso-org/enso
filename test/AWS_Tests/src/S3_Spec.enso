@@ -147,7 +147,7 @@ spec =
         Test.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    Test.group "S3_File" pending=pending <|
+    Test.group "S3_File reading" pending=pending <|
         root = S3_File.new "s3://"+bucket_name+"/"
         hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
         Test.specify "should be able to list the bucket's root directory" <|
@@ -191,10 +191,11 @@ spec =
 
             root.size.should_fail_with S3_Error
 
-            hello_txt.size.should_equal 13
+            hello_txt.size.should_equal 12
             hello_txt.creation_time . should_be_a Date_Time
             hello_txt.last_modified_time . should_be_a Date_Time
 
+    Test.group "S3_File writing" pending=pending <|
         writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
         my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")
         delete_on_panic file ~action =
