@@ -525,9 +525,9 @@ export class RemoteBackend extends backendModule.Backend {
       let message: string
       if (params.fileName != null) {
         message = this.getText('uploadFileWithNameBackendError', params.fileName)
-      } else if (params.fileId != null) {
-        message = this.getText('uploadFileWithIDBackendError', params.fileId)
       } else {
+        // `params.fileId` may be non-null, but it is semantically wrong to include it in the
+        // message, as it is the ID of the destination file.
         message = this.getText('uploadFileBackendError')
       }
       if (suffix != null) {

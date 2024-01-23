@@ -47,7 +47,6 @@ interface PlaceholderOverrides {
   updateProjectBackendError: [string]
   checkResourcesBackendError: [string]
   uploadFileWithNameBackendError: [string]
-  uploadFileWithIDBackendError: [string]
   getFileDetailsBackendError: [string]
   createSecretBackendError: [string]
   getSecretBackendError: [string]
