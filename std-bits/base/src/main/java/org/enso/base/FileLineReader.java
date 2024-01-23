@@ -16,7 +16,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
 import org.graalvm.polyglot.Context;
 
 public class FileLineReader {
@@ -33,22 +32,52 @@ public class FileLineReader {
       return stream;
     }
 
-    public boolean contains(byte[] bytes) {
+    // ** Based on https://www.geeksforgeeks.org/kmp-algorithm-for-pattern-searching/ */
+    public static int[] computeLongestPrefix(byte[] bytes) {
+      int[] longestPrefix = new int[bytes.length];
+
+      int i = 1;
+      int len = 0;
+      while (i < bytes.length) {
+        if (bytes[i] == bytes[len]) {
+          len++;
+          longestPrefix[i++] = len;
+        } else if (len == 0) {
+          longestPrefix[i++] = 0;
+        } else {
+          len = longestPrefix[len - 1];
+        }
+      }
+
+      return longestPrefix;
+    }
+
+    public boolean contains(byte[] bytes, int[] longestPrefix) {
       if (bytes.length > count) {
         return false;
       }
-      for (int i = 0; i < count - bytes.length; i++) {
-        boolean found = true;
-        for (int j = 0; j < bytes.length; j++) {
-          if (buf[i + j] != bytes[j]) {
-            found = false;
-            break;
-          }
+
+      int i = 0;
+      int j = 0;
+      while ((count - i) >= (bytes.length - j)) {
+        if (buf[i] == bytes[j]) {
+          i++;
+          j++;
         }
-        if (found) {
+
+        if (j == bytes.length) {
           return true;
         }
+
+        if (i < count && buf[i] != bytes[j]) {
+          if (j != 0) {
+            j = longestPrefix[j - 1];
+          } else {
+            i++;
+          }
+        }
       }
+
       return false;
     }
   }
@@ -111,8 +140,8 @@ public class FileLineReader {
   }
 
   // ** Reads a line from a file at the given index using the existing rowMap. */
-  private static String readLineByIndex(File file, long length, LongArrayList rowMap, int index, Charset charset)
-      throws IOException {
+  private static String readLineByIndex(
+      File file, long length, LongArrayList rowMap, int index, Charset charset) throws IOException {
     if (index >= rowMap.getSize()) {
       throw new IndexOutOfBoundsException(index);
     }
@@ -174,7 +203,8 @@ public class FileLineReader {
       Function<ByteArrayOutputStreamWithContains, String> filter)
       throws IOException {
     List<String> result = new ArrayList<>();
-    forEachLine(file, length, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
+    forEachLine(
+        file, length, rowMap, startAt, endAt, charset, filter, (index, line) -> result.add(line));
     return result;
   }
 
@@ -333,13 +363,15 @@ public class FileLineReader {
         // Need to use Unicode normalization for equality.
         return (outputStream) -> {
           var line = outputStream.toString(charset);
-          return Core_Text_Utils.compare_normalized(contains, line) == 0 ? line : null;
+          return Text_Utils.contains(contains, line) ? line : null;
         };
       }
     }
 
     var bytes = contains.getBytes(charset);
-    return (outputStream) -> outputStream.contains(bytes) ? outputStream.toString(charset) : null;
+    var prefixes = ByteArrayOutputStreamWithContains.computeLongestPrefix(bytes);
+    return (outputStream) ->
+        outputStream.contains(bytes, prefixes) ? outputStream.toString(charset) : null;
   }
 
   // ** Wraps an Enso function filter in a FileLineReader filter. */
