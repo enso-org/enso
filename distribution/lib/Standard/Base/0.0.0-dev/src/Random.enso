@@ -84,7 +84,7 @@ type Random
 
        Arguments:
        - min: The minimum value of the range to pick from (inclusive).
-       - max: The maximum value of the range to pick from (inclusive).
+       - max: The maximum value of the range to pick from (exclusive).
 
        > Example
          Generate a float between 2.3 and 3.4.
@@ -146,8 +146,8 @@ type Random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
-       - start_date: The lower bound of the range to pick from (inclusive).
-       - end_date: The upper bound of the range to pick from (inclusive).
+       - min: The lower bound of the range to pick from (inclusive).
+       - max: The upper bound of the range to pick from (inclusive).
 
        > Example
          Generate a random date.
@@ -156,14 +156,14 @@ type Random
 
              d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
     date : Date -> Date -> Boolean -> Date
-    date start_date:Date end_date:Date end_exclusive=False = Random_Generator.global_random_generator.date start_date end_date end_exclusive
+    date min:Date max:Date = Random_Generator.global_random_generator.date min max
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
 
        Arguments:
-       - start_time: The lower bound of the range to pick from (inclusive).
-       - end_time: The upper bound of the range to pick from (inclusive).
+       - min: The lower bound of the range to pick from (inclusive).
+       - max: The upper bound of the range to pick from (inclusive).
 
        The generated time is at a granularity of 1 second. Random values are
        generated for hours, minutes and seconds. The `nanoseconds` field is
@@ -178,8 +178,8 @@ type Random
              end = Time_Of_Day.new 9 40 2
              t = Random.time start end
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
-    time (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
-        Random_Generator.global_random_generator.time start_time end_time
+    time (min:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (max:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
+        Random_Generator.global_random_generator.time min max
 
     ## GROUP Random
        Return a new UUID.
@@ -298,8 +298,8 @@ type Random_Generator
 
     ## PRIVATE
     date : Date -> Date -> Boolean -> Date
-    date self start_date:Date end_date:Date end_exclusive=True =
-        date_range = start_date.up_to end_date include_end=end_exclusive.not
+    date self start_date:Date end_date:Date =
+        date_range = start_date.up_to end_date include_end=True
         date_range.at (self.integer 0 date_range.length)
 
     ## PRIVATE

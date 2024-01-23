@@ -79,11 +79,6 @@ spec = Test.group "Random" <|
         dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 03))
         dates.should_contain_the_same_elements_as all_from_small_range
 
-    Test.specify "should allow generating random dates, with end_exclusive=True" <|
-        all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03, Date.new 2023 03 04]
-        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 05) end_exclusive=True)
-        dates.should_contain_the_same_elements_as all_from_small_range
-
     Test.specify "should allow generating random times" <|
         Random.set_seed 12345
         start = Time_Of_Day.new 8 12 15
