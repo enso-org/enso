@@ -25,9 +25,15 @@ type Data
         simple_table_structure = [Column_Description.Value "X" Value_Type.Integer]
         [connection, simple_table_structure]
 
+    teardown self =
+        self.connection.close
+
 add_specs suite_builder create_connection_func prefix =
     suite_builder.group prefix+"Transaction Support" group_builder->
         data = Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
 
         insert_value table_name x =
             pairs = [["X", SQL_Expression.Constant x]]

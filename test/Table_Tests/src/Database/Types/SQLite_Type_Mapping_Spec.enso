@@ -22,9 +22,15 @@ type Data
         connection = Database.connect (SQLite In_Memory)
         Data.Value connection
 
+    teardown self = self.connection.close
+
+
 add_specs suite_builder =
     suite_builder.group "[SQLite] Type Mapping" group_builder->
         data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
 
         make_table prefix columns =
             name = prefix

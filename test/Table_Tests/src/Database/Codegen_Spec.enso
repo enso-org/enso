@@ -22,13 +22,13 @@ type Data
     connection self = self.data.at 0
     t1 self = self.data.at 1
     
-    setup =
+    setup = Data.Value <|
         c = Database.connect (SQLite In_Memory)
         c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
         c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
         c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
         t1 = c.query (SQL_Query.Table_Name "T1")
-        Data.Value [c, t1]
+        [c, t1]
     
     teardown self =
         self.connection.close

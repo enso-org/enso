@@ -31,8 +31,6 @@ type Table_Take_Drop_Data
         [connection, table, empty]
 
     teardown self =
-        self.connection.drop_table self.table.name
-        self.connection.drop_table self.empty.name
         self.connection.close
 
 
@@ -62,24 +60,21 @@ type Column_Take_Drop_Data
         [connection, table, alpha, beta, empty_alpha, empty_beta]
 
     teardown self =
-        self.connection.drop_table self.table.name
-        self.connection.drop_table self.alpha.name
-        self.connection.drop_table self.beta.name
-        self.connection.drop_table self.empty_alpha.name
-        self.connection.drop_table self.empty_beta.name
         self.connection.close
 
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func
 
     suite_builder.group prefix+"Table.take/drop" group_builder->
-        data = Table_Take_Drop_Data.setup create_connection_fn table_builder
+        data = Table_Take_Drop_Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
             data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "should allow selecting first or last N rows" <|
             data.table.take.at "alpha" . to_vector . should_equal [1]
@@ -258,7 +253,7 @@ add_specs suite_builder setup =
                 False -> unordered_table.take . at "alpha" . to_vector . should_equal [1]
 
         group_builder.specify "Should work correctly after aggregation" <|
-            t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]] connection=data.connection
+            t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
             t1 = t0.aggregate [Group_By "X", Sum "Y"]
 
             t2 = t1.order_by "X" . take 2
@@ -270,10 +265,13 @@ add_specs suite_builder setup =
             t3.at "Sum Y" . to_vector . should_equal [2.0, 8.0]
 
     suite_builder.group prefix+"Column.take/drop" group_builder->
-        data = Column_Take_Drop_Data.setup create_connection_fn table_builder
+        data = Column_Take_Drop_Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
             data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "should allow selecting first or last N rows" <|
             data.alpha.take.to_vector . should_equal [1]

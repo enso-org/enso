@@ -13,9 +13,12 @@ from project.Common_Table_Operations.Util import run_default_backend
 main = run_default_backend add_specs
 
 type Data
-    Value ~table
+    Value ~data
+
+    connection self = self.data.at 0
+    table self = self.data.at 1
     
-    setup create_connection_fn table_builder =
+    setup create_connection_fn table_builder = Data.Value <|
         connection = create_connection_fn Nothing
         mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]
@@ -29,8 +32,11 @@ type Data
             col9 = ["tau", [32.0, 0.5, -0.1, 1.6]]
             col10 = ["rho", ["BB", Nothing, Nothing, "B"]]
             table_builder [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10] connection=connection
-        Data.Value mk_table
-        
+        [connection, mk_table]
+
+    teardown self =
+        self.connection.close
+
 
 type My_Type
     Foo x
@@ -38,13 +44,18 @@ type My_Type
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func
     test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
         "ToDo: order_by is not yet supported by this backend."
     suite_builder.group prefix+"Table.order_by" pending=order_by_pending group_builder->
-        data = Data.setup create_connection_fn table_builder
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "should work as shown in the doc examples" <|
             t1 = data.table.order_by ["alpha"]

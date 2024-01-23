@@ -13,6 +13,7 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
+main = run_default_backend add_specs
 
 type My_Type
     Value x
@@ -20,13 +21,32 @@ type My_Type
     to_text : Text
     to_text self = "{{{MY Type [x="+self.x.to_text+"] }}}"
 
+
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
+    create_connection_fn = setup.create_connection_func
     supports_conversion_failure_reporting = setup.is_database.not
     suite_builder.group prefix+"Table/Column.cast - to text" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast t.column_names Value_Type.Char
@@ -123,6 +143,14 @@ add_specs suite_builder setup =
                 r2.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Table/Column.cast - numeric" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should allow to cast a boolean column to integer" <|
             t = table_builder [["X", [True, False, True]]]
             c = t.at "X" . cast Value_Type.Integer
@@ -232,6 +260,14 @@ add_specs suite_builder setup =
 
     if supports_dates then
         suite_builder.group prefix+"Table/Column.cast - date/time" group_builder->
+            data = Data.setup create_connection_fn
+
+            group_builder.teardown <|
+                data.teardown
+
+            table_builder cols =
+                setup.table_builder cols connection=data.connection
+
             group_builder.specify "should allow to get the Date part from a Date_Time" <|
                 t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
                 c = t.at "X" . cast Value_Type.Date
@@ -257,6 +293,14 @@ add_specs suite_builder setup =
                 diff . should_equal expected_diff
 
     suite_builder.group prefix+"Table/Column.cast - checking invariants" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should report an error for unsupported conversions" <|
             t = table_builder [["X", [1, 2, 3]]]
             r1 = t.at "X" . cast Value_Type.Boolean
@@ -469,6 +513,14 @@ add_specs suite_builder setup =
                 r3.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Simple variant of Table/Column.parse in all backends" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
@@ -540,6 +592,14 @@ add_specs suite_builder setup =
             r3.catch.criteria . should_equal ["Y"]
 
     if setup.is_database then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should report unsupported" <|
             t = table_builder [["X", [1, 2, 3]]]
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
@@ -547,17 +607,41 @@ add_specs suite_builder setup =
 
     # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
     if setup.is_database then suite_builder.group prefix+"Table.expand_column" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
     if setup.is_database then suite_builder.group prefix+"Table.expand_to_rows" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
 
     if setup.is_database.not then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each shrink_types->
                 mixer = My_Type.Value 1

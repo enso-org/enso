@@ -18,11 +18,17 @@ type Data
     setup create_connection_func =
         Data.Value (create_connection_func Nothing)
 
+    teardown self = self.connection.close
+
 
 add_specs suite_builder prefix create_connection_func =
-    data = Data.setup create_connection_func
-    
+
     suite_builder.group prefix+"Support for Long Column/Table names" group_builder->
+        data = Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
         entity_naming_properties = data.connection.base_connection.entity_naming_properties
         max_table_name_length = entity_naming_properties.for_table_names.size_limit
         max_column_name_length = entity_naming_properties.for_column_names.size_limit

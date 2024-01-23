@@ -27,11 +27,17 @@ type Data
         Problems.assume_no_problems <| self.connection.execute_update stmt
         self.connection.query (SQL_Query.Table_Name name)
 
+    teardown self =
+        self.connection.close
+
 
 add_specs suite_builder create_connection_fn =
-    data = Data.setup create_connection_fn
-
     suite_builder.group "[PostgreSQL] Type Mapping" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "numeric" <|
             t = data.make_table "ints" [["a", "smallint"], ["b", "int2"], ["c", "int"], ["d", "integer"], ["e", "int4"], ["f", "bigint"], ["g", "int8"]]
             t.at "a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -139,6 +145,11 @@ add_specs suite_builder create_connection_fn =
             Problems.expect_warning Inexact_Type_Coercion t2
 
     suite_builder.group "[PostgreSQL] Type Edge Cases" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "will fail to read a BigDecimal column and suggest to cast it to Float" <|
             table_name = Name_Generator.random_name "BigDecimal"
             table = data.connection.create_table table_name [Column_Description.Value "B" (Value_Type.Decimal precision=100 scale=5)] primary_key=[]

@@ -17,9 +17,12 @@ from project.Common_Table_Operations.Util import run_default_backend
 main = run_default_backend add_specs
 
 type Data
-    Value ~table
+    Value ~data
 
-    setup create_connection_fn table_builder =
+    connection self = self.data.at 0
+    table self = self.data.at 1
+
+    setup create_connection_fn table_builder = Data.Value <|
         connection = create_connection_fn Nothing
         table =
             col1 = ["foo", [1,2,3]]
@@ -30,15 +33,26 @@ type Data
             col6 = ["ab.+123", [16,17,18]]
             col7 = ["abcd123", [19,20,21]]
             table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        Data.Value table
+        [connection, table]
+
+    teardown self =
+        self.connection.close
+
 
 type Rows_Data
-    Value ~table
+    Value ~data
 
-    setup create_connection_fn table_builder =
+    connection self = self.data.at 0
+    table self = self.data.at 1
+
+    setup create_connection_fn table_builder = Rows_Data.Value <|
         connection = create_connection_fn Nothing
         table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]] connection=connection
-        Rows_Data.Value table
+        [connection, table]
+
+    teardown self =
+        self.connection.close
+
 
 type Read_Data
     Value ~data
@@ -53,15 +67,20 @@ type Read_Data
         t_small = table_builder [["X", (0.up_to 10)]] connection=connection
         [connection, t_big, t_small]
 
+    teardown self =
+        self.connection.close
+
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func
 
     suite_builder.group prefix+"Table.at" group_builder->
-        data = Data.setup create_connection_fn table_builder
-        
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.at "bar"
             column_1.name . should_equal "bar"
@@ -101,7 +120,10 @@ add_specs suite_builder setup =
             data.table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     suite_builder.group prefix+"Table.get" group_builder->
-        data = Data.setup create_connection_fn table_builder
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should allow selecting columns by name" <|
             column_1 = data.table.get "bar"
@@ -132,7 +154,13 @@ add_specs suite_builder setup =
             data.table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     suite_builder.group prefix+"Table.set" group_builder->
-        data = Data.setup create_connection_fn table_builder
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "should allow adding a column" <|
             bar2 = data.table.get "bar" . rename "bar2"
@@ -212,7 +240,13 @@ add_specs suite_builder setup =
                 False -> r1.should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Table.column_names" group_builder->
-        data = Data.setup create_connection_fn table_builder
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.specify "should return the names of all columns" <|
             data.table.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
@@ -227,13 +261,19 @@ add_specs suite_builder setup =
                 table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     suite_builder.group prefix+"Table.column_count" group_builder->
-        data = Data.setup create_connection_fn table_builder
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should allow getting the column count" <|
             data.table.column_count . should_equal 7
 
     suite_builder.group prefix+"Table.rows" group_builder->
-        data = Rows_Data.setup create_connection_fn table_builder
+        data = Rows_Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should allow to get a Vector of Table rows" <|
             rows = data.table.rows
@@ -303,7 +343,10 @@ add_specs suite_builder setup =
 
 
     suite_builder.group prefix+"Table.read" group_builder->
-        data = Read_Data.setup create_connection_fn table_builder
+        data = Read_Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         has_default_row_limit = setup.is_database
 

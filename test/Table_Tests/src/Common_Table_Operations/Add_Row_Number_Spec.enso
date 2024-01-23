@@ -16,13 +16,32 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
+main = run_default_backend add_specs
+
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
 
     suite_builder.group prefix+"Table.add_row_number (common)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should rename existing column upon a name clash" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
             t2 = t1.add_row_number name="Y" order_by=["X"] |> materialize |> _.order_by "X"
@@ -107,6 +126,14 @@ add_specs suite_builder setup =
             t2.at "Row" . to_vector . should_equal [1, 2, 3]
 
     if setup.is_database.not then suite_builder.group prefix+"Table.add_row_number (in-memory specific)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should add a row numbering column" <|
             t = table_builder [["X", ['a', 'b', 'a', 'a', 'c']]]
             t1 = t.add_row_number
@@ -195,10 +222,17 @@ add_specs suite_builder setup =
             t1.add_row_number from=(max_long + 10) group_by=["Y"] order_by=["Z"] . should_fail_with Illegal_Argument
 
     if setup.is_database then suite_builder.group prefix+"Table.add_row_number (Database specific)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "will use the primary key by default" <|
-            connection = setup.create_connection_func Nothing
-            src = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]] connection=connection
-            db_table = src.select_into_database_table connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
+            src = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]]
+            db_table = src.select_into_database_table data.connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
 
             t2 = db_table.add_row_number |> materialize |> _.order_by ["Y"]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]

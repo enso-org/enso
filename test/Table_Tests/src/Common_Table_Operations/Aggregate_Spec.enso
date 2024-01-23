@@ -61,6 +61,9 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"Table.aggregate should summarize whole table" group_builder->
         data = Data.setup create_connection_fn table_fn empty_table_fn
 
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should be able to count" <|
             grouped = data.table.aggregate [Count]
             materialized = materialize grouped

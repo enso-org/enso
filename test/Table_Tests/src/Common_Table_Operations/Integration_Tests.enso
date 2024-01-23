@@ -19,13 +19,21 @@ type Data
     setup create_connection_fn =
         Data.Value (create_connection_fn Nothing)
 
+    teardown self =
+        self.connection.close
+
 
 add_specs suite_builder setup =
-    table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
     suite_builder.group setup.prefix+" Interactions Between various operations" group_builder->
         data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols
 
         group_builder.specify "using weird column names with operations and filtering" <|
             columns = weird_names.map_with_index ix-> name->
@@ -43,8 +51,8 @@ add_specs suite_builder setup =
                 result.at name . to_vector . should_equal [200+ix]
 
         group_builder.specify "aggregates and joins" <|
-            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]  connection=data.connection
-            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]] connection=data.connection
+            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]] 
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
 
             t3 = t2.aggregate [Group_By "Letter", Count]
             t4 = t3.join t1 on="Count" join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by "Letter"
@@ -56,7 +64,7 @@ add_specs suite_builder setup =
             rows.at 3 . should_equal ["D", 2, 2, "Y"]
 
         group_builder.specify "aggregates and distinct" <|
-            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C"]], ["Points", [2, 5, 2, 1, 10, 3]]] connection=data.connection
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C"]], ["Points", [2, 5, 2, 1, 10, 3]]]
 
             t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
             t4 = t3.distinct "Sum Points" |> materialize |> _.order_by "Sum Points"
@@ -71,7 +79,7 @@ add_specs suite_builder setup =
             rows.at 1 . should_equal ["C", 13]
 
         group_builder.specify "aggregates and filtering" <|
-            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C", "B"]], ["Points", [2, 5, 2, 1, 10, 3, 0]]] connection=data.connection
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C", "B"]], ["Points", [2, 5, 2, 1, 10, 3, 0]]]
 
             t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
             t4 = t3.filter "Sum Points" (Filter_Condition.Equal 5)  |> materialize |> _.order_by "Letter"
@@ -81,7 +89,7 @@ add_specs suite_builder setup =
             rows.at 1 . should_equal ["B", 5]
 
         group_builder.specify "aggregates and ordering" <|
-            t1 = table_builder [["Letter", ["C", "A", "B", "A", "A", "C", "C", "B"]], ["Points", [0, -100, 5, 2, 1, 10, 3, 0]]] connection=data.connection
+            t1 = table_builder [["Letter", ["C", "A", "B", "A", "A", "C", "C", "B"]], ["Points", [0, -100, 5, 2, 1, 10, 3, 0]]]
             t2 = t1.aggregate [Group_By "Letter", Sum "Points"]
             t3 = t2.order_by "Sum Points" |> materialize
             t3.columns.map .name . should_equal ["Letter", "Sum Points"]
@@ -89,7 +97,7 @@ add_specs suite_builder setup =
             t3.at "Sum Points" . to_vector . should_equal [-97, 5, 13]
 
         group_builder.specify "distinct and ordering" <|
-            t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]] connection=data.connection
+            t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
 
             # These are 'adversarial' white-box examples constructed knowing that Postgres' DISTINCT ON does not play too well with ORDER BY and it needs to be handled carefully.
             t2 = t1.order_by "X" . distinct "X" |> materialize
@@ -104,7 +112,7 @@ add_specs suite_builder setup =
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
-                t = (table_builder [a, b, c] connection=data.connection) . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
+                t = (table_builder [a, b, c]) . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
 
                 t2 = t.distinct ["A", "B"] on_problems=Report_Error
                 # Now, reverse the order!
@@ -148,8 +156,8 @@ add_specs suite_builder setup =
             ## This mostly checks that various operations handle all kinds of Integer storage implementations
                (add_row_number may use a different storage than regular columns)
             if setup.is_database.not then group_builder.specify "add_row_number and other operations" <|
-                t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]], ["Z", [0.25, 0.5, 0.75]]] connection=data.connection
-                t2 = table_builder [["X", ["ddd", "eee", "fff"]]] connection=data.connection
+                t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]], ["Z", [0.25, 0.5, 0.75]]]
+                t2 = table_builder [["X", ["ddd", "eee", "fff"]]]
 
                 t11 = t1.add_row_number
                 (t11.at "Row" + 2) . to_vector . should_equal [3, 4, 5]
@@ -168,7 +176,7 @@ add_specs suite_builder setup =
                 r12.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff"]
                 r12.at "Row" . to_vector . should_equal [1, 2, 3, 100, 101, 102]
 
-                t3 = table_builder [["X", ["a", "b", "c"]], ["Row", [1.5, 2.5, 3.5]]] connection=data.connection
+                t3 = table_builder [["X", ["a", "b", "c"]], ["Row", [1.5, 2.5, 3.5]]]
 
                 t123 = ((t1.add_row_number).union [(t2.add_row_number), t3])
                 r123 = t123 |> materialize
@@ -177,8 +185,8 @@ add_specs suite_builder setup =
 
         if setup.test_selection.fixed_length_text_columns then
             group_builder.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
-                t1 = (table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]] connection=data.connection) . cast "X" (Value_Type.Char 1 False)
-                t2 = (table_builder [["X", ["ddd", "eee", "fff"]], ["Y", [0, 1, 0]]] connection=data.connection) . cast "X" (Value_Type.Char 3 False)
+                t1 = (table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]]) . cast "X" (Value_Type.Char 1 False)
+                t2 = (table_builder [["X", ["ddd", "eee", "fff"]], ["Y", [0, 1, 0]]]) . cast "X" (Value_Type.Char 3 False)
                 t3 = t1.union t2
 
                 vt1 = t3.at "X" . value_type
@@ -196,7 +204,7 @@ add_specs suite_builder setup =
                 t5.at "Shortest X" . to_vector . should_equal ["b", "a", "c"]
 
             group_builder.specify "types should be correctly preserved after aggregation after iif" <|
-                t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]] connection=data.connection
+                t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
                 t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 
                 x = t1.at "x"

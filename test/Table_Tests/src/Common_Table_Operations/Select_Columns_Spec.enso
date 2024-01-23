@@ -11,9 +11,12 @@ from project.Common_Table_Operations.Util import expect_column_names, run_defaul
 main = run_default_backend add_specs
 
 type Select_Columns_Data
-    Value ~table
+    Value ~data
+
+    connection self = self.data.at 0
+    table self = self.data.at 1
     
-    setup create_connection_fn table_builder =
+    setup create_connection_fn table_builder = Select_Columns_Data.Value <|
         connection = create_connection_fn Nothing
         table =
             col1 = ["foo", [1,2,3]]
@@ -24,13 +27,18 @@ type Select_Columns_Data
             col6 = ["ab.+123", [16,17,18]]
             col7 = ["abcd123", [19,20,21]]
             table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        Select_Columns_Data.Value table
+        [connection, table]
 
+    teardown self =
+        self.connection.close
 
 type Sort_Columns_Data
-    Value ~table
-    
-    setup create_connection_fn table_builder =
+    Value ~data
+
+    connection self = self.data.at 0
+    table self = self.data.at 1
+
+    setup create_connection_fn table_builder = Sort_Columns_Data.Value <|
         connection = create_connection_fn Nothing
         table =
             col1 = ["foo 21", [1,2,3]]
@@ -41,13 +49,19 @@ type Sort_Columns_Data
             col6 = ["foo 001", [16,17,18]]
             col7 = ["bar", [19,20,21]]
             table_builder [col1, col2, col3, col4, col5, col6, col7] connection=connection
-        Sort_Columns_Data.Value table
+        [connection, table]
+
+    teardown self =
+        self.connection.close
 
 
 type Rename_Columns_Data
-    Value ~table
-    
-    setup create_connection_fn table_builder =
+    Value ~data
+
+    connection self = self.data.at 0
+    table self = self.data.at 1
+
+    setup create_connection_fn table_builder = Rename_Columns_Data.Value <|
         connection = create_connection_fn Nothing
         table =
             col1 = ["alpha", [1,2,3]]
@@ -55,7 +69,10 @@ type Rename_Columns_Data
             col3 = ["gamma", [16,17,18]]
             col4 = ["delta", [19,20,21]]
             table_builder [col1, col2, col3, col4] connection=connection
-        Rename_Columns_Data.Value table
+        [connection, table]
+
+    teardown self =
+        self.connection.close
 
 
 add_specs suite_builder setup =
@@ -66,7 +83,10 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.select_columns" group_builder->
         data = Select_Columns_Data.setup create_connection_fn table_builder
-        
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| data.table.select_columns ["bar", "foo"]
             expect_column_names ["bar", "Baz", "foo 1", "foo 2"] <| data.table.select_columns ["foo.+".to_regex, "b.*".to_regex True]
@@ -185,7 +205,10 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.remove_columns" group_builder->
         data = Select_Columns_Data.setup create_connection_fn table_builder
-        
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] <| data.table.remove_columns ["bar", "foo"]
             expect_column_names ["foo", "ab.+123", "abcd123"] <| data.table.remove_columns ["foo.+".to_regex, "b.*".to_regex] Case_Sensitivity.Insensitive
@@ -270,7 +293,10 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.reorder_columns" group_builder->
         data = Select_Columns_Data.setup create_connection_fn table_builder
-        
+
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| data.table.reorder_columns "foo" Position.After_Other_Columns
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo", "bar"] <| data.table.reorder_columns ["foo", "bar"] Position.After_Other_Columns
@@ -340,6 +366,9 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"Table.sort_columns" group_builder->
         data = Sort_Columns_Data.setup create_connection_fn table_builder
 
+        group_builder.teardown <|
+            data.teardown
+
         group_builder.specify "should work as shown in the doc examples" <|
             sorted = data.table.sort_columns
             expect_column_names ["Foo 2", "bar", "foo 001", "foo 1", "foo 100", "foo 21", "foo 3"] sorted
@@ -359,6 +388,9 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.rename_columns" group_builder->
         data = Rename_Columns_Data.setup create_connection_fn table_builder
+
+        group_builder.teardown <|
+            data.teardown
 
         group_builder.specify "should work as shown in the doc examples" <|
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|

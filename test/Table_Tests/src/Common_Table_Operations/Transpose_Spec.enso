@@ -8,11 +8,29 @@ from Standard.Test_New import all
 from project.Common_Table_Operations.Util import run_default_backend
 
 
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.transpose is not implemented yet in Database."
     suite_builder.group prefix+"Table.transpose" pending=db_todo group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         group_builder.specify "should transpose all columns by default" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose
