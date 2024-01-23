@@ -10,18 +10,19 @@ export function useAutoBlur(root: Ref<HTMLElement | SVGElement | MathMLElement |
   )
 }
 
-export function blurIfNecessary(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>, event: MouseEvent) {
+export function blurIfNecessary(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>, event: MouseEvent): boolean {
   if (
     !root.value?.contains(document.activeElement) ||
     !(event.target instanceof Element) ||
     root.value.contains(event.target)
   )
-    return
+    return false
   if (
     !(document.activeElement instanceof HTMLElement) &&
     !(document.activeElement instanceof SVGElement) &&
     !(document.activeElement instanceof MathMLElement)
   )
-    return
+    return false
   document.activeElement.blur()
+  return true
 }

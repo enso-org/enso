@@ -48,12 +48,10 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
       <SliderWidget
         v-model="state"
         :limits="sliderLimits"
-        :allowDecimals="allowDecimals"
       />
 
       <template #controls>
         <HstSlider v-model="state" title="v-model" :min="min" :max="max" />
-        <HstCheckbox v-model="allowDecimals" title="Allow decimals" />
         <HstCheckbox v-model="withLimits" title="With limits" />
         <HstNumber v-model="min" title="min" />
         <HstNumber v-model="max" title="max" />
