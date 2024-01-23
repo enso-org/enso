@@ -178,27 +178,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
                 id = await response.text()
               }
-              const listedProject = await backend.getProjectDetails(
-                backendModule.ProjectId(id),
-                null
-              )
+              const projectId = backendModule.ProjectId(id)
+              const listedProject = await backend.getProjectDetails(projectId, '(unknown)')
               rowState.setVisibility(Visibility.visible)
-              setAsset(
-                object.merge(asset, {
-                  title: listedProject.packageName,
-                  id: backendModule.ProjectId(id),
-                })
-              )
+              setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {
               const fileName = asset.title
               const title = backendModule.stripProjectExtension(asset.title)
               setAsset(object.merge(asset, { title }))
               const createdFile = await backend.uploadFile(
-                {
-                  fileId: null,
-                  fileName,
-                  parentDirectoryId: asset.parentId,
-                },
+                { fileId: null, fileName, parentDirectoryId: asset.parentId },
                 file
               )
               const project = createdFile.project
@@ -207,20 +196,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               } else {
                 rowState.setVisibility(Visibility.visible)
                 setAsset(
-                  object.merge(asset, {
-                    title,
-                    id: project.projectId,
-                    projectState: project.state,
-                  })
+                  object.merge(asset, { title, id: project.projectId, projectState: project.state })
                 )
                 return
               }
             }
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             toastAndLog(getText('uploadProjectError'), error)
           }
         }

@@ -191,9 +191,10 @@ export default function AuthProvider(props: AuthProviderProps) {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
       const client = new http.Client([['Authorization', '']])
-      setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
+      setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger, getText))
     }
   }, [
+    getText,
     /* should never change */ projectManagerUrl,
     /* should never change */ supportsLocalBackend,
     /* should never change */ logger,
@@ -209,7 +210,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       navigate(appUtils.DASHBOARD_PATH)
       return Promise.resolve(true)
     },
-    [/* should never change */ goOfflineInternal, /* should never change */ navigate]
+    [goOfflineInternal, /* should never change */ navigate]
   )
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
@@ -241,7 +242,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
       } else {
         const client = new http.Client([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new remoteBackend.RemoteBackend(client, logger)
+        const backend = new remoteBackend.RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {

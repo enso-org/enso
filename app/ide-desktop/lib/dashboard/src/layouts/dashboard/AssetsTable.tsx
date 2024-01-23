@@ -858,7 +858,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               recentProjects: category === Category.recent,
               labels: null,
             },
-            null
+            // The root directory has no name. This is also SAFE, as there is a different error
+            // message when the directory is the root directory (when `parentId == null`).
+            '(root)'
           )
           if (!signal.aborted) {
             setIsLoading(false)
@@ -936,7 +938,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 recentProjects: category === Category.recent,
                 labels: null,
               },
-              null
+              // The root directory has no name. This is also SAFE, as there is a different error
+              // message when the directory is the root directory (when `parentId == null`).
+              '(root)'
             )
             if (!signal.aborted) {
               setIsLoading(false)
@@ -1064,7 +1068,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               recentProjects: category === Category.recent,
               labels: null,
             },
-            title ?? null
+            title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
           )
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>

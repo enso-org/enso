@@ -73,7 +73,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { keyProp: key, item: rawItem, initialRowState, hidden: hiddenRaw, selected } = props
   const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
   const { tableRowRef, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
@@ -125,11 +125,12 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
+        newParentId ??= organization?.rootDirectoryId ?? backendModule.DirectoryId('')
         const copiedAsset = await backend.copyAsset(
           asset.id,
-          newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+          newParentId,
           asset.title,
-          null
+          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)'
         )
         setAsset(
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
@@ -153,6 +154,7 @@ export default function AssetRow(props: AssetRowProps) {
       asset,
       item.key,
       getText,
+      /* should never change */ nodeMap,
       /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,

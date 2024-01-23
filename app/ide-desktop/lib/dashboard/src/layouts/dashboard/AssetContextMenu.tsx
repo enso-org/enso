@@ -175,7 +175,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 try {
                   const client = new http.Client([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new remoteBackendModule.RemoteBackend(client, logger)
+                  const remoteBackend = new remoteBackendModule.RemoteBackend(
+                    client,
+                    logger,
+                    getText
+                  )
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${asset.id}/enso-project`
                   )

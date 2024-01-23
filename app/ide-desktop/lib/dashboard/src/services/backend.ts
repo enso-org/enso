@@ -840,72 +840,65 @@ export abstract class Backend {
   /** Return user details for the current user. */
   abstract usersMe(): Promise<UserOrOrganization | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(
-    query: ListDirectoryRequestParams,
-    title: string | null
-  ): Promise<AnyAsset[]>
+  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,
     body: UpdateDirectoryRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedDirectory>
   /** Change the parent directory of an asset. */
-  abstract updateAsset(
-    assetId: AssetId,
-    body: UpdateAssetRequestBody,
-    title: string | null
-  ): Promise<void>
+  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract deleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(
     assetId: AssetId,
     parentDirectoryId: DirectoryId,
-    title: string | null,
-    parentDirectoryTitle: string | null
+    title: string,
+    parentDirectoryTitle: string
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
+  abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
+  abstract getProjectDetails(projectId: ProjectId, title: string): Promise<Project>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
     body: OpenProjectRequestBody | null,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Change the AMI or IDE version of a project. */
   abstract updateProject(
     projectId: ProjectId,
     body: UpdateProjectRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedProject>
   /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
+  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<File[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
   /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
+  abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
+  abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */
   abstract updateSecret(
     secretId: SecretId,
     body: UpdateSecretRequestBody,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Return the secret environment variables accessible by the user. */
   abstract listSecrets(): Promise<SecretInfo[]>
@@ -914,7 +907,7 @@ export abstract class Backend {
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
+  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
   /** Return a list of backend or IDE versions. */

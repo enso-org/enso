@@ -24,6 +24,7 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
@@ -61,6 +62,7 @@ export default function Dashboard(props: DashboardProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
@@ -145,7 +147,7 @@ export default function Dashboard(props: DashboardProps) {
             const httpClient = new http.Client(
               new Headers([['Authorization', `Bearer ${session.accessToken}`]])
             )
-            const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger)
+            const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger, getText)
             void (async () => {
               const abortController = new AbortController()
               setOpenProjectAbortController(abortController)
@@ -285,7 +287,7 @@ export default function Dashboard(props: DashboardProps) {
             const client = new http.Client([
               ['Authorization', `Bearer ${session.accessToken ?? ''}`],
             ])
-            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+            setBackend(new remoteBackendModule.RemoteBackend(client, logger, getText))
             break
           }
         }
@@ -295,6 +297,7 @@ export default function Dashboard(props: DashboardProps) {
       backend.type,
       session.accessToken,
       logger,
+      getText,
       /* should never change */ projectManagerUrl,
       /* should never change */ setBackend,
     ]
