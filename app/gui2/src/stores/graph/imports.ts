@@ -29,13 +29,25 @@ import {
 
 function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
   const idents: Identifier[] = []
-  let ast_: Ast.Ast | null = ast
+  let ast_: Ast.Ast | undefined = ast
   while (
     ast_ instanceof Ast.OprApp &&
     ast_.operator.ok &&
     ast_.operator.value.code() === operator
   ) {
     if (!(ast_.rhs instanceof Ast.Ident)) return null
+    idents.unshift(identifierUnchecked(ast_.rhs.code()))
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ast.Ident)) return null
+  idents.unshift(identifierUnchecked(ast_.code()))
+  return idents
+}
+
+function unrollPropertyAccess(ast: Ast.Ast): Identifier[] | null {
+  const idents: Identifier[] = []
+  let ast_: Ast.Ast | undefined = ast
+  while (ast_ instanceof Ast.PropertyAccess) {
     idents.unshift(identifierUnchecked(ast_.rhs.code()))
     ast_ = ast_.lhs
   }
@@ -57,9 +69,8 @@ function parseIdents(ast: Ast.Ast): Identifier[] | null {
 }
 
 function parseQualifiedName(ast: Ast.Ast): QualifiedName | null {
-  const idents = unrollOprChain(ast, '.')
-  if (idents === null) return null
-  return normalizeQualifiedName(qnFromSegments(idents))
+  const idents = unrollPropertyAccess(ast)
+  return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
 /** Parse import statement. */
@@ -147,7 +158,7 @@ export interface UnqualifiedImport {
 /** Read imports from given module block */
 export function readImports(ast: Ast.Ast): Import[] {
   const imports: Import[] = []
-  ast.visitRecursive((node) => {
+  ast.visitRecursiveAst((node) => {
     if (node instanceof Ast.Import) {
       const recognized = recognizeImport(node)
       if (recognized) {
@@ -161,14 +172,10 @@ export function readImports(ast: Ast.Ast): Import[] {
 }
 
 /** Insert the given imports into the given block at an appropriate location. */
-export function addImports(
-  edit: MutableModule,
-  scope: Ast.BodyBlock,
-  importsToAdd: RequiredImport[],
-) {
-  const imports = importsToAdd.map((info) => requiredImportToAst(info, edit))
-  const position = newImportsLocation(edit, scope)
-  scope.insert(edit, position, ...imports)
+export function addImports(scope: Ast.MutableBodyBlock, importsToAdd: RequiredImport[]) {
+  const imports = importsToAdd.map((info) => requiredImportToAst(info, scope.module))
+  const position = newImportsLocation(scope)
+  scope.insert(position, ...imports)
 }
 
 /** Return a suitable location in the given block to insert an import statement.
@@ -176,9 +183,9 @@ export function addImports(
  *  The location chosen will be before the first non-import line, and after all preexisting imports.
  *  If there are any blank lines in that range, it will be before them.
  */
-function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
+function newImportsLocation(scope: Ast.BodyBlock): number {
   let lastImport
-  const lines = scope.lines()
+  const lines = scope.lines
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
     if (line.expression) {
@@ -193,7 +200,7 @@ function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
 }
 
 /** Create an AST representing the required import statement. */
-function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast.Owned<Ast.Import> {
+function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
   const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
     case 'Qualified':
@@ -517,18 +524,8 @@ if (import.meta.vitest) {
   })
 
   const parseImport = (code: string): Import | null => {
-    let ast = null
-    Ast.parseBlock(code).visitRecursive((node) => {
-      if (node instanceof Ast.Import) {
-        ast = node
-        return false
-      }
-      return true
-    })
-    if (ast) {
-      return recognizeImport(ast)
-    }
-    return null
+    let ast: Ast.Ast = Ast.parse(code)
+    return ast instanceof Ast.Import ? recognizeImport(ast) : null
   }
 
   test.each([
@@ -651,10 +648,10 @@ if (import.meta.vitest) {
   test('Insert after other imports in module', () => {
     const module_ = Ast.parseBlock('from Standard.Base import all\n\nmain = 42\n')
     const edit = module_.module.edit()
-    addImports(edit, module_, [
+    addImports(edit.getVersion(module_), [
       { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
     ])
-    expect(module_.code(edit)).toBe(
+    expect(edit.getVersion(module_).code()).toBe(
       'from Standard.Base import all\nimport Standard.Visualization\n\nmain = 42\n',
     )
   })
@@ -662,9 +659,9 @@ if (import.meta.vitest) {
   test('Insert import in module with no other imports', () => {
     const module_ = Ast.parseBlock('main = 42\n')
     const edit = module_.module.edit()
-    addImports(edit, module_, [
+    addImports(edit.getVersion(module_), [
       { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
     ])
-    expect(module_.code(edit)).toBe('import Standard.Visualization\nmain = 42\n')
+    expect(edit.getVersion(module_).code()).toBe('import Standard.Visualization\nmain = 42\n')
   })
 }

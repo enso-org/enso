@@ -1,12 +1,13 @@
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { unsafeKeys } from '@/util/record'
 
-type Matches<T> = Record<keyof T, Ast.Ast[] | undefined>
+type Matches<T> = Record<keyof T, Ast.AstId[] | undefined>
 
 interface MatchResult<T> {
-  innerExpr: Ast.Ast
-  matches: Record<keyof T, Ast.Ast[] | undefined>
+  innerExpr: Ast.AstId
+  matches: Record<keyof T, Ast.AstId[] | undefined>
 }
 
 export class Prefixes<T extends Record<keyof T, Pattern>> {
@@ -27,33 +28,28 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
   extractMatches(expression: Ast.Ast): MatchResult<T> {
     const matches = Object.fromEntries(
       Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
-        const matchIds = pattern.match(expression)
-        const matches = matchIds
-          ? Array.from(matchIds, (id) => expression.module.get(id)!)
-          : undefined
+        const matches = pattern.match(expression)
         const lastMatch = matches != null ? matches[matches.length - 1] : undefined
-        if (lastMatch) expression = lastMatch
+        if (lastMatch) expression = expression.module.checkedGet(lastMatch)
         return [name, matches]
       }),
     ) as Matches<T>
-    return { matches, innerExpr: expression }
+    return { matches, innerExpr: expression.id }
   }
 
-  modify(
-    edit: Ast.MutableModule,
-    expression: Ast.Ast,
-    replacements: Partial<Record<keyof T, Ast.Ast[] | undefined>>,
-  ) {
+  modify(expression: Ast.Owned, replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>) {
     const matches = this.extractMatches(expression)
-    let result = matches.innerExpr
+    const edit = expression.module
+    let result = edit.take(matches.innerExpr)
+    assert(result != null)
     for (const key of unsafeKeys(this.prefixes).reverse()) {
       if (key in replacements && !replacements[key]) continue
-      const replacement: Ast.Ast[] | undefined = replacements[key] ?? matches.matches[key]
+      const replacement: Ast.Owned[] | undefined =
+        replacements[key] ?? matches.matches[key]?.map((match) => edit.take(match)!)
       if (!replacement) continue
       const pattern = this.prefixes[key]
       const parts = [...replacement, result]
-      const partsIds = Array.from(parts, (ast) => ast.id)
-      result = pattern.instantiate(edit, partsIds)
+      result = pattern.instantiate(edit, parts)
     }
     return result
   }

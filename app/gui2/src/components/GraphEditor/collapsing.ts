@@ -1,6 +1,6 @@
 import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
-import { assert } from '@/util/assert'
-import { Ast } from '@/util/ast'
+import { assert, assertDefined } from '@/util/assert'
+import { Ast, parseEnso, RawAst } from '@/util/ast'
 import { moduleMethodNames } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
@@ -115,8 +115,8 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(module: Ast.Module, baseName: string): string {
-  const allIdentifiers = moduleMethodNames(module)
+function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: string): string {
+  const allIdentifiers = moduleMethodNames(topLevel)
   if (!allIdentifiers.has(baseName)) {
     return baseName
   }
@@ -147,18 +147,16 @@ interface CollapsingResult {
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
-  edit: Ast.MutableModule,
-  topLevel: Ast.BodyBlock,
+  topLevel: Ast.MutableBodyBlock,
   db: GraphDb,
   currentMethodName: string,
 ): CollapsingResult {
-  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
-  if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
-    throw new Error(`Expected a collapsable function, found ${functionAst}.`)
-  }
-  const functionBlock = functionAst.body
-  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
-  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
+  const edit = topLevel.module
+  const functionAst = Ast.findModuleMethod(topLevel, currentMethodName)
+  assertDefined(functionAst)
+  const functionBlock = edit.getVersion(functionAst).bodyAsBlock()
+  const posToInsert = findInsertionPos(topLevel, currentMethodName)
+  const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
@@ -172,12 +170,10 @@ export function performCollapse(
   )
   const lines = functionBlock.statements()
   for (const line of lines) {
-    const astId = line.id
-    const ast = edit.take(astId)?.node
-    assert(ast != null)
-    if (astIdsToExtract.has(astId)) {
+    const ast = line.take()
+    if (astIdsToExtract.has(ast.id)) {
       collapsed.push(ast)
-      if (astId === astIdToReplace) {
+      if (ast.id === astIdToReplace) {
         refactored.push({ expression: { node: refactoredAst } })
       }
     } else {
@@ -192,14 +188,19 @@ export function performCollapse(
     collapsed.push(ident)
     outputNodeId = asNodeId(ident.id)
   }
-  // Update the definiton of the refactored function.
-  const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
-  edit.replaceRef(functionBlock.id, refactoredBlock)
+  // Update the definition of the refactored function.
+  functionBlock.setLines(refactored)
 
   // Insert a new function.
-  const args: Ast.Owned[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
-  topLevel.insert(edit, posToInsert, collapsedFunction)
+  const argNames: string[] = info.extracted.inputs
+  const collapsedFunction = Ast.Function.fromStatements(
+    edit,
+    collapsedName,
+    argNames,
+    collapsed,
+    true,
+  )
+  topLevel.insert(posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
@@ -219,14 +220,9 @@ function collapsedCallAst(
 }
 
 /** Find the position before the current method to insert a collapsed one. */
-function findInsertionPos(
-  module: Ast.Module,
-  topLevel: Ast.BodyBlock,
-  currentMethodName: string,
-): number {
-  const currentFuncPosition = topLevel.lines().findIndex((line) => {
-    const node = line.expression?.node
-    const expr = node ? module.get(node.id)?.innerExpression() : null
+function findInsertionPos(topLevel: Ast.BodyBlock, currentMethodName: string): number {
+  const currentFuncPosition = topLevel.lines.findIndex((line) => {
+    const expr = line.expression?.node?.innerExpression()
     return expr instanceof Ast.Function && expr.name?.code() === currentMethodName
   })
 
@@ -239,11 +235,13 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
-    const ast = Ast.parseTransitional(code, new IdMap())
-    const expressions = Array.from(ast.statements())
+    const { root, toRaw, getSpan } = Ast.parseExtended(code)
+    const expressions = Array.from(root.statements())
     const func = expressions[0]
     assert(func instanceof Ast.Function)
-    graphDb.readFunctionAst(func, () => undefined)
+    const rawFunc = toRaw.get(func.id)
+    assert(rawFunc?.type === RawAst.Tree.Type.Function)
+    graphDb.readFunctionAst(func, rawFunc, code, (_id) => undefined, getSpan)
   }
 
   interface TestCase {

@@ -274,8 +274,7 @@ const graphBindingsHandler = graphBindings.handler({
       const edit = module.edit()
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        edit,
-        topLevel,
+        edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )

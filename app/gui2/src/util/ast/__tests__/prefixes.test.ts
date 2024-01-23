@@ -75,5 +75,5 @@ test.each([
       v ? Array.from(v, (mod) => Ast.parse(mod, edit)) : undefined,
     ]),
   )
-  expect(prefixes.modify(edit, sourceAst, modificationAsts).code(edit)).toBe(target)
+  expect(prefixes.modify(sourceAst, modificationAsts).code()).toBe(target)
 })
