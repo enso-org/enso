@@ -1,6 +1,7 @@
 private
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+import project.Data.Enso_Cloud.Errors.Not_Logged_In
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Error.Error
@@ -46,13 +47,6 @@ projects_api = cloud_root_uri + "projects"
 ## PRIVATE
    Root address for Secrets API
 secrets_api = cloud_root_uri + "secrets"
-
-## PRIVATE
-   Error if the user is not logged into Enso Cloud.
-type Not_Logged_In
-    ## PRIVATE
-    to_display_text : Text
-    to_display_text self = "Not logged into Enso cloud. Please log in and restart."
 
 ## PRIVATE
 flush_caches : Nothing
