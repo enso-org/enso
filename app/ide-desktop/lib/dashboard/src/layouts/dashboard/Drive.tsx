@@ -82,10 +82,6 @@ export interface DriveProps {
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly loadingProjectManagerDidFail: boolean
-  readonly isListingRemoteDirectoryWhileOffline: boolean
-  readonly isListingLocalDirectoryAndWillFail: boolean
-  readonly isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
