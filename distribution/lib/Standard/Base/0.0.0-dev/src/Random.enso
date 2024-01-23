@@ -64,18 +64,18 @@ type Random
 
     ## GROUP Random
        Return a random `Integer` between `min` (inclusive) and `max`
-       (exclusive).
+       (inclusive).
 
        Arguments:
        - min: The minimum value of the range to pick from (inclusive).
-       - max: The maximum value of the range to pick from (exclusive).
+       - max: The maximum value of the range to pick from (inclusive).
 
        > Example
          Generate an integer between 1 and 10.
 
               import Standard.Base.Random.Random
 
-              i = Random.integer 1 11
+              i = Random.integer 1 10
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer (min:Integer) (max:Integer) = Random_Generator.global_random_generator.integer min max
 
@@ -84,7 +84,7 @@ type Random
 
        Arguments:
        - min: The minimum value of the range to pick from (inclusive).
-       - max: The maximum value of the range to pick from (exclusive).
+       - max: The maximum value of the range to pick from (inclusive).
 
        > Example
          Generate a float between 2.3 and 3.4.
@@ -127,10 +127,10 @@ type Random
 
     ## GROUP Random
        Returns `count` indices sampled from the range 0 (inclusive) to n
-       (exclusive) without replacement.
+       (inclusive) without replacement.
 
        Arguments:
-       - n: The end of the range to sample from (exclusive).
+       - n: The end of the range to sample from (inclusive).
        - count: The number of samples to take.
 
        > Example
@@ -147,7 +147,7 @@ type Random
 
        Arguments:
        - start_date: The lower bound of the range to pick from (inclusive).
-       - end_date: The upper bound of the range to pick from (exclusive).
+       - end_date: The upper bound of the range to pick from (inclusive).
 
        > Example
          Generate a random date.
@@ -156,7 +156,7 @@ type Random
 
              d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
     date : Date -> Date -> Boolean -> Date
-    date start_date:Date end_date:Date end_exclusive=True = Random_Generator.global_random_generator.date start_date end_date end_exclusive
+    date start_date:Date end_date:Date end_exclusive=False = Random_Generator.global_random_generator.date start_date end_date end_exclusive
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
@@ -168,9 +168,6 @@ type Random
        The generated time is at a granularity of 1 second. Random values are
        generated for hours, minutes and seconds. The `nanoseconds` field is
        always 0.
-
-       Note: the time range end is inclusive because it is impossible to specify
-       an end time after the last second of the day.
 
        > Example
          Generate a random time.
