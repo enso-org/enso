@@ -28,6 +28,8 @@ type Complex
     < self (that:Complex) = Complex_Comparator.compare self that == Ordering.Less
     > self (that:Complex) = Complex_Comparator.compare self that == Ordering.Greater
 
+    == self (that:Complex) = Complex_Comparator.compare self that == Ordering.Equal
+
 Complex.from (that:Number) = Complex.new that
 
 type Complex_Comparator
