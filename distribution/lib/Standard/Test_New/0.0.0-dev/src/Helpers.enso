@@ -30,11 +30,8 @@ run_specs_from_group (specs : Vector Spec) (group : Group) =
     case specs.is_empty of
         True -> []
         False ->
-            IO.println <| "Running tests in group '" + group.name + "'..."
             test_results = specs.map spec->
-                IO.println <| "  Running spec '" + spec.name + "'..."
                 pair = run_spec spec
-                IO.println <| "  Finished spec '" + spec.name + "'."
                 spec_res = pair.second
                 time_taken = pair.first
                 Test_Result.Impl group.name spec.name spec_res time_taken

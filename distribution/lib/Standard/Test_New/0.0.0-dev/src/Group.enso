@@ -15,6 +15,7 @@ type Group_Builder
     ## Specifies a single test.
 
        Arguments:
+       - name: The name of the test spec. Should be unique within the group.
        - code: A thunk that takes no arguments.
        - pending: Contains a reason for why the test should be ignored. If Nothing, the test
                   is not ignored.

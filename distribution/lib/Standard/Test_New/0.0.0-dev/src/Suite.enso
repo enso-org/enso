@@ -13,11 +13,18 @@ polyglot java import java.lang.StringBuilder
 
 type Suite_Builder
     ## PRIVATE
-    Impl builder
-
-    ## Add a group to the builder.
 
        Arguments:
+       - builder: Vector builder that holds all the groups.
+    Impl builder
+
+    ## Add a group to the suite builder.
+
+       Arguments:
+       - name: Name of the group. When collecting multiple groups into a single suite, all the
+         group names must be unique. Otherwise, a panic is thrown.
+       - fn: A callback function that takes `Group_Builder` as an argument. You can call the
+         `specify` method on group builder. See its docs.
        - pending: Contains a reason for why the test group should be ignored. If Nothing, the test
          is not ignored.
     group : Text -> (Group_Builder -> Any) -> Nothing
@@ -28,16 +35,12 @@ type Suite_Builder
         self.builder.append group
 
 
-type Suite
-    Impl (groups : Vector Group)
+## A testing suite that holds all the groups with test specs.
 
-    ## Merges multiple suites into one suite
-    merge : (Vector Suite) -> Suite
-    merge suites =
-        all_groups = suites.map (_.groups) . flatten
-        all_group_names = all_groups.map (_.name)
-        if all_group_names.distinct.length != all_group_names.length then Panic.throw "Group names not unique" else
-            Suite.Impl all_groups
+   Users are expected to build the suite via `Suite_Builder`. That is, via `Test.build` method.
+type Suite
+    ## PRIVATE
+    Impl (groups : Vector Group)
 
     run_all self =
         self.run_with_filter Nothing Nothing
