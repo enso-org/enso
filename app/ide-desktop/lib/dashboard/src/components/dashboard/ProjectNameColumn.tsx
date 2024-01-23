@@ -84,7 +84,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           asset.title
         )
       } catch (error) {
-        toastAndLog(getText('renameProjectError'), error)
+        toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -148,7 +148,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               type: AssetListEventType.delete,
               key: item.key,
             })
-            toastAndLog(getText('createProjectError'), error)
+            toastAndLog('createProjectError', error)
           }
         }
         break
@@ -203,7 +203,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             }
           } catch (error) {
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            toastAndLog(getText('uploadProjectError'), error)
+            toastAndLog('uploadProjectError', error)
           }
         }
         break

@@ -169,7 +169,7 @@ export default function Drive(props: DriveProps) {
     (files: File[]) => {
       if (isCloud && sessionType === authProvider.UserSessionType.offline) {
         // This should never happen, however display a nice error message in case it does.
-        toastAndLog(getText('offlineUploadFilesError'))
+        toastAndLog('offlineUploadFilesError')
       } else {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
@@ -180,11 +180,10 @@ export default function Drive(props: DriveProps) {
       }
     },
     [
-      getText,
       isCloud,
       rootDirectoryId,
       sessionType,
-      /* should never change */ toastAndLog,
+      toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -238,7 +237,7 @@ export default function Drive(props: DriveProps) {
         labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
       )
     },
-    [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
+    [backend, toastAndLog, /* should never change */ setLabels]
   )
 
   const doDeleteLabel = React.useCallback(
@@ -261,9 +260,9 @@ export default function Drive(props: DriveProps) {
     },
     [
       backend,
+      toastAndLog,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
-      /* should never change */ toastAndLog,
       /* should never change */ setLabels,
     ]
   )
@@ -340,7 +339,7 @@ export default function Drive(props: DriveProps) {
                 onClick={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
-                    toastAndLog(getText('noAppDownloadError'))
+                    toastAndLog('noAppDownloadError')
                   } else {
                     window.open(downloadUrl, '_blank')
                   }

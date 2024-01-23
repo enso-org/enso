@@ -88,16 +88,18 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 unsetModal()
                 setAsset(oldAsset => {
                   const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                  void backend.associateTag(asset.id, newLabels, asset.title).catch(error => {
-                    toastAndLog(null, error)
-                    setAsset(oldAsset2 =>
-                      oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
-                        ? oldAsset2
-                        : object.merge(oldAsset2, {
-                            labels: [...(oldAsset2.labels ?? []), label],
-                          })
-                    )
-                  })
+                  void backend
+                    .associateTag(asset.id, newLabels, asset.title)
+                    .catch((error: unknown) => {
+                      toastAndLog(null, error)
+                      setAsset(oldAsset2 =>
+                        oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
+                          ? oldAsset2
+                          : object.merge(oldAsset2, {
+                              labels: [...(oldAsset2.labels ?? []), label],
+                            })
+                      )
+                    })
                   return object.merge(oldAsset, { labels: newLabels })
                 })
               }

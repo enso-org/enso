@@ -768,7 +768,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           })
         })
       } else if (initialProjectName != null) {
-        toastAndLog(getText('findProjectError', initialProjectName))
+        toastAndLog('findProjectError', null, initialProjectName)
       }
     }
     // This effect MUST only run when `initialProjectName` is changed.
@@ -813,7 +813,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               })
             })
           } else {
-            toastAndLog(getText('findProjectError', oldNameOfProjectToImmediatelyOpen))
+            toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
           }
         }
         setQueuedAssetEvents(oldQueuedAssetEvents => {
@@ -831,10 +831,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
     [
       rootDirectoryId,
-      getText,
+      toastAndLog,
       /* should never change */ setNameOfProjectToImmediatelyOpen,
       /* should never change */ dispatchAssetEvent,
-      /* should never change */ toastAndLog,
     ]
   )
 
@@ -924,7 +923,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       return newTree
                     })
                   },
-                  error => {
+                  (error: unknown) => {
                     toastAndLog(null, error)
                   }
                 )

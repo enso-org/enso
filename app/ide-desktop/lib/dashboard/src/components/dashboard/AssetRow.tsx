@@ -18,7 +18,6 @@ import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
-import * as errorModule from '#/utilities/error'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -139,7 +138,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
         )
       } catch (error) {
-        toastAndLog(getText('copyAssetError', asset.title), error)
+        toastAndLog('copyAssetError', error, asset.title)
         // Delete the new component representing the asset that failed to insert.
         dispatchAssetListEvent({
           type: AssetListEventType.delete,
@@ -153,10 +152,9 @@ export default function AssetRow(props: AssetRowProps) {
       user,
       asset,
       item.key,
-      getText,
+      toastAndLog,
       /* should never change */ nodeMap,
       /* should never change */ setAsset,
-      /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -189,7 +187,7 @@ export default function AssetRow(props: AssetRowProps) {
           asset.title
         )
       } catch (error) {
-        toastAndLog(getText('moveAssetError', asset.title), error)
+        toastAndLog('moveAssetError', error, asset.title)
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -210,8 +208,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryId,
       item.directoryKey,
       item.key,
-      getText,
-      /* should never change */ toastAndLog,
+      toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -261,19 +258,9 @@ export default function AssetRow(props: AssetRowProps) {
       })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(
-        errorModule.tryGetMessage(error)?.slice(0, -1) ?? getText('deleteAssetError', asset.title),
-        error
-      )
+      toastAndLog('deleteAssetError', error, asset.title)
     }
-  }, [
-    backend,
-    dispatchAssetListEvent,
-    asset,
-    getText,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
 
   const doRestore = React.useCallback(async () => {
     // Visually, the asset is deleted from the Trash view.
@@ -286,16 +273,9 @@ export default function AssetRow(props: AssetRowProps) {
       })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(getText('restoreAssetError', asset.title), error)
+      toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [
-    backend,
-    dispatchAssetListEvent,
-    asset,
-    getText,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
@@ -350,14 +330,14 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.ids.has(item.key)) {
           if (isCloud) {
             if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog(getText('downloadNonFileError'))
+              toastAndLog('downloadNonFileError')
             } else {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
-                toastAndLog(getText('downloadFileError'), error)
+                toastAndLog('downloadFileError', error)
               }
             }
           } else {
@@ -373,14 +353,14 @@ export default function AssetRow(props: AssetRowProps) {
         if (selected) {
           if (isCloud) {
             if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog(getText('downloadNonFileError'))
+              toastAndLog('downloadNonFileError')
             } else {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
-                toastAndLog(getText('downloadSelectedFilesError'), error)
+                toastAndLog('downloadSelectedFilesError', error)
               }
             }
           } else {

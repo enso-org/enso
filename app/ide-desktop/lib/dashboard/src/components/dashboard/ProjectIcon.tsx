@@ -18,7 +18,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
-import * as errorModule from '#/utilities/error'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as object from '#/utilities/object'
 
@@ -185,9 +184,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       } catch (error) {
         const project = await backend.getProjectDetails(item.id, item.title)
         setItem(object.merger({ projectState: project.state }))
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ?? `Could not open project '${item.title}'`
-        )
+        toastAndLog('openProjectError', error, item.title)
         setState(backendModule.ProjectState.closed)
       }
     },
@@ -196,7 +193,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       backend,
       item,
       closeProjectAbortController,
-      /* should never change */ toastAndLog,
+      toastAndLog,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]

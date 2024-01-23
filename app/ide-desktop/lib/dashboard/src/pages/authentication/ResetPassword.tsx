@@ -48,17 +48,17 @@ export default function ResetPassword() {
 
   React.useEffect(() => {
     if (email == null) {
-      toastAndLog(getText('missingEmailError'))
+      toastAndLog('missingEmailError')
       navigate(appUtils.LOGIN_PATH)
     } else if (verificationCode == null) {
-      toastAndLog(getText('missingVerificationCodeError'))
+      toastAndLog('missingVerificationCodeError')
       navigate(appUtils.LOGIN_PATH)
     }
   }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
 
   const onSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
-      toastAndLog(getText('passwordMismatchError'))
+      toastAndLog('passwordMismatchError')
       return Promise.resolve()
     } else {
       // These should never be nullish, as the effect should immediately navigate away.

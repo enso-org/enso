@@ -604,7 +604,7 @@ export default function Chat(props: ChatProps) {
     (newThreadId: chat.ThreadId) => {
       const threadData = threads.find(thread => thread.id === newThreadId)
       if (threadData == null) {
-        toastAndLog(getText('unknownThreadIdError', newThreadId))
+        toastAndLog('unknownThreadIdError', null, newThreadId)
       } else {
         sendMessage({
           type: chat.ChatMessageDataType.switchThread,
@@ -612,7 +612,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, getText, /* should never change */ sendMessage, /* should never change */ toastAndLog]
+    [threads, toastAndLog, /* should never change */ sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(

@@ -144,7 +144,7 @@ export default function ManagePermissionsModal<
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
-          toastAndLog(getText('couldNotInviteUser'), error)
+          toastAndLog('couldNotInviteUser', error)
         }
       } else {
         setUsers([])
@@ -187,9 +187,9 @@ export default function ManagePermissionsModal<
             ].sort(backendModule.compareUserPermissions)
           )
           const usernames = addedUsersPermissions.map(
-            userPermissions => `'${userPermissions.user.user_name}'`
+            userPermissions => userPermissions.user.user_name
           )
-          toastAndLog(getText('setPermissionsError', usernames.join(', ')), error)
+          toastAndLog('setPermissionsError', error, usernames.join("', '"))
         }
       }
     }
@@ -218,7 +218,7 @@ export default function ManagePermissionsModal<
               [...oldPermissions, oldPermission].sort(backendModule.compareUserPermissions)
             )
           }
-          toastAndLog(getText('setPermissionsError', `'${userToDelete.user_email}'`), error)
+          toastAndLog('setPermissionsError', error, userToDelete.user_email)
         }
       }
     }

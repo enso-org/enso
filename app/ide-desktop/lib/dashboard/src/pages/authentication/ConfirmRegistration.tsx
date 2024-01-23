@@ -8,7 +8,6 @@ import * as appUtils from '#/appUtils'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 // =================
 // === Constants ===
@@ -26,7 +25,6 @@ const REGISTRATION_QUERY_PARAMS = {
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const auth = authProvider.useAuth()
   const location = router.useLocation()
@@ -47,7 +45,7 @@ export default function ConfirmRegistration() {
             navigate(appUtils.LOGIN_PATH + location.search.toString())
           }
         } catch (error) {
-          toastAndLog(getText('registrationError'))
+          toastAndLog('registrationError')
           navigate(appUtils.LOGIN_PATH)
         }
       })()

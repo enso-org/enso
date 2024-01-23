@@ -21,6 +21,7 @@ interface PlaceholderOverrides {
   copyAssetError: [string]
   moveAssetError: [string]
   findProjectError: [string]
+  openProjectError: [string]
   deleteAssetError: [string]
   restoreAssetError: [string]
   setPermissionsError: [string]

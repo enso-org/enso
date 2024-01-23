@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as load from '#/utilities/load'
 
@@ -40,7 +39,6 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
   const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
-  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
@@ -104,15 +102,15 @@ export default function Editor(props: EditorProps) {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
         if (jsonAddress == null) {
-          toastAndLog(getText('noJSONEndpointError'))
+          toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
-          toastAndLog(getText('noBinaryEndpointError'))
+          toastAndLog('noBinaryEndpointError')
         } else {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
               if (project.ideVersion == null) {
-                toastAndLog(getText('noIdeVersionError'))
+                toastAndLog('noIdeVersionError')
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
@@ -162,7 +160,7 @@ export default function Editor(props: EditorProps) {
                 { projectId: project.projectId }
               )
             } catch (error) {
-              toastAndLog(getText('openEditorError'), error)
+              toastAndLog('openEditorError', error)
             }
             if (backendType === backendModule.BackendType.remote) {
               // Restore original URL so that initialization works correctly on refresh.
@@ -191,11 +189,7 @@ export default function Editor(props: EditorProps) {
     } else {
       return
     }
-  }, [
-    projectStartupInfo,
-    /* should never change */ appRunner,
-    /* should never change */ toastAndLog,
-  ])
+  }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
 
   return <></>
 }

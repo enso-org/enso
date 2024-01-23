@@ -11,7 +11,6 @@ import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
@@ -40,7 +39,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
-  const { getText } = textProvider.useText()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
@@ -85,7 +83,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.newDataConnector: {
         if (item.key === event.placeholderId) {
           if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog(getText('localBackendSecretError'))
+            toastAndLog('localBackendSecretError')
           } else {
             rowState.setVisibility(Visibility.faded)
             try {
@@ -101,7 +99,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 type: AssetListEventType.delete,
                 key: item.key,
               })
-              toastAndLog(getText('createSecretError'), error)
+              toastAndLog('createSecretError', error)
             }
           }
         }

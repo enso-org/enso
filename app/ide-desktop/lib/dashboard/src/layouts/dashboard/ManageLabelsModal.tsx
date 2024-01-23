@@ -102,8 +102,8 @@ export default function ManageLabelsModal<
         item.id,
         item.title,
         backend,
+        toastAndLog,
         /* should never change */ setLabels,
-        /* should never change */ toastAndLog,
       ]
     )
 

@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as textProvider from '#/providers/TextProvider'
 
 // ======================
 // === useAsyncEffect ===
@@ -27,7 +26,6 @@ export function useAsyncEffect<T>(
   asyncEffect: (signal: AbortSignal) => Promise<T>,
   deps?: React.DependencyList
 ): T {
-  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [value, setValue] = React.useState<T>(initialValue)
 
@@ -40,7 +38,7 @@ export function useAsyncEffect<T>(
           setValue(result)
         }
       } catch (error) {
-        toastAndLog(getText('asyncHookError'), error)
+        toastAndLog('asyncHookError', error)
       }
     })()
     /** Cancel any future `setValue` calls. */

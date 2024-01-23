@@ -45,7 +45,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
     } catch (error) {
       setUserPermissions(userPermissions)
       outerSetUserPermission(userPermissions)
-      toastAndLog(getText('setPermissionsError', `'${newUserPermissions.user.user_email}'`), error)
+      toastAndLog('setPermissionsError', error, newUserPermissions.user.user_email)
     }
   }
 

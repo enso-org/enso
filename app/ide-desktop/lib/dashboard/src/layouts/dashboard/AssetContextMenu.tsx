@@ -171,7 +171,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
-                toastAndLog(getText('offlineUploadFilesError'))
+                toastAndLog('offlineUploadFilesError')
               } else {
                 try {
                   const client = new http.Client([['Authorization', `Bearer ${accessToken}`]])
@@ -198,7 +198,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   )
                   toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {
-                  toastAndLog(getText('uploadProjectToCloudError'), error)
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }
             }}

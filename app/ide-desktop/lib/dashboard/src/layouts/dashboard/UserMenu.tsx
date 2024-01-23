@@ -76,7 +76,7 @@ export default function UserMenu(props: UserMenuProps) {
                     unsetModal()
                     const downloadUrl = await github.getDownloadUrl()
                     if (downloadUrl == null) {
-                      toastAndLog(getText('noAppDownloadError'))
+                      toastAndLog('noAppDownloadError')
                     } else {
                       window.open(downloadUrl, '_blank')
                     }

@@ -234,10 +234,6 @@ const RESTRICTED_SYNTAXES = [
             JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text)$/] ConditionalExpression:matches(\
                 [consequent.raw=/^'|^"|^\`/], \
                 [alternate.raw=/^'|^"|^\`/]\
-            ), \
-            CallExpression[callee.name=toastAndLog]:matches(\
-                [arguments.0.raw=/^'|^"|^\`/], \
-                [arguments.0.type=TemplateLiteral]\
             )\
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',

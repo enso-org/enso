@@ -86,7 +86,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
           item.item.title
         )
       } catch (error) {
-        toastAndLog(getText('editDescriptionError'))
+        toastAndLog('editDescriptionError')
         setItem(oldItem =>
           oldItem.with({
             item: object.merge(oldItem.item, { description: oldDescription }),
