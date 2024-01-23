@@ -22,34 +22,34 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
  * @param deps - The list of dependencies that, when updated, trigger the asynchronous effect.
  * @returns The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
-    initialValue: T,
-    asyncEffect: (signal: AbortSignal) => Promise<T>,
-    deps?: React.DependencyList
+  initialValue: T,
+  asyncEffect: (signal: AbortSignal) => Promise<T>,
+  deps?: React.DependencyList
 ): T {
-    const toastAndLog = toastAndLogHooks.useToastAndLog()
-    const [value, setValue] = React.useState<T>(initialValue)
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const [value, setValue] = React.useState<T>(initialValue)
 
-    React.useEffect(() => {
-        const controller = new AbortController()
-        void (async () => {
-            try {
-                const result = await asyncEffect(controller.signal)
-                if (!controller.signal.aborted) {
-                    setValue(result)
-                }
-            } catch (error) {
-                toastAndLog('Error while fetching data', error)
-            }
-        })()
-        /** Cancel any future `setValue` calls. */
-        return () => {
-            controller.abort()
+  React.useEffect(() => {
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        const result = await asyncEffect(controller.signal)
+        if (!controller.signal.aborted) {
+          setValue(result)
         }
-        // This is a wrapper function around `useEffect`, so it has its own `deps` array.
-        // `asyncEffect` is omitted as it always changes - this is intentional.
-        // `logger` is omitted as it should not trigger the effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps ?? [])
+      } catch (error) {
+        toastAndLog('Error while fetching data', error)
+      }
+    })()
+    /** Cancel any future `setValue` calls. */
+    return () => {
+      controller.abort()
+    }
+    // This is a wrapper function around `useEffect`, so it has its own `deps` array.
+    // `asyncEffect` is omitted as it always changes - this is intentional.
+    // `logger` is omitted as it should not trigger the effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps ?? [])
 
-    return value
+  return value
 }
