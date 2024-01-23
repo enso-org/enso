@@ -22,7 +22,7 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type SourceRange } from 'shared/yjsModel'
+import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -117,7 +117,7 @@ export function useComponentBrowserInput(
         yield* usages
       }
     }
-    return new MappedSet(IdMap.keyForRange, internalUsages())
+    return new MappedSet(sourceRangeKey, internalUsages())
   })
 
   // Filter deduced from the access (`.` operator) chain written by user.

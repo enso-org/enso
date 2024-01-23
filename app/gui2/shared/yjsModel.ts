@@ -170,6 +170,15 @@ export class DistributedModule {
 }
 
 export type SourceRange = readonly [start: number, end: number]
+declare const brandSourceRangeKey: unique symbol
+export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
+
+export function sourceRangeKey(range: SourceRange): SourceRangeKey {
+  return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
+}
+export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
+  return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+}
 
 export class IdMap {
   private readonly rangeToExpr: Map<string, ExternalId>
@@ -182,26 +191,18 @@ export class IdMap {
     return new IdMap([])
   }
 
-  public static keyForRange(range: SourceRange): string {
-    return `${range[0].toString(16)}:${range[1].toString(16)}`
-  }
-
-  public static rangeForKey(key: string): SourceRange {
-    return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  }
-
   insertKnownId(range: SourceRange, id: ExternalId) {
-    const key = IdMap.keyForRange(range)
+    const key = sourceRangeKey(range)
     this.rangeToExpr.set(key, id)
   }
 
   getIfExist(range: SourceRange): ExternalId | undefined {
-    const key = IdMap.keyForRange(range)
+    const key = sourceRangeKey(range)
     return this.rangeToExpr.get(key)
   }
 
   getOrInsertUniqueId(range: SourceRange): ExternalId {
-    const key = IdMap.keyForRange(range)
+    const key = sourceRangeKey(range)
     const val = this.rangeToExpr.get(key)
     if (val !== undefined) {
       return val
