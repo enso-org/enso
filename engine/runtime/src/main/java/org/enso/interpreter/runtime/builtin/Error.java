@@ -200,6 +200,16 @@ public final class Error {
   }
 
   /**
+   * Checks whether given atom represents a type error.
+   *
+   * @param atom the atom to check
+   * @return true or false
+   */
+  public boolean isTypeError(Atom atom) {
+    return typeError.getUniqueConstructor() == atom.getConstructor();
+  }
+
+  /**
    * Create an instance of the runtime representation of an {@code Arithmetic_Error}.
    *
    * @param reason the reason that the error is being thrown for
