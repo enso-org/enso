@@ -66,10 +66,19 @@ type Suite
                 False -> False
                 True -> group.pending == Nothing
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
-        Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
-            filtered_groups.each group->
+        all_results = Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
+            filtered_groups.flat_map group->
                 results = Helpers.run_group_with_filter group spec_filter
                 Test_Reporter.print_report results config junit_sb_builder
+                results
+        succ_tests = all_results.filter (_.is_success) . length
+        failed_tests = all_results.filter (_.is_fail) . length
+        skipped_tests = all_results.filter (_.is_pending) . length
+        IO.println <| succ_tests.to_text + " tests succeeded."
+        IO.println <| failed_tests.to_text + " tests failed."
+        IO.println <| skipped_tests.to_text + " tests skipped."
+        exit_code = if failed_tests > 0 then 1 else 0
+        System.exit exit_code
 
     group_names self =
         self.groups.map (_.name)

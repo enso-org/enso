@@ -13,7 +13,7 @@ import project.Test_Result.Test_Result
 import project.Test_Reporter
 import project.Test.Test
 
-run_group_with_filter : Group -> Regex -> Vector Test_Result
+run_group_with_filter : Group -> (Regex|Text|Nothing) -> Vector Test_Result
 run_group_with_filter (group : Group) (spec_filter : (Regex|Text|Nothing)) =
     filtered_specs = group.specs.filter spec->
         case spec_filter of
