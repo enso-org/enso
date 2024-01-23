@@ -18,7 +18,7 @@ public abstract class BitXorNode extends IntegerNode {
     super("bit_xor");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static BitXorNode build() {
     return BitXorNodeGen.create();

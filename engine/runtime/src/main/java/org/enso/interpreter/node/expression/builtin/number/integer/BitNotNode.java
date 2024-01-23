@@ -12,7 +12,7 @@ public abstract class BitNotNode extends IntegerNode {
     super("bit_not");
   }
 
-  abstract Object execute(Object self);
+  abstract Object execute(Object own);
 
   static BitNotNode build() {
     return BitNotNodeGen.create();

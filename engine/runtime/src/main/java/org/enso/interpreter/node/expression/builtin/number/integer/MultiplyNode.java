@@ -18,7 +18,7 @@ public abstract class MultiplyNode extends IntegerNode {
     super("*");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static MultiplyNode build() {
     return MultiplyNodeGen.create();

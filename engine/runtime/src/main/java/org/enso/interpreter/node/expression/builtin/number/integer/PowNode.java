@@ -22,7 +22,7 @@ public abstract class PowNode extends IntegerNode {
 
   private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static PowNode build() {
     return PowNodeGen.create();

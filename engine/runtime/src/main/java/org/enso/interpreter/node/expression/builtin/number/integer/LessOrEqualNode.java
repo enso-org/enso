@@ -21,7 +21,7 @@ public abstract class LessOrEqualNode extends IntegerNode {
   }
 
   @Override
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static LessOrEqualNode build() {
     return LessOrEqualNodeGen.create();

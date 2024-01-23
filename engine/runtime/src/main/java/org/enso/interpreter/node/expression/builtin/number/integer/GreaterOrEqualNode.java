@@ -20,7 +20,7 @@ public abstract class GreaterOrEqualNode extends IntegerNode {
     super(">=");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static GreaterOrEqualNode build() {
     return GreaterOrEqualNodeGen.create();

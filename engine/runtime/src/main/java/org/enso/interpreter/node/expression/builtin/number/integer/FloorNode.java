@@ -12,7 +12,7 @@ public abstract class FloorNode extends IntegerNode {
     super("floor");
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object own);
 
   public static FloorNode build() {
     return FloorNodeGen.create();

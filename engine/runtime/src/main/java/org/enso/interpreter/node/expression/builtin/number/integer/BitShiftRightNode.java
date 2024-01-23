@@ -19,7 +19,7 @@ public abstract class BitShiftRightNode extends IntegerNode {
     super("bit_shift_r");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static BitShiftRightNode build() {
     return BitShiftRightNodeGen.create();

@@ -17,7 +17,7 @@ public abstract class BitAndNode extends IntegerNode {
     super("bit_and");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   public static BitAndNode build() {
     return BitAndNodeGen.create();

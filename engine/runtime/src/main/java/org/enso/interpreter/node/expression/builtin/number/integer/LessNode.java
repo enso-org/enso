@@ -20,7 +20,7 @@ public abstract class LessNode extends IntegerNode {
     super("<");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static LessNode build() {
     return LessNodeGen.create();

@@ -19,7 +19,7 @@ public abstract class GreaterNode extends IntegerNode {
     super(">");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static GreaterNode build() {
     return GreaterNodeGen.create();

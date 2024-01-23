@@ -32,7 +32,7 @@ public abstract class BitShiftNode extends IntegerNode {
   private final CountingConditionProfile rightShiftExceedsLongWidth =
       CountingConditionProfile.create();
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   @NeverDefault
   static BitShiftNode build() {

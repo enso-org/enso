@@ -18,7 +18,7 @@ public abstract class DivideNode extends IntegerNode {
   }
 
   @Override
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static DivideNode build() {
     return DivideNodeGen.create();

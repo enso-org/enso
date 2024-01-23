@@ -15,7 +15,7 @@ public abstract class ToFloatNode extends IntegerNode {
     super("to_float");
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object own);
 
   public static ToFloatNode build() {
     return ToFloatNodeGen.create();

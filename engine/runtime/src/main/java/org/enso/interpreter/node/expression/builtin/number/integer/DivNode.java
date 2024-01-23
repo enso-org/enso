@@ -19,7 +19,7 @@ public abstract class DivNode extends IntegerNode {
     super("div");
   }
 
-  abstract Object execute(VirtualFrame frame, Object self, Object that);
+  abstract Object execute(VirtualFrame frame, Object own, Object that);
 
   static DivNode build() {
     return DivNodeGen.create();

@@ -45,7 +45,7 @@ type Number
 
              10 + 15
     + : Number -> Number
-    + self that = @Builtin_Method "Integer.+"
+    + self that:Number -> Number = integer_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -59,7 +59,7 @@ type Number
 
              2 - 5
     - : Number -> Number
-    - self that = @Builtin_Method "Integer.-"
+    - self that = integer_minus self that
 
     ## ALIAS multiply, product, times
        GROUP Operators
@@ -76,7 +76,7 @@ type Number
 
              3 * 5
     * : Number -> Number
-    * self that = @Builtin_Method "Integer.*"
+    * self that = integer_times self that
 
     ## ALIAS divide
        GROUP Operators
@@ -93,7 +93,7 @@ type Number
 
              10 / 4
     / : Number -> Number
-    / self that = @Builtin_Method "Integer./"
+    / self that = integer_divide self that
 
     ## ALIAS power
        GROUP Operators
@@ -107,7 +107,7 @@ type Number
 
              2^3
     ^ : Number -> Number
-    ^ self that = @Builtin_Method "Integer.^"
+    ^ self that = integer_pow self that
 
     ## ALIAS inverse sine
        GROUP Trigonometry
@@ -772,8 +772,7 @@ type Integer
          Multiplying 3 by 5.
 
              3 * 5
-    * : Number -> Number
-    * self that = @Builtin_Method "Integer.*"
+    * self that:Integer -> Integer = integer_times self that
 
     ## ALIAS divide
        GROUP Operators
@@ -789,8 +788,7 @@ type Integer
          Dividing 10 by 4 to get 2.5.
 
              10 / 4
-    / : Number -> Number
-    / self that = @Builtin_Method "Integer./"
+    / self that:Integer -> Number = integer_divide self that
 
     ## ALIAS modulo, modulus
        GROUP Operators
@@ -808,8 +806,7 @@ type Integer
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              10 % 3
-    % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Integer.%"
+    % self that:Integer -> Integer ! Arithmetic_Error = integer_mod self that
 
     ## ALIAS power
        GROUP Operators
@@ -822,8 +819,7 @@ type Integer
          Computing 2 cubed.
 
              2^3
-    ^ : Number -> Number
-    ^ self that = @Builtin_Method "Integer.^"
+    ^ self that:Integer -> Integer = integer_pow self that
 
     ## ALIAS greater than
        GROUP Operators
@@ -836,8 +832,7 @@ type Integer
          Checking if 10 is greater than 7.
 
              10 > 7
-    > : Number -> Boolean
-    > self that = @Builtin_Method "Integer.>"
+    > self that:Integer -> Boolean = integer_greater self that
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -850,8 +845,7 @@ type Integer
          Checking if 10 is greater than or equal to 7.
 
              10 >= 7
-    >= : Number -> Boolean
-    >= self that = @Builtin_Method "Integer.>="
+    >= self that:Integer -> Boolean = integer_greater_equal self that
 
     ## ALIAS less than
        GROUP Operators
@@ -864,8 +858,7 @@ type Integer
          Checking if 10 is less than 7.
 
              10 < 7
-    < : Number -> Boolean
-    < self that = @Builtin_Method "Integer.<"
+    < self that:Integer -> Boolean = integer_less self that
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -878,8 +871,7 @@ type Integer
          Checking if 10 is less than or equal to 7.
 
              10 <= 7
-    <= : Number -> Boolean
-    <= self that = @Builtin_Method "Integer.<="
+    <= self that:Integer -> Boolean = integer_less_equal self that
 
     ## GROUP Math
        Computes the absolute value of this.
@@ -891,8 +883,7 @@ type Integer
          Computing the absolute value of -10.
 
             -10.abs
-    abs : Integer
-    abs self = @Builtin_Method "Integer.abs"
+    abs self -> Integer = integer_abs
 
     ## GROUP Rounding
        Computes the nearest integer above this integer.
@@ -904,8 +895,7 @@ type Integer
          Computing the ceiling of 4.
 
              4.ceil
-    ceil : Integer
-    ceil self = @Builtin_Method "Integer.ceil"
+    ceil self -> Integer = integer_ceil
 
     ## GROUP Math
        Computes the integer division of this by that.
@@ -921,8 +911,7 @@ type Integer
          Dividing 10 by 3 to get 3.
 
              10.div 3
-    div : Integer -> Number ! Arithmetic_Error
-    div self that = @Builtin_Method "Integer.div"
+    div self that:Integer -> Integer ! Arithmetic_Error = integer_div self that
 
     ## GROUP Rounding
        Computes the nearest integer below this integer.
@@ -934,16 +923,14 @@ type Integer
          Computing the floor of 4.
 
              4.floor
-    floor : Integer
-    floor self = @Builtin_Method "Integer.floor"
+    floor self -> Integer = integer_floor self
 
     ## ALIAS int
        GROUP Rounding
 
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
        compatibility with `Float.truncate`.
-    truncate : Integer
-    truncate self = self
+    truncate self -> Integer = self
 
     ## GROUP Rounding
        Round to a specified number of decimal places.
@@ -987,17 +974,13 @@ type Integer
          Round to the nearest hundred, using Banker's Rounding.
 
             12250 . round -2 use_bankers=True == 12200
-    round : Integer -> Boolean -> Integer ! Illegal_Argument
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Integer ! Illegal_Argument =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
         Rounding_Helpers.check_round_input self <|
             report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
                 Integer.round_integer_builtin self decimal_places use_bankers
-
-    ## PRIVATE
-    round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 
     ## GROUP Operators
        Compute the negation of this.
@@ -1006,8 +989,7 @@ type Integer
          Negate 5 to get -5.
 
              5.negate
-    negate : Integer
-    negate self = @Builtin_Method "Integer.negate"
+    negate self -> Integer = integer_negate self
 
     ## Convert this to a float.
 
@@ -1015,8 +997,7 @@ type Integer
          Convert 5 to a float to get 5.0.
 
              5.to_float
-    to_float : Float
-    to_float self = @Builtin_Method "Integer.to_float"
+    to_float self -> Float = integer_to_float self
 
     ## GROUP Bitwise
        Computes the bitwise and (conjunction) operation between this and
@@ -1032,8 +1013,7 @@ type Integer
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000
-    bit_and : Integer -> Integer
-    bit_and self that = @Builtin_Method "Integer.bit_and"
+    bit_and self that:Integer -> Integer = integer_bit_and self that
 
     ## GROUP Bitwise
        Computes the bitewise compliment of this.
@@ -1044,8 +1024,7 @@ type Integer
          Bitwise negation of 2_0110.
 
              2_0110.bit_not
-    bit_not : Integer
-    bit_not self = @Builtin_Method "Integer.bit_not"
+    bit_not self -> Integer = integer_bit_not self
 
     ## GROUP Bitwise
        Computes the bitwise or (disjunction) operation between this and
@@ -1061,8 +1040,7 @@ type Integer
          Computing the bitwise disjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_or 2_11110000
-    bit_or : Integer -> Integer
-    bit_or self that = @Builtin_Method "Integer.bit_or"
+    bit_or self that:Integer -> Integer = integer_bit_or self that
 
     ## GROUP Bitwise
        Computes the bitwise exclusive or between this and that.
@@ -1077,8 +1055,7 @@ type Integer
          Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
 
              2_01101101.bit_xor 2_11110000
-    bit_xor : Integer -> Integer
-    bit_xor self that = @Builtin_Method "Integer.bit_xor"
+    bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
     ## GROUP Bitwise
        Shifts the bits of this by the amount that.
@@ -1098,8 +1075,7 @@ type Integer
          Shift the bits of the number 1 left by four bits.
 
              1.bit_shift 4
-    bit_shift : Integer -> Integer ! Arithmetic_Error
-    bit_shift self that = @Builtin_Method "Integer.bit_shift"
+    bit_shift self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift self that
 
     ## GROUP Bitwise
        Performs a bitwise left-shift on the number.
@@ -1118,8 +1094,7 @@ type Integer
          Shift the bits of the number 1 left by four bits.
 
              1.bit_shift_l 4
-    bit_shift_l : Integer -> Integer ! Arithmetic_Error
-    bit_shift_l self that = self.bit_shift that
+    bit_shift_l self that:Integer -> Integer ! Arithmetic_Error = self.bit_shift that
 
     ## GROUP Bitwise
        Performs a bitwise right-shift on the number.
@@ -1138,8 +1113,7 @@ type Integer
          Shift the bits of the number 1 right by four bits.
 
              1.bit_shift_r 4
-    bit_shift_r : Integer -> Integer ! Arithmetic_Error
-    bit_shift_r self that = @Builtin_Method "Integer.bit_shift_r"
+    bit_shift_r self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift_r self that
 
     ## ALIAS from text
        GROUP Conversions
@@ -1156,14 +1130,7 @@ type Integer
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse : Text -> Integer -> Integer ! Number_Parse_Error
-    parse text (radix=10) = Integer.parse_builtin text radix
-
-    ## PRIVATE
-
-        Internally handles the parsing.
-
-    parse_builtin text radix = @Builtin_Method "Integer.parse"
+    parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
 
 ## A syntax error when parsing a double.
 @Builtin_Type
