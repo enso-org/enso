@@ -60,7 +60,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   <ListWidget
     v-model="value"
     :default="() => defaultItem"
-    :getKey="(ast: Ast.Ast) => ast.exprId"
+    :getKey="(ast: Ast.Ast) => ast.id"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
     :toDragPayload="(ast: Ast.Ast) => ast.serialize()"

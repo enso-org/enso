@@ -12,7 +12,7 @@ const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
-  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.exprId)) {
+  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.id)) {
     input.forcePort = true
   }
   return input

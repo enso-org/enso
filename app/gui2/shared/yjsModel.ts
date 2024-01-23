@@ -3,8 +3,10 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
-declare const brandExprId: unique symbol
-export type ExprId = Uuid & { [brandExprId]: never }
+
+declare const brandExternalId: unique symbol
+/** Identifies an AST node or token. Used in module serialization and communication with the language server. */
+export type ExternalId = Uuid & { [brandExternalId]: never }
 
 export type VisualizationModule =
   | { kind: 'Builtin' }
@@ -149,12 +151,12 @@ export class DistributedModule {
     return this.doc.ydoc.transact(fn, 'local')
   }
 
-  updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
+  updateNodeMetadata(id: ExternalId, meta: Partial<NodeMetadata>): void {
     const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
     this.transact(() => this.doc.metadata.set(id, { ...existing, ...meta }))
   }
 
-  getNodeMetadata(id: ExprId): NodeMetadata | null {
+  getNodeMetadata(id: ExternalId): NodeMetadata | null {
     return this.doc.metadata.get(id) ?? null
   }
 
@@ -170,9 +172,9 @@ export class DistributedModule {
 export type SourceRange = readonly [start: number, end: number]
 
 export class IdMap {
-  private readonly rangeToExpr: Map<string, ExprId>
+  private readonly rangeToExpr: Map<string, ExternalId>
 
-  constructor(entries?: [string, ExprId][]) {
+  constructor(entries?: [string, ExternalId][]) {
     this.rangeToExpr = new Map(entries ?? [])
   }
 
@@ -188,29 +190,29 @@ export class IdMap {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
-  insertKnownId(range: SourceRange, id: ExprId) {
+  insertKnownId(range: SourceRange, id: ExternalId) {
     const key = IdMap.keyForRange(range)
     this.rangeToExpr.set(key, id)
   }
 
-  getIfExist(range: SourceRange): ExprId | undefined {
+  getIfExist(range: SourceRange): ExternalId | undefined {
     const key = IdMap.keyForRange(range)
     return this.rangeToExpr.get(key)
   }
 
-  getOrInsertUniqueId(range: SourceRange): ExprId {
+  getOrInsertUniqueId(range: SourceRange): ExternalId {
     const key = IdMap.keyForRange(range)
     const val = this.rangeToExpr.get(key)
     if (val !== undefined) {
       return val
     } else {
-      const newId = random.uuidv4() as ExprId
+      const newId = random.uuidv4() as ExternalId
       this.rangeToExpr.set(key, newId)
       return newId
     }
   }
 
-  entries(): [string, ExprId][] {
+  entries(): [string, ExternalId][] {
     return [...this.rangeToExpr]
   }
 

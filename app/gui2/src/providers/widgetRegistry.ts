@@ -12,7 +12,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 export namespace WidgetInput {
   export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
     return {
-      portId: ast.exprId,
+      portId: ast.id,
       value: ast,
     }
   }

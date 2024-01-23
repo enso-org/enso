@@ -10,7 +10,7 @@ import { createIterator, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
-import type { ExprId, SourceRange } from '../../../shared/yjsModel'
+import type { ExternalId, SourceRange, Uuid } from '../../../shared/yjsModel'
 import { IdMap } from '../../../shared/yjsModel'
 
 declare const brandOwned: unique symbol
@@ -171,7 +171,7 @@ export class MutableModule implements Module {
   /** Modify the parent of `target` to refer to a new object instead of `target`. Return `target`, which now has no parent. */
   replaceRef<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
-    if (!old || replacement.exprId === target) {
+    if (!old || replacement.id === target) {
       return this.replaceValue(target, replacement)
     } else {
       assert(!!old.parent)
@@ -181,7 +181,7 @@ export class MutableModule implements Module {
       let foundChildInParent = false
       for (const child of parent.concreteChildren()) {
         if (child.node === target) {
-          child.node = makeChild(this, replacement, parent.exprId)
+          child.node = makeChild(this, replacement, parent.id)
           foundChildInParent = true
           break
         }
@@ -200,13 +200,12 @@ export class MutableModule implements Module {
   replaceValue<T extends Ast>(target: AstId, replacement: Owned<T>): Owned<Ast> | undefined {
     const old = this.get(target)
     replacement.parent = old?.parent
-    if (replacement.exprId !== target || replacement.module !== this) {
+    if (replacement.id !== target || replacement.module !== this) {
       this.splice(replacement, target)
     } else {
       this.nodes.set(target, replacement)
     }
-    if (replacement.module === this && replacement.exprId !== target)
-      this.nodes.delete(replacement.exprId)
+    if (replacement.module === this && replacement.id !== target) this.nodes.delete(replacement.id)
     if (old) {
       const old_ = this.splice(old, newAstId())
       old_.parent = undefined
@@ -235,7 +234,7 @@ export class MutableModule implements Module {
     const taken = this.take(target)
     assert(!!taken)
     const replacement = wrap(taken.node)
-    this.replaceRef(taken.placeholder.exprId, replacement)
+    this.replaceRef(taken.placeholder.id, replacement)
     return replacement
   }
 
@@ -253,7 +252,7 @@ export class MutableModule implements Module {
   splice(ast: Ast | undefined, id?: AstId): Ast | undefined
   splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
     if (!ast) return ast
-    const id_ = id ?? ast.exprId
+    const id_ = id ?? ast.id
     if (ast.module === this && this.nodes.get(id_) === ast) return ast
     const ast_ = ast.cloneWithId(this, id_)
     for (const child of ast_.concreteChildren()) {
@@ -269,8 +268,8 @@ export class MutableModule implements Module {
   }
 
   spliceShallow(ast: Ast): Ast {
-    const cloned = ast.cloneWithId(this, ast.exprId)
-    this.nodes.set(ast.exprId, cloned)
+    const cloned = ast.cloneWithId(this, ast.id)
+    this.nodes.set(ast.id, cloned)
     return cloned
   }
 
@@ -301,7 +300,7 @@ export class MutableModule implements Module {
 }
 
 export function normalize(rootIn: Ast): Ast {
-  const printed = print(rootIn.exprId, rootIn.module)
+  const printed = print(rootIn.id, rootIn.module)
   const module = MutableModule.Transient()
   const tree = parseEnso(printed.code)
   const rootOut = abstract(module, tree, printed.code, printed.info).node
@@ -312,8 +311,8 @@ export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; no
 
 declare const brandAstId: unique symbol
 declare const brandTokenId: unique symbol
-export type AstId = ExprId & { [brandAstId]: never }
-export type TokenId = ExprId & { [brandTokenId]: never }
+export type AstId = Uuid & { [brandAstId]: never }
+export type TokenId = Uuid & { [brandTokenId]: never }
 
 function newAstId(): AstId {
   return random.uuidv4() as AstId
@@ -322,16 +321,16 @@ function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
 // Cast an ID which may be a tree or a token to a tree ID.
-export function asNodeId(expr: ExprId): AstId {
+export function asAstId(expr: AstId | TokenId): AstId {
   return expr as AstId
 }
 
 export class Token {
-  readonly exprId: TokenId
+  readonly id: TokenId
   code_: string
   tokenType_: RawAst.Token.Type | undefined
   constructor(code: string, id: TokenId, type: RawAst.Token.Type | undefined) {
-    this.exprId = id
+    this.id = id
     this.code_ = code
     this.tokenType_ = type
   }
@@ -352,17 +351,17 @@ export class Token {
 
 export abstract class Ast {
   readonly treeType: RawAst.Tree.Type | undefined
-  readonly exprId: AstId
+  readonly id: AstId
   readonly module: Module
   parent: AstId | undefined
 
   // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
   get astExtended(): RawAstExtended | undefined {
-    return this.module.getExtended(this.exprId)
+    return this.module.getExtended(this.id)
   }
 
   serialize(): string {
-    return JSON.stringify(print(this.exprId, this.module))
+    return JSON.stringify(print(this.id, this.module))
   }
 
   static deserialize(serialized: string): Ast {
@@ -379,7 +378,7 @@ export abstract class Ast {
   /** Return this node's span, if it belongs to a module with an associated span map. */
   get span(): SourceRange | undefined {
     const spans = this.module.raw.spans
-    if (spans) return spans.get(this.exprId)
+    if (spans) return spans.get(this.id)
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
@@ -403,7 +402,7 @@ export abstract class Ast {
   abstract concreteChildren(): IterableIterator<NodeChild>
 
   code(module?: Module): string {
-    return print(this.exprId, module ?? this.module).code
+    return print(this.id, module ?? this.module).code
   }
 
   typeName(): string | undefined {
@@ -448,9 +447,9 @@ export abstract class Ast {
 
   protected constructor(module: MutableModule, id?: AstId, treeType?: RawAst.Tree.Type) {
     this.module = module
-    this.exprId = id ?? newAstId()
+    this.id = id ?? newAstId()
     this.treeType = treeType
-    module.nodes.set(this.exprId, this)
+    module.nodes.set(this.id, this)
   }
 
   printSubtree(
@@ -472,35 +471,35 @@ export abstract class Ast {
         const tokenStart = offset + code.length
         const tokenCode = child.node.code()
         const span = tokenKey(tokenStart, tokenCode.length)
-        info.tokens.set(span, child.node.exprId)
+        info.tokens.set(span, child.node.id)
         code += tokenCode
       } else {
         const childNode = module_.get(child.node)
         assert(childNode != null)
         code += childNode.printSubtree(info, offset + code.length, parentIndent, moduleOverride)
         // Extra structural validation.
-        assertEqual(childNode.exprId, child.node)
-        if (childNode.parent !== this.exprId) {
-          console.error(`Inconsistent parent pointer (expected ${this.exprId})`, childNode)
+        assertEqual(childNode.id, child.node)
+        if (childNode.parent !== this.id) {
+          console.error(`Inconsistent parent pointer (expected ${this.id})`, childNode)
         }
-        assertEqual(childNode.parent, this.exprId)
+        assertEqual(childNode.parent, this.id)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
-    infos.unshift(this.exprId)
+    infos.unshift(this.id)
     return code
   }
 
-  /** Return a copy of this node, with the specified `module` and `exprId` properties.
+  /** Return a copy of this node, with the specified `module` and `id` properties.
    *
    *  The node's owned data is deep-copied, although note that child subtrees are stored as IDs,
    *  so a full deep copy requires recursively cloning child nodes.
    */
-  cloneWithId(module: Module, exprId: AstId): this {
+  cloneWithId(module: Module, id: AstId): this {
     const cloned = clone(this)
     // No one else has a reference to this object, so we can ignore `readonly` and mutate it.
-    Object.assign(cloned, { module, exprId })
+    Object.assign(cloned, { module, id })
     return cloned
   }
 }
@@ -543,7 +542,7 @@ function makeChild<T extends Ast>(module: MutableModule, child: Owned<T>, parent
   )
   const spliced = module.splice(child)
   spliced.parent = parent
-  return spliced.exprId
+  return spliced.id
 }
 
 function setParent(module: MutableModule, parent: AstId, ...children: (NodeChild | null)[]) {
@@ -602,7 +601,7 @@ export class App extends Ast {
     treeType: RawAst.Tree.Type,
   ) {
     super(module, id, treeType)
-    setParent(module, this.exprId, func, arg)
+    setParent(module, this.id, func, arg)
     this.func_ = func
     this.leftParen_ = leftParen
     this.argumentName_ = name
@@ -684,7 +683,7 @@ export class UnaryOprApp extends Ast {
     arg: NodeChild<AstId> | null,
   ) {
     super(module, id, RawAst.Tree.Type.UnaryOprApp)
-    setParent(module, this.exprId, arg)
+    setParent(module, this.id, arg)
     this.opr = opr
     this.arg = arg
   }
@@ -736,7 +735,7 @@ export class OprApp extends Ast {
     rhs: NodeChild<AstId> | null,
   ) {
     super(module, id, RawAst.Tree.Type.OprApp)
-    setParent(module, this.exprId, lhs, rhs)
+    setParent(module, this.id, lhs, rhs)
     this.lhs_ = lhs
     this.opr_ = opr
     this.rhs_ = rhs
@@ -802,7 +801,7 @@ export class Generic extends Ast {
   ) {
     super(module, id, treeType)
     this.children_ = children ?? []
-    setParent(module, this.exprId, ...this.children_)
+    setParent(module, this.id, ...this.children_)
   }
 
   concreteChildren(): IterableIterator<NodeChild> {
@@ -818,7 +817,7 @@ function multiSegmentAppSegment(
 ): MultiSegmentAppSegment {
   return {
     header: { whitespace, node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-    body: spaced(body.exprId),
+    body: spaced(body.id),
   }
 }
 
@@ -871,7 +870,7 @@ export class Import extends Ast {
     this.all_ = all
     this.as_ = as
     this.hiding_ = hiding
-    setParent(module, this.exprId, ...this.concreteChildren())
+    setParent(module, this.id, ...this.concreteChildren())
   }
 
   static Qualified(path: string[], module?: MutableModule): Owned<Import> | undefined {
@@ -927,7 +926,7 @@ export class TextLiteral extends Ast {
     close: NodeChild<Token> | null,
   ) {
     super(module, id, RawAst.Tree.Type.TextLiteral)
-    setParent(module, this.exprId, ...elements)
+    setParent(module, this.id, ...elements)
     this.open_ = open
     this.newline_ = newline
     this.elements_ = elements
@@ -965,7 +964,7 @@ export class Documented extends Ast {
     expression: NodeChild<AstId> | null,
   ) {
     super(module, id, RawAst.Tree.Type.Documented)
-    setParent(module, this.exprId, expression, ...elements)
+    setParent(module, this.id, expression, ...elements)
     this.open_ = open
     this.elements_ = elements
     this.newlines_ = newlines
@@ -985,7 +984,7 @@ export class Invalid extends Ast {
 
   constructor(module: MutableModule, id: AstId | undefined, expression: NodeChild<AstId>) {
     super(module, id, RawAst.Tree.Type.Invalid)
-    setParent(module, this.exprId, expression)
+    setParent(module, this.id, expression)
     this.expression_ = expression
   }
 
@@ -1007,7 +1006,7 @@ export class Group extends Ast {
     close: NodeChild<Token> | undefined,
   ) {
     super(module, id, RawAst.Tree.Type.Group)
-    setParent(module, this.exprId, expression)
+    setParent(module, this.id, expression)
     this.open_ = open
     this.expression_ = expression
     this.close_ = close
@@ -1025,7 +1024,7 @@ export class NumericLiteral extends Ast {
 
   constructor(module: MutableModule, id: AstId | undefined, tokens: NodeChild[]) {
     super(module, id, RawAst.Tree.Type.Number)
-    setParent(module, this.exprId, ...tokens)
+    setParent(module, this.id, ...tokens)
     this.tokens_ = tokens ?? []
   }
 
@@ -1058,7 +1057,10 @@ export class Function extends Ast {
         args.map((arg) =>
           arg.map((child) => ({
             ...child,
-            node: child.node instanceof Token ? child.node : makeChild(module, module.take(child.node)!.node, id),
+            node:
+              child.node instanceof Token
+                ? child.node
+                : makeChild(module, module.take(child.node)!.node, id),
           })),
         ),
         undefined,
@@ -1081,9 +1083,9 @@ export class Function extends Ast {
     }
     const body = BodyBlock.new(exprs_, module)
     const args_ = args.map((arg) => [{ node: makeChild(module, arg, id) }])
-    const ident = { node: Ident.new(module, name).exprId }
+    const ident = { node: Ident.new(module, name).id }
     const equals = { node: Token.new('=') }
-    return asOwned(new Function(module, id, ident, args_, equals, { node: body.exprId }))
+    return asOwned(new Function(module, id, ident, args_, equals, { node: body.id }))
   }
 
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
@@ -1123,7 +1125,7 @@ export class Function extends Ast {
     this.equals_ = equals ?? spaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator))
 
     this.body_ = body
-    setParent(module, this.exprId, ...this.concreteChildren())
+    setParent(module, this.id, ...this.concreteChildren())
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1154,7 +1156,7 @@ export class Assignment extends Ast {
     expression: NodeChild<AstId>,
   ) {
     super(module, id, RawAst.Tree.Type.Assignment)
-    setParent(module, this.exprId, pattern, expression)
+    setParent(module, this.id, pattern, expression)
     this.pattern_ = pattern
     this.equals_ =
       equals ??
@@ -1208,12 +1210,12 @@ export class BodyBlock extends Ast {
   constructor(module: MutableModule, id: AstId | undefined, lines: RawBlockLine[]) {
     super(module, id, RawAst.Tree.Type.BodyBlock)
     this.lines_ = lines
-    setParent(module, this.exprId, ...this.concreteChildren())
+    setParent(module, this.id, ...this.concreteChildren())
   }
 
   push(module: MutableModule, node: Owned<Ast>) {
-    const line = { expression: autospaced(makeChild(module, node, this.exprId)) }
-    const edited = new BodyBlock(module, this.exprId, [...this.lines_, line])
+    const line = { expression: autospaced(makeChild(module, node, this.id)) }
+    const edited = new BodyBlock(module, this.id, [...this.lines_, line])
     edited.parent = this.parent
   }
 
@@ -1221,10 +1223,10 @@ export class BodyBlock extends Ast {
   insert(module: MutableModule, index: number, ...nodes: Owned<Ast>[]) {
     const before = this.lines_.slice(0, index)
     const insertions = Array.from(nodes, (node) => ({
-      expression: unspaced(makeChild(module, node, this.exprId)),
+      expression: unspaced(makeChild(module, node, this.id)),
     }))
     const after = this.lines_.slice(index)
-    const edited = new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
+    const edited = new BodyBlock(module, this.id, [...before, ...insertions, ...after])
     edited.parent = this.parent
   }
 
@@ -1268,17 +1270,17 @@ export class BodyBlock extends Ast {
         const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
         code += validIndent ? line.expression.whitespace : blockIndent
         const lineNode = module_.get(line.expression.node)!
-        assertEqual(lineNode.exprId, line.expression.node)
-        assertEqual(lineNode.parent, this.exprId)
+        assertEqual(lineNode.id, line.expression.node)
+        assertEqual(lineNode.parent, this.id)
         code += lineNode.printSubtree(info, offset + code.length, blockIndent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = info.nodes.get(span)
     if (infos == null) {
-      info.nodes.set(span, [this.exprId])
+      info.nodes.set(span, [this.id])
     } else {
-      infos.unshift(this.exprId)
+      infos.unshift(this.id)
     }
     return code
   }
@@ -1312,9 +1314,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
     newline: raw.newline,
     expression: expression
       ? {
-        whitespace: raw.expression?.whitespace,
-        node: expression,
-      }
+          whitespace: raw.expression?.whitespace,
+          node: expression,
+        }
       : null,
   }
 }
@@ -1456,7 +1458,7 @@ function abstractTree(
         return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new BodyBlock(module, id, lines).exprId
+      node = new BodyBlock(module, id, lines).id
       break
     }
     case RawAst.Tree.Type.Function: {
@@ -1465,12 +1467,12 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const body = tree.body !== undefined ? recurseTree(tree.body) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Function(module, id, name, args, equals, body).exprId
+      node = new Function(module, id, name, args, equals, body).id
       break
     }
     case RawAst.Tree.Type.Ident: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Ident(module, id, recurseToken(tree.token)).exprId
+      node = new Ident(module, id, recurseToken(tree.token)).id
       break
     }
     case RawAst.Tree.Type.Assignment: {
@@ -1478,14 +1480,14 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const value = recurseTree(tree.expr)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Assignment(module, id, pattern, equals, value).exprId
+      node = new Assignment(module, id, pattern, equals, value).id
       break
     }
     case RawAst.Tree.Type.App: {
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(module, id, func, arg).exprId
+      node = positionalApp(module, id, func, arg).id
       break
     }
     case RawAst.Tree.Type.NamedApp: {
@@ -1496,7 +1498,7 @@ function abstractTree(
       const arg = recurseTree(tree.arg)
       const rightParen = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = namedApp(module, id, func, leftParen, name, equals, arg, rightParen).exprId
+      node = namedApp(module, id, func, leftParen, name, equals, arg, rightParen).id
       break
     }
     case RawAst.Tree.Type.UnaryOprApp: {
@@ -1504,9 +1506,9 @@ function abstractTree(
       const arg = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.node.code() === '-') {
-        node = new NegationOprApp(module, id, opr, arg).exprId
+        node = new NegationOprApp(module, id, opr, arg).id
       } else {
-        node = new UnaryOprApp(module, id, opr, arg).exprId
+        node = new UnaryOprApp(module, id, opr, arg).id
       }
       break
     }
@@ -1520,21 +1522,21 @@ function abstractTree(
       if (opr.length === 1 && opr[0]?.node instanceof Token && opr[0].node.code() === '.') {
         // Propagate inferred type.
         const token = { whitespace: opr[0].whitespace, node: opr[0].node }
-        node = new PropertyAccess(module, id, lhs, token, rhs).exprId
+        node = new PropertyAccess(module, id, lhs, token, rhs).id
       } else {
-        node = new OprApp(module, id, lhs, opr, rhs).exprId
+        node = new OprApp(module, id, lhs, opr, rhs).id
       }
       break
     }
     case RawAst.Tree.Type.Number: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new NumericLiteral(module, id, visitChildren(tree)).exprId
+      node = new NumericLiteral(module, id, visitChildren(tree)).id
       break
     }
     case RawAst.Tree.Type.Wildcard: {
       const token = recurseToken(tree.token)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Wildcard(module, id, token).exprId
+      node = new Wildcard(module, id, token).id
       break
     }
     // These expression types are (or will be) used for backend analysis.
@@ -1548,7 +1550,7 @@ function abstractTree(
     case RawAst.Tree.Type.Invalid: {
       const expression = recurseTree(tree.ast)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Invalid(module, id, expression).exprId
+      node = new Invalid(module, id, expression).id
       break
     }
     case RawAst.Tree.Type.Group: {
@@ -1556,7 +1558,7 @@ function abstractTree(
       const expression = tree.body ? recurseTree(tree.body) : null
       const close = tree.close ? recurseToken(tree.close) : undefined
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Group(module, id, open, expression, close).exprId
+      node = new Group(module, id, open, expression, close).id
       break
     }
     case RawAst.Tree.Type.TextLiteral: {
@@ -1568,7 +1570,7 @@ function abstractTree(
       }
       const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new TextLiteral(module, id, open, newline, elements, close).exprId
+      node = new TextLiteral(module, id, open, newline, elements, close).id
       break
     }
     case RawAst.Tree.Type.Documented: {
@@ -1580,7 +1582,7 @@ function abstractTree(
       const newlines = Array.from(tree.documentation.newlines, recurseToken)
       const id = nodesExpected.get(spanKey)?.pop()
       const expression = tree.expression ? recurseTree(tree.expression) : null
-      node = new Documented(module, id, open, elements, newlines, expression).exprId
+      node = new Documented(module, id, open, elements, newlines, expression).id
       break
     }
     case RawAst.Tree.Type.Import: {
@@ -1601,12 +1603,12 @@ function abstractTree(
       const as = tree.as ? recurseSegment(tree.as) : null
       const hiding = tree.hiding ? recurseSegment(tree.hiding) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Import(module, id, polyglot, from, import_, all, as, hiding).exprId
+      node = new Import(module, id, polyglot, from, import_, all, as, hiding).id
       break
     }
     default: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Generic(module, id, visitChildren(tree), tree.type).exprId
+      node = new Generic(module, id, visitChildren(tree), tree.type).id
     }
   }
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
@@ -1626,9 +1628,9 @@ function abstractToken(
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
   const key = tokenKey(codeStart, codeEnd - codeStart)
-  const exprId = tokens.get(key) ?? newTokenId()
-  const node = new Token(tokenCode, exprId, token.type)
-  tokensOut.set(key, exprId)
+  const id = tokens.get(key) ?? newTokenId()
+  const node = new Token(tokenCode, id, token.type)
+  tokensOut.set(key, id)
   return { whitespace, node }
 }
 
@@ -1701,7 +1703,7 @@ export function tokenTree(root: Ast): TokenTree {
 export function tokenTreeWithIds(root: Ast): TokenTree {
   const module = root.module
   return [
-    root.exprId,
+    root.id,
     ...Array.from(root.concreteChildren(), (child) => {
       if (child.node instanceof Token) {
         return child.node.code()
@@ -1752,7 +1754,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
     if (nodeOrToken.isToken()) {
       const token: RawAstExtended<RawAst.Token> = nodeOrToken
-      tokens.set(tokenKey(start, length), token.astId as TokenId)
+      tokens.set(tokenKey(start, length), token.astId as Uuid as TokenId)
     } else if (nodeOrToken.isTree()) {
       const node: RawAstExtended<RawAst.Tree> = nodeOrToken
       if (
@@ -1760,7 +1762,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
         node.isTree(RawAst.Tree.Type.TemplateFunction)
       )
         return true
-      let id = node.astId as AstId
+      let id = node.astId as Uuid as AstId
       const preexisting = astExtended.get(id)
       if (preexisting) {
         if (!preexisting.isTree(RawAst.Tree.Type.Invalid)) {
@@ -1794,14 +1796,14 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     idMap.insertKnownId( ... )
   }
    */
-  const printed = print(newRoot.exprId, newRoot.module)
+  const printed = print(newRoot.id, newRoot.module)
   for (const [key, ids] of printed.info.nodes) {
     const range = keyToRange(key)
-    idMap.insertKnownId([range.start, range.end], ids[0]!)
+    idMap.insertKnownId([range.start, range.end], ids[0]! as Uuid as ExternalId)
   }
   for (const [key, id] of printed.info.tokens) {
     const range = keyToRange(key)
-    idMap.insertKnownId([range.start, range.end], id)
+    idMap.insertKnownId([range.start, range.end], id as Uuid as ExternalId)
   }
   return newRoot
 }

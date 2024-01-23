@@ -11,15 +11,17 @@ import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { Prefixes } from '@/util/ast/prefixes'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
-import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -49,8 +51,8 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  outputPortClick: [portId: ExprId]
-  outputPortDoubleClick: [portId: ExprId]
+  outputPortClick: [portId: AstId]
+  outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -71,7 +73,7 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => props.node.rootSpan.exprId)
+const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
@@ -84,13 +86,14 @@ const baseNodeSize = computed(
 const menuVisible = ref(false)
 
 const error = computed(() => {
-  const info = projectStore.computedValueRegistry.db.get(nodeId.value)
+  const externalId = graph.idToExternal(nodeId.value)
+  const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {
       return info.payload.message
     }
     case 'DataflowError': {
-      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
+      return projectStore.dataflowErrors.lookup(externalId)?.value?.message.split(' (at')[0]
     }
     default:
       return undefined
@@ -195,7 +198,7 @@ const isOutputContextOverridden = computed({
     const expression = props.node.rootSpan
     const newAst = prefixes.modify(edit, expression, replacements)
     const code = newAst.code()
-    graph.setNodeContent(props.node.rootSpan.exprId, code)
+    graph.setNodeContent(asNodeId(props.node.rootSpan.id), code)
   },
 })
 
@@ -271,8 +274,8 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick(
-  (portId: ExprId) => emit('outputPortClick', portId),
-  (portId: ExprId) => emit('outputPortDoubleClick', portId),
+  (portId: AstId) => emit('outputPortClick', portId),
+  (portId: AstId) => emit('outputPortDoubleClick', portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
@@ -283,7 +286,7 @@ const handleNodeClick = useDoubleClick(
 interface PortData {
   clipRange: [number, number]
   label: string
-  portId: ExprId
+  portId: AstId
 }
 
 const outputPorts = computed((): PortData[] => {
@@ -301,8 +304,8 @@ const outputPorts = computed((): PortData[] => {
   })
 })
 
-const outputHovered = ref<ExprId>()
-const hoverAnimations = new Map<ExprId, ReturnType<typeof useApproach>>()
+const outputHovered = ref<AstId>()
+const hoverAnimations = new Map<AstId, ReturnType<typeof useApproach>>()
 watchEffect(() => {
   const ports = outputPortsSet.value
   for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)

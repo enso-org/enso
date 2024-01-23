@@ -9,11 +9,11 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
-import type { ExprId } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -37,7 +37,7 @@ const selection = injectGraphSelection(true)
 const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
 
 const hasConnection = computed(
-  () => graph.db.connections.reverseLookup(portId.value as ExprId).size > 0,
+  () => graph.db.connections.reverseLookup(portId.value as AstId).size > 0,
 )
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
@@ -106,7 +106,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props, _db) => {
     const portInfo = injectPortInfo(true)
     const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.exprId) {
+    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
       return Score.Mismatch
     }
 

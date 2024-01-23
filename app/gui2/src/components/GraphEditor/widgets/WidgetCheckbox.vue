@@ -20,7 +20,7 @@ const value = computed({
       if (node != null) {
         props.onUpdate({
           edit,
-          portUpdate: { value: value ? 'True' : 'False', origin: node.exprId },
+          portUpdate: { value: value ? 'True' : 'False', origin: node.id },
         })
       }
     } else {
