@@ -23,5 +23,5 @@ export default function Refresh(props: InternalRefreshProps) {
     onRefresh(refresh)
   }, [refresh, /* should never change */ onRefresh])
 
-  return <div onClick={doRefresh}>.</div>
+  return <div onClick={doRefresh}></div>
 }

@@ -59,7 +59,7 @@ export default function ChangePasswordModal() {
           label={getText('oldPasswordLabel')}
           icon={LockIcon}
           placeholder={getText('oldPasswordPlaceholder')}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={oldPassword}
           setValue={setOldPassword}
           className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
@@ -74,7 +74,7 @@ export default function ChangePasswordModal() {
           icon={LockIcon}
           placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={newPassword}
           setValue={setNewPassword}
           className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
@@ -89,12 +89,12 @@ export default function ChangePasswordModal() {
           icon={LockIcon}
           placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={confirmNewPassword}
           setValue={setConfirmNewPassword}
           className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
         />
-        <SubmitButton disabled={isSubmitting} text="Reset" icon={ArrowRightIcon} />
+        <SubmitButton disabled={isSubmitting} text={getText('reset')} icon={ArrowRightIcon} />
       </form>
     </Modal>
   )

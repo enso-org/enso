@@ -20,6 +20,7 @@ export type TextId = keyof Texts
 interface PlaceholderOverrides {
   copyAssetError: [string]
   moveAssetError: [string]
+  findProjectError: [string]
   deleteAssetError: [string]
   restoreAssetError: [string]
   setPermissionsError: [string]

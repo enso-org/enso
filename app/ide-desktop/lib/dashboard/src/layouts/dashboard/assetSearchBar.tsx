@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
+import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/assetQuery'
@@ -28,6 +29,7 @@ export interface AssetSearchBarProps {
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
   const { query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { getText } = textProvider.useText()
   const [isTabbing, setIsTabbing] = React.useState(false)
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
@@ -198,7 +200,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         ref={searchRef}
         type="search"
         size={1}
-        placeholder="Type to search for projects, data connectors, users, and more."
+        placeholder={getText('searchPlaceholder')}
         className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
         onFocus={() => {
           if (!wasQueryModified) {

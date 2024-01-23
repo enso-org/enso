@@ -115,6 +115,9 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
               {data.type}
             </div>
             <span className="font-normal leading-170 h-6.5 pt-1">
+              {/* This is a symbol that should never need to be localized, since it is effectively
+               * an icon. */}
+              {/* eslint-disable-next-line no-restricted-syntax */}
               <span className="h-5.5 py-px">=</span>
             </span>
             {data.previous != null && (
@@ -127,6 +130,9 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   {data.previous}
                 </div>
                 <span className="font-normal leading-170 h-6.5 pt-1">
+                  {/* This is a symbol that should never need to be localized, since it is
+                   * effectively an icon. */}
+                  {/* eslint-disable-next-line no-restricted-syntax */}
                   <span className="h-5.5 py-px">+</span>
                 </span>
               </>

@@ -6,6 +6,7 @@
   "renameProjectError": "Could not rename project",
   "uploadProjectError": "Could not upload project",
   "uploadFileError": "Could not upload file",
+  "findProjectError": "Could not find project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
   "deleteAssetError": "Could not delete '$0'",
@@ -79,6 +80,7 @@
   "likes": "Likes",
   "email": "Email",
   "password": "Password",
+  "reset": "Reset",
   "sharedWith": "Shared with",
   "editSecret": "Edit Secret",
   "cloudDrive": "Cloud Drive",
@@ -127,6 +129,7 @@
   "clickForNewQuestion": "New question? Click to start a new thread!",
   "upgradeToProNag": "Click here to upgrade to Enso Pro and get access to high-priority, live support!",
   "projectNameCannotBeEmpty": "Project name cannot be empty.",
+  "searchPlaceholder": "Type to search for projects, data connectors, users, and more.",
 
   "labelAssetDescription": "the label '$0'",
   "selectedAssetsDescription": "$0 selected $1",

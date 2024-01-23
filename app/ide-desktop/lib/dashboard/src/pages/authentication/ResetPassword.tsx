@@ -104,7 +104,7 @@ export default function ResetPassword() {
           icon={LockIcon}
           placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={newPassword}
           setValue={setNewPassword}
         />
@@ -118,13 +118,13 @@ export default function ResetPassword() {
           icon={LockIcon}
           placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={newPasswordConfirm}
           setValue={setNewPasswordConfirm}
         />
-        <SubmitButton text="Reset" icon={ArrowRightIcon} />
+        <SubmitButton text={getText('reset')} icon={ArrowRightIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
     </div>
   )
 }

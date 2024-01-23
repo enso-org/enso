@@ -768,7 +768,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           })
         })
       } else if (initialProjectName != null) {
-        toastAndLog(`Could not find project '${initialProjectName}'`)
+        toastAndLog(getText('findProjectError', initialProjectName))
       }
     }
     // This effect MUST only run when `initialProjectName` is changed.
@@ -813,7 +813,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               })
             })
           } else {
-            toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
+            toastAndLog(getText('findProjectError', oldNameOfProjectToImmediatelyOpen))
           }
         }
         setQueuedAssetEvents(oldQueuedAssetEvents => {
@@ -831,6 +831,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
     [
       rootDirectoryId,
+      getText,
       /* should never change */ setNameOfProjectToImmediatelyOpen,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ toastAndLog,
