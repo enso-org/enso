@@ -12,16 +12,16 @@ export type RefreshState = useRefresh.RefreshState
 
 /** Props for a {@link Refresh}. */
 interface InternalRefreshProps {
-    onRefresh: (refreshState: RefreshState) => void
+  onRefresh: (refreshState: RefreshState) => void
 }
 
 /** A component for testing the `useRefresh` hook. */
 export default function Refresh(props: InternalRefreshProps) {
-    const { onRefresh } = props
-    const [refresh, doRefresh] = useRefresh.useRefresh()
-    React.useEffect(() => {
-        onRefresh(refresh)
-    }, [refresh, /* should never change */ onRefresh])
+  const { onRefresh } = props
+  const [refresh, doRefresh] = useRefresh.useRefresh()
+  React.useEffect(() => {
+    onRefresh(refresh)
+  }, [refresh, /* should never change */ onRefresh])
 
-    return <div onClick={doRefresh}>.</div>
+  return <div onClick={doRefresh}>.</div>
 }
