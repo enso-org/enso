@@ -127,10 +127,10 @@ type Random
 
     ## GROUP Random
        Returns `count` indices sampled from the range 0 (inclusive) to n
-       (inclusive) without replacement.
+       (exclusive) without replacement.
 
        Arguments:
-       - n: The end of the range to sample from (inclusive).
+       - n: The end of the range to sample from (exclusive).
        - count: The number of samples to take.
 
        > Example
