@@ -112,6 +112,43 @@ export interface ListVersionsResponseBody {
   versions: [backendModule.Version, ...backendModule.Version[]]
 }
 
+// ===============
+// === GetText ===
+// ===============
+
+/** A list of messages sent by this  */
+interface Replacements {
+  listUsersBackendError: []
+  createUserBackendError: []
+  inviteUserBackendError: [string]
+  createPermissionBackendError: []
+  listFolderBackendError: [string]
+  listFolderWithIDBackendError: [string]
+  listRootFolderBackendError: []
+  createFolderBackendError: [string]
+  updateFolderBackendError: [string]
+  updateFolderWithIDBackendError: [string]
+  updateAssetBackendError: [string]
+  updateAssetWithIDBackendError: [string]
+  deleteAssetBackendError: [string]
+  deleteAssetWithIDBackendError: [string]
+  undoDeleteAssetBackendError: [string]
+  undoDeleteAssetWithIDBackendError: [string]
+  copyAssetBackendError: [string, string]
+  copyAssetWithAssetIDBackendError: [string, string]
+  copyAssetWithFolderIDBackendError: [string, string]
+  copyAssetWithAssetAndFolderIDsBackendError: [string, string]
+  listProjectsBackendError: []
+  createProjectBackendError: [string]
+  closeProjectBackendError: [string]
+  closeProjectWithIDBackendError: [string]
+  getProjectDetailsBackendError: [string]
+  getProjectDetailsWithIDBackendError: [string]
+}
+
+/** Get the corresponding text for a specific text id. */
+type GetText = <K extends keyof Replacements>(id: K, ...replacements: Replacements[K]) => string
+
 // =====================
 // === RemoteBackend ===
 // =====================
@@ -125,19 +162,22 @@ interface DefaultVersionInfo {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backendModule.Backend {
   readonly type = backendModule.BackendType.remote
-  protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
+  private defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
   constructor(
     private readonly client: http.Client,
-    private readonly logger: loggerProvider.Logger
+    private readonly logger: loggerProvider.Logger,
+    private getText: GetText
   ) {
     super()
     // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
     // set.
     if (!new Headers(this.client.defaultHeaders).has('Authorization')) {
-      return this.throw('Authorization header not set.')
+      const message = 'Authorization header not set.'
+      this.logger.error(message)
+      throw new Error(message)
     } else {
       if (detect.IS_DEV_MODE) {
         // @ts-expect-error This exists only for debugging purposes. It does not have types
@@ -148,9 +188,16 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
+  /** Set `this.getText`. This function is exposed rather than the property itself to make it clear
+   * that it is intended to be mutable. */
+  setGetText(getText: GetText) {
+    this.getText = getText
+  }
+
   /** Log an error message and throws an {@link Error} with the specified message.
    * @throws {Error} Always. */
-  throw(message: string): never {
+  throw<K extends keyof Replacements>(textId: K, ...replacements: Replacements[K]): never {
+    const message = this.getText(textId, ...replacements)
     this.logger.error(message)
     throw new Error(message)
   }
@@ -160,7 +207,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list users in the organization.`)
+      return this.throw('listUsersBackendError')
     } else {
       return (await response.json()).users
     }
@@ -173,7 +220,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.CREATE_USER_PATH
     const response = await this.post<backendModule.UserOrOrganization>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not create user.')
+      return this.throw('createUserBackendError')
     } else {
       return await response.json()
     }
@@ -184,7 +231,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.INVITE_USER_PATH
     const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not invite user '${body.userEmail}'.`)
+      return this.throw('inviteUserBackendError', body.userEmail)
     } else {
       return
     }
@@ -195,7 +242,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
     const response = await this.post<backendModule.UserOrOrganization>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not set permissions.`)
+      return this.throw('createPermissionBackendError')
     } else {
       return
     }
@@ -232,13 +279,19 @@ export class RemoteBackend extends backendModule.Backend {
     )
     if (!responseIsSuccessful(response)) {
       if (response.status === STATUS_SERVER_ERROR) {
+        this.logger.error(
+          query.parentId != null
+            ? `Error listing directory '${query.parentId}'`
+            : `Error listing root directory`
+        )
         // The directory is probably empty.
         return []
       } else if (query.parentId != null) {
-        const name = title != null ? `'${title}'` : `with ID '${query.parentId}'`
-        return this.throw(`Could not list folder ${name}.`)
+        return title != null
+          ? this.throw('listFolderBackendError', title)
+          : this.throw('listFolderWithIDBackendError', query.parentId)
       } else {
-        return this.throw('Could not list root folder.')
+        return this.throw('listRootFolderBackendError')
       }
     } else {
       return (await response.json()).assets
@@ -264,7 +317,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
     const response = await this.post<backendModule.CreatedDirectory>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create folder with name '${body.title}'.`)
+      return this.throw('createFolderBackendError', body.title)
     } else {
       return await response.json()
     }
@@ -280,8 +333,9 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.updateDirectoryPath(directoryId)
     const response = await this.put<backendModule.UpdatedDirectory>(path, body)
     if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${directoryId}'`
-      return this.throw(`Could not update folder ${name}.`)
+      return title != null
+        ? this.throw('updateFolderBackendError', title)
+        : this.throw('updateFolderWithIDBackendError', directoryId)
     } else {
       return await response.json()
     }
@@ -297,8 +351,9 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
     if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `asset with ID '${assetId}'`
-      return this.throw(`Could not update ${name}.`)
+      return title != null
+        ? this.throw('updateAssetBackendError', title)
+        : this.throw('updateAssetWithIDBackendError', assetId)
     } else {
       return
     }
@@ -310,8 +365,9 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.deleteAssetPath(assetId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `asset with ID '${assetId}'`
-      return this.throw(`Unable to delete ${name}.`)
+      return title != null
+        ? this.throw('deleteAssetBackendError', title)
+        : this.throw('deleteAssetWithIDBackendError', assetId)
     } else {
       return
     }
@@ -326,11 +382,9 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.patch(path, { assetId })
     if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Unable to restore ${
-          title != null ? `'${title}'` : `asset with ID '${assetId}'`
-        } from Trash.`
-      )
+      return title != null
+        ? this.throw('undoDeleteAssetBackendError', title)
+        : this.throw('undoDeleteAssetWithIDBackendError', assetId)
     } else {
       return
     }
@@ -349,13 +403,13 @@ export class RemoteBackend extends backendModule.Backend {
       { parentDirectoryId }
     )
     if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Unable to copy ${title != null ? `'${title}'` : `asset with ID '${assetId}'`} to ${
-          parentDirectoryTitle != null
-            ? `'${parentDirectoryTitle}'`
-            : `directory with ID '${parentDirectoryId}'`
-        }.`
-      )
+      return title != null
+        ? parentDirectoryTitle != null
+          ? this.throw('copyAssetBackendError', title, parentDirectoryTitle)
+          : this.throw('copyAssetWithFolderIDBackendError', title, parentDirectoryId)
+        : parentDirectoryTitle != null
+        ? this.throw('copyAssetWithAssetIDBackendError', assetId, parentDirectoryTitle)
+        : this.throw('copyAssetWithAssetAndFolderIDsBackendError', assetId, parentDirectoryId)
     } else {
       return await response.json()
     }
@@ -367,7 +421,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.LIST_PROJECTS_PATH
     const response = await this.get<ListProjectsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list projects.')
+      return this.throw('listProjectsBackendError')
     } else {
       return (await response.json()).projects.map(project => ({
         ...project,
@@ -387,7 +441,7 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.CREATE_PROJECT_PATH
     const response = await this.post<backendModule.CreatedProject>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create project with name '${body.projectName}'.`)
+      return this.throw('createProjectBackendError', body.projectName)
     } else {
       return await response.json()
     }
@@ -402,9 +456,9 @@ export class RemoteBackend extends backendModule.Backend {
     const path = remoteBackendPaths.closeProjectPath(projectId)
     const response = await this.post(path, {})
     if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
-      )
+      return title != null
+        ? this.throw('closeProjectBackendError', title)
+        : this.throw('closeProjectWithIDBackendError', projectId)
     } else {
       return
     }
@@ -525,7 +579,7 @@ export class RemoteBackend extends backendModule.Backend {
     if (!responseIsSuccessful(response)) {
       let suffix = '.'
       try {
-        const error = errorModule.tryGetError<unknown>(await response.json())
+        const error = errorModule.tryGetBackendError<unknown>(await response.json())
         if (error != null) {
           suffix = `: ${error}`
         }
