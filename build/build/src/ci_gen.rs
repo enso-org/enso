@@ -381,7 +381,7 @@ pub struct PromoteReleaseJob;
 impl JobArchetype for PromoteReleaseJob {
     fn job(&self, os: OS) -> Job {
         let command = format!("release promote {}", get_input_expression(DESIGNATOR_INPUT_NAME));
-        let mut job = RunStepsBuilder::new(&command)
+        let mut job = RunStepsBuilder::new(command)
             .customize(|step| vec![step.with_id(Self::PROMOTE_STEP_ID)])
             .build_job("Promote release", os);
         self.expose_outputs(&mut job);
