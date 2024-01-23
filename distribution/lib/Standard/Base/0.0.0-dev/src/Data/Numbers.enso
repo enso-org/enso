@@ -43,8 +43,11 @@ type Number
          Adding 10 and 15.
 
              10 + 15
-    + : Number -> Number
-    + self that = @Builtin_Method "Integer.+"
+    + self that:Number -> Number =
+        if True then Panic.throw ""+that.to_text
+        self.do_plus that
+
+    do_plus self that = @Builtin_Method "Integer.do_plus"
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -742,8 +745,10 @@ type Integer
          Adding 10 and 15.
 
              10 + 15
-    + : Number -> Number
-    + self that = @Builtin_Method "Integer.+"
+    + self that:Integer -> Integer = self.do_plus that
+
+
+    do_plus self b = @Builtin_Method "Integer.do_plus"
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -756,9 +761,9 @@ type Integer
          Subtract 5 from 2.
 
              2 - 5
-    - : Number -> Number
-    - self that = @Builtin_Method "Integer.-"
+    - self that:Integer -> Integer = self.do_minus that
 
+    do_minus self b = @Builtin_Method "Integer.-"
     ## ALIAS multiply, product, times
        GROUP Operators
        Multiply an integer by an arbitrary number.
