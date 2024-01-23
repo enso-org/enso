@@ -145,6 +145,11 @@ class BinaryOperatorNode extends ExpressionNode {
         return result;
       } catch (ArityException ex) {
         return null;
+      } catch (PanicException ex) {
+        if (ctx.getBuiltins().error().isNoSuchConversionError(ex.getPayload())) {
+          return null;
+        }
+        throw ex;
       }
     }
 

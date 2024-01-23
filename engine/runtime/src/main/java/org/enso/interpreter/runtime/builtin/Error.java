@@ -202,11 +202,29 @@ public final class Error {
   /**
    * Checks whether given atom represents a type error.
    *
-   * @param atom the atom to check
+   * @param payload the atom to check
    * @return true or false
    */
-  public boolean isTypeError(Atom atom) {
-    return typeError.getUniqueConstructor() == atom.getConstructor();
+  public boolean isTypeError(Atom payload) {
+    if (payload instanceof Atom atom) {
+      return typeError.getUniqueConstructor() == atom.getConstructor();
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Checks whether given atom represents a conversion error.
+   *
+   * @param payload the atom to check
+   * @return true or false
+   */
+  public boolean isNoSuchConversionError(Object payload) {
+    if (payload instanceof Atom atom) {
+      return noSuchConversion.getUniqueConstructor() == atom.getConstructor();
+    } else {
+      return false;
+    }
   }
 
   /**
