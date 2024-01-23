@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
@@ -26,6 +27,7 @@ export interface MenuEntryProps {
 export default function MenuEntry(props: MenuEntryProps) {
   const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
   const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { getText } = textProvider.useText()
   const info = shortcuts.keyboardShortcutInfo[action]
   React.useEffect(() => {
     // This is slower than registering every shortcut in the context menu at once.
@@ -55,7 +57,7 @@ export default function MenuEntry(props: MenuEntryProps) {
           src={info.icon}
           className={info.colorClass}
         />
-        {info.name}
+        {getText(`${action}Shortcut`)}
       </div>
       <KeyboardShortcut action={action} />
     </button>
