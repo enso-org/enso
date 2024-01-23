@@ -10,13 +10,16 @@ import project.IO.Fetch_Spec
 import project.IO.Formats_Spec
 import project.IO.Json_Spec
 
+add_specs suite_builder =
+    Csv_Spec.add_specs suite_builder
+    Delimited_Read_Spec.add_specs suite_builder
+    Delimited_Write_Spec.add_specs suite_builder
+    Excel_Spec.add_specs suite_builder
+    Formats_Spec.add_specs suite_builder
+    Fetch_Spec.add_specs suite_builder
+    Json_Spec.add_specs suite_builder
+
 main =
     suite = Test.build suite_builder->
-        Csv_Spec.add_specs suite_builder
-        Delimited_Read_Spec.add_specs suite_builder
-        Delimited_Write_Spec.add_specs suite_builder
-        Excel_Spec.add_specs suite_builder
-        Formats_Spec.add_specs suite_builder
-        Fetch_Spec.add_specs suite_builder
-        Json_Spec.add_specs suite_builder
+        add_specs suite_builder
     suite.run_with_filter

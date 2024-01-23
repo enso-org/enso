@@ -54,7 +54,7 @@ add_redshift_specific_specs suite_builder create_connection_fn =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "reals" . value_type . is_floating_point . should_be_true
 
-add_specs suite_builder create_connection_fn =
+add_database_specs suite_builder create_connection_fn =
     prefix = "[Redshift] "
     name_counter = Ref.new 0
     table_builder columns connection=(create_connection_fn Nothing) =
@@ -126,7 +126,7 @@ uri_parse uri =
     db_name = if host_db_split.length == 1 then '' else host_db_split.at 1
     [db_host, db_port, db_name]
 
-add_all_specs suite_builder =
+add_specs suite_builder =
     db_host_port = Environment.get "ENSO_REDSHIFT_URI"
     connection_details = if db_host_port.is_nothing then connect_via_json_config else
         connect_via_aws_environment db_host_port
@@ -137,9 +137,9 @@ add_all_specs suite_builder =
         _ ->
             create_connection_fn = _->
                 Database.connect connection_details
-            add_specs suite_builder create_connection_fn
+            add_database_specs suite_builder create_connection_fn
 
 main =
     suite = Test.build suite_builder->
-        add_all_specs suite_builder
+        add_specs suite_builder
     suite.run_with_filter

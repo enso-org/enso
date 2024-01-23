@@ -389,7 +389,7 @@ type File_Connection
         self.file.delete
 
 
-suite = Test.build suite_builder->
+add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
 
     sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection backing_file)
@@ -449,6 +449,6 @@ suite = Test.build suite_builder->
             Warning.get_all t2 . length . should_equal 1
 
 main =
-    group_filter = Regex.compile ".*"
-    spec_filter = Regex.compile ".*"
-    suite.run_with_filter group_filter spec_filter
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

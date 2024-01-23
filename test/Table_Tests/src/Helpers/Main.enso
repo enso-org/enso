@@ -6,9 +6,12 @@ import project.Helpers.Sorted_List_Index_Spec
 import project.Helpers.Unique_Naming_Strategy_Spec
 import project.Helpers.Value_Type_Spec
 
+add_specs suite_builder =
+    Unique_Naming_Strategy_Spec.add_specs suite_builder
+    Sorted_List_Index_Spec.add_specs suite_builder
+    Value_Type_Spec.add_specs suite_builder
+
 main =
     suite = Test.build suite_builder->
-        Unique_Naming_Strategy_Spec.add_specs suite_builder
-        Sorted_List_Index_Spec.add_specs suite_builder
-        Value_Type_Spec.add_specs suite_builder
+        add_specs suite_builder
     suite.run_with_filter
