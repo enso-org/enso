@@ -45,9 +45,14 @@ type S3_File
             pair.second.length > 0
 
     ## GROUP Standard.Base.Metadata
-       Checks if this is a folder
+       Checks if this is a folder.
     is_directory : Boolean
     is_directory self = self.prefix=="" || self.prefix.ends_with "/"
+
+    ## GROUP Standard.Base.Metadata
+       Checks if this is a regular file.
+    is_regular_file : Boolean
+    is_regular_file self = self.is_directory.not
 
     ## GROUP Standard.Base.Metadata
        Gets the size of a file in bytes.
@@ -158,7 +163,7 @@ type S3_File
         loop current remaining = if remaining.length == 0 then current else
             new_current = case remaining.first of
                 ".." ->
-                    last_index = current.lastIndexOf "/"
+                    last_index = current.last_index_of "/"
                     if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
                 "." -> current
                 x -> new_current + "/" + x
@@ -179,11 +184,19 @@ type S3_File
         _ -> self.join [subpaths]
 
     ## GROUP Standard.Base.Metadata
+       Resolves the parent of this file.
+    parent : S3_File | Nothing
+    parent self =
+        # We re-use the resolution logic coded in the `/` operator.
+        resolved = self / ".."
+        if resolved.uri == self.uri then Nothing else resolved
+
+    ## GROUP Standard.Base.Metadata
        Returns the name of this file.
     name : Text
     name self = if self.prefix == "" then self.bucket else
         trimmed = if self.prefix.ends_with "/" then self.prefix.drop (Last 1) else self.prefix
-        last_index = trimmed.lastIndexOf "/"
+        last_index = trimmed.last_index_of "/"
         if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
 
     ## GROUP Standard.Base.Metadata
