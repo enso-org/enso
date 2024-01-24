@@ -40,12 +40,11 @@ spec =
             S3.parse_uri "s3:///" . should_equal Nothing
             S3.parse_uri "s3:///apple/orange" . should_equal Nothing
 
-    buckets = Ref.new []
+    buckets = S3.list_buckets
     Test.group "S3.list_buckets" pending=api_pending <|
         Test.specify "should be able to list buckets" <|
-            bucket_list = S3.list_buckets . should_succeed
-            buckets.put bucket_list
-            if bucket_name != Nothing then bucket_list . should_contain bucket_name
+            buckets . should_succeed
+            buckets . should_contain bucket_name
 
         Test.specify "should handle auth issues" <|
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
@@ -65,7 +64,7 @@ spec =
                     r2.should_be_a Vector
 
     ## Rest of tests need a functional S3 connection
-    pending = if bucket_name.is_nothing then "No S3 bucket set." else if buckets.get.is_error then "S3 Access Failed." else if buckets.get.contains bucket_name then Nothing else "S3 Bucket Not Found."
+    pending = if buckets.is_error then "S3 Access Failed." else if buckets.contains bucket_name then Nothing else "S3 Bucket "+bucket_name+" Not Found."
 
     Test.group "S3.head (bucket)" pending=pending <|
         Test.specify "should be able to head a bucket" <|
@@ -174,6 +173,14 @@ spec =
             bytes2.should_equal bytes
 
         Test.specify "should support path traversal" <|
+            root.prefix . should_equal "foo"
+            root / "foo" . prefix . should_equal "foo"
+            root / "foo" . path . should_equal "s3://"+bucket_name+"/foo"
+            root / "foo/" / "bar" . prefix . should_equal "foo/bar"
+            root / "foo/" / "bar" . path . should_equal "s3://"+bucket_name+"/foo/bar"
+
+            root / "foo" / "bar" . should_fail_with Illegal_Argument
+
             hello_txt.parent.parent.parent . should_equal root
             hello_txt.parent . should_equal (root / "examples" / "folder 2")
 
@@ -194,8 +201,10 @@ spec =
             root.size.should_fail_with S3_Error
 
             hello_txt.size.should_equal 12
-            hello_txt.creation_time . should_be_a Date_Time
             hello_txt.last_modified_time . should_be_a Date_Time
+
+            # Currently unsupported
+            hello_txt.creation_time . should_fail_with S3_Error
 
     Test.group "S3_File writing" pending=pending <|
         writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
