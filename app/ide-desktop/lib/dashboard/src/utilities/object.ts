@@ -17,3 +17,13 @@ export function merge<T extends object>(object: T, update: Partial<T>): T {
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
   return object => Object.assign({ ...object }, update)
 }
+
+/** Either return the object unchanged, if the input was an object, or `null`. */
+export function asObject(value: unknown): object | null {
+  return typeof value === 'object' && value != null ? value : null
+}
+
+/** Either return a singleton object, if the input was an object, or an empty array. */
+export function singletonObjectOrNull(value: unknown): [] | [object] {
+  return typeof value === 'object' && value != null ? [value] : []
+}

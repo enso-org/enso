@@ -10,6 +10,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import CreateDataLinkModal from '#/layouts/dashboard/CreateDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -115,6 +116,26 @@ export default function DriveBar(props: DriveBarProps) {
                 event.stopPropagation()
                 setModal(
                   <UpsertSecretModal id={null} name={null} doCreate={doCreateDataConnector} />
+                )
+              }}
+            />
+          )}
+          {backend.type !== backendModule.BackendType.local && (
+            <Button
+              active={isHomeCategory}
+              disabled={!isHomeCategory}
+              error="You can only create a new data link in Home."
+              image={AddConnectorIcon}
+              alt="New Data Link"
+              disabledOpacityClassName="opacity-20"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(
+                  <CreateDataLinkModal
+                    doCreate={() => {
+                      // FIXME: doCreateDataLink
+                    }}
+                  />
                 )
               }}
             />

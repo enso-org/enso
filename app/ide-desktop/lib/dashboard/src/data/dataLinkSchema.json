@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DataLink": {
+      "title": "Data Link",
+      "anyOf": [
+        { "$ref": "#/$defs/S3DataLink" },
+        { "$ref": "#/$defs/HttpFetchDataLink" }
+      ]
+    },
+    "SecureValue": {
+      "title": "Secure Value",
+      "anyOf": [{ "type": "string" }, { "$ref": "#/$defs/EnsoSecret" }]
+    },
+    "EnsoSecret": {
+      "title": "Enso Secret",
+      "type": "object",
+      "properties": {
+        "type": { "const": "secret", "type": "string" },
+        "secretPath": { "type": "string" }
+      },
+      "required": ["type", "secretPath"]
+    },
+
+    "AwsAuth": {
+      "title": "AWS Authentication",
+      "anyOf": [
+        { "$ref": "#/$defs/AwsDefaultAuth" },
+        { "$ref": "#/$defs/AwsProfileAuth" },
+        { "$ref": "#/$defs/AwsAccessKeyAuth" }
+      ]
+    },
+    "AwsDefaultAuth": {
+      "title": "AWS Default Authentication",
+      "type": "object",
+      "properties": {
+        "type": { "const": "aws_auth", "type": "string" },
+        "subType": { "const": "default", "type": "string" }
+      },
+      "required": ["type", "subType"]
+    },
+    "AwsProfileAuth": {
+      "title": "AWS Profile Authentication",
+      "type": "object",
+      "properties": {
+        "type": { "const": "aws_auth", "type": "string" },
+        "subType": { "const": "profile", "type": "string" },
+        "profile": { "type": "string" }
+      },
+      "required": ["type", "subType", "profile"]
+    },
+    "AwsAccessKeyAuth": {
+      "title": "AWS Access Key Authentication",
+      "type": "object",
+      "properties": {
+        "type": { "const": "aws_auth", "type": "string" },
+        "subType": { "const": "access_key", "type": "string" },
+        "accessKeyId": { "$ref": "#/$defs/SecureValue" },
+        "secretAccessKey": { "$ref": "#/$defs/SecureValue" }
+      },
+      "required": ["type", "subType", "accessKeyId", "secretAccessKey"]
+    },
+
+    "S3DataLink": {
+      "$comment": "missing <headers with secrets> OR <query string with secrets>",
+      "title": "S3 Data Link",
+      "type": "object",
+      "properties": {
+        "type": { "const": "S3", "type": "string" },
+        "uri": { "type": "string" },
+        "auth": { "$ref": "#/$defs/AwsAuth" },
+        "format": { "$ref": "#/$defs/Format" }
+      },
+      "required": ["type", "uri", "auth"]
+    },
+    "HttpFetchDataLink": {
+      "title": "HTTP Fetch Data Link",
+      "type": "object",
+      "properties": {
+        "type": { "const": "HTTP", "type": "string" },
+        "uri": { "type": "string" },
+        "method": { "const": "GET", "type": "string" }
+      },
+      "required": ["type", "uri", "method"]
+    },
+
+    "Format": {
+      "title": "Format",
+      "anyOf": [
+        { "$ref": "#/$defs/DefaultFormat" },
+        { "$ref": "#/$defs/DelimitedFormat" },
+        { "$ref": "#/$defs/JsonFormat" }
+      ]
+    },
+    "DefaultFormat": {
+      "title": "Default Format",
+      "type": "object",
+      "properties": {
+        "type": { "const": "format", "type": "string" },
+        "subType": { "const": "default", "type": "string" }
+      },
+      "required": ["type", "subType"]
+    },
+    "DelimitedFormat": {
+      "title": "Delimited Format",
+      "type": "object",
+      "properties": {
+        "type": { "const": "format", "type": "string" },
+        "subType": { "const": "delimited", "type": "string" },
+        "delimiter": { "type": "string" },
+        "encoding": { "const": "utf8", "type": "string" },
+        "headers": { "type": "boolean" }
+      },
+      "required": ["type", "subType", "delimiter"]
+    },
+    "JsonFormat": {
+      "title": "JSON Format",
+      "type": "object",
+      "properties": {
+        "type": { "const": "json", "type": "string" }
+      },
+      "required": ["type"]
+    }
+  }
+}
