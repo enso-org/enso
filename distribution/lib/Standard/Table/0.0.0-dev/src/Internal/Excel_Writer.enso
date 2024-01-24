@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+from Standard.Base.System.File import file_as_java
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -105,11 +106,6 @@ find_bak_file : File -> File
 find_bak_file base_file =
     parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
-
-## PRIVATE
-file_as_java : File -> Java_File
-file_as_java file =
-    Java_File.new file.absolute.normalize.path
 
 ## PRIVATE
 prepare_file_modification_strategy : Table -> Excel_Section -> Boolean|Infer -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)

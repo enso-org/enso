@@ -14,12 +14,14 @@ import project.Errors.S3_Error
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
+polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+polyglot java import software.amazon.awssdk.services.s3.model.PutObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
@@ -134,6 +136,20 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
 
     input_stream = Input_Stream.new response (handle_io_errors s3_uri)
     Response_Body.Raw_Stream input_stream metadata s3_uri
+
+## PRIVATE
+put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
+    client = make_client credentials
+    request = PutObjectRequest.builder.bucket bucket . key key . build
+    client.putObject request request_body
+    Nothing
+
+## PRIVATE
+delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+    client = make_client credentials
+    request = DeleteObjectRequest.builder.bucket bucket . key key . build
+    client.deleteObject request
+    Nothing
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.

@@ -825,3 +825,7 @@ find_extension_from_name name =
 ## PRIVATE
    Convert from a Text to a File.
 File.from (that:Text) = File.new that
+
+## PRIVATE
+file_as_java : File -> Java_File
+file_as_java (file : File) = Java_File.new file.absolute.normalize.path
