@@ -52,7 +52,7 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
       if (!replacement) continue
       const pattern = this.prefixes[key]
       const parts = [...replacement, result]
-      const partsIds = Array.from(parts, (ast) => ast.exprId)
+      const partsIds = Array.from(parts, (ast) => ast.id)
       result = pattern.instantiate(edit, partsIds)
     }
     return result
