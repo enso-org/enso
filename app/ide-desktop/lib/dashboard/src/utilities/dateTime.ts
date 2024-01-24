@@ -21,31 +21,31 @@ export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
 /** Format a {@link Date} into the preferred format: `YYYY-MM-DD, hh:mm`. */
 export function formatDateTime(date: Date) {
-    const year = date.getFullYear()
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const dayOfMonth = date.getDate().toString().padStart(2, '0')
-    const hour = date.getHours().toString().padStart(2, '0')
-    const minute = date.getMinutes().toString().padStart(2, '0')
-    return `${year}-${month}-${dayOfMonth}, ${hour}:${minute}`
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const dayOfMonth = date.getDate().toString().padStart(2, '0')
+  const hour = date.getHours().toString().padStart(2, '0')
+  const minute = date.getMinutes().toString().padStart(2, '0')
+  return `${year}-${month}-${dayOfMonth}, ${hour}:${minute}`
 }
 
 /** Format a {@link Date} into the preferred chat-frienly format: `DD/MM/YYYY, hh:mm PM`. */
 export function formatDateTimeChatFriendly(date: Date) {
-    const year = date.getFullYear()
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const dayOfMonth = date.getDate().toString().padStart(2, '0')
-    let hourRaw = date.getHours()
-    let amOrPm = 'AM'
-    if (hourRaw > HALF_DAY_HOURS) {
-        hourRaw -= HALF_DAY_HOURS
-        amOrPm = 'PM'
-    }
-    const hour = hourRaw.toString().padStart(2, '0')
-    const minute = date.getMinutes().toString().padStart(2, '0')
-    return `${dayOfMonth}/${month}/${year} ${hour}:${minute} ${amOrPm}`
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const dayOfMonth = date.getDate().toString().padStart(2, '0')
+  let hourRaw = date.getHours()
+  let amOrPm = 'AM'
+  if (hourRaw > HALF_DAY_HOURS) {
+    hourRaw -= HALF_DAY_HOURS
+    amOrPm = 'PM'
+  }
+  const hour = hourRaw.toString().padStart(2, '0')
+  const minute = date.getMinutes().toString().padStart(2, '0')
+  return `${dayOfMonth}/${month}/${year} ${hour}:${minute} ${amOrPm}`
 }
 
 /** Format a {@link Date} as a {@link Rfc3339DateTime}. */
 export function toRfc3339(date: Date) {
-    return Rfc3339DateTime(date.toISOString())
+  return Rfc3339DateTime(date.toISOString())
 }

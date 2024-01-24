@@ -144,6 +144,22 @@ export interface UnqualifiedImport {
   import: Identifier
 }
 
+/** Read imports from given module block */
+export function readImports(ast: Ast.Ast): Import[] {
+  const imports: Import[] = []
+  ast.visitRecursive((node) => {
+    if (node instanceof Ast.Import) {
+      const recognized = recognizeImport(node)
+      if (recognized) {
+        imports.push(recognized)
+      }
+      return false
+    }
+    return true
+  })
+  return imports
+}
+
 /** Insert the given imports into the given block at an appropriate location. */
 export function addImports(
   edit: MutableModule,
@@ -288,10 +304,10 @@ export function covers(existing: Import, required: RequiredImport): boolean {
 }
 
 export function filterOutRedundantImports(
-  existing: { import: Import }[],
+  existing: Import[],
   required: RequiredImport[],
 ): RequiredImport[] {
-  return required.filter((info) => !existing.some((existing) => covers(existing.import, info)))
+  return required.filter((info) => !existing.some((existing) => covers(existing, info)))
 }
 
 if (import.meta.vitest) {

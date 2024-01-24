@@ -5,6 +5,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
+  readImports,
   recognizeImport,
   type Import,
   type RequiredImport,
@@ -95,7 +96,6 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const imports = ref<{ import: Import; span: SourceRange }[]>([])
   const methodAst = ref<Ast.Function>()
   const currentNodeIds = ref(new Set<ExprId>())
 
@@ -125,18 +125,6 @@ export const useGraphStore = defineStore('graph', () => {
       astModule.replace(newRoot.module)
       moduleRoot.value = newRoot.exprId
       module.doc.setIdMap(idMap_)
-
-      imports.value = []
-      newRoot.visitRecursive((node) => {
-        if (node instanceof Ast.Import) {
-          const recognized = recognizeImport(node)
-          if (recognized) {
-            imports.value.push({ import: recognized, span: node.span! })
-          }
-          return false
-        }
-        return true
-      })
 
       methodAst.value = methodAstInModule(astModule)
       if (methodAst.value) {
@@ -257,14 +245,15 @@ export const useGraphStore = defineStore('graph', () => {
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
     if (!newImports.length) return
-    const topLevel_ = topLevel.value
-    if (!topLevel_) {
-      console.error(`BUG: Cannot add required imports: No module root.`)
+    const topLevel = moduleRoot.value ? edit.get(moduleRoot.value) : null
+    if (!topLevel || !(topLevel instanceof Ast.BodyBlock)) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
       return
     }
-    const importsToAdd = filterOutRedundantImports(imports.value, newImports)
+    const existingImports = readImports(topLevel)
+    const importsToAdd = filterOutRedundantImports(existingImports, newImports)
     if (!importsToAdd.length) return
-    addImports(edit, topLevel_, importsToAdd)
+    addImports(edit, topLevel, importsToAdd)
   }
 
   function deleteNodes(ids: ExprId[]) {
@@ -525,7 +514,6 @@ export const useGraphStore = defineStore('graph', () => {
     transact,
     db: markRaw(db),
     mockExpressionUpdate,
-    imports,
     editedNodeInfo,
     unconnectedEdge,
     edges,
