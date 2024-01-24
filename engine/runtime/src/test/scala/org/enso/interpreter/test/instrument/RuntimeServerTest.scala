@@ -3126,7 +3126,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMainA, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idMainA,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -4632,7 +4643,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n")
     val code =
       """main = bar 40 2 123
         |
@@ -4669,7 +4680,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -4677,14 +4688,14 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Not_Invokable.Error",
             Some(mainFile),
-            Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
+            Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
             None,
             Vector(
               Api.StackTraceElement(
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(0, 7), model.Position(0, 19))
+                  model.Range(model.Position(1, 7), model.Position(1, 19))
                 ),
                 None
               )
@@ -5253,22 +5264,28 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
-            Some(mainFile),
-            Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
+            None,
+            None,
             None,
             Vector(
+              Api.StackTraceElement(
+                "Integer.+",
+                None,
+                Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.baz",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(10, 8), model.Position(10, 17))
+                  model.Range(model.Position(12, 8), model.Position(12, 17))
                 ),
                 None
               ),
@@ -5276,7 +5293,7 @@ class RuntimeServerTest
                 "Main.bar",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(7, 8), model.Position(7, 11))
+                  model.Range(model.Position(9, 8), model.Position(9, 11))
                 ),
                 None
               ),
@@ -5284,7 +5301,7 @@ class RuntimeServerTest
                 "Main.foo",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(4, 8), model.Position(4, 11))
+                  model.Range(model.Position(6, 8), model.Position(6, 11))
                 ),
                 None
               ),
@@ -5292,7 +5309,7 @@ class RuntimeServerTest
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(1, 4), model.Position(1, 7))
+                  model.Range(model.Position(3, 4), model.Position(3, 7))
                 ),
                 None
               )
