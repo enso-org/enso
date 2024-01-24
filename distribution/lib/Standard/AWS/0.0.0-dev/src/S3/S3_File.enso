@@ -34,7 +34,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file
     uri : Text
-    uri self = "s3://" + (if self.bucket=="" then "" else (self.bucket+"/"+self.prefix))
+    uri self = "s3://" + self.bucket + "/" + self.prefix
 
     ## GROUP Standard.Base.Metadata
        Checks if the folder or file exists
@@ -124,7 +124,7 @@ type S3_File
                 response = S3.get_object self.bucket self.prefix self.credentials
                 response.decode Auto_Detect
             _ ->
-                metadata = File_Format_Metadata.Value file_name=self.name
+                metadata = File_Format_Metadata.Value path=self.path name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
@@ -187,9 +187,20 @@ type S3_File
        Resolves the parent of this file.
     parent : S3_File | Nothing
     parent self =
-        # We re-use the resolution logic coded in the `/` operator.
-        resolved = self / ".."
-        if resolved.uri == self.uri then Nothing else resolved
+        if self.prefix == "" then Nothing else
+            last_index = self.prefix.last_index_of "/"
+            new_prefix = if last_index == Nothing then "" else self.prefix.take last_index
+            S3_File.Value self.bucket new_prefix self.credentials
+
+    ## GROUP Standard.Base.Metadata
+       Checks if `self` is a descendant of `other`.
+    is_descendant_of : S3_File -> Boolean
+    is_descendant_of self other = other.is_directory && self.uri.starts_with other.uri
+
+    ## GROUP Standard.Base.Metadata
+       Returns the path of this file.
+    path : Text
+    path self = self.uri
 
     ## GROUP Standard.Base.Metadata
        Returns the name of this file.
@@ -204,6 +215,18 @@ type S3_File
     extension : Text
     extension self = if self.is_directory then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
         find_extension_from_name self.name
+
+    ## GROUP Standard.Base.Metadata
+       Gets the creation time of a file.
+    creation_time : Date_Time ! File_Error
+    creation_time self =
+        Error.throw (S3_Error.Error "Creation time is not available for S3 files." self.uri)
+
+    ## GROUP Standard.Base.Metadata
+       Gets the last modified time of a file.
+    last_modified_time : Date_Time ! File_Error
+    last_modified_time self =
+        Error.throw (S3_Error.Error "Last modified time is not available for S3 files." self.uri)
 
     ## GROUP Standard.Base.Input
        Lists files contained in the directory denoted by this file.

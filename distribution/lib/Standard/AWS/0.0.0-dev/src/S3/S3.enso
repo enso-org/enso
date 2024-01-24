@@ -108,7 +108,7 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
+get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
 get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
@@ -116,7 +116,7 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
     response = client.getObject request
 
     inner_response = response.response
-    s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+    s3_uri = URI.parse ("s3://" + bucket + "/") / key
     content_type = inner_response.contentType
     name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
         key.split "/" . last
