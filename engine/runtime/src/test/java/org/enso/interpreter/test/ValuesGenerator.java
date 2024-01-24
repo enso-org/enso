@@ -369,7 +369,7 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "", "42").type());
       collect.add(v(null, "", "6.7").type());
-      collect.add(v(null, "", "40321 * 43202").type());
+      collect.add(v(null, "import Standard.Base.Data.Numbers", "40321 * 43202").type());
       collect.add(
           v(
                   null,

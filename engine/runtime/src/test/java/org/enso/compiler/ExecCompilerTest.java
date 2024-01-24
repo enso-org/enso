@@ -1,14 +1,9 @@
 package org.enso.compiler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -16,6 +11,11 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -276,11 +276,12 @@ public class ExecCompilerTest {
         ctx.eval(
             "enso",
             """
-    type My_Type
-        Value x
+            import Standard.Base.Data.Numbers
+            type My_Type
+                Value x
 
-        member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
-    """);
+                member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+            """);
     var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
     var result = instance.invokeMember("member_foo", 2, 3);
     assertEquals(321, result.asInt());

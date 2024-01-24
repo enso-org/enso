@@ -48,7 +48,7 @@ class Metadata(val prelude: String = "") {
     * @param expected the text that should be assigned to the UUID
     */
   def assertInCode(uuid: UUID, code: String, expected: String): Unit = {
-    val full = prelude+code
+    val full = prelude + code
     for (item <- items) {
       if (item.id == uuid) {
         val real = full.substring(item.start, item.start + item.len)

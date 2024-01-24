@@ -1,14 +1,14 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Map;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -75,6 +75,8 @@ public class NonStrictModeTests extends TestBase {
     // will simply not see the second conversion and succeed with the first one.
     String src =
         """
+        import Standard.Base.Data.Numbers
+
         type Foo
            Mk_Foo data
         type Bar
@@ -91,14 +93,16 @@ public class NonStrictModeTests extends TestBase {
 
     logHandler.assertMessage(
         "enso.org.enso.compiler.Compiler",
-        "Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this"
+        "Unnamed:9:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this"
             + " module.");
   }
 
   @Test
   public void testBadImport() {
-    String src = """
+    String src =
+        """
         import That.Does.Not.Exist
+        import Standard.Base.Data.Numbers
 
         main = 2+2
         """;

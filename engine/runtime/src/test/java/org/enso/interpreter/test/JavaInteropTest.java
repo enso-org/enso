@@ -1,17 +1,17 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,6 +61,7 @@ public class JavaInteropTest extends TestBase {
   public void testClassImportAndMethodCall() {
     var code =
         """
+        import Standard.Base.Data.Numbers
         polyglot java import org.enso.example.TestClass
         main =
             instance = TestClass.new (x -> x * 2)

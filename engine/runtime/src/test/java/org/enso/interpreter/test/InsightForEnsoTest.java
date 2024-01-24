@@ -1,20 +1,20 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Level;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -82,12 +82,13 @@ public class InsightForEnsoTest {
         Source.newBuilder(
                 "enso",
                 """
-      fac n =
-          acc n v = if n <= 1 then v else
-            @Tail_Call acc n-1 n*v
+                import Standard.Base.Data.Numbers
+                fac n =
+                    acc n v = if n <= 1 then v else
+                        @Tail_Call acc n-1 n*v
 
-          acc n 1
-      """,
+                    acc n 1
+                """,
                 "factorial.enso")
             .build();
 

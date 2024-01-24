@@ -313,7 +313,18 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER, Api.MethodCall(Api.MethodPointer("Standard.Base.Data.Numbers", ConstantsGen.INTEGER, "+"))),
+      TestMessages.update(
+        contextId,
+        yExpr,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
@@ -440,7 +451,18 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER, Api.MethodCall(Api.MethodPointer("Standard.Base.Data.Numbers", ConstantsGen.INTEGER, "+"))),
+      TestMessages.update(
+        contextId,
+        yExpr,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainRes1Expr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
