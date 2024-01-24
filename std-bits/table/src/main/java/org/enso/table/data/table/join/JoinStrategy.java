@@ -44,6 +44,12 @@ public interface JoinStrategy {
     }
   }
 
+  static void ensureConditionsNotEmpty(List<? extends JoinCondition> conditions) {
+    if (conditions.isEmpty()) {
+        throw new IllegalArgumentException("At least one join condition must be provided.");
+      }
+  }
+
   class ConditionsHelper {
     private final List<? extends JoinCondition> conditions;
 

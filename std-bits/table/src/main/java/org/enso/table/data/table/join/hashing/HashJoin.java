@@ -25,6 +25,7 @@ public class HashJoin implements JoinStrategy {
       List<HashableCondition> conditions,
       PluggableJoinStrategy remainingMatcher,
       JoinResult.BuilderSettings resultBuilderSettings) {
+    JoinStrategy.ensureConditionsNotEmpty(conditions);
     conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
     this.remainingMatcher = remainingMatcher;
     this.resultBuilderSettings = resultBuilderSettings;
@@ -56,13 +57,13 @@ public class HashJoin implements JoinStrategy {
     var leftIndex =
         MultiValueIndex.makeUnorderedIndex(
             leftEquals,
-            conditionsHelper.getLeftTableRowCount(),
+            leftEquals[0].getSize(),
             textFoldingStrategies,
             problemAggregator);
     var rightIndex =
         MultiValueIndex.makeUnorderedIndex(
             rightEquals,
-            conditionsHelper.getRightTableRowCount(),
+            rightEquals[0].getSize(),
             textFoldingStrategies,
             problemAggregator);
 
