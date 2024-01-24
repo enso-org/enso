@@ -70,7 +70,8 @@ public class HashJoin implements JoinStrategy {
     for (var leftEntry : leftIndex.mapping().entrySet()) {
       UnorderedMultiValueKey leftKey = leftEntry.getKey();
       List<Integer> leftRows = leftEntry.getValue();
-      List<Integer> rightRows = rightIndex.get(leftKey);
+      // If any field of the key is null, it cannot match anything.
+      List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
 
       if (rightRows != null) {
         remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
@@ -89,7 +90,8 @@ public class HashJoin implements JoinStrategy {
     if (resultBuilderSettings.wantsRightUnmatched()) {
       for (var rightEntry : rightIndex.mapping().entrySet()) {
         UnorderedMultiValueKey rightKey = rightEntry.getKey();
-        boolean wasCompletelyUnmatched = !leftIndex.contains(rightKey);
+        // If any field of the key is null, it cannot match anything.
+        boolean wasCompletelyUnmatched = rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
         if (wasCompletelyUnmatched) {
           for (int rightRow : rightEntry.getValue()) {
             resultBuilder.addUnmatchedRightRow(rightRow);
