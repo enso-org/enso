@@ -7,7 +7,7 @@ declare const portIdBrand: unique symbol
  * Port identification. A port represents a fragment of code displayed/modified by the widget;
  * usually Ast nodes, but other ids are also possible (like argument placeholders).
  */
-export type PortId = AstId | TokenId | (string & { [portIdBrand]: never })
+export type PortId = AstId | (string & { [portIdBrand]: never })
 
 interface PortInfo {
   portId: PortId

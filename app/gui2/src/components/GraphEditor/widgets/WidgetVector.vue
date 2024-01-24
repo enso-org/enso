@@ -5,6 +5,8 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -35,7 +37,10 @@ const value = computed({
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
     const edit = graph.astModule.edit()
-    props.onUpdate({ edit, portUpdate: { value: newCode, origin: props.input.portId } })
+    props.onUpdate({
+      edit,
+      portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
+    })
   },
 })
 
