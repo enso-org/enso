@@ -375,7 +375,6 @@ type File_Connection
     Value ~file
 
     setup = File_Connection.Value <|
-        IO.println <| "  SQLite_Spec_New.File_Connection.setup"
         tmp_file = backing_file
         con = create_file_connection backing_file
         con.close
@@ -384,7 +383,6 @@ type File_Connection
 
 
     teardown self =
-        IO.println <| "  SQLite_Spec_New.File_Connection.teardown"
         assert self.file.exists
         self.file.delete
 
