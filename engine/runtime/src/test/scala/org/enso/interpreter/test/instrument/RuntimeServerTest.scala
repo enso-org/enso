@@ -108,7 +108,7 @@ class RuntimeServerTest
       def code =
         metadata.appendToCode(
           """
-            |from Standard.Base.Data.Numbers import Number
+            |from Standard.Base.Data.Numbers import    all
             |
             |main =
             |    x = 6
@@ -2961,11 +2961,12 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       TestMessages
         .update(contextId, idMain, ConstantsGen.INTEGER, typeChanged = false),
-      context.Main.Update.mainY(contextId, fromCache                 = true),
       context.executionComplete(contextId)
     )
 
@@ -4031,12 +4032,12 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       TestMessages
         .update(contextId, idMain, ConstantsGen.INTEGER, typeChanged = false),
-      context.Main.Update
-        .mainY(contextId, fromCache = true, typeChanged = true),
       context.executionComplete(contextId)
     )
 
@@ -6064,7 +6065,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -6076,6 +6077,7 @@ class RuntimeServerTest
         fromCache   = true,
         typeChanged = true
       ),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
