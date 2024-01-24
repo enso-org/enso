@@ -716,7 +716,7 @@ export interface CreateUserRequestBody {
 
 /** HTTP request body for the "update user" endpoint. */
 export interface UpdateUserRequestBody {
-  name: string | null
+  username: string | null
 }
 
 /** HTTP request body for the "invite user" endpoint. */
@@ -802,6 +802,11 @@ export interface UploadFileRequestParams {
   // Marked as optional in the data type, however it is required by the actual route handler.
   fileName: string
   parentDirectoryId: DirectoryId | null
+}
+
+/** URL query string parameters for the "upload user profile picture" endpoint. */
+export interface UploadUserPictureRequestParams {
+  fileName: string | null
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -906,7 +911,7 @@ export abstract class Backend {
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(file: Blob): Promise<string>
+  abstract uploadUserPicture(params: UploadUserPictureRequestParams, file: Blob): Promise<string>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */

@@ -71,7 +71,7 @@ export default function AccountSettingsTab() {
       return
     } else {
       try {
-        await backend.updateUser({ name: newName })
+        await backend.updateUser({ username: newName })
         setOrganization(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
@@ -89,7 +89,7 @@ export default function AccountSettingsTab() {
       toastAndLog('Could not upload a new profile picture because no image was found')
     } else {
       try {
-        const url = await backend.uploadUserPicture(image)
+        const url = await backend.uploadUserPicture({ fileName: image.name }, image)
         setOrganization(oldOrganization => object.merge(oldOrganization, { profilePicture: url }))
       } catch (error) {
         toastAndLog(null, error)

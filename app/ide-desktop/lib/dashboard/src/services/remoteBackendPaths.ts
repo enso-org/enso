@@ -9,6 +9,8 @@ import type * as backend from '#/services/backend'
 export const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "create user" endpoint of the Cloud backend API. */
 export const CREATE_USER_PATH = 'users'
+/** Relative HTTP path to the "update current user" endpoint of the Cloud backend API. */
+export const UPDATE_CURRENT_USER_PATH = 'users/me'
 /** Relative HTTP path to the "delete user" endpoint of the Cloud backend API. */
 export const DELETE_USER_PATH = 'users/me'
 /** Relative HTTP path to the "upload user picture" endpoint of the Cloud backend API. */
