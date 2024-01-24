@@ -1,6 +1,7 @@
 package org.enso.interpreter.test
 
 import java.util.UUID
+import org.enso.text.editing.model
 
 private case class Item(start: Int, len: Int, id: UUID) {
   def toJsonString: String =
@@ -61,5 +62,30 @@ class Metadata(val prelude: String = "") {
       }
     }
     throw new AssertionError("UUID " + uuid + " not found")
+  }
+
+  /** Verifies given line/column based position range contains
+    * requested text and if so, it returns a range representing
+    * those positions.
+    */
+  def assertInCode(
+    code: String,
+    start: model.Position,
+    end: model.Position,
+    expected: String
+  ): model.Range = {
+    val full = prelude + code
+    if (start.line != end.line) {
+      throw new AssertionError("Supporting only same line right now")
+    }
+    val actual = full.lines
+      .toList()
+      .get(start.line)
+      .substring(start.character, end.character)
+    val range = model.Range(start, end)
+    if (actual != expected) {
+      throw new AssertionError(s"Unexpected text at $range: $actual")
+    }
+    range
   }
 }

@@ -12,6 +12,11 @@ type Integer
     div self that = Integer.do_div self that
     negate self = Integer.do_negate self
 
+    < self that = Integer.do_less self that
+    <= self that = Integer.do_less_equal self that
+    > self that = Integer.do_greater self that
+    >= self that = Integer.do_greater_equal self that
+
 
 
     do_pow a b = @Builtin_Method "Integer.^"
@@ -22,3 +27,8 @@ type Integer
     do_rem a b = @Builtin_Method "Integer.%"
     do_div a b = @Builtin_Method "Integer.div"
     do_negate a = @Builtin_Method "Integer.negate"
+
+    do_less a b = @Builtin_Method "Integer.<"
+    do_less_equal a b = @Builtin_Method "Integer.<="
+    do_greater a b = @Builtin_Method "Integer.>"
+    do_greater_equal a b = @Builtin_Method "Integer.>="
