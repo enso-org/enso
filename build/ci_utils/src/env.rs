@@ -30,6 +30,18 @@ pub fn set_current_dir(path: impl AsRef<Path>) -> Result {
         .with_context(|| format!("Failed to set current directory to {}.", path.as_ref().display()))
 }
 
+/// Run the given function with the current directory set to the given path.
+///
+/// After the function returns, the previous current directory is restored, even if the function
+/// fails.
+pub fn try_with_current_dir(path: impl AsRef<Path>, f: impl FnOnce() -> Result) -> Result {
+    let old_dir = current_dir()?;
+    set_current_dir(&path)?;
+    let result = f();
+    set_current_dir(old_dir)?;
+    result
+}
+
 /// Like [`std::env::current_exe`], but with nicer error message.
 pub fn current_exe() -> Result<PathBuf> {
     std::env::current_exe().context("Failed to get current executable path.")

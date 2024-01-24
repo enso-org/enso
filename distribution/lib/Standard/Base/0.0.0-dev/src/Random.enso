@@ -45,8 +45,8 @@ type Random
     new_generator : Integer | Nothing -> Random_Generator
     new_generator seed:(Integer | Nothing)=Nothing = Random_Generator.new seed
 
-    ## GROUP Random
-       TEXT_ONLY
+    ## PRIVATE
+       GROUP Random
 
        Set the seed of the default `Random_Generator` instance.
 

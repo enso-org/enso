@@ -16,20 +16,7 @@ import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
-public class EnsoSecretHelper {
-  /**
-   * Gets the value of an HideableValue resolving secrets.
-   *
-   * @param value The value to resolve.
-   * @return The pair's value. Should not be returned to Enso.
-   */
-  private static String resolveValue(HideableValue value) {
-    return switch (value) {
-      case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> EnsoSecretReader.readSecret(
-          secretValue.secretId());
-    };
-  }
+public final class EnsoSecretHelper extends SecretValueResolver {
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(String url, Pair<String, HideableValue>[] properties)
@@ -79,7 +66,7 @@ public class EnsoSecretHelper {
     URI renderedURI = uri.render();
 
     boolean hasSecrets =
-        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().isSecret());
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
     if (hasSecrets) {
       if (resolvedURI.getScheme() == null) {
         throw new IllegalArgumentException("The URI must have a scheme.");
@@ -106,5 +93,9 @@ public class EnsoSecretHelper {
     // Extract parts of the response
     return new EnsoHttpResponse(
         renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+  }
+
+  public static void deleteSecretFromCache(String secretId) {
+    EnsoSecretReader.removeFromCache(secretId);
   }
 }

@@ -9,13 +9,13 @@
 
 /** The state of an item being synced to a remote server. */
 enum Visibility {
-    /** The item is present. */
-    visible = 'visible',
-    /** The item will be inserted, but the backend request has not yet finished,
-     * or the item has been cut and will potentially be moved in the future. */
-    faded = 'faded',
-    /** The item will be deleted, but the backend request has not yet finished. */
-    hidden = 'hidden',
+  /** The item is present. */
+  visible = 'visible',
+  /** The item will be inserted, but the backend request has not yet finished,
+   * or the item has been cut and will potentially be moved in the future. */
+  faded = 'faded',
+  /** The item will be deleted, but the backend request has not yet finished. */
+  hidden = 'hidden',
 }
 
 // This is REQUIRED, as `export default enum` is invalid syntax.
@@ -28,9 +28,9 @@ export default Visibility
 
 /** The corresponding CSS classes for table rows, for each {@link Visibility}. */
 export const CLASS_NAME: Record<Visibility, string> = {
-    [Visibility.visible]: '',
-    // Note that in some cases (e.g. table rows with alternating colors), the element should be
-    // completely removed from the DOM.
-    [Visibility.hidden]: 'hidden',
-    [Visibility.faded]: 'opacity-50 pointer-events-none-recursive',
+  [Visibility.visible]: '',
+  // Note that in some cases (e.g. table rows with alternating colors), the element should be
+  // completely removed from the DOM.
+  [Visibility.hidden]: 'hidden',
+  [Visibility.faded]: 'opacity-50 pointer-events-none-recursive',
 } as const

@@ -53,6 +53,16 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
           .build();
 
+  public static final String INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION =
+      interpreterOptionName("randomDelayedCommandExecution");
+  public static final OptionKey<Boolean> INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY =
+      new OptionKey<>(false);
+  public static final OptionDescriptor INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY,
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION)
+          .build();
+
   public static final String JOB_PARALLELISM = interpreterOptionName("jobParallelism");
   public static final OptionKey<Integer> JOB_PARALLELISM_KEY = new OptionKey<>(1);
   public static final OptionDescriptor JOB_PARALLELISM_DESCRIPTOR =
@@ -138,6 +148,7 @@ public class RuntimeOptions {
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR,
               JOB_PARALLELISM_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,

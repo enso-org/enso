@@ -53,7 +53,7 @@
     "selfType": "Standard.Base.Data",
     "returnType": "Standard.Base.Any.Any",
     "isStatic": true,
-    "documentation": " ADDED 0.1\nADVANCED\nALIAS alias1, alias2\nDEPRECATED\nICON select_row\nGROUP Output\nMODIFIED 0.9\nREMOVED 1.2\nTEXT_ONLY\nUNSTABLE\nUPCOMING\nThis is a test entry that has every tag set, except for `PRIVATE` (as it would hide the entry from the documentation).",
+    "documentation": " ADDED 0.1\nADVANCED\nALIAS alias1, alias2\nDEPRECATED\nICON select_row\nGROUP Output\nMODIFIED 0.9\nREMOVED 1.2\nUNSTABLE\nUPCOMING\nThis is a test entry that has every tag set, except for `PRIVATE` (as it would hide the entry from the documentation).",
     "annotations": ["format"]
   },
   {

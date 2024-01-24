@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -19,6 +20,7 @@ import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
+import org.openide.util.Lookup;
 
 /**
  * An instrument exposing a server for other services to connect to, in order to control the current
@@ -102,14 +104,18 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     this.env = env;
     env.registerService(this);
-    Handler handler = new Handler();
-    this.handler = handler;
+    if (TruffleOptions.AOT) {
+      this.handler = HandlerFactoryImpl.create();
+    } else {
+      var loadedHandler = Lookup.getDefault().lookup(HandlerFactory.class);
+      this.handler = loadedHandler != null ? loadedHandler.create() : HandlerFactoryImpl.create();
+    }
 
     try {
       MessageEndpoint client =
-          env.startServer(URI.create(RuntimeServerInfo.URI), handler.endpoint());
+          env.startServer(URI.create(RuntimeServerInfo.URI), this.handler.endpoint());
       if (client != null) {
-        handler.endpoint().setClient(client);
+        this.handler.endpoint().setClient(client);
       } else {
         env.getLogger(RuntimeServerInstrument.class)
             .warning(

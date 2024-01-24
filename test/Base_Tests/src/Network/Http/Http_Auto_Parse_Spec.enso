@@ -1,12 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 import Standard.Base.Network.HTTP.Response.Response
 
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
-
-polyglot java import java.util.Base64
 
 main = Test_Suite.run_main spec
 
@@ -26,11 +25,11 @@ spec =
 
         url_utf8 = (URI.from base_url_with_slash / "test_headers")
             . add_query_argument "Content-Type" "text/plain; charset=utf-8"
-            . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content_utf.bytes Encoding.utf_8))
+            . add_query_argument "base64_response_data" (Base_64.encode_text content_utf)
 
         url_windows_1250 = (URI.from base_url_with_slash / "test_headers")
             . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
-            . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content_windows_1250.bytes Encoding.windows_1250))
+            . add_query_argument "base64_response_data" (Base_64.encode_text content_windows_1250 Encoding.windows_1250)
 
         Test.specify "should detect the encoding from Content-Type in fetch" <|
             url_utf8.fetch . should_equal content_utf

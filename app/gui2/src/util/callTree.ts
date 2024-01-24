@@ -5,7 +5,6 @@ import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import type { MethodCall } from 'shared/languageServerTypes'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -147,10 +146,10 @@ export function interpretCall(callRoot: Ast.Ast, allowInterpretAsInfix: boolean)
 }
 
 interface CallInfo {
-  noArgsCall?: MethodCall | undefined
-  appMethodCall?: MethodCall | undefined
+  notAppliedArguments?: number[] | undefined
   suggestion?: SuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
+  subjectAsSelf?: boolean | undefined
 }
 
 export class ArgumentApplication {
@@ -184,12 +183,8 @@ export class ArgumentApplication {
     )
   }
 
-  private static FromInterpretedPrefix(
-    interpreted: InterpretedPrefix,
-    callInfo: CallInfo,
-    stripSelfArgument: boolean,
-  ) {
-    const { noArgsCall, suggestion, widgetCfg } = callInfo
+  private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
+    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
     const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
@@ -198,15 +193,14 @@ export class ArgumentApplication {
     // when this is a method application with applied 'self', the subject of the access operator is
     // treated as a 'self' argument.
     if (
-      stripSelfArgument &&
+      subjectAsSelf &&
       knownArguments?.[0]?.name === 'self' &&
       getAccessOprSubject(interpreted.func) != null
     ) {
       allPossiblePrefixArguments.shift()
     }
-    const notAppliedOriginally = new Set(
-      noArgsCall?.notAppliedArguments ?? allPossiblePrefixArguments,
-    )
+
+    const notAppliedOriginally = new Set(notAppliedArguments ?? allPossiblePrefixArguments)
     const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
       notAppliedOriginally.has(i),
     )
@@ -355,12 +349,11 @@ export class ArgumentApplication {
   static FromInterpretedWithInfo(
     interpreted: InterpretedCall,
     callInfo: CallInfo = {},
-    stripSelfArgument: boolean = false,
   ): ArgumentApplication | Ast.Ast {
     if (interpreted.kind === 'infix') {
       return ArgumentApplication.FromInterpretedInfix(interpreted, callInfo)
     } else {
-      return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo, stripSelfArgument)
+      return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo)
     }
   }
 

@@ -153,7 +153,7 @@ abstract class JsonRpcServerTestKit
     }
 
     def expectSomeJson(
-      timeout: FiniteDuration = 5.seconds.dilated
+      timeout: FiniteDuration = 10.seconds.dilated
     )(implicit pos: Position): Json = {
       val parsed = parse(expectMessage(timeout))
       inside(parsed) { case Right(json) => json }

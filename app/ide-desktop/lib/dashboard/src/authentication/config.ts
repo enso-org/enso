@@ -85,9 +85,9 @@ export type RegisterOpenAuthenticationUrlCallbackFn = () => void
 export const AWS_REGION = AwsRegion('eu-west-1')
 /** Complete list of OAuth scopes used by the app. */
 export const OAUTH_SCOPES = [
-    OAuthScope('email'),
-    OAuthScope('openid'),
-    OAuthScope('aws.cognito.signin.user.admin'),
+  OAuthScope('email'),
+  OAuthScope('openid'),
+  OAuthScope('aws.cognito.signin.user.admin'),
 ]
 /** OAuth response type used in the OAuth flows. */
 export const OAUTH_RESPONSE_TYPE = OAuthResponseType('code')
@@ -102,16 +102,16 @@ export const OAUTH_RESPONSE_TYPE = OAuthResponseType('code')
  * The values in this object are not secret, and can be swapped out for testing values to avoid
  * creating authenticated users in the production environment. */
 export interface AmplifyConfig {
-    region: AwsRegion
-    userPoolId: UserPoolId
-    userPoolWebClientId: UserPoolWebClientId
-    urlOpener: OAuthUrlOpener | null
-    saveAccessToken: AccessTokenSaver | null
-    domain: OAuthDomain
-    scope: OAuthScope[]
-    redirectSignIn: OAuthRedirect
-    redirectSignOut: OAuthRedirect
-    responseType: OAuthResponseType
+  region: AwsRegion
+  userPoolId: UserPoolId
+  userPoolWebClientId: UserPoolWebClientId
+  urlOpener: OAuthUrlOpener | null
+  saveAccessToken: AccessTokenSaver | null
+  domain: OAuthDomain
+  scope: OAuthScope[]
+  redirectSignIn: OAuthRedirect
+  redirectSignOut: OAuthRedirect
+  responseType: OAuthResponseType
 }
 
 // ===========================
@@ -120,25 +120,25 @@ export interface AmplifyConfig {
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
-    urlOpener?: OAuthUrlOpener
+  urlOpener?: OAuthUrlOpener
 }
 
 /** OAuth configuration for a {@link NestedAmplifyConfig}. */
 interface OauthAmplifyConfig {
-    options: OauthAmplifyConfigOptions
-    domain: OAuthDomain
-    scope: OAuthScope[]
-    redirectSignIn: OAuthRedirect
-    redirectSignOut: OAuthRedirect
-    responseType: OAuthResponseType
+  options: OauthAmplifyConfigOptions
+  domain: OAuthDomain
+  scope: OAuthScope[]
+  redirectSignIn: OAuthRedirect
+  redirectSignOut: OAuthRedirect
+  responseType: OAuthResponseType
 }
 
 /** Same as {@link AmplifyConfig}, but in a format recognized by the AWS Amplify library. */
 export interface NestedAmplifyConfig {
-    region: AwsRegion
-    userPoolId: UserPoolId
-    userPoolWebClientId: UserPoolWebClientId
-    oauth: OauthAmplifyConfig
+  region: AwsRegion
+  userPoolId: UserPoolId
+  userPoolWebClientId: UserPoolWebClientId
+  oauth: OauthAmplifyConfig
 }
 
 /** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
@@ -146,19 +146,19 @@ export interface NestedAmplifyConfig {
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
  * expects a nested form. */
 export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
-    return {
-        region: config.region,
-        userPoolId: config.userPoolId,
-        userPoolWebClientId: config.userPoolWebClientId,
-        oauth: {
-            options: {
-                ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
-            },
-            domain: config.domain,
-            scope: config.scope,
-            redirectSignIn: config.redirectSignIn,
-            redirectSignOut: config.redirectSignOut,
-            responseType: config.responseType,
-        },
-    }
+  return {
+    region: config.region,
+    userPoolId: config.userPoolId,
+    userPoolWebClientId: config.userPoolWebClientId,
+    oauth: {
+      options: {
+        ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
+      },
+      domain: config.domain,
+      scope: config.scope,
+      redirectSignIn: config.redirectSignIn,
+      redirectSignOut: config.redirectSignOut,
+      responseType: config.responseType,
+    },
+  }
 }

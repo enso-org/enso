@@ -5,6 +5,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
+  readImports,
   recognizeImport,
   type Import,
   type RequiredImport,
@@ -22,7 +23,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
-import type { StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -68,6 +69,17 @@ export const useGraphStore = defineStore('graph', () => {
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
 
+  const topLevel = computed(() => {
+    // The top level of the module is always a block.
+    const root = moduleRoot.value
+    const topLevel = root != null ? astModule.get(root) : null
+    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
+      return null
+    } else {
+      return topLevel
+    }
+  })
+
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
     if (!moduleCode.value) {
@@ -84,7 +96,6 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const imports = ref<{ import: Import; span: SourceRange }[]>([])
   const methodAst = ref<Ast.Function>()
   const currentNodeIds = ref(new Set<ExprId>())
 
@@ -114,18 +125,6 @@ export const useGraphStore = defineStore('graph', () => {
       astModule.replace(newRoot.module)
       moduleRoot.value = newRoot.exprId
       module.doc.setIdMap(idMap_)
-
-      imports.value = []
-      newRoot.visitRecursive((node) => {
-        if (node instanceof Ast.Import) {
-          const recognized = recognizeImport(node)
-          if (recognized) {
-            imports.value.push({ import: recognized, span: node.span! })
-          }
-          return false
-        }
-        return true
-      })
 
       methodAst.value = methodAstInModule(astModule)
       if (methodAst.value) {
@@ -246,21 +245,15 @@ export const useGraphStore = defineStore('graph', () => {
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
     if (!newImports.length) return
-    const root = moduleRoot.value
-    if (!root) {
-      console.error(`BUG: Cannot add required imports: No module root.`)
+    const topLevel = moduleRoot.value ? edit.get(moduleRoot.value) : null
+    if (!topLevel || !(topLevel instanceof Ast.BodyBlock)) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
       return
     }
-    const importsToAdd = filterOutRedundantImports(imports.value, newImports)
+    const existingImports = readImports(topLevel)
+    const importsToAdd = filterOutRedundantImports(existingImports, newImports)
     if (!importsToAdd.length) return
-    // The top level of the module is always a block.
-    const topLevel = astModule.get(root)! as Ast.BodyBlock
     addImports(edit, topLevel, importsToAdd)
-  }
-
-  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
-    const edit = cb(astModule)
-    commitEdit(edit)
   }
 
   function deleteNodes(ids: ExprId[]) {
@@ -300,8 +293,6 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
@@ -450,6 +441,10 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
+  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+    db.mockExpressionUpdate(binding, update)
+  }
+
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
     const edit = astModule.edit()
     const metadataUpdates = scope(edit)
@@ -518,7 +513,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     transact,
     db: markRaw(db),
-    imports,
+    mockExpressionUpdate,
     editedNodeInfo,
     unconnectedEdge,
     edges,
@@ -528,7 +523,6 @@ export const useGraphStore = defineStore('graph', () => {
     vizRects,
     unregisterNodeRect,
     methodAst,
-    editAst,
     astModule,
     createEdgeFromOutput,
     disconnectSource,
@@ -544,6 +538,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
+    topLevel,
     updateNodeRect,
     updateVizRect,
     addPortInstance,

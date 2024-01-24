@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{ tags: Doc.Section.Tag[]; groupColor: string }>()
 
-const skipTags: Doc.Tag[] = ['Icon', 'TextOnly']
+const skipTags: Doc.Tag[] = ['Icon']
 const tags = computed<Doc.Section.Tag[]>(() => {
   return props.tags.flatMap((tag) => {
     if (tag.tag === 'Alias') {
