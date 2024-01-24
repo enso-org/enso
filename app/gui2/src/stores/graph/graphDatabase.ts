@@ -390,11 +390,24 @@ export class GraphDb {
     return node
   }
 
-  mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
-    const nodeId = this.getIdentDefiningNode(binding)
-    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
+  mockExpressionUpdate(expression: ExpressionLocator, update: Partial<ExpressionUpdate>) {
+    let expressionId
+    if (typeof expression === 'string') {
+      expressionId = expression
+    } else {
+      const nodeId = this.getIdentDefiningNode(expression.binding)
+      if (nodeId == null) bail(`The node with identifier '${expression.binding}' was not found.`)
+      if (expression.exprIdGetter) {
+        const node = this.nodeIdToNode.get(nodeId)
+        if (node == null) bail(`No node with id ${nodeId}`)
+        expressionId = expression.exprIdGetter(node)
+      } else {
+        expressionId = nodeId
+      }
+    }
+
     const update_: ExpressionUpdate = {
-      expressionId: nodeId,
+      expressionId,
       profilingInfo: update.profilingInfo ?? [],
       fromCache: update.fromCache ?? false,
       payload: update.payload ?? { type: 'Value' },
@@ -434,3 +447,12 @@ function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined):
       arrayEquals(a.notAppliedArguments, b.notAppliedArguments))
   )
 }
+
+/**
+ * A structure locating expression for mocking data.
+ *
+ * It may be just ExprId, or node's binding. In the latter case the node entire expression will
+ * be used, unless `exprIdGetter` field is set, which may return some nested id basing on node's
+ * information.
+ */
+export type ExpressionLocator = ExprId | { binding: string; exprIdGetter?: (node: Node) => ExprId }

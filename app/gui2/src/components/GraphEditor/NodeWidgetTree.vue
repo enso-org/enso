@@ -32,7 +32,6 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  console.log('Widget Update: ', update)
   if (update.portUpdate) {
     const {
       edit,

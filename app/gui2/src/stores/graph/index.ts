@@ -1,7 +1,7 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { GraphDb, type ExpressionLocator } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
@@ -452,7 +452,7 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
-  function mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
+  function mockExpressionUpdate(binding: ExpressionLocator, update: Partial<ExpressionUpdate>) {
     db.mockExpressionUpdate(binding, update)
   }
 

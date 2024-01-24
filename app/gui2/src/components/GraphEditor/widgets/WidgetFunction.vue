@@ -141,8 +141,10 @@ const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
+  console.log(data)
   if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
+    console.log(parseResult)
     if (parseResult.success) {
       return functionCallConfiguration(parseResult.data)
     } else {
