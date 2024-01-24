@@ -17,7 +17,6 @@ import org.graalvm.polyglot.Context;
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
   public SortJoin(List<Between> conditions, JoinResult.BuilderSettings resultBuilderSettings) {
-    conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
     JoinStrategy.ensureConditionsNotEmpty(conditions);
     this.resultBuilderSettings = resultBuilderSettings;
 
@@ -36,7 +35,6 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private final JoinStrategy.ConditionsHelper conditionsHelper;
   private final JoinResult.BuilderSettings resultBuilderSettings;
 
   private final int[] directions;

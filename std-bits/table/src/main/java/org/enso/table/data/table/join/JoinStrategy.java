@@ -49,32 +49,4 @@ public interface JoinStrategy {
         throw new IllegalArgumentException("At least one join condition must be provided.");
       }
   }
-
-  class ConditionsHelper {
-    private final List<? extends JoinCondition> conditions;
-
-    public ConditionsHelper(List<? extends JoinCondition> conditions) {
-      if (conditions.isEmpty()) {
-        throw new IllegalArgumentException("At least one join condition must be provided.");
-      }
-
-      this.conditions = conditions;
-    }
-
-    public int getLeftTableRowCount() {
-      return switch (conditions.get(0)) {
-        case Equals equals -> equals.left().getStorage().size();
-        case EqualsIgnoreCase equalsIgnoreCase -> equalsIgnoreCase.left().getStorage().size();
-        case Between between -> between.left().getStorage().size();
-      };
-    }
-
-    public int getRightTableRowCount() {
-      return switch (conditions.get(0)) {
-        case Equals equals -> equals.right().getStorage().size();
-        case EqualsIgnoreCase equalsIgnoreCase -> equalsIgnoreCase.right().getStorage().size();
-        case Between between -> between.rightLower().getStorage().size();
-      };
-    }
-  }
 }

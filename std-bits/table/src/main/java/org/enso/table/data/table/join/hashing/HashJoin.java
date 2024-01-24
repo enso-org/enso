@@ -26,7 +26,6 @@ public class HashJoin implements JoinStrategy {
       PluggableJoinStrategy remainingMatcher,
       JoinResult.BuilderSettings resultBuilderSettings) {
     JoinStrategy.ensureConditionsNotEmpty(conditions);
-    conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
     this.remainingMatcher = remainingMatcher;
     this.resultBuilderSettings = resultBuilderSettings;
 
@@ -44,7 +43,6 @@ public class HashJoin implements JoinStrategy {
         equalConditions.stream().map(HashEqualityCondition::textFoldingStrategy).toList();
   }
 
-  private final JoinStrategy.ConditionsHelper conditionsHelper;
   private final Column[] leftEquals, rightEquals;
   private final List<TextFoldingStrategy> textFoldingStrategies;
   private final PluggableJoinStrategy remainingMatcher;
