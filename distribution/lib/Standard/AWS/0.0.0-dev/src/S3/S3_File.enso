@@ -47,7 +47,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Checks if this is a folder.
     is_directory : Boolean
-    is_directory self = self.prefix=="" || self.prefix.ends_with "/"
+    is_directory self = (self.prefix == "") || (self.prefix.ends_with "/")
 
     ## GROUP Standard.Base.Metadata
        Checks if this is a regular file.
@@ -169,7 +169,7 @@ type S3_File
                 x -> current + "/" + x
             @Tail_Call loop new_current (remaining.drop 1)
 
-        initial = if subpath.starts_with "/" then "" else self.prefix
+        initial = if subpath.starts_with "/" then "" else self.prefix.drop 1
         path = loop initial parts
         S3_File.Value self.bucket path self.credentials
 

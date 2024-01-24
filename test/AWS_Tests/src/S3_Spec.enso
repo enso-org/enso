@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Runtime import assert
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
@@ -198,7 +199,8 @@ spec =
 
     Test.group "S3_File writing" pending=pending <|
         writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
-        my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")
+        my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
+        assert my_writable_dir.is_directory
         delete_on_panic file ~action =
             handler caught_panic =
                 file.delete
