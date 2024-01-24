@@ -186,7 +186,6 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
         group_builder.specify "should allow to access a Table by name" <|
             name = data.t1.name
-            IO.println <| "      Querying table with name " + name
             tmp = data.connection.query (SQL_Query.Table_Name name)
             tmp.read . should_equal data.t1.read
             
