@@ -166,7 +166,7 @@ type S3_File
                     last_index = current.last_index_of "/"
                     if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
                 "." -> current
-                x -> new_current + "/" + x
+                x -> current + "/" + x
             @Tail_Call loop new_current (remaining.drop 1)
 
         initial = if subpath.starts_with "/" then "" else self.prefix
