@@ -119,12 +119,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: (shouldShowToast?: boolean) => Promise<boolean>
-    signUp: (
-        email: string,
-        password: string,
-        organizationId: string | null,
-        requestedPlan: string | null
-    ) => Promise<boolean>
+    signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
         backend: backendModule.Backend,
@@ -407,14 +402,9 @@ export default function AuthProvider(props: AuthProviderProps) {
         })
     }
 
-    const signUp = async (
-        username: string,
-        password: string,
-        organizationId: string | null,
-        requestedPlan: string | null
-    ) => {
+    const signUp = async (username: string, password: string, organizationId: string | null) => {
         gtag.event('cloud_sign_up')
-        const result = await cognito.signUp(username, password, organizationId, requestedPlan)
+        const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toastSuccess(MESSAGES.signUpSuccess)
             navigate(appUtils.LOGIN_PATH)
@@ -486,19 +476,14 @@ export default function AuthProvider(props: AuthProviderProps) {
                         pending: MESSAGES.setUsernameLoading,
                     }
                 )
-                const plan = await authService.cognito.requestedPlan()
-                if (plan != null) {
-                    navigate(app.SUBSCRIBE_PATH + '?' + new URLSearchParams({ plan }).toString())
+                const redirectTo = localStorage.get(
+                    localStorageModule.LocalStorageKey.loginRedirect
+                )
+                if (redirectTo != null) {
+                    localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+                    location.href = redirectTo
                 } else {
-                    const redirectTo = localStorage.get(
-                        localStorageModule.LocalStorageKey.loginRedirect
-                    )
-                    if (redirectTo != null) {
-                        localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
-                        location.href = redirectTo
-                    } else {
-                        navigate(appUtils.DASHBOARD_PATH)
-                    }
+                    navigate(appUtils.DASHBOARD_PATH)
                 }
                 return true
             } catch {

@@ -26,7 +26,6 @@ import SubmitButton from '#/components/SubmitButton'
 const REGISTRATION_QUERY_PARAMS = {
     email: 'email',
     organizationId: 'organization_id',
-    plan: 'plan',
     redirectTo: 'redirect_to',
 } as const
 
@@ -39,12 +38,7 @@ export default function Registration() {
     const auth = authProvider.useAuth()
     const location = router.useLocation()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const {
-        email: urlEmail,
-        organizationId,
-        plan,
-        redirectTo,
-    } = parseUrlSearchParams(location.search)
+    const { email: urlEmail, organizationId, redirectTo } = parseUrlSearchParams(location.search)
     const [email, setEmail] = React.useState(urlEmail ?? '')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
@@ -65,7 +59,7 @@ export default function Registration() {
                 onSubmit={async event => {
                     event.preventDefault()
                     setIsSubmitting(true)
-                    await auth.signUp(email, password, organizationId, plan)
+                    await auth.signUp(email, password, organizationId)
                     setIsSubmitting(false)
                 }}
             >
@@ -121,7 +115,6 @@ function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const email = query.get(REGISTRATION_QUERY_PARAMS.email)
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
-    const plan = query.get(REGISTRATION_QUERY_PARAMS.plan)
     const redirectTo = query.get(REGISTRATION_QUERY_PARAMS.redirectTo)
-    return { email, organizationId, plan, redirectTo }
+    return { email, organizationId, redirectTo }
 }
