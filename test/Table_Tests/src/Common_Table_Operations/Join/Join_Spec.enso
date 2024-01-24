@@ -361,17 +361,13 @@ spec setup =
             t4 = table_builder [["X", [Nothing, "a", "B", "c"]], ["Y", ["ą", "b", "C", Nothing]], ["Z", [1, 2, 3, 4]]]
             t5 = t4.join t4 join_kind=Join_Kind.Inner on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z", "Right X", "Right Y", "Right Z"] t5
-            IO.println 'AAA'
-            IO.println t5.display
-            IO.println "ą"
-            IO.println "a"
-            IO.println ("ą".equals_ignore_case "a")
-            t5.at "X" . to_vector . should_equal ["B", "a"]
-            t5.at "Y" . to_vector . should_equal ["C", "b"]
-            t5.at "Z" . to_vector . should_equal [3, 2]
-            t5.at "Right X" . to_vector . should_equal ["c", "B"]
-            t5.at "Right Y" . to_vector . should_equal [Nothing, "C"]
-            t5.at "Right Z" . to_vector . should_equal [4, 3]
+            within_table t5 <|
+                t5.at "X" . to_vector . should_equal ["B", "a"]
+                t5.at "Y" . to_vector . should_equal ["C", "b"]
+                t5.at "Z" . to_vector . should_equal [3, 2]
+                t5.at "Right X" . to_vector . should_equal ["c", "B"]
+                t5.at "Right Y" . to_vector . should_equal [Nothing, "C"]
+                t5.at "Right Z" . to_vector . should_equal [4, 3]
 
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -583,8 +579,6 @@ spec setup =
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2
             r4_2 = materialize t4_2 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-            IO.println 'QQQ'
-            IO.println (materialize t4_2 . order_by ["A", "B", "D", "C"]).display
             within_table t4_2 <|
                 r4_2.length . should_equal 4
                 r4_2.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
@@ -594,27 +588,31 @@ spec setup =
 
             t4_3 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Right_Outer
             expect_column_names ["A", "B", "C", "D"] t4_3
-            r4_3 = materialize t4_3 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-            within_table t4_3 <|
-                r4_3.length . should_equal 6
+            r4_3 = materialize t4_3 . order_by ["A", "B", "C", "D"] . rows . map .to_vector
+            within_table r4_3 <|
+                r4_3.length . should_equal 4
                 r4_3.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4_3.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                r4_3.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4_3.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4_3.at 4 . should_equal [Nothing, 4, Nothing, 6]
-                r4_3.at 5 . should_equal [2, 3, 2, 5]
+                r4_3.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4_3.at 2 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4_3.at 3 . should_equal [2, 3, 2, 5]
 
             t5 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Exclusive
+            expect_column_names ["A", "B"] t5
+            r5 = materialize t5 . order_by ["A", "B"] . rows . map .to_vector
             within_table t5 <|
-                expect_column_names ["A", "B"] t5
-                t5.at "A" . to_vector . should_equal [1]
-                t5.at "B" . to_vector . should_equal [7]
+                r5.length . should_equal 3
+                r5.at 0 . should_equal [Nothing, Nothing]
+                r5.at 1 . should_equal [Nothing, 4]
+                r5.at 2 . should_equal [1, 7]
 
             t6 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Right_Exclusive
+            expect_column_names ["C", "D"] t6
+            r6 = materialize t6 . order_by ["C", "D"] . rows . map .to_vector
             within_table t6 <|
-                expect_column_names ["C", "D"] t6
-                t6.at "C" . to_vector . should_equal [4]
-                t6.at "D" . to_vector . should_equal [Nothing]
+                r6.length . should_equal 3
+                r6.at 0 . should_equal [Nothing, Nothing]
+                r6.at 1 . should_equal [Nothing, 6]
+                r6.at 2 . should_equal [4, Nothing]
 
             t7 = table_builder [["A", [Nothing, 2]], ["B", [Nothing, 3]]]
             t8 = table_builder [["C", [2, 3]], ["D", [4, 5]]]
