@@ -59,8 +59,7 @@ type S3_File
     size : Integer
     size self =
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            head = S3.head self.bucket self.prefix self.credentials
-            content_length = head.get "ContentLength"
+            content_length = S3.raw_head self.bucket self.prefix self.credentials . contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## PRIVATE
@@ -160,16 +159,21 @@ type S3_File
         trimmed = if subpath.starts_with "/" then subpath.drop (First 1) else subpath
         parts = trimmed.split "/"
 
+        extend current part =
+            if current == "" then part else
+                if current.ends_with "/" then current + part else
+                    current + "/" + part
+
         loop current remaining = if remaining.length == 0 then current else
             new_current = case remaining.first of
                 ".." ->
                     last_index = current.last_index_of "/"
                     if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
                 "." -> current
-                x -> current + "/" + x
+                x -> extend current x
             @Tail_Call loop new_current (remaining.drop 1)
 
-        initial = if subpath.starts_with "/" then "" else self.prefix.drop 1
+        initial = if subpath.starts_with "/" then "" else self.prefix
         path = loop initial parts
         S3_File.Value self.bucket path self.credentials
 
@@ -220,13 +224,16 @@ type S3_File
        Gets the creation time of a file.
     creation_time : Date_Time ! File_Error
     creation_time self =
-        Error.throw (S3_Error.Error "Creation time is not available for S3 files." self.uri)
+        Error.throw (S3_Error.Error "Creation time is not available for S3 files, consider using `last_modified_time` instead." self.uri)
 
     ## GROUP Standard.Base.Metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
-        Error.throw (S3_Error.Error "Last modified time is not available for S3 files." self.uri)
+        if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
+            instant = S3.raw_head self.bucket self.prefix self.credentials . lastModified
+            if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
+                instant.at_zone Time_Zone.system
 
     ## GROUP Standard.Base.Input
        Lists files contained in the directory denoted by this file.
