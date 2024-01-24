@@ -218,9 +218,9 @@ spec =
             Panic.catch Any action handler
         delete_afterwards file ~action =
             Panic.with_finalizer file.delete action
-        Test.specify "should be able to write and delete a new file" pending="TODO" <|
+        Test.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
-            "Hello".write new_file . should_succeed
+            "Hello".write new_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
             delete_on_panic new_file <|
                 new_file.exists . should_be_true
@@ -237,23 +237,31 @@ spec =
         Test.specify "should support .bak logic" pending="TODO" <|
             Error.throw "TODO"
 
-        Test.specify "should be able to overwrite a file" pending="TODO" <|
+        Test.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
                 new_file.read . should_equal "Hello"
 
-                "World".write new_file . should_succeed
-                new_file.read . should_equal "World"
+                "World".write new_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                with_retries <|
+                    new_file.read . should_equal "World"
 
-        Test.specify "should not be able to append to a file" pending="TODO" <|
+        Test.specify "should not be able to append to a file" <|
             new_file = my_writable_dir / "new_file-append.txt"
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
                 r = "World".write new_file on_existing_file=Existing_File_Behavior.Append
-                # TODO what exception?
-                r.should_fail_with Any
-                r.catch.to_display_text . should_contain "You can download the file, append locally and then upload it again."
+                r.should_fail_with S3_Error
+                r.catch.to_display_text . should_contain "you may read it, modify and then write the new contents"
+
+        Test.specify "will error if the file existed prior to writing, if Existing_File_Behavior.Error" <|
+            new_file = my_writable_dir / "new_file-exists.txt"
+            "Hello".write new_file . should_succeed
+            delete_afterwards new_file <|
+                r = "World".write new_file on_existing_file=Existing_File_Behavior.Error
+                r.should_fail_with S3_Error
+                r.catch.to_display_text . should_contain "already exists"
 
         Test.specify "should be able to write a raw stream" <|
             new_file = my_writable_dir / "new_file-stream.txt"
@@ -269,13 +277,13 @@ spec =
             r = new_file.with_output_stream [File_Access.Write, File_Access.Append] _->Nothing
             r.should_fail_with S3_Error
 
-        Test.specify "should be able to write a vector of bytes" pending="TODO" <|
+        Test.specify "should be able to write a vector of bytes" <|
             new_file = my_writable_dir / "new_file-bytes.txt"
             [4, 5, 6].write_bytes new_file . should_succeed
             delete_afterwards new_file <|
                 new_file.read_bytes.should_equal [4, 5, 6]
 
-        Test.specify "should fail to write a file if permissions are lacking" pending="TODO" <|
+        Test.specify "should fail to write a file if permissions are lacking" <|
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
             r = "Hello".write new_file
             r.should_fail_with S3_Error
@@ -286,7 +294,7 @@ spec =
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 new_file.with_output_stream [File_Access.Write] _->Nothing . should_fail_with Forbidden_Operation
 
-        Test.specify "should fail to write if Output context is not enabled" pending="TODO" <|
+        Test.specify "should fail to write if Output context is not enabled" <|
             Context.Output.with_disabled <|
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 "Hello".write new_file . should_fail_with Forbidden_Operation
