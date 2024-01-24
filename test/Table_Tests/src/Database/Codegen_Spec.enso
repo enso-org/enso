@@ -64,16 +64,16 @@ spec =
 
         Test.specify "should generate an IN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [1, 2, "foo"]]
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?, ?, ?)', [1, 2, "foo"]]
 
             t3 = t1.filter "A" (Filter_Condition.Is_In [1])
-            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [1]]
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [1]]
 
             t4 = t1.filter "A" (Filter_Condition.Is_In [])
             t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
 
             t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
-            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
+            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [Nothing]]
 
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|

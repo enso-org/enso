@@ -268,11 +268,14 @@ spec setup =
         Test.specify "by an Is_In check" <|
             t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
             t1 = table_builder [["txt", ["X", "a", "c", Nothing]], ["int", [Nothing, 2, 5, 4]], ["bool", [True, Nothing, Nothing, True]]]
+            t2 = table_builder [["txt", ["X", "a", "c", "q"]], ["int", [123, 2, 5, 4]], ["bool", [True, True, True, True]]]
 
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt")) . at "X" . to_vector . should_equal ["a", "X"]
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["a", "X"]
-            t.filter "X" (Filter_Condition.Not_In (t1.at "txt")) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
-            t.filter "X" (Filter_Condition.Not_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt")) . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Not_In (t2.at "txt")) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Not_In (t2.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
             t.filter "X" (Filter_Condition.Is_In ["ccc"]) . at "X" . to_vector . should_equal ["ccc"]
             t.filter "X" (Filter_Condition.Is_In []) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Not_In []) . at "X" . to_vector . should_equal ["a", "b", "ccc", "X", "f", "2"]
@@ -282,12 +285,12 @@ spec setup =
                 # Some backends (e.g. SQLite) allow to coerce integer and text types when doing mixed type comparisons.
                 ((mixed == []) || (mixed == ["2"])).should_be_true
 
-            t.filter "ix" (Filter_Condition.Is_In (t1.at "int")) . at "ix" . to_vector . should_equal [2, Nothing, 5]
-            t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) . at "ix" . to_vector . should_equal [2, Nothing, 5]
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int")) . at "ix" . to_vector . should_equal [2, 5]
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) . at "ix" . to_vector . should_equal [2, 5]
             t.filter "ix" (Filter_Condition.Is_In [2, 5, 4]) . at "ix" . to_vector . should_equal [2, 5]
-            t.filter "ix" (Filter_Condition.Is_In [Nothing]) . at "ix" . to_vector . should_equal [Nothing]
-            t.filter "ix" (Filter_Condition.Not_In [Nothing]) . at "ix" . to_vector . should_equal [1, 2, 3, 5, 6]
-            t.filter "ix" (Filter_Condition.Not_In [1, 3]) . at "ix" . to_vector . should_equal [2, Nothing, 5, 6]
+            t.filter "ix" (Filter_Condition.Is_In [Nothing]) . at "ix" . to_vector . should_equal []
+            t.filter "ix" (Filter_Condition.Not_In [Nothing]) . at "ix" . to_vector . should_equal []
+            t.filter "ix" (Filter_Condition.Not_In [1, 3]) . at "ix" . to_vector . should_equal [2, 5, 6]
 
             v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
@@ -298,14 +301,14 @@ spec setup =
                 True -> v2.should_equal [2, 3]
                 False -> v2.should_fail_with SQL_Error
 
-            t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
-            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
-            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
-            t2.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
-            t2.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True, Nothing]
-            t2.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
-            t2.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
-            t2.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
+            t3 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
+            t3.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
+            t3.filter "A" (Filter_Condition.Is_In (t1.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
+            t3.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
+            t3.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True]
+            t3.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
+            t3.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
+            t3.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
 
         Test.specify "does not allow Column_Ref in Is_In/Not_In because that would be confusing" <|
             ## Is In and Not In check if a value is contained anywhere in a provided collection (e.g. column),
