@@ -12,23 +12,23 @@ import * as authProvider from '#/providers/AuthProvider'
 /** A wrapper around {@link router.useNavigate} that goes into offline mode when
  * offline. */
 export function useNavigate() {
-    const { goOffline } = authProvider.useAuth()
-    // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
-    // `router.useNavigate` is used.
-    // eslint-disable-next-line no-restricted-properties
-    const originalNavigate = router.useNavigate()
+  const { goOffline } = authProvider.useAuth()
+  // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
+  // `router.useNavigate` is used.
+  // eslint-disable-next-line no-restricted-properties
+  const originalNavigate = router.useNavigate()
 
-    const navigate: router.NavigateFunction = (...args: [unknown, unknown?]) => {
-        const isOnline = navigator.onLine
-        if (!isOnline) {
-            void goOffline()
-            originalNavigate(appUtils.DASHBOARD_PATH)
-        } else {
-            // This is safe, because the arguments are being passed through transparently.
-            // eslint-disable-next-line no-restricted-syntax
-            originalNavigate(...(args as [never, never?]))
-        }
+  const navigate: router.NavigateFunction = (...args: [unknown, unknown?]) => {
+    const isOnline = navigator.onLine
+    if (!isOnline) {
+      void goOffline()
+      originalNavigate(appUtils.DASHBOARD_PATH)
+    } else {
+      // This is safe, because the arguments are being passed through transparently.
+      // eslint-disable-next-line no-restricted-syntax
+      originalNavigate(...(args as [never, never?]))
     }
+  }
 
-    return navigate
+  return navigate
 }
