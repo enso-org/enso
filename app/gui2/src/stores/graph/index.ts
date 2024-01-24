@@ -586,7 +586,7 @@ function getExecutedMethodAst(
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
-      const info = db.getExpressionInfo(exprId as Uuid as AstId)
+      const info = db.getExpressionInfo(exprId)
       if (!info) return undefined
       const ptr = info.methodCall?.methodPointer
       if (!ptr) return undefined

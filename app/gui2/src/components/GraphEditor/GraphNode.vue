@@ -211,7 +211,7 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  const expressionInfo = graph.db.getExpressionInfo(externalId.value)
   return displayedIconOf(
     suggestionEntry.value,
     expressionInfo?.methodCall?.methodPointer,
