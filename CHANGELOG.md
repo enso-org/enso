@@ -603,8 +603,10 @@
 - [Added text_length to Column][8606]
 - [Added none delimiter option for Data.Read][8627]
 - [Added text_left and text_right to Column][8691]
-- [Implement relational `NULL` semantics for `Nothing` for in-memory Column
-  operations.][5156]
+- [Implement relational `NULL` semantics for `Nothing` for in-memory `Column`
+  operations.][8816]
+- [Implement relational `NULL` semantics for `Nothing` for in-memory `Table`
+  join operations.][8849]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -772,7 +774,6 @@
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
-[5156]: https://github.com/enso-org/enso/pull/5156
 [5582]: https://github.com/enso-org/enso/pull/5582
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
@@ -869,6 +870,8 @@
 [8606]: https://github.com/enso-org/enso/pull/8606
 [8627]: https://github.com/enso-org/enso/pull/8627
 [8691]: https://github.com/enso-org/enso/pull/8691
+[8816]: https://github.com/enso-org/enso/pull/8816
+[8849]: https://github.com/enso-org/enso/pull/8849
 
 #### Enso Compiler
 
