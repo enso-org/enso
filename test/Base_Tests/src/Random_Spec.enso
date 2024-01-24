@@ -8,12 +8,12 @@ import Standard.Test.Extensions
 spec = Test.group "Random" <|
     Test.specify "should allow generating random integers" <|
         Random.set_seed 12345
-        Random.integer 0 100 . should_equal 51
-        Random.integer 0 10000 . should_equal 9080
+        Random.integer 0 99 . should_equal 51
+        Random.integer 0 9999 . should_equal 9080
 
-        random_range = 0.up_to 1000 . map (_-> Random.integer 0 100) . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        random_range = 0.up_to 1000 . map (_-> Random.integer 0 99) . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True
-        (random_range.at 1 <= 100) . should_equal True
+        (random_range.at 1 <= 99) . should_equal True
 
     Test.specify "should allow generating random floats" <|
         Random.set_seed 12345
@@ -71,17 +71,12 @@ spec = Test.group "Random" <|
 
     Test.specify "should allow generating random dates" <|
         Random.set_seed 4000
-        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 6 9)
-        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 7 16)
-        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 10 12)
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 14) . should_equal (Date.new 2023 6 9)
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 14) . should_equal (Date.new 2023 7 16)
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 14) . should_equal (Date.new 2023 10 12)
 
         all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03]
-        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 04))
-        dates.should_contain_the_same_elements_as all_from_small_range
-
-    Test.specify "should allow generating random dates, with end_exclusive=False" <|
-        all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03, Date.new 2023 03 04]
-        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 04) end_exclusive=False)
+        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 03))
         dates.should_contain_the_same_elements_as all_from_small_range
 
     Test.specify "should allow generating random times" <|
@@ -148,13 +143,13 @@ spec = Test.group "Random" <|
         permutations_2 . should_contain_the_same_elements_as all_permutations
 
     Test.specify "should not allow using a too-large integer range" <|
-        high = 9223372036854775807000
+        high = 9223372036854775806999
         Random.integer 0 high . should_fail_with Illegal_Argument
 
     Test.specify "Can call an instance directly" <|
         Random.new_generator . should_be_a Random_Generator
         Random.new_generator 12345 . should_be_a Random_Generator
-        Random.new_generator 12345 . integer 0 100 . should_equal 51
+        Random.new_generator 12345 . integer 0 99 . should_equal 51
         Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
         Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
 
