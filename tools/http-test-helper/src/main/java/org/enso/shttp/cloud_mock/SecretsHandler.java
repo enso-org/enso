@@ -11,12 +11,22 @@ import org.enso.shttp.HttpMethod;
 
 public class SecretsHandler implements CloudHandler {
 
+  private static final String ROOT = "<//root//>";
   private final String SECRETS = "secrets";
   private final String HIDDEN_SECRETS = "s3cr3tz";
 
+  // Temporary mock until we are back to `list_secrets` for `Enso_Secret.list`.
+  private final String DIRECTORIES = "directories";
+
+  private final ObjectMapper jsonMapper = new ObjectMapper();
+  // <root> -> <secret_id> -> <secret_value>
+  private HashMap<String, HashMap<String, Secret>> mapping = new HashMap<>();
+
   @Override
   public boolean canHandle(String subPath) {
-    return subPath.startsWith(SECRETS) || subPath.startsWith(HIDDEN_SECRETS);
+    return subPath.startsWith(SECRETS)
+        || subPath.startsWith(HIDDEN_SECRETS)
+        || subPath.startsWith(DIRECTORIES);
   }
 
   @Override
@@ -27,6 +37,15 @@ public class SecretsHandler implements CloudHandler {
     } catch (IllegalArgumentException e) {
       exchange.sendResponse(
           400, "Invalid method: " + exchange.getHttpExchange().getRequestMethod());
+      return;
+    }
+
+    if (exchange.subPath().equals(DIRECTORIES)) {
+      if (method == HttpMethod.GET) {
+        listDirectory(exchange);
+      } else {
+        exchange.sendResponse(405, "Method not allowed: " + method);
+      }
       return;
     }
 
@@ -94,8 +113,23 @@ public class SecretsHandler implements CloudHandler {
     exchange.sendResponse(200, asJson);
   }
 
-  private record ListSecretsResponse(List<Element> secrets) {
-    public record Element(String id, String name) {}
+  /**
+   * This is a workaround because Enso_Secret.list currently relies on `list_directory` instead of
+   * `list_secrets`, as `list_secrets` was unable to handle sub-directories. Once `list_secrets` is
+   * fixed, this temporary workaround may be removed from the mock.
+   */
+  private void listDirectory(CloudExchange exchange) throws IOException {
+    String parentId = ROOT;
+    ListDirectoryResponse response =
+        new ListDirectoryResponse(
+            accessRoot(parentId).entrySet().stream()
+                .map(
+                    entry ->
+                        new ListDirectoryResponse.Element(
+                            entry.getKey(), entry.getValue().name, parentId))
+                .toList());
+    String asJson = jsonMapper.writeValueAsString(response);
+    exchange.sendResponse(200, asJson);
   }
 
   private void getSecret(String id, CloudExchange exchange) throws IOException {
@@ -121,16 +155,17 @@ public class SecretsHandler implements CloudHandler {
     }
   }
 
-  private static final String ROOT = "<//root//>";
-
-  private record Secret(String name, String value) {}
-
-  // <root> -> <secret_id> -> <secret_value>
-  private HashMap<String, HashMap<String, Secret>> mapping = new HashMap<>();
-
   private HashMap<String, Secret> accessRoot(String rootId) {
     return mapping.computeIfAbsent(rootId, k -> new HashMap<>());
   }
 
-  private final ObjectMapper jsonMapper = new ObjectMapper();
+  private record ListSecretsResponse(List<Element> secrets) {
+    public record Element(String id, String name) {}
+  }
+
+  private record ListDirectoryResponse(List<Element> assets) {
+    public record Element(String id, String title, String parentId) {}
+  }
+
+  private record Secret(String name, String value) {}
 }

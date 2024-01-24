@@ -4,7 +4,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 /** A factory that creates a command for an API request.
   */
-object CommandFactory {
+class CommandFactory {
 
   /** Creates a command that encapsulates a function request as an object.
     *
@@ -99,3 +99,5 @@ object CommandFactory {
     }
 
 }
+
+object CommandFactoryImpl extends CommandFactory

@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
+import Standard.Base.Data.Enso_Cloud.Errors.Not_Logged_In
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
@@ -15,22 +15,6 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
    $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
 spec setup:Cloud_Tests_Setup =
     setup.with_prepared_environment <|
-        Test.group "Enso Cloud Basic Utils" pending=setup.pending <|
-            Test.specify "will report Not_Logged_In if no credentials file is found" <|
-                non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
-                non_existent_file.exists.should_be_false
-
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
-                    # This test has to run before any other Cloud access, otherwise the token may already be cached.
-                    Cloud_Utils.authorization_header.should_fail_with Cloud_Utils.Not_Logged_In
-
-            Test.specify "should be able to get the cloud URL from environment" <|
-                api_url = Cloud_Utils.cloud_root_uri
-                api_url.should_equal setup.api_url.to_text
-
-            Test.specify "should be able to read the authorization token" pending=setup.mock_only_pending <|
-                Cloud_Utils.authorization_header.to_display_text.should_equal "Authorization: Bearer "+Cloud_Tests_Setup.test_token
-
         Test.group "Enso_User - offline logic tests" <|
             Test.specify "is correctly parsed from JSON" <|
                 json = Json.parse """
@@ -81,7 +65,7 @@ spec setup:Cloud_Tests_Setup =
                 r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
                     Cloud_Tests_Setup.reset_token
                     Enso_User.current
-                r.should_fail_with Cloud_Utils.Not_Logged_In
+                r.should_fail_with Not_Logged_In
 
             Test.specify "will fail if the token is invalid" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"

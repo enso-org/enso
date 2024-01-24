@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Foreign;
+import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.warnings.Unused;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -65,6 +66,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Unused.FunctionArgument.class, id = 787)
 @Persistable(clazz = Warning.DuplicatedImport.class, id = 788)
 @Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
+@Persistable(clazz = Operator.Binary.class, id = 790)
 public final class IrPersistance {
   private IrPersistance() {}
 

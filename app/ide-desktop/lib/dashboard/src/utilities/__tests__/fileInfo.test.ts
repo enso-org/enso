@@ -8,7 +8,7 @@ import * as fileInfo from '#/utilities/fileInfo'
 // =============
 
 v.test('fileExtension', () => {
-    v.expect(fileInfo.fileExtension('image.png')).toBe('png')
-    v.expect(fileInfo.fileExtension('.gif')).toBe('gif')
-    v.expect(fileInfo.fileExtension('fileInfo.spec.js')).toBe('js')
+  v.expect(fileInfo.fileExtension('image.png')).toBe('png')
+  v.expect(fileInfo.fileExtension('.gif')).toBe('gif')
+  v.expect(fileInfo.fileExtension('fileInfo.spec.js')).toBe('js')
 })
