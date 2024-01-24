@@ -22,11 +22,7 @@ const value = computed({
 
 const limits = computed(() => {
   const config = props.input.dynamicConfig
-  if (
-    config?.kind === 'Numeric_Input' &&
-    config?.minimum != null &&
-    config?.maximum != null
-  ) {
+  if (config?.kind === 'Numeric_Input' && config?.minimum != null && config?.maximum != null) {
     return { min: config.minimum, max: config.maximum }
   } else {
     return undefined
