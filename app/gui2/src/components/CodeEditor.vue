@@ -53,7 +53,7 @@ const expressionUpdatesDiagnostics = computed(() => {
   for (const id of chain(panics, errors)) {
     const update = updates.get(id)
     if (!update) continue
-    const node = nodeMap.get(asNodeId(graphStore.idFromExternal(id)))
+    const node = nodeMap.get(asNodeId(graphStore.db.idFromExternal(id)))
     if (!node) continue
     if (!node.rootSpan.span) continue
     const [from, to] = node.rootSpan.span

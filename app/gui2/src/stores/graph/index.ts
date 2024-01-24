@@ -296,7 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    proj.module?.updateNodeMetadata(idToExternal(nodeId), { x: position.x, y: -position.y })
+    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), { x: position.x, y: -position.y })
   }
 
   function normalizeVisMetadata(
@@ -311,7 +311,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(idToExternal(nodeId), {
+    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), {
       vis: normalizeVisMetadata(vis, node.vis?.visible),
     })
   }
@@ -319,7 +319,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(idToExternal(nodeId), {
+    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), {
       vis: normalizeVisMetadata(node.vis?.identifier, visible),
     })
   }
@@ -436,7 +436,7 @@ export const useGraphStore = defineStore('graph', () => {
       module_.doc.setCode(printed.code)
       if (metadataUpdates) {
         for (const [id, meta] of metadataUpdates) {
-          module_.updateNodeMetadata(idToExternal(id), meta)
+          module_.updateNodeMetadata(db.idToExternal(id), meta)
         }
       }
     })
@@ -511,13 +511,6 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function idFromExternal(id: ExternalId): AstId {
-    return id as Uuid as AstId
-  }
-  function idToExternal(id: AstId): ExternalId {
-    return id as Uuid as ExternalId
-  }
-
   return {
     transact,
     db: markRaw(db),
@@ -559,8 +552,6 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit,
     editScope,
     addMissingImports,
-    idFromExternal,
-    idToExternal,
   }
 })
 

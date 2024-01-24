@@ -87,7 +87,7 @@ const baseNodeSize = computed(
 const menuVisible = ref(false)
 
 const error = computed(() => {
-  const externalId = graph.idToExternal(nodeId.value)
+  const externalId = graph.db.idToExternal(nodeId.value)
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {

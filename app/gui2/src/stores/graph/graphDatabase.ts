@@ -38,23 +38,23 @@ export interface BindingInfo {
   usages: Set<AstId>
 }
 
-function idFromExternal(id: ExternalId): AstId {
-  return id as Uuid as AstId
-}
-function idToExternal(id: AstId): ExternalId {
-  return id as Uuid as ExternalId
-}
-
 export class BindingsDb {
   bindings = new ReactiveDb<AstId, BindingInfo>()
   identifierToBindingId = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
-  readFunctionAst(ast: RawAstExtended<RawAst.Tree.Function>) {
+  readFunctionAst(
+    ast: RawAstExtended<RawAst.Tree.Function>,
+    idFromExternal: (id: ExternalId) => AstId,
+  ) {
     // TODO[ao]: Rename 'alias' to 'binding' in AliasAnalyzer and it's more accurate term.
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
     analyzer.process()
 
-    const [bindingRangeToTree, bindingIdToRange] = BindingsDb.rangeMappings(ast, analyzer)
+    const [bindingRangeToTree, bindingIdToRange] = BindingsDb.rangeMappings(
+      ast,
+      analyzer,
+      idFromExternal,
+    )
 
     // Remove old keys.
     for (const key of this.bindings.keys()) {
@@ -110,6 +110,7 @@ export class BindingsDb {
   private static rangeMappings(
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
+    idFromExternal: (id: ExternalId) => AstId,
   ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<AstId, SourceRange>] {
     const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(sourceRangeKey)
     const bindingIdToRange = new Map<AstId, SourceRange>()
@@ -233,7 +234,7 @@ export class GraphDb {
   }
 
   getExpressionInfo(id: AstId | ExternalId): ExpressionInfo | undefined {
-    const externalId = isUuid(id) ? (id as ExternalId) : idToExternal(id)
+    const externalId = isUuid(id) ? (id as ExternalId) : this.idToExternal(id)
     return this.valuesRegistry.getExpressionInfo(externalId)
   }
 
@@ -372,7 +373,7 @@ export class GraphDb {
 
     const functionAst = functionAst_.astExtended
     if (functionAst?.isTree(RawAst.Tree.Type.Function)) {
-      this.bindings.readFunctionAst(functionAst)
+      this.bindings.readFunctionAst(functionAst, (id) => this.idFromExternal(id))
     }
     return currentNodeIds
   }
@@ -385,6 +386,13 @@ export class GraphDb {
     if (!visMetadataEquals(node.vis, meta.vis)) {
       node.vis = meta.vis
     }
+  }
+
+  idFromExternal(id: ExternalId): AstId {
+    return id as Uuid as AstId
+  }
+  idToExternal(id: AstId): ExternalId {
+    return id as Uuid as ExternalId
   }
 
   static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
@@ -410,7 +418,7 @@ export class GraphDb {
     const nodeId = this.getIdentDefiningNode(binding)
     if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
     const update_: ExpressionUpdate = {
-      expressionId: idToExternal(nodeId),
+      expressionId: this.idToExternal(nodeId),
       profilingInfo: update.profilingInfo ?? [],
       fromCache: update.fromCache ?? false,
       payload: update.payload ?? { type: 'Value' },
