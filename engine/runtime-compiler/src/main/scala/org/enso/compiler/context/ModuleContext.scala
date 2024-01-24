@@ -25,6 +25,7 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
+  def getCompilerModule()     = module
   def isSynthetic()            = module.isSynthetic()
   def bindingsAnalysis()       = module.getBindingsMap()
   def getName(): QualifiedName = module.getName()

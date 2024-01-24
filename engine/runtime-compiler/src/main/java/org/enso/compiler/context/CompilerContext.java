@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -12,6 +13,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
@@ -50,6 +52,7 @@ public interface CompilerContext extends CompilerStub {
   void notifySerializeModule(QualifiedName moduleName);
 
   Module findTopScopeModule(String name);
+  void reportDiagnostics(Module module, Collection<Diagnostic> diagnostics);
 
   // threads
   boolean isCreateThreadAllowed();

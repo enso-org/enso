@@ -1,38 +1,22 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.source.{Source, SourceSection}
-import org.enso.compiler.context.{
-  CompilerContext,
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext
-}
+import com.oracle.truffle.api.source.{Source}
+import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{
-  Diagnostic,
-  Expression,
-  IdentifiedLocation,
-  Name,
-  Warning,
-  Module => IRModule
-}
+import org.enso.compiler.core.ir.{Diagnostic, Expression, IdentifiedLocation, Name, Warning, Module => IRModule}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.ir.module.scope.imports;
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver
-}
+import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
@@ -40,15 +24,9 @@ import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
-import java.util.concurrent.{
-  CompletableFuture,
-  ExecutorService,
-  Future,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
-  TimeUnit
-}
+import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -674,7 +652,7 @@ class Compiler(
 
     ensoCompiler.generateIRInline(tree).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
-      runErrorHandlingInline(compilerOutput, source, newContext)
+      runErrorHandlingInline(compilerOutput, newContext)
       (newContext, compilerOutput, source)
     }
   }
@@ -839,12 +817,10 @@ class Compiler(
     * context) for the inline compiler flow.
     *
     * @param ir the IR after compilation passes.
-    * @param source the original source code.
     * @param inlineContext the inline compilation context.
     */
   private def runErrorHandlingInline(
     ir: Expression,
-    source: Source,
     inlineContext: InlineContext
   ): Unit = {
     val errors = GatherDiagnostics
@@ -854,7 +830,7 @@ class Compiler(
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val hasErrors = reportDiagnostics(errors, source)
+    val hasErrors = reportDiagnostics(errors, inlineContext.getCompilerModule())
     if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
       throw new CompilationAbortedException
     }
@@ -975,7 +951,7 @@ class Compiler(
     diagnostics
       .foldLeft(false) { case (result, (mod, diags)) =>
         if (diags.nonEmpty) {
-          reportDiagnostics(diags, mod.getSource) || result
+          reportDiagnostics(diags, mod) || result
         } else {
           result
         }
@@ -986,16 +962,14 @@ class Compiler(
     * exception breaking the execution flow if there are errors.
     *
     * @param diagnostics all the diagnostics found in the program IR.
-    * @param source the original source code.
+    * @param compilerModule The module in which the diagnostics should be reported.
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    source: Source
+    compilerModule: CompilerContext.Module
   ): Boolean = {
-    diagnostics.foreach(diag =>
-      printDiagnostic(new DiagnosticFormatter(diag, source).format())
-    )
+    context.reportDiagnostics(compilerModule, diagnostics.asJavaCollection)
     diagnostics.exists(_.isInstanceOf[Error])
   }
 

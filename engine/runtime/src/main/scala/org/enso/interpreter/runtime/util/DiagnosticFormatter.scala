@@ -146,9 +146,6 @@ class DiagnosticFormatter(
     if (System.getenv("NO_COLOR") != null) {
       return false
     }
-    if (config.outputRedirect.isDefined) {
-      return false
-    }
     if (System.getenv("COLORTERM") != null) {
       return true
     }
