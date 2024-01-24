@@ -86,7 +86,7 @@ public abstract class EvalNode extends BaseNode {
 
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
     var toTruffle =
-        new IrToTruffle(context, src, m.getScope(), compiler.org$enso$compiler$Compiler$$config);
+        new IrToTruffle(context, src, m.getScope(), compiler.getConfig());
     var expr = toTruffle.runInline(ir, sco, "<inline_source>");
 
     if (shouldCaptureResultScope) {

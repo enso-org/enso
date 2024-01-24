@@ -75,6 +75,9 @@ class Compiler(
     else context.getOut
   private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
+  /** Java accessor */
+  def getConfig(): CompilerConfig = config
+
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
     new ThreadPoolExecutor(
