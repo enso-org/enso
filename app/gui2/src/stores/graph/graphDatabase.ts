@@ -388,9 +388,24 @@ export class GraphDb {
     }
   }
 
+  /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
   idFromExternal(id: ExternalId): AstId {
     return id as Uuid as AstId
   }
+  /** Get the external ID corresponding to the given `AstId` as of the last synchronization.
+   *
+   *  Note that if there is an edit in progress (i.e. a `MutableModule` containing changes that haven't been committed
+   *  and observed), this may be different from the value return by calling `toExternal` on the edited `Ast` object.
+   *
+   *  When performing an edit and obtaining an ID to be sent to the engine, always use `Ast.toExternal`, which gives the
+   *  ID the node will have once it is committed.
+   *
+   *  When looking up a node in data previously obtained from the engine, the choice depends on the situation:
+   *  - If the data being looked up should be inherited from the previous holder of the `ExternalId`, use the current
+   *    `toExternal`.
+   *  - If the data should be associated with the `Ast` that the engine was referring to, use `idToExternal`.
+   *  Either choice is an approximation that will be used until the engine provides an update after processing the edit.
+   */
   idToExternal(id: AstId): ExternalId {
     return id as Uuid as ExternalId
   }
