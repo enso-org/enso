@@ -623,7 +623,7 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File deleting is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self self.delete_builtin
 
-    ## Moves the file to the specified destination.
+    ## Copies the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.

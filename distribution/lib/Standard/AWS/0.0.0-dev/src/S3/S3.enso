@@ -14,6 +14,7 @@ import project.Errors.S3_Error
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
+polyglot java import software.amazon.awssdk.services.s3.model.CopyObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
@@ -147,8 +148,20 @@ put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=N
 ## PRIVATE
 delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
-    request = DeleteObjectRequest.builder.bucket bucket . key key . build
+    request = DeleteObjectRequest.builder . bucket bucket . key key . build
     client.deleteObject request
+    Nothing
+
+## PRIVATE
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=source_bucket key=source_key <|
+    client = make_client credentials
+    request = CopyObjectRequest.builder
+        . destinationBucket target_bucket
+        . destinationKey target_key
+        . sourceBucket source_bucket
+        . sourceKey source_key
+        . build
+    client.copyObject request
     Nothing
 
 ## PRIVATE
