@@ -74,6 +74,7 @@ const outputPortsSet = computed(() => {
 
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
+const externalId = computed(() => props.node.rootSpan.externalId)
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
@@ -204,7 +205,7 @@ const isOutputContextOverridden = computed({
 
 // FIXME [sb]: https://github.com/enso-org/enso/issues/8442
 // This does not take into account `displayedExpression`.
-const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(externalId.value))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
@@ -369,7 +370,7 @@ function portGroupStyle(port: PortData) {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
-      :dataSource="{ type: 'node', nodeId }"
+      :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),

@@ -56,6 +56,7 @@ export function useStackNavigator() {
   }
 
   function enterNode(id: AstId) {
+    const node = graphStore.astModule.get(id)!
     const expressionInfo = graphStore.db.getExpressionInfo(id)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
@@ -71,7 +72,7 @@ export function useStackNavigator() {
       console.debug('Cannot enter node that is not defined on current module.')
       return
     }
-    projectStore.executionContext.push(graphStore.idToExternal(id))
+    projectStore.executionContext.push(node.externalId)
     graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }

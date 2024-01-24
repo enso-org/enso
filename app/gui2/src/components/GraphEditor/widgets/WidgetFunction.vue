@@ -27,6 +27,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
+import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -97,10 +98,10 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentAstId = computed<Opt<AstId>>(() => {
+const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
-    return analyzed.lhs?.id
+    return analyzed.lhs?.externalId
   } else {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const hasSelfArgument = knownArguments?.[0]?.name === 'self'
@@ -109,7 +110,7 @@ const selfArgumentAstId = computed<Opt<AstId>>(() => {
         ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
         : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
-    return selfArgument?.id
+    return selfArgument?.externalId
   }
 })
 
@@ -117,7 +118,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   // If we inherit dynamic config, there is no point in attaching visualization.
   if (props.input.dynamicConfig) return null
 
-  const expressionId = selfArgumentAstId.value && graph.idToExternal(selfArgumentAstId.value)
+  const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)

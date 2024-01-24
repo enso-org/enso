@@ -23,6 +23,7 @@ import {
   type Uuid,
 } from 'shared/languageServerTypes'
 import {
+  isUuid,
   sourceRangeKey,
   visMetadataEquals,
   type ExternalId,
@@ -231,8 +232,9 @@ export class GraphDb {
     return this.getPatternExpressionNodeId(binding)
   }
 
-  getExpressionInfo(id: AstId): ExpressionInfo | undefined {
-    return this.valuesRegistry.getExpressionInfo(idToExternal(id))
+  getExpressionInfo(id: AstId | ExternalId): ExpressionInfo | undefined {
+    const externalId = isUuid(id) ? (id as ExternalId) : idToExternal(id)
+    return this.valuesRegistry.getExpressionInfo(externalId)
   }
 
   getOutputPortIdentifier(source: AstId): string | undefined {

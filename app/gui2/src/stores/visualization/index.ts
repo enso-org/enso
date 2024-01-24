@@ -7,7 +7,6 @@ import * as scatterplotVisualization from '@/components/visualizations/Scatterpl
 import * as sqlVisualization from '@/components/visualizations/SQLVisualization.vue'
 import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
 import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
-import type { NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import {
   compile,
@@ -22,7 +21,6 @@ import {
   type VisualizationId,
 } from '@/stores/visualization/metadata'
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
-import type { AstId } from '@/util/ast/abstract'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { isIconName } from '@/util/iconName'
@@ -30,7 +28,7 @@ import { rpcWithRetries } from '@/util/net'
 import { defineStore } from 'pinia'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive } from 'vue'
 
 /** The directory in the project under which custom visualizations can be found. */
@@ -57,12 +55,12 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
 export type VisualizationDataSource =
   | {
       type: 'node'
-      nodeId: NodeId
+      nodeId: ExternalId
     }
   | {
       type: 'expression'
       expression: string
-      contextId: AstId
+      contextId: ExternalId
     }
 
 const builtinVisualizations: VisualizationModule[] = [

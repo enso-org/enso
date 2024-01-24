@@ -71,7 +71,7 @@ const configForGettingDefaultVisualization = computed<NodeVisualizationConfigura
     return {
       visualizationModule: 'Standard.Visualization.Helpers',
       expression: 'a -> a.default_visualization.to_js_object.to_json',
-      expressionId: graphStore.idToExternal(props.dataSource.nodeId),
+      expressionId: props.dataSource.nodeId,
     }
   },
 )
@@ -111,7 +111,7 @@ const visualizationData = projectStore.useVisualizationData(() => {
   return props.data == null && props.dataSource?.type === 'node'
     ? {
         ...visPreprocessor.value,
-        expressionId: graphStore.idToExternal(props.dataSource.nodeId),
+        expressionId: props.dataSource.nodeId,
       }
     : null
 })
@@ -125,10 +125,7 @@ const expressionVisualizationData = computedAsync(() => {
   // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
   const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
   const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
-  return projectStore.executeExpression(
-    graphStore.idToExternal(props.dataSource.contextId),
-    expression,
-  )
+  return projectStore.executeExpression(props.dataSource.contextId, expression)
 })
 
 const effectiveVisualizationData = computed(() => {

@@ -355,6 +355,10 @@ export abstract class Ast {
   readonly module: Module
   parent: AstId | undefined
 
+  get externalId(): ExternalId {
+    return this.id as Uuid as ExternalId
+  }
+
   // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
   get astExtended(): RawAstExtended | undefined {
     return this.module.getExtended(this.id)
