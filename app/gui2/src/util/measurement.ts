@@ -5,7 +5,7 @@ function getMeasureContext() {
 
 /** Helper function to get text width to make sure that labels on the x axis do not overlap,
  * and keeps it readable. */
-export function getTextWidth(
+export function getTextWidthBySizeAndFamily(
   text: string | null | undefined,
   fontSize = '11.5px',
   fontFamily = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
@@ -15,6 +15,21 @@ export function getTextWidth(
   }
   const context = getMeasureContext()
   context.font = `${fontSize} ${fontFamily}`
+  const metrics = context.measureText('  ' + text)
+  return metrics.width
+}
+
+/** Helper function to get text width to make sure that labels on the x axis do not overlap,
+ * and keeps it readable. */
+export function getTextWidthByFont(
+  text: string | null | undefined,
+  font: string
+) {
+  if (text == null) {
+    return 0
+  }
+  const context = getMeasureContext()
+  context.font = font
   const metrics = context.measureText('  ' + text)
   return metrics.width
 }

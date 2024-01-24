@@ -1,7 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
-import { MutableModule } from '../abstract'
+import { MutableModule, escape, unescape } from '../abstract'
 
 //const disabledCases = [
 //  ' a',
@@ -477,4 +477,19 @@ test('Splice', () => {
   const spliced = module.splice(ident)
   expect(spliced.module).toBe(module)
   expect(spliced.code()).toBe('foo')
+})
+
+test.each([
+  'Hello, World!',
+  'Hello\t\tWorld!',
+  'He\nllo, W\rorld!',
+  'Hello,\vWorld!',
+  'Hello, \\World!',
+  'Hello, `World!`',
+  '\'Hello, World!\'',
+  '"Hello, World!"',
+  'Hello, \fWorld!',
+  'Hello, \bWorld!',
+])('Text literals escaping and unescaping', (input) => {
+  expect(unescape(escape(input))).toBe(input)
 })

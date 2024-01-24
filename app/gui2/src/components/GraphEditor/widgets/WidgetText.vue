@@ -1,0 +1,51 @@
+<script setup lang="ts">
+import StringInputWidget from '@/components/widgets/StringInputWidget.vue'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
+import { Ast } from '@/util/ast'
+import { computed } from 'vue'
+
+const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
+const value = computed({
+  get() {
+    const valueStr = WidgetInput.valueRepr(props.input)
+    return valueStr ?? ''
+  },
+  set(value) {
+    props.onUpdate({
+      edit: graph.astModule.edit(),
+      portUpdate: { value: value.toString(), origin: props.input.portId },
+    })
+  },
+})
+</script>
+
+<script lang="ts">
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 1001,
+  score: (props) => {
+    if (
+      props.input.value instanceof Ast.TextLiteral
+    )
+      return Score.Perfect
+    const type = props.input.expectedType
+    if (
+      type === 'Standard.Base.Data.Text'
+    )
+      return Score.Perfect
+    return Score.Mismatch
+  },
+})
+</script>
+
+<template>
+  <StringInputWidget v-model="value" class="WidgetText r-24" />
+</template>
+
+<style scoped>
+.WidgetText {
+  display: inline-block;
+  vertical-align: middle;
+}
+</style>

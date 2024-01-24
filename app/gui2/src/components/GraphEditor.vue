@@ -310,6 +310,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
+    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
 ).handleClick
