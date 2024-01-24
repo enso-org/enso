@@ -22,7 +22,7 @@ export class Pattern {
   match(target: Ast.Ast): Ast.AstId[] | undefined {
     const extracted: Ast.AstId[] = []
     if (this.tokenTree.length === 1 && this.tokenTree[0] === this.placeholder) {
-      return [target.exprId]
+      return [target.id]
     }
     if (
       isMatch_(
@@ -101,7 +101,7 @@ function placeholders(ast: Ast.Ast, placeholder: string, outIn?: PlaceholderRef[
       const nodeChild = child as Ast.NodeChild<Ast.AstId>
       const subtree = ast.module.get(child.node)!
       if (subtree instanceof Ast.Ident && subtree.code() === placeholder) {
-        out.push({ ref: nodeChild, parent: ast.exprId })
+        out.push({ ref: nodeChild, parent: ast.id })
       } else {
         placeholders(subtree, placeholder, out)
       }

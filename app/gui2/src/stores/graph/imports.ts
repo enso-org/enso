@@ -193,7 +193,7 @@ function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
 }
 
 /** Create an AST representing the required import statement. */
-function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast.Import {
+function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast.Owned<Ast.Import> {
   const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
     case 'Qualified':

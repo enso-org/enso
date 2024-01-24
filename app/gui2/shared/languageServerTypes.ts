@@ -2,7 +2,7 @@ import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
 } from './languageServerTypes/suggestions'
-import type { ExprId, Uuid } from './yjsModel'
+import type { ExternalId, Uuid } from './yjsModel'
 
 export type { Uuid }
 
@@ -11,7 +11,7 @@ declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
 declare const brandContextId: unique symbol
 export type ContextId = Uuid & { [brandContextId]: never }
-export type ExpressionId = ExprId
+export type ExpressionId = ExternalId
 declare const brandUtcDateTime: unique symbol
 export type UTCDateTime = string & { [brandUtcDateTime]: never }
 

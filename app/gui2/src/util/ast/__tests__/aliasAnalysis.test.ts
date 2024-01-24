@@ -28,7 +28,7 @@
 import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import { IdMap, type SourceRange } from 'shared/yjsModel'
+import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 /** The type of annotation. */
@@ -56,7 +56,7 @@ function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
   annotations: MappedKeyMap<SourceRange, Annotation>
 } {
-  const annotations = new MappedKeyMap<SourceRange, Annotation>(IdMap.keyForRange)
+  const annotations = new MappedKeyMap<SourceRange, Annotation>(sourceRangeKey)
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
@@ -113,10 +113,10 @@ function parseAnnotations(annotatedCode: string): {
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
   /** The expected aliases. */
-  readonly expectedAliases = new MappedKeyMap<SourceRange, SourceRange[]>(IdMap.keyForRange)
+  readonly expectedAliases = new MappedKeyMap<SourceRange, SourceRange[]>(sourceRangeKey)
 
   /** The expected unresolved symbols. */
-  readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
+  readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
 
   /**
    * @param code The code of the program to be tested, without annotations.
