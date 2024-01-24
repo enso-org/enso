@@ -8,6 +8,14 @@ polyglot java import com.google.api.client.json.gson.GsonFactory
 polyglot java import com.google.api.services.sheets.v4.Sheets
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.util.Collections
+polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataClient
+polyglot java import com.google.analytics.data.v1beta.DateRange
+polyglot java import com.google.analytics.data.v1beta.Dimension
+polyglot java import com.google.analytics.data.v1beta.Metric
+polyglot java import com.google.analytics.data.v1beta.Row
+polyglot java import com.google.analytics.data.v1beta.RunReportRequest
+polyglot java import com.google.analytics.data.v1beta.RunReportResponse
+
 
 ## PRIVATE
 type Google_Api_Client
@@ -58,3 +66,22 @@ initialize secret_file =
     http_transport = GoogleNetHttpTransport.newTrustedTransport
     json_factory = GsonFactory.getDefaultInstance
     Google_Api_Client.Value credential json_factory http_transport
+
+
+## PLACEHOLDER, performs google analytics call
+
+   Arguments:
+   - property_id
+   - start_date
+   - end_date
+run_google_report : Text -> Text -> Text
+run_google_report property_id start_date end_date =
+    analytics_data = BetaAnalyticsDataClient.create
+    request = RunReportRequest.newBuilder
+          .setProperty("properties/" + property_id)
+          .addDimensions(Dimension.newBuilder.setName("city"))
+          .addMetrics(Metric.newBuilder.setName("activeUsers"))
+          .addDateRanges(DateRange.newBuilder.setStartDate(start_date).setEndDate(end_date))
+          .build
+    response = RunReportResponse analytics_data.runReport(request)
+    response.GetRowsList
