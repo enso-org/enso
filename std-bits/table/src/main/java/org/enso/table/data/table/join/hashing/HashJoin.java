@@ -54,16 +54,10 @@ public class HashJoin implements JoinStrategy {
 
     var leftIndex =
         MultiValueIndex.makeUnorderedIndex(
-            leftEquals,
-            leftEquals[0].getSize(),
-            textFoldingStrategies,
-            problemAggregator);
+            leftEquals, leftEquals[0].getSize(), textFoldingStrategies, problemAggregator);
     var rightIndex =
         MultiValueIndex.makeUnorderedIndex(
-            rightEquals,
-            rightEquals[0].getSize(),
-            textFoldingStrategies,
-            problemAggregator);
+            rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder(resultBuilderSettings);
     for (var leftEntry : leftIndex.mapping().entrySet()) {

@@ -3,8 +3,6 @@ package org.enso.table.data.table.join;
 import java.util.List;
 import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
-import org.enso.table.data.table.join.conditions.Equals;
-import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.data.table.join.hashing.HashJoin;
@@ -46,7 +44,7 @@ public interface JoinStrategy {
 
   static void ensureConditionsNotEmpty(List<? extends JoinCondition> conditions) {
     if (conditions.isEmpty()) {
-        throw new IllegalArgumentException("At least one join condition must be provided.");
-      }
+      throw new IllegalArgumentException("At least one join condition must be provided.");
+    }
   }
 }
