@@ -30,18 +30,14 @@ class DropDownLocator {
 
 test('Selection widgets in Data.read node', async ({ page }) => {
   await actions.goToGraph(page)
-  await mockMethodCallInfo(
-    page,
-    { binding: 'data' },
-    {
-      methodPointer: {
-        module: 'Standard.Base.Data',
-        definedOnType: 'Standard.Base.Data',
-        name: 'read',
-      },
-      notAppliedArguments: [0, 1, 2],
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
     },
-  )
+    notAppliedArguments: [0, 1, 2],
+  })
 
   const dropDown = new DropDownLocator(page)
 
@@ -62,18 +58,14 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   ])
 
   // Change value on `on_problems`
-  await mockMethodCallInfo(
-    page,
-    { binding: 'data' },
-    {
-      methodPointer: {
-        module: 'Standard.Base.Data',
-        definedOnType: 'Standard.Base.Data',
-        name: 'read',
-      },
-      notAppliedArguments: [0, 1],
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
     },
-  )
+    notAppliedArguments: [0, 1],
+  })
   await page.getByText('Report_Error').click()
   await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report Warning', 'Report Error'])
   await dropDown.clickOption(page, 'Report Warning')
@@ -92,18 +84,14 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(pathArg.locator('.WidgetToken')).toHaveText(['"', 'File 2', '"'])
 
   // Change value on `path` (dynamic config)
-  await mockMethodCallInfo(
-    page,
-    { binding: 'data' },
-    {
-      methodPointer: {
-        module: 'Standard.Base.Data',
-        definedOnType: 'Standard.Base.Data',
-        name: 'read',
-      },
-      notAppliedArguments: [1],
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
     },
-  )
+    notAppliedArguments: [1],
+  })
   await page.getByText('File 2').click()
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 1')
@@ -112,18 +100,15 @@ test('Selection widgets in Data.read node', async ({ page }) => {
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
-  await mockMethodCallInfo(
-    page,
-    { binding: 'aggregated' },
-    {
-      methodPointer: {
-        module: 'Standard.Table.Data.Table',
-        definedOnType: 'Standard.Table.Data.Table.Table',
-        name: 'aggregate',
-      },
-      notAppliedArguments: [1, 2, 3],
+  await mockMethodCallInfo(page, 'aggregated', {
+    methodPointer: {
+      module: 'Standard.Table.Data.Table',
+      definedOnType: 'Standard.Table.Data.Table.Table',
+      name: 'aggregate',
     },
-  )
+    notAppliedArguments: [1, 2, 3],
+  })
+  const dropDown = new DropDownLocator(page)
 
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'aggregated')
@@ -138,12 +123,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     page,
     {
       binding: 'aggregated',
-      exprIdGetter(node) {
-        assert(node.rootSpan instanceof Ast.App)
-        const argChildren = Array.from(node.rootSpan.argument.children())
-        assert(argChildren[1]?.exprId)
-        return argChildren[1].exprId
-      },
+      expr: 'Aggregate_Column.Group_By',
     },
     {
       methodPointer: {
@@ -156,4 +136,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   )
 
   // Set column
+  const columnArg = columnsArg.locator('.WidgetSelection .WidgetSelection')
+  await columnArg.click()
+  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
 })

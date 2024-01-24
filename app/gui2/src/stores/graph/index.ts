@@ -1,7 +1,7 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type ExpressionLocator } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
@@ -11,7 +11,7 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert } from '@/util/assert'
+import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, Module, Owned } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
@@ -400,11 +400,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   /**
-   * Emit an value update to a port view under specific ID. Returns `true` if the port view is
+   * Emit a value update to a port view under specific ID. Returns `true` if the port view is
    * registered and the update was emitted, or `false` otherwise.
    *
    * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
-   * Therefore the passed in `edit` should not be modified afterwards, as it is already committed.
+   * Therefore, the passed in `edit` should not be modified afterward, as it is already committed.
    */
   function updatePortValue(
     edit: MutableModule,
@@ -452,8 +452,37 @@ export const useGraphStore = defineStore('graph', () => {
     })
   }
 
-  function mockExpressionUpdate(binding: ExpressionLocator, update: Partial<ExpressionUpdate>) {
-    db.mockExpressionUpdate(binding, update)
+  function mockExpressionUpdate(
+    locator: string | { binding: string; expr: string },
+    update: Partial<ExpressionUpdate>,
+  ) {
+    const { binding, expr } =
+      typeof locator === 'string' ? { binding: locator, expr: undefined } : locator
+    const nodeId = db.getIdentDefiningNode(binding)
+    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
+    let expressionId: ExprId | undefined
+    if (expr) {
+      const node = db.nodeIdToNode.get(nodeId)
+      node?.rootSpan.visitRecursive((ast) => {
+        if (ast instanceof Ast.Ast && ast.code() == expr) {
+          expressionId = ast.exprId
+        }
+      })
+    } else {
+      expressionId = nodeId
+    }
+
+    if (expressionId == null) bail(`Cannot find expression located by ${locator}`)
+
+    const update_: ExpressionUpdate = {
+      expressionId,
+      profilingInfo: update.profilingInfo ?? [],
+      fromCache: update.fromCache ?? false,
+      payload: update.payload ?? { type: 'Value' },
+      ...(update.type ? { type: update.type } : {}),
+      ...(update.methodCall ? { methodCall: update.methodCall } : {}),
+    }
+    proj.computedValueRegistry.processUpdates([update_])
   }
 
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
@@ -466,7 +495,7 @@ export const useGraphStore = defineStore('graph', () => {
    * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
    * relative order is already correct.
    *
-   * Additionally all nodes dependent on the `targetNodeId` that end up being before its new line
+   * Additionally, all nodes dependent on the `targetNodeId` that end up being before its new line
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: ExprId, targetNodeId: ExprId) {
