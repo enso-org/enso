@@ -13,9 +13,7 @@ public interface JoinStrategy {
   JoinResult join(ProblemAggregator problemAggregator);
 
   static JoinStrategy createStrategy(List<JoinCondition> conditions, JoinKind joinKind) {
-    if (conditions.isEmpty()) {
-      throw new IllegalArgumentException("At least one join condition must be provided.");
-    }
+    ensureConditionsNotEmpty(conditions);
 
     JoinResult.BuilderSettings builderSettings = JoinKind.makeSettings(joinKind);
 
