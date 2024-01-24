@@ -1723,7 +1723,7 @@ export function functionBlock(module: Module, name: string): BodyBlock | null {
   return method.body
 }
 
-export function parseTransitional(code: string, idMap: IdMap): Ast {
+export function parseTransitional(code: string, idMap: IdMap): Owned<BodyBlock> {
   const rawAst = RawAstExtended.parse(code, idMap.clone())
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()

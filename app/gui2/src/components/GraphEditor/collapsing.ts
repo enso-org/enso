@@ -6,6 +6,7 @@ import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
+import { IdMap } from '../../../shared/yjsModel'
 
 // === Types ===
 
@@ -238,7 +239,7 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
-    const ast = Ast.parseBlock(code)
+    const ast = Ast.parseTransitional(code, new IdMap())
     const expressions = Array.from(ast.statements())
     const func = expressions[0]
     assert(func instanceof Ast.Function)
