@@ -629,14 +629,17 @@ export async function modModifier(page: test.Page) {
 /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
  * on all other platforms. */
 export async function press(page: test.Page, keyOrShortcut: string) {
-  if (/\bMod\b/.test(keyOrShortcut)) {
+  if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
     let userAgent = ''
     await test.test.step('Detect browser OS', async () => {
       userAgent = await page.evaluate(() => navigator.userAgent)
     })
     // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
     const ctrlKey = /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
-    await page.keyboard.press(keyOrShortcut.replace(/\bMod\b/g, ctrlKey))
+    const deleteKey = /\bMac OS\b/i.test(userAgent) ? 'Backspace' : 'Delete'
+    await page.keyboard.press(
+      keyOrShortcut.replace(/\bMod\b/g, ctrlKey).replace(/\bDelete\b/, deleteKey)
+    )
   } else {
     await page.keyboard.press(keyOrShortcut)
   }
