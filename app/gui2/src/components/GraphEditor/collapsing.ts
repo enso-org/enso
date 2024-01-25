@@ -161,25 +161,31 @@ export function performCollapse(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
-  const collapsed = []
-  const refactored = []
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
     collapsedName,
     edit,
   )
-  const lines = functionBlock.statements()
-  for (const line of lines) {
-    const ast = line.take()
-    if (astIdsToExtract.has(ast.id)) {
-      collapsed.push(ast)
-      if (ast.id === astIdToReplace) {
-        refactored.push({ expression: { node: refactoredAst } })
+  const collapsed: Ast.Owned[] = []
+  // Update the definition of the refactored function.
+  functionBlock.updateLines((lines) => {
+    const refactored: Ast.OwnedBlockLine[] = []
+    for (const line of lines) {
+      const ast = line.expression?.node
+      if (!ast) continue
+      if (astIdsToExtract.has(ast.id)) {
+        collapsed.push(ast)
+        if (ast.id === astIdToReplace) {
+          refactored.push({ expression: { node: refactoredAst } })
+        }
+      } else {
+        refactored.push(line)
       }
-    } else {
-      refactored.push({ expression: { node: ast } })
     }
-  }
+    return refactored
+  })
+
+  // Insert a new function.
   const collapsedNodeIds = collapsed.map((ast) => asNodeId(nodeFromAst(ast).rootSpan.id)).reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
@@ -188,10 +194,6 @@ export function performCollapse(
     collapsed.push(ident)
     outputNodeId = asNodeId(ident.id)
   }
-  // Update the definition of the refactored function.
-  functionBlock.setLines(refactored)
-
-  // Insert a new function.
   const argNames: string[] = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(
     edit,

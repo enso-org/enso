@@ -297,35 +297,19 @@ export class MutableModule implements Module {
   }
 
   replace(id: AstId, value: Owned): Owned | undefined {
-    const old = this.nodes.get(id)
-    if (!old) return
-    const parentId = old.get('parent')
-    if (!parentId) return
-    old.set('parent', undefined)
-    this.checkedGet(parentId).replaceChild(id, value)
+    return this.get(id)?.replace(value)
   }
 
   replaceValue(id: AstId, value: Owned): Owned | undefined {
-    const old = this.nodes.get(id)
-    if (!old) return
-    const parentId = old.get('parent')
-    if (!parentId) return
-    const externalId = old.get('externalId')
-    old.set('parent', undefined)
-    old.set('externalId', newExternalId())
-    this.checkedGet(parentId).replaceChild(id, value)
-    this.nodes.get(id)!.set('externalId', externalId)
+    return this.get(id)?.replaceValue(value)
   }
 
   take(id: AstId): Owned {
     return this.replace(id, Wildcard.new(this)) || asOwned(this.checkedGet(id))
   }
 
-  takeAndReplaceValue<T extends MutableAst>(
-    id: AstId,
-    wrap: (x: Owned) => Owned<T>,
-  ): T | undefined {
-    return this.get(id)?.takeAndReplaceValue(wrap)
+  updateValue<T extends MutableAst>(id: AstId, f: (x: Owned) => Owned<T>): T | undefined {
+    return this.get(id)?.updateValue(f)
   }
 
   /////////////////////////////////////////////
@@ -372,8 +356,8 @@ export class MutableModule implements Module {
   }
 
   /** @internal Copy a node into the module, if it is bound to a different module. */
-  splice<T extends MutableAst>(ast: Owned<T>): Owned<T>
-  splice<T extends MutableAst>(ast: Owned<T> | undefined): Owned<T> | undefined {
+  copyIfForeign<T extends MutableAst>(ast: Owned<T>): Owned<T>
+  copyIfForeign<T extends MutableAst>(ast: Owned<T> | undefined): Owned<T> | undefined {
     if (!ast) return ast
     if (ast.module === this) return ast
     return this.copy(ast) as any
@@ -656,10 +640,12 @@ export abstract class MutableAst extends Ast {
 
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
   replace<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
-    const parent = this.module.checkedGet(parentId(this))
-    assert(parent !== undefined)
-    parent.replaceChild(this.id, replacement)
-    this.fields.set('parent', undefined)
+    const parentId = this.fields.get('parent')
+    if (parentId) {
+      const parent = this.module.checkedGet(parentId)
+      parent.replaceChild(this.id, replacement)
+      this.fields.set('parent', undefined)
+    }
     return asOwned(this)
   }
 
@@ -667,13 +653,15 @@ export abstract class MutableAst extends Ast {
    *  Returns the old value, with a new (unreferenced) ID.
    */
   replaceValue<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
-    const old = this.replace(replacement)
-    replacement.setExternalId(old.externalId)
+    const replacement_ = this.module.copyIfForeign(replacement)
+    const old = this.replace(replacement_)
+    replacement_.setExternalId(old.externalId)
     old.setExternalId(newExternalId())
     return old
   }
 
-  /** Replace the parent of this object with a reference to a new placeholder object. Return the object, now parentless. */
+  /** Replace the parent of this object with a reference to a new placeholder object.
+   *  Returns the object, now parentless, and the placeholder. */
   takeToReplace(): Removed<this> {
     if (parentId(this)) {
       const placeholder = Wildcard.new(this.module)
@@ -684,6 +672,8 @@ export abstract class MutableAst extends Ast {
     }
   }
 
+  /** Replace the parent of this object with a reference to a new placeholder object.
+   *  Returns the object, now parentless. */
   take(): Owned<this> {
     return this.replace(Wildcard.new(this.module))
   }
@@ -708,18 +698,29 @@ export abstract class MutableAst extends Ast {
     return { node, placeholder }
   }
 
-  takeAndReplace<T extends MutableAst>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+  /** Take this node from the tree, and replace it with the result of applying the given function to it.
+   *
+   *  Note that this is a modification of the *parent* node. Any `Ast` objects or `AstId`s that pointed to the old value
+   *  will still point to the old value.
+   */
+  update<T extends MutableAst>(f: (x: Owned<typeof this>) => Owned<T>): T {
     const taken = this.takeToReplace()
     assertDefined(taken.placeholder, 'To replace an `Ast`, it must have a parent.')
-    const replacement = wrap(taken.node)
+    const replacement = f(taken.node)
     taken.placeholder.replace(replacement)
     return replacement
   }
 
-  takeAndReplaceValue<T extends MutableAst>(wrap: (x: Owned<typeof this>) => Owned<T>): T {
+  /** Take this node from the tree, and replace it with the result of applying the given function to it; transfer the
+   *  metadata from this node to the replacement.
+   *
+   *  Note that this is a modification of the *parent* node. Any `Ast` objects or `AstId`s that pointed to the old value
+   *  will still point to the old value.
+   */
+  updateValue<T extends MutableAst>(f: (x: Owned<typeof this>) => Owned<T>): T {
     const taken = this.takeValue()
     assertDefined(taken.placeholder, 'To replace an `Ast`, it must have a parent.')
-    const replacement = wrap(taken.node)
+    const replacement = f(taken.node)
     taken.placeholder.replaceValue(replacement)
     return replacement
   }
@@ -773,7 +774,8 @@ function claimChild<T extends MutableAst>(
   child: Owned<T>,
   parent: AstId,
 ): AstId {
-  const child_ = module.splice(child)
+  if (child.module === module) assertEqual(child.fields.get('parent'), undefined)
+  const child_ = module.copyIfForeign(child)
   child_.fields.set('parent', parent)
   return child_.id
 }
@@ -2112,6 +2114,9 @@ export class MutableBodyBlock extends BodyBlock implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & BodyBlockFields>
 
+  updateLines(map: (lines: OwnedBlockLine[]) => OwnedBlockLine[]) {
+    return this.setLines(map(this.takeLines()))
+  }
   takeLines(): OwnedBlockLine[] {
     return this.fields.get('lines').map((line) => ownedLineFromRaw(line, this.module))
   }
@@ -2175,8 +2180,8 @@ type Line<T> = {
 }
 
 type RawBlockLine = RawLine<AstId>
-type BlockLine = Line<Ast>
-type OwnedBlockLine = Line<Owned>
+export type BlockLine = Line<Ast>
+export type OwnedBlockLine = Line<Owned>
 
 function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.checkedGet(raw.expression.node) : undefined
@@ -2870,7 +2875,7 @@ export function functionBlock(topLevel: BodyBlock, name: string) {
 export function deleteFromParentBlock(ast: MutableAst) {
   const parent = ast.mutableParent()
   if (parent instanceof MutableBodyBlock)
-    parent.setLines(parent.takeLines().filter((line) => line.expression?.node.id !== ast.id))
+    parent.updateLines((lines) => lines.filter((line) => line.expression?.node.id !== ast.id))
 }
 
 declare const TokenKey: unique symbol

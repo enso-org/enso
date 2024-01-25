@@ -202,9 +202,7 @@ const isOutputContextOverridden = computed({
           enableOutputContext: replacementText,
           disableOutputContext: undefined,
         }
-    edit
-      .getVersion(props.node.rootSpan)
-      .takeAndReplaceValue((expression) => prefixes.modify(expression, replacements))
+    prefixes.modify(edit.getVersion(props.node.rootSpan), replacements)
     graph.commitEdit(edit)
   },
 })

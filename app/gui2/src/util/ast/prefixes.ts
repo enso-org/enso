@@ -37,20 +37,21 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
     return { matches, innerExpr: expression.id }
   }
 
-  modify(expression: Ast.Owned, replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>) {
-    const matches = this.extractMatches(expression)
-    const edit = expression.module
-    let result = edit.take(matches.innerExpr)
-    assert(result != null)
-    for (const key of unsafeKeys(this.prefixes).reverse()) {
-      if (key in replacements && !replacements[key]) continue
-      const replacement: Ast.Owned[] | undefined =
-        replacements[key] ?? matches.matches[key]?.map((match) => edit.take(match)!)
-      if (!replacement) continue
-      const pattern = this.prefixes[key]
-      const parts = [...replacement, result]
-      result = pattern.instantiate(edit, parts)
-    }
-    return result
+  modify(expression: Ast.Mutable, replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>) {
+    expression.updateValue((expression) => {
+      const matches = this.extractMatches(expression)
+      const edit = expression.module
+      let result = edit.take(matches.innerExpr)
+      for (const key of unsafeKeys(this.prefixes).reverse()) {
+        if (key in replacements && !replacements[key]) continue
+        const replacement: Ast.Owned[] | undefined =
+          replacements[key] ?? matches.matches[key]?.map((match) => edit.take(match)!)
+        if (!replacement) continue
+        const pattern = this.prefixes[key]
+        const parts = [...replacement, result]
+        result = pattern.instantiate(edit, parts)
+      }
+      return result
+    })
   }
 }

@@ -473,22 +473,20 @@ export const useGraphStore = defineStore('graph', () => {
         return 'circular'
       }
 
-      const lines = body.takeLines()
+      body.updateLines((lines) => {
+        // Pick subset of lines to reorder, i.e. lines between and including target and source.
+        const linesToSort = lines.splice(targetIdx, sourceIdx - targetIdx + 1)
 
-      // Pick subset of lines to reorder, i.e. lines between and including target and source.
-      const linesToSort = lines.splice(targetIdx, sourceIdx - targetIdx + 1)
+        // Split those lines into two buckets, whether or not they depend on the target.
+        const [linesAfter, linesBefore] = partition(linesToSort, (line) =>
+          dependantLines.has(line.expression?.node.id),
+        )
 
-      // Split those lines into two buckets, whether or not they depend on the target.
-      const [linesAfter, linesBefore] = partition(linesToSort, (line) =>
-        dependantLines.has(line.expression?.node.id),
-      )
+        // Recombine all lines after splitting, keeping existing dependants below the target.
+        lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
 
-      // Recombine all lines after splitting, keeping existing dependants below the target.
-      lines.splice(targetIdx, 0, ...linesBefore, ...linesAfter)
-
-      // Finally apply the reordered lines into the body block as AST edit.
-      body.setLines(lines)
-      return true
+        return lines
+      })
     } else {
       return false
     }

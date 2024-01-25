@@ -185,7 +185,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : undefined
       edit
         .getVersion(argApp.appTree)
-        .takeAndReplaceValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
+        .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       props.onUpdate({ edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
@@ -231,7 +231,6 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
           const lhs = edit.take(argApp.appTree.lhs.id)
-          assert(lhs != null)
           props.onUpdate({
             edit,
             portUpdate: {
