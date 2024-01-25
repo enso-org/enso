@@ -457,7 +457,7 @@ export const useGraphStore = defineStore('graph', () => {
     assert(targetExpr != null)
     assert(body instanceof Ast.BodyBlock, 'Current function body must be a BodyBlock')
 
-    const lines = body.takeLines(edit)
+    const lines = body.lines()
     const sourceIdx = lines.findIndex((line) => line.expression?.node.id === sourceExpr)
     const targetIdx = lines.findIndex((line) => line.expression?.node.id === targetExpr)
 
@@ -478,6 +478,8 @@ export const useGraphStore = defineStore('graph', () => {
       if (dependantLines.has(sourceExpr)) {
         return 'circular'
       }
+
+      const lines = body.takeLines(edit)
 
       // Pick subset of lines to reorder, i.e. lines between and including target and source.
       const linesToSort = lines.splice(targetIdx, sourceIdx - targetIdx + 1)
