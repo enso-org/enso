@@ -30,6 +30,7 @@ use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
+use ide_ci::actions::workflow::definition::Target;
 use ide_ci::actions::workflow::definition::Workflow;
 use ide_ci::actions::workflow::definition::WorkflowCall;
 use ide_ci::actions::workflow::definition::WorkflowDispatch;
@@ -48,11 +49,20 @@ pub mod step;
 
 
 
+/// Whether a runner is self-hosted or GitHub-hosted.
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RunnerType {
+    SelfHosted,
+    GitHubHosted,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct BenchmarkRunner;
 
 pub const PRIMARY_OS: OS = OS::Linux;
 pub const PRIMARY_ARCH: Arch = Arch::X86_64;
+
+pub const PRIMARY_TARGET: Target = (PRIMARY_OS, PRIMARY_ARCH);
 
 pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
     (OS::Windows, Arch::X86_64),
@@ -279,12 +289,16 @@ pub fn on_default_branch_push() -> Push {
     Push { inner_branches: Branches::new([DEFAULT_BRANCH_NAME]), ..default() }
 }
 
-pub fn runs_on(os: OS) -> Vec<RunnerLabel> {
-    match os {
-        OS::Windows => vec![RunnerLabel::SelfHosted, RunnerLabel::Windows, RunnerLabel::Engine],
-        OS::Linux => vec![RunnerLabel::SelfHosted, RunnerLabel::Linux, RunnerLabel::Engine],
-        OS::MacOS => vec![RunnerLabel::MacOSLatest],
-        _ => todo!("Not supported"),
+pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
+    match (os, runner_type) {
+        (OS::Windows, RunnerType::SelfHosted) =>
+            vec![RunnerLabel::SelfHosted, RunnerLabel::Windows],
+        (OS::Windows, RunnerType::GitHubHosted) => vec![RunnerLabel::WindowsLatest],
+        (OS::Linux, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::Linux],
+        (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
+        (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
+        (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
+        _ => panic!("Unsupported OS and runner type combination: {os} {runner_type}."),
     }
 }
 
@@ -322,14 +336,14 @@ pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
 #[derive(Clone, Copy, Debug)]
 pub struct DraftRelease;
 impl JobArchetype for DraftRelease {
-    fn job(&self, os: OS, arch: Arch) -> Job {
+    fn job(&self, target: Target) -> Job {
         let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
         let mut steps = setup_script_steps();
         steps.push(prepare_step);
 
-        let mut ret = Job { name, runs_on: runs_on(os), steps, ..default() };
+        let mut ret = Job { name, runs_on: target.runs_on(), steps, ..default() };
         self.expose_outputs(&mut ret);
         ret
     }
@@ -351,8 +365,8 @@ impl DraftRelease {
 #[derive(Clone, Copy, Debug)]
 pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
-    fn job(&self, os: OS, arch: Arch) -> Job {
-        let mut ret = plain_job(os, "Publish release", "release publish");
+    fn job(&self, target: Target) -> Job {
+        let mut ret = plain_job(target, "Publish release", "release publish");
         ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
         ret.expose_secret_as(
             secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
@@ -366,33 +380,33 @@ impl JobArchetype for PublishRelease {
 #[derive(Clone, Copy, Debug)]
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
-    fn job(&self, os: OS, arch: Arch) -> Job {
+    fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}")
-            .customize(with_packaging_steps(os))
-            .build_job("Build Old IDE", os)
+            .customize(with_packaging_steps(target.0))
+            .build_job("Build Old IDE", target)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct UploadIde2;
 impl JobArchetype for UploadIde2 {
-    fn job(&self, os: OS, arch: Arch) -> Job {
+    fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
             "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
         )
-        .customize(with_packaging_steps(os))
-        .build_job("Build New IDE", os)
+        .customize(with_packaging_steps(target.0))
+        .build_job("Build New IDE", target)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct PromoteReleaseJob;
 impl JobArchetype for PromoteReleaseJob {
-    fn job(&self, os: OS, arch: Arch) -> Job {
+    fn job(&self, target: Target) -> Job {
         let command = format!("release promote {}", get_input_expression(DESIGNATOR_INPUT_NAME));
         let mut job = RunStepsBuilder::new(command)
             .customize(|step| vec![step.with_id(Self::PROMOTE_STEP_ID)])
-            .build_job("Promote release", os);
+            .build_job("Promote release", target);
         self.expose_outputs(&mut job);
         job
     }
@@ -443,16 +457,15 @@ pub fn nightly() -> Result<Workflow> {
 }
 
 fn add_release_steps(workflow: &mut Workflow) -> Result {
-    let prepare_job_id = workflow.add(PRIMARY_OS, PRIMARY_ARCH, DraftRelease);
-    let build_wasm_job_id = workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::BuildWasm);
+    let prepare_job_id = workflow.add(PRIMARY_TARGET, DraftRelease);
+    let build_wasm_job_id = workflow.add(PRIMARY_TARGET, job::BuildWasm);
     let mut packaging_job_ids = vec![];
 
     // Assumed, because Linux is necessary to deploy ECR runtime image.
     assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
-    for (os, arch) in RELEASE_TARGETS {
-        let backend_job_id =
-            workflow.add_dependent(os, arch, job::UploadBackend, [&prepare_job_id]);
-        let build_ide_job_id = workflow.add_dependent(os, arch, UploadIde, [
+    for target in RELEASE_TARGETS {
+        let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
+        let build_ide_job_id = workflow.add_dependent(target, UploadIde, [
             &prepare_job_id,
             &backend_job_id,
             &build_wasm_job_id,
@@ -460,21 +473,21 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         packaging_job_ids.push(build_ide_job_id.clone());
 
         let build_ide2_job_id =
-            workflow.add_dependent(os, arch, UploadIde2, [&prepare_job_id, &backend_job_id]);
+            workflow.add_dependent(target, UploadIde2, [&prepare_job_id, &backend_job_id]);
         packaging_job_ids.push(build_ide2_job_id.clone());
 
         // Deploying our release to cloud needs to be done only once.
         // We could do this on any platform, but we choose Linux, because it's most easily
         // available and performant.
-        if os == OS::Linux {
+        if target.0 == OS::Linux {
             let runtime_requirements = [&prepare_job_id, &backend_job_id];
             let upload_runtime_job_id =
-                workflow.add_dependent(os, arch, job::DeployRuntime, runtime_requirements);
+                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
             packaging_job_ids.push(upload_runtime_job_id);
 
             let gui_requirements = [build_ide_job_id];
             let deploy_gui_job_id =
-                workflow.add_dependent(os, arch, job::DeployGui, gui_requirements);
+                workflow.add_dependent(target, job::DeployGui, gui_requirements);
             packaging_job_ids.push(deploy_gui_job_id);
         }
     }
@@ -485,8 +498,7 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     };
 
 
-    let _publish_job_id =
-        workflow.add_dependent(PRIMARY_OS, PRIMARY_ARCH, PublishRelease, publish_deps);
+    let _publish_job_id = workflow.add_dependent(PRIMARY_TARGET, PublishRelease, publish_deps);
     workflow.env("RUST_BACKTRACE", "full");
     Ok(())
 }
@@ -548,7 +560,7 @@ pub fn promote() -> Result<Workflow> {
         ..default()
     };
     let mut workflow = Workflow { on, name: "Generate a new version".into(), ..default() };
-    let promote_job_id = workflow.add(PRIMARY_OS, PRIMARY_ARCH, PromoteReleaseJob);
+    let promote_job_id = workflow.add(PRIMARY_TARGET, PromoteReleaseJob);
 
 
     let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
@@ -571,11 +583,11 @@ pub fn typical_check_triggers() -> Event {
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::CancelWorkflow);
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::Lint);
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::WasmTest);
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::NativeTest);
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::NewGuiTest);
+    workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmTest);
+    workflow.add(PRIMARY_TARGET, job::NativeTest);
+    workflow.add(PRIMARY_TARGET, job::NewGuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -583,12 +595,12 @@ pub fn gui() -> Result<Workflow> {
     //     job.needs.insert(job::BuildBackend::key(PRIMARY_OS));
     // });
 
-    for (os, arch) in CHECKED_TARGETS {
-        let project_manager_job = workflow.add(os, arch, job::BuildBackend);
-        workflow.add_customized(os, arch, job::PackageNewIde, |job| {
+    for target in CHECKED_TARGETS {
+        let project_manager_job = workflow.add(target, job::BuildBackend);
+        workflow.add_customized(target, job::PackageNewIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
-        workflow.add(os, arch, job::NewGuiBuild);
+        workflow.add(target, job::NewGuiBuild);
     }
     Ok(workflow)
 }
@@ -596,9 +608,9 @@ pub fn gui() -> Result<Workflow> {
 pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
-    workflow.add(PRIMARY_OS, PRIMARY_ARCH, job::CancelWorkflow);
-    for (os, arch) in CHECKED_TARGETS {
-        workflow.add(os, arch, job::CiCheckBackend);
+    workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    for target in CHECKED_TARGETS {
+        workflow.add(target, job::CiCheckBackend);
     }
     Ok(workflow)
 }

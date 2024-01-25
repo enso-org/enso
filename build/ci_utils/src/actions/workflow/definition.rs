@@ -14,6 +14,12 @@ use std::sync::atomic::Ordering;
 
 
 
+/// Operating system and architecture.
+///
+/// While this should be enough of a target information for a Job definition, it is not enough
+/// for a runner labels: self-hosted and GitHub-hosted runners use different label schemes.
+pub type Target = (OS, Arch);
+
 /// Default timeout for a job.
 ///
 /// We use a very long timeout because we want to avoid cancelling jobs that are just slow.
@@ -23,15 +29,30 @@ pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
 /// runner labels (OS-es, but also runner-identifying labels).
 const MATRIX_STRATEGY_OS: &str = "os";
 
+/// Wraps a given expression in GitHub Actions into `{{ ... }}`.
+///
+/// Expressions must be wrapped in this way to be evaluated by GitHub Actions, except for some
+/// special cases, e.g. `if` expressions.
 pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
 }
 
 /// An expression that accesses a secret with a given name.
+///
+/// /// # Example
+///
+/// ```
+/// use ide_ci::actions::workflow::definition::secret_expression;
+///
+/// let secret_name = "MY_SECRET";
+/// let secret_expr = secret_expression(secret_name);
+/// assert_eq!(secret_expr, "${{ secrets.MY_SECRET }}");
+/// ```
 pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
     wrap_expression(format!("secrets.{}", secret_name.as_ref()))
 }
 
+/// An expression that accesses an environment variable with a given name.
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
 }
@@ -42,10 +63,16 @@ pub fn get_input_expression(name: impl Into<String>) -> String {
     wrap_expression(format!("inputs.{}", name.into()))
 }
 
+/// GH Actions expression piece that evaluates to `true` if run on a GitHub-hosted runner.
 pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
 }
 
+/// Step that sets up `conda` on GitHub-hosted runners.
+///
+/// We set up `conda` on GitHub-hosted runners because we need it to install `flatbuffers` in
+/// required version. Our self-hosted runners have `flatc` already installed, so we don't need
+/// `conda` there.
 pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
@@ -73,6 +100,7 @@ pub fn setup_wasm_pack_step() -> Step {
     }
 }
 
+/// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {
         name: Some(name.into()),
@@ -82,6 +110,7 @@ pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) ->
     }
 }
 
+/// Export environment needed by our [Artifact API wrappers](crate::actions::artifacts).
 pub fn setup_artifact_api() -> Step {
     let script = r#"
     core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
@@ -92,22 +121,14 @@ pub fn setup_artifact_api() -> Step {
     github_script_step("Expose Artifact API and context information.", script)
 }
 
+/// An expression piece that evaluates to `true` if the current runner runs on Windows.
 pub fn is_windows_runner() -> String {
     "runner.os == 'Windows'".into()
 }
 
+/// An expression piece that evaluates to `true` if the current runner *does not* run on Windows.
 pub fn is_non_windows_runner() -> String {
     "runner.os != 'Windows'".into()
-}
-
-pub fn shell_os(os: OS, command_line: impl Into<String>) -> Step {
-    Step {
-        run: Some(command_line.into()),
-        env: once(github_token_env()).collect(),
-        r#if: Some(format!("runner.os {} 'Windows'", if os == OS::Windows { "==" } else { "!=" })),
-        shell: Some(if os == OS::Windows { Shell::Pwsh } else { Shell::Bash }),
-        ..default()
-    }
 }
 
 pub fn shell(command_line: impl Into<String>) -> Step {
@@ -234,18 +255,17 @@ impl Workflow {
         key
     }
 
-    pub fn add(&mut self, os: OS, arch: Arch, job: impl JobArchetype) -> String {
-        self.add_customized(os, arch, job, |_| {})
+    pub fn add(&mut self, target: Target, job: impl JobArchetype) -> String {
+        self.add_customized(target, job, |_| {})
     }
 
     pub fn add_customized(
         &mut self,
-        os: OS,
-        arch: Arch,
+        target: Target,
         job: impl JobArchetype,
         f: impl FnOnce(&mut Job),
     ) -> String {
-        let (key, mut job) = job.entry(os, arch);
+        let (key, mut job) = job.entry(target);
         f(&mut job);
         self.jobs.insert(key.clone(), job);
         key
@@ -253,12 +273,11 @@ impl Workflow {
 
     pub fn add_dependent(
         &mut self,
-        os: OS,
-        arch: Arch,
+        target: Target,
         job: impl JobArchetype,
         needed: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
-        let (key, mut job) = job.entry(os, arch);
+        let (key, mut job) = job.entry(target);
         for needed in needed {
             self.expose_outputs(needed.as_ref(), &mut job);
         }
@@ -1004,6 +1023,8 @@ pub enum RunnerLabel {
     WindowsLatest,
     #[serde(rename = "X64")]
     X64,
+    #[serde(rename = "ARM64")]
+    Arm64,
     #[serde(rename = "benchmark")]
     Benchmark,
     #[serde(rename = "metarunner")]
@@ -1073,14 +1094,14 @@ pub trait JobArchetype {
         std::any::type_name::<Self>().to_kebab_case()
     }
 
-    fn key(&self, os: OS, arch: Arch) -> String {
+    fn key(&self, (os, arch): Target) -> String {
         format!("{}-{os}-{arch}", self.id_key_base())
     }
 
-    fn job(&self, os: OS, arch: Arch) -> Job;
+    fn job(&self, target: Target) -> Job;
 
-    fn entry(&self, os: OS, arch: Arch) -> (String, Job) {
-        (self.key(os, arch), self.job(os, arch))
+    fn entry(&self, target: Target) -> (String, Job) {
+        (self.key(target), self.job(target))
     }
 
     // [Step ID] => [variable names]
