@@ -4,10 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 import project.Data.Type.Value_Type.Value_Type
-from project import Column
 from project.Errors import Nothing_Value_In_Filter_Condition
-
-import Standard.Database.Data.Column.Column as Database_Column
 
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask
@@ -85,19 +82,23 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
             (is_infinite_column || is_nan_column).not
     # Vector
     Is_In values ->
-        warn_on_nothing_in_comparison filter_condition values <|
+        warn_on_nothing_in_comparison_vector filter_condition values <|
             source_column.is_in values
     Not_In values ->
-        warn_on_nothing_in_comparison filter_condition values <|
+        warn_on_nothing_in_comparison_vector filter_condition values <|
             source_column.is_in values . not
 
-warn_on_nothing_in_comparison : Filter_Condition -> Any | Vector Any -> Any -> Any
-warn_on_nothing_in_comparison filter_condition x ~action =
-    result = action
-    has_nothing = case x of
-        _ : Column -> False
-        _ : Database_Column -> False
-        _ : Vector -> x.contains Nothing
-        _ -> x.is_nothing
-    if has_nothing.not then result else
-        Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) result
+## Attach a warning if the provided value is `Nothing`.
+warn_on_nothing_in_comparison : Filter_Condition -> Any -> Any -> Any
+warn_on_nothing_in_comparison filter_condition value ~action =
+    case value of
+        Nothing -> Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) action
+        _ -> action
+
+## Attach a warning if the provided value is a `Vector` that contains `Nothing`.
+warn_on_nothing_in_comparison_vector : Filter_Condition -> Vector Any -> Any -> Any
+warn_on_nothing_in_comparison_vector filter_condition values ~action =
+    case values of
+        _ : Vector ->
+            values.fold action (flip (warn_on_nothing_in_comparison filter_condition))
+        _ -> action
