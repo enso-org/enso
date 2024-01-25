@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.BinaryOperatorNodeFactory.DoThatConversionNodeGen;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
@@ -16,9 +17,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 final class BinaryOperatorNode extends ExpressionNode {
@@ -106,15 +109,11 @@ final class BinaryOperatorNode extends ExpressionNode {
       }
     }
 
-    @NeverDefault
-    static UnresolvedConversion buildConversion(Type type) {
-      return UnresolvedConversion.build(type.getDefinitionScope());
-    }
-
     @Specialization(
         limit = "3",
         guards = {
           "cachedSymbol.equals(symbol)",
+          "!types.hasSpecialDispatch(that)",
           "selfType != null",
           "thatType != null",
           "symbolFn != null",
@@ -127,16 +126,74 @@ final class BinaryOperatorNode extends ExpressionNode {
         Object that,
         @Cached("symbol") String cachedSymbol,
         @Cached TypeOfNode typeOfNode,
+        @CachedLibrary(limit = "3") TypesLibrary types,
         @Cached(value = "findType(typeOfNode, self)", uncached = "findTypeUncached(self)")
             Type selfType,
         @Cached(value = "findType(typeOfNode, that)", uncached = "findTypeUncached(that)")
             Type thatType,
         @Cached(allowUncached = true, value = "findSymbol(cachedSymbol, thatType)")
             Function symbolFn,
-        @Cached(allowUncached = true, value = "buildConversion(thatType)")
-            UnresolvedConversion convert,
         @Cached InteropConversionCallNode convertNode,
         @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
+      return doDispatch(frame, self, that, thatType, symbolFn, convertNode, invokeNode);
+    }
+
+    @Specialization
+    final Object doThatMultiValueConversion(
+        VirtualFrame frame,
+        String symbol,
+        Object self,
+        EnsoMultiValue that,
+        @Cached InteropConversionCallNode convertNode,
+        @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
+      for (var thatType : that.allTypes()) {
+        var fn = findSymbol(symbol, thatType);
+        if (fn != null) {
+          var result =
+              doDispatch(frame, self, that.castTo(thatType), thatType, fn, convertNode, invokeNode);
+          if (result != null) {
+            return result;
+          }
+        }
+      }
+      return null;
+    }
+
+    @Specialization(
+        guards = {
+          "!types.hasSpecialDispatch(that)",
+        })
+    final Object doThatConversionFallback(
+        VirtualFrame frame,
+        String symbol,
+        Object self,
+        Object that,
+        @CachedLibrary(limit = "3") TypesLibrary types,
+        @Cached TypeOfNode typeOfNode,
+        @Cached InteropConversionCallNode convertNode,
+        @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
+      var thatType = findType(typeOfNode, that);
+      var fn = findSymbol(symbol, thatType);
+      if (fn != null) {
+        var result = doDispatch(frame, self, that, thatType, fn, convertNode, invokeNode);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+
+    private Object doDispatch(
+        VirtualFrame frame,
+        Object self,
+        Object that,
+        Type thatType,
+        Function symbolFn,
+        InteropConversionCallNode convertNode,
+        InvokeFunctionNode invokeNode)
+        throws PanicException {
+      var convert = UnresolvedConversion.build(thatType.getDefinitionScope());
+
       var ctx = EnsoContext.get(this);
       var state = State.create(ctx);
       try {
@@ -151,11 +208,6 @@ final class BinaryOperatorNode extends ExpressionNode {
         }
         throw ex;
       }
-    }
-
-    @Specialization
-    final Object doThatConversionSlow(VirtualFrame frame, String symbol, Object self, Object that) {
-      return null;
     }
   }
 }
