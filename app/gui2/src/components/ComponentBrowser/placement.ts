@@ -129,7 +129,7 @@ export function mouseDictatedPlacement(
   return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
 }
 
-/** The new node should appear at the average position of selected nodes.
+/** The new node should appear at the average Y-position of selected nodes and with the X-position of the leftmost node.
  *
  * If the desired place is already occupied by non-selected node, it should be moved down to the closest free space.
  *
@@ -141,22 +141,24 @@ export function mouseDictatedPlacement(
  * - shifts the node down (if required) until there is sufficient vertical space -
  *   the height of the node, in addition to the specified gap both above and below the node.
  */
-export function averagePositionPlacement(
+export function collapsedNodePlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
   { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
 ): Placement {
-  let totalPosition = new Vec2(0, 0)
+  let leftMostX
+  let y = 0
   let selectedNodeRectsCount = 0
   for (const rect of selectedNodeRects) {
-    totalPosition = totalPosition.add(rect.pos)
+    leftMostX = leftMostX == null ? rect.pos.x : Math.min(leftMostX, rect.pos.x)
+    y += rect.pos.y
     selectedNodeRectsCount++
   }
   assert(
-    selectedNodeRectsCount > 0,
+    selectedNodeRectsCount > 0 && leftMostX != null,
     'averagePositionPlacement works only if at least one node is selected.',
   )
-  const initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
+  const initialPosition = new Vec2(leftMostX, y / selectedNodeRectsCount)
   const nonSelectedNodeRects = []
   outer: for (const rect of nodeRects) {
     for (const sel of selectedNodeRects) {

@@ -3,7 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
-  averagePositionPlacement,
+  collapsedNodePlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -283,7 +283,7 @@ const graphBindingsHandler = graphBindings.handler({
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
       graphStore.commitEdit(edit)
-      const { position } = averagePositionPlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
+      const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
       graphStore.setNodePosition(refactoredNodeId, position)
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
