@@ -2,7 +2,13 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Function, Module, Name}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -11,7 +17,11 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies
+}
 
 /** Resolves the correct `self` argument type for method definitions and stores
   * the resolution in the method's metadata.
@@ -125,19 +135,36 @@ case object MethodDefinitions extends IRPass {
     ir.copy(bindings = withStaticAliases)
   }
 
-  private def addTypeAscriptionToSelfArgument(methodBody: Expression, typ: Expression): Expression = methodBody match {
+  private def addTypeAscriptionToSelfArgument(
+    methodBody: Expression,
+    typ: Expression
+  ): Expression = methodBody match {
     case lambda: Function.Lambda =>
       val newArguments = lambda.arguments match {
-        case (selfArg @ DefinitionArgument.Specified(Name.Self(_, _, _, _), _, _, _, _, _, _)) :: rest =>
+        case (selfArg @ DefinitionArgument.Specified(
+              Name.Self(_, _, _, _),
+              _,
+              _,
+              _,
+              _,
+              _,
+              _
+            )) :: rest =>
           selfArg.copy(ascribedType = Some(typ)) :: rest
         case other :: _ =>
-          throw new CompilerError(s"MethodDefinitions pass: expected the first argument to be `self`, but got $other")
+          throw new CompilerError(
+            s"MethodDefinitions pass: expected the first argument to be `self`, but got $other"
+          )
         case Nil =>
-          throw new CompilerError(s"MethodDefinitions pass: expected at least one argument (self) in the method, but got none.")
+          throw new CompilerError(
+            s"MethodDefinitions pass: expected at least one argument (self) in the method, but got none."
+          )
       }
       lambda.copy(arguments = newArguments)
     case other =>
-      throw new CompilerError(s"Unexpected body type $other in MethodDefinitions pass.")
+      throw new CompilerError(
+        s"Unexpected body type $other in MethodDefinitions pass."
+      )
   }
 
   // Generate static wrappers for
