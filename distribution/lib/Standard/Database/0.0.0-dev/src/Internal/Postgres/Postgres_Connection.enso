@@ -266,8 +266,8 @@ type Postgres_Connection
 
     ## PRVIATE
        Returns the collation setting for the current database.
-    is_expected_collation : Text
-    is_expected_collation self =
+    is_collation_en_gb_utf8 : Text
+    is_collation_en_gb_utf8 self =
         self.connection.jdbc_connection.with_connection connection->
             result_set = connection.createStatement.executeQuery "SELECT datcollate FROM pg_database WHERE datname = current_database()"
             result = read_column result_set "datcollate"

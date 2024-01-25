@@ -259,5 +259,5 @@ type SQLite_Connection
 
     ## PRVIATE
        Returns the collation setting for the current database.
-    is_expected_collation : Text
-    is_expected_collation self = True
+    is_collation_en_gb_utf8 : Text
+    is_collation_en_gb_utf8 self = True

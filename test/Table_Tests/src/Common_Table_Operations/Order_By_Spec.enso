@@ -21,7 +21,7 @@ spec setup =
     test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
         "ToDo: order_by is not yet supported by this backend."
-    unexpected_collation = if setup.connection.is_nothing.not && setup.connection.is_expected_collation then Nothing else
+    unexpected_collation = if test_selection.is_collation_en_gb_utf8 then Nothing else
         "Test requires collation setting to be 'en_GB.UTF8'"
     Test.group prefix+"Table.order_byasdfasdf" pending=order_by_pending <|
         mk_table =
