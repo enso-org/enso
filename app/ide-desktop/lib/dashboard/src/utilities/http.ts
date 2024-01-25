@@ -1,4 +1,12 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
+import isNetworkError from 'is-network-error'
+
+// =================
+// === Constants ===
+// =================
+
+export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
+export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
 
 // ==================
 // === HttpMethod ===
@@ -58,8 +66,9 @@ export class Client {
     return this.request<T>(HttpMethod.delete, url)
   }
 
-  /** Execute an HTTP request to the specified URL, with the given HTTP method. */
-  private request<T = void>(
+  /** Execute an HTTP request to the specified URL, with the given HTTP method.
+   * @throws {Error} if the HTTP request fails. */
+  private async request<T = void>(
     method: HttpMethod,
     url: string,
     payload?: BodyInit,
@@ -71,14 +80,23 @@ export class Client {
       headers.set('Content-Type', contentType)
     }
 
-    // This is an UNSAFE type assertion, however this is a HTTP client
-    // and should only be used to query APIs with known response types.
-    // eslint-disable-next-line no-restricted-syntax
-    return fetch(url, {
-      method,
-      headers,
-      ...(payload != null ? { body: payload } : {}),
-    }) as Promise<ResponseWithTypedJson<T>>
+    try {
+      // This is an UNSAFE type assertion, however this is a HTTP client
+      // and should only be used to query APIs with known response types.
+      // eslint-disable-next-line no-restricted-syntax
+      const response = (await fetch(url, {
+        method,
+        headers,
+        ...(payload != null ? { body: payload } : {}),
+      })) as ResponseWithTypedJson<T>
+      document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
+      return response
+    } catch (error) {
+      if (isNetworkError(error)) {
+        document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+      }
+      throw error
+    }
   }
 }
 

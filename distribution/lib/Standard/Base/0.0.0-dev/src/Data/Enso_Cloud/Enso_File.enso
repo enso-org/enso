@@ -14,6 +14,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request_Body.Request_Body
 import project.Nothing.Nothing
 import project.System.File.File_Access.File_Access
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -173,16 +174,39 @@ type Enso_File
     ## GROUP Input
        Gets a list of assets within self.
     list : Vector Enso_File
-    list self = if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-        auth_header = Utils.authorization_header
-        response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
-        response.if_not_error <|
-            js_object = response.decode_as_json
-            assets = js_object.get "assets" []
-            files = assets.map t-> t.into Enso_File
+    list self =
+        # Remove secrets from the list
+        list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
 
-            ## Remove secrets from the list
-            files.filter f-> f.asset_type != Enso_Asset_Type.Secret
+    ## UNSTABLE
+       Creates a subdirectory in a specified directory.
+    create_directory : Text -> Enso_File
+    create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
+        auth_header = Utils.authorization_header
+        name_field = [["title", name]]
+        parent_field = if self.id == "" then [] else [["parentId", self.id]]
+        body = JS_Object.from_pairs (name_field + parent_field)
+        response = HTTP.post Utils.directory_api body HTTP_Method.Post [auth_header]
+        response.if_not_error <| response.decode_as_json.into Enso_File
+
+    ## UNSTABLE
+       Deletes the file or directory.
+    delete : Nothing
+    delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+        # TODO this is a mess
+        uri = if self.is_directory then Utils.directory_api + "/" + self.id else self.internal_uri
+        auth_header = Utils.authorization_header
+        response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
+        response.if_not_error <| Nothing
+
+## PRIVATE
+list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
+     auth_header = Utils.authorization_header
+     response = HTTP.fetch parent.internal_uri HTTP_Method.Get [auth_header]
+     response.if_not_error <|
+         js_object = response.decode_as_json
+         assets = js_object.get "assets" if_missing=(Error.throw (Illegal_Argument.Error "Invalid JSON response from the Cloud."))
+         assets.map t-> t.into Enso_File
 
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else

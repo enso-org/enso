@@ -66,6 +66,27 @@ type Set
     contains : Any -> Boolean
     contains self value = self.underlying_map.contains_key value
 
+    ## GROUP Logical
+       Checks if this set contains a given value, treating Nothing as a
+       relational NULL.
+
+       If the argument is non-Nothing and exists in `value`, return true.
+
+       If the argument is non-Nothing and does not exist in `value`, return
+       false if `value` does not contain a Nothing, or Nothing if `value` does
+       contain a Nothing.
+
+       If the argument is Nothing, return Nothing if `value` is non-empty, or
+       false if `value` is empty.
+    contains_relational : Any -> Boolean | Nothing
+    contains_relational self value =
+        case value of
+            _ : Nothing -> if self.is_empty then False else Nothing
+            _ ->
+                if self.contains value then True else
+                    has_nulls = self.contains Nothing
+                    if has_nulls then Nothing else False
+
     ## ALIAS add
        GROUP Calculations
        Adds a value to this set.

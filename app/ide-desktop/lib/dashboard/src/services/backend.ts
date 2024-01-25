@@ -90,6 +90,8 @@ export interface UserOrOrganization {
   id: UserOrOrganizationId
   name: string
   email: EmailAddress
+  /** A URL. */
+  profilePicture: string | null
   /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
    * `usersMe` will not work. */
   isEnabled: boolean
@@ -525,6 +527,51 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
   }
 }
 
+/** Creates a {@link FileAsset} using the given values. */
+export function createPlaceholderFileAsset(
+  title: string,
+  parentId: DirectoryId,
+  assetPermissions: UserPermission[]
+): FileAsset {
+  return {
+    type: AssetType.file,
+    id: FileId(uniqueString.uniqueString()),
+    title,
+    parentId,
+    permissions: assetPermissions,
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    projectState: null,
+    labels: [],
+    description: null,
+  }
+}
+
+/** Creates a {@link ProjectAsset} using the given values. */
+export function createPlaceholderProjectAsset(
+  title: string,
+  parentId: DirectoryId,
+  assetPermissions: UserPermission[],
+  organization: UserOrOrganization | null
+): ProjectAsset {
+  return {
+    type: AssetType.project,
+    id: ProjectId(uniqueString.uniqueString()),
+    title,
+    parentId,
+    permissions: assetPermissions,
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    projectState: {
+      type: ProjectState.new,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      volume_id: '',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      ...(organization != null ? { opened_by: organization.email } : {}),
+    },
+    labels: [],
+    description: null,
+  }
+}
+
 /** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
  * values. */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
@@ -679,6 +726,11 @@ export interface CreateUserRequestBody {
   organizationId: UserOrOrganizationId | null
 }
 
+/** HTTP request body for the "update user" endpoint. */
+export interface UpdateUserRequestBody {
+  username: string | null
+}
+
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
   organizationId: UserOrOrganizationId
@@ -758,9 +810,15 @@ export interface ListDirectoryRequestParams {
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-  fileId: string | null
-  fileName: string | null
+  fileId: AssetId | null
+  // Marked as optional in the data type, however it is required by the actual route handler.
+  fileName: string
   parentDirectoryId: DirectoryId | null
+}
+
+/** URL query string parameters for the "upload user profile picture" endpoint. */
+export interface UploadUserPictureRequestParams {
+  fileName: string | null
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -837,10 +895,15 @@ export function fileIsNotProject(file: JSFile) {
 // =============================
 
 /** Remove the extension of the project file name (if any). */
-
-/** Whether a `File` is a project. */
 export function stripProjectExtension(name: string) {
-  return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
+  return name.replace(/[.](?:tar[.]gz|zip|enso-project)$/, '')
+}
+
+/** Return both the name and extension of the project file name (if any).
+ * Otherwise, returns the entire name as the basename. */
+export function extractProjectExtension(name: string) {
+  const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
+  return { basename: basename ?? name, extension: extension ?? '' }
 }
 
 // ===============
@@ -855,6 +918,15 @@ export abstract class Backend {
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+  /** Change the username of the current user. */
+  abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Delete the current user. */
+  abstract deleteUser(): Promise<void>
+  /** Upload a new profile picture for the current user. */
+  abstract uploadUserPicture(
+    params: UploadUserPictureRequestParams,
+    file: Blob
+  ): Promise<UserOrOrganization>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */
@@ -918,7 +990,7 @@ export abstract class Backend {
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<File[]>
   /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
+  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
   /** Create a secret environment variable. */

@@ -48,7 +48,7 @@ export default function Label(props: InternalLabelProps) {
   return (
     <button
       disabled={disabled}
-      className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 transition-all ${className} ${
+      className={`flex items-center rounded-full whitespace-nowrap gap-1.5 h-6 px-2.25 transition-all ${className} ${
         negated
           ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
           : ''

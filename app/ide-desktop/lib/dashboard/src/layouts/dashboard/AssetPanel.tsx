@@ -55,6 +55,7 @@ export interface AssetPanelRequiredProps {
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   supportsLocalBackend: boolean
   page: pageSwitcher.Page
+  setPage: (page: pageSwitcher.Page) => void
   category: Category
   isHelpChatOpen: boolean
   setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -68,7 +69,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, supportsLocalBackend, page, category } = props
+  const { item, setItem, supportsLocalBackend, page, setPage, category } = props
   const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
   const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
@@ -140,6 +141,7 @@ export default function AssetPanel(props: AssetPanelProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             onSignOut={onSignOut}
             page={page}
+            setPage={setPage}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}
             doRemoveSelf={doRemoveSelf}

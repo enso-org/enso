@@ -1,10 +1,10 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+from Standard.Base.Data.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -261,7 +261,7 @@ type JDBC_Connection
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
     java_props = properties.map pair->
-        Java_Pair.create pair.first (Cloud_Utils.as_hideable_value pair.second)
+        Java_Pair.create pair.first (as_hideable_value pair.second)
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection

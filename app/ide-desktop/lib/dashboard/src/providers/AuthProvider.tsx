@@ -6,6 +6,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
@@ -24,6 +25,7 @@ import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
 import * as http from '#/utilities/http'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -132,6 +134,7 @@ interface AuthContextType {
    *
    * If the user has not signed in, the session will be `null`. */
   session: UserSession | null
+  setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
 }
 
 // Eslint doesn't like headings.
@@ -182,7 +185,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { children, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService
-  const { session, deinitializeSession } = sessionProvider.useSession()
+  const { session, deinitializeSession, onError: onSessionError } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
@@ -193,6 +196,28 @@ export default function AuthProvider(props: AuthProviderProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
+
+  const setOrganization = React.useCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.UserOrOrganization>) => {
+      setUserSession(oldUserSession => {
+        if (
+          oldUserSession == null ||
+          !('organization' in oldUserSession) ||
+          oldUserSession.organization == null
+        ) {
+          return oldUserSession
+        } else {
+          return object.merge(oldUserSession, {
+            organization:
+              typeof valueOrUpdater !== 'function'
+                ? valueOrUpdater
+                : valueOrUpdater(oldUserSession.organization),
+          })
+        }
+      })
+    },
+    []
+  )
 
   const goOfflineInternal = React.useCallback(() => {
     setInitialized(true)
@@ -225,6 +250,17 @@ export default function AuthProvider(props: AuthProviderProps) {
     [/* should never change */ goOfflineInternal, /* should never change */ navigate]
   )
 
+  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
+  // defined by this component.
+  const gtagEvent = React.useCallback(
+    (name: string, params?: object) => {
+      if (userSession?.type !== UserSessionType.offline) {
+        gtag.event(name, params)
+      }
+    },
+    [userSession?.type]
+  )
+
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
   React.useEffect(() => {
@@ -234,7 +270,27 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (!navigator.onLine) {
       void goOffline()
     }
-  }, [goOffline])
+  }, [/* should never change */ goOffline])
+
+  React.useEffect(
+    () =>
+      onSessionError(error => {
+        if (isNetworkError(error)) {
+          void goOffline()
+        }
+      }),
+    [onSessionError, /* should never change */ goOffline]
+  )
+
+  React.useEffect(() => {
+    const onFetchError = () => {
+      void goOffline()
+    }
+    document.addEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+    return () => {
+      document.removeEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+    }
+  }, [/* should never change */ goOffline])
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
@@ -260,7 +316,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
           setBackendWithoutSavingType(backend)
         }
-        gtag.event('cloud_open')
+        gtagEvent('cloud_open')
         let organization: backendModule.UserOrOrganization | null
         let user: backendModule.SimpleUser | null
         while (true) {
@@ -277,11 +333,11 @@ export default function AuthProvider(props: AuthProviderProps) {
               user = null
             }
             break
-          } catch {
+          } catch (error) {
             // The value may have changed after the `await`.
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (!navigator.onLine) {
-              goOfflineInternal()
+            if (!navigator.onLine || isNetworkError(error)) {
+              void goOffline()
               // eslint-disable-next-line no-restricted-syntax
               return
             }
@@ -393,7 +449,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {
-    gtag.event('cloud_sign_up')
+    gtagEvent('cloud_sign_up')
     const result = await cognito.signUp(username, password, organizationId)
     if (result.ok) {
       toastSuccess(MESSAGES.signUpSuccess)
@@ -405,7 +461,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const confirmSignUp = async (email: string, code: string) => {
-    gtag.event('cloud_confirm_sign_up')
+    gtagEvent('cloud_confirm_sign_up')
     const result = await cognito.confirmSignUp(email, code)
     if (result.err) {
       switch (result.val.kind) {
@@ -425,14 +481,14 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const signInWithPassword = async (email: string, password: string) => {
-    gtag.event('cloud_sign_in', { provider: 'Email' })
+    gtagEvent('cloud_sign_in', { provider: 'Email' })
     const result = await cognito.signInWithPassword(email, password)
     if (result.ok) {
       toastSuccess(MESSAGES.signInWithPasswordSuccess)
     } else {
       if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
         // It may not be safe to pass the user's password in the URL.
-        navigate(`${appUtils.REGISTRATION_PATH}?{new URLSearchParams({ email }).toString()}`)
+        navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
       }
       toastError(result.val.message)
     }
@@ -444,7 +500,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       toastError('You cannot set your username on the local backend.')
       return false
     } else {
-      gtag.event('cloud_user_created')
+      gtagEvent('cloud_user_created')
       try {
         const organizationId = await authService.cognito.organizationId()
         // This should not omit success and error toasts as it is not possible
@@ -511,7 +567,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const signOut = async () => {
     const parentDomain = location.hostname.replace(/^[^.]*\./, '')
     document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
-    gtag.event('cloud_sign_out')
+    gtagEvent('cloud_sign_out')
     cognito.saveAccessToken(null)
     localStorage.clearUserSpecificEntries()
     deinitializeSession()
@@ -534,14 +590,14 @@ export default function AuthProvider(props: AuthProviderProps) {
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
     signInWithGoogle: () => {
-      gtag.event('cloud_sign_in', { provider: 'Google' })
+      gtagEvent('cloud_sign_in', { provider: 'Google' })
       return cognito.signInWithGoogle().then(
         () => true,
         () => false
       )
     },
     signInWithGitHub: () => {
-      gtag.event('cloud_sign_in', { provider: 'GitHub' })
+      gtagEvent('cloud_sign_in', { provider: 'GitHub' })
       return cognito.signInWithGitHub().then(
         () => true,
         () => false
@@ -553,6 +609,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     changePassword: withLoadingToast(changePassword),
     signOut,
     session: userSession,
+    setOrganization,
   }
 
   return (
