@@ -9,7 +9,7 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  enso-build-ci-gen-job-cancel-workflow-linux:
+  enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
     name: Cancel Previous Runs
     runs-on:
       - ubuntu-latest
@@ -20,12 +20,11 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-ci-check-backend-linux:
-    name: Engine (linux)
+  enso-build-ci-gen-job-ci-check-backend-linux-x86_64:
+    name: Engine (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -75,7 +74,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (linux)
+          name: Engine Tests (linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -84,7 +83,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (linux)
+          name: Standard Library Tests (linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -101,8 +100,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       checks: write
-  enso-build-ci-gen-job-ci-check-backend-macos:
-    name: Engine (macos)
+  enso-build-ci-gen-job-ci-check-backend-macos-x86_64:
+    name: Engine (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
@@ -154,7 +153,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (macos)
+          name: Engine Tests (macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -163,7 +162,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (macos)
+          name: Standard Library Tests (macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -180,12 +179,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       checks: write
-  enso-build-ci-gen-job-ci-check-backend-windows:
-    name: Engine (windows)
+  enso-build-ci-gen-job-ci-check-backend-windows-x86_64:
+    name: Engine (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -235,7 +233,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (windows)
+          name: Engine Tests (windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -244,7 +242,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (windows)
+          name: Standard Library Tests (windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit

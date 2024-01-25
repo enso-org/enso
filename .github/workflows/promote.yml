@@ -21,12 +21,11 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-ci-gen-promote-release-job-linux:
-    name: Promote release (linux)
+  enso-build-ci-gen-promote-release-job-linux-x86_64:
+    name: Promote release (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -87,10 +86,10 @@ jobs:
   release:
     name: Release
     needs:
-      - enso-build-ci-gen-promote-release-job-linux
+      - enso-build-ci-gen-promote-release-job-linux-x86_64
     uses: ./.github/workflows/release.yml
     with:
-      version: ${{ needs.enso-build-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
+      version: ${{ needs.enso-build-ci-gen-promote-release-job-linux-x86_64.outputs.ENSO_VERSION }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
