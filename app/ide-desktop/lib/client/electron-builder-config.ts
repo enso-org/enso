@@ -115,7 +115,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         // Note that the `artifactName` uses the "canonical" version of the product, not one that might have been
         // simplified for the MSI installer to cope.
-        artifactName: 'enso-${os}-' + BUILD_INFO.version + '.${ext}',
+        artifactName: 'enso-${os}-${arch}-' + BUILD_INFO.version + '.${ext}',
 
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
