@@ -1,30 +1,38 @@
 package org.enso.table.data.table.join;
 
-import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
 
-public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices) {
+import java.util.ArrayList;
+import java.util.List;
+
+public class JoinResult {
+  private final List<RowPair> matchedIndices;
+
+  public JoinResult(List<RowPair> matchedIndices) {
+    this.matchedIndices = matchedIndices;
+  }
+
+  //** Represents a pair of indices of matched rows. -1 means an unmatched row.*/
+  public record RowPair(int leftIndex, int rightIndex) {}
 
   public OrderMask getLeftOrderMask() {
-    return OrderMask.fromArray(matchedRowsLeftIndices);
+    return OrderMask.fromObjectList(matchedIndices, RowPair::leftIndex);
   }
 
   public OrderMask getRightOrderMask() {
-    return OrderMask.fromArray(matchedRowsRightIndices);
+    return OrderMask.fromObjectList(matchedIndices, RowPair::rightIndex);
   }
 
   public record BuilderSettings(
       boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {}
 
   public static class Builder {
-    IntArrayBuilder leftIndices;
-    IntArrayBuilder rightIndices;
+    List<RowPair> matchedIndices;
 
     final BuilderSettings settings;
 
     public Builder(int initialCapacity, BuilderSettings settings) {
-      leftIndices = new IntArrayBuilder(initialCapacity);
-      rightIndices = new IntArrayBuilder(initialCapacity);
+      matchedIndices = new ArrayList<>(initialCapacity);
       this.settings = settings;
     }
 
@@ -33,22 +41,22 @@ public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightInd
     }
 
     public void addMatchedRowsPair(int leftIndex, int rightIndex) {
-      leftIndices.add(leftIndex);
-      rightIndices.add(rightIndex);
+      matchedIndices.add(new RowPair(leftIndex, rightIndex));
     }
 
     public void addUnmatchedLeftRow(int leftIndex) {
-      leftIndices.add(leftIndex);
-      rightIndices.add(-1);
+      matchedIndices.add(new RowPair(leftIndex, -1));
     }
 
     public void addUnmatchedRightRow(int rightIndex) {
-      leftIndices.add(-1);
-      rightIndices.add(rightIndex);
+      matchedIndices.add(new RowPair(-1, rightIndex));
     }
 
     public JoinResult build() {
-      return new JoinResult(leftIndices.build(), rightIndices.build());
+      var tmp = matchedIndices;
+      // Invalidate the builder to prevent further use.
+      matchedIndices = null;
+      return new JoinResult(tmp);
     }
   }
 }

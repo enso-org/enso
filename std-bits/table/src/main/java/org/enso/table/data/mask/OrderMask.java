@@ -33,6 +33,10 @@ public interface OrderMask {
     return new OrderMaskGeneric<>(input, function);
   }
 
+  static <T> OrderMask fromObjectList(List<T> input, ToIntFunction<T> function) {
+    return new OrderMaskGenericList<>(input, function);
+  }
+
   static OrderMask fromList(List<Integer> positions) {
     return new OrderMaskFromList(positions);
   }
@@ -90,6 +94,26 @@ public interface OrderMask {
     @Override
     public int get(int idx) {
       return function.applyAsInt(positions[idx]);
+    }
+  }
+
+  class OrderMaskGenericList<T> implements OrderMask {
+    private final List<T> positions;
+    private final ToIntFunction<T> function;
+
+    public OrderMaskGenericList(List<T> positions, ToIntFunction<T> function) {
+      this.positions = positions;
+      this.function = function;
+    }
+
+    @Override
+    public int length() {
+      return positions.size();
+    }
+
+    @Override
+    public int get(int idx) {
+      return function.applyAsInt(positions.get(idx));
     }
   }
 
