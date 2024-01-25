@@ -66,35 +66,23 @@ vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length function on_problems=Problem_Behavior.Report_Error =
-    if on_problems == Problem_Behavior.Report_Warning then
-        Unimplemented.throw "on_problems=Problem_Behavior.Report_Warning is unimplemented for `Vector.map`"
     num_errors = Ref.new 0
     wrapped_function i =
         result = function i
-        case result.is_error of
-            False ->
-                ## TODO: implement this correctly.
-                   See https://github.com/enso-org/enso/issues/8371
-
-                    if Warning.has_warnings result . not then result else
-                        Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
-                result
-            True ->
-                case on_problems of
-                    Problem_Behavior.Ignore ->
-                        Nothing
-                    Problem_Behavior.Report_Error ->
+        if result.is_error.not then result else
+            case on_problems of
+                Problem_Behavior.Ignore ->
+                    Nothing
+                Problem_Behavior.Report_Error ->
+                    result.catch_primitive caught->
+                        Error.throw (Map_Error.Error i caught)
+                No_Wrap -> result
+                Problem_Behavior.Report_Warning ->
+                    with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
                         result.catch_primitive caught->
-                            Error.throw (Map_Error.Error i caught)
-                    No_Wrap.Value -> result
-                    ## TODO: implement this correctly.
-                       See https://github.com/enso-org/enso/issues/8371
-                        Problem_Behavior.Report_Warning ->
-                            with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
-                                result.catch_primitive caught->
-                                    Warning.attach (Map_Error.Error i caught) Nothing
-                            num_errors.modify (_+1)
-                            with_error_maybe
+                            Warning.attach caught Nothing
+                    num_errors.modify (_+1)
+                    with_error_maybe
     results = vector_from_function_primitive length wrapped_function
     if num_errors.get <= MAX_MAP_WARNINGS then results else
         err = Additional_Warnings.Error num_errors.get-MAX_MAP_WARNINGS

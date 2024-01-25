@@ -22,7 +22,7 @@ export class Pattern {
   match(target: Ast.Ast): Ast.AstId[] | undefined {
     const extracted: Ast.AstId[] = []
     if (this.tokenTree.length === 1 && this.tokenTree[0] === this.placeholder) {
-      return [target.exprId]
+      return [target.id]
     }
     if (
       isMatch_(
@@ -44,7 +44,14 @@ export class Pattern {
     for (const matched of placeholders(ast, this.placeholder)) {
       const replacement = subtrees.shift()
       if (replacement === undefined) break
-      edit.get(replacement)!.parent = matched.parent
+      const replacementAst = edit.splice(edit.get(replacement))
+      if (replacementAst === null) {
+        console.error(
+          'Subtree ID provided to `instantiate` is not accessible in the `edit` module.',
+        )
+        continue
+      }
+      replacementAst.parent = matched.parent
       matched.ref.node = replacement
     }
     return ast
@@ -94,7 +101,7 @@ function placeholders(ast: Ast.Ast, placeholder: string, outIn?: PlaceholderRef[
       const nodeChild = child as Ast.NodeChild<Ast.AstId>
       const subtree = ast.module.get(child.node)!
       if (subtree instanceof Ast.Ident && subtree.code() === placeholder) {
-        out.push({ ref: nodeChild, parent: ast.exprId })
+        out.push({ ref: nodeChild, parent: ast.id })
       } else {
         placeholders(subtree, placeholder, out)
       }

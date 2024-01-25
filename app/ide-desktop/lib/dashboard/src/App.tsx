@@ -166,7 +166,7 @@ function AppRouter(props: AppProps) {
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
-  }, [navigate, props])
+  }, [props, /* should never change */ navigate])
   const userSession = authService.cognito.userSession.bind(authService.cognito)
   const registerAuthEventListener = authService.registerAuthEventListener
   const initialBackend: backend.Backend = isAuthenticationDisabled
@@ -230,30 +230,32 @@ function AppRouter(props: AppProps) {
       </React.Fragment>
     </router.Routes>
   )
-  /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
-  return (
-    <LoggerProvider logger={logger}>
-      <SessionProvider
-        mainPageUrl={mainPageUrl}
-        userSession={userSession}
-        registerAuthEventListener={registerAuthEventListener}
-      >
-        <LocalStorageProvider>
-          <BackendProvider initialBackend={initialBackend}>
-            <AuthProvider
-              shouldStartInOfflineMode={isAuthenticationDisabled}
-              supportsLocalBackend={supportsLocalBackend}
-              authService={authService}
-              onAuthenticated={onAuthenticated}
-              projectManagerUrl={projectManagerUrl}
-            >
-              <ModalProvider>
-                <ShortcutsProvider shortcuts={shortcuts}>{routes}</ShortcutsProvider>
-              </ModalProvider>
-            </AuthProvider>
-          </BackendProvider>
-        </LocalStorageProvider>
-      </SessionProvider>
-    </LoggerProvider>
+  let result = routes
+  result = <ShortcutsProvider shortcuts={shortcuts}>{result}</ShortcutsProvider>
+  result = <ModalProvider>{result}</ModalProvider>
+  result = (
+    <AuthProvider
+      shouldStartInOfflineMode={isAuthenticationDisabled}
+      supportsLocalBackend={supportsLocalBackend}
+      authService={authService}
+      onAuthenticated={onAuthenticated}
+      projectManagerUrl={projectManagerUrl}
+    >
+      {result}
+    </AuthProvider>
   )
+  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
+  /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
+  result = <LocalStorageProvider>{result}</LocalStorageProvider>
+  result = (
+    <SessionProvider
+      mainPageUrl={mainPageUrl}
+      userSession={userSession}
+      registerAuthEventListener={registerAuthEventListener}
+    >
+      {result}
+    </SessionProvider>
+  )
+  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  return result
 }

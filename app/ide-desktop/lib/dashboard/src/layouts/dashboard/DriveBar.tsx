@@ -27,7 +27,7 @@ import Button from '#/components/Button'
 export interface DriveBarProps {
   category: Category
   canDownloadFiles: boolean
-  doCreateProject: (templateId: string | null) => void
+  doCreateProject: () => void
   doCreateDirectory: () => void
   doCreateDataConnector: (name: string, value: string) => void
   doUploadFiles: (files: File[]) => void
@@ -40,7 +40,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
   const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
-  const { setModal } = modalProvider.useSetModal()
+  const { setModal, unsetModal } = modalProvider.useSetModal()
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -56,7 +56,7 @@ export default function DriveBar(props: DriveBarProps) {
           }
         : {}),
       [shortcutsModule.KeyboardAction.newProject]: () => {
-        doCreateProject(null)
+        doCreateProject()
       },
       [shortcutsModule.KeyboardAction.uploadFiles]: () => {
         uploadFilesRef.current?.click()
@@ -76,7 +76,8 @@ export default function DriveBar(props: DriveBarProps) {
               }
             : {})}
           onClick={() => {
-            doCreateProject(null)
+            unsetModal()
+            doCreateProject()
           }}
         >
           <span
@@ -97,6 +98,7 @@ export default function DriveBar(props: DriveBarProps) {
               alt="New Folder"
               disabledOpacityClassName="opacity-20"
               onClick={() => {
+                unsetModal()
                 doCreateDirectory()
               }}
             />
@@ -144,6 +146,7 @@ export default function DriveBar(props: DriveBarProps) {
             alt="Upload Files"
             disabledOpacityClassName="opacity-20"
             onClick={() => {
+              unsetModal()
               uploadFilesRef.current?.click()
             }}
           />
@@ -160,6 +163,7 @@ export default function DriveBar(props: DriveBarProps) {
             disabledOpacityClassName="opacity-20"
             onClick={event => {
               event.stopPropagation()
+              unsetModal()
               dispatchAssetEvent({
                 type: AssetEventType.downloadSelected,
               })

@@ -101,6 +101,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               parentKey: directoryKey ?? rootDirectoryId,
               parentId: directoryId ?? rootDirectoryId,
               templateId: null,
+              templateName: null,
               onSpinnerStateChange: null,
             })
           }}
@@ -131,7 +132,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 name={null}
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
-                    type: AssetListEventType.newDataConnector,
+                    type: AssetListEventType.newSecret,
                     parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,

@@ -6,7 +6,7 @@ import {
   WidgetInput,
   defineWidget,
   widgetProps,
-  type UpdatePayload,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
@@ -16,6 +16,7 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract.ts'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
@@ -24,8 +25,9 @@ import {
   getAccessOprSubject,
   interpretCall,
 } from '@/util/callTree'
+import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
-import type { ExprId } from 'shared/yjsModel'
+import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -34,34 +36,52 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.value.exprId),
+    callId: computed(() => props.input.value.id),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.value.exprId)
+  return graph.db.getMethodCallInfo(props.input.value.id)
 })
 
 const interpreted = computed(() => {
   return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
+const subjectInfo = computed(() => {
+  const analyzed = interpreted.value
+  if (analyzed.kind !== 'prefix') return
+  const subject = getAccessOprSubject(analyzed.func)
+  if (!subject) return
+  return graph.db.getExpressionInfo(subject.id)
+})
+
+const selfArgumentPreapplied = computed(() => {
+  const info = methodCallInfo.value
+  const funcType = info?.methodCall.methodPointer.definedOnType
+  return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+})
+
+const subjectTypeMatchesMethod = computed(() => {
+  const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
+  return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
+})
+
 const application = computed(() => {
   const call = interpreted.value
   if (!call) return null
-  const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
+  const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.id) : undefined
 
-  const info = methodCallInfo.value
-  return ArgumentApplication.FromInterpretedWithInfo(
-    call,
-    {
-      noArgsCall,
-      appMethodCall: info?.methodCall,
-      suggestion: info?.suggestion,
-      widgetCfg: widgetConfiguration.value,
-    },
-    !info?.staticallyApplied,
-  )
+  return ArgumentApplication.FromInterpretedWithInfo(call, {
+    suggestion: methodCallInfo.value?.suggestion,
+    widgetCfg: widgetConfiguration.value,
+    subjectAsSelf: selfArgumentPreapplied.value,
+    notAppliedArguments:
+      noArgsCall != null &&
+      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+        ? noArgsCall.notAppliedArguments
+        : undefined,
+  })
 })
 
 const innerInput = computed(() => {
@@ -78,17 +98,19 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
-    return analyzed.lhs?.exprId
+    return analyzed.lhs?.externalId
   } else {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      knownArguments?.[0]?.name === 'self'
-        ? getAccessOprSubject(analyzed.func)
-        : analyzed.args[0]?.argument
-    return selfArgument?.exprId
+      hasSelfArgument && !selfArgumentPreapplied.value
+        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+
+    return selfArgument?.externalId
   }
 })
 
@@ -96,8 +118,8 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   // If we inherit dynamic config, there is no point in attaching visualization.
   if (props.input.dynamicConfig) return null
 
-  const expressionId = selfArgumentAstId.value
-  const astId = props.input.value.exprId
+  const expressionId = selfArgumentExternalId.value
+  const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -120,13 +142,15 @@ const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
-  if (data != null && data.ok) {
+  if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
       return functionCallConfiguration(parseResult.data)
     } else {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
+  } else if (data != null && !data.ok) {
+    data.error.log('Cannot load dynamic configuration')
   }
   return undefined
 })
@@ -135,10 +159,13 @@ const widgetConfiguration = computed(() => {
  * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
  * handling deletions of arguments and rewriting the applications to named as appropriate.
  */
-function handleArgUpdate(update: UpdatePayload): boolean {
+function handleArgUpdate(update: WidgetUpdate): boolean {
   const app = application.value
-  if (update.type === 'set' && app instanceof ArgumentApplication) {
-    const { value, origin } = update
+  if (update.portUpdate && app instanceof ArgumentApplication) {
+    const {
+      edit,
+      portUpdate: { value, origin },
+    } = update
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
@@ -149,34 +176,53 @@ function handleArgUpdate(update: UpdatePayload): boolean {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      let edit = graph.astModule.edit()
-      let newArg: Ast.Owned<Ast.Ast>
+      let newArg: Ast.Owned
       if (value instanceof Ast.Ast) {
         newArg = value
       } else {
         newArg = Ast.parse(value, edit)
       }
       const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      edit.takeAndReplaceValue(app.appTree.exprId, (oldAppTree) =>
+      edit.takeAndReplaceValue(argApp.appTree.id, (oldAppTree) =>
         Ast.App.new(oldAppTree, name, newArg, edit),
       )
-      props.onUpdate({ type: 'edit', edit })
+      props.onUpdate({ edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
+
+      // HACK: Temporarily modify expression info to include the deleted argument on a list, so it
+      // immediately appears back as a placeholder after deletion, before the engine respones.
+      // The engine will soon send another expression update, overwriting this change anyway.
+      //
+      // This update is unfortunately not saved in the undo stack. Undoing and redoing the edit will
+      // still cause the placeholder to glitch out temporarily, but this is good enough for now.
+      // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
+      // saved in the undo transaction.
+      const deletedArgIdx = argApp.argument.index
+      if (deletedArgIdx != null) {
+        const notAppliedArguments = methodCallInfo.value?.methodCall.notAppliedArguments
+        if (notAppliedArguments != null) {
+          const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
+          // Insert the deleted argument back to the method info. This directly modifies observable
+          // data in `ComputedValueRegistry`. That's on purpose.
+          notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+        }
+      }
 
       if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
         /* Case: Removing named prefix argument. */
 
         // Named argument can always be removed immediately. Replace the whole application with its
         // target, effectively removing the argument from the call.
-        const edit = graph.astModule.edit()
-        const func = edit.take(argApp.appTree.function.exprId)
+        const func = edit.take(argApp.appTree.function.id)
         assert(func != null)
         props.onUpdate({
-          type: 'set',
-          value: func.node,
-          origin: argApp.appTree.exprId,
+          edit,
+          portUpdate: {
+            value: func.node,
+            origin: argApp.appTree.id,
+          },
         })
         return true
       } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
@@ -184,13 +230,14 @@ function handleArgUpdate(update: UpdatePayload): boolean {
 
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
-          const edit = graph.astModule.edit()
-          const lhs = edit.take(argApp.appTree.lhs.exprId)
+          const lhs = edit.take(argApp.appTree.lhs.id)
           assert(lhs != null)
           props.onUpdate({
-            type: 'set',
-            value: lhs.node,
-            origin: argApp.appTree.exprId,
+            edit,
+            portUpdate: {
+              value: lhs.node,
+              origin: argApp.appTree.id,
+            },
           })
         }
         return true
@@ -200,17 +247,16 @@ function handleArgUpdate(update: UpdatePayload): boolean {
         // Since the update of this kind can affect following arguments, it may be necessary to
         // replace the AST for multiple levels of application.
 
-        const edit = argApp.appTree.module.edit()
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
         for (let innerApp of [...app.iterApplications()]) {
-          if (innerApp.appTree.exprId === argApp.appTree.exprId) {
+          if (innerApp.appTree.id === argApp.appTree.id) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
-            const newFunction = edit.take(argApp.appTree.function.exprId)?.node
+            const newFunction = edit.take(argApp.appTree.function.id)?.node
             assert(newFunction != undefined)
-            edit.replaceRef(argApp.appTree.exprId, newFunction)
-            props.onUpdate({ type: 'edit', edit })
+            edit.replaceRef(argApp.appTree.id, newFunction)
+            props.onUpdate({ edit })
             return true
           } else {
             // Process an argument to the right of the removed argument.
@@ -218,11 +264,11 @@ function handleArgUpdate(update: UpdatePayload): boolean {
             const infoName = innerApp.argument.argInfo?.name ?? null
             // Positional arguments following the deleted argument must all be rewritten to named.
             if (infoName && !innerApp.appTree.argumentName) {
-              const func = edit.take(innerApp.appTree.function.exprId)?.node
-              const arg = edit.take(innerApp.appTree.argument.exprId)?.node
+              const func = edit.take(innerApp.appTree.function.id)?.node
+              const arg = edit.take(innerApp.appTree.argument.id)?.node
               assert(!!func)
               assert(!!arg)
-              edit.replaceValue(innerApp.appTree.exprId, Ast.App.new(func, infoName, arg, edit))
+              edit.replaceValue(innerApp.appTree.id, Ast.App.new(func, infoName, arg, edit))
             }
           }
         }
@@ -247,19 +293,19 @@ export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
     // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
     if (props.input[ArgumentApplicationKey]) return Score.Mismatch
     const ast = props.input.value
-    if (ast.exprId == null) return Score.Mismatch
+    if (ast.id == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 
     // It is possible to try to render the same function application twice, e.g. when detected an
     // application with no arguments applied yet, but the application target is also an infix call.
     // In that case, the reentrant call method info must be ignored to not create an infinite loop,
     // and to resolve the infix call as its own application.
-    if (prevFunctionState?.callId === ast.exprId) return Score.Mismatch
+    if (prevFunctionState?.callId === ast.id) return Score.Mismatch
 
     if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-    const info = db.getMethodCallInfo(ast.exprId)
-    if (prevFunctionState != null && info?.staticallyApplied === true && ast instanceof Ast.Ident) {
+    const info = db.getMethodCallInfo(ast.id)
+    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
       return Score.Mismatch
     }
     return info != null ? Score.Perfect : Score.Mismatch

@@ -14,6 +14,7 @@ function transformChild(child: Ast.Ast | Ast.Token) {
   if (props.input.value instanceof Ast.PropertyAccess && child === props.input.value.lhs)
     childInput.forcePort = true
   if (
+    !(props.input.value instanceof Ast.PropertyAccess) &&
     props.input.value instanceof Ast.OprApp &&
     (child === props.input.value.rhs || child === props.input.value.lhs)
   )
@@ -34,7 +35,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAst, {
   <div class="WidgetHierarchy" :class="spanClass">
     <NodeWidget
       v-for="(child, index) in children"
-      :key="child.exprId ?? index"
+      :key="child.id ?? index"
       :input="transformChild(child)"
     />
   </div>

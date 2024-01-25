@@ -12,12 +12,12 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutsModule from '#/utilities/shortcuts'
+import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/visibility'
 
@@ -68,28 +68,30 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     projectState.opened_by != null &&
     projectState.opened_by !== organization?.email
 
-  const doRename = async (newName: string) => {
-    try {
-      await backend.updateProject(
-        asset.id,
-        {
-          ami: null,
-          ideVersion: null,
-          projectName: newName,
-        },
-        asset.title
-      )
-      return
-    } catch (error) {
-      toastAndLog(errorModule.tryGetMessage(error) ?? 'Could not rename project.')
-      throw error
+  const doRename = async (newTitle: string) => {
+    setRowState(object.merger({ isEditingName: false }))
+    if (string.isWhitespaceOnly(newTitle)) {
+      // Do nothing.
+    } else if (newTitle !== asset.title) {
+      const oldTitle = asset.title
+      setAsset(object.merger({ title: newTitle }))
+      try {
+        await backend.updateProject(
+          asset.id,
+          { ami: null, ideVersion: null, projectName: newTitle },
+          asset.title
+        )
+      } catch (error) {
+        toastAndLog('Could not rename project', error)
+        setAsset(object.merger({ title: oldTitle }))
+      }
     }
   }
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       case AssetEventType.newFolder:
-      case AssetEventType.newDataConnector:
+      case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
       case AssetEventType.cancelOpeningAllProjects:
@@ -149,10 +151,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
         break
       }
+      case AssetEventType.updateFiles:
       case AssetEventType.uploadFiles: {
         const file = event.files.get(item.key)
         if (file != null) {
+          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
+          const { extension } = backendModule.extractProjectExtension(file.name)
+          const title = backendModule.stripProjectExtension(asset.title)
+          setAsset(object.merge(asset, { title }))
           try {
             if (backend.type === backendModule.BackendType.local) {
               let id: string
@@ -186,13 +193,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
               )
             } else {
-              const fileName = asset.title
-              const title = backendModule.stripProjectExtension(asset.title)
-              setAsset(object.merge(asset, { title }))
               const createdFile = await backend.uploadFile(
                 {
-                  fileId: null,
-                  fileName,
+                  fileId,
+                  fileName: `${title}.${extension}`,
                   parentDirectoryId: asset.parentId,
                 },
                 file
@@ -213,11 +217,20 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               }
             }
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
-            toastAndLog('Could not upload project', error)
+            switch (event.type) {
+              case AssetEventType.uploadFiles: {
+                dispatchAssetListEvent({
+                  type: AssetListEventType.delete,
+                  key: item.key,
+                })
+                toastAndLog('Could not upload project', error)
+                break
+              }
+              case AssetEventType.updateFiles: {
+                toastAndLog('Could not update project', error)
+                break
+              }
+            }
           }
         }
         break
@@ -295,18 +308,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               child.item.title !== newTitle
           )
         }
-        onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
-          if (newTitle !== asset.title) {
-            const oldTitle = asset.title
-            setAsset(object.merger({ title: newTitle }))
-            try {
-              await doRename(newTitle)
-            } catch {
-              setAsset(object.merger({ title: oldTitle }))
-            }
-          }
-        }}
+        onSubmit={doRename}
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}

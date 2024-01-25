@@ -9,23 +9,17 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.node.expression.atom.ConstantNode;
-import org.enso.interpreter.node.expression.atom.GetFieldNode;
-import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
+import org.enso.interpreter.node.ConstantNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -155,39 +149,7 @@ public final class Type implements EnsoObject {
   public void generateGetters(EnsoLanguage language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
-    var roots = new HashMap<String, RootNode>();
-    if (constructors.size() != 1) {
-      var names = new HashMap<String, List<GetFieldWithMatchNode.GetterPair>>();
-      constructors
-          .values()
-          .forEach(
-              cons -> {
-                Arrays.stream(cons.getFields())
-                    .forEach(
-                        field -> {
-                          var items =
-                              names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
-                          items.add(
-                              new GetFieldWithMatchNode.GetterPair(cons, field.getPosition()));
-                        });
-              });
-      names.forEach(
-          (name, fields) -> {
-            roots.put(
-                name,
-                new GetFieldWithMatchNode(
-                    language, name, this, fields.toArray(new GetFieldWithMatchNode.GetterPair[0])));
-          });
-    } else {
-      var cons = constructors.values().toArray(AtomConstructor[]::new)[0];
-      Arrays.stream(cons.getFields())
-          .forEach(
-              field -> {
-                roots.put(
-                    field.getName(),
-                    new GetFieldNode(language, field.getPosition(), this, field.getName()));
-              });
-    }
+    var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
           var f =

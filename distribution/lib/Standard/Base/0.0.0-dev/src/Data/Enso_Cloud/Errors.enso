@@ -1,0 +1,8 @@
+import project.Data.Text.Text
+
+## PRIVATE
+   Error if the user is not logged into Enso Cloud.
+type Not_Logged_In
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Not logged into Enso cloud. Please log in and restart."

@@ -9,18 +9,18 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { AstId, TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
+import { asNot } from '@/util/data/types.ts'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
-import type { ExprId } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
   nextTick,
   onUpdated,
   proxyRefs,
-  ref,
   shallowRef,
   toRef,
   watch,
@@ -35,10 +35,10 @@ const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
-const isHovered = ref(false)
+const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
 
 const hasConnection = computed(
-  () => graph.db.connections.reverseLookup(portId.value as ExprId).size > 0,
+  () => graph.db.connections.reverseLookup(portId.value as AstId).size > 0,
 )
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
@@ -47,14 +47,6 @@ const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget
 
 const rootNode = shallowRef<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode, false)
-
-watchEffect((onCleanup) => {
-  if (selection != null && isHovered.value === true) {
-    const id = portId.value
-    selection.addHoveredPort(id)
-    onCleanup(() => selection.removeHoveredPort(id))
-  }
-})
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -69,7 +61,7 @@ const randomUuid = uuidv4() as PortId
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
-  return props.input.portId
+  return asNot<TokenId>(props.input.portId)
 })
 
 const innerWidget = computed(() => {
@@ -115,7 +107,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props, _db) => {
     const portInfo = injectPortInfo(true)
     const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.exprId) {
+    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
       return Score.Mismatch
     }
 
@@ -155,8 +147,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     }"
     :data-id="portId"
     :data-h="randSlice"
-    @pointerenter="isHovered = true"
-    @pointerleave="isHovered = false"
   >
     <NodeWidget :input="innerWidget" />
   </div>

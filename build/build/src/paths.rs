@@ -32,6 +32,9 @@ ide_ci::define_env_var! {
 
     /// If Enso-specific assertions should be enabled.
     ENSO_ENABLE_ASSERTIONS, String;
+
+    /// Can be set to `"espresso"` to enable Espresso interpreter support.
+    ENSO_JAVA, String;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
@@ -43,7 +46,7 @@ pub const LIBRARIES_TO_TEST: [&str; 7] = [
     // Temporarily disabled due to https://www.pivotaltracker.com/story/show/184042416
     // "Meta_Test_Suite_Tests",
     "Table_Tests",
-    "Tests",
+    "Base_Tests",
     "AWS_Tests",
     "Visualization_Tests",
 ];

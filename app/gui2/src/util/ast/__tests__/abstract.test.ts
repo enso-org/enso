@@ -1,9 +1,6 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import * as fs from 'fs'
 import { expect, test } from 'vitest'
-import { preParseContent } from '../../../../ydoc-server/edits'
-import { deserializeIdMap, serializeIdMap } from '../../../../ydoc-server/serialization'
 import { MutableModule } from '../abstract'
 
 //const disabledCases = [
@@ -352,14 +349,14 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
   const root = Ast.parseBlock(code)
   // Print AST back to source.
-  const printed = Ast.print(root.exprId, root.module)
+  const printed = Ast.print(root.id, root.module)
   const info1 = printed.info
   expect(printed.code).toEqual(code)
 
   // Re-parse.
   const root1 = Ast.parseBlock(printed)
   // Check that Identities match original AST.
-  const reprinted = Ast.print(root1.exprId, root1.module)
+  const reprinted = Ast.print(root1.id, root1.module)
   expect(reprinted.info.nodes).toEqual(info1.nodes)
   expect(reprinted.info.tokens).toEqual(info1.tokens)
 })
@@ -406,10 +403,10 @@ test('Modify subexpression', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  const oldExprId = assignment.expression!.exprId
-  edit.replaceValue(assignment.expression!.exprId, newValue)
-  expect(assignment.expression!.exprId).toBe(oldExprId)
-  expect(edit.get(assignment.expression!.exprId)?.code()).toBe("'bar'")
+  const oldExprId = assignment.expression!.id
+  edit.replaceValue(assignment.expression!.id, newValue)
+  expect(assignment.expression!.id).toBe(oldExprId)
+  expect(edit.get(assignment.expression!.id)?.code()).toBe("'bar'")
   const printed = root.code(edit)
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
@@ -420,11 +417,11 @@ test('Replace subexpression', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  edit.replaceRef(assignment.expression!.exprId, newValue)
-  const assignment_ = edit.get(assignment.exprId)!
+  edit.replaceRef(assignment.expression!.id, newValue)
+  const assignment_ = edit.get(assignment.id)!
   assert(assignment_ instanceof Ast.Assignment)
-  expect(assignment_.expression!.exprId).toBe(newValue.exprId)
-  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe("'bar'")
+  expect(assignment_.expression!.id).toBe(newValue.id)
+  expect(edit.get(assignment_.expression!.id)?.code()).toBe("'bar'")
   const printed = root.code(edit)
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
@@ -433,13 +430,13 @@ test('Change ID of node', () => {
   const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
-  const expression = edit.takeValue(assignment.expression!.exprId)!
+  const expression = edit.takeValue(assignment.expression!.id)!
   expect(expression.code()).toBe('"foo"')
-  edit.replaceRef(assignment.expression!.exprId, expression)
-  const assignment_ = edit.get(assignment.exprId)!
+  edit.replaceRef(assignment.expression!.id, expression)
+  const assignment_ = edit.get(assignment.id)!
   assert(assignment_ instanceof Ast.Assignment)
-  expect(assignment_.expression!.exprId).not.toBe(assignment.expression!.exprId)
-  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe('"foo"')
+  expect(assignment_.expression!.id).not.toBe(assignment.expression!.id)
+  expect(edit.get(assignment_.expression!.id)?.code()).toBe('"foo"')
   const printed = root.code(edit)
   expect(printed).toEqual('main =\n    text1 = "foo"\n')
 })
@@ -453,36 +450,9 @@ test('Delete expression', () => {
   const _assignment1 = iter.next()
   const assignment2: Ast.Assignment = iter.next().value
   const edit = root.module.edit()
-  edit.delete(assignment2.exprId)
+  edit.delete(assignment2.id)
   const printed = root.code(edit)
   expect(printed).toEqual('main =\n    text1 = "foo"\n')
-})
-
-test('full file IdMap round trip', () => {
-  const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
-  const { code, idMapJson, metadataJson: _ } = preParseContent(content)
-  const idMap = deserializeIdMap(idMapJson!)
-  const ast = Ast.parseTransitional(code, idMap)
-  const ast_ = Ast.parseTransitional(code, deserializeIdMap(idMapJson!))
-  const ast2 = Ast.normalize(ast)
-  const astTT = Ast.tokenTreeWithIds(ast)
-  expect(ast2.code()).toBe(ast.code())
-  expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
-  expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
-
-  const idMapJson2 = serializeIdMap(idMap)
-  expect(idMapJson2).toBe(idMapJson)
-  const META_TAG = '\n\n\n#### METADATA ####'
-  let metaContent = META_TAG + '\n'
-  metaContent += idMapJson2 + '\n'
-  const {
-    code: code_,
-    idMapJson: idMapJson_,
-    metadataJson: __,
-  } = preParseContent(code + metaContent)
-  const idMap_ = deserializeIdMap(idMapJson_!)
-  const ast3 = Ast.parseTransitional(code_, idMap_)
-  expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
 })
 
 test('Block lines interface', () => {

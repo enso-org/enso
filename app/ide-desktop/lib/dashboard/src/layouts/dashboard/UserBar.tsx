@@ -102,6 +102,7 @@ export default function UserBar(props: UserBarProps) {
           }}
         />
       </button>
+      {/* Required for shortcuts to work. */}
       <div className="hidden">
         <UserMenu
           setPage={setPage}

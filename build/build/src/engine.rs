@@ -137,6 +137,8 @@ pub struct BuildConfigurationFlags {
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once:       bool,
     pub build_engine_package:          bool,
+    /// Build the experimental native Engine Runner.
+    pub build_native_runner:           bool,
     pub build_launcher_package:        bool,
     pub build_project_manager_package: bool,
     pub build_launcher_bundle:         bool,
@@ -218,6 +220,7 @@ impl Default for BuildConfigurationFlags {
             execute_benchmarks_once:       false,
             build_engine_package:          false,
             build_launcher_package:        false,
+            build_native_runner:           false,
             build_project_manager_package: false,
             build_launcher_bundle:         false,
             build_project_manager_bundle:  false,
