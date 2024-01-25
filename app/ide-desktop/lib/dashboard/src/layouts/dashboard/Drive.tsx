@@ -119,10 +119,10 @@ export default function Drive(props: DriveProps) {
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && organization?.isEnabled !== true
-      ? DriveStatus.notEnabled
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
+      : isCloud && organization?.isEnabled !== true
+      ? DriveStatus.notEnabled
       : DriveStatus.ok
 
   React.useEffect(() => {
