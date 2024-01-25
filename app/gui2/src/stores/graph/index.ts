@@ -12,7 +12,13 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, assertEqual } from '@/util/assert'
 import { Ast, parseEnso, RawAst } from '@/util/ast'
-import { MutableModule, ReactiveModule, type AstId, type Module } from '@/util/ast/abstract'
+import {
+  isIdentifier,
+  MutableModule,
+  ReactiveModule,
+  type AstId,
+  type Module,
+} from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
@@ -536,7 +542,9 @@ export const useGraphStore = defineStore('graph', () => {
 })
 
 function randomIdent() {
-  return 'operator' + Math.round(Math.random() * 100000)
+  const ident = 'operator' + Math.round(Math.random() * 100000)
+  assert(isIdentifier(ident))
+  return ident
 }
 
 /** An edge, which may be connected or unconnected. */

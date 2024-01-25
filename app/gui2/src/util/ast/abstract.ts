@@ -102,11 +102,11 @@ export class Token implements SyncTokenId {
 }
 // We haven't had much need to distinguish token types, but it's useful to know that an identifier token's code is a
 // valid string for an identifier.
+export interface IdentifierOrOperatorIdentifierToken extends Token {
+  code(): IdentifierOrOperatorIdentifier
+}
 export interface IdentifierToken extends Token {
   code(): Identifier
-}
-export interface StrictIdentifierToken extends Token {
-  code(): StrictIdentifier
 }
 
 declare const qualifiedNameBrand: unique symbol
@@ -121,7 +121,7 @@ declare const operatorBrand: unique symbol
 export type QualifiedName = string & { [qualifiedNameBrand]: never }
 
 /** A string representing a lexical identifier. */
-export type StrictIdentifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
+export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
 
 /** A string representing a lexical operator. */
 export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: never }
@@ -134,7 +134,7 @@ export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: 
  *  a `PropertyAccess`, or it is the name of a `Function` being defined within a type. In all other cases, it is not
  *  valid to use a lexical operator as an identifier (rather, it will usually parse as an `OprApp` or `UnaryOprApp`).
  */
-export type Identifier = StrictIdentifier | Operator
+export type IdentifierOrOperatorIdentifier = Identifier | Operator
 
 /** Returns true if `code` can be used as an identifier in some contexts.
  *
@@ -144,12 +144,14 @@ export type Identifier = StrictIdentifier | Operator
  *  a `PropertyAccess`, or it is the name of a `Function` being defined within a type. In all other cases, it is not
  *  valid to use a lexical operator as an identifier (rather, it will usually parse as an `OprApp` or `UnaryOprApp`).
  */
-export function isIdentifier(code: string): code is Identifier {
+export function isIdentifierOrOperatorIdentifier(
+  code: string,
+): code is IdentifierOrOperatorIdentifier {
   return is_ident_or_operator(code) !== 0
 }
 
 /** Returns true if `code` is lexically an identifier. */
-export function isStrictIdentifier(code: string): code is StrictIdentifier {
+export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
@@ -870,25 +872,25 @@ function concreteChild(
   return { ...child, node: claimChild(module, child.node, parent) }
 }
 
-type StrictIdentLike = StrictIdentifier | StrictIdentifierToken
-function toIdentStrict(ident: StrictIdentLike): StrictIdentifierToken
-function toIdentStrict(ident: StrictIdentLike | undefined): StrictIdentifierToken | undefined
-function toIdentStrict(ident: StrictIdentLike | undefined): StrictIdentifierToken | undefined {
-  return ident
-    ? isToken(ident)
-      ? ident
-      : (Token.new(ident, RawAst.Token.Type.Ident) as StrictIdentifierToken)
-    : undefined
-}
-
-type IdentLike = Identifier | IdentifierToken
-function toIdent(ident: IdentLike): IdentifierToken
-function toIdent(ident: IdentLike | undefined): IdentifierToken | undefined
-function toIdent(ident: IdentLike | undefined): IdentifierToken | undefined {
+type StrictIdentLike = Identifier | IdentifierToken
+function toIdentStrict(ident: StrictIdentLike): IdentifierToken
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
   return ident
     ? isToken(ident)
       ? ident
       : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+    : undefined
+}
+
+type IdentLike = IdentifierOrOperatorIdentifier | IdentifierOrOperatorIdentifierToken
+function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
+  return ident
+    ? isToken(ident)
+      ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
     : undefined
 }
 
@@ -1273,8 +1275,7 @@ export class PropertyAccess extends Ast {
     let operatorInNonFinalSegment = false
     segments.forEach((s, i) => {
       const t = toIdent(s)
-      if (i !== segments.length - 1 && !isStrictIdentifier(t.code()))
-        operatorInNonFinalSegment = true
+      if (i !== segments.length - 1 && !isIdentifier(t.code())) operatorInNonFinalSegment = true
       path = path ? this.new(module, path, t) : Ident.newAllowingOperators(module, t)
     })
     if (!operatorInNonFinalSegment) return path
@@ -1302,10 +1303,10 @@ export class PropertyAccess extends Ast {
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
-  get rhs(): IdentifierToken {
+  get rhs(): IdentifierOrOperatorIdentifierToken {
     const ast = this.module.checkedGet(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
-    return ast.token as IdentifierToken
+    return ast.token as IdentifierOrOperatorIdentifierToken
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -2323,8 +2324,8 @@ export class Ident extends Ast {
     super(module, fields)
   }
 
-  get token(): StrictIdentifierToken {
-    return this.module.getToken(this.fields.get('token').node) as StrictIdentifierToken
+  get token(): IdentifierToken {
+    return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {
@@ -2346,8 +2347,8 @@ export class Ident extends Ast {
     yield this.fields.get('token')
   }
 
-  code(): StrictIdentifier {
-    return this.token.code() as StrictIdentifier
+  code(): Identifier {
+    return this.token.code() as Identifier
   }
 }
 export class MutableIdent extends Ident implements MutableAst {
@@ -2360,7 +2361,7 @@ export class MutableIdent extends Ident implements MutableAst {
 
   replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {}
 
-  code(): StrictIdentifier {
+  code(): Identifier {
     return this.token.code()
   }
 }

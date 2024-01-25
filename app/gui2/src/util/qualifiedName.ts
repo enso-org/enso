@@ -1,6 +1,18 @@
-import { isIdentifier, type Identifier, type QualifiedName } from '@/util/ast/abstract'
+import {
+  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type QualifiedName,
+} from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
-export { isIdentifier, type Identifier, type QualifiedName }
+export {
+  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type QualifiedName,
+}
 
 const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
@@ -8,6 +20,12 @@ const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRege
 
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
+}
+
+export function tryIdentifierOrOperatorIdentifier(
+  str: string,
+): Result<IdentifierOrOperatorIdentifier> {
+  return isIdentifierOrOperatorIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
 export function isQualifiedName(str: string): str is QualifiedName {
@@ -30,17 +48,19 @@ export function qnLastSegmentIndex(name: QualifiedName) {
 }
 
 /** Split the qualified name to parent and last segment (name). */
-export function qnSplit(name: QualifiedName): [QualifiedName | null, Identifier] {
+export function qnSplit(
+  name: QualifiedName,
+): [QualifiedName | null, IdentifierOrOperatorIdentifier] {
   const separator = qnLastSegmentIndex(name)
   const parent = separator > 0 ? (name.substring(0, separator) as QualifiedName) : null
-  const lastSegment = name.substring(separator + 1) as Identifier
+  const lastSegment = name.substring(separator + 1) as IdentifierOrOperatorIdentifier
   return [parent, lastSegment]
 }
 
 /** Get the last segment of qualified name. */
-export function qnLastSegment(name: QualifiedName): Identifier {
+export function qnLastSegment(name: QualifiedName): IdentifierOrOperatorIdentifier {
   const separator = qnLastSegmentIndex(name)
-  return name.substring(separator + 1) as Identifier
+  return name.substring(separator + 1) as IdentifierOrOperatorIdentifier
 }
 
 /** Get the parent qualified name (without last segment) */
@@ -53,12 +73,12 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
   return `${left}.${right}` as QualifiedName
 }
 
-export function qnFromSegments(segments: Iterable<Identifier>): QualifiedName {
+export function qnFromSegments(segments: Iterable<IdentifierOrOperatorIdentifier>): QualifiedName {
   return [...segments].join('.') as QualifiedName
 }
 
-export function qnSegments(name: QualifiedName): Identifier[] {
-  return name.split('.').map((segment) => segment as Identifier)
+export function qnSegments(name: QualifiedName): IdentifierOrOperatorIdentifier[] {
+  return name.split('.').map((segment) => segment as IdentifierOrOperatorIdentifier)
 }
 
 export function qnSlice(
@@ -103,7 +123,7 @@ if (import.meta.vitest) {
   // These are not valid identifiers but currently pass the qualified name regex: ['_', '.*']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
-    expect(unwrap(tryIdentifier(name))).toStrictEqual(name as Identifier),
+    expect(unwrap(tryIdentifier(name))).toStrictEqual(name as IdentifierOrOperatorIdentifier),
   )
   test.each(invalidIdentifiers)("'%s' is an invalid identifier", (name) =>
     expect(tryIdentifier(name).ok).toBe(false),

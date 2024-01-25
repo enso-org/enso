@@ -18,7 +18,7 @@ import {
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 
@@ -26,13 +26,20 @@ import {
 // === Imports analysis ===
 // ========================
 
-function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
-  const idents: Identifier[] = []
+/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
+ *  operator-application tree are identifier expressions, return the identifiers from left to right.
+ *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
+ */
+function unrollOprChain(
+  ast: Ast.Ast,
+  leftAssociativeOperator: string,
+): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
   let ast_: Ast.Ast | undefined = ast
   while (
     ast_ instanceof Ast.OprApp &&
     ast_.operator.ok &&
-    ast_.operator.value.code() === operator
+    ast_.operator.value.code() === leftAssociativeOperator
   ) {
     if (!(ast_.rhs instanceof Ast.Ident)) return null
     idents.unshift(ast_.rhs.code())
@@ -43,8 +50,12 @@ function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
   return idents
 }
 
-function unrollPropertyAccess(ast: Ast.Ast): Identifier[] | null {
-  const idents: Identifier[] = []
+/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
+ *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
+ *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
+ */
+function unrollPropertyAccess(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
   let ast_: Ast.Ast | undefined = ast
   while (ast_ instanceof Ast.PropertyAccess) {
     idents.unshift(ast_.rhs.code())
@@ -55,7 +66,7 @@ function unrollPropertyAccess(ast: Ast.Ast): Identifier[] | null {
   return idents
 }
 
-function parseIdent(ast: Ast.Ast): Identifier | null {
+function parseIdent(ast: Ast.Ast): IdentifierOrOperatorIdentifier | null {
   if (ast instanceof Ast.Ident) {
     return ast.code()
   } else {
@@ -63,7 +74,7 @@ function parseIdent(ast: Ast.Ast): Identifier | null {
   }
 }
 
-function parseIdents(ast: Ast.Ast): Identifier[] | null {
+function parseIdents(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
   return unrollOprChain(ast, ',')
 }
 
@@ -119,19 +130,19 @@ export type ImportedNames = Module | List | All
 /** import Module.Path (as Alias)? */
 export interface Module {
   kind: 'Module'
-  alias?: Identifier
+  alias?: IdentifierOrOperatorIdentifier
 }
 
 /** from Module.Path import (Ident),+ */
 export interface List {
   kind: 'List'
-  names: Identifier[]
+  names: IdentifierOrOperatorIdentifier[]
 }
 
 /** from Module.Path import all (hiding (Ident),*)? */
 export interface All {
   kind: 'All'
-  except: Identifier[]
+  except: IdentifierOrOperatorIdentifier[]
 }
 
 // ========================
@@ -151,7 +162,7 @@ export interface QualifiedImport {
 export interface UnqualifiedImport {
   kind: 'Unqualified'
   from: QualifiedName
-  import: Identifier
+  import: IdentifierOrOperatorIdentifier
 }
 
 /** Read imports from given module block */

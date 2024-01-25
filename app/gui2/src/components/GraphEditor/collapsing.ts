@@ -1,10 +1,14 @@
 import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert, assertDefined } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
-import { moduleMethodNames } from '@/util/ast/abstract'
+import { isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
-import { isIdentifier, tryIdentifier, type Identifier } from '@/util/qualifiedName'
+import {
+  isIdentifierOrOperatorIdentifier,
+  tryIdentifier,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 
 // === Types ===
@@ -115,7 +119,10 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Identifier {
+function findSafeMethodName(
+  topLevel: Ast.BodyBlock,
+  baseName: IdentifierOrOperatorIdentifier,
+): IdentifierOrOperatorIdentifier {
   const allIdentifiers = moduleMethodNames(topLevel)
   if (!allIdentifiers.has(baseName)) {
     return baseName
@@ -125,15 +132,15 @@ function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Iden
     index++
   }
   const name = `${baseName}${index}`
-  assert(isIdentifier(name))
+  assert(isIdentifierOrOperatorIdentifier(name))
   return name
 }
 
 // === performCollapse ===
 
 // We support working inside `Main` module of the project at the moment.
-const MODULE_NAME = 'Main' as Identifier
-const COLLAPSED_FUNCTION_NAME = 'collapsed' as Identifier
+const MODULE_NAME = 'Main' as IdentifierOrOperatorIdentifier
+const COLLAPSED_FUNCTION_NAME = 'collapsed' as IdentifierOrOperatorIdentifier
 
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
@@ -211,7 +218,7 @@ export function performCollapse(
 /** Prepare a method call expression for collapsed method. */
 function collapsedCallAst(
   info: CollapsedInfo,
-  collapsedName: Identifier,
+  collapsedName: IdentifierOrOperatorIdentifier,
   edit: Ast.MutableModule,
 ): { ast: Ast.Owned; nodeId: NodeId } {
   const pattern = info.refactored.pattern

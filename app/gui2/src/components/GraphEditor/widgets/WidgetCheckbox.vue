@@ -5,7 +5,7 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { asNot } from '@/util/data/types.ts'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
+import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -30,7 +30,7 @@ const value = computed({
         {
           kind: 'Unqualified',
           from: 'Standard.Base.Data.Boolean' as QualifiedName,
-          import: 'Boolean' as Identifier,
+          import: 'Boolean' as IdentifierOrOperatorIdentifier,
         },
       ])
       props.onUpdate({
