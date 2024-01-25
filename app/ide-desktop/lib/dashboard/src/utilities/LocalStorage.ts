@@ -37,7 +37,9 @@ export default class LocalStorage {
     if (typeof savedValues === 'object' && savedValues != null) {
       for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {
         if (key in savedValues) {
-          const value = metadata.tryParse(key)
+          // This is SAFE, as it is guarded by the `key in savedValues` check.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
+          const value = metadata.tryParse((savedValues as any)[key])
           if (value != null) {
             // This is SAFE, as the `tryParse` function is required by definition to
             // return a value of the correct type.
