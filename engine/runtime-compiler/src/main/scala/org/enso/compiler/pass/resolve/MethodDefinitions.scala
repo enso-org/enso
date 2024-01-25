@@ -2,13 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{
-  DefinitionArgument,
-  Expression,
-  Function,
-  Module,
-  Name
-}
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -17,11 +11,7 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
 
 /** Resolves the correct `self` argument type for method definitions and stores
   * the resolution in the method's metadata.
@@ -100,19 +90,27 @@ case object MethodDefinitions extends IRPass {
           case Some(Resolution(ResolvedType(_, tp)))
               if canGenerateStaticWrappers(tp) =>
             val dup = method.duplicate()
+            // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
+            val fakeModuleSelfArg = DefinitionArgument.Specified(
+              Name.Self(None, synthetic = true),
+              None,
+              None,
+              suspended = false,
+              None
+            )
+
+            // TODO better use SelfType here
+            val selfType = Name.Literal(tp.name, isMethod = false, None)
+
+            // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
+            // This is the argument that will hold the actual instance of the object we are calling on, e.g. `My_Type.method instance`.
+            // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
             val static = dup.copy(body =
               new Function.Lambda(
-                List(
-                  DefinitionArgument
-                    .Specified(
-                      Name.Self(None, true),
-                      None,
-                      None,
-                      false,
-                      None
-                    )
-                ),
-                dup.body,
+                // This is the fake Self argument that gets the static module
+                List(fakeModuleSelfArg),
+                // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type
+                addTypeAscriptionToSelfArgument(dup.body, selfType),
                 None
               )
             )
@@ -127,11 +125,26 @@ case object MethodDefinitions extends IRPass {
     ir.copy(bindings = withStaticAliases)
   }
 
+  private def addTypeAscriptionToSelfArgument(methodBody: Expression, typ: Expression): Expression = methodBody match {
+    case lambda: Function.Lambda =>
+      val newArguments = lambda.arguments match {
+        case (selfArg @ DefinitionArgument.Specified(Name.Self(_, _, _, _), _, _, _, _, _, _)) :: rest =>
+          selfArg.copy(ascribedType = Some(typ)) :: rest
+        case other :: _ =>
+          throw new CompilerError(s"MethodDefinitions pass: expected the first argument to be `self`, but got $other")
+        case Nil =>
+          throw new CompilerError(s"MethodDefinitions pass: expected at least one argument (self) in the method, but got none.")
+      }
+      lambda.copy(arguments = newArguments)
+    case other =>
+      throw new CompilerError(s"Unexpected body type $other in MethodDefinitions pass.")
+  }
+
   // Generate static wrappers for
   // 1. Types having at least one type constructor
   // 2. All builtin types except for Nothing. Nothing's eigentype is Nothing and not Nothing.type,
   //    would lead to overriding conflicts.
-  //    TODO: Remvoe the hardcoded type once Enso's annotations can define parameters.
+  //    TODO: Remove the hardcoded type once Enso's annotations can define parameters.
   private def canGenerateStaticWrappers(tp: Type): Boolean =
     tp.members.nonEmpty || (tp.builtinType && (tp.name != "Nothing"))
 

@@ -405,6 +405,7 @@ public class SignatureTest extends TestBase {
         Source.newBuilder(
                 "enso",
                 """
+    from Standard.Base import all
     type My_Type
         Value x
         f self y = self.x+y
@@ -618,6 +619,7 @@ public class SignatureTest extends TestBase {
         Source.newBuilder(
                 "enso",
                 """
+    from Standard.Base import all
     type My_Type
         Value x
         f self y = self.x+y
@@ -646,7 +648,7 @@ public class SignatureTest extends TestBase {
           module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "static_inconvertible");
       fail("Expecting an exception, not: " + invalid_static_call);
     } catch (PolyglotException e) {
-      assertTypeError("`self`", "My_Type", "Other_Type", e.getMessage());
+      assertTypeError("`self`", "My_Type", "Inconvertible_Type", e.getMessage());
     }
   }
 
