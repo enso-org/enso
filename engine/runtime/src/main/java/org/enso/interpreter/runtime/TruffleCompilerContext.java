@@ -239,6 +239,7 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public void reportDiagnostics(CompilerContext.Module module, Collection<Diagnostic> diagnostics) {
     for (var diag : diagnostics) {
+      DiagnosticFormatter diagnosticFormatter;
       if (diag.location().isDefined()) {
         Source source;
         try {
@@ -247,11 +248,12 @@ final class TruffleCompilerContext implements CompilerContext {
           throw new AssertionError(e);
         }
         assert source != null;
-        var diagnosticFormatter = new DiagnosticFormatter(diag, source);
-        System.out.println(diagnosticFormatter.format());
+        diagnosticFormatter = new DiagnosticFormatter(diag, source);
       } else {
-        throw new UnsupportedOperationException("unimplemented");
+        var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
+        diagnosticFormatter = new DiagnosticFormatter(diag, emptySource);
       }
+      System.out.println(diagnosticFormatter.format());
     }
   }
 
