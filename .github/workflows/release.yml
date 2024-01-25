@@ -34,17 +34,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -79,17 +71,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -139,17 +123,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -202,17 +178,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -268,17 +236,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -317,7 +277,7 @@ jobs:
     runs-on:
       - self-hosted
       - macOS
-      - X64
+      - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -331,17 +291,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -392,17 +344,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -454,17 +398,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -526,17 +462,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -593,17 +521,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -644,7 +564,7 @@ jobs:
     runs-on:
       - self-hosted
       - macOS
-      - X64
+      - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -658,17 +578,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -734,17 +646,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -811,17 +715,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -876,17 +772,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -926,7 +814,7 @@ jobs:
     runs-on:
       - self-hosted
       - macOS
-      - X64
+      - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -940,17 +828,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -1015,17 +895,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -1091,17 +963,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
