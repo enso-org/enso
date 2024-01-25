@@ -1,6 +1,5 @@
 package org.enso.table.data.mask;
 
-import java.util.List;
 import java.util.function.ToIntFunction;
 
 /** Describes a storage reordering operator. */
