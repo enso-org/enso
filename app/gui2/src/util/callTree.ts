@@ -76,6 +76,7 @@ export class ArgumentAst {
   }
 
   toWidgetInput(): WidgetInput {
+    console.log('Returning config ', this.dynamicConfig)
     return {
       portId: this.portId,
       value: this.ast,

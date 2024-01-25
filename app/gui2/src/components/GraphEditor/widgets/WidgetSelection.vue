@@ -84,6 +84,7 @@ const selectedExpression = computed(() => {
 const innerWidgetInput = computed(() => {
   if (selectedTag.value == null) return props.input
   const parameters = selectedTag.value.parameters
+  console.log('parameters: ', parameters)
   if (!parameters) return props.input
   const config = functionCallConfiguration(parameters)
   return { ...props.input, dynamicConfig: config }

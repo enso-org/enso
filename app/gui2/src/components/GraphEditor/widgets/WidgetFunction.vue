@@ -85,6 +85,7 @@ const application = computed(() => {
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
+    console.log('Input for ', application.value, ' is ', application.value.toWidgetInput)
     return application.value.toWidgetInput()
   } else {
     return props.input
