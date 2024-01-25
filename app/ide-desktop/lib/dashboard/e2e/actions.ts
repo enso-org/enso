@@ -623,7 +623,7 @@ export async function modModifier(page: test.Page) {
   await test.test.step('Detect browser OS', async () => {
     userAgent = await page.evaluate(() => navigator.userAgent)
   })
-  return /macOS/.test(userAgent) ? 'Meta' : 'Control'
+  return /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
 }
 
 /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
@@ -635,7 +635,7 @@ export async function press(page: test.Page, keyOrShortcut: string) {
       userAgent = await page.evaluate(() => navigator.userAgent)
     })
     // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
-    const ctrlKey = /macOS/.test(userAgent) ? 'Meta' : 'Control'
+    const ctrlKey = /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
     await page.keyboard.press(keyOrShortcut.replace(/\bMod\b/g, ctrlKey))
   } else {
     await page.keyboard.press(keyOrShortcut)
