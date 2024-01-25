@@ -108,6 +108,7 @@ export default function UserBar(props: UserBarProps) {
       {/* Required for shortcuts to work. */}
       <div className="hidden">
         <UserMenu
+          hidden
           setPage={setPage}
           supportsLocalBackend={supportsLocalBackend}
           onSignOut={onSignOut}
