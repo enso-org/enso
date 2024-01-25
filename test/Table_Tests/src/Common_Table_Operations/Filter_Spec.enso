@@ -434,7 +434,7 @@ spec setup =
             err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
             err2.should_fail_with Floating_Point_Equality
 
-        Test.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` operation" <|
+        Test.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` `Filter_Condition`" <|
             t = table_builder [["x", [1, 2, 3, 4, 5]]]
             fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing]
                 + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
