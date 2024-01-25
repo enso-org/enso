@@ -256,3 +256,8 @@ type SQLite_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## PRVIATE
+       Returns the collation setting for the current database.
+    is_expected_collation : Text
+    is_expected_collation self = True

@@ -21,7 +21,9 @@ spec setup =
     test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
         "ToDo: order_by is not yet supported by this backend."
-    Test.group prefix+"Table.order_by" pending=order_by_pending <|
+    unexpected_collation = if setup.connection.is_nothing.not && setup.connection.is_expected_collation then Nothing else
+        "Test requires collation setting to be 'en_GB.UTF8'"
+    Test.group prefix+"Table.order_byasdfasdf" pending=order_by_pending <|
         mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]
             col2 = ["beta", ["a", "b", "a", "b"]]
@@ -215,7 +217,7 @@ spec setup =
             t3 = table.order_by [Sort_Column.Name "rho" Sort_Direction.Descending]
             t3.at "rho" . to_vector . should_equal ["BB", "B", Nothing, Nothing]
 
-        Test.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
+        Test.specify "should behave as expected with Unicode normalization, depending on the defaults settings" pending=unexpected_collation <|
             t1 = table.order_by [Sort_Column.Name "phi"]
             case test_selection.order_by_unicode_normalization_by_default of
                 True ->
@@ -234,7 +236,7 @@ spec setup =
             t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
             t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
 
-        Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
+        Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported." else unexpected_collation) <|
             t1 = table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Insensitive)
             expected = case test_selection.case_insensitive_ascii_only of
                 True -> ["Aleph", "alpha", "Beta", "bądź"]
