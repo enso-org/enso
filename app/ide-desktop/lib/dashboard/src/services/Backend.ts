@@ -330,17 +330,17 @@ export const isPlan = array.includesPredicate(PLANS)
 /** Metadata uniquely describing a payment checkout session. */
 export interface CheckoutSession {
   /** ID of the checkout session, suffixed with a secret value. */
-  clientSecret: string
+  readonly clientSecret: string
   /** ID of the checkout session. */
-  id: CheckoutSessionId
+  readonly id: CheckoutSessionId
 }
 
 /** Metadata describing the status of a payment checkout session. */
 export interface CheckoutSessionStatus {
   /** Status of the payment for the checkout session. */
-  paymentStatus: string
+  readonly paymentStatus: string
   /** Status of the checkout session. */
-  status: string
+  readonly status: string
 }
 
 /** Resource usage of a VM. */

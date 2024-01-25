@@ -2,7 +2,8 @@
 import * as React from 'react'
 
 import * as stripeReact from '@stripe/react-stripe-js'
-import type * as stripe from '@stripe/stripe-js'
+import type * as stripeTypes from '@stripe/stripe-js'
+import * as stripe from '@stripe/stripe-js/pure'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -20,7 +21,7 @@ import * as string from '#/utilities/string'
 // === Constants ===
 // =================
 
-let stripePromise: Promise<stripe.Stripe | null> | null = null
+let stripePromise: Promise<stripeTypes.Stripe | null> | null = null
 
 // =================
 // === Subscribe ===
@@ -30,20 +31,20 @@ let stripePromise: Promise<stripe.Stripe | null> | null = null
  *
  * This page can be in one of several states:
  *
- * 1. Initial (i.e., plan = null, clientSecret = '', sessionStatus = null),
- * 2. Plan selected (e.g., plan = 'solo', clientSecret = '', sessionStatus = null),
- * 3. Session created (e.g., plan = 'solo', clientSecret = 'cs_foo',
+ * 1. Initial (i.e. `plan = null, clientSecret = '', sessionStatus = null`),
+ * 2. Plan selected (e.g. `plan = 'solo', clientSecret = '', sessionStatus = null`),
+ * 3. Session created (e.g. `plan = 'solo', clientSecret = 'cs_foo',
  * sessionStatus.status = { status: 'open' || 'complete' || 'expired',
- * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }),
- * 4. Session complete (e.g., plan = 'solo', clientSecret = 'cs_foo',
+ * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`),
+ * 4. Session complete (e.g. `plan = 'solo', clientSecret = 'cs_foo',
  * sessionStatus.status = { status: 'complete',
- * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }). */
+ * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe() {
   const stripeKey = config.ACTIVE_CONFIG.stripeKey
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
     const initialPlan = new URLSearchParams(location.search).get('plan')
-    return backendModule.isPlan(initialPlan) ? initialPlan : null
+    return backendModule.isPlan(initialPlan) ? initialPlan : backendModule.Plan.solo
   })
   // A client secret used to access details about a Checkout Session on the Stripe API. A Checkout
   // Session represents a customer's session as they are in the process of paying for a
@@ -62,24 +63,27 @@ export default function Subscribe() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   if (stripePromise == null) {
-    stripePromise = load.loadScript('https://js.stripe.com/v3/').then(script => {
+    stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
+      const innerStripe = await stripe.loadStripe(stripeKey)
       script.remove()
-      return import('@stripe/stripe-js').then(stripe => stripe.loadStripe(stripeKey))
+      return innerStripe
     })
   }
 
   React.useEffect(() => {
-    if (plan != null && sessionId == null) {
-      void (async () => {
-        try {
-          const checkoutSession = await backend.createCheckoutSession(plan)
-          setClientSecret(checkoutSession.clientSecret)
-          setSessionId(checkoutSession.id)
-        } catch (error) {
-          toastAndLog(null, error)
-        }
-      })()
-    } else if (sessionId != null) {
+    void (async () => {
+      try {
+        const checkoutSession = await backend.createCheckoutSession(plan)
+        setClientSecret(checkoutSession.clientSecret)
+        setSessionId(checkoutSession.id)
+      } catch (error) {
+        toastAndLog(null, error)
+      }
+    })()
+  }, [backend, plan, /* should never change */ toastAndLog])
+
+  const onComplete = React.useCallback(() => {
+    if (sessionId != null) {
       void (async () => {
         try {
           setSessionStatus(await backend.getCheckoutSession(sessionId))
@@ -88,27 +92,24 @@ export default function Subscribe() {
         }
       })()
     }
-  }, [
-    backend,
-    /* should never change */ plan,
-    /* should never change */ sessionId,
-    /* should never change */ toastAndLog,
-  ])
+    // Stripe does not allow this callback to change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <Modal centered className="bg-black/10 text-primary text-xs">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-2 bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
+        className="flex flex-col gap-2 bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md max-h-[100vh]"
         onClick={event => {
           event.stopPropagation()
         }}
       >
-        {sessionStatus == null || sessionStatus.status !== 'complete' ? (
+        {sessionStatus?.status === 'complete' ? (
+          <div>Successfully upgraded your plan!</div>
+        ) : (
           <>
-            <div className="self-center text-xl">
-              {plan != null ? `Upgrade to ${string.capitalizeFirst(plan)}` : 'Upgrade'}
-            </div>
+            <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
             <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
               {backendModule.PLANS.map(newPlan => (
                 <button
@@ -126,10 +127,10 @@ export default function Subscribe() {
               ))}
             </div>
             {sessionId && clientSecret && (
-              <stripeReact.EmbeddedCheckoutProvider
-                stripe={stripePromise}
-                options={{
-                  clientSecret,
+              <div className="overflow-auto">
+                <stripeReact.EmbeddedCheckoutProvider
+                  key={sessionId}
+                  stripe={stripePromise}
                   // Above, `sessionId` is updated when the `checkoutSession` is
                   // created. This triggers a fetch of the session's `status`. The
                   // `status` is not going to be `complete` at that point (unless the
@@ -137,23 +138,13 @@ export default function Subscribe() {
                   // complete).  So the `status` needs to be fetched again when the
                   // `checkoutSession` is updated. This is done by passing a function
                   // to `onComplete`.
-                  onComplete: () => {
-                    void (async () => {
-                      try {
-                        setSessionStatus(await backend.getCheckoutSession(sessionId))
-                      } catch (error) {
-                        toastAndLog(null, error)
-                      }
-                    })()
-                  },
-                }}
-              >
-                <stripeReact.EmbeddedCheckout />
-              </stripeReact.EmbeddedCheckoutProvider>
+                  options={{ clientSecret, onComplete }}
+                >
+                  <stripeReact.EmbeddedCheckout />
+                </stripeReact.EmbeddedCheckoutProvider>
+              </div>
             )}
           </>
-        ) : (
-          <div>Successfully upgraded your plan!</div>
         )}
       </div>
     </Modal>
