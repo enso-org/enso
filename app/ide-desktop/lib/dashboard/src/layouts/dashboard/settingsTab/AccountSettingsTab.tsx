@@ -89,8 +89,8 @@ export default function AccountSettingsTab() {
       toastAndLog('Could not upload a new profile picture because no image was found')
     } else {
       try {
-        const url = await backend.uploadUserPicture({ fileName: image.name }, image)
-        setOrganization(oldOrganization => object.merge(oldOrganization, { profilePicture: url }))
+        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
+        setOrganization(newUser)
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -165,9 +165,9 @@ export default function AccountSettingsTab() {
       </div>
       <div className="flex flex-col gap-2.5">
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
-        <label className="cursor-pointer rounded-full h-32 w-32 hover:bg-frame transition-colors">
+        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
-          <img src={organization?.profilePicture ?? DefaultUserIcon} className="w-full h-full" />
+          <img width={128} height={128} src={organization?.profilePicture ?? DefaultUserIcon} />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It

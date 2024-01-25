@@ -79,6 +79,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
+        className="flex items-center rounded-full overflow-clip w-7.25 h-7.25"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>

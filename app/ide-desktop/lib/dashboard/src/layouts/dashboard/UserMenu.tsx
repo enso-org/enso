@@ -55,7 +55,9 @@ export default function UserMenu(props: UserMenuProps) {
         {organization != null ? (
           <>
             <div className="flex items-center gap-3 px-1">
-              <img src={organization.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+              <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
+                <img src={organization.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+              </div>
               <span className="leading-170 h-6 py-px">{organization.name}</span>
             </div>
             <div className="flex flex-col">

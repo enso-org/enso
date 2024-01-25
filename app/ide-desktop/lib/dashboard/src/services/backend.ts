@@ -911,7 +911,10 @@ export abstract class Backend {
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(params: UploadUserPictureRequestParams, file: Blob): Promise<string>
+  abstract uploadUserPicture(
+    params: UploadUserPictureRequestParams,
+    file: Blob
+  ): Promise<UserOrOrganization>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */
