@@ -7,6 +7,8 @@ import project.Data.Type.Value_Type.Value_Type
 from project import Column
 from project.Errors import Nothing_Value_In_Filter_Condition
 
+import Standard.Database.Data.Column.Column as Database_Column
+
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask
    from a given source column and a filter condition. It contains logic common
@@ -94,6 +96,7 @@ warn_on_nothing_in_comparison filter_condition x ~action =
     result = action
     has_nothing = case x of
         _ : Column -> False
+        _ : Database_Column -> False
         _ : Vector -> x.contains Nothing
         _ -> x.is_nothing
     if has_nothing.not then result else
