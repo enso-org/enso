@@ -44,22 +44,22 @@ type Table_Ref
        Transforms a condition, changing any Column_Ref instances into Column instances resolved in this table.
     resolve_condition : Filter_Condition -> Filter_Condition
     resolve_condition self condition = case condition of
-        Filter_Condition.Equal value -> Filter_Condition.Equal (self.resolve value)
-        Filter_Condition.Not_Equal value -> Filter_Condition.Not_Equal (self.resolve value)
-        Filter_Condition.Less value -> Filter_Condition.Less (self.resolve value)
-        Filter_Condition.Equal_Or_Less value -> Filter_Condition.Equal_Or_Less (self.resolve value)
-        Filter_Condition.Greater value -> Filter_Condition.Greater (self.resolve value)
-        Filter_Condition.Equal_Or_Greater value -> Filter_Condition.Equal_Or_Greater (self.resolve value)
-        Filter_Condition.Between lower upper -> Filter_Condition.Between (self.resolve lower) (self.resolve upper)
-        Filter_Condition.Equal_Ignore_Case value locale -> Filter_Condition.Equal_Ignore_Case (self.resolve value) locale
-        Filter_Condition.Starts_With prefix case_sensitivity -> Filter_Condition.Starts_With (self.resolve prefix) case_sensitivity
-        Filter_Condition.Ends_With prefix case_sensitivity -> Filter_Condition.Ends_With (self.resolve prefix) case_sensitivity
-        Filter_Condition.Contains prefix case_sensitivity -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity
-        Filter_Condition.Not_Contains prefix case_sensitivity -> Filter_Condition.Not_Contains (self.resolve prefix) case_sensitivity
-        Filter_Condition.Like pattern -> Filter_Condition.Like (self.resolve pattern)
-        Filter_Condition.Not_Like pattern -> Filter_Condition.Not_Like (self.resolve pattern)
-        Filter_Condition.Is_In values -> Filter_Condition.Is_In (check_is_in_values "Is_In" values)
-        Filter_Condition.Not_In values -> Filter_Condition.Not_In (check_is_in_values "Not_In" values)
+        Filter_Condition.Equal value action -> Filter_Condition.Equal (self.resolve value) action
+        Filter_Condition.Not_Equal value action -> Filter_Condition.Not_Equal (self.resolve value) action
+        Filter_Condition.Less value action -> Filter_Condition.Less (self.resolve value) action
+        Filter_Condition.Equal_Or_Less value action -> Filter_Condition.Equal_Or_Less (self.resolve value) action
+        Filter_Condition.Greater value action -> Filter_Condition.Greater (self.resolve value) action
+        Filter_Condition.Equal_Or_Greater value action -> Filter_Condition.Equal_Or_Greater (self.resolve value) action
+        Filter_Condition.Between lower upper action -> Filter_Condition.Between (self.resolve lower) (self.resolve upper) action
+        Filter_Condition.Equal_Ignore_Case value locale action -> Filter_Condition.Equal_Ignore_Case (self.resolve value) locale action
+        Filter_Condition.Starts_With prefix case_sensitivity action -> Filter_Condition.Starts_With (self.resolve prefix) case_sensitivity action
+        Filter_Condition.Ends_With prefix case_sensitivity action -> Filter_Condition.Ends_With (self.resolve prefix) case_sensitivity action
+        Filter_Condition.Contains prefix case_sensitivity action -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity action
+        Filter_Condition.Not_Contains prefix case_sensitivity action -> Filter_Condition.Not_Contains (self.resolve prefix) case_sensitivity action
+        Filter_Condition.Like pattern action -> Filter_Condition.Like (self.resolve pattern) action
+        Filter_Condition.Not_Like pattern action -> Filter_Condition.Not_Like (self.resolve pattern) action
+        Filter_Condition.Is_In values action -> Filter_Condition.Is_In (check_is_in_values "Is_In" values) action
+        Filter_Condition.Not_In values action -> Filter_Condition.Not_In (check_is_in_values "Not_In" values) action
         _ -> condition
 
     ## PRIVATE

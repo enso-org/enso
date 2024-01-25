@@ -21,25 +21,25 @@ polyglot java import org.enso.base.Regex_Utils
 
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
-    Less than:Any
+    Less than:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is less than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Less than:Any
+    Equal_Or_Less than:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to a value (or another column, in case of Table operations)?
-    Equal to:Any
+    Equal to:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Greater than:Any
+    Equal_Or_Greater than:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than a value (or another column, in case of Table operations)?
-    Greater than:Any
+    Greater than:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is not equal to a value (or another column, in case of Table operations)?
-    Not_Equal to:Any
+    Not_Equal to:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is between (inclusive) two values (or columns, in case of Table operations)?
-    Between lower:Any upper:Any
+    Between lower:Any upper:Any action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to another value, ignoring case (Text only)?
 
@@ -54,7 +54,7 @@ type Filter_Condition
          This ensures that different ways of expressing the same character in
          the underlying binary representation are considered equal.
     @locale Locale.default_widget
-    Equal_Ignore_Case (to : Text | Any) (locale:Locale=Locale.default)
+    Equal_Ignore_Case (to : Text | Any) (locale:Locale=Locale.default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value start with a prefix (Text only)?
 
@@ -62,7 +62,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Starts_With (prefix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Starts_With (prefix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value end with a suffix (Text only)?
 
@@ -70,7 +70,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Ends_With (suffix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Ends_With (suffix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value contain the substring (Text only)?
 
@@ -78,7 +78,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Is the substring not present in the value (Text only)?
 
@@ -86,36 +86,36 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Not_Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Not_Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to Nothing?
-    Is_Nothing
+    Is_Nothing action:Filter_Action=Filter_Action.Keep
 
     ## Is not equal to Nothing?
-    Not_Nothing
+    Not_Nothing action:Filter_Action=Filter_Action.Keep
 
     ## Is the value a NaN (Number only)?
-    Is_Nan
+    Is_Nan action:Filter_Action=Filter_Action.Keep
 
     ## Is the value infinite (Number only)?
-    Is_Infinite
+    Is_Infinite action:Filter_Action=Filter_Action.Keep
 
     ## Is the value finite (Number only)?
 
        Finite numbers are ones that are not infinite nor NaN.
-    Is_Finite
+    Is_Finite action:Filter_Action=Filter_Action.Keep
 
     ## Is the value equal to True (Boolean only)?
-    Is_True
+    Is_True action:Filter_Action=Filter_Action.Keep
 
     ## Is the value equal to False (Boolean only)?
-    Is_False
+    Is_False action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to "" or Nothing (Text only)?
-    Is_Empty
+    Is_Empty action:Filter_Action=Filter_Action.Keep
 
     ## Is not equal to "" and Nothing (Text only)?
-    Not_Empty
+    Not_Empty action:Filter_Action=Filter_Action.Keep
 
     ## Does the value match the SQL pattern (Text only)?
 
@@ -134,7 +134,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Like (pattern : Text | Any)
+    Like (pattern : Text | Any) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value not match the SQL pattern (Text only)?
 
@@ -153,7 +153,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Not_Like pattern:Text|Any
+    Not_Like pattern:Text|Any action:Filter_Action=Filter_Action.Keep
 
     ## Is the value contained in `values`?
 
@@ -167,7 +167,7 @@ type Filter_Condition
          Using Columns can be particularly useful for Database operations, as
          uploading a temporary table and using its column for an `Is_In` check
          will likely be faster than using the vector directly.
-    Is_In values:Vector|Any
+    Is_In values:Vector|Any action:Filter_Action=Filter_Action.Keep
 
     ## Is the value not contained in `values`?
 
@@ -181,7 +181,7 @@ type Filter_Condition
          Using Columns can be particularly useful for Database operations, as
          uploading a temporary table and using its column for an `Not_In` check
          will likely be faster than using the vector directly.
-    Not_In values:(Vector | Any)
+    Not_In values:(Vector | Any) action:Filter_Action=Filter_Action.Keep
 
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
@@ -190,57 +190,59 @@ type Filter_Condition
        The predicate can handle `Nothing` values in all cases. However, the
        predicate will raise an error if the value is not of the expected type.
     to_predicate : (Any -> Boolean)
-    to_predicate self = case self of
-        # == does not need special handling for Nothing
-        Equal value -> ==value
-        Not_Equal value -> !=value
-        Less value -> handle_nothing (<value)
-        Equal_Or_Less value -> handle_nothing (<=value)
-        Equal_Or_Greater value -> handle_nothing (>=value)
-        Greater value -> handle_nothing (>value)
-        Between lower upper -> handle_nothing <| elem->
-            (lower <= elem) && (elem <= upper)
-        Equal_Ignore_Case value locale ->
-            handle_nothing <| txt-> (txt : Text).equals_ignore_case value locale
-        Starts_With prefix case_sensitivity ->
-            handle_nothing <| txt-> (txt : Text).starts_with prefix case_sensitivity
-        Ends_With suffix case_sensitivity ->
-            handle_nothing <| txt-> (txt : Text).ends_with suffix case_sensitivity
-        Contains substring case_sensitivity ->
-            handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity
-        Not_Contains substring case_sensitivity ->
-            handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity . not
-        Is_Nothing -> elem -> case elem of
-            Nothing -> True
-            _ -> False
-        Not_Nothing -> elem -> case elem of
-            Nothing -> False
-            _ -> True
-        Is_Nan -> handle_nothing x-> (x:Number).is_nan
-        Is_Infinite -> handle_nothing x-> (x:Number).is_infinite
-        Is_Finite -> handle_nothing x-> (x:Number).is_finite
-        Is_True -> ==True
-        Is_False -> ==False
-        Is_Empty -> elem -> case elem of
-            Nothing -> True
-            "" -> True
-            _ -> False
-        Not_Empty -> elem -> case elem of
-            Nothing -> False
-            "" -> False
-            _ -> True
-        Like sql_pattern ->
-            regex = sql_like_to_regex sql_pattern
-            handle_nothing <| regex.matches
-        Not_Like sql_pattern ->
-            regex = sql_like_to_regex sql_pattern
-            handle_nothing <| elem-> regex.matches elem . not
-        Is_In values ->
-            set = Set.from_vector values
-            set.contains
-        Not_In values ->
-            set = Set.from_vector values
-            elem-> set.contains elem . not
+    to_predicate self =
+        base = case self of
+            # == does not need special handling for Nothing
+            Equal value _ -> ==value
+            Not_Equal value _ -> !=value
+            Less value _ -> handle_nothing (<value)
+            Equal_Or_Less value _ -> handle_nothing (<=value)
+            Equal_Or_Greater value _ -> handle_nothing (>=value)
+            Greater value _ -> handle_nothing (>value)
+            Between lower upper _ -> handle_nothing <| elem->
+                (lower <= elem) && (elem <= upper)
+            Equal_Ignore_Case value locale _ ->
+                handle_nothing <| txt-> (txt : Text).equals_ignore_case value locale
+            Starts_With prefix case_sensitivity _ ->
+                handle_nothing <| txt-> (txt : Text).starts_with prefix case_sensitivity
+            Ends_With suffix case_sensitivity _ ->
+                handle_nothing <| txt-> (txt : Text).ends_with suffix case_sensitivity
+            Contains substring case_sensitivity _ ->
+                handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity
+            Not_Contains substring case_sensitivity _ ->
+                handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity . not
+            Is_Nothing _ -> elem -> case elem of
+                Nothing -> True
+                _ -> False
+            Not_Nothing _ -> elem -> case elem of
+                Nothing -> False
+                _ -> True
+            Is_Nan _ -> handle_nothing x-> (x:Number).is_nan
+            Is_Infinite _ -> handle_nothing x-> (x:Number).is_infinite
+            Is_Finite _ -> handle_nothing x-> (x:Number).is_finite
+            Is_True _ -> ==True
+            Is_False _ -> ==False
+            Is_Empty _ -> elem -> case elem of
+                Nothing -> True
+                "" -> True
+                _ -> False
+            Not_Empty _ -> elem -> case elem of
+                Nothing -> False
+                "" -> False
+                _ -> True
+            Like sql_pattern _ ->
+                regex = sql_like_to_regex sql_pattern
+                handle_nothing <| regex.matches
+            Not_Like sql_pattern _ ->
+                regex = sql_like_to_regex sql_pattern
+                handle_nothing <| elem-> regex.matches elem . not
+            Is_In values _ ->
+                set = Set.from_vector values
+                set.contains
+            Not_In values _ ->
+                set = Set.from_vector values
+                elem-> set.contains elem . not
+        if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.
@@ -250,33 +252,33 @@ type Filter_Condition
             if case_sensitivity == Case_Sensitivity.Default then "" else " Case " + case_sensitivity.to_display_text
 
         condition = case self of
-            Less value -> "<" + value.to_display_text
-            Equal_Or_Less value -> "<=" + value.to_display_text
-            Equal value -> "==" + value.to_display_text
-            Equal_Or_Greater value -> ">=" + value.to_display_text
-            Greater value -> ">" + value.to_display_text
-            Not_Equal value -> "!=" + value.to_display_text
-            Between lower upper -> "Between " + lower.to_display_text + " And " + upper.to_display_text
-            Equal_Ignore_Case value locale ->
+            Less value _ -> "<" + value.to_display_text
+            Equal_Or_Less value _ -> "<=" + value.to_display_text
+            Equal value _ -> "==" + value.to_display_text
+            Equal_Or_Greater value _ -> ">=" + value.to_display_text
+            Greater value _ -> ">" + value.to_display_text
+            Not_Equal value _ -> "!=" + value.to_display_text
+            Between lower upper _ -> "Between " + lower.to_display_text + " And " + upper.to_display_text
+            Equal_Ignore_Case value locale _ ->
                 suffix = if locale == Locale.default then "" else " (within locale " + locale.to_display_text + ")"
                 "Equal Ignore Case " + value.to_display_text + suffix
-            Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
-            Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
-            Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
-            Not_Contains substring case_sensitivity -> "not Contains " + substring.to_display_text + (render_case case_sensitivity)
-            Is_Nothing -> "is Nothing"
-            Not_Nothing -> "is not Nothing"
-            Is_Nan -> "is NaN"
-            Is_Infinite -> "is Infinite"
-            Is_Finite -> "is Finite"
-            Is_True -> "is True"
-            Is_False -> "is False"
-            Is_Empty -> "is Empty"
-            Not_Empty -> "is not Empty"
-            Like sql_pattern -> "Like " + sql_pattern.to_display_text
-            Not_Like sql_pattern -> "not Like " + sql_pattern.to_display_text
-            Is_In values -> "is in " + values.to_display_text
-            Not_In values -> "is not in " + values.to_display_text
+            Starts_With prefix case_sensitivity _ -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
+            Ends_With suffix case_sensitivity _ -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
+            Contains substring case_sensitivity _ -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Not_Contains substring case_sensitivity _ -> "not Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Is_Nothing _ -> "is Nothing"
+            Not_Nothing _ -> "is not Nothing"
+            Is_Nan _ -> "is NaN"
+            Is_Infinite _ -> "is Infinite"
+            Is_Finite _ -> "is Finite"
+            Is_True _ -> "is True"
+            Is_False _ -> "is False"
+            Is_Empty _ -> "is Empty"
+            Not_Empty _ -> "is not Empty"
+            Like sql_pattern _ -> "Like " + sql_pattern.to_display_text
+            Not_Like sql_pattern _ -> "not Like " + sql_pattern.to_display_text
+            Is_In values _ -> "is in " + values.to_display_text
+            Not_In values _ -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
 
     ## PRIVATE
@@ -321,6 +323,13 @@ type Filter_Condition
             [name, code]
         make_single_choice options
 
+## Specifies the action of a Filter_Condition.
+type Filter_Action
+    ## Items matching the filter are kept.
+    Keep
+
+    ## Items matching the filter are removed.
+    Remove
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =
