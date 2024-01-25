@@ -63,6 +63,10 @@ public final class EnsoMultiValue implements EnsoObject {
     return types[0];
   }
 
+  public final Type[] allTypes() {
+    return types.clone();
+  }
+
   @ExportMessage
   String toDisplayString(boolean ignore) {
     return toString();
