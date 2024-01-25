@@ -261,7 +261,7 @@ spec =
             Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_float', 'truncate']
 
         Test.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'to_float', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'round', 'to_float', 'truncate']
 
         Test.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
