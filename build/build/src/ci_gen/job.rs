@@ -78,15 +78,15 @@ impl RunsOn for OS {
     }
 }
 
-impl RunsOn for Strategy {
-    fn strategy(&self) -> Option<Strategy> {
-        Some(self.clone())
-    }
+// impl RunsOn for Strategy {
+//     fn strategy(&self) -> Option<Strategy> {
+//         Some(self.clone())
+//     }
 
-    fn runs_on(&self) -> Vec<RunnerLabel> {
-        vec![RunnerLabel::MatrixOs]
-    }
-}
+//     fn runs_on(&self) -> Vec<RunnerLabel> {
+//         vec![RunnerLabel::MatrixOs]
+//     }
+// }
 
 pub fn plain_job(
     runs_on: impl RunsOn,

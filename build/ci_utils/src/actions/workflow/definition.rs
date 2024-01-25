@@ -173,6 +173,9 @@ pub enum Access {
     None,
 }
 
+/// Models a GitHub Actions workflow definition.
+///
+/// See: <https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions>.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workflow {
@@ -182,6 +185,7 @@ pub struct Workflow {
     pub on:          Event,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub permissions: BTreeMap<Permission, Access>,
+    // No additional clause, as the jobs must be non-empty.
     pub jobs:        BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub env:         BTreeMap<String, String>,
@@ -211,6 +215,10 @@ impl Workflow {
         Self { name: name.into(), ..Default::default() }
     }
 
+    /// Expose all outputs of one job to another.
+    ///
+    /// Note that while a source job must have been already added to the workflow, the consumer job
+    /// must not have been added yet. This step is meant to be a part of the consumer job building.
     pub fn expose_outputs(&self, source_job_id: impl AsRef<str>, consumer_job: &mut Job) {
         let source_job = self.jobs.get(source_job_id.as_ref()).unwrap();
         consumer_job.use_job_outputs(source_job_id.as_ref(), source_job);
