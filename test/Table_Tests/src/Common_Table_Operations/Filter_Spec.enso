@@ -27,7 +27,7 @@ spec setup =
     table_builder = setup.table_builder
     test_selection = setup.test_selection
 
-    Test.group prefix+"Table.filter" <|
+    Test.group prefix+"Table.filterasdfasdf" <|
         Test.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t1 = t.filter "X" (Filter_Condition.Less than=10)
@@ -435,21 +435,25 @@ spec setup =
             err2.should_fail_with Floating_Point_Equality
 
         Test.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` `Filter_Condition`" <|
-            t = table_builder [["x", [1, 2, 3, 4, 5]]]
+            t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
             fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing]
                 + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
                 + [Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
                 + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
                 + [Filter_Condition.Not_In [Nothing]]
                 + [Filter_Condition.Is_In [1, Nothing, 2]]
+                + [Filter_Condition.Not_In (t.at "y")]
             fcs.map fc->
-                Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc . at "x")
+                Test.with_clue fc.to_text <|
+                    Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc . at "x")
 
         Test.specify "should not attach a warning when Nothing is not used as a value in a comparison or `is_in` `Filter_Condition`" <|
             t = table_builder [["x", [1, 2, 3, 4, 5]]]
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal (t.at "x")))
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal 12) . at "x")
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [(Column.from_vector "y" [Nothing, Nothing])]))
 
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
