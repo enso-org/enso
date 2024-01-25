@@ -19,11 +19,10 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
-import java.io.{PrintStream, StringReader}
+import java.io.{PrintStream}
 import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
 import scala.jdk.CollectionConverters.IterableHasAsJava
@@ -639,21 +638,14 @@ class Compiler(
   def runInline(
     srcString: String,
     inlineContext: InlineContext
-  ): Option[(InlineContext, Expression, Source)] = {
+  ): Option[(InlineContext, Expression)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
-    val source = Source
-      .newBuilder(
-        LanguageInfo.ID,
-        new StringReader(srcString),
-        "<interactive_source>"
-      )
-      .build()
-    val tree = ensoCompiler.parse(source.getCharacters)
+    val tree = ensoCompiler.parse(srcString)
 
     ensoCompiler.generateIRInline(tree).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, newContext)
-      (newContext, compilerOutput, source)
+      (newContext, compilerOutput)
     }
   }
 
