@@ -102,7 +102,9 @@ function blur() {
 
 /** To prevent other elements from stealing mouse events (which breaks blur),
  * we instead setup our own `pointerdown` handler while the input is focused.
- * Any click outside of the input field causes `blur`. */
+ * Any click outside of the input field causes `blur`.
+ * We don’t want to `useAutoBlur` here, because it would require a separate `pointerdown` handler per input widget.
+ * Instead we setup a single handler for the currently focused widget only, and thus safe performance. */
 function setupAutoBlur() {
   const options = { capture: true }
   function callback(event: MouseEvent) {

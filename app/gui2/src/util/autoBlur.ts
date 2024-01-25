@@ -1,7 +1,7 @@
 import { useEvent } from '@/composables/events'
 import type { Ref } from 'vue'
 
-/** Automatically the active element on any mouse click outside of `root`.
+/** Automatically `blur` the currently active element on any mouse click outside of `root`.
  * It is useful when other elements may capture pointer events, preventing default browser behavior for focus change. */
 export function useAutoBlur(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>) {
   useEvent(window, 'pointerdown', (event) => blurIfNecessary(root, event), { capture: true })
