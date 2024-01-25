@@ -6,11 +6,11 @@ import org.enso.table.data.mask.OrderMask;
 public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices) {
 
   public OrderMask getLeftOrderMask() {
-    return new OrderMask(matchedRowsLeftIndices);
+    return OrderMask.fromArray(matchedRowsLeftIndices);
   }
 
   public OrderMask getRightOrderMask() {
-    return new OrderMask(matchedRowsRightIndices);
+    return OrderMask.fromArray(matchedRowsRightIndices);
   }
 
   public record BuilderSettings(
