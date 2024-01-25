@@ -16,6 +16,10 @@ class EnsoSecretReader {
     secrets.clear();
   }
 
+  static void removeFromCache(String secretId) {
+    secrets.remove(secretId);
+  }
+
   /**
    * * Reads a secret from the Enso Cloud.
    *

@@ -31,6 +31,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         youtube: '#c62421',
         discord: '#404796',
         dim: 'rgba(0, 0, 0, 0.25)',
+        'dim-darker': 'rgba(0, 0, 0, 0.40)',
         frame: 'rgba(255, 255, 255, 0.40)',
         'frame-selected': 'rgba(255, 255, 255, 0.70)',
         'tag-text': 'rgba(255, 255, 255, 0.90)',

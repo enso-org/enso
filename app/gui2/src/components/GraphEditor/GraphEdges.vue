@@ -6,16 +6,17 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import type { PortId } from '@/providers/portInfo'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
-import { isUuid, type ExprId } from 'shared/yjsModel.ts'
+import { isUuid } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 
 const emits = defineEmits<{
-  createNodeFromEdge: [source: ExprId, position: Vec2]
+  createNodeFromEdge: [source: AstId, position: Vec2]
 }>()
 
 const editingEdge: Interaction = {
@@ -55,7 +56,7 @@ function disconnectEdge(target: PortId) {
       const targetStr: string = target
       if (isUuid(targetStr)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
-        edit.replaceRef(Ast.asNodeId(targetStr as ExprId), Ast.Wildcard.new())
+        edit.replaceRef(targetStr as AstId, Ast.Wildcard.new())
       } else {
         console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
       }
@@ -63,7 +64,7 @@ function disconnectEdge(target: PortId) {
   })
 }
 
-function createEdge(source: ExprId, target: PortId) {
+function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
   const identAst = Ast.parse(ident)
@@ -84,7 +85,7 @@ function createEdge(source: ExprId, target: PortId) {
     if (!graph.updatePortValue(edit, target, identAst)) {
       if (isUuid(target)) {
         console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
-        edit.replaceValue(Ast.asNodeId(target), identAst)
+        edit.replaceValue(Ast.asAstId(target), identAst)
         graph.commitEdit(edit)
       } else {
         console.error(`Failed to connect edge to port ${target}, no fallback possible.`)

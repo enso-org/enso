@@ -517,7 +517,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backendModule.FileInfo> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      file_name: params.fileName,
       ...(params.fileId != null ? { file_id: params.fileId } : {}),
       ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
@@ -534,9 +534,7 @@ export default class RemoteBackend extends Backend {
       } catch {
         // Ignored.
       }
-      if (params.fileName != null) {
-        return this.throw(`Could not upload file with name '${params.fileName}'${suffix}`)
-      } else if (params.fileId != null) {
+      if (params.fileId != null) {
         return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
       } else {
         return this.throw(`Could not upload file${suffix}`)

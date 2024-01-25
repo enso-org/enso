@@ -29,6 +29,10 @@ type Cloud_Tests_Setup
         Cloud_Tests_Setup.Cloud _ _ -> "Mock cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is NOT defined, as they would interfere with other cloud tests."
         _ -> "Cloud tests run only if ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
 
+    real_cloud_pending self = case self of
+        Cloud_Tests_Setup.Cloud _ _ -> Nothing
+        _ -> "These cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is defined, as they require a proper cloud environment for testing, not just a minimal mock."
+
     httpbin_pending self =
         if Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL" . is_nothing . not then Nothing else
             "This test requires the ENSO_HTTP_TEST_HTTPBIN_URL environment variable to be defined."
@@ -108,7 +112,7 @@ with_retries ~action =
 
     # Delays are in seconds
     sleep_time = 0.1
-    total_sleep_delay = 1
+    total_sleep_delay = if Environment.get "CI" . is_nothing . not then 10 else 5
 
     max_iterations = total_sleep_delay / sleep_time
     go i =

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -9,7 +10,7 @@ import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
-import { rangeEncloses, type ExprId } from 'shared/yjsModel'
+import { rangeEncloses } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
@@ -52,7 +53,7 @@ const expressionUpdatesDiagnostics = computed(() => {
   for (const id of chain(panics, errors)) {
     const update = updates.get(id)
     if (!update) continue
-    const node = nodeMap.get(id)
+    const node = nodeMap.get(asNodeId(graphStore.db.idFromExternal(id)))
     if (!node) continue
     if (!node.rootSpan.span) continue
     const [from, to] = node.rootSpan.span
@@ -100,7 +101,7 @@ watchEffect(() => {
         hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
-          let foundNode: ExprId | undefined
+          let foundNode: NodeId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
             if (node.rootSpan.span && rangeEncloses(node.rootSpan.span, astSpan)) {
               foundNode = id

@@ -125,10 +125,10 @@ export default function Drive(props: DriveProps) {
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && organization?.isEnabled !== true
-      ? DriveStatus.notEnabled
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
+      : isCloud && organization?.isEnabled !== true
+      ? DriveStatus.notEnabled
       : DriveStatus.ok
 
   React.useEffect(() => {
@@ -276,7 +276,7 @@ export default function Drive(props: DriveProps) {
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataConnector,
+        type: AssetListEventType.newSecret,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         name,
@@ -425,7 +425,7 @@ export default function Drive(props: DriveProps) {
           </div>
           {isFileBeingDragged && organization != null && isCloud ? (
             <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
+              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
               onDragLeave={() => {
                 setIsFileBeingDragged(false)
               }}

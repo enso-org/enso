@@ -28,7 +28,7 @@ import { rpcWithRetries } from '@/util/net'
 import { defineStore } from 'pinia'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
-import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive } from 'vue'
 
 /** The directory in the project under which custom visualizations can be found. */
@@ -55,12 +55,12 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
 export type VisualizationDataSource =
   | {
       type: 'node'
-      nodeId: ExprId
+      nodeId: ExternalId
     }
   | {
       type: 'expression'
       expression: string
-      contextId: ExprId
+      contextId: ExternalId
     }
 
 const builtinVisualizations: VisualizationModule[] = [

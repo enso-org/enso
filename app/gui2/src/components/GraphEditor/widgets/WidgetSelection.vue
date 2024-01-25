@@ -10,7 +10,9 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { asNot } from '@/util/data/types.ts'
 import { qnLastSegment, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
@@ -103,7 +105,7 @@ watch(selectedIndex, (_index) => {
     edit,
     portUpdate: {
       value: selectedExpression.value,
-      origin: props.input.portId,
+      origin: asNot<TokenId>(props.input.portId),
     },
   })
   showDropdownWidget.value = false
