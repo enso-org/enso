@@ -154,26 +154,30 @@ export default function Dashboard(props: DashboardProps) {
             void (async () => {
               const abortController = new AbortController()
               setOpenProjectAbortController(abortController)
-              const oldProject = await backend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.title
-              )
-              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
-                await remoteBackendModule.waitUntilProjectIsReady(
-                  remoteBackend,
-                  savedProjectStartupInfo.projectAsset,
-                  abortController
+              try {
+                const oldProject = await backend.getProjectDetails(
+                  savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.title
                 )
-                if (!abortController.signal.aborted) {
-                  const project = await remoteBackend.getProjectDetails(
-                    savedProjectStartupInfo.projectAsset.id,
-                    savedProjectStartupInfo.projectAsset.title
+                if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
+                  await remoteBackendModule.waitUntilProjectIsReady(
+                    remoteBackend,
+                    savedProjectStartupInfo.projectAsset,
+                    abortController
                   )
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
-                    setPage(page)
+                  if (!abortController.signal.aborted) {
+                    const project = await remoteBackend.getProjectDetails(
+                      savedProjectStartupInfo.projectAsset.id,
+                      savedProjectStartupInfo.projectAsset.title
+                    )
+                    setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                    if (page === pageSwitcher.Page.editor) {
+                      setPage(page)
+                    }
                   }
                 }
+              } catch {
+                setProjectStartupInfo(null)
               }
             })()
           }
