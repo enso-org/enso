@@ -234,17 +234,18 @@ impl Workflow {
         key
     }
 
-    pub fn add(&mut self, os: OS, job: impl JobArchetype) -> String {
-        self.add_customized(os, job, |_| {})
+    pub fn add(&mut self, os: OS, arch: Arch, job: impl JobArchetype) -> String {
+        self.add_customized(os, arch, job, |_| {})
     }
 
     pub fn add_customized(
         &mut self,
         os: OS,
+        arch: Arch,
         job: impl JobArchetype,
         f: impl FnOnce(&mut Job),
     ) -> String {
-        let (key, mut job) = job.entry(os);
+        let (key, mut job) = job.entry(os, arch);
         f(&mut job);
         self.jobs.insert(key.clone(), job);
         key
@@ -253,10 +254,11 @@ impl Workflow {
     pub fn add_dependent(
         &mut self,
         os: OS,
+        arch: Arch,
         job: impl JobArchetype,
         needed: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
-        let (key, mut job) = job.entry(os);
+        let (key, mut job) = job.entry(os, arch);
         for needed in needed {
             self.expose_outputs(needed.as_ref(), &mut job);
         }
@@ -1071,14 +1073,14 @@ pub trait JobArchetype {
         std::any::type_name::<Self>().to_kebab_case()
     }
 
-    fn key(&self, os: OS) -> String {
-        format!("{}-{}", self.id_key_base(), os)
+    fn key(&self, os: OS, arch: Arch) -> String {
+        format!("{}-{os}-{arch}", self.id_key_base())
     }
 
-    fn job(&self, os: OS) -> Job;
+    fn job(&self, os: OS, arch: Arch) -> Job;
 
-    fn entry(&self, os: OS) -> (String, Job) {
-        (self.key(os), self.job(os))
+    fn entry(&self, os: OS, arch: Arch) -> (String, Job) {
+        (self.key(os, arch), self.job(os, arch))
     }
 
     // [Step ID] => [variable names]
