@@ -1,14 +1,12 @@
 import { expect, Locator, Page, test } from '@playwright/test'
 import assert from 'assert'
-import { util } from 'zod'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
-import { graphNodeByBinding, nodeOutputPort } from './locate'
-import assertEqual = util.assertEqual
 
 const DUMMY_INT_TYPE = 'Standard.Base.Data.Numbers.Integer'
+const DUMMY_STRING_TYPE = 'Standard.Base.Data.Text.Text'
+const DUMMY_FLOAT_TYPE = 'Standard.Base.Data.Numbers.Float'
 const UNKNOWN_TYPE = 'Unknown'
 async function assertTypeLabelOnNode(page: Page, node: Locator, type: string) {
   const targetLabel = node.locator('.outputPortLabel').first()
@@ -32,14 +30,15 @@ async function assertTypeLabelOnNodeByBinding(page: Page, label: string, type: s
 test('shows the correct type when hovering a node', async ({ page }) => {
   await actions.goToGraph(page)
 
+  // Note that the types don't have to make sense, they just have to be applied.
   await mockExpressionUpdate(page, 'five', { type: DUMMY_INT_TYPE })
-  await mockExpressionUpdate(page, 'ten', { type: DUMMY_INT_TYPE })
-  await mockExpressionUpdate(page, 'sum', { type: DUMMY_INT_TYPE })
+  await mockExpressionUpdate(page, 'ten', { type: DUMMY_STRING_TYPE })
+  await mockExpressionUpdate(page, 'sum', { type: DUMMY_FLOAT_TYPE })
   await mockExpressionUpdate(page, 'prod', { type: DUMMY_INT_TYPE })
 
   await assertTypeLabelOnNodeByBinding(page, 'five', DUMMY_INT_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'ten', DUMMY_INT_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'sum', DUMMY_INT_TYPE)
+  await assertTypeLabelOnNodeByBinding(page, 'ten', DUMMY_STRING_TYPE)
+  await assertTypeLabelOnNodeByBinding(page, 'sum', DUMMY_FLOAT_TYPE)
   await assertTypeLabelOnNodeByBinding(page, 'prod', DUMMY_INT_TYPE)
   await assertTypeLabelOnNodeByBinding(page, 'final', UNKNOWN_TYPE)
 })
