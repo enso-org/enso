@@ -55,6 +55,13 @@ pub const PRIMARY_OS: OS = OS::Linux;
 
 pub const TARGETED_SYSTEMS: [OS; 3] = [OS::Windows, OS::Linux, OS::MacOS];
 
+pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
+    (OS::Windows, Arch::X86_64),
+    (OS::Linux, Arch::X86_64),
+    (OS::MacOS, Arch::X86_64),
+    (OS::MacOS, Arch::AArch64),
+];
+
 pub const DEFAULT_BRANCH_NAME: &str = "develop";
 
 pub const RELEASE_CONCURRENCY_GROUP: &str = "release";
@@ -439,8 +446,8 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     let mut packaging_job_ids = vec![];
 
     // Assumed, because Linux is necessary to deploy ECR runtime image.
-    assert!(TARGETED_SYSTEMS.contains(&OS::Linux));
-    for os in TARGETED_SYSTEMS {
+    assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
+    for (os, _arch) in RELEASE_TARGETS {
         let backend_job_id = workflow.add_dependent(os, job::UploadBackend, [&prepare_job_id]);
         let build_ide_job_id = workflow.add_dependent(os, UploadIde, [
             &prepare_job_id,
