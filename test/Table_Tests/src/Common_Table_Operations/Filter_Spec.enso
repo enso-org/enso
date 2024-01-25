@@ -434,6 +434,16 @@ spec setup =
             err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
             err2.should_fail_with Floating_Point_Equality
 
+        Test.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` operation" <|
+            t = table_builder [["x", [1, 2, 3, 4, 5]]]
+            fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing]
+                + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
+                + [Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
+                + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
+                + [Filter_Condition.Not_In [Nothing]]
+            fcs.map fc->
+                Problems.expect_warning Null_Value_In_Filter_Condition (t.filter "x" fc)
+
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
