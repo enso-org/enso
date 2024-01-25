@@ -26,7 +26,7 @@ export const COMPANY_NAME = 'New Byte Order sp. z o.o.'
  * These are required to increase the resolution of `performance.now()` timers,
  * making profiling a lot more accurate and consistent. */
 export const COOP_COEP_CORP_HEADERS: [header: string, value: string][] = [
-    ['Cross-Origin-Embedder-Policy', 'require-corp'],
+    ['Cross-Origin-Embedder-Policy', 'credentialless'],
     ['Cross-Origin-Opener-Policy', 'same-origin'],
     ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]

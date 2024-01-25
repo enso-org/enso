@@ -20,6 +20,7 @@ import PenIcon from 'enso-assets/pen.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import Play2Icon from 'enso-assets/play2.svg'
 import ScissorsIcon from 'enso-assets/scissors.svg'
+import SettingsIcon from 'enso-assets/settings.svg'
 import SignInIcon from 'enso-assets/sign_in.svg'
 import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
@@ -51,6 +52,7 @@ export enum MouseAction {
 
 /** All possible keyboard actions for which shortcuts can be registered. */
 export enum KeyboardAction {
+  settings = 'settings',
   open = 'open',
   /** Run without opening the editor. */
   run = 'run',
@@ -424,6 +426,7 @@ const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
+  [KeyboardAction.settings]: [keybind(KeyboardAction.settings, [CTRL], ',')],
   [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
   [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
   [KeyboardAction.close]: [],
@@ -463,6 +466,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
+  [KeyboardAction.settings]: { name: 'Settings', icon: SettingsIcon },
   [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
   [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
   [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
