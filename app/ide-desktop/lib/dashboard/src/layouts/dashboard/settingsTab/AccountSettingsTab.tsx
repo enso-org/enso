@@ -167,7 +167,7 @@ export default function AccountSettingsTab() {
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
-          <img width={128} height={128} src={organization?.profilePicture ?? DefaultUserIcon} />
+          <img src={organization?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
