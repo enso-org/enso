@@ -18,6 +18,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean.Boolean import False, True
+from project.Data.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Data.Text.Extensions import all
 
 polyglot java import java.net.URI as Java_URI
@@ -271,7 +272,7 @@ type URI
     to_java_representation : URIWithSecrets
     to_java_representation self =
         parameters = self.additional_query_parameters.map p->
-            Java_Pair.create p.first (Cloud_Utils.as_hideable_value p.second)
+            Java_Pair.create p.first (as_hideable_value p.second)
         URIWithSecrets.new self.internal_uri parameters
 
     ## PRIVATE

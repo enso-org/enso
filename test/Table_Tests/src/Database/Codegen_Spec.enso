@@ -18,10 +18,10 @@ polyglot java import java.sql.Types as Java_SQL_Types
 
 type Data
     Value ~data
-    
+
     connection self = self.data.at 0
     t1 self = self.data.at 1
-    
+
     setup = Data.Value <|
         c = Database.connect (SQLite In_Memory)
         c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
@@ -29,13 +29,13 @@ type Data
         c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
         t1 = c.query (SQL_Query.Table_Name "T1")
         [c, t1]
-    
+
     teardown self =
         self.connection.close
 
 
 add_specs suite_builder =
-    
+
     suite_builder.group "[Codegen] JSON serialization" group_builder->
         data = Data.setup
 
@@ -92,16 +92,16 @@ add_specs suite_builder =
 
         group_builder.specify "should generate an IN expression" <|
             t2 = data.t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [1, 2, "foo"]]
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?, ?, ?)', [1, 2, "foo"]]
 
             t3 = data.t1.filter "A" (Filter_Condition.Is_In [1])
-            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [1]]
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [1]]
 
             t4 = data.t1.filter "A" (Filter_Condition.Is_In [])
             t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
 
             t5 = data.t1.filter "A" (Filter_Condition.Is_In [Nothing])
-            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
+            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [Nothing]]
 
     suite_builder.group "[Codegen] Handling Missing Values" group_builder->
         data = Data.setup

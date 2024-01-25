@@ -166,7 +166,7 @@ function AppRouter(props: AppProps) {
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
-  }, [navigate, props])
+  }, [props, /* should never change */ navigate])
   const userSession = authService.cognito.userSession.bind(authService.cognito)
   const registerAuthEventListener = authService.registerAuthEventListener
   const initialBackend: backend.Backend = isAuthenticationDisabled

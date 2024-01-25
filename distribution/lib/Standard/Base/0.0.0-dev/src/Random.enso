@@ -64,18 +64,18 @@ type Random
 
     ## GROUP Random
        Return a random `Integer` between `min` (inclusive) and `max`
-       (exclusive).
+       (inclusive).
 
        Arguments:
        - min: The minimum value of the range to pick from (inclusive).
-       - max: The maximum value of the range to pick from (exclusive).
+       - max: The maximum value of the range to pick from (inclusive).
 
        > Example
          Generate an integer between 1 and 10.
 
               import Standard.Base.Random.Random
 
-              i = Random.integer 1 11
+              i = Random.integer 1 10
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer (min:Integer) (max:Integer) = Random_Generator.global_random_generator.integer min max
 
@@ -146,8 +146,8 @@ type Random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
-       - start_date: The lower bound of the range to pick from (inclusive).
-       - end_date: The upper bound of the range to pick from (exclusive).
+       - min: The lower bound of the range to pick from (inclusive).
+       - max: The upper bound of the range to pick from (inclusive).
 
        > Example
          Generate a random date.
@@ -156,21 +156,18 @@ type Random
 
              d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
     date : Date -> Date -> Boolean -> Date
-    date start_date:Date end_date:Date end_exclusive=True = Random_Generator.global_random_generator.date start_date end_date end_exclusive
+    date min:Date max:Date = Random_Generator.global_random_generator.date min max
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
 
        Arguments:
-       - start_time: The lower bound of the range to pick from (inclusive).
-       - end_time: The upper bound of the range to pick from (inclusive).
+       - min: The lower bound of the range to pick from (inclusive).
+       - max: The upper bound of the range to pick from (inclusive).
 
        The generated time is at a granularity of 1 second. Random values are
        generated for hours, minutes and seconds. The `nanoseconds` field is
        always 0.
-
-       Note: the time range end is inclusive because it is impossible to specify
-       an end time after the last second of the day.
 
        > Example
          Generate a random time.
@@ -181,8 +178,8 @@ type Random
              end = Time_Of_Day.new 9 40 2
              t = Random.time start end
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
-    time (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
-        Random_Generator.global_random_generator.time start_time end_time
+    time (min:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (max:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
+        Random_Generator.global_random_generator.time min max
 
     ## GROUP Random
        Return a new UUID.
@@ -273,7 +270,7 @@ type Random_Generator
     ## PRIVATE
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer self (min:Integer) (max:Integer) =
-        range = max - min
+        range = max - min + 1
         if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
           min + (self.java_random.nextInt range)
 
@@ -301,16 +298,16 @@ type Random_Generator
 
     ## PRIVATE
     date : Date -> Date -> Boolean -> Date
-    date self start_date:Date end_date:Date end_exclusive=True =
-        date_range = start_date.up_to end_date include_end=end_exclusive.not
-        date_range.at (self.integer 0 date_range.length)
+    date self start_date:Date end_date:Date =
+        date_range = start_date.up_to end_date include_end=True
+        date_range.at (self.integer 0 (date_range.length - 1))
 
     ## PRIVATE
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
     time self (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
         ## The time range end is inclusive because it is impossible to specify
            an end time after the last second of the day.
-        seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
+        seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds)
         start_time.date_add seconds Time_Period.Second
 
     ## PRIVATE
@@ -323,7 +320,7 @@ type Random_Generator
         case with_replacement of
             True ->
                 len = v.length
-                0.up_to count . map _-> v.at (self.integer 0 len)
+                0.up_to count . map _-> v.at (self.integer 0 (len - 1))
             False ->
                 if count > v.length then Error.throw (Illegal_Argument.Error "`count` cannot be greater than the size of the collection when `with_replacement` is false") else
                   new_array = Random_Utils.sample v count self.java_random
