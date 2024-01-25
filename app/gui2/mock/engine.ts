@@ -52,17 +52,17 @@ func2 a =
     r
 
 main =
-    # Widget tests
-    data = Data.read
-    filtered = data.filter
-    aggregated = data.aggregate
-
     five = 5
     ten = 10
     sum = five + ten
     prod = sum * 3
     final = Main.func1 prod
     list = []
+    
+    # Widget tests
+    data = Data.read
+    filtered = data.filter
+    aggregated = data.aggregate
 `
 
 export function getMainFile() {
@@ -316,14 +316,12 @@ function createId(id: Uuid) {
 }
 
 function sendVizData(id: Uuid, config: VisualizationConfiguration) {
-  console.log('sendVizData', id, config)
   const vizDataHandler =
     mockVizData[
       typeof config.expression === 'string'
         ? `${config.visualizationModule}.${config.expression}`
         : `${config.expression.definedOnType}.${config.expression.name}`
     ]
-  console.log('visDataHandler', vizDataHandler)
   if (!vizDataHandler || !sendData) return
   const vizData =
     vizDataHandler instanceof Uint8Array

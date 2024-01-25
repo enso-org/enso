@@ -85,7 +85,6 @@ const application = computed(() => {
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
-    console.log('Input for ', application.value, ' is ', application.value.toWidgetInput())
     return application.value.toWidgetInput()
   } else {
     return props.input
@@ -142,10 +141,8 @@ const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
-  console.log(data)
   if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
-    console.log(parseResult)
     if (parseResult.success) {
       return functionCallConfiguration(parseResult.data)
     } else {
