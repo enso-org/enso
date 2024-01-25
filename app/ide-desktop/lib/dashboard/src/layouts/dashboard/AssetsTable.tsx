@@ -314,8 +314,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
-  const { doCreateLabel } = props
+  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()

@@ -12,6 +12,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
@@ -25,13 +26,14 @@ import * as shortcutManager from '#/utilities/ShortcutManager'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+  setPage: (page: pageSwitcher.Page) => void
   supportsLocalBackend: boolean
   onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { supportsLocalBackend, onSignOut } = props
+  const { setPage, supportsLocalBackend, onSignOut } = props
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { accessToken, organization } = authProvider.useNonPartialUserSession()
@@ -57,7 +59,9 @@ export default function UserMenu(props: UserMenuProps) {
         {organization != null ? (
           <>
             <div className="flex items-center gap-3 px-1">
-              <img src={DefaultUserIcon} height={28} width={28} />
+              <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
+                <img src={organization.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+              </div>
               <span className="leading-170 h-6 py-px">{organization.name}</span>
             </div>
             <div className="flex flex-col">
@@ -85,6 +89,14 @@ export default function UserMenu(props: UserMenuProps) {
                   }}
                 />
               )}
+              <MenuEntry
+                action={shortcutManager.KeyboardAction.settings}
+                paddingClassName="p-1"
+                doAction={() => {
+                  unsetModal()
+                  setPage(pageSwitcher.Page.settings)
+                }}
+              />
               <MenuEntry
                 action={shortcutManager.KeyboardAction.signOut}
                 paddingClassName="p-1"

@@ -336,6 +336,21 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override updateUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override uploadUserPicture() {
+    return this.invalidOperation()
+  }
+
   /** Do nothing. This function should never need to be called. */
   override inviteUser() {
     return Promise.resolve()

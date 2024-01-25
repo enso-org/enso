@@ -80,6 +80,7 @@ export default function TopBar(props: TopBarProps) {
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
             page={page}
+            setPage={setPage}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}

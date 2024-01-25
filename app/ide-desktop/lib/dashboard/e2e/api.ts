@@ -54,6 +54,7 @@ export async function mockApi({ page }: MockParams) {
     email: defaultEmail,
     name: defaultUsername,
     id: defaultOrganizationId,
+    profilePicture: null,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
   }
@@ -561,7 +562,8 @@ export async function mockApi({ page }: MockParams) {
           currentUser = {
             email: body.userEmail,
             name: body.userName,
-            id,
+            id: body.organizationId ?? defaultUser.id,
+            profilePicture: null,
             isEnabled: false,
             rootDirectoryId,
           }

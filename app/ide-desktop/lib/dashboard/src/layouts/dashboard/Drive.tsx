@@ -204,9 +204,9 @@ export default function Drive(props: DriveProps) {
         type: AssetListEventType.newProject,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        templateId,
+        templateName,
+        onSpinnerStateChange,
       })
     },
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]

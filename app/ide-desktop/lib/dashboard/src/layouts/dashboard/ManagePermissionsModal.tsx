@@ -142,10 +142,10 @@ export default function ManagePermissionsModal<
               organizationId: organization.id,
               userEmail: backendModule.EmailAddress(email),
             })
-            toast.toast.success(`You've invited ${email} to join Enso!`)
+            toast.toast.success(`You've invited '${email}' to join Enso!`)
           }
         } catch (error) {
-          toastAndLog('Could not invite user', error)
+          toastAndLog(`Could not invite user '${email}'`, error)
         }
       } else {
         setUsers([])
