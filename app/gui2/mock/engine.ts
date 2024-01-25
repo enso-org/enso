@@ -203,11 +203,51 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Group_By',
-                    label: 'Standard.Table.Data.Aggregate_Column.Group_By',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Group_By',
+                    label: null,
                     parameters: [
                       [
                         'column',
+                        {
+                          type: 'Widget',
+                          constructor: 'Single_Choice',
+                          label: null,
+                          values: [
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 1"',
+                              label: 'column 1',
+                              parameters: [],
+                            },
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 2"',
+                              label: 'column 2',
+                              parameters: [],
+                            },
+                          ],
+                          display: { type: 'Display', constructor: 'Always' },
+                        },
+                      ],
+                    ],
+                  },
+                  {
+                    type: 'Choice',
+                    constructor: 'Option',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count',
+                    label: null,
+                    parameters: [],
+                  },
+                  {
+                    type: 'Choice',
+                    constructor: 'Option',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                    label: null,
+                    parameters: [
+                      [
+                        'columns',
                         {
                           type: 'Widget',
                           constructor: 'Single_Choice',

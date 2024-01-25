@@ -85,7 +85,7 @@ const application = computed(() => {
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
-    console.log('Input for ', application.value, ' is ', application.value.toWidgetInput)
+    console.log('Input for ', application.value, ' is ', application.value.toWidgetInput())
     return application.value.toWidgetInput()
   } else {
     return props.input
@@ -290,7 +290,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
-  priority: -10,
+  priority: 200,
   score: (props, db) => {
     // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
     if (props.input[ArgumentApplicationKey]) return Score.Mismatch

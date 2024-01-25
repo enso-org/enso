@@ -27,7 +27,7 @@ function transformChild(child: Ast.Ast | Ast.Token) {
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isAst, {
-  priority: 2000,
+  priority: 1000,
 })
 </script>
 

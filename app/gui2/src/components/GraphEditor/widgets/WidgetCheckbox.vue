@@ -54,7 +54,7 @@ function getRawBoolNode(ast: Ast.Ast) {
 }
 
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
+  priority: 500,
   score: (props) => {
     if (props.input.value instanceof Ast.Ast && getRawBoolNode(props.input.value) != null)
       return Score.Perfect

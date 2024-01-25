@@ -263,7 +263,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
   if (typeof definition.score === 'function') {
     score = definition.score
   } else {
-    const staticScore = definition.score ?? Score.Perfect
+    const staticScore = definition.score ?? Score.Good
     score = () => staticScore
   }
 
@@ -349,20 +349,16 @@ export class WidgetRegistry {
     let best: WidgetModule<T> | undefined = undefined
     let bestScore = Score.Mismatch
 
-    console.log('Selecting for ', props)
     // Iterate over all loaded widget kinds in order of decreasing priority.
     for (const widgetModule of this.sortedModules.value) {
-      console.log('Consider ', widgetModule.default)
       // Skip matching widgets that are declared as already used.
       if (alreadyUsed && alreadyUsed.has(widgetModule.default)) continue
-      console.log('Not already used')
 
       // Skip widgets that don't match the input type.
       if (!widgetModule.widgetDefinition.match(props.input)) continue
 
       // Perform a match and update the best widget if the match is better than the previous one.
       const score = widgetModule.widgetDefinition.score(props, this.db)
-      console.log('Matched with score ', score)
       // If we found a perfect match, we can return immediately, as there can be no better match.
       if (score === Score.Perfect) return widgetModule
       if (score > bestScore) {

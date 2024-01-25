@@ -1001,6 +1001,10 @@ export class Group extends Ast {
     this.close_ = close
   }
 
+  expression(): Ast | null {
+    return this.expression_ ? this.module.get(this.expression_?.node) ?? null : null
+  }
+
   *concreteChildren(): IterableIterator<NodeChild> {
     if (this.open_) yield this.open_
     if (this.expression_) yield this.expression_

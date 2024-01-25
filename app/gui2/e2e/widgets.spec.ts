@@ -19,7 +19,9 @@ class DropDownLocator {
     await expect(this.dropDown).toBeVisible()
     await expect(this.items).toHaveCount(options.length)
     for (const option of options) {
-      await expect(this.items.filter({ has: page.getByText(option) })).toBeVisible()
+      await expect(
+        this.items.filter({ has: page.getByText(option, { exact: true }) }),
+      ).toBeVisible()
     }
   }
 
@@ -115,7 +117,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   const argumentNames = node.locator('.WidgetArgumentName')
   await expect(argumentNames).toHaveCount(3)
 
-  // Add first column
+  // Add first aggregate
   const columnsArg = argumentNames.filter({ has: page.getByText('columns') })
   await columnsArg.locator('.add-item').click()
   await expect(columnsArg.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
@@ -131,12 +133,118 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
         definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
         name: 'Group_By',
       },
-      notAppliedArguments: [0],
+      notAppliedArguments: [0, 1],
+    },
+  )
+
+  // Change aggregation type
+  const firstItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection')
+  await firstItem.click()
+  await dropDown.expectVisibleWithOptions(page, ['Group By', 'Count', 'Count Distinct'])
+  await dropDown.clickOption(page, 'Count Distinct')
+  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+    'Aggregate_Column',
+    '.',
+    'Count_Distinct',
+  ])
+  await mockMethodCallInfo(
+    page,
+    {
+      binding: 'aggregated',
+      expr: 'Aggregate_Column.Count_Distinct',
+    },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Data.Aggregate_Column',
+        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        name: 'Count_Distinct',
+      },
+      notAppliedArguments: [0, 1, 2],
     },
   )
 
   // Set column
-  const columnArg = columnsArg.locator('.WidgetSelection .WidgetSelection')
+  const columnArg = firstItem.locator('.WidgetSelection').first()
   await columnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
+  await dropDown.clickOption(page, 'column 1')
+  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+    'Aggregate_Column',
+    '.',
+    'Count_Distinct',
+    '"',
+    'column 1',
+    '"',
+  ])
+
+  // Add another aggregate
+  await columnsArg.locator('.add-item').click()
+  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+    'Aggregate_Column',
+    '.',
+    'Count_Distinct',
+    '"',
+    'column 1',
+    '"',
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+  ])
+  await mockMethodCallInfo(
+    page,
+    {
+      binding: 'aggregated',
+      expr: 'Aggregate_Column.Group_By',
+    },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Data.Aggregate_Column',
+        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        name: 'Group_By',
+      },
+      notAppliedArguments: [0, 1],
+    },
+  )
+
+  // Set new aggregate's column
+  const secondItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection').nth(1)
+  const secondColumnArg = secondItem.locator('.WidgetSelection').first()
+  await secondColumnArg.click()
+  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
+  await dropDown.clickOption(page, 'column 2')
+  await expect(secondItem.locator('.WidgetToken')).toHaveText([
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+    '"',
+    'column 2',
+    '"',
+  ])
+
+  // Switch aggregates
+  //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).
+  // When hovered, the handle becomes available after some time, but still mouse events don't have any effect.
+  // I have no time now to investigate this.
+  // Once fixed, add also removing element from vector here.
+
+  // await columnsArg.locator('.item > .handle').nth(1).hover({ force: true })
+  // await columnsArg.locator('.item > .handle').nth(1).hover()
+  // await page.mouse.down()
+  // await columnsArg.locator('.item > .handle').nth(0).hover({ force: true })
+  // await columnsArg.locator('.item > .handle').nth(0).hover()
+  // await page.mouse.up()
+  // await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  //   'Aggregate_Column',
+  //   '.',
+  //   'Group_By',
+  //   '"',
+  //   'column 2',
+  //   '"',
+  //   'Aggregate_Column',
+  //   '.',
+  //   'Count_Distinct',
+  //   '"',
+  //   'column 1',
+  //   '"',
+  // ])
 })

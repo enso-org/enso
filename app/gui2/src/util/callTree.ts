@@ -40,6 +40,7 @@ export class ArgumentPlaceholder {
   }
 
   toWidgetInput(): WidgetInput {
+    console.log('Returning placeholder config ', this.dynamicConfig)
     return {
       portId: this.portId,
       value: this.argInfo.defaultValue,
