@@ -8,12 +8,12 @@ import SvgMask from '#/components/SvgMask'
 
 /** A heading for the "Labels" column. */
 export default function LabelsColumnHeading(): JSX.Element {
-    return (
-        <div className="flex items-center gap-2">
-            <SvgMask src={TagIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">
-                {columnUtils.COLUMN_NAME[columnUtils.Column.labels]}
-            </span>
-        </div>
-    )
+  return (
+    <div className="flex items-center gap-2">
+      <SvgMask src={TagIcon} className="h-4 w-4" />
+      <span className="leading-144.5 h-6 py-0.5">
+        {columnUtils.COLUMN_NAME[columnUtils.Column.labels]}
+      </span>
+    </div>
+  )
 }

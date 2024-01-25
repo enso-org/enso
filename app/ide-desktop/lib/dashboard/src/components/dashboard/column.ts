@@ -19,22 +19,22 @@ import type * as tableColumn from '#/components/TableColumn'
 
 /** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backendModule.Asset}. */
 export type AssetColumnProps = tableColumn.TableColumnProps<
-    assetTreeNode.AssetTreeNode,
-    assetsTable.AssetsTableState,
-    assetsTable.AssetRowState,
-    backendModule.AssetId
+  assetTreeNode.AssetTreeNode,
+  assetsTable.AssetsTableState,
+  assetsTable.AssetRowState,
+  backendModule.AssetId
 >
 
 /** React components for every column except for the name column. */
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<columnUtils.Column, (props: AssetColumnProps) => JSX.Element> =
-    {
-        [columnUtils.Column.name]: AssetNameColumn,
-        [columnUtils.Column.modified]: LastModifiedColumn,
-        [columnUtils.Column.sharedWith]: SharedWithColumn,
-        [columnUtils.Column.labels]: LabelsColumn,
-        [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
-        [columnUtils.Column.accessedData]: PlaceholderColumn,
-        [columnUtils.Column.docs]: DocsColumn,
-    }
+  {
+    [columnUtils.Column.name]: AssetNameColumn,
+    [columnUtils.Column.modified]: LastModifiedColumn,
+    [columnUtils.Column.sharedWith]: SharedWithColumn,
+    [columnUtils.Column.labels]: LabelsColumn,
+    [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
+    [columnUtils.Column.accessedData]: PlaceholderColumn,
+    [columnUtils.Column.docs]: DocsColumn,
+  }

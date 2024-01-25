@@ -13,54 +13,51 @@ import Modal from '#/components/Modal'
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteUserModal() {
-    const { backend } = backendProvider.useBackend()
-    const toastAndLog = toastAndLogHooks.useToastAndLog()
-    const { unsetModal } = modalProvider.useSetModal()
+  const { backend } = backendProvider.useBackend()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { unsetModal } = modalProvider.useSetModal()
 
-    const onSubmit = async () => {
-        unsetModal()
-        try {
-            await backend.deleteUser()
-        } catch (error) {
-            toastAndLog(null, error)
-        }
+  const onSubmit = async () => {
+    unsetModal()
+    try {
+      await backend.deleteUser()
+    } catch (error) {
+      toastAndLog(null, error)
     }
+  }
 
-    return (
-        <Modal centered className="bg-dim">
-            <form
-                data-testid="confirm-delete-modal"
-                ref={element => {
-                    element?.focus()
-                }}
-                tabIndex={-1}
-                className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
-                onKeyDown={event => {
-                    if (event.key !== 'Escape') {
-                        event.stopPropagation()
-                    }
-                }}
-                onClick={event => {
-                    event.stopPropagation()
-                }}
-                onSubmit={event => {
-                    event.preventDefault()
-                    void onSubmit()
-                }}
-            >
-                <h3 className="relative font-bold text-xl h-9.5 py-0.5">Are you sure?</h3>
-                <div className="relative flex flex-col gap-2">
-                    Once deleted, this user account will be gone forever.
-                    <button
-                        type="submit"
-                        className="rounded-full bg-danger text-inversed px-2 py-1"
-                    >
-                        <span className="leading-5 h-6 py-px">
-                            I confirm that I want to delete this user account.
-                        </span>
-                    </button>
-                </div>
-            </form>
-        </Modal>
-    )
+  return (
+    <Modal centered className="bg-dim">
+      <form
+        data-testid="confirm-delete-modal"
+        ref={element => {
+          element?.focus()
+        }}
+        tabIndex={-1}
+        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        onKeyDown={event => {
+          if (event.key !== 'Escape') {
+            event.stopPropagation()
+          }
+        }}
+        onClick={event => {
+          event.stopPropagation()
+        }}
+        onSubmit={event => {
+          event.preventDefault()
+          void onSubmit()
+        }}
+      >
+        <h3 className="relative font-bold text-xl h-9.5 py-0.5">Are you sure?</h3>
+        <div className="relative flex flex-col gap-2">
+          Once deleted, this user account will be gone forever.
+          <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
+            <span className="leading-5 h-6 py-px">
+              I confirm that I want to delete this user account.
+            </span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
 }

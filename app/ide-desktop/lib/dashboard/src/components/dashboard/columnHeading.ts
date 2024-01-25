@@ -13,14 +13,14 @@ import SharedWithColumnHeading from '#/components/dashboard/columnHeading/Shared
 import type * as tableColumn from '#/components/TableColumn'
 
 export const COLUMN_HEADING: Record<
-    columnUtils.Column,
-    (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
+  columnUtils.Column,
+  (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
 > = {
-    [columnUtils.Column.name]: NameColumnHeading,
-    [columnUtils.Column.modified]: ModifiedColumnHeading,
-    [columnUtils.Column.sharedWith]: SharedWithColumnHeading,
-    [columnUtils.Column.labels]: LabelsColumnHeading,
-    [columnUtils.Column.accessedByProjects]: AccessedByProjectsColumnHeading,
-    [columnUtils.Column.accessedData]: AccessedDataColumnHeading,
-    [columnUtils.Column.docs]: DocsColumnHeading,
+  [columnUtils.Column.name]: NameColumnHeading,
+  [columnUtils.Column.modified]: ModifiedColumnHeading,
+  [columnUtils.Column.sharedWith]: SharedWithColumnHeading,
+  [columnUtils.Column.labels]: LabelsColumnHeading,
+  [columnUtils.Column.accessedByProjects]: AccessedByProjectsColumnHeading,
+  [columnUtils.Column.accessedData]: AccessedDataColumnHeading,
+  [columnUtils.Column.docs]: DocsColumnHeading,
 }
