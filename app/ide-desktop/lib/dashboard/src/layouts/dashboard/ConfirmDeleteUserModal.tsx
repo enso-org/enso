@@ -2,25 +2,28 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 
-// ======================================
-// === ConfirmDeleteOrganizationModal ===
-// ======================================
+// ==============================
+// === ConfirmDeleteUserModal ===
+// ==============================
 
-/** A modal for confirming the deletion of an asset. */
+/** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal() {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { signOut } = authProvider.useAuth()
 
   const onSubmit = async () => {
     unsetModal()
     try {
       await backend.deleteUser()
+      await signOut()
     } catch (error) {
       toastAndLog(null, error)
     }

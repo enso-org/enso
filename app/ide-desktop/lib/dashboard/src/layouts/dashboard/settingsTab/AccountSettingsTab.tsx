@@ -155,7 +155,7 @@ export default function AccountSettingsTab() {
                 setModal(<ConfirmDeleteUserModal />)
               }}
             >
-              <span className="leading-5 h-6 py-px">Delete this organization</span>
+              <span className="leading-5 h-6 py-px">Delete this user account</span>
             </button>
             <span className="leading-5 h-8 py-1.25">
               Once deleted, it will be gone forever. Please be certain.
