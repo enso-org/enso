@@ -1,9 +1,6 @@
-import assert from 'assert'
 import test, { expect, type Locator, type Page } from 'playwright/test'
-import * as Ast from 'src/util/ast/abstract'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
-import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
+import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
 class DropDownLocator {
