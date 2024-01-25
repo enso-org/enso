@@ -99,7 +99,7 @@ pub fn plain_job(
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 impl JobArchetype for CancelWorkflow {
-    fn job(&self, _os: OS) -> Job {
+    fn job(&self, _os: OS, _arch: Arch) -> Job {
         Job {
             name: "Cancel Previous Runs".into(),
             // It is important that this particular job runs pretty much everywhere (we use x64,
@@ -119,7 +119,7 @@ impl JobArchetype for CancelWorkflow {
 #[derive(Clone, Copy, Debug)]
 pub struct Lint;
 impl JobArchetype for Lint {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "Lint", "lint")
     }
 }
@@ -127,7 +127,7 @@ impl JobArchetype for Lint {
 #[derive(Clone, Copy, Debug)]
 pub struct NativeTest;
 impl JobArchetype for NativeTest {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "Native GUI tests", "wasm test --no-wasm")
     }
 }
@@ -135,7 +135,7 @@ impl JobArchetype for NativeTest {
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiTest;
 impl JobArchetype for NewGuiTest {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "New (Vue) GUI tests", "gui2 test")
     }
 }
@@ -143,7 +143,7 @@ impl JobArchetype for NewGuiTest {
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
 impl JobArchetype for NewGuiBuild {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "New (Vue) GUI build", "gui2 build")
     }
 }
@@ -151,7 +151,7 @@ impl JobArchetype for NewGuiBuild {
 #[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
 impl JobArchetype for WasmTest {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "WASM GUI tests", "wasm test --no-native")
     }
 }
@@ -159,7 +159,7 @@ impl JobArchetype for WasmTest {
 #[derive(Clone, Copy, Debug)]
 pub struct IntegrationTest;
 impl JobArchetype for IntegrationTest {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(
             os,
             "IDE integration tests",
@@ -171,7 +171,7 @@ impl JobArchetype for IntegrationTest {
 #[derive(Clone, Copy, Debug)]
 pub struct BuildWasm;
 impl JobArchetype for BuildWasm {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         let command = "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}";
         RunStepsBuilder::new(command)
             .customize(|step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)])
@@ -182,7 +182,7 @@ impl JobArchetype for BuildWasm {
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
 impl JobArchetype for BuildBackend {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "Build Backend", "backend get")
     }
 }
@@ -190,7 +190,7 @@ impl JobArchetype for BuildBackend {
 #[derive(Clone, Copy, Debug)]
 pub struct UploadBackend;
 impl JobArchetype for UploadBackend {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         plain_job(os, "Upload Backend", "backend upload")
     }
 }
@@ -198,7 +198,7 @@ impl JobArchetype for UploadBackend {
 #[derive(Clone, Copy, Debug)]
 pub struct DeployRuntime;
 impl JobArchetype for DeployRuntime {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         RunStepsBuilder::new("release deploy-runtime")
             .customize(|step| {
                 vec![step
@@ -221,7 +221,7 @@ impl JobArchetype for DeployRuntime {
 #[derive(Clone, Copy, Debug)]
 pub struct DeployGui;
 impl JobArchetype for DeployGui {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         RunStepsBuilder::new("release deploy-gui")
             .customize(|step| {
                 vec![step
@@ -314,7 +314,7 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 #[derive(Clone, Copy, Debug)]
 pub struct PackageNewIde;
 impl JobArchetype for PackageNewIde {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         RunStepsBuilder::new(
             "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
         )
@@ -326,7 +326,7 @@ impl JobArchetype for PackageNewIde {
 #[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend;
 impl JobArchetype for CiCheckBackend {
-    fn job(&self, os: OS) -> Job {
+    fn job(&self, os: OS, arch: Arch) -> Job {
         RunStepsBuilder::new("backend ci-check")
             .customize(move |step| {
                 let main_step = step
