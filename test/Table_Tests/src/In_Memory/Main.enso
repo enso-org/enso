@@ -6,6 +6,7 @@ import project.In_Memory.Aggregate_Column_Spec
 import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Column_Format_Spec
+import project.In_Memory.Common_Spec
 import project.In_Memory.Integer_Overflow_Spec
 import project.In_Memory.Lossy_Conversions_Spec
 import project.In_Memory.Parse_To_Table_Spec
@@ -19,6 +20,7 @@ add_specs suite_builder =
     Table_Spec.add_specs suite_builder
     Column_Spec.add_specs suite_builder
     Column_Format_Spec.add_specs suite_builder
+    Common_Spec.add_specs suite_builder
     Integer_Overflow_Spec.add_specs suite_builder
     Lossy_Conversions_Spec.add_specs suite_builder
     Table_Date_Spec.add_specs suite_builder
