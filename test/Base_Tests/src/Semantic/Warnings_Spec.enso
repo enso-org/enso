@@ -167,7 +167,7 @@ spec = Test.group "Dataflow Warnings" <|
         reassignments = warn.reassignments.map .name
         expected_stack = []
             + [ 'Warnings_Spec.poly_sum' ]
-            + [ 'Warnings_Spec.reassign_test' ]
+            + [ 'Integer.+' ]
             + [ 'Warnings_Spec.get_foo' ]
             + [ 'Wrap.Value' ]
             + [ 'Warnings_Spec.unwrap' ]
