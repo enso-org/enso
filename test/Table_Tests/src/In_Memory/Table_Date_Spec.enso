@@ -54,7 +54,7 @@ add_specs suite_builder =
             data.table.at 'To' . should_equal (Column.from_vector data.c_to.first data.c_to.second)
             data.table.should_equal data.expected
 
-    suite_builder.group "Should be able to serialise a data.table with Dates to Text" group_builder->
+    suite_builder.group "Should be able to serialise a table with Dates to Text" group_builder->
         group_builder.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "prime_ministers.csv").read_text
