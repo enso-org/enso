@@ -130,7 +130,9 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 export const graphEditor = componentLocator('GraphEditor')
 export const graphNode = componentLocator('GraphNode')
 export function graphNodeByBinding(page: Locator | Page, binding: string) {
-  return graphNode(page).filter({ has: page.locator('.binding').and(page.getByText(binding)) })
+  return graphNode(page).filter({
+    has: page.locator('.binding').and(page.getByText(binding)),
+  }) as NodeLocator
 }
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
@@ -171,3 +173,30 @@ export const sqlVisualization = componentLocator('SqlVisualization')
 export const geoMapVisualization = componentLocator('GeoMapVisualization')
 export const imageBase64Visualization = componentLocator('ImageBase64Visualization')
 export const warningsVisualization = componentLocator('WarningsVisualization')
+
+// === Widgets Locators ===
+
+declare const nodeLocatorBrand: unique symbol
+export type NodeLocator = Locator & { [nodeLocatorBrand]: never }
+declare const widgetLocatorBrand: unique symbol
+export type WidgetLocator = Locator & { [widgetLocatorBrand]: never }
+
+// TODO[ao]: the locators below work rather for simple cases and may be wrong in complex widget
+//  structures (like nested vectors).
+
+export function topLevelArguments(node: NodeLocator) {
+  return node.locator('.WidgetTopLevelArgument') as WidgetLocator
+}
+
+export function topLevelArgument(node: NodeLocator, name: string) {
+  return topLevelArguments(node).filter({
+    has: node.getByText(name),
+  }) as WidgetLocator
+}
+
+function subwidgetLocator(name: string) {
+  return (parent: WidgetLocator | NodeLocator) => parent.locator(`.${name}`) as WidgetLocator
+}
+
+export const widgetSelection = subwidgetLocator('WidgetSelection')
+export const widgetVectorEditor = subwidgetLocator('WidgetVector')
