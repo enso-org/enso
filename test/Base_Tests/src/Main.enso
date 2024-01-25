@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Test_Suite
 import Standard.Test.Extensions
+import Standard.Test_New
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
@@ -90,6 +91,14 @@ import project.System.Temporary_File_Spec
 import project.Random_Spec
 
 main =
+    # Round_Spec needs to be migrated to Test_New, as it is used also from Table_Tests, that
+    # are entirely migrated to Test_New. This is just a temporary workaround, until the migration
+    # is complete.
+    suite = Test_New.Test.build suite_builder->
+        Numbers_Spec.add_specs suite_builder
+    succeeded = suite.run_with_filter should_exit=False
+    if succeeded.not then System.exit 1
+
     Test_Suite.run_main <|
         Any_Spec.spec
         Array_Spec.spec
@@ -167,9 +176,3 @@ main =
         Random_Spec.spec
         XML_Spec.spec
 
-    # Round_Spec needs to be migrated to Test_New, as it is used also from Table_Tests, that
-    # are entirely migrated to Test_New. This is just a temporary workaround, until the migration
-    # is complete.
-    suite = Test_New.build suite_builder->
-        Numbers_Spec.add_specs suite_builder
-    suite.run_with_filter
