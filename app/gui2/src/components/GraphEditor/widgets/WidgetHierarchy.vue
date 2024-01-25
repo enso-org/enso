@@ -11,15 +11,14 @@ const children = computed(() => [...props.input.value.children()])
 
 function transformChild(child: Ast.Ast | Ast.Token) {
   const childInput = WidgetInput.FromAst(child)
-  if (props.input.value instanceof Ast.PropertyAccess && child === props.input.value.lhs)
+  if (props.input.value instanceof Ast.PropertyAccess && child.id === props.input.value.lhs?.id)
     childInput.forcePort = true
   if (
-    !(props.input.value instanceof Ast.PropertyAccess) &&
     props.input.value instanceof Ast.OprApp &&
-    (child === props.input.value.rhs || child === props.input.value.lhs)
+    (child.id === props.input.value.rhs?.id || child.id === props.input.value.lhs?.id)
   )
     childInput.forcePort = true
-  if (props.input.value instanceof Ast.UnaryOprApp && child === props.input.value.argument)
+  if (props.input.value instanceof Ast.UnaryOprApp && child.id === props.input.value.argument?.id)
     childInput.forcePort = true
   return childInput
 }

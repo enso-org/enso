@@ -88,6 +88,7 @@ const menuVisible = ref(false)
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
+  if (!externalId) return
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {

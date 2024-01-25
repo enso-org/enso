@@ -1,4 +1,3 @@
-import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { unsafeKeys } from '@/util/record'

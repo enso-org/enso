@@ -534,7 +534,7 @@ if (import.meta.vitest) {
   })
 
   const parseImport = (code: string): Import | null => {
-    let ast: Ast.Ast = Ast.parse(code)
+    const ast: Ast.Ast = Ast.parse(code)
     return ast instanceof Ast.Import ? recognizeImport(ast) : null
   }
 

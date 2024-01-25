@@ -132,8 +132,8 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
-  private readonly idToExternalMap = reactive(new Map())
-  private readonly idFromExternalMap = reactive(new Map())
+  private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
+  private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
 
   constructor(
@@ -235,7 +235,7 @@ export class GraphDb {
 
   getExpressionInfo(id: AstId | ExternalId): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
-    return this.valuesRegistry.getExpressionInfo(externalId)
+    return externalId && this.valuesRegistry.getExpressionInfo(externalId)
   }
 
   getOutputPortIdentifier(source: AstId): string | undefined {
@@ -341,20 +341,17 @@ export class GraphDb {
       const newNode = nodeFromAst(nodeAst)
       const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
-      const nodeMeta = getMeta(this.idToExternal(nodeId))
+      const externalId = this.idToExternal(nodeId)
+      const nodeMeta = externalId && getMeta(externalId)
       currentNodeIds.add(nodeId)
       if (node == null) {
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
-        if (node.pattern?.id !== newNode.pattern?.id) {
-          node.pattern = newNode.pattern
-        }
+        node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) {
           node.outerExprId = newNode.outerExprId
         }
-        if (node.rootSpan.id !== newNode.rootSpan.id) {
-          node.rootSpan = newNode.rootSpan
-        }
+        node.rootSpan = newNode.rootSpan
       }
       if (nodeMeta) {
         this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
@@ -396,7 +393,7 @@ export class GraphDb {
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
-  idFromExternal(id: ExternalId): AstId {
+  idFromExternal(id: ExternalId): AstId | undefined {
     return this.idFromExternalMap.get(id)
   }
   /** Get the external ID corresponding to the given `AstId` as of the last synchronization.
@@ -413,7 +410,7 @@ export class GraphDb {
    *  - If the data should be associated with the `Ast` that the engine was referring to, use `idToExternal`.
    *  Either choice is an approximation that will be used until the engine provides an update after processing the edit.
    */
-  idToExternal(id: AstId): ExternalId {
+  idToExternal(id: AstId): ExternalId | undefined {
     return this.idToExternalMap.get(id)
   }
 
@@ -440,7 +437,7 @@ export class GraphDb {
     const nodeId = this.getIdentDefiningNode(binding)
     if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
     const update_: ExpressionUpdate = {
-      expressionId: this.idToExternal(nodeId),
+      expressionId: this.idToExternal(nodeId)!,
       profilingInfo: update.profilingInfo ?? [],
       fromCache: update.fromCache ?? false,
       payload: update.payload ?? { type: 'Value' },

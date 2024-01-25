@@ -1,6 +1,5 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
 import assert from 'assert'
 import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'

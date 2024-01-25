@@ -19,7 +19,7 @@ import {
   normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
-  tryIdentifier,
+  tryIdentifierOrOperatorIdentifier,
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
@@ -49,7 +49,7 @@ function setLsName(
   entry: UnfinishedEntry,
   name: string,
 ): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier } {
-  const ident = tryIdentifier(name)
+  const ident = tryIdentifierOrOperatorIdentifier(name)
   if (!ident.ok) return false
   entry.name = ident.value
   return true

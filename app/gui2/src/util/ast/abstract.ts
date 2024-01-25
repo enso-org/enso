@@ -11,6 +11,7 @@ import { reactive } from 'vue'
 import * as Y from 'yjs'
 import {
   IdMap,
+  isUuid,
   sourceRangeFromKey,
   sourceRangeKey,
   type ExternalId,
@@ -40,6 +41,7 @@ export function normalize(rootIn: Ast): Ast {
   const module = MutableModule.Transient()
   const tree = parseEnso(printed.code)
   const { root: parsed, spans } = abstract(module, tree, printed.code)
+  module.replaceRoot(parsed)
   setExternalIds(module, spans, idMap)
   return parsed
 }
@@ -73,22 +75,27 @@ export interface SyncTokenId {
   tokenType_: RawAst.Token.Type | undefined
 }
 export class Token implements SyncTokenId {
-  externalId: TokenId
+  readonly id: TokenId
   code_: string
   tokenType_: RawAst.Token.Type | undefined
 
-  constructor(code: string, id: TokenId, type: RawAst.Token.Type | undefined) {
-    this.externalId = id
+  private constructor(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
+    this.id = id
     this.code_ = code
     this.tokenType_ = type
   }
 
-  get id(): TokenId {
-    return this.externalId
+  get externalId(): TokenId {
+    return this.id
   }
 
   static new(code: string, type?: RawAst.Token.Type) {
-    return new this(code, newTokenId(), type)
+    return new this(code, type, newTokenId())
+  }
+
+  static withId(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
+    assert(isUuid(id))
+    return new this(code, type, id)
   }
 
   code(): string {
@@ -318,11 +325,12 @@ export class MutableModule implements Module {
           for (const [key, change] of event.changes.keys) {
             switch (change.action) {
               case 'add':
-              case 'update':
+              case 'update': {
                 assert((node as Y.Map<unknown>).has(key as any))
                 const value: unknown = node.get(key as any)
                 fields.push([key, value])
                 break
+              }
               case 'delete':
                 fields.push([key, undefined])
                 break
@@ -410,7 +418,7 @@ export class MutableModule implements Module {
   getToken(token: SyncTokenId | undefined): Token | undefined {
     if (!token) return token
     if (token instanceof Token) return token
-    return new Token(token.code_, token.id, token.tokenType_)
+    return Token.withId(token.code_, token.tokenType_, token.id)
   }
 
   getAny(node: AstId | SyncTokenId): MutableAst | Token {
@@ -456,8 +464,8 @@ export type Mutable<T extends Ast = Ast> = T extends App
   ? MutableImport
   : T extends Invalid
   ? MutableInvalid
-  : T extends NegationOprApp
-  ? MutableNegationOprApp
+  : T extends NegationApp
+  ? MutableNegationApp
   : T extends NumericLiteral
   ? MutableNumericLiteral
   : T extends OprApp
@@ -479,8 +487,8 @@ function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>):
       return new MutableApp(module, fields)
     case 'UnaryOprApp':
       return new MutableUnaryOprApp(module, fields)
-    case 'NegationOprApp':
-      return new MutableNegationOprApp(module, fields)
+    case 'NegationApp':
+      return new MutableNegationApp(module, fields)
     case 'OprApp':
       return new MutableOprApp(module, fields)
     case 'PropertyAccess':
@@ -573,7 +581,9 @@ export abstract class Ast {
   }
 
   get externalId(): ExternalId {
-    return this.fields.get('externalId')
+    const id = this.fields.get('externalId')
+    assert(id != null)
+    return id
   }
 
   typeName(): string {
@@ -1089,24 +1099,24 @@ export interface MutableUnaryOprApp extends UnaryOprApp, MutableAst {
 }
 applyMixins(MutableUnaryOprApp, [MutableAst])
 
-type NegationOprAppFields = {
+type NegationAppFields = {
   operator: NodeChild<SyncTokenId>
   argument: NodeChild<AstId>
 }
-export class NegationOprApp extends Ast {
-  declare fields: FixedMapView<AstFields & NegationOprAppFields>
-  constructor(module: Module, fields: FixedMapView<AstFields & NegationOprAppFields>) {
+export class NegationApp extends Ast {
+  declare fields: FixedMapView<AstFields & NegationAppFields>
+  constructor(module: Module, fields: FixedMapView<AstFields & NegationAppFields>) {
     super(module, fields)
   }
 
   static concrete(module: MutableModule, operator: NodeChild<Token>, argument: NodeChild<Owned>) {
-    const base = module.baseObject('NegationOprApp')
+    const base = module.baseObject('NegationApp')
     const id_ = base.get('id')
     const fields = setAll(base, {
       operator,
       argument: concreteChild(module, argument, id_),
     })
-    return asOwned(new MutableNegationOprApp(module, fields))
+    return asOwned(new MutableNegationApp(module, fields))
   }
 
   static new(module: MutableModule, operator: Token, argument: Owned) {
@@ -1127,9 +1137,9 @@ export class NegationOprApp extends Ast {
   }
 }
 
-export class MutableNegationOprApp extends NegationOprApp implements MutableAst {
+export class MutableNegationApp extends NegationApp implements MutableAst {
   declare readonly module: MutableModule
-  declare readonly fields: FixedMap<AstFields & NegationOprAppFields>
+  declare readonly fields: FixedMap<AstFields & NegationAppFields>
 
   setArgument<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'argument', this.claimChild(value))
@@ -1141,10 +1151,10 @@ export class MutableNegationOprApp extends NegationOprApp implements MutableAst 
     }
   }
 }
-export interface MutableNegationOprApp extends NegationOprApp, MutableAst {
+export interface MutableNegationApp extends NegationApp, MutableAst {
   get argument(): MutableAst
 }
-applyMixins(MutableNegationOprApp, [MutableAst])
+applyMixins(MutableNegationApp, [MutableAst])
 
 type OprAppFields = {
   lhs: NodeChild<AstId> | undefined
@@ -1246,7 +1256,7 @@ export class PropertyAccess extends Ast {
   }
 
   static new(module: MutableModule, lhs: Owned, rhs: IdentLike) {
-    const dot = unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))
+    const dot = unspaced(Token.new('.', RawAst.Token.Type.Operator))
     return this.concrete(
       module,
       unspaced(lhs),
@@ -1402,7 +1412,7 @@ function multiSegmentAppSegment<T extends MutableAst>(
   body: Owned<T> | undefined,
 ): OwnedMultiSegmentAppSegment | undefined {
   return {
-    header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
+    header: { node: Token.new(header, RawAst.Token.Type.Ident) },
     body: spaced(body ? (body as any) : undefined),
   }
 }
@@ -1978,7 +1988,7 @@ export class Function extends Ast {
     if (trailingNewline) {
       statements_.push({ expression: undefined })
     }
-    const argumentDefinitions = argumentNames.map((name) => [unspaced(Ident.new(module, name))])
+    const argumentDefinitions = argumentNames.map((name) => [spaced(Ident.new(module, name))])
     const body = BodyBlock.new(statements_, module)
     return MutableFunction.new(module, name, argumentDefinitions, body)
   }
@@ -2161,7 +2171,7 @@ export class BodyBlock extends Ast {
 
   *concreteChildren(): IterableIterator<NodeChild> {
     for (const line of this.fields.get('lines')) {
-      yield line.newline ?? { node: new Token('\n', newTokenId(), RawAst.Token.Type.Newline) }
+      yield line.newline ?? { node: Token.new('\n', RawAst.Token.Type.Newline) }
       if (line.expression) yield line.expression
     }
   }
@@ -2388,7 +2398,7 @@ export class Wildcard extends Ast {
   }
 
   static new(module: MutableModule) {
-    const token = new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)
+    const token = Token.new('_', RawAst.Token.Type.Wildcard)
     return this.concrete(module, unspaced(token))
   }
 
@@ -2446,6 +2456,7 @@ function abstractTree(
   }
   const whitespaceStart = tree.whitespaceStartInCodeParsed
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
+  const whitespace = code.substring(whitespaceStart, whitespaceEnd)
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
   const spanKey = nodeKey(codeStart, codeEnd - codeStart)
@@ -2454,7 +2465,7 @@ function abstractTree(
     case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = recurseToken(line.newline)
-        let expression = line.expression ? recurseTree(line.expression) : undefined
+        const expression = line.expression ? recurseTree(line.expression) : undefined
         return { newline, expression }
       })
       node = BodyBlock.concrete(module, lines)
@@ -2502,7 +2513,7 @@ function abstractTree(
       const opr = recurseToken(tree.opr)
       const arg = tree.rhs ? recurseTree(tree.rhs) : undefined
       if (arg && opr.node.code() === '-') {
-        node = NegationOprApp.concrete(module, opr, arg)
+        node = NegationApp.concrete(module, opr, arg)
       } else {
         node = UnaryOprApp.concrete(module, opr, arg)
       }
@@ -2543,10 +2554,8 @@ function abstractTree(
     // The frontend can ignore them, avoiding some problems with expressions sharing spans
     // (which makes it impossible to give them unique IDs in the current IdMap format).
     case RawAst.Tree.Type.OprSectionBoundary:
-    case RawAst.Tree.Type.TemplateFunction: {
-      node = recurseTree(tree.ast).node
-      break
-    }
+    case RawAst.Tree.Type.TemplateFunction:
+      return { whitespace, node: recurseTree(tree.ast).node }
     case RawAst.Tree.Type.Invalid: {
       const expression = recurseTree(tree.ast)
       node = Invalid.concrete(module, expression)
@@ -2606,7 +2615,6 @@ function abstractTree(
   }
   toRaw.set(node.id, tree)
   map.setIfUndefined(nodesOut, spanKey, (): Ast[] => []).push(node)
-  const whitespace = code.substring(whitespaceStart, whitespaceEnd)
   return { node, whitespace }
 }
 
@@ -2622,7 +2630,7 @@ function abstractToken(
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
   const key = tokenKey(codeStart, codeEnd - codeStart)
-  const node = new Token(tokenCode, newTokenId(), token.type)
+  const node = Token.new(tokenCode, token.type)
   tokensOut.set(key, node)
   return { whitespace, node }
 }
@@ -2654,10 +2662,14 @@ interface PrintedSource {
 export function spanMapToIdMap(spans: SpanMap): IdMap {
   const idMap = new IdMap()
   for (const [key, token] of spans.tokens.entries()) {
+    assert(isUuid(token.id))
     idMap.insertKnownId(sourceRangeFromKey(key), token.id)
   }
   for (const [key, asts] of spans.nodes.entries()) {
-    for (const ast of asts) idMap.insertKnownId(sourceRangeFromKey(key), ast.externalId)
+    for (const ast of asts) {
+      assert(isUuid(ast.externalId))
+      idMap.insertKnownId(sourceRangeFromKey(key), ast.externalId)
+    }
   }
   return idMap
 }
@@ -2730,8 +2742,8 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
   const module = inModule ?? MutableModule.Transient()
   const { root, spans, toRaw, idMapUpdates } = module.ydoc.transact(() => {
     const { root, spans, toRaw } = fromRaw(rawRoot, code, module)
-    const idMapUpdates = idMap ? setExternalIds(root.module, spans, idMap) : 0
     root.module.replaceRoot(root)
+    const idMapUpdates = idMap ? setExternalIds(root.module, spans, idMap) : 0
     return { root, spans, toRaw, idMapUpdates }
   })
   const getSpan = spanMapToSpanGetter(spans)
@@ -2755,7 +2767,10 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
       idsUnmatched += 1
     }
   }
-  if (DEBUG) console.info(`asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}`)
+  if (DEBUG)
+    console.info(
+      `asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}, haveRoot=${!!module.root()}`,
+    )
   return module.root() ? asts - astsMatched : 0
 }
 
@@ -2833,7 +2848,7 @@ export class ReactiveModule implements Module {
   getToken(token: SyncTokenId | undefined): Token | undefined {
     if (!token) return token
     if (token instanceof Token) return token
-    return new Token(token.code_, token.id, token.tokenType_)
+    return Token.withId(token.code_, token.tokenType_, token.id)
   }
 
   getAny(node: AstId | SyncTokenId): Ast | Token {
@@ -2853,8 +2868,8 @@ function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
       return new App(module, fields_)
     case 'UnaryOprApp':
       return new UnaryOprApp(module, fields_)
-    case 'NegationOprApp':
-      return new NegationOprApp(module, fields_)
+    case 'NegationApp':
+      return new NegationApp(module, fields_)
     case 'OprApp':
       return new OprApp(module, fields_)
     case 'PropertyAccess':

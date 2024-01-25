@@ -1,7 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
-import { MutableModule } from '../abstract'
+import { MutableModule, type Identifier } from '../abstract'
 
 //const disabledCases = [
 //  ' a',
@@ -384,7 +384,7 @@ test('Insert new expression', () => {
   expect(main).toBeDefined()
   const edit = root.module.edit()
   const rhs = Ast.parse('42', edit)
-  const assignment = Ast.Assignment.new(edit, 'baz', rhs)
+  const assignment = Ast.Assignment.new(edit, 'baz' as Identifier, rhs)
   edit.getVersion(main).push(assignment)
   const printed = edit.getVersion(root).code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
@@ -467,7 +467,7 @@ test('Block lines interface', () => {
 test('Splice', () => {
   const module = MutableModule.Transient()
   const edit = module.edit()
-  const ident = Ast.Ident.new(edit, 'foo')
+  const ident = Ast.Ident.new(edit, 'foo' as Identifier)
   expect(ident.code()).toBe('foo')
   const spliced = module.copyIfForeign(ident)
   expect(spliced.module).toBe(module)

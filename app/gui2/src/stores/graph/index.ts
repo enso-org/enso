@@ -10,8 +10,8 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, assertEqual } from '@/util/assert'
-import { Ast, parseEnso, RawAst } from '@/util/ast'
+import { assert } from '@/util/assert'
+import { Ast, RawAst } from '@/util/ast'
 import {
   isIdentifier,
   MutableModule,
@@ -40,6 +40,8 @@ import { computed, markRaw, reactive, ref, toRef, watch, type Ref, type ShallowR
 import * as Y from 'yjs'
 
 export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
+
+const DEBUG = false
 
 export interface NodeEditInfo {
   id: NodeId
@@ -114,14 +116,15 @@ export const useGraphStore = defineStore('graph', () => {
     if (ids) idMap.value = ids
   })
 
+  let prevCode: string | undefined = undefined
   const moduleData: {
     getSpan?: (id: Ast.AstId) => SourceRange | undefined
     toRaw?: Map<Ast.AstId, RawAst.Tree.Tree>
   } = {}
   watch([moduleCode, idMap], ([code, ids]) => {
     if (!code || !ids) return
+    if (DEBUG && code === prevCode) console.info(`moduleData: Code is unchanged.`)
     const edit = syncModule.edit()
-    //edit.clear()
     const {
       root,
       idMap: parsedIds,
@@ -133,6 +136,7 @@ export const useGraphStore = defineStore('graph', () => {
     db.updateExternalIds(root)
     moduleData.toRaw = toRaw
     moduleData.getSpan = getSpan
+    prevCode = code
     proj.module!.transact(() => {
       if (idMapUpdates) proj.module!.doc.setIdMap(parsedIds)
       updateState()
@@ -168,10 +172,12 @@ export const useGraphStore = defineStore('graph', () => {
 
   useObserveYjs(metadata, (event) => {
     const meta = event.target
-    for (const [id, op] of event.changes.keys) {
+    for (const [key, op] of event.changes.keys) {
       if (op.action === 'update' || op.action === 'add') {
-        const data = meta.get(id)
-        const node = db.nodeIdToNode.get(asNodeId(db.idFromExternal(id as ExternalId)))
+        const externalId = key as ExternalId
+        const data = meta.get(externalId)
+        const id = db.idFromExternal(externalId)
+        const node = id && db.nodeIdToNode.get(asNodeId(id))
         if (data && node) db.assignUpdatedMetadata(node, data)
       }
     }
@@ -294,7 +300,12 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), { x: position.x, y: -position.y })
+    const externalId = db.idToExternal(nodeId)
+    if (!externalId) {
+      if (DEBUG) console.warn(`setNodePosition: Node not found.`)
+      return
+    }
+    proj.module?.updateNodeMetadata(externalId, { x: position.x, y: -position.y })
   }
 
   function normalizeVisMetadata(
@@ -309,7 +320,12 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), {
+    const externalId = db.idToExternal(nodeId)
+    if (!externalId) {
+      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
+      return
+    }
+    proj.module?.updateNodeMetadata(externalId, {
       vis: normalizeVisMetadata(vis, node.vis?.visible),
     })
   }
@@ -317,13 +333,23 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(db.idToExternal(nodeId), {
+    const externalId = db.idToExternal(nodeId)
+    if (!externalId) {
+      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
+      return
+    }
+    proj.module?.updateNodeMetadata(externalId, {
       vis: normalizeVisMetadata(node.vis?.identifier, visible),
     })
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(db.idToExternal(nodeId))) {
+    const externalId = db.idToExternal(nodeId)
+    if (!externalId) {
+      if (DEBUG) console.warn(`updateNodeRect: Node not found.`)
+      return
+    }
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(externalId)) {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
@@ -334,7 +360,7 @@ export const useGraphStore = defineStore('graph', () => {
         mousePosition: Vec2.Zero,
       })
       const node = db.nodeIdToNode.get(nodeId)
-      metadata.value?.set(db.idToExternal(nodeId), {
+      metadata.value?.set(externalId, {
         x: position.x,
         y: -position.y,
         vis: node?.vis ?? null,
@@ -425,8 +451,10 @@ export const useGraphStore = defineStore('graph', () => {
     }
     moduleDirty = true
     module_.transact(() => {
-      module_.doc.setIdMap(Ast.spanMapToIdMap(printed.info))
+      const idMap = Ast.spanMapToIdMap(printed.info)
+      module_.doc.setIdMap(idMap)
       module_.doc.setCode(printed.code)
+      if (DEBUG) console.info(`commitEdit`, idMap, printed.code)
       if (metadataUpdates) {
         for (const [id, meta] of metadataUpdates) {
           module_.updateNodeMetadata(edit.checkedGet(id).externalId, meta)

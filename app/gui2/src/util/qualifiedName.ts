@@ -123,10 +123,12 @@ if (import.meta.vitest) {
   // These are not valid identifiers but currently pass the qualified name regex: ['_', '.*']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
-    expect(unwrap(tryIdentifier(name))).toStrictEqual(name as IdentifierOrOperatorIdentifier),
+    expect(unwrap(tryIdentifierOrOperatorIdentifier(name))).toStrictEqual(
+      name as IdentifierOrOperatorIdentifier,
+    ),
   )
   test.each(invalidIdentifiers)("'%s' is an invalid identifier", (name) =>
-    expect(tryIdentifier(name).ok).toBe(false),
+    expect(tryIdentifierOrOperatorIdentifier(name).ok).toBe(false),
   )
 
   test.each(
@@ -153,7 +155,7 @@ if (import.meta.vitest) {
       expect(qnSplit(qn)).toStrictEqual([parent, lastSegment])
       if (parent != null) {
         const qnParent = unwrap(tryQualifiedName(parent))
-        const qnLastSegment = unwrap(tryIdentifier(lastSegment))
+        const qnLastSegment = unwrap(tryIdentifierOrOperatorIdentifier(lastSegment))
         expect(qnParent).not.toBeNull()
         expect(qnLastSegment).not.toBeNull()
         expect(qnJoin(qnParent!, qnLastSegment!)).toBe(qn)
