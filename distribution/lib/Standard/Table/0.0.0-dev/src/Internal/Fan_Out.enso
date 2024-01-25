@@ -101,12 +101,17 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
 
-    num_output_columns = column_names.length
+    # Create a column name map.
+    dynamic_columns = column_names.is_a Vector . not
+    num_output_columns = if dynamic_columns then 0 else column_names.length
+    column_map = if dynamic_columns then Map.empty else 
 
     # Guess that most of the time, we'll get at least one value for each input.
     initial_size = input_column.length
+
     # Accumulates the outputs of the function.
     output_column_builders = Vector.new num_output_columns _-> column_builder initial_size
+
     # Accumulates repeated position indices for the order mask.
     order_mask_positions = Vector.new_builder initial_size
 
@@ -119,10 +124,29 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     0.up_to num_input_rows . each i->
         input_value = input_storage.getItemBoxed i
         output_values = function input_value |> maybe_add_empty_row
-        # Append each group of values to the builder.
-        output_values.each row_unchecked->
-            row = uniform_length num_output_columns row_unchecked problem_builder
-            row.each_with_index i-> v-> output_column_builders.at i . append v
+
+        case dynamic_columns of
+            False ->
+                # Append each group of values to the builder.
+                output_values.each row_unchecked->
+                    row = uniform_length num_output_columns row_unchecked problem_builder
+                    row.each_with_index i-> v-> output_column_builders.at i . append v
+            True ->
+                # get the column names for the row.
+                row_column_names = column_names input_value
+
+                # Check row aligns with column names.
+                row = uniform_length row_column_names.length row_unchecked problem_builder
+
+                # Add any missing columns.
+                row_column_names.each n-> if column_map.has_key n == False then
+                    column_map = column_map.put n column_map.length
+                    builder = column_builder initial_size
+                    
+
+                # Fill in values for each column.
+
+
         # Append n copies of the input row position, n = # of output values.
         repeat_each output_values.length <| order_mask_positions.append i
 

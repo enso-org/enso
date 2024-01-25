@@ -4,6 +4,7 @@ import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -105,6 +106,14 @@ type Jackson_Object
        Get the keys of the object.
     field_names : Vector
     field_names self = self.field_array
+
+    ## GROUP Conversions
+       Convert the object to a Vector of Pairs.
+    to_vector : Vector
+    to_vector self =
+        keys = self.field_array
+        proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
+        Vector.from_polyglot_array proxy
 
     ## GROUP Conversions
        Maps ths object to a Vector of Pairs.

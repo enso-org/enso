@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Java_Json.Jackson_Object
 
 ## PRIVATE
    A special type that is used to define what types can be converted to a table
@@ -14,7 +15,8 @@ type Convertible_To_Rows
        Arguments:
        - length: The number of rows in the table.
        - getter: Get the value for a specified row.
-    Value length:Integer (getter : Integer->Any)
+       - columns: The names for the columns when object is expanded.
+    Value length:Integer (getter : Integer->Any) (columns:Vector=[""])
 
     ## PRIVATE
        Return the iterator values as a `Vector`.
@@ -38,6 +40,15 @@ Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that.length that.
 
 ## PRIVATE
 Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:Map = Convertible_To_Rows.from (that.to_vector) ["Key", "Value"]
+
+## PRIVATE
+Convertible_To_Rows.from that:JS_Object = Convertible_To_Rows.from (that.to_vector) ["Field", "Value"]
+
+## PRIVATE
+Convertible_To_Rows.from that:Jackson_Object = Convertible_To_Rows.from (that.to_vector) ["Field", "Value"]
 
 ## PRIVATE
 Convertible_To_Rows.from (that:Any) =
