@@ -15,6 +15,6 @@ public class CrossJoin {
       }
     }
 
-    return resultBuilder.build();
+    return resultBuilder.buildAndInvalidate();
   }
 }

@@ -52,7 +52,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     int rightRowCount = lowerStorages[0].size();
     if (leftRowCount == 0 || rightRowCount == 0) {
       // if one group is completely empty, there will be no matches to report
-      return resultBuilder.build();
+      return resultBuilder.buildAndInvalidate();
     }
     List<OrderedMultiValueKey> leftKeys = new ArrayList<>(leftRowCount);
     for (int i = 0; i < leftRowCount; i++) {
@@ -79,7 +79,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       }
     }
 
-    return resultBuilder.build();
+    return resultBuilder.buildAndInvalidate();
   }
 
   @Override

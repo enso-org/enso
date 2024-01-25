@@ -18,7 +18,7 @@ public interface OrderMask {
   int get(int idx);
 
   static OrderMask empty() {
-    return new OrderMaskFromArray(new int[0]);
+    return new OrderMaskFromArray(new int[0], 0);
   }
 
   static OrderMask reverse(int size) {
@@ -26,8 +26,13 @@ public interface OrderMask {
   }
 
   static OrderMask fromArray(int[] positions) {
-    return new OrderMaskFromArray(positions);
+    return fromArray(positions, positions.length);
   }
+
+  static OrderMask fromArray(int[] positions, int length) {
+    return new OrderMaskFromArray(positions, length);
+  }
+
 
   static <T> OrderMask fromObjects(T[] input, ToIntFunction<T> function) {
     return new OrderMaskGeneric<>(input, function);
@@ -43,14 +48,16 @@ public interface OrderMask {
 
   class OrderMaskFromArray implements OrderMask {
     private final int[] positions;
+    private final int length;
 
-    public OrderMaskFromArray(int[] positions) {
+    public OrderMaskFromArray(int[] positions, int length) {
       this.positions = positions;
+      this.length = length;
     }
 
     @Override
     public int length() {
-      return positions.length;
+      return length;
     }
 
     @Override
@@ -118,20 +125,20 @@ public interface OrderMask {
   }
 
   class OrderMaskReversed implements OrderMask {
-    private final int size;
+    private final int length;
 
-    public OrderMaskReversed(int size) {
-      this.size = size;
+    public OrderMaskReversed(int length) {
+      this.length = length;
     }
 
     @Override
     public int length() {
-      return size;
+      return length;
     }
 
     @Override
     public int get(int idx) {
-      return size - idx - 1;
+      return length - idx - 1;
     }
   }
 }

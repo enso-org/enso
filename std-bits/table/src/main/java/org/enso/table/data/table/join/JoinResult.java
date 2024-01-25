@@ -1,38 +1,42 @@
 package org.enso.table.data.table.join;
 
+import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class JoinResult {
-  private final List<RowPair> matchedIndices;
+  private final int length;
+  private final int[] leftIndices;
+  private final int[] rightIndices;
 
-  public JoinResult(List<RowPair> matchedIndices) {
-    this.matchedIndices = matchedIndices;
+  public JoinResult(int[] leftIndices, int[] rightIndices, int length) {
+    this.length = length;
+    this.leftIndices = leftIndices;
+    this.rightIndices = rightIndices;
   }
 
   //** Represents a pair of indices of matched rows. -1 means an unmatched row.*/
   public record RowPair(int leftIndex, int rightIndex) {}
 
   public OrderMask getLeftOrderMask() {
-    return OrderMask.fromObjectList(matchedIndices, RowPair::leftIndex);
+    return OrderMask.fromArray(leftIndices, length);
   }
 
   public OrderMask getRightOrderMask() {
-    return OrderMask.fromObjectList(matchedIndices, RowPair::rightIndex);
+    return OrderMask.fromArray(rightIndices, length);
   }
 
   public record BuilderSettings(
       boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {}
 
   public static class Builder {
-    List<RowPair> matchedIndices;
+    IntArrayBuilder leftIndices;
+    IntArrayBuilder rightIndices;
 
     final BuilderSettings settings;
 
     public Builder(int initialCapacity, BuilderSettings settings) {
-      matchedIndices = new ArrayList<>(initialCapacity);
+      leftIndices = new IntArrayBuilder(initialCapacity);
+      rightIndices = new IntArrayBuilder(initialCapacity);
       this.settings = settings;
     }
 
@@ -41,22 +45,33 @@ public class JoinResult {
     }
 
     public void addMatchedRowsPair(int leftIndex, int rightIndex) {
-      matchedIndices.add(new RowPair(leftIndex, rightIndex));
+      leftIndices.add(leftIndex);
+      rightIndices.add(rightIndex);
     }
 
     public void addUnmatchedLeftRow(int leftIndex) {
-      matchedIndices.add(new RowPair(leftIndex, -1));
+      leftIndices.add(leftIndex);
+      rightIndices.add(-1);
     }
 
     public void addUnmatchedRightRow(int rightIndex) {
-      matchedIndices.add(new RowPair(-1, rightIndex));
+      leftIndices.add(-1);
+      rightIndices.add(rightIndex);
     }
 
-    public JoinResult build() {
-      var tmp = matchedIndices;
-      // Invalidate the builder to prevent further use.
-      matchedIndices = null;
-      return new JoinResult(tmp);
+
+    /**
+     * Returns the result of the builder.
+     *
+     * <p>This method avoids copying for performance. After calling this method, the builder is invalidated and cannot
+     * be used anymore. Any usage of the builder afterwards will result in a {@code NullPointerException}.
+     */
+    public JoinResult buildAndInvalidate() {
+      var left = leftIndices;
+      var right = rightIndices;
+      leftIndices = null;
+      rightIndices = null;
+      return new JoinResult(left.unsafeGetResultAndInvalidate(), right.unsafeGetResultAndInvalidate(), left.getLength());
     }
   }
 }

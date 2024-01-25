@@ -91,7 +91,7 @@ public class HashJoin implements JoinStrategy {
       }
     }
 
-    return resultBuilder.build();
+    return resultBuilder.buildAndInvalidate();
   }
 
   private static HashEqualityCondition makeHashEqualityCondition(HashableCondition eq) {
