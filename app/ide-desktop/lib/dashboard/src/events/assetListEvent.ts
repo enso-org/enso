@@ -28,6 +28,7 @@ interface AssetListEvents {
   newProject: AssetListNewProjectEvent
   uploadFiles: AssetListUploadFilesEvent
   newSecret: AssetListNewSecretEvent
+  newDataLink: AssetListNewDataLinkEvent
   insertAssets: AssetListInsertAssetsEvent
   closeFolder: AssetListCloseFolderEvent
   copy: AssetListCopyEvent
@@ -66,6 +67,14 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
   parentKey: backend.DirectoryId
   parentId: backend.DirectoryId
   files: File[]
+}
+
+/** A signal to create a new secret. */
+interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventType.newDataLink> {
+  parentKey: backend.DirectoryId
+  parentId: backend.DirectoryId
+  name: string
+  value: unknown
 }
 
 /** A signal to create a new secret. */

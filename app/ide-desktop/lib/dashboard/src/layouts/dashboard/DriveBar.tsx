@@ -124,7 +124,7 @@ export default function DriveBar(props: DriveBarProps) {
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
-              error="You can only create a new data link in Home."
+              error="You can only create a new Data Link in Home."
               image={AddConnectorIcon}
               alt="New Data Link"
               disabledOpacityClassName="opacity-20"

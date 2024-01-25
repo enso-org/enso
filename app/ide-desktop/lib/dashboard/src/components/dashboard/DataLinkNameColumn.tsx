@@ -7,9 +7,7 @@ import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -26,23 +24,22 @@ import EditableSpan from '#/components/EditableSpan'
 // === ConnectorName ===
 // =====================
 
-/** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends column.AssetColumnProps {}
+/** Props for a {@link DataLinkNameColumn}. */
+export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.SecretAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
+/** The icon and name of a {@link backendModule.DataLinkAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.DataLinkAsset}.
  * This should never happen. */
-export default function SecretNameColumn(props: SecretNameColumnProps) {
+export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
   const { assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const asset = item.item
-  if (asset.type !== backendModule.AssetType.secret) {
+  if (asset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`SecretNameColumn` can only display secrets.')
+    throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
@@ -58,7 +55,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
+      case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.updateFiles:
       case AssetEventType.closeProject:
@@ -82,15 +79,16 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         // and `downloadSelected` are handled by `AssetRow`.
         break
       }
-      case AssetEventType.newSecret: {
+      case AssetEventType.newDataLink: {
         if (item.key === event.placeholderId) {
           if (backend.type !== backendModule.BackendType.remote) {
             toastAndLog('Data connectors cannot be created on the local backend')
           } else {
             rowState.setVisibility(Visibility.faded)
             try {
-              const id = await backend.createSecret({
+              const { id } = await backend.createConnector({
                 parentDirectoryId: asset.parentId,
+                connectorId: null,
                 name: asset.title,
                 value: event.value,
               })
@@ -128,19 +126,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
-          setModal(
-            <UpsertSecretModal
-              id={asset.id}
-              name={asset.title}
-              doCreate={async (_name, value) => {
-                try {
-                  await backend.updateSecret(asset.id, { value }, asset.title)
-                } catch (error) {
-                  toastAndLog(null, error)
-                }
-              }}
-            />
-          )
+          // FIXME: Open sidebar and show DataLinkWizard populated with the current value
         }
       }}
     >

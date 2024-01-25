@@ -124,7 +124,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newDataConnector}
+          action={shortcuts.KeyboardAction.newSecret}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -133,6 +133,29 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newSecret,
+                    parentKey: directoryKey ?? rootDirectoryId,
+                    parentId: directoryId ?? rootDirectoryId,
+                    name,
+                    value,
+                  })
+                }}
+              />
+            )
+          }}
+        />
+      )}
+      {isCloud && (
+        <MenuEntry
+          hidden={hidden}
+          action={shortcuts.KeyboardAction.newDataLink}
+          doAction={() => {
+            setModal(
+              <UpsertSecretModal
+                id={null}
+                name={null}
+                doCreate={(name, value) => {
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.newDataLink,
                     parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,

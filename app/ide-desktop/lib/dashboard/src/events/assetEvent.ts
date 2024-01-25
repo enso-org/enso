@@ -28,6 +28,7 @@ interface AssetEvents {
   newFolder: AssetNewFolderEvent
   uploadFiles: AssetUploadFilesEvent
   updateFiles: AssetUpdateFilesEvent
+  newDataLink: AssetNewDataLinkEvent
   newSecret: AssetNewSecretEvent
   openProject: AssetOpenProjectEvent
   closeProject: AssetCloseProjectEvent
@@ -77,6 +78,12 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
 /** A signal to update files with new versions. */
 export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
   files: Map<backendModule.AssetId, File>
+}
+
+/** A signal to create a Data Link. */
+export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
+  placeholderId: backendModule.ConnectorId
+  value: unknown
 }
 
 /** A signal to create a secret. */

@@ -21,7 +21,7 @@ v.test.each([
   },
   {
     event: new KeyboardEvent('keydown', { key: 'N', ctrlKey: true, altKey: true }),
-    action: shortcuts.KeyboardAction.newDataConnector,
+    action: shortcuts.KeyboardAction.newSecret,
   },
   {
     event: new KeyboardEvent('keydown', { key: 'C', ctrlKey: true }),

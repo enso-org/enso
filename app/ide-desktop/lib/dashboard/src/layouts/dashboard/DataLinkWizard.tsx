@@ -1,4 +1,4 @@
-/** @file A dynamic wizard for creating an arbitrary type of data link. */
+/** @file A dynamic wizard for creating an arbitrary type of Data Link. */
 import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
@@ -144,7 +144,7 @@ export interface DataLinkWizardProps {
   setState: (dataLink: unknown) => void
 }
 
-/** A dynamic wizard for creating an arbitrary type of data link. */
+/** A dynamic wizard for creating an arbitrary type of Data Link. */
 export default function DataLinkWizard(props: DataLinkWizardProps) {
   const { dropdownTitle, schema = SCHEMA.$defs.DataLink, state, setState } = props
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
