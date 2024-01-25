@@ -29,6 +29,7 @@ public class BinaryDispatchTest extends TestBase {
                 "enso",
                 """
                 import Standard.Base.Data.Numbers
+                from Standard.Base import Text
 
                 type Z
                     Number n
@@ -44,7 +45,10 @@ public class BinaryDispatchTest extends TestBase {
                         (s.abs - t.abs).abs
 
                 R.from (that:Z) = R.Fraction that.n 1
+                Text.from (that:Z) = "z["+that.n.to_text+"]"
 
+                wrapRText (n : R & Text) = n
+                wrapTextR (n : Text & R) = n
                 """,
                 "prelude.enso")
             .build();
@@ -86,6 +90,50 @@ public class BinaryDispatchTest extends TestBase {
   @Test
   public void selfArgumentIsConverted() {
     var one = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 1");
+    var threeHalfs = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 3 2");
+
+    var diff1 = one.invokeMember("---", threeHalfs);
+    assertEquals(diff1.asDouble(), 1.0 / 2, 0.01);
+  }
+
+  @Test
+  public void thatArgumentIsMultiRText() {
+    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrapRText");
+    var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
+    var z = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
+    var two = wrap.execute(z);
+
+    var diff1 = half.invokeMember("---", two);
+    assertEquals(diff1.asDouble(), 3.0 / 2, 0.01);
+  }
+
+  @Test
+  public void selfArgumentIsMultiRText() {
+    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrapRText");
+    var z = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 1");
+    var one = wrap.execute(z);
+    var threeHalfs = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 3 2");
+
+    var diff1 = one.invokeMember("---", threeHalfs);
+    assertEquals(diff1.asDouble(), 1.0 / 2, 0.01);
+  }
+
+  @Test
+  public void thatArgumentIsMultiTextR() {
+    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrapTextR");
+    var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
+    var z = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
+    var two = wrap.execute(z);
+
+    var diff1 = half.invokeMember("---", two);
+    assertEquals(diff1.asDouble(), 3.0 / 2, 0.01);
+  }
+
+  @Test
+  public void selfArgumentIsMultiTextR() {
+    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrapTextR");
+    var z = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 1");
+    var one = wrap.execute(z);
     var threeHalfs = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 3 2");
 
     var diff1 = one.invokeMember("---", threeHalfs);
