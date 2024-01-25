@@ -33,17 +33,8 @@ public interface OrderMask {
     return new OrderMaskFromArray(positions, length);
   }
 
-
   static <T> OrderMask fromObjects(T[] input, ToIntFunction<T> function) {
     return new OrderMaskGeneric<>(input, function);
-  }
-
-  static <T> OrderMask fromObjectList(List<T> input, ToIntFunction<T> function) {
-    return new OrderMaskGenericList<>(input, function);
-  }
-
-  static OrderMask fromList(List<Integer> positions) {
-    return new OrderMaskFromList(positions);
   }
 
   class OrderMaskFromArray implements OrderMask {
@@ -66,24 +57,6 @@ public interface OrderMask {
     }
   }
 
-  class OrderMaskFromList implements  OrderMask {
-    private final List<Integer> positions;
-
-    public OrderMaskFromList(List<Integer> positions) {
-      this.positions = positions;
-    }
-
-    @Override
-    public int length() {
-      return positions.size();
-    }
-
-    @Override
-    public int get(int idx) {
-      return positions.get(idx);
-    }
-  }
-
   class OrderMaskGeneric<T> implements OrderMask {
     private final T[] positions;
     private final ToIntFunction<T> function;
@@ -101,26 +74,6 @@ public interface OrderMask {
     @Override
     public int get(int idx) {
       return function.applyAsInt(positions[idx]);
-    }
-  }
-
-  class OrderMaskGenericList<T> implements OrderMask {
-    private final List<T> positions;
-    private final ToIntFunction<T> function;
-
-    public OrderMaskGenericList(List<T> positions, ToIntFunction<T> function) {
-      this.positions = positions;
-      this.function = function;
-    }
-
-    @Override
-    public int length() {
-      return positions.size();
-    }
-
-    @Override
-    public int get(int idx) {
-      return function.applyAsInt(positions.get(idx));
     }
   }
 
