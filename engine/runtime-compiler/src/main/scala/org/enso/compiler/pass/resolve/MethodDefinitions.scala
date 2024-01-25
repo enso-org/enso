@@ -99,7 +99,7 @@ case object MethodDefinitions extends IRPass {
               None
             )
 
-            // TODO better use SelfType here
+            // Technically we could use SelfType here, but it is not being resolved, so we just use a simple Name of the type, knowing that in this context it should point to that type.
             val selfType = Name.Literal(tp.name, isMethod = false, None)
 
             // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
