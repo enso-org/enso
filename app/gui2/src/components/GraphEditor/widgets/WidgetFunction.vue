@@ -16,7 +16,6 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract.ts'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
@@ -27,6 +26,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
+import { isIdentifier } from '@/util/qualifiedName.ts'
 import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
 
@@ -182,7 +182,10 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       } else {
         newArg = Ast.parse(value, edit)
       }
-      const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : undefined
+      const name =
+        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name)
+          ? argApp.argument.argInfo.name
+          : undefined
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
@@ -261,7 +264,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
             assert(innerApp.appTree instanceof Ast.App)
             const infoName = innerApp.argument.argInfo?.name
             // Positional arguments following the deleted argument must all be rewritten to named.
-            if (infoName && !innerApp.appTree.argumentName) {
+            if (infoName && isIdentifier(infoName) && !innerApp.appTree.argumentName) {
               edit.getVersion(innerApp.appTree).setArgumentName(infoName)
             }
           }

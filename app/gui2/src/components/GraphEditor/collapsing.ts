@@ -1,12 +1,11 @@
 import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert, assertDefined } from '@/util/assert'
-import { Ast, parseEnso, RawAst } from '@/util/ast'
+import { Ast, RawAst } from '@/util/ast'
 import { moduleMethodNames } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
-import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
+import { isIdentifier, tryIdentifier, type Identifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
-import { IdMap } from '../../../shared/yjsModel'
 
 // === Types ===
 
@@ -41,7 +40,7 @@ interface RefactoredInfo {
   /** The id of the refactored node. */
   id: NodeId
   /** The pattern of the refactored node. Included for convenience, collapsing does not affect it. */
-  pattern: string
+  pattern: Identifier
   /** The list of necessary arguments for a call of the collapsed function. */
   arguments: Identifier[]
 }
@@ -99,6 +98,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   }
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
+  assert(isIdentifier(pattern))
 
   return {
     extracted: {
@@ -115,7 +115,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: string): string {
+function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Identifier {
   const allIdentifiers = moduleMethodNames(topLevel)
   if (!allIdentifiers.has(baseName)) {
     return baseName
@@ -124,14 +124,16 @@ function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: string): string {
   while (allIdentifiers.has(`${baseName}${index}`)) {
     index++
   }
-  return `${baseName}${index}`
+  const name = `${baseName}${index}`
+  assert(isIdentifier(name))
+  return name
 }
 
 // === performCollapse ===
 
 // We support working inside `Main` module of the project at the moment.
-const MODULE_NAME = 'Main'
-const COLLAPSED_FUNCTION_NAME = 'collapsed'
+const MODULE_NAME = 'Main' as Identifier
+const COLLAPSED_FUNCTION_NAME = 'collapsed' as Identifier
 
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
@@ -194,7 +196,7 @@ export function performCollapse(
     collapsed.push(ident)
     outputNodeId = asNodeId(ident.id)
   }
-  const argNames: string[] = info.extracted.inputs
+  const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(
     edit,
     collapsedName,
@@ -209,7 +211,7 @@ export function performCollapse(
 /** Prepare a method call expression for collapsed method. */
 function collapsedCallAst(
   info: CollapsedInfo,
-  collapsedName: string,
+  collapsedName: Identifier,
   edit: Ast.MutableModule,
 ): { ast: Ast.Owned; nodeId: NodeId } {
   const pattern = info.refactored.pattern

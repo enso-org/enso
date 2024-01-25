@@ -12,7 +12,6 @@ import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
-  identifierUnchecked,
   normalizeQualifiedName,
   qnFromSegments,
   qnSegments,
@@ -36,11 +35,11 @@ function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
     ast_.operator.value.code() === operator
   ) {
     if (!(ast_.rhs instanceof Ast.Ident)) return null
-    idents.unshift(identifierUnchecked(ast_.rhs.code()))
+    idents.unshift(ast_.rhs.code())
     ast_ = ast_.lhs
   }
   if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(identifierUnchecked(ast_.code()))
+  idents.unshift(ast_.code())
   return idents
 }
 
@@ -48,17 +47,17 @@ function unrollPropertyAccess(ast: Ast.Ast): Identifier[] | null {
   const idents: Identifier[] = []
   let ast_: Ast.Ast | undefined = ast
   while (ast_ instanceof Ast.PropertyAccess) {
-    idents.unshift(identifierUnchecked(ast_.rhs.code()))
+    idents.unshift(ast_.rhs.code())
     ast_ = ast_.lhs
   }
   if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(identifierUnchecked(ast_.code()))
+  idents.unshift(ast_.code())
   return idents
 }
 
 function parseIdent(ast: Ast.Ast): Identifier | null {
   if (ast instanceof Ast.Ident) {
-    return identifierUnchecked(ast.code())
+    return ast.code()
   } else {
     return null
   }

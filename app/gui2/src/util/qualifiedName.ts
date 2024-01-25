@@ -1,35 +1,14 @@
+import { isIdentifier, type Identifier, type QualifiedName } from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
+export { isIdentifier, type Identifier, type QualifiedName }
 
-declare const identifierBrand: unique symbol
-declare const qualifiedNameBrand: unique symbol
 const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
-const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRegexPart})\\.Main`)
-
-/** A string representing a valid identifier of our language. */
-export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
-
-export function isIdentifier(str: string): str is Identifier {
-  return identifierRegex.test(str)
-}
 
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
-
-/** Mark the input as an identifier without any validation. This should always be used to obtain an Identifier from an Ast, and never when creating or modifying an identifier. */
-export function identifierUnchecked(str: string): Identifier {
-  return str as Identifier
-}
-
-/** A string representing a valid qualified name of our language.
- *
- * In our language, the segments are separated by `.`, and its segments
- * must be a valid identifiers. In particular, a single identifier is
- * also a valid qualified name.
- */
-export type QualifiedName = string & { [qualifiedNameBrand]: never }
 
 export function isQualifiedName(str: string): str is QualifiedName {
   return qnRegex.test(str)
@@ -105,7 +84,6 @@ if (import.meta.vitest) {
   const validIdentifiers = [
     'A',
     'a',
-    '_',
     '_A',
     'A_',
     '_1',
@@ -119,10 +97,10 @@ if (import.meta.vitest) {
     '<=>',
     '*',
     '.',
-    '.+',
     '!=',
   ]
   const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!', '$a', 'a$']
+  // These are not valid identifiers but currently pass the qualified name regex: ['_', '.*']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
     expect(unwrap(tryIdentifier(name))).toStrictEqual(name as Identifier),

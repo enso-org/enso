@@ -2,6 +2,7 @@ import * as RawAst from '@/generated/ast'
 import { assert, assertDefined, assertEqual, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
+import { is_ident_or_operator } from '@/util/ffi'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
 import * as map from 'lib0/map'
@@ -16,6 +17,8 @@ import {
   type SourceRange,
   type SourceRangeKey,
 } from '../../../shared/yjsModel'
+
+const DEBUG = false
 
 declare const brandOwned: unique symbol
 /** Used to mark references required to be unique.
@@ -96,6 +99,63 @@ export class Token implements SyncTokenId {
     if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
   }
+}
+// We haven't had much need to distinguish token types, but it's useful to know that an identifier token's code is a
+// valid string for an identifier.
+export interface IdentifierToken extends Token {
+  code(): Identifier
+}
+export interface StrictIdentifierToken extends Token {
+  code(): StrictIdentifier
+}
+
+declare const qualifiedNameBrand: unique symbol
+declare const identifierBrand: unique symbol
+declare const operatorBrand: unique symbol
+
+/** A string representing a valid qualified name of our language.
+ *
+ * In our language, the segments are separated by `.`. All the segments except the last must be lexical identifiers. The
+ * last may be an identifier or a lexical operator. A single identifier is also a valid qualified name.
+ */
+export type QualifiedName = string & { [qualifiedNameBrand]: never }
+
+/** A string representing a lexical identifier. */
+export type StrictIdentifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
+
+/** A string representing a lexical operator. */
+export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: never }
+
+/** A string that can be parsed as an identifier in some contexts.
+ *
+ *  If it is lexically an identifier (see `StrictIdentifier`), it can be used as identifier anywhere.
+ *
+ *  If it is lexically an operator (see `Operator`), it takes the syntactic role of an identifier if it is the RHS of
+ *  a `PropertyAccess`, or it is the name of a `Function` being defined within a type. In all other cases, it is not
+ *  valid to use a lexical operator as an identifier (rather, it will usually parse as an `OprApp` or `UnaryOprApp`).
+ */
+export type Identifier = StrictIdentifier | Operator
+
+/** Returns true if `code` can be used as an identifier in some contexts.
+ *
+ *  If it is lexically an identifier (see `isStrictIdentifier`), it can be used as identifier anywhere.
+ *
+ *  If it is lexically an operator (see `isOperator`), it takes the syntactic role of an identifier if it is the RHS of
+ *  a `PropertyAccess`, or it is the name of a `Function` being defined within a type. In all other cases, it is not
+ *  valid to use a lexical operator as an identifier (rather, it will usually parse as an `OprApp` or `UnaryOprApp`).
+ */
+export function isIdentifier(code: string): code is Identifier {
+  return is_ident_or_operator(code) !== 0
+}
+
+/** Returns true if `code` is lexically an identifier. */
+export function isStrictIdentifier(code: string): code is StrictIdentifier {
+  return is_ident_or_operator(code) === 1
+}
+
+/** Returns true if `code` is lexically an operator. */
+export function isOperator(code: string): code is Operator {
+  return is_ident_or_operator(code) === 2
 }
 
 function clone<T>(value: T): T {
@@ -810,20 +870,36 @@ function concreteChild(
   return { ...child, node: claimChild(module, child.node, parent) }
 }
 
-function toIdent(ident: string | Token): Token
-function toIdent(ident: string | Token | undefined): Token | undefined
-function toIdent(ident: string | Token | undefined): Token | undefined {
-  return ident ? (isToken(ident) ? ident : Token.new(ident, RawAst.Token.Type.Ident)) : undefined
+type StrictIdentLike = StrictIdentifier | StrictIdentifierToken
+function toIdentStrict(ident: StrictIdentLike): StrictIdentifierToken
+function toIdentStrict(ident: StrictIdentLike | undefined): StrictIdentifierToken | undefined
+function toIdentStrict(ident: StrictIdentLike | undefined): StrictIdentifierToken | undefined {
+  return ident
+    ? isToken(ident)
+      ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as StrictIdentifierToken)
+    : undefined
 }
+
+type IdentLike = Identifier | IdentifierToken
+function toIdent(ident: IdentLike): IdentifierToken
+function toIdent(ident: IdentLike | undefined): IdentifierToken | undefined
+function toIdent(ident: IdentLike | undefined): IdentifierToken | undefined {
+  return ident
+    ? isToken(ident)
+      ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+    : undefined
+}
+
 function makeEquals(): Token {
   return Token.new('=', RawAst.Token.Type.Operator)
 }
 
 function nameSpecification(
-  name: string | Token | undefined,
+  name: StrictIdentLike | undefined,
 ): { name: NodeChild<Token>; equals: NodeChild<Token> } | undefined {
-  if (name === undefined) return undefined
-  return { name: autospaced(toIdent(name)), equals: unspaced(makeEquals()) }
+  return name && { name: autospaced(toIdentStrict(name)), equals: unspaced(makeEquals()) }
 }
 
 type AppFields = {
@@ -861,7 +937,7 @@ export class App extends Ast {
   static new(
     module: MutableModule,
     func: Owned,
-    argumentName: string | Token | undefined,
+    argumentName: StrictIdentLike | undefined,
     argument: Owned,
   ) {
     return App.concrete(
@@ -926,7 +1002,7 @@ export class MutableApp extends App implements MutableAst {
   setFunction<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'function', this.claimChild(value))
   }
-  setArgumentName(name: string | Token | undefined) {
+  setArgumentName(name: StrictIdentLike | undefined) {
     this.fields.set('nameSpecification', nameSpecification(name))
   }
   setArgument<T extends MutableAst>(value: Owned<T>) {
@@ -1167,29 +1243,41 @@ export class PropertyAccess extends Ast {
     super(module, fields)
   }
 
-  static new(module: MutableModule, lhs: Owned, rhs: Token | string) {
+  static new(module: MutableModule, lhs: Owned, rhs: IdentLike) {
     const dot = unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))
-    return this.concrete(module, unspaced(lhs), dot, unspaced(Ident.new(module, toIdent(rhs))))
+    return this.concrete(
+      module,
+      unspaced(lhs),
+      dot,
+      unspaced(Ident.newAllowingOperators(module, toIdent(rhs))),
+    )
   }
 
   static Sequence(
-    segments: [Token | string, ...(Token | string)[]],
+    segments: [StrictIdentLike, ...StrictIdentLike[]],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   static Sequence(
-    segments: (Token | string)[],
+    segments: [StrictIdentLike, ...StrictIdentLike[], IdentLike],
+    module: MutableModule,
+  ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
+  static Sequence(
+    segments: IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
   static Sequence(
-    segments: (Token | string)[],
+    segments: IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined {
-    let path
-    for (const s of segments) {
+    let path: Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
+    let operatorInNonFinalSegment = false
+    segments.forEach((s, i) => {
       const t = toIdent(s)
-      path = path ? this.new(module, path, t) : Ident.new(module, t)
-    }
-    return path
+      if (i !== segments.length - 1 && !isStrictIdentifier(t.code()))
+        operatorInNonFinalSegment = true
+      path = path ? this.new(module, path, t) : Ident.newAllowingOperators(module, t)
+    })
+    if (!operatorInNonFinalSegment) return path
   }
 
   static concrete(
@@ -1214,10 +1302,10 @@ export class PropertyAccess extends Ast {
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
-  get rhs(): Token {
+  get rhs(): IdentifierToken {
     const ast = this.module.checkedGet(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
-    return ast.token
+    return ast.token as IdentifierToken
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1234,8 +1322,8 @@ export class MutablePropertyAccess extends PropertyAccess implements MutableAst 
   setLhs<T extends MutableAst>(value: Owned<T> | undefined) {
     setNode(this.fields, 'lhs', this.claimChild(value))
   }
-  setRhs(ident: Token) {
-    const node = this.claimChild(Ident.new(this.module, ident))
+  setRhs(ident: IdentLike) {
+    const node = this.claimChild(Ident.newAllowingOperators(this.module, ident))
     const old = this.fields.get('rhs')
     this.fields.set('rhs', old ? { ...old, node } : unspaced(node))
   }
@@ -1400,7 +1488,7 @@ export class Import extends Ast {
     return asOwned(new MutableImport(module, fields))
   }
 
-  static Qualified(path: string[], module: MutableModule): Owned<MutableImport> | undefined {
+  static Qualified(path: IdentLike[], module: MutableModule): Owned<MutableImport> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
     return MutableImport.concrete(
@@ -1415,13 +1503,13 @@ export class Import extends Ast {
   }
 
   static Unqualified(
-    path: (Token | string)[],
-    name: Token | string,
+    path: IdentLike[],
+    name: IdentLike,
     module: MutableModule,
   ): Owned<MutableImport> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    const name_ = Ident.new(module, name)
+    const name_ = Ident.newAllowingOperators(module, name)
     return MutableImport.concrete(
       module,
       undefined,
@@ -1859,13 +1947,16 @@ export class Function extends Ast {
 
   static new(
     module: MutableModule,
-    name: Token | string,
+    name: IdentLike,
     argumentDefinitions: OwnedArgumentDefinition[],
     body: Owned,
   ): Owned<MutableFunction> {
+    // Note that a function name may not be an operator if the function is not in the body of a type definition, but we
+    // can't easily enforce that because we don't currently make a syntactic distinction between top-level functions and
+    // type methods.
     return MutableFunction.concrete(
       module,
-      unspaced(PropertyAccess.Sequence([name], module)),
+      unspaced(Ident.newAllowingOperators(module, name)),
       argumentDefinitions,
       spaced(makeEquals()),
       autospaced(body),
@@ -1875,8 +1966,8 @@ export class Function extends Ast {
   /** Construct a function with simple (name-only) arguments and a body block. */
   static fromStatements(
     module: MutableModule,
-    name: Token | string,
-    argumentNames: (Token | string)[],
+    name: IdentLike,
+    argumentNames: StrictIdentLike[],
     statements: Owned[],
     trailingNewline?: boolean,
   ): Owned<MutableFunction> {
@@ -1982,7 +2073,7 @@ export class Assignment extends Ast {
     return asOwned(new MutableAssignment(module, fields))
   }
 
-  static new(module: MutableModule, ident: string | Token, expression: Owned) {
+  static new(module: MutableModule, ident: StrictIdentLike, expression: Owned) {
     return Assignment.concrete(
       module,
       unspaced(Ident.new(module, ident)),
@@ -2232,8 +2323,8 @@ export class Ident extends Ast {
     super(module, fields)
   }
 
-  get token(): Token {
-    return this.module.getToken(this.fields.get('token').node)
+  get token(): StrictIdentifierToken {
+    return this.module.getToken(this.fields.get('token').node) as StrictIdentifierToken
   }
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {
@@ -2242,24 +2333,36 @@ export class Ident extends Ast {
     return asOwned(new MutableIdent(module, fields))
   }
 
-  static new(module: MutableModule, ident: Token | string) {
+  static new(module: MutableModule, ident: StrictIdentLike) {
+    return Ident.concrete(module, unspaced(toIdentStrict(ident)))
+  }
+
+  /** @internal */
+  static newAllowingOperators(module: MutableModule, ident: IdentLike) {
     return Ident.concrete(module, unspaced(toIdent(ident)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.fields.get('token')
   }
-}
 
+  code(): StrictIdentifier {
+    return this.token.code() as StrictIdentifier
+  }
+}
 export class MutableIdent extends Ident implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & IdentFields>
 
-  setToken(ident: Token | string) {
+  setToken(ident: IdentLike) {
     this.fields.set('token', unspaced(toIdent(ident)))
   }
 
   replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {}
+
+  code(): StrictIdentifier {
+    return this.token.code()
+  }
 }
 export interface MutableIdent extends Ident, MutableAst {}
 applyMixins(MutableIdent, [MutableAst])
@@ -2651,15 +2754,7 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
       idsUnmatched += 1
     }
   }
-  console.info(`asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}`)
-  /*
-  for (const ast of allNodes) {
-    for (const child of ast.rawChildren()) {
-      if (child.node.isToken) {
-      }
-    }
-  }
-   */
+  if (DEBUG) console.info(`asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}`)
   return module.root() ? asts - astsMatched : 0
 }
 
