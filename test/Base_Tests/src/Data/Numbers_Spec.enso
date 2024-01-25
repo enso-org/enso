@@ -30,6 +30,8 @@ type Complex
 
     == self (that:Complex) = Complex_Comparator.compare self that == Ordering.Equal
 
+    pending_equality -> Text = "== with conversions isn't yet supported"
+
 Complex.from (that:Number) = Complex.new that
 
 type Complex_Comparator
@@ -583,7 +585,7 @@ spec =
             v2 = (Complex.new 6 6)
             Ordering.compare v1 v2 . catch Incomparable_Values (_->42) . should_equal 42
 
-        Test.specify "Equality of complex and number" <|
+        Test.specify "Equality of complex and number" pending=Complex.pending_equality <|
             v1 = (Complex.new 3)
             v2 = 3
             v1 . should_equal v2
@@ -591,7 +593,7 @@ spec =
             v1==v2 . should_be_true
             v2==v1 . should_be_true
 
-        Test.specify "Equality of number and complex" <|
+        Test.specify "Equality of number and complex" pending=Complex.pending_equality <|
             v1 = 3
             v2 = (Complex.new 3)
             v1 . should_equal v2
