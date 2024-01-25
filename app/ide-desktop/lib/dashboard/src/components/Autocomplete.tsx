@@ -193,7 +193,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               setIsDropdownVisible(true)
             }}
             onBlur={() => {
-              requestAnimationFrame(() => {
+              window.setTimeout(() => {
                 setIsDropdownVisible(false)
               })
             }}

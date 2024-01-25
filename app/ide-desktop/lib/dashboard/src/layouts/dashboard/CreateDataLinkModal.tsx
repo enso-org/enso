@@ -37,7 +37,7 @@ export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
         <div className="relative">
-          <DataLinkWizard state={state} setState={setState} />
+          <DataLinkWizard dropdownTitle="Type" state={state} setState={setState} />
         </div>
         <div className="relative flex gap-2">
           <button
