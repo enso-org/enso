@@ -2279,7 +2279,7 @@ class IrToTruffle(
               moduleScope,
               defaultExpression,
               null,
-              s"<default::$scopeName::${arg.name}>",
+              s"<default::$scopeName::${arg.name.showCode()}>",
               false,
               false
             )
