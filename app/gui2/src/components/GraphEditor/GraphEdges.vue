@@ -6,33 +6,39 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import type { PortId } from '@/providers/portInfo'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
-import { isUuid, type ExprId } from 'shared/yjsModel.ts'
+import { isUuid } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 
 const emits = defineEmits<{
-  createNodeFromEdge: [source: ExprId, position: Vec2]
+  createNodeFromEdge: [source: AstId, position: Vec2]
 }>()
 
 const editingEdge: Interaction = {
   cancel() {
-    const target = graph.unconnectedEdge?.disconnectedEdgeTarget
-    graph.transact(() => {
-      if (target != null) disconnectEdge(target)
-      graph.clearUnconnected()
-    })
+    graph.clearUnconnected()
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
-    const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
+    let source: ExprId | undefined
+    let sourceNode: ExprId | undefined
+    if (graph.unconnectedEdge.source) {
+      source = graph.unconnectedEdge.source
+      sourceNode = graph.db.getPatternExpressionNodeId(source)
+    } else if (selection?.hoveredNode) {
+      sourceNode = selection.hoveredNode
+      source = graph.db.getNodeFirstOutputPort(sourceNode)
+    }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
+    console.log(source, target, targetNode)
     graph.transact(() => {
-      if (source != null && source != targetNode) {
+      if (source != null && sourceNode != targetNode) {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
@@ -40,6 +46,8 @@ const editingEdge: Interaction = {
         } else {
           createEdge(source, target)
         }
+      } else if (source == null && target != null) {
+        disconnectEdge(target)
       }
       graph.clearUnconnected()
     })
@@ -55,7 +63,7 @@ function disconnectEdge(target: PortId) {
       const targetStr: string = target
       if (isUuid(targetStr)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
-        edit.replaceRef(Ast.asNodeId(targetStr as ExprId), Ast.Wildcard.new())
+        edit.replaceRef(targetStr as AstId, Ast.Wildcard.new())
       } else {
         console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
       }
@@ -63,7 +71,7 @@ function disconnectEdge(target: PortId) {
   })
 }
 
-function createEdge(source: ExprId, target: PortId) {
+function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
   const identAst = Ast.parse(ident)
@@ -84,7 +92,7 @@ function createEdge(source: ExprId, target: PortId) {
     if (!graph.updatePortValue(edit, target, identAst)) {
       if (isUuid(target)) {
         console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
-        edit.replaceValue(Ast.asNodeId(target), identAst)
+        edit.replaceValue(Ast.asAstId(target), identAst)
         graph.commitEdit(edit)
       } else {
         console.error(`Failed to connect edge to port ${target}, no fallback possible.`)

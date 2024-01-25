@@ -12,7 +12,7 @@ const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
-  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.exprId)) {
+  if (props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.id)) {
     input.forcePort = true
   }
   return input
@@ -32,7 +32,6 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  console.log('Widget Update: ', update)
   if (update.portUpdate) {
     const {
       edit,
@@ -46,7 +45,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
           ? value
           : value == null
           ? Ast.Wildcard.new(edit)
-          : Ast.RawCode.new(value, edit)
+          : Ast.parse(value, edit)
       edit.replaceValue(origin as Ast.AstId, ast)
     }
   }

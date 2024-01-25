@@ -9,7 +9,7 @@ import {
 } from '@/util/ast'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from '@/util/parserSupport'
-import { IdMap, rangeIsBefore, type SourceRange } from 'shared/yjsModel'
+import { rangeIsBefore, sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
 
@@ -88,7 +88,7 @@ export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
 
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
+  readonly unresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
 
   /** The AST representation of the code. */
   readonly ast: RawAst.Tree
@@ -102,7 +102,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases = new MappedKeyMap<SourceRange, MappedSet<SourceRange>>(IdMap.keyForRange)
+  public readonly aliases = new MappedKeyMap<SourceRange, MappedSet<SourceRange>>(sourceRangeKey)
 
   /**
    * @param code text representation of the code.
@@ -137,7 +137,7 @@ export class AliasAnalyzer {
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
-    this.aliases.set(range, new MappedSet<SourceRange>(IdMap.keyForRange))
+    this.aliases.set(range, new MappedSet<SourceRange>(sourceRangeKey))
   }
 
   addConnection(source: RawAst.Token, target: RawAst.Token) {

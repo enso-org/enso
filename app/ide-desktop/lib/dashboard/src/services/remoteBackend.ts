@@ -198,6 +198,29 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
+  /** Change the username of the current user. */
+  override async updateUser(body: backendModule.UpdateUserRequestBody): Promise<void> {
+    const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
+    const response = await this.put(path, body)
+    if (!responseIsSuccessful(response)) {
+      return body.username != null
+        ? this.throw('updateUsernameBackendError')
+        : this.throw('updateUserBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Delete the current user. */
+  override async deleteUser(): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('deleteUserBackendError')
+    } else {
+      return
+    }
+  }
+
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
@@ -206,6 +229,25 @@ export class RemoteBackend extends backendModule.Backend {
       return this.throw('inviteUserBackendError', body.userEmail)
     } else {
       return
+    }
+  }
+
+  /** Upload a new profile picture for the current user. */
+  override async uploadUserPicture(
+    params: backendModule.UploadUserPictureRequestParams,
+    file: Blob
+  ): Promise<backendModule.UserOrOrganization> {
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
+    const response = await this.postBinary<backendModule.UserOrOrganization>(path, file)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('uploadUserPictureBackendError')
+    } else {
+      return await response.json()
     }
   }
 
@@ -501,17 +543,17 @@ export class RemoteBackend extends backendModule.Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async uploadFile(
     params: backendModule.UploadFileRequestParams,
-    body: Blob
+    file: Blob
   ): Promise<backendModule.FileInfo> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      file_name: params.fileName,
       ...(params.fileId != null ? { file_id: params.fileId } : {}),
       ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.FileInfo>(path, body)
+    const response = await this.postBinary<backendModule.FileInfo>(path, file)
     if (!responseIsSuccessful(response)) {
       let suffix: string | null = null
       try {
@@ -522,14 +564,7 @@ export class RemoteBackend extends backendModule.Backend {
       } catch {
         // Ignored.
       }
-      let message: string
-      if (params.fileName != null) {
-        message = this.getText('uploadFileWithNameBackendError', params.fileName)
-      } else {
-        // `params.fileId` may be non-null, but it is semantically wrong to include it in the
-        // message, as it is the ID of the destination file.
-        message = this.getText('uploadFileBackendError')
-      }
+      let message = this.getText('uploadFileBackendError')
       if (suffix != null) {
         message = message.replace(/[.]$/, suffix)
       }

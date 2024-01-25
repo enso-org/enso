@@ -29,7 +29,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
         <div
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block rounded-full h-6 px-1.75 py-0.5 ${className ?? ''}`}
+          } inline-block rounded-full whitespace-nowrap h-6 px-1.75 py-0.5 ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -42,7 +42,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.view: {
       return (
         <div
-          className={`relative inline-block rounded-full ${className ?? ''}`}
+          className={`relative inline-block rounded-full whitespace-nowrap ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}

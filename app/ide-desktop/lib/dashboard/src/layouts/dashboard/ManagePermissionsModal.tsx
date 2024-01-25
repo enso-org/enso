@@ -144,7 +144,7 @@ export default function ManagePermissionsModal<
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
-          toastAndLog('couldNotInviteUser', error)
+          toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
         }
       } else {
         setUsers([])

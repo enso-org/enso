@@ -200,6 +200,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   min-width: 100%;
   width: min-content;
   border-radius: var(--radius-default);
+  cursor: default;
 }
 
 .VisualizationContainer.below-node {

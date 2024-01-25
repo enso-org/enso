@@ -32,6 +32,7 @@ interface PlaceholderOverrides {
   selectedAssetsDescription: [string, string]
   confirmDeletePrompt: [string]
   theAssetTypeTitle: [string, string]
+  couldNotInviteUser: [string]
 
   inviteUserBackendError: [string]
   listFolderBackendError: [string]

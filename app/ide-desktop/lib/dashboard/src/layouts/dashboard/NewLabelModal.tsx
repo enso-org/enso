@@ -1,13 +1,10 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
-import * as toastify from 'react-toastify'
-
-import * as loggerProvider from '#/providers/LoggerProvider'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backend from '#/services/backend'
-import * as errorModule from '#/utilities/error'
 
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
@@ -26,7 +23,7 @@ export interface NewLabelModalProps {
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
   const { labels, eventTarget, doCreate } = props
-  const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [value, setName] = React.useState('')
@@ -44,9 +41,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     try {
       doCreate(value, color ?? leastUsedColor)
     } catch (error) {
-      const message = errorModule.getMessageOrToString(error)
-      toastify.toast.error(message)
-      logger.error(message)
+      toastAndLog(null, error)
     }
   }
 

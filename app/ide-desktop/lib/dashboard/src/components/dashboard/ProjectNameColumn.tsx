@@ -93,7 +93,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       case AssetEventType.newFolder:
-      case AssetEventType.newDataConnector:
+      case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
       case AssetEventType.cancelOpeningAllProjects:
@@ -153,10 +153,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
         break
       }
+      case AssetEventType.updateFiles:
       case AssetEventType.uploadFiles: {
         const file = event.files.get(item.key)
         if (file != null) {
+          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
+          const { extension } = backendModule.extractProjectExtension(file.name)
+          const title = backendModule.stripProjectExtension(asset.title)
+          setAsset(object.merge(asset, { title }))
           try {
             if (backend.type === backendModule.BackendType.local) {
               let id: string
@@ -183,11 +188,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {
-              const fileName = asset.title
-              const title = backendModule.stripProjectExtension(asset.title)
-              setAsset(object.merge(asset, { title }))
               const createdFile = await backend.uploadFile(
-                { fileId: null, fileName, parentDirectoryId: asset.parentId },
+                { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
                 file
               )
               const project = createdFile.project
@@ -202,8 +204,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               }
             }
           } catch (error) {
-            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            toastAndLog('uploadProjectError', error)
+            switch (event.type) {
+              case AssetEventType.uploadFiles: {
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog('uploadProjectError', error)
+                break
+              }
+              case AssetEventType.updateFiles: {
+                toastAndLog('updateProjectError', error)
+                break
+              }
+            }
           }
         }
         break

@@ -35,7 +35,7 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject, type ExternalId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -107,7 +107,7 @@ export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
   'executionContextId'
 > & {
-  expressionId: ExprId
+  expressionId: ExternalId
 }
 
 interface ExecutionContextState {
@@ -399,7 +399,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
-  recompute(expressionIds: 'all' | ExprId[] = 'all', executionEnvironment?: ExecutionEnvironment) {
+  recompute(
+    expressionIds: 'all' | ExternalId[] = 'all',
+    executionEnvironment?: ExecutionEnvironment,
+  ) {
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
       await state.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
@@ -637,7 +640,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function executeExpression(
-    expressionId: ExprId,
+    expressionId: ExternalId,
     expression: string,
   ): Promise<Result<string> | null> {
     return new Promise((resolve) => {

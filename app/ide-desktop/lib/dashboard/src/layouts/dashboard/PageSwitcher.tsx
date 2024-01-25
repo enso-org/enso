@@ -19,14 +19,17 @@ export enum Page {
   home = 'home',
   drive = 'drive',
   editor = 'editor',
+  settings = 'settings',
 }
 
 /** Error text for each page. */
-const ERRORS: Record<Page, text.TextId | null> = {
+// eslint-disable-next-line no-restricted-syntax
+const ERRORS = {
   [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'noProjectIsCurrentlyOpen',
-}
+  [Page.settings]: null,
+} as const satisfies Record<Page, text.TextId | null>
 
 /** Data describing how to display a button for a pageg. */
 interface PageUIData {

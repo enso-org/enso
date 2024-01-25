@@ -1,12 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as toastify from 'react-toastify'
-
-import * as loggerProvider from '#/providers/LoggerProvider'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as errorModule from '#/utilities/error'
 
 import Modal from '#/components/Modal'
 
@@ -18,24 +15,22 @@ import Modal from '#/components/Modal'
 export interface ConfirmDeleteModalProps {
   /** Must fit in the sentence "Are you sure you want to delete <description>?". */
   description: string
-  doDelete: () => void
+  doDelete: () => Promise<void> | void
 }
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { description, doDelete } = props
-  const logger = loggerProvider.useLogger()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     unsetModal()
     try {
-      doDelete()
+      await doDelete()
     } catch (error) {
-      const message = errorModule.getMessageOrToString(error)
-      toastify.toast.error(message)
-      logger.error(message)
+      toastAndLog(null, error)
     }
   }
 
@@ -60,7 +55,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          onSubmit()
+          void onSubmit()
         }}
       >
         <div className="relative">{getText('confirmDeletePrompt', description)}</div>

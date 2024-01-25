@@ -86,7 +86,7 @@ export class ArgumentAst {
   }
 
   get portId(): PortId {
-    return this.ast.exprId
+    return this.ast.id
   }
 }
 
@@ -166,7 +166,7 @@ export class ArgumentApplication {
     const { suggestion, widgetCfg } = callInfo
 
     const kind = ApplicationKind.Infix
-    const callId = interpreted.appTree.exprId
+    const callId = interpreted.appTree.id
 
     const argFor = (key: 'lhs' | 'rhs', index: number) => {
       const tree = interpreted[key]
@@ -185,7 +185,7 @@ export class ArgumentApplication {
 
   private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
     const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
-    const callId = interpreted.func.exprId
+    const callId = interpreted.func.id
 
     const knownArguments = suggestion?.arguments
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
@@ -369,7 +369,7 @@ export class ArgumentApplication {
     return {
       portId:
         this.argument instanceof ArgumentAst
-          ? this.appTree.exprId
+          ? this.appTree.id
           : (`app:${this.argument.portId}` as PortId),
       value: this.appTree,
       [ArgumentApplicationKey]: this,
