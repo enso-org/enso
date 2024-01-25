@@ -23,7 +23,7 @@ spec setup =
         "ToDo: order_by is not yet supported by this backend."
     unexpected_collation = if test_selection.is_collation_en_gb_utf8 then Nothing else
         "Test requires collation setting to be 'en_GB.UTF8'"
-    Test.group prefix+"Table.order_byasdfasdf" pending=order_by_pending <|
+    Test.group prefix+"Table.order_by" pending=order_by_pending <|
         mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]
             col2 = ["beta", ["a", "b", "a", "b"]]
