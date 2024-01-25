@@ -5,7 +5,7 @@ from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 import project.Data.Type.Value_Type.Value_Type
 from project import Column
-from project.Errors import Null_Value_In_Filter_Condition
+from project.Errors import Nothing_Value_In_Filter_Condition
 
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask
@@ -97,4 +97,4 @@ warn_on_nothing_in_comparison filter_condition x ~action =
         _ : Vector -> x.contains Nothing
         _ -> x.is_nothing
     if has_nothing.not then result else
-        Warning.attach (Null_Value_In_Filter_Condition.Error filter_condition) result
+        Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) result

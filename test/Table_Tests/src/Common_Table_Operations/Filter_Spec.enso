@@ -442,7 +442,7 @@ spec setup =
                 + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
                 + [Filter_Condition.Not_In [Nothing]]
             fcs.map fc->
-                Problems.expect_warning Null_Value_In_Filter_Condition (t.filter "x" fc)
+                Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc)
 
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
