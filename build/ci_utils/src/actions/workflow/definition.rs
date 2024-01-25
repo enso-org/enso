@@ -104,7 +104,7 @@ pub fn setup_wasm_pack_step() -> Step {
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {
         name: Some(name.into()),
-        uses: Some("actions/github-script@v6".into()),
+        uses: Some("actions/github-script@v7".into()),
         with: Some(step::Argument::GitHubScript { script: script.into() }),
         ..default()
     }
@@ -1034,41 +1034,6 @@ pub enum RunnerLabel {
 }
 
 pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> {
-    // This is a workaround for a bug in GH actions/checkout. If a submodule is added and removed,
-    // it effectively breaks any future builds of this repository on a given self-hosted runner.
-    // The workaround step below comes from:
-    // https://github.com/actions/checkout/issues/590#issuecomment-970586842
-    //
-    // As an exception to general rule, we use here bash even on Windows. As the bash us the one
-    // coming from a git installation, we can assume that git works nicely with it.
-    // Having this rewritten to github-script might have been nicer but it does not seem
-    // effort-worthy.
-    //
-    // See:
-    // https://github.com/actions/checkout/issues/590
-    // https://github.com/actions/checkout/issues/788
-    // and many other duplicate reports.
-    let git_bash_command = "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :";
-    let submodules_workaround_win = Step {
-        // We can't add git-bash to PATH because this would break the Rust build.
-        // Instead we manually spawn the bash with a given command from CMD shell.
-        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{git_bash_command}""#)),
-        shell: Some(Shell::Cmd),
-        r#if: Some(is_windows_runner()),
-        name: Some(
-            "Workaround for https://github.com/actions/checkout/issues/590 (Windows)".into(),
-        ),
-        ..default()
-    };
-    let submodules_workaround_linux = Step {
-        run: Some(git_bash_command.into()),
-        shell: Some(Shell::Bash),
-        r#if: Some(is_non_windows_runner()),
-        name: Some(
-            "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)".into(),
-        ),
-        ..default()
-    };
     let actual_checkout = Step {
         name: Some("Checking out the repository".into()),
         uses: Some("actions/checkout@v4".into()),
@@ -1081,7 +1046,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     };
     // Apply customization.
     let actual_checkout = f(actual_checkout);
-    vec![submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+    vec![actual_checkout]
 }
 
 /// See [`checkout_repo_step_customized`].
