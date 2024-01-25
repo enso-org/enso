@@ -36,10 +36,10 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
   const { category, dispatchAssetEvent } = state
   const asset = item.item
-  const session = authProvider.useNonPartialUserSession()
+  const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.organization?.email
+    permission => permission.user.user_email === organization?.email
   )
   const managesThisAsset =
     category !== Category.trash &&
@@ -57,7 +57,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     [/* should never change */ setItem]
   )
   return (
-    <div className="flex items-center gap-1">
+    <div className="group flex items-center gap-1">
       {(asset.permissions ?? []).map(user => (
         <PermissionDisplay key={user.user.pk} action={user.permission}>
           {user.user.user_name}

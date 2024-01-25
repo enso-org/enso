@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { logEvent } from 'histoire/client'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
+import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import PlaceholderWidget from '@/components/widgets/PlaceholderWidget.vue'
-import SliderWidget from '@/components/widgets/SliderWidget.vue'
 
 // === Checkbox props ===
 
@@ -16,39 +16,37 @@ const checkboxState = ref(false)
 const state = ref(0)
 const min = ref(0)
 const max = ref(100)
+const withLimits = ref(true)
+const sliderLimits = computed(() => {
+  return withLimits.value ? { min: min.value, max: max.value } : undefined
+})
 
 // === Dropdown props ===
 
 const color = ref('#357ab9')
+const backgroundColor = ref('#4778b4')
 const selectedValue = ref('location')
 const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace'])
 </script>
 
 <template>
   <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" autoPropsDisabled>
-    <Variant title="placeholder">
+    <Variant title="placeholder" :meta="{ customBackground: backgroundColor }">
       <PlaceholderWidget />
     </Variant>
-    <Variant title="checkbox">
-      <CheckboxWidget
-        v-model="checkboxState"
-        @update:modelValue="logEvent('update:modelValue', [$event])"
-      />
+    <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
+      <CheckboxWidget v-model="checkboxState" />
 
       <template #controls>
         <HstCheckbox v-model="checkboxState" title="v-model" />
       </template>
     </Variant>
-    <Variant title="slider">
-      <SliderWidget
-        v-model="state"
-        :min="min"
-        :max="max"
-        @update:modelValue="logEvent('update:modelValue', [$event])"
-      />
+    <Variant title="numeric" :meta="{ customBackground: backgroundColor }">
+      <NumericInputWidget v-model="state" :limits="sliderLimits" />
 
       <template #controls>
         <HstSlider v-model="state" title="v-model" :min="min" :max="max" />
+        <HstCheckbox v-model="withLimits" title="With limits" />
         <HstNumber v-model="min" title="min" />
         <HstNumber v-model="max" title="max" />
       </template>

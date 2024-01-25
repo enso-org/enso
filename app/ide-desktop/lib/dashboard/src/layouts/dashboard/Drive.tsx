@@ -10,7 +10,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
@@ -119,10 +119,10 @@ export default function Drive(props: DriveProps) {
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && organization?.isEnabled !== true
-      ? DriveStatus.notEnabled
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
+      : isCloud && organization?.isEnabled !== true
+      ? DriveStatus.notEnabled
       : DriveStatus.ok
 
   React.useEffect(() => {
@@ -198,9 +198,9 @@ export default function Drive(props: DriveProps) {
         type: AssetListEventType.newProject,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        templateId,
+        templateName,
+        onSpinnerStateChange,
       })
     },
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
@@ -270,7 +270,7 @@ export default function Drive(props: DriveProps) {
   const doCreateDataConnector = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataConnector,
+        type: AssetListEventType.newSecret,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         name,
@@ -419,7 +419,7 @@ export default function Drive(props: DriveProps) {
           </div>
           {isFileBeingDragged && organization != null && isCloud ? (
             <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
+              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
               onDragLeave={() => {
                 setIsFileBeingDragged(false)
               }}

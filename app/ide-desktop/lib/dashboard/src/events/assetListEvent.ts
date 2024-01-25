@@ -27,7 +27,8 @@ interface AssetListEvents {
   readonly newFolder: AssetListNewFolderEvent
   readonly newProject: AssetListNewProjectEvent
   readonly uploadFiles: AssetListUploadFilesEvent
-  readonly newDataConnector: AssetListNewDataConnectorEvent
+  readonly newSecret: AssetListNewSecretEvent
+  readonly insertAssets: AssetListInsertAssetsEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
@@ -45,8 +46,7 @@ type SanityCheck<
       (typeof AssetListEventType)[Type]
     >
   } = AssetListEvents,
-  // eslint-disable-next-line no-restricted-syntax
-> = T
+> = [T]
 
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
@@ -70,13 +70,19 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
   readonly files: File[]
 }
 
-/** A signal to create a new data connector. */
-interface AssetListNewDataConnectorEvent
-  extends AssetListBaseEvent<AssetListEventType.newDataConnector> {
+/** A signal to create a new secret. */
+interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly name: string
   readonly value: string
+}
+
+/** A signal to insert new assets. The assets themselves need to be created by the caller. */
+interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
+  readonly parentKey: backend.DirectoryId
+  readonly parentId: backend.DirectoryId
+  readonly assets: backend.AnyAsset[]
 }
 
 /** A signal to close (collapse) a folder. */

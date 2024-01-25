@@ -17,7 +17,7 @@ import org.graalvm.polyglot.Context;
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
   public SortJoin(List<Between> conditions, JoinResult.BuilderSettings resultBuilderSettings) {
-    conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
+    JoinStrategy.ensureConditionsNotEmpty(conditions);
     this.resultBuilderSettings = resultBuilderSettings;
 
     Context context = Context.getCurrent();
@@ -35,7 +35,6 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private final JoinStrategy.ConditionsHelper conditionsHelper;
   private final JoinResult.BuilderSettings resultBuilderSettings;
 
   private final int[] directions;
@@ -49,8 +48,8 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     Context context = Context.getCurrent();
     JoinResult.Builder resultBuilder = new JoinResult.Builder(resultBuilderSettings);
 
-    int leftRowCount = conditionsHelper.getLeftTableRowCount();
-    int rightRowCount = conditionsHelper.getRightTableRowCount();
+    int leftRowCount = leftStorages[0].size();
+    int rightRowCount = lowerStorages[0].size();
     if (leftRowCount == 0 || rightRowCount == 0) {
       // if one group is completely empty, there will be no matches to report
       return resultBuilder.build();
