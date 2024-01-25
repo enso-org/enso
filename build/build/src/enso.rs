@@ -2,9 +2,9 @@ use crate::prelude::*;
 
 use crate::paths::Paths;
 use crate::paths::ENSO_ENABLE_ASSERTIONS;
-use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
+use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
