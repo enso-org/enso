@@ -258,6 +258,14 @@ spec =
             Test.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
             Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
 
+        Test.specify "pow on huge" <|
+            huge = 10 ^ 70
+            huge.to_text . starts_with "1000" . should_be_true
+            huge.to_text.characters . filter (== '0') . to_vector . length . should_equal 70
+
+        Test.specify "pow with negative" <|
+            (10 ^ -1) . should_equal 0.1
+
     Test.group "Floats" <|
 
         Test.specify "should exist and expose basic arithmetic operations" <|

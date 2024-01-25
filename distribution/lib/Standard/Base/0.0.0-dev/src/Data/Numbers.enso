@@ -800,7 +800,7 @@ type Integer
          Computing 2 cubed.
 
              2^3
-    ^ self that:Integer -> Integer = integer_pow self that
+    ^ self that:Integer -> Number = integer_pow self that
 
     ## ALIAS greater than
        GROUP Operators

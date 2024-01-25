@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
-class BinaryOperatorNode extends ExpressionNode {
+final class BinaryOperatorNode extends ExpressionNode {
   private @Child ExpressionNode left;
   private @Child ExpressionNode right;
   private @Child ExpressionNode body;
