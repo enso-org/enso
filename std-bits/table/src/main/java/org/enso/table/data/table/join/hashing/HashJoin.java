@@ -84,7 +84,8 @@ public class HashJoin implements JoinStrategy {
       for (var rightEntry : rightIndex.mapping().entrySet()) {
         UnorderedMultiValueKey rightKey = rightEntry.getKey();
         // If any field of the key is null, it cannot match anything.
-        boolean wasCompletelyUnmatched = rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
+        boolean wasCompletelyUnmatched =
+            rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
         if (wasCompletelyUnmatched) {
           for (int rightRow : rightEntry.getValue()) {
             resultBuilder.addUnmatchedRightRow(rightRow);
