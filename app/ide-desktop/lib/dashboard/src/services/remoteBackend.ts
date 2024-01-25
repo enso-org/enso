@@ -219,14 +219,14 @@ export class RemoteBackend extends backendModule.Backend {
   override async uploadUserPicture(
     params: backendModule.UploadUserPictureRequestParams,
     file: Blob
-  ): Promise<string> {
+  ): Promise<backendModule.UserOrOrganization> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.postBinary<string>(path, file)
+    const response = await this.postBinary<backendModule.UserOrOrganization>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not upload user profile picture.')
     } else {
