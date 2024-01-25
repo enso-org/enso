@@ -104,9 +104,7 @@ impl Backend {
     pub fn matches_platform(&self, name: &str) -> bool {
         // Sample name: "project-manager-bundle-2022.1.1-nightly.2022-04-16-linux-amd64.tar.gz"
         let os_matches = name.contains(self.target_os.as_str());
-        // Arch test involves a workaround for Engine being built through Rosette on Apple Silicon.
-        let arch_matches = name.contains(pretty_print_arch(TARGET_ARCH))
-            || (TARGET_ARCH == Arch::AArch64 && name.contains(pretty_print_arch(Arch::X86_64)));
+        let arch_matches = name.contains(pretty_print_arch(TARGET_ARCH));
         os_matches && arch_matches
     }
 }
@@ -124,11 +122,12 @@ impl IsTarget for Backend {
     fn adapt_artifact(self, path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self::Artifact>> {
         let exe_suffix = self.target_os.exe_suffix().to_owned();
         let path = path.as_ref().to_owned();
-        let provisional_path = crate::paths::generated::ProjectManagerBundle::new_root(
-            &path,
-            &exe_suffix,
-            "<unknown version>",
-        );
+        let provisional_path: crate::paths::generated::ProjectManagerBundle =
+            crate::paths::generated::ProjectManagerBundle::new_root(
+                &path,
+                &exe_suffix,
+                "<unknown version>",
+            );
         async move {
             let engine_versions = bundled_engine_versions(&provisional_path).await?;
             let path = crate::paths::generated::ProjectManagerBundle::new_root(
