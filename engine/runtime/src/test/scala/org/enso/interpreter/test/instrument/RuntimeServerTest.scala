@@ -5273,7 +5273,7 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
             None,
-            None,
+            Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
             Vector(
               Api.StackTraceElement(
@@ -5381,7 +5381,7 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type error: expected `that` to be Integer, but got Function.",
             None,
-            None,
+            Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
             Vector(
               Api.StackTraceElement(

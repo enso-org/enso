@@ -8,9 +8,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "abs", description = "Absolute value of a number")
 public abstract class AbsNode extends IntegerNode {
-  AbsNode() {
-    super("abs");
-  }
 
   public static AbsNode build() {
     return AbsNodeGen.create();

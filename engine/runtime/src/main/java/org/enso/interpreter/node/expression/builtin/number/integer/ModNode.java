@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -17,11 +16,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends IntegerNode {
-  ModNode() {
-    super("%");
-  }
 
-  abstract Object execute(VirtualFrame frame, Object own, Object that);
+  abstract Object execute(Object own, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();
@@ -85,16 +81,15 @@ public abstract class ModNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
-      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached ModNode delegate) {
-    return super.doInterop(frame, self, that, iop, delegate);
+    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, Object self, Object that) {
-    return super.doOther(frame, self, that);
+  Object doOther(Object self, Object that) {
+    throw throwTypeErrorIfNotInt(self, that);
   }
 }

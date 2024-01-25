@@ -8,10 +8,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_not", description = "Bitwise negation.")
 public abstract class BitNotNode extends IntegerNode {
-  BitNotNode() {
-    super("bit_not");
-  }
-
   abstract Object execute(Object own);
 
   static BitNotNode build() {

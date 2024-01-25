@@ -8,10 +8,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "floor", description = "Small integer floor.")
 public abstract class FloorNode extends IntegerNode {
 
-  FloorNode() {
-    super("floor");
-  }
-
   public abstract Object execute(Object own);
 
   public static FloorNode build() {

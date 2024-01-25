@@ -19,10 +19,6 @@ public class RoundNode extends IntegerNode {
 
   private final BranchProfile decimalPlacesOutOfRangeProfile = BranchProfile.create();
 
-  RoundNode() {
-    super("round");
-  }
-
   Object execute(long n, long dp, boolean ub) {
     var decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
 

@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -13,12 +12,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 abstract class IntegerNode extends Node {
-  private final String symbol;
   @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  IntegerNode(String symbol) {
-    this.symbol = symbol;
-  }
+  IntegerNode() {}
 
   @TruffleBoundary
   final PanicException throwTypeErrorIfNotInt(Object self, Object that) {
@@ -47,37 +43,25 @@ abstract class IntegerNode extends Node {
   }
 
   final Object doInterop(
-      VirtualFrame frame,
-      Object self,
-      TruffleObject that,
-      InteropLibrary iop,
-      IntegerNode delegate) {
+      Object self, TruffleObject that, InteropLibrary iop, IntegerNode delegate) {
     try {
       if (iop.fitsInLong(that)) {
-        return delegate.execute(frame, self, iop.asLong(that));
+        return delegate.execute(self, iop.asLong(that));
       } else if (iop.fitsInDouble(that)) {
-        return delegate.execute(frame, self, iop.asDouble(that));
+        return delegate.execute(self, iop.asDouble(that));
       } else if (iop.fitsInBigInteger(that)) {
-        return delegate.execute(frame, self, toEnsoNumberNode.execute(iop.asBigInteger(that)));
+        return delegate.execute(self, toEnsoNumberNode.execute(iop.asBigInteger(that)));
       }
     } catch (UnsupportedMessageException ex) {
     }
-    return doOther(frame, self, that);
+    return doOther(self, that);
   }
 
-  Object execute(VirtualFrame frame, Object self, Object that) {
+  Object execute(Object own, Object that) {
     throw new AbstractMethodError();
   }
 
-  Object doOther(VirtualFrame frame, Object self, Object that) {
-    if (doThatConversion(frame, self, that) instanceof Object result) {
-      return result;
-    } else {
-      throw throwTypeErrorIfNotInt(self, that);
-    }
-  }
-
-  final Object doThatConversion(VirtualFrame frame, Object self, Object that) {
-    return null;
+  Object doOther(Object self, Object that) {
+    throw new AbstractMethodError();
   }
 }

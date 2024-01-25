@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -14,11 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends IntegerNode {
 
-  MultiplyNode() {
-    super("*");
-  }
-
-  abstract Object execute(VirtualFrame frame, Object own, Object that);
+  abstract Object execute(Object own, Object that);
 
   static MultiplyNode build() {
     return MultiplyNodeGen.create();
@@ -61,16 +56,15 @@ public abstract class MultiplyNode extends IntegerNode {
 
   @Specialization(guards = "isForeignNumber(iop, that)")
   Object doInterop(
-      VirtualFrame frame,
       Object self,
       TruffleObject that,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached MultiplyNode delegate) {
-    return super.doInterop(frame, self, that, iop, delegate);
+    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, Object self, Object that) {
-    return super.doOther(frame, self, that);
+  Object doOther(Object self, Object that) {
+    throw throwTypeErrorIfNotInt(self, that);
   }
 }

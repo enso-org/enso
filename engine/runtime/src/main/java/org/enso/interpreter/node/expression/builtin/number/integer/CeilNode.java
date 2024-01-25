@@ -7,10 +7,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "ceil", description = "Small integer ceiling.")
 public abstract class CeilNode extends IntegerNode {
-  CeilNode() {
-    super("ceil");
-  }
-
   abstract Object execute(Object own);
 
   public static CeilNode build() {
