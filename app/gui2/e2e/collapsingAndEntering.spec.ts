@@ -46,8 +46,6 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
     'func2',
   ])
 
-  // TODO: This actually fails on develop. https://github.com/enso-org/enso/issues/8756
-
   await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
   await expectInsideFunc2(page)
 
