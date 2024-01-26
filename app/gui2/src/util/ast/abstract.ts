@@ -1673,7 +1673,7 @@ const reverseMapping: Record<string, string> = Object.entries(mapping).reduce((a
 
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * NOT USABLE to insert into raw strings. Does not include quotes. */
-function escape(string: string) {
+export function escape(string: string) {
   return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
 }
 
@@ -1681,6 +1681,7 @@ function escape(string: string) {
 export function unescape(string: string) {
   return string.replace(/\\[0bfnrtv"']|``/g, (match) => reverseMapping[match]!)
 }
+
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
