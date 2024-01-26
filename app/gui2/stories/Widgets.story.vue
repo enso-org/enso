@@ -5,7 +5,6 @@ import { computed, ref } from 'vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
-import PlaceholderWidget from '@/components/widgets/PlaceholderWidget.vue'
 
 // === Checkbox props ===
 
@@ -31,9 +30,6 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
 
 <template>
   <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" autoPropsDisabled>
-    <Variant title="placeholder" :meta="{ customBackground: backgroundColor }">
-      <PlaceholderWidget />
-    </Variant>
     <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
       <CheckboxWidget v-model="checkboxState" />
 
