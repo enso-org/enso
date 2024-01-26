@@ -8,6 +8,7 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 
 type Enso_User
@@ -42,6 +43,12 @@ type Enso_User
             js_object = response.decode_as_json
             users = js_object.get 'users' []
             users.map (user-> Enso_User.from user)
+
+    ## Flushes all cloud caches.
+       For example, it will flush cached secrets, ensuring that new values will
+       be fetched the next time the secrets are accessed.
+    flush_caches : Nothing
+    flush_caches = Utils.flush_caches
 
 ## PRIVATE
 Enso_User.from (that:JS_Object) = if ["name", "email", "id"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_User.") else

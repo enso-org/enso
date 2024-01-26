@@ -35,7 +35,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAst, {
   <div class="WidgetHierarchy" :class="spanClass">
     <NodeWidget
       v-for="(child, index) in children"
-      :key="child.exprId ?? index"
+      :key="child.id ?? index"
       :input="transformChild(child)"
     />
   </div>

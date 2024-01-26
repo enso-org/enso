@@ -3,6 +3,8 @@ import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
 import { computed } from 'vue'
 
@@ -20,7 +22,7 @@ const value = computed({
       if (node != null) {
         props.onUpdate({
           edit,
-          portUpdate: { value: value ? 'True' : 'False', origin: node.exprId },
+          portUpdate: { value: value ? 'True' : 'False', origin: node.id },
         })
       }
     } else {
@@ -35,7 +37,7 @@ const value = computed({
         edit,
         portUpdate: {
           value: value ? 'Boolean.True' : 'Boolean.False',
-          origin: props.input.portId,
+          origin: asNot<TokenId>(props.input.portId),
         },
       })
     }
