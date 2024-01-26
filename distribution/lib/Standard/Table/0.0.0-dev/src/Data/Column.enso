@@ -32,6 +32,7 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1600,7 +1601,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2284,7 +2285,7 @@ type Column
              example_reverse = Examples.integer_column.reverse
     reverse : Column
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.length
+        mask = OrderMask.reverse self.length
         Column.Value (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
