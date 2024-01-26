@@ -53,7 +53,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             # If nothing set, defaults to root:
             Enso_File.current_working_directory . should_equal Enso_File.root
 
-            subdir = Enso_File.root.create_directory "my_test_CWD-" + (Random.uuid.take 5)
+            subdir = Enso_File.root.create_directory "my_test_CWD-"+(Random.uuid.take 5)
             cleanup =
                 Enso_User.flush_caches
                 subdir.delete
@@ -155,7 +155,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             nested_file.is_regular_file.should_be_true
             nested_file.size . should_equal nested_file.read_bytes.length
 
-        Test.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata" <|
+        Test.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata, waiting on https://github.com/enso-org/cloud-v2/issues/870" <|
             Enso_File.root.parent . should_equal Nothing
             Enso_File.root.path . should_equal "enso://"
 
@@ -175,7 +175,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
             nested_file.creation_time . should_be_a Date_Time
             nested_file.last_modified_time . should_be_a Date_Time
 
-        Test.specify "should be able to read other file metadata" pending="TODO do we want that?" <|
+        Test.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
 
             nested_file.is_absolute.should_be_true
