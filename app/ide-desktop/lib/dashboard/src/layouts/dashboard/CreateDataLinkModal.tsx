@@ -16,7 +16,7 @@ export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
-  const [state, setState] = React.useState<unknown>({})
+  const [state, setState] = React.useState<NonNullable<unknown> | null>(null)
   const [isValueSubmittable, setIsValueSubmittable] = React.useState(false)
   const isSubmittable = name !== '' && isValueSubmittable
 

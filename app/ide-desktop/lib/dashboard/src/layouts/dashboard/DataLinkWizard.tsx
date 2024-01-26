@@ -23,72 +23,101 @@ function lookupDef(schema: object) {
 // === isRenderable ===
 // ====================
 
-const IS_RENDERABLE = new WeakMap<object, boolean>()
+const CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
 
-/** Whether the schema will render any elements. */
-function isRenderableHelper(schema: object): boolean {
+/** The value of the schema, if it can only have one possible value. */
+function constantValueHelper(schema: object): [] | [NonNullable<unknown> | null] {
   if ('const' in schema) {
-    return false
+    return [schema.const ?? null]
   } else if ('type' in schema) {
     switch (schema.type) {
       case 'string':
       case 'number':
       case 'integer': {
-        return true
+        return []
       }
       case 'object': {
         const propertiesObject =
           'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
-        let count = 0
-        for (const child of Object.values(propertiesObject)) {
+        const result: Record<string, unknown> = {}
+        for (const [key, child] of Object.entries(propertiesObject)) {
           const childSchema = object.asObject(child)
           if (childSchema == null) {
             continue
           }
-          if (isRenderable(childSchema)) {
-            count += 1
+          const value = constantValue(childSchema)
+          if (value.length === 0) {
+            // eslint-disable-next-line no-restricted-syntax
+            return []
+          } else {
+            result[key] = value[0]
           }
         }
-        return count > 0
+        return [result]
       }
       default: {
-        return false
+        return []
       }
     }
   } else if ('$ref' in schema) {
     const referencedSchema = lookupDef(schema)
-    return referencedSchema == null ? false : isRenderable(referencedSchema)
-  } else if ('anyOf' in schema || 'allOf' in schema) {
-    const children = 'anyOf' in schema ? schema.anyOf : schema.allOf
-    if (!Array.isArray(children)) {
-      return false
+    return referencedSchema == null ? [] : constantValue(referencedSchema)
+  } else if ('anyOf' in schema) {
+    if (!Array.isArray(schema.anyOf) || schema.anyOf.length !== 1) {
+      return []
     } else {
-      let count = 0
-      for (const child of children) {
-        const childSchema = object.asObject(child)
-        if (childSchema == null) {
-          continue
+      const firstMember = object.asObject(schema.anyOf[0])
+      return firstMember == null ? [] : constantValue(firstMember)
+    }
+  } else if ('allOf' in schema) {
+    if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
+      return []
+    } else {
+      const firstMember = object.asObject(schema.allOf[0])
+      const firstValue = firstMember == null ? [] : constantValue(firstMember)
+      if (firstValue.length === 0) {
+        return []
+      } else {
+        const result = firstValue[0]
+        for (const child of schema.allOf) {
+          const childSchema = object.asObject(child)
+          if (childSchema == null) {
+            continue
+          }
+          const value = constantValue(childSchema)
+          if (value.length === 0) {
+            // eslint-disable-next-line no-restricted-syntax
+            return []
+          } else if (typeof result !== 'object' || result == null) {
+            if (result !== value[0]) {
+              // eslint-disable-next-line no-restricted-syntax
+              return []
+            }
+          } else {
+            if (value[0] == null || typeof result !== typeof value[0]) {
+              // eslint-disable-next-line no-restricted-syntax
+              return []
+            }
+            Object.assign(result, value[0])
+          }
         }
-        if (isRenderable(childSchema)) {
-          count += 1
-        }
+        return [result]
       }
-      return count > 0
     }
   } else {
-    return false
+    return [null]
   }
 }
 
-/** Whether the schema will render any elements.
- * This function is a memoized version of {@link isRenderableHelper}. */
-function isRenderable(schema: object) {
-  const cached = IS_RENDERABLE.get(schema)
+/** The value of the schema, if it can only have one possible value.
+ * This function is a memoized version of {@link constantValueHelper}. */
+function constantValue(schema: object) {
+  const cached = CONSTANT_VALUE.get(schema)
   if (cached != null) {
     return cached
   } else {
-    const renderable = isRenderableHelper(schema)
-    IS_RENDERABLE.set(schema, renderable)
+    const renderable = constantValueHelper(schema)
+    CONSTANT_VALUE.set(schema, renderable)
     return renderable
   }
 }
@@ -140,8 +169,8 @@ function getSchemaName(schema: object) {
 export interface DataLinkWizardProps {
   dropdownTitle?: string
   schema?: object
-  state: unknown
-  setState: (dataLink: unknown) => void
+  state: NonNullable<unknown> | null
+  setState: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
   setIsSubmittable: (isSubmittable: boolean) => void
 }
 
@@ -150,39 +179,33 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
   const {
     dropdownTitle,
     schema = SCHEMA.$defs.DataLink,
-    state,
-    setState,
+    state: stateRaw,
+    setState: setStateRaw,
     setIsSubmittable: setIsSubmittableRaw,
   } = props
   const [selectedChildIndex, setSelectedChildIndex] = React.useState(0)
   const [isSubmittable, setIsSubmittable] = React.useState(false)
   const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
   const [initializing, setInitializing] = React.useState(true)
-
-  React.useEffect(() => {
-    setState(null)
-    if ('const' in schema && state !== schema.const) {
-      setState(schema.const)
-    }
-    // `setState` WILL change when the parent schema is an object schema,
-    // because in that case `setState` is not memoized.
-    // This will result in `state` always becoming `null`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChildIndex])
+  const [state, setState] = React.useState(stateRaw)
 
   React.useEffect(() => {
     if (childSubmittability != null) {
       setIsSubmittable(childSubmittability.every(submittable => submittable))
     }
-    // `setIsSubmittable` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childSubmittability])
 
   React.useEffect(() => {
     setIsSubmittableRaw(isSubmittable)
-    // `setIsSubmittable` is a callback, not a dependency.
+    // `setIsSubmittableRaw` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSubmittable])
+
+  React.useEffect(() => {
+    setStateRaw(state)
+    // `setStateRaw` is a callback, not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state])
 
   React.useEffect(() => {
     setInitializing(false)
@@ -192,6 +215,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
   if ('const' in schema) {
     if (initializing) {
       setIsSubmittable(true)
+      setState(schema.const ?? null)
     }
     // This value cannot change.
     return null
@@ -262,37 +286,47 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
               .map(childSchema => ({ key: k, schema: childSchema }))
           }
         )
-        const stateAsObject: Record<string, unknown> =
+        const stateAsObject: Record<string, NonNullable<unknown> | null> =
           // This is SAFE, as `state` is an untyped object.
           // eslint-disable-next-line no-restricted-syntax
-          (object.asObject(state) as Record<string, unknown> | null) ??
-          Object.fromEntries(propertyDefinitions.map(definition => [definition.key, null]))
+          (object.asObject(state) as Record<string, NonNullable<unknown> | null> | null) ??
+          Object.fromEntries(
+            propertyDefinitions.map(definition => [
+              definition.key,
+              constantValue(definition.schema)[0] ?? null,
+            ])
+          )
         if (initializing) {
-          if (!isSubmittable && !isRenderable(schema)) {
+          const value = constantValue(schema)
+          if (!isSubmittable && value.length === 1) {
             setIsSubmittable(true)
           }
+          if (state == null) {
+            setState(stateAsObject)
+          }
         }
-        return !isRenderable(schema) ? null : (
+        return constantValue(schema).length === 1 ? null : (
           <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
             {propertyDefinitions.map((definition, i) => {
               const { key, schema: childSchema } = definition
-              return !isRenderable(childSchema) ? null : (
+              return constantValue(childSchema).length === 1 ? null : (
                 <div key={key} className="flex flex-wrap items-center">
                   <div className="inline-block w-24">
                     {'title' in childSchema ? String(childSchema.title) : key}
                   </div>
                   <DataLinkWizard
                     schema={childSchema}
-                    state={stateAsObject[key]}
+                    state={stateAsObject[key] ?? null}
                     setState={newValue => {
-                      setState({ ...stateAsObject, [key]: newValue })
+                      setState(oldState => ({ ...oldState, [key]: newValue }))
                     }}
                     setIsSubmittable={isChildSubmittable => {
                       setChildSubmittability(oldSubmittability =>
                         Array.from(propertyDefinitions, (childDefinition, j) =>
                           j === i
                             ? isChildSubmittable || !requiredProperties.includes(key)
-                            : oldSubmittability?.[j] ?? !isRenderable(childDefinition.schema)
+                            : oldSubmittability?.[j] ??
+                              constantValue(childDefinition.schema).length === 1
                         )
                       )
                     }}
@@ -331,10 +365,11 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
     } else {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
       const selectedChildSchema = childSchemas[selectedChildIndex]
-      const isChildRenderable = selectedChildSchema != null && isRenderable(selectedChildSchema)
+      const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
       if (initializing) {
-        if (!isSubmittable && !isChildRenderable) {
+        if (!isSubmittable && childValue.length === 1) {
           setIsSubmittable(true)
+          setState(childValue[0])
         }
       }
       const dropdown = (
@@ -345,12 +380,13 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
           className="self-start"
           onClick={(childSchema, index) => {
             setSelectedChildIndex(index)
-            setIsSubmittable(!isRenderable(childSchema))
+            setState(null)
+            setIsSubmittable(constantValue(childSchema).length === 1)
           }}
         />
       )
       return (
-        <div className={`flex flex-col gap-1 ${isChildRenderable ? 'w-full' : ''}`}>
+        <div className={`flex flex-col gap-1 ${childValue.length === 0 ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
             <div className="flex items-center">
               <div className="w-12 h-6 py-1">{dropdownTitle}</div>
@@ -359,7 +395,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
           ) : (
             dropdown
           )}
-          {isChildRenderable && (
+          {selectedChildSchema != null && childValue.length === 0 && (
             <DataLinkWizard
               schema={selectedChildSchema}
               state={state}
@@ -388,7 +424,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
                   Array.from(childSchemas, (otherChildSchema, j) =>
                     j === i
                       ? isChildSubmittable
-                      : oldSubmittability?.[j] ?? !isRenderable(otherChildSchema)
+                      : oldSubmittability?.[j] ?? constantValue(otherChildSchema).length === 1
                   )
                 )
               }}
