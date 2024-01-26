@@ -27,7 +27,7 @@ spec setup =
     table_builder = setup.table_builder
     test_selection = setup.test_selection
 
-    Test.group prefix+"Table.filterasdfasdf" <|
+    Test.group prefix+"Table.filter" <|
         Test.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t1 = t.filter "X" (Filter_Condition.Less than=10)
