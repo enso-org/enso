@@ -22,3 +22,8 @@ export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: 
 export function readonly<T extends object>(object: T): Readonly<T> {
   return object
 }
+
+/** Removes the readonly modifier from all properties on the object. UNSAFE. */
+export function unsafeMutable<T extends object>(object: T): { -readonly [K in keyof T]: T[K] } {
+  return object
+}
