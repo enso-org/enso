@@ -78,9 +78,12 @@ expand_to_rows table column at_least_one_row=False =
     row_expander : Any -> Vector
     row_expander value:Convertible_To_Rows = value.to_vector
 
+    column_names : Any -> Vector
+    column_names value:Convertible_To_Rows = value.columns.map name-> if name=="" then column else column+" "+name
+
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
         builder size = make_inferred_builder size java_problem_aggregator
-        Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=builder
+        Fan_Out.fan_out_to_rows table column row_expander column_names at_least_one_row column_builder=builder
 
 ## PRIVATE
 create_table_from_objects : Convertible_To_Rows -> (Vector Text | Nothing) -> Table

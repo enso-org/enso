@@ -42,13 +42,19 @@ Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that.length that.
 Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length that.get
 
 ## PRIVATE
-Convertible_To_Rows.from that:Map = Convertible_To_Rows.from (that.to_vector) ["Key", "Value"]
+Convertible_To_Rows.from that:Map =
+    vals = that.to_vector
+    Convertible_To_Rows.Value vals.length vals.get ["Key", ""]
 
 ## PRIVATE
-Convertible_To_Rows.from that:JS_Object = Convertible_To_Rows.from (that.to_vector) ["Field", "Value"]
+Convertible_To_Rows.from that:JS_Object =
+    vals = that.to_vector
+    Convertible_To_Rows.Value vals.length vals.get ["Key", ""]
 
 ## PRIVATE
-Convertible_To_Rows.from that:Jackson_Object = Convertible_To_Rows.from (that.to_vector) ["Field", "Value"]
+Convertible_To_Rows.from that:Jackson_Object =
+    vals = that.to_vector
+    Convertible_To_Rows.Value vals.length vals.get ["Key", ""]
 
 ## PRIVATE
 Convertible_To_Rows.from (that:Any) =

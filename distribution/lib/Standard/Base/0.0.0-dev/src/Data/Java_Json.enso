@@ -112,7 +112,7 @@ type Jackson_Object
     to_vector : Vector
     to_vector self =
         keys = self.field_array
-        proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
+        proxy = Array_Proxy.new keys.length (i-> [(keys.at i), (self.get (keys.at i))])
         Vector.from_polyglot_array proxy
 
     ## GROUP Conversions

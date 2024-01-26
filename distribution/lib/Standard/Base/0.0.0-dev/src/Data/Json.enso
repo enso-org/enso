@@ -183,11 +183,11 @@ type JS_Object
         get_property_names self.js_object . length
 
     ## GROUP Conversions
-       Convert the object to a Vector of Pairs.
+       Convert the object to a Vector of Key and Values.
     to_vector : Vector
     to_vector self =
         keys = get_property_names self.js_object
-        proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
+        proxy = Array_Proxy.new keys.length (i-> [(keys.at i), (self.get (keys.at i))])
         Vector.from_polyglot_array proxy
 
     ## PRIVATE
