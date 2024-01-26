@@ -32,7 +32,8 @@ Enso Engine bundle.
 Download links:
 
 - [Linux]({{download_prefix}}/enso-bundle-{{version}}-linux-amd64.tar.gz);
-- [macOS]({{download_prefix}}/enso-bundle-{{version}}-macos-amd64.tar.gz);
+- [macOS (x64)]({{download_prefix}}/enso-bundle-{{version}}-macos-amd64.tar.gz);
+- [macOS (arm64)]({{download_prefix}}/enso-bundle-{{version}}-macos-amd64.tar.gz);
 - [Windows]({{download_prefix}}/enso-bundle-{{version}}-windows-amd64.zip).
 
 These are archives containing the
