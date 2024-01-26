@@ -196,6 +196,11 @@ final class BinaryOperatorNode extends ExpressionNode {
         var result = invokeNode.execute(symbolFn, frame, state, new Object[] {selfAsThat, that});
         return result;
       } catch (ArityException ex) {
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          throw new AssertionError("Unexpected arity exception", ex);
+        }
         return null;
       } catch (PanicException ex) {
         if (ctx.getBuiltins().error().isNoSuchConversionError(ex.getPayload())) {
