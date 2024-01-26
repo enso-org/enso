@@ -6,7 +6,7 @@ import { computed } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 
 const child = computed(() => {
-  const subExpression = props.input.value.expression()
+  const subExpression = props.input.value.expression
   if (subExpression)
     // Parenthesis should not affect widget hierarchy, so we pass entire configuration to expression widget.
     return {
