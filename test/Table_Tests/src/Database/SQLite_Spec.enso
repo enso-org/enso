@@ -323,7 +323,7 @@ sqlite_spec suite_builder prefix create_connection_func =
 
     Common_Spec.add_specs suite_builder prefix create_connection_func
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_collation_en_gb_utf8=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -449,4 +449,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter group_filter="Table.order_by"
