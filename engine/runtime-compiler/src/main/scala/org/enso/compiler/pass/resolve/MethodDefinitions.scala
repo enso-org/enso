@@ -101,7 +101,7 @@ case object MethodDefinitions extends IRPass {
               if canGenerateStaticWrappers(tp) =>
             val dup = method.duplicate()
             // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
-            val fakeModuleSelfArg = DefinitionArgument.Specified(
+            val syntheticModuleSelfArg = DefinitionArgument.Specified(
               Name.Self(None, synthetic = true),
               None,
               None,
@@ -117,9 +117,9 @@ case object MethodDefinitions extends IRPass {
             // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
             val static = dup.copy(body =
               new Function.Lambda(
-                // This is the fake Self argument that gets the static module
-                List(fakeModuleSelfArg),
-                // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type
+                // This is the synthetic Self argument that gets the static module
+                List(syntheticModuleSelfArg),
+                // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type (or triggers conversions)
                 addTypeAscriptionToSelfArgument(dup.body, selfType),
                 None
               )

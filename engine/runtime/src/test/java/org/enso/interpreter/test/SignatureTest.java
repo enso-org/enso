@@ -632,6 +632,7 @@ public class SignatureTest extends TestBase {
 
     My_Type.from (that : Convertible_Type) = My_Type.Value that.x+1
 
+    static_my_type = My_Type.f (My_Type.Value 23) 1000
     static_convertible = My_Type.f (Convertible_Type.A 23) 1000
     static_inconvertible = My_Type.f (Inconvertible_Type.B 23) 1000
     """,
@@ -640,8 +641,16 @@ public class SignatureTest extends TestBase {
             .buildLiteral();
 
     var module = ctx.eval(src);
+    var static_my_type = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "static_my_type");
+    assertEquals(
+        "My_Type.f is executed directly on 23, yielding 1023", 1023, static_my_type.asInt());
+
     var convertible = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "static_convertible");
-    assertEquals(1024, convertible.asInt());
+    assertEquals(
+        "My_Type.f is executed on the converted value, so 23 is incremented to 24, yielding 1024"
+            + " proving that the conversion has been applied",
+        1024,
+        convertible.asInt());
 
     try {
       var invalid_static_call =
