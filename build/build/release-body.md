@@ -16,9 +16,10 @@ they contain both GUI and the backend.
 
 Download links:
 
-- [Linux]({{download_prefix}}/enso-linux-{{version}}.AppImage) (AppImage);
-- [macOS]({{download_prefix}}/enso-mac-{{version}}.dmg) (DMG);
-- [Windows]({{download_prefix}}/enso-win-{{version}}.exe) (Installer
+- [Linux]({{download_prefix}}/enso-linux-x86_64-{{version}}.AppImage) (AppImage);
+- [macOS (x64)]({{download_prefix}}/enso-mac-x64-{{version}}.dmg) (DMG);
+- [macOS (arm64)]({{download_prefix}}/enso-mac-arm64-{{version}}.dmg) (DMG);
+- [Windows]({{download_prefix}}/enso-win-x64-{{version}}.exe) (Installer
   Executable).
 
 This is the recommended download for most users.
