@@ -246,8 +246,31 @@ spec =
                 new_file.exists . should_be_false
                 my_writable_dir.list . should_not_contain new_file
 
-        Test.specify "should support .bak logic" pending="TODO" <|
-            Error.throw "TODO"
+        Test.specify "should support .bak logic" <|
+            my_file = my_writable_dir / "bak-test/my_file.txt"
+            bak_file = my_writable_dir / "bak-test/my_file.txt"
+
+            "version1".write my_file . should_succeed
+            delete_afterwards my_file <|
+                my_file.read . should_equal "version1"
+                bak_file.exists . should_be_false
+
+                # Backup is the default behavior:
+                "version2".write my_file . should_succeed
+
+                bak_file.exists . should_be_true
+                delete_afterwards bak_file <|
+                    my_file.read . should_equal "version2"
+                    bak_file.read . should_equal "version1"
+
+                    "version3".write my_file . should_succeed
+
+                    my_file.read . should_equal "version3"
+                    bak_file.read . should_equal "version2"
+
+                    # No new file was created
+                    parent_dir = my_file.parent
+                    parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
 
         Test.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
