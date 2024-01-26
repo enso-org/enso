@@ -1,12 +1,15 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test_New import all
 
 import project.Formatting.Data_Formatter_Spec
 import project.Formatting.Parse_Values_Spec
 
-spec =
-    Data_Formatter_Spec.spec
-    Parse_Values_Spec.spec
+add_specs suite_builder =
+    Data_Formatter_Spec.add_specs suite_builder
+    Parse_Values_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

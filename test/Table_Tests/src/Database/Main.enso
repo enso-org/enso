@@ -1,16 +1,19 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test_New import Test
 
 import project.Database.Codegen_Spec
 import project.Database.SQLite_Spec
 import project.Database.Postgres_Spec
 import project.Database.Redshift_Spec
 
-spec =
-    Codegen_Spec.spec
-    SQLite_Spec.spec
-    Postgres_Spec.spec
-    Redshift_Spec.spec
+add_specs suite_builder =
+    Codegen_Spec.add_specs suite_builder
+    SQLite_Spec.add_specs suite_builder
+    Postgres_Spec.add_specs suite_builder
+    Redshift_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

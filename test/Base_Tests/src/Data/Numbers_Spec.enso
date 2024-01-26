@@ -6,8 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Data.Round_Spec
 
@@ -27,7 +26,7 @@ type Complex
 
 Complex.from (that:Number) = Complex.new that
 
-spec =
+add_specs suite_builder =
     eps = 0.000001
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
@@ -36,61 +35,60 @@ spec =
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     very_negative = -99223372036854775808
 
-    Round_Spec.spec "Number " .round
+    suite_builder.group "Integers" group_builder->
+        Round_Spec.add_specs group_builder (.round)
 
-    Test.group "Integers" <|
-
-        Test.specify "should be of unbound size when multiplied" <|
+        group_builder.specify "should be of unbound size when multiplied" <|
             1.up_to 101 . fold 1 (*) . should_equal hundred_factorial
 
-        Test.specify "should be of unbound size when added" <|
+        group_builder.specify "should be of unbound size when added" <|
             (almost_max_long + almost_max_long + almost_max_long).should_equal almost_max_long_times_three
 
-        Test.specify "should be of unbound size when subtracted" <|
+        group_builder.specify "should be of unbound size when subtracted" <|
             (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
 
-        Test.specify "should be of unbound size when dividing" <|
+        group_builder.specify "should be of unbound size when dividing" <|
             expected = 3372816184472482867110284450043137767873196479305249187406461598235841786750685581361224832688174410089430537516012695688121622150430744676
             ((1.up_to 101 . fold 1 (*)).div  3*almost_max_long).should_equal expected
 
-        Test.specify "should be of unbound size when taking remainder" <|
+        group_builder.specify "should be of unbound size when taking remainder" <|
             expected = 3191479909175673432
             ((1.up_to 101 . fold 1 (*)) % 3*almost_max_long).should_equal expected
 
-        Test.specify "should allow defining extension methods through the Integer type for any number size" <|
+        group_builder.specify "should allow defining extension methods through the Integer type for any number size" <|
             876543.is_even.should_be_false
             (1.up_to 101 . fold 1 (*)).is_even.should_be_true
 
-        Test.specify "should handle the negation edge cases" <|
+        group_builder.specify "should handle the negation edge cases" <|
             x = 9223372036854775808
             y = -x
             z = -9223372036854775808
             y.should_equal z
 
-        Test.specify "should handle equality between small and big integers" <|
+        group_builder.specify "should handle equality between small and big integers" <|
             (1 == hundred_factorial).should_be_false
             (hundred_factorial == 1).should_be_false
 
-        Test.specify "should properly handle going to big numbers and back" <|
+        group_builder.specify "should properly handle going to big numbers and back" <|
             ((almost_max_long * 3) / 3) . should_equal almost_max_long
 
-        Test.specify "should use floating point arithmetic for division" <|
+        group_builder.specify "should use floating point arithmetic for division" <|
             (3 / 4) . should_equal 0.75 epsilon=eps
             (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
 
-        Test.specify "should support integer division" <|
+        group_builder.specify "should support integer division" <|
             (10.div 3) . should_equal 3
             (10.div 0).should_fail_with Arithmetic_Error
 
-        Test.specify "should support integral binary literals" <|
+        group_builder.specify "should support integral binary literals" <|
             lit = 2_01101101
             lit . should_equal 109
 
-        Test.specify "should support integral hexadecimal literals" <|
+        group_builder.specify "should support integral hexadecimal literals" <|
             lit = 16_6D
             lit . should_equal 109
 
-        Test.specify "should support bitwise and" <|
+        group_builder.specify "should support bitwise and" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -100,7 +98,7 @@ spec =
             big_left.bit_and right . should_equal 2_11000000
             big_left.bit_and big_right . should_equal 16_17ffffffffffffff8
 
-        Test.specify "should support bitwise or" <|
+        group_builder.specify "should support bitwise or" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -110,7 +108,7 @@ spec =
             big_left.bit_or right . should_equal 16_17ffffffffffffffe
             big_left.bit_or right . should_equal 16_17ffffffffffffffe
 
-        Test.specify "should support bitwise exclusive or" <|
+        group_builder.specify "should support bitwise exclusive or" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -120,7 +118,7 @@ spec =
             big_left.bit_xor right . should_equal 16_17fffffffffffff3e
             big_left.bit_xor big_right . should_equal 2_00000110
 
-        Test.specify "should support bitwise negation" <|
+        group_builder.specify "should support bitwise negation" <|
             bits  = 2_01101101
             big_bits = 16_17ffffffffffffffa
             bits.bit_not . should_equal -2_01101110
@@ -128,7 +126,7 @@ spec =
             big_bits.bit_not . should_equal -16_17ffffffffffffffb
             big_bits.bit_not.bit_not . should_equal big_bits
 
-        Test.specify "should support left bit shifts" <|
+        group_builder.specify "should support left bit shifts" <|
             positive_bits = 2_01101101
             negative_bits = -2_01101101
             positive_big_bits = almost_max_long_times_three
@@ -162,7 +160,7 @@ spec =
             (negative_big_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
             negative_big_bits.bit_shift_l negative_big_bits . should_equal -1
 
-        Test.specify "should support right bit shifts, preserving sign" <|
+        group_builder.specify "should support right bit shifts, preserving sign" <|
             positive_bits = 2_01101101
             negative_bits = -2_01101101
             positive_big_bits = almost_max_long_times_three
@@ -196,7 +194,7 @@ spec =
             (negative_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
 
-        Test.specify "should be able to parse" <|
+        group_builder.specify "should be able to parse" <|
             Integer.parse "1245623" . should_equal 1245623
             Integer.parse "012345" . should_equal 12345
             Integer.parse "-1234567" . should_equal -1234567
@@ -206,17 +204,17 @@ spec =
             Integer.parse "123A" . should_fail_with Number_Parse_Error
             Integer.parse "aaaa" . should_fail_with Number_Parse_Error
 
-        Test.specify "should parse hundred factorial" <|
+        group_builder.specify "should parse hundred factorial" <|
             txt = hundred_factorial.to_text
             number = Integer.parse txt
             number . should_equal hundred_factorial
 
-        Test.specify "should fail on too huge decimal" <|
+        group_builder.specify "should fail on too huge decimal" <|
             txt = hundred_factorial.to_text + ".345"
             number = Integer.parse txt
             number . should_fail_with Number_Parse_Error
 
-        Test.specify "should be able to parse alternate bases" <|
+        group_builder.specify "should be able to parse alternate bases" <|
             Integer.parse "1245623" 8 . should_equal 347027
             Integer.parse "-1245623" 8 . should_equal -347027
             Integer.parse "0001245623" 8 . should_equal 347027
@@ -235,22 +233,22 @@ spec =
             Integer.parse "-101021010" 2 . should_fail_with Number_Parse_Error
             Integer.parse "123" 128 . should_fail_with Number_Parse_Error
 
-        Test.specify "should be able to invoke methods on Integer via static method call" <|
+        group_builder.specify "should be able to invoke methods on Integer via static method call" <|
             Integer.+ 1 2 . should_equal 3
             Integer.+ 1 2.5 . should_equal 3.5
             Test.expect_panic_with (Integer.+ 1.5 1) Type_Error
             Test.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
             Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
 
-    Test.group "Floats" <|
+    suite_builder.group "Floats" group_builder->
 
-        Test.specify "should exist and expose basic arithmetic operations" <|
+        group_builder.specify "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
 
-        Test.specify "should allow defining extension methods through the Float type" <|
+        group_builder.specify "should allow defining extension methods through the Float type" <|
             32.5.get_fun_factor.should_equal "Wow, 32.5 is such a fun number!"
 
-        Test.specify "should be able to be parsed" <|
+        group_builder.specify "should be able to be parsed" <|
             Float.parse "32.5" . should_equal 32.5
             Float.parse "0122.5" . should_equal 122.5
             Float.parse "-98.5" . should_equal -98.5
@@ -258,7 +256,7 @@ spec =
             Float.parse "000000.0001" . should_equal 0.0001
             Float.parse "aaaa" . should_fail_with Number_Parse_Error
 
-        Test.specify "parse with locale" <|
+        group_builder.specify "parse with locale" <|
             l = Locale.new "cs"
             Float.parse "32,5" l . should_equal 32.5
             Float.parse "0122,5" l . should_equal 122.5
@@ -267,21 +265,21 @@ spec =
             Float.parse "000000,0001" l . should_equal 0.0001
             Float.parse "aaaa" l . should_fail_with Number_Parse_Error
 
-        Test.specify "decimal should parse hundred factorial well" <|
+        group_builder.specify "decimal should parse hundred factorial well" <|
             txt = hundred_factorial.to_text + ".345"
             decimal = Float.parse txt
             is_huge = decimal > (hundred_factorial / 5)
             is_huge . should_equal True
 
-    Test.group "Numbers" <|
+    suite_builder.group "Numbers" group_builder->
 
-        Test.specify "should define addition" <|
+        group_builder.specify "should define addition" <|
             2+3 . should_equal 5
 
-        Test.specify "should define multiplication" <|
+        group_builder.specify "should define multiplication" <|
             2*3 . should_equal 6
 
-        Test.specify "should define modulo for integers and decimals" <|
+        group_builder.specify "should define modulo for integers and decimals" <|
             5%3 . should_equal 2
             5%3 . should_be_a Integer
 
@@ -318,7 +316,7 @@ spec =
             hundred_factorial%hundred_factorial . should_equal 0
             10%hundred_factorial . should_equal 10
 
-        Test.specify "should support less than operator" <|
+        group_builder.specify "should support less than operator" <|
             (1 < 2).should_be_true
             (1 < 1).should_be_false
             (1 < 0).should_be_false
@@ -342,7 +340,7 @@ spec =
             (very_negative < hundred_factorial).should_be_true
             (very_negative < Nothing).should_fail_with Incomparable_Values
 
-        Test.specify "should support less than or equal to operator" <|
+        group_builder.specify "should support less than or equal to operator" <|
             (1 <= 2).should_be_true
             (1 <= 1).should_be_true
             (1 <= 0).should_be_false
@@ -366,7 +364,7 @@ spec =
             (very_negative <= hundred_factorial).should_be_true
             (very_negative <= Nothing).should_fail_with Incomparable_Values
 
-        Test.specify "should support greater than operator" <|
+        group_builder.specify "should support greater than operator" <|
             (1 > 2).should_be_false
             (1 > 1).should_be_false
             (1 > 0).should_be_true
@@ -390,7 +388,7 @@ spec =
             (very_negative > hundred_factorial).should_be_false
             (very_negative > Nothing).should_fail_with Incomparable_Values
 
-        Test.specify "should support greater than or equal to operator" <|
+        group_builder.specify "should support greater than or equal to operator" <|
             (1 >= 2).should_be_false
             (1 >= 1).should_be_true
             (1 >= 0).should_be_true
@@ -414,7 +412,7 @@ spec =
             (very_negative >= hundred_factorial).should_be_false
             (very_negative >= Nothing).should_fail_with Incomparable_Values
 
-        Test.specify "should be ordered by the default comparator" <|
+        group_builder.specify "should be ordered by the default comparator" <|
             Ordering.compare 1 2 . should_equal Ordering.Less
             Ordering.compare 1 1 . should_equal Ordering.Equal
             Ordering.compare 1 0 . should_equal Ordering.Greater
@@ -438,7 +436,7 @@ spec =
             Ordering.compare very_negative hundred_factorial . should_equal Ordering.Less
             Ordering.compare very_negative Nothing . should_fail_with Incomparable_Values
 
-        Test.specify "should expose exponentiation operations" <|
+        group_builder.specify "should expose exponentiation operations" <|
             (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps
             (3.14 ^ 14).should_equal 9057640.36635 epsilon=eps
             a = almost_max_long
@@ -447,26 +445,26 @@ spec =
             (2 ^ 0.5).should_equal 1.41421356237 epsilon=eps
             (a^2)^0.5 . should_equal a epsilon=eps
 
-        Test.specify "should expose more involved mathematical functions" <|
+        group_builder.specify "should expose more involved mathematical functions" <|
             Math.pi.sin.should_equal 0 epsilon=eps
             (Math.pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
             (Math.pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
             (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
             0.exp.should_equal 1
 
-        Test.specify "should allow calculating the floor value" <|
+        group_builder.specify "should allow calculating the floor value" <|
             1.2314.floor . should_equal 1
             1.floor . should_equal 1
             almost_max_long_times_three_decimal.floor.to_float . should_equal almost_max_long_times_three.to_float
             almost_max_long_times_three.floor . should_equal almost_max_long_times_three
 
-        Test.specify "should allow calculating the ceil value" <|
+        group_builder.specify "should allow calculating the ceil value" <|
             1.2314.ceil . should_equal 2
             1.ceil . should_equal 1
             almost_max_long_times_three_decimal.ceil.to_float . should_equal almost_max_long_times_three_plus_1.to_float
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
 
-        Test.specify "should expose a NaN value" <|
+        group_builder.specify "should expose a NaN value" <|
             Number.nan.is_nan . should_be_true
             0.is_nan . should_be_false
             Number.positive_infinity.is_nan . should_be_false
@@ -481,7 +479,7 @@ spec =
             Number.nan==0 . should_be_false
             Number.nan!=Number.nan . should_be_true
 
-        Test.specify "should support inexact equality comparisons" <|
+        group_builder.specify "should support inexact equality comparisons" <|
             1.0001 . equals 1.0002 epsilon=0.01 . should_be_true
             1.0001 . equals 1.0002 epsilon=0.0000001 . should_be_false
 
@@ -499,14 +497,14 @@ spec =
             Number.nan . equals Number.nan . should_fail_with Incomparable_Values
             Number.nan . equals 0 . should_fail_with Incomparable_Values
 
-    Test.group "rounding" <|
-        Test.specify "Returns the correct type" <|
+    suite_builder.group "rounding" group_builder->
+        group_builder.specify "Returns the correct type" <|
             231 . round 1 . should_be_a Integer
             231 . round 0 . should_be_a Integer
             231 . round . should_be_a Integer
             231 . round -1 . should_be_a Integer
 
-        Test.specify "Input out of range" <|
+        group_builder.specify "Input out of range" <|
             100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
             100000000000000 . round . should_fail_with Illegal_Argument
@@ -518,17 +516,17 @@ spec =
             99999999999999 . round -2 . should_equal 100000000000000
             -99999999999999 . round -2 . should_equal -100000000000000
 
-        Test.specify "Reject bigints before reaching the Java" <|
+        group_builder.specify "Reject bigints before reaching the Java" <|
             922337203685477580700000 . round . should_fail_with Illegal_Argument
             -922337203685477580700000 . round . should_fail_with Illegal_Argument
 
-        Test.specify "Can handle small numbers computed from bigints" <|
+        group_builder.specify "Can handle small numbers computed from bigints" <|
             (922337203685477580712345 - 922337203685477580700000) . round . should_equal 12345
             ((99999999999998 * 1000).div 1000) . round . should_equal 99999999999998
 
-    Test.group "Float.truncate"
+    suite_builder.group "Float.truncate" group_builder->
 
-        Test.specify "Correctly converts to Integer" <|
+        group_builder.specify "Correctly converts to Integer" <|
             0.1.truncate . should_equal 0
             0.9.truncate . should_equal 0
             3.1.truncate . should_equal 3
@@ -538,24 +536,24 @@ spec =
             -3.1.truncate . should_equal -3
             -3.9.truncate . should_equal -3
 
-    Test.group "Integer.truncate"
+    suite_builder.group "Integer.truncate" group_builder->
 
-        Test.specify "Returns its argument" <|
+        group_builder.specify "Returns its argument" <|
             0.truncate . should_equal 0
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
 
-    Test.group "Number Conversions" <|
-        Test.specify "Returns its argument" <|
+    suite_builder.group "Number Conversions" group_builder->
+        group_builder.specify "Returns its argument" <|
             v1 = (Complex.new 1 2) + (Complex.new 3)
             v2 = (Complex.new 1 2) + 3
             v1 . should_equal v2
 
-    Test.group "BigInts" <|
+    suite_builder.group "BigInts" group_builder->
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
 
         bigint_spec name create mul =
-            Test.specify name+" 6 * 7" <|
+            group_builder.specify name+" 6 * 7" <|
                 six = create 6
                 seven = create 7
                 both = six*seven
@@ -565,7 +563,7 @@ spec =
                 seven.is_a Integer . should_be_true
                 both.is_a Integer . should_be_true
 
-            Test.specify name+" power of 3 with running_fold" <|
+            group_builder.specify name+" power of 3 with running_fold" <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . running_fold three a->_->
@@ -575,7 +573,7 @@ spec =
                 sum.is_a Integer . should_be_true
                 sum.div two_hundred.length . should_equal expected_value
 
-            Test.specify name+" power of 3 with map" <|
+            group_builder.specify name+" power of 3 with map" <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . map i->
@@ -588,7 +586,7 @@ spec =
                     v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
 
-            Test.specify name+" BigInteger to BigDecimal test" <|
+            group_builder.specify name+" BigInteger to BigDecimal test" <|
                     h = 2^70
                     bd1 = BigDecimal.new h 0
                     bd2 = BigDecimal.new h
@@ -606,7 +604,7 @@ spec =
         bigint_spec "Java" to_java_bigint java_bigint_mul
         bigint_spec "JavaScript" to_js_bigint js_bigint_mul
 
-        Test.specify "Matrix of values" <|
+        group_builder.specify "Matrix of values" <|
             x = to_java_bigint 10
             y = 10
             z = 10.0
@@ -616,7 +614,10 @@ spec =
                 [x, y, z, w].each b->
                     a+b . should_equal 20
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
 
 foreign js to_js_bigint n = """
     return BigInt(n)

@@ -38,12 +38,14 @@ type Test_Setup
        Arguments:
        - prefix: A name to prepend to test groups to identify the tested
          backend.
-       - table: A table using the tested backend containing data from
-         `data/data.csv`.
-       - empty_table: An empty table using the tested backend.
+       - table_fn: A function that takes Nothing and returns a table using the
+         tested backend containing data from `data/data.csv`.
+       - empty_table_fn: A function that takes Nothing and returns an empty
+         table using the tested backend.
        - table_builder: A function used to build a table using the tested
          backend from a vector of columns represented as pairs of name and
-         vector of values.
+         vector of values. The second optional argument is connection or Nothing.
+         An example signature of the method is `table_builder cols connection=Nothing`.
        - materialize: A helper function which materializes a table from the
          tested backend as an in-memory table. Used to easily inspect results of
          a particular query/operation.
@@ -54,9 +56,9 @@ type Test_Setup
        - aggregate_test_selection: A selection of which aggregate test suites
          should be run. Can be used to skip checks for backends which do not
          support particular features.
-       - connection: A related database connection or Nothing for in-memory
-         tests.
-    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection connection
+       - create_connection_func: A function that takes Nothing and creates a related
+         database connection or Nothing for in-memory tests.
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func
 
     ## Specifies if the given Table backend supports custom Enso types.
 
@@ -119,32 +121,32 @@ type Test_Selection
          Replace_Params that a backend supports.
     Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False length_restricted_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=False different_size_integer_types=True supports_8bit_integer=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing
 
-spec setup =
-    Core_Spec.spec setup
-    Select_Columns_Spec.spec setup
-    Column_Name_Edge_Cases_Spec.spec setup
-    Column_Operations_Spec.spec setup
-    Derived_Columns_Spec.spec setup
-    Date_Time_Spec.spec setup
-    Conversion_Spec.spec setup
-    Aggregate_Spec.spec setup
-    Filter_Spec.spec setup
-    Map_Spec.spec setup
-    Missing_Values_Spec.spec setup
-    Order_By_Spec.spec setup
-    Take_Drop_Spec.spec setup
-    Expression_Spec.spec detailed=False setup
-    Join_Spec.spec setup
-    Cross_Join_Spec.spec setup
-    Zip_Spec.spec setup
-    Union_Spec.spec setup
-    Lookup_Spec.spec setup
-    Distinct_Spec.spec setup
-    Cross_Tab_Spec.spec setup
-    Transpose_Spec.spec setup
-    Add_Row_Number_Spec.spec setup
-    Integration_Tests.spec setup
-    Temp_Column_Spec.spec setup
-    Nothing_Spec.spec setup
+add_specs suite_builder setup =
+    Core_Spec.add_specs suite_builder setup
+    Select_Columns_Spec.add_specs suite_builder setup
+    Column_Name_Edge_Cases_Spec.add_specs suite_builder setup
+    Column_Operations_Spec.add_specs suite_builder setup
+    Derived_Columns_Spec.add_specs suite_builder setup
+    Date_Time_Spec.add_specs suite_builder setup
+    Conversion_Spec.add_specs suite_builder setup
+    Aggregate_Spec.add_specs suite_builder setup
+    Filter_Spec.add_specs suite_builder setup
+    Map_Spec.add_specs suite_builder setup
+    Missing_Values_Spec.add_specs suite_builder setup
+    Order_By_Spec.add_specs suite_builder setup
+    Take_Drop_Spec.add_specs suite_builder setup
+    Expression_Spec.add_specs suite_builder detailed=False setup
+    Join_Spec.add_specs suite_builder setup
+    Cross_Join_Spec.add_specs suite_builder setup
+    Zip_Spec.add_specs suite_builder setup
+    Union_Spec.add_specs suite_builder setup
+    Lookup_Spec.add_specs suite_builder setup
+    Distinct_Spec.add_specs suite_builder setup
+    Cross_Tab_Spec.add_specs suite_builder setup
+    Transpose_Spec.add_specs suite_builder setup
+    Add_Row_Number_Spec.add_specs suite_builder setup
+    Integration_Tests.add_specs suite_builder setup
+    Temp_Column_Spec.add_specs suite_builder setup
+    Nothing_Spec.add_specs suite_builder setup
 
-main = run_default_backend spec
+main = run_default_backend add_specs
