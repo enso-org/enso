@@ -177,7 +177,7 @@ const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = comp
   return {
     type: 'expression',
     expression: previewedExpression.value,
-    contextId: body.exprId,
+    contextId: body.externalId,
   }
 })
 

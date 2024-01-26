@@ -3,7 +3,13 @@ import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/sugge
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import {
+  normalizeQualifiedName,
+  qnJoin,
+  qnParent,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
@@ -32,7 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     const moduleName = tryQualifiedName(method.definedOnType)
     const methodName = tryQualifiedName(method.name)
     if (!moduleName.ok || !methodName.ok) return
-    const qualifiedName = qnJoin(moduleName.value, methodName.value)
+    const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
     const [suggestionId] = this.nameToId.lookup(qualifiedName)
     return suggestionId
   }

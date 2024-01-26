@@ -1,7 +1,8 @@
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import assert from 'assert'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 /**
@@ -9,9 +10,10 @@ import { expect, test } from 'vitest'
  * @param x sequential value, e.g. 15
  * @returns fake uuid, e.g. 00000000-0000-0000-0000-000000000015
  */
-function id(x: number): ExprId {
+function id(x: number): AstId & ExternalId {
   const xStr = `${x}`
-  return ('00000000-0000-0000-0000-000000000000'.slice(0, -xStr.length) + xStr) as ExprId
+  return ('00000000-0000-0000-0000-000000000000'.slice(0, -xStr.length) + xStr) as AstId &
+    ExternalId
 }
 
 test('Reading graph from definition', () => {
@@ -56,9 +58,9 @@ test('Reading graph from definition', () => {
   expect(db.getIdentDefiningNode('node1')).toBe(id(4))
   expect(db.getIdentDefiningNode('node2')).toBe(id(8))
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id(4)))).toBe('node1')
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id(8)))).toBe('node2')
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id(3)))).toBe('node1')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(4))))).toBe('node1')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(8))))).toBe('node2')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(3))))).toBe('node1')
 
   // Commented the connection from input node, as we don't support them yet.
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id(3), id(7)])
@@ -66,7 +68,7 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.connections.lookup(id(3)))).toEqual([id(9)])
   // expect(db.getOutputPortIdentifier(id(2))).toBe('a')
   expect(db.getOutputPortIdentifier(id(3))).toBe('node1')
-  expect(Array.from(db.dependantNodes(id(4)))).toEqual([id(8), id(12)])
-  expect(Array.from(db.dependantNodes(id(8)))).toEqual([id(12)])
-  expect(Array.from(db.dependantNodes(id(12)))).toEqual([])
+  expect(Array.from(db.dependantNodes(asNodeId(id(4))))).toEqual([id(8), id(12)])
+  expect(Array.from(db.dependantNodes(asNodeId(id(8))))).toEqual([id(12)])
+  expect(Array.from(db.dependantNodes(asNodeId(id(12))))).toEqual([])
 })

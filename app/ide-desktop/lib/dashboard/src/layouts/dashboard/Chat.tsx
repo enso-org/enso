@@ -8,8 +8,8 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
-import * as gtag from 'enso-common/src/gtag'
 
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
@@ -243,6 +243,7 @@ interface InternalChatHeaderProps {
 function ChatHeader(props: InternalChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
+  const gtagEvent = gtagHooks.useGtagEvent()
   const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
   // These will never be `null` as their values are set immediately.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -257,12 +258,12 @@ function ChatHeader(props: InternalChatHeaderProps) {
       setIsThreadListVisible(false)
     }
     document.addEventListener('click', onClick)
-    gtag.event('cloud_open_chat')
+    gtagEvent('cloud_open_chat')
     return () => {
       document.removeEventListener('click', onClick)
-      gtag.event('cloud_close_chat')
+      gtagEvent('cloud_close_chat')
     }
-  }, [])
+  }, [gtagEvent])
 
   const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
     event.stopPropagation()

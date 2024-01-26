@@ -14,7 +14,7 @@ import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-import type { ExprId, IdMap, SourceRange } from 'shared/yjsModel'
+import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
@@ -94,13 +94,13 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     this.ctx = ctx
   }
 
-  get astId(): CondType<ExprId, HasIdMap> {
+  get astId(): CondType<ExternalId, HasIdMap> {
     if (this.ctx.idMap != null) {
       const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
       assert(id != null, 'All AST nodes should have an assigned ID')
-      return id as CondType<ExprId, HasIdMap>
+      return id as CondType<ExternalId, HasIdMap>
     } else {
-      return undefined as CondType<ExprId, HasIdMap>
+      return undefined as CondType<ExternalId, HasIdMap>
     }
   }
 
