@@ -449,4 +449,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter group_filter="Table.order_by"
+    suite.run_with_filter
