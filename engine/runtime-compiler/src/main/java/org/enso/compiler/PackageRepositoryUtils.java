@@ -1,6 +1,6 @@
 package org.enso.compiler;
 
-import com.oracle.truffle.api.TruffleFile;
+import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -22,10 +22,10 @@ public final class PackageRepositoryUtils {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public static Optional<QualifiedName> getModuleNameForFile(
-      PackageRepository packageRepository, TruffleFile file) {
+      PackageRepository packageRepository, File file) {
     return scala.jdk.javaapi.CollectionConverters.asJava(packageRepository.getLoadedPackages())
         .stream()
-        .filter(pkg -> file.startsWith(pkg.sourceDir()))
+        .filter(pkg -> file.getPath().startsWith(pkg.sourceDir().getPath()))
         .map(pkg -> pkg.moduleNameForFile(file))
         .findFirst();
   }
@@ -37,13 +37,13 @@ public final class PackageRepositoryUtils {
    * @param file the module to find the package of
    * @return {@code module}'s package, if exists
    */
-  public static Optional<Package<TruffleFile>> getPackageOf(
-      PackageRepository packageRepository, TruffleFile file) {
+  public static Optional<Package<File>> getPackageOf(
+      PackageRepository packageRepository, File file) {
     try {
       if (file != null) {
         file = file.getCanonicalFile();
         for (var pkg : packageRepository.getLoadedPackagesJava()) {
-          if (file.startsWith(pkg.root().getCanonicalFile())) {
+          if (file.getPath().startsWith(pkg.root().getCanonicalFile().getPath())) {
             return Optional.of(pkg);
           }
         }

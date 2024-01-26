@@ -1,7 +1,7 @@
 package org.enso.compiler.context;
 
-import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -121,13 +121,13 @@ public interface CompilerContext extends CompilerStub {
 
     public abstract String getPath();
 
-    public abstract Package<TruffleFile> getPackage();
+    public abstract Package<File> getPackage();
 
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
 
-    public abstract TruffleFile getSourceFile();
+    public abstract File getSourceFile();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 

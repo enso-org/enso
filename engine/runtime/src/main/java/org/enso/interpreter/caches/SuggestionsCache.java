@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -83,7 +84,7 @@ public final class SuggestionsCache
         .map(
             pkg -> {
               var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
-              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+              var localCacheRootPath = bindingsCacheRoot.toPath().resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =
                   new String[] {
@@ -98,6 +99,7 @@ public final class SuggestionsCache
                       .irCacheDirectory()
                       .resolve(StringUtils.join(pathSegments, "/"));
               var globalCacheRoot = context.getTruffleFile(path.toFile());
+              var localCacheRoot = context.getTruffleFile(localCacheRootPath.toFile());
               return new Cache.Roots(localCacheRoot, globalCacheRoot);
             });
   }
@@ -132,12 +134,12 @@ public final class SuggestionsCache
     private final LibraryName libraryName;
     private final Suggestions suggestions;
 
-    private final Optional<List<SourceFile<TruffleFile>>> sources;
+    private final Optional<List<SourceFile<File>>> sources;
 
     public CachedSuggestions(
         LibraryName libraryName,
         Suggestions suggestions,
-        Optional<List<SourceFile<TruffleFile>>> sources) {
+        Optional<List<SourceFile<File>>> sources) {
       this.libraryName = libraryName;
       this.suggestions = suggestions;
       this.sources = sources;
@@ -147,7 +149,7 @@ public final class SuggestionsCache
       return libraryName;
     }
 
-    public Optional<List<SourceFile<TruffleFile>>> getSources() {
+    public Optional<List<SourceFile<File>>> getSources() {
       return sources;
     }
 

@@ -15,6 +15,12 @@ import org.enso.filesystem.FileSystem;
 
 /** A {@link TruffleFile}-based implementation of {@link FileSystem}. */
 public class TruffleFileSystem implements FileSystem<TruffleFile> {
+  private TruffleFileSystem() {}
+
+  public static TruffleFileSystem instance() {
+    return new TruffleFileSystem();
+  }
+
   @Override
   public TruffleFile getChild(TruffleFile parent, String childName) {
     return parent.resolve(childName);

@@ -54,6 +54,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.util.TruffleFileConversions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
@@ -159,7 +160,7 @@ public final class EnsoContext {
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
-    TruffleFileSystem fs = new TruffleFileSystem();
+    TruffleFileSystem fs = TruffleFileSystem.instance();
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
@@ -194,7 +195,7 @@ public final class EnsoContext {
         new Compiler(new TruffleCompilerContext(this), packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
-        pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
+        pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), TruffleFileConversions.convertTruffleFilePackage(pkg)));
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
@@ -360,7 +361,7 @@ public final class EnsoContext {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
-    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
+    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, TruffleFileConversions.convertTruffleFile(file));
   }
 
   /**
@@ -573,7 +574,8 @@ public final class EnsoContext {
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
-    return PackageRepositoryUtils.getPackageOf(packageRepository, file);
+    var filePkgOpt = PackageRepositoryUtils.getPackageOf(packageRepository, TruffleFileConversions.convertTruffleFile(file));
+    return filePkgOpt.map(filePkg -> TruffleFileConversions.convertFilePackage(this, filePkg));
   }
 
   /**

@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -27,6 +28,7 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
+import org.enso.interpreter.runtime.util.TruffleFileConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -375,8 +377,9 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public Package<TruffleFile> getPackage() {
-      return module.getPackage();
+    public Package<File> getPackage() {
+      var truffleFilePkg = module.getPackage();
+      return TruffleFileConversions.convertTruffleFilePackage(truffleFilePkg);
     }
 
     /** Intentionally not public. */
@@ -409,8 +412,9 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public TruffleFile getSourceFile() {
-      return module.getSourceFile();
+    public File getSourceFile() {
+      var truffleFile = module.getSourceFile();
+      return TruffleFileConversions.convertTruffleFile(truffleFile);
     }
 
     @Override

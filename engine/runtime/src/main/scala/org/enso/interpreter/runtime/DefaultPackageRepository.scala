@@ -8,19 +8,12 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
 import org.enso.editions.LibraryVersion
 import org.enso.interpreter.caches.ImportExportCache
-import org.enso.interpreter.runtime.util.TruffleFileSystem
+import org.enso.interpreter.runtime.util.{TruffleFileConversions, TruffleFileSystem}
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.librarymanager.ResolvingLibraryProvider
 import org.enso.logger.masking.MaskedPath
-import org.enso.pkg.{
-  Component,
-  ComponentGroup,
-  ExtendedComponentGroup,
-  PackageManager,
-  QualifiedName,
-  SourceFile
-}
+import org.enso.pkg.{Component, ComponentGroup, ExtendedComponentGroup, PackageManager, QualifiedName, SourceFile}
 import org.enso.text.buffer.Rope
 import org.enso.polyglot.CompilationStage
 
@@ -36,6 +29,8 @@ import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
+
+import java.io.File
 
 /** The default [[PackageRepository]] implementation.
   *
@@ -55,7 +50,7 @@ private class DefaultPackageRepository(
 
   private val logger = Logger[DefaultPackageRepository]
 
-  implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+  implicit private val fs: TruffleFileSystem               = TruffleFileSystem.instance()
   private val packageManager                               = new PackageManager[TruffleFile]
   private var projectPackage: Option[Package[TruffleFile]] = None
 
@@ -164,20 +159,21 @@ private class DefaultPackageRepository(
   /** @inheritdoc */
   override def registerMainProjectPackage(
     libraryName: LibraryName,
-    pkg: Package[TruffleFile]
+    pkg: Package[File]
   ): Unit = {
-    projectPackage = Some(pkg)
+    val trufflePkg = TruffleFileConversions.convertFilePackage(context, pkg)
+    projectPackage = Some(trufflePkg)
     registerPackageInternal(
       libraryName    = libraryName,
-      pkg            = pkg,
+      pkg            = trufflePkg,
       libraryVersion = LibraryVersion.Local,
       isLibrary      = false
     )
   }
 
   /** @inheritdoc */
-  override def getMainProjectPackage: Option[Package[TruffleFile]] = {
-    projectPackage
+  override def getMainProjectPackage: Option[Package[File]] = {
+    projectPackage.map(TruffleFileConversions.convertTruffleFilePackage)
   }
 
   private def registerPackageInternal(
@@ -444,11 +440,15 @@ private class DefaultPackageRepository(
     loadedModules.values.toSeq
 
   /** @inheritdoc */
-  override def getLoadedPackages: Seq[Package[TruffleFile]] =
-    loadedPackages.values.toSeq.flatten
+  override def getLoadedPackages: Seq[Package[File]] = {
+    loadedPackages.values.toSeq.flatten.map(TruffleFileConversions.convertTruffleFilePackage)
+  }
 
-  override def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]] =
-    loadedPackages.flatMap(_._2).asJava
+  override def getLoadedPackagesJava: java.lang.Iterable[Package[File]] =
+    loadedPackages
+      .flatMap(_._2)
+      .map(TruffleFileConversions.convertTruffleFilePackage)
+      .asJava
 
   /** @inheritdoc */
   override def getLoadedModule(
@@ -560,8 +560,13 @@ private class DefaultPackageRepository(
 
   override def getPackageForLibrary(
     libraryName: LibraryName
-  ): Option[Package[TruffleFile]] =
-    loadedPackages.get(libraryName).flatten
+  ): Option[Package[File]] = {
+    loadedPackages.get(libraryName) match {
+      case None => None
+      case Some(pkgOpt) =>
+        pkgOpt.map { pkg => TruffleFileConversions.convertTruffleFilePackage(pkg) }
+    }
+  }
 
   override def getModulesForLibrary(
     libraryName: LibraryName
