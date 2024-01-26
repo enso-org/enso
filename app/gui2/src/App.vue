@@ -6,7 +6,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { computed, onMounted, toRaw } from 'vue'
-import { isDevMode } from './util/detect'
+import { isDevMode } from '../shared/util/detect.ts'
 
 const props = defineProps<{
   config: ApplicationConfig

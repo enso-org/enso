@@ -473,3 +473,21 @@ test('Splice', () => {
   expect(spliced.module).toBe(module)
   expect(spliced.code()).toBe('foo')
 })
+
+test('Construct app', () => {
+  const edit = MutableModule.Transient()
+  const app = Ast.App.new(
+    edit,
+    Ast.Ident.new(edit, 'func' as Identifier),
+    undefined,
+    Ast.Ident.new(edit, 'arg' as Identifier),
+  )
+  expect(app.code()).toBe('func arg')
+  const namedApp = Ast.App.new(
+    edit,
+    Ast.Ident.new(edit, 'func' as Identifier),
+    'argName' as Identifier,
+    Ast.Ident.new(edit, 'arg' as Identifier),
+  )
+  expect(namedApp.code()).toBe('func argName=arg')
+})

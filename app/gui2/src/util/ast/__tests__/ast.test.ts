@@ -1,4 +1,3 @@
-import { Token, Tree } from '@/generated/ast'
 import {
   astContainingChar,
   childrenAstNodes,
@@ -10,8 +9,9 @@ import {
   readTokenSpan,
   walkRecursive,
 } from '@/util/ast'
-import type { LazyObject } from '@/util/parserSupport'
+import { Token, Tree } from 'shared/ast/generated/ast'
 import { assert, expect, test } from 'vitest'
+import type { LazyObject } from '../../../../shared/ast/parserSupport'
 
 function validateSpans(obj: LazyObject, initialPos?: number): number {
   const state = { pos: initialPos ?? 0 }
