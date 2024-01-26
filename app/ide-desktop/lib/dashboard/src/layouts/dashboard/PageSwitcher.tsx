@@ -16,6 +16,7 @@ export enum Page {
   home = 'home',
   drive = 'drive',
   editor = 'editor',
+  settings = 'settings',
 }
 
 /** Error text for each page. */
@@ -23,6 +24,7 @@ const ERRORS: Record<Page, string | null> = {
   [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'No project is currently open.',
+  [Page.settings]: null,
 }
 
 /** Data describing how to display a button for a pageg. */
