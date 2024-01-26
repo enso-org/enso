@@ -6,7 +6,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,7 +18,6 @@ import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.ir.Diagnostic;
-import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
@@ -239,24 +237,23 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void reportDiagnostics(CompilerContext.Module module, Collection<Diagnostic> diagnostics) {
-    for (var diag : diagnostics) {
-      DiagnosticFormatter diagnosticFormatter;
-      if (diag.location().isDefined()) {
-        Source source;
-        try {
-          source = module.getSource();
-        } catch (IOException e) {
-          throw new AssertionError(e);
-        }
-        assert source != null;
-        diagnosticFormatter = new DiagnosticFormatter(diag, source);
-      } else {
-        var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
-        diagnosticFormatter = new DiagnosticFormatter(diag, emptySource);
+  public String formatDiagnostic(CompilerContext.Module module, Diagnostic diagnostic,
+      boolean isOutputRedirected) {
+    DiagnosticFormatter diagnosticFormatter;
+    if (diagnostic.location().isDefined()) {
+      Source source;
+      try {
+        source = module.getSource();
+      } catch (IOException e) {
+        throw new AssertionError(e);
       }
-      System.out.println(diagnosticFormatter.format());
+      assert source != null;
+      diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+    } else {
+      var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
+      diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
     }
+    return diagnosticFormatter.format();
   }
 
   @SuppressWarnings("unchecked")

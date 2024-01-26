@@ -24,7 +24,6 @@ import org.enso.syntax2.Tree
 import java.io.PrintStream
 import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
-import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -927,7 +926,11 @@ class Compiler(
     diagnostics: List[Diagnostic],
     compilerModule: CompilerContext.Module
   ): Boolean = {
-    context.reportDiagnostics(compilerModule, diagnostics.asJavaCollection)
+    val isOutputRedirected = config.outputRedirect.isDefined
+    diagnostics.foreach{diag =>
+      val formattedDiag = context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+      printDiagnostic(formattedDiag)
+    }
     diagnostics.exists(_.isInstanceOf[Error])
   }
 

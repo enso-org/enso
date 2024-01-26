@@ -14,7 +14,8 @@ import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
   */
 class DiagnosticFormatter(
   private val diagnostic: Diagnostic,
-  private val source: Source
+  private val source: Source,
+  private val isOutputRedirected: Boolean
 ) {
   private val maxLineNum                     = 99999
   private val blankLinePrefix                = "      | "
@@ -144,6 +145,9 @@ class DiagnosticFormatter(
       return false
     }
     if (System.getenv("NO_COLOR") != null) {
+      return false
+    }
+    if (isOutputRedirected) {
       return false
     }
     if (System.getenv("COLORTERM") != null) {

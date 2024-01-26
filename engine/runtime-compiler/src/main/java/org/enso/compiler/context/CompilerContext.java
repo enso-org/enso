@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -52,7 +51,8 @@ public interface CompilerContext extends CompilerStub {
   void notifySerializeModule(QualifiedName moduleName);
 
   Module findTopScopeModule(String name);
-  void reportDiagnostics(Module module, Collection<Diagnostic> diagnostics);
+  String formatDiagnostic(Module module, Diagnostic diagnostic,
+      boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();
