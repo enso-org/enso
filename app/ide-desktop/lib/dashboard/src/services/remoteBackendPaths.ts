@@ -27,18 +27,12 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_PATH = 'files'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
 export const CREATE_SECRET_PATH = 'secrets'
-/** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
-export const LIST_SECRETS_PATH = 'secrets'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */

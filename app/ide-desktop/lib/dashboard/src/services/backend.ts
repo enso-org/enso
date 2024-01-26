@@ -161,17 +161,6 @@ export interface CreatedProject extends BaseProject {
   packageName: string
 }
 
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-  address?: Address
-}
-
-/** A `Project` returned by `listProjects`. */
-export interface ListedProject extends CreatedProject {
-  binaryAddress: Address | null
-  jsonAddress: Address | null
-}
-
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject extends BaseProject {
   ami: Ami | null
@@ -180,7 +169,8 @@ export interface UpdatedProject extends BaseProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
+export interface ProjectRaw extends CreatedProject {
+  address?: Address
   // eslint-disable-next-line @typescript-eslint/naming-convention
   ide_version: VersionNumber | null
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -188,7 +178,9 @@ export interface ProjectRaw extends ListedProjectRaw {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface Project extends ListedProject {
+export interface Project extends CreatedProject {
+  binaryAddress: Address | null
+  jsonAddress: Address | null
   ideVersion: VersionNumber | null
   engineVersion: VersionNumber | null
   openedBy?: EmailAddress
@@ -782,6 +774,16 @@ export interface UpdateSecretRequestBody {
   value: string
 }
 
+/** Body for the "update directory" API function. */
+export interface UpdateAssetOrDirectoryRequestBody
+  extends UpdateAssetRequestBody,
+    Partial<{ [K in keyof UpdateDirectoryRequestBody]: UpdateDirectoryRequestBody[K] | null }> {}
+
+/** Body for the "update secret" API function. */
+export interface UpdateAssetOrSecretRequestBody
+  extends UpdateAssetRequestBody,
+    Partial<{ [K in keyof UpdateSecretRequestBody]: UpdateSecretRequestBody[K] | null }> {}
+
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
   value: string
@@ -790,7 +792,6 @@ export interface CreateTagRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  parentId: string | null
   filterBy: FilterBy | null
   labels: LabelName[] | null
   recentProjects: boolean
@@ -894,6 +895,86 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+// =====================
+// === Smart objects ===
+// =====================
+
+/** A wrapper around a subset of the API endpoints. */
+export interface SmartObject<T> {
+  readonly value: T
+  /** Return a copy of this object, but with a different value. */
+  readonly withValue: (value: T) => this
+}
+
+/** A smart wrapper around a {@link UserOrOrganization}. */
+export interface SmartUser extends SmartObject<UserOrOrganization> {
+  /** Change the username of the current user. */
+  readonly update: (body: UpdateUserRequestBody) => Promise<void>
+  /** Delete the current user. */
+  readonly delete: () => Promise<void>
+  /** Upload a new profile picture for the current user. */
+  readonly uploadPicture: (
+    params: UploadUserPictureRequestParams,
+    file: Blob
+  ) => Promise<UserOrOrganization>
+  /** Get the root directory for this user. */
+  readonly rootDirectory: () => SmartDirectory
+}
+
+/** A smart wrapper around an {@link AnyAsset}. */
+export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T> {
+  /** Change the parent directory of an asset. */
+  readonly update: (body: UpdateAssetRequestBody) => Promise<unknown>
+  /** Move an arbitrary asset to the trash. */
+  readonly delete: () => Promise<void>
+  /** Restore an arbitrary asset from the trash. */
+  readonly undoDelete: () => Promise<void>
+  /** Copy an arbitrary asset to another directory. */
+  readonly copy: (
+    parentDirectoryId: DirectoryId,
+    parentDirectoryTitle: string
+  ) => Promise<CopyAssetResponse>
+}
+
+/** A smart wrapper around a {@link DirectoryAsset}. */
+export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
+  /** Return a list of assets in a directory. */
+  readonly list: (query: ListDirectoryRequestParams) => Promise<AnySmartAsset[]>
+  /** Change the name or description of a directory. */
+  readonly update: (body: UpdateAssetOrDirectoryRequestBody) => Promise<UpdatedDirectory>
+}
+
+// FIXME: fill in endpoints
+/** A smart wrapper around a {@link ProjectAsset}. */
+export interface SmartProject extends SmartAsset<ProjectAsset> {}
+
+// FIXME: fill in endpoints
+/** A smart wrapper around a {@link FileAsset}. */
+export interface SmartFile extends SmartAsset<FileAsset> {}
+
+/** A smart wrapper around a {@link SecretAsset}. */
+export interface SmartSecret extends SmartAsset<SecretAsset> {
+  /** Return a secret environment variable. */
+  readonly getValue: () => Promise<Secret>
+  /** Change the value or description of a secret environment variable. */
+  readonly update: (body: UpdateAssetOrSecretRequestBody) => Promise<void>
+}
+
+/** A smart wrapper around a {@link SpecialLoadingAsset}. */
+export interface SmartSpecialLoadingAsset extends SmartAsset<SpecialLoadingAsset> {}
+
+/** A smart wrapper around a {@link SpecialEmptyAsset}. */
+export interface SmartSpecialEmptyAsset extends SmartAsset<SpecialEmptyAsset> {}
+
+/** All possible types of smart asset. */
+export type AnySmartAsset =
+  | SmartDirectory
+  | SmartFile
+  | SmartProject
+  | SmartSecret
+  | SmartSpecialEmptyAsset
+  | SmartSpecialLoadingAsset
+
 // ===============
 // === Backend ===
 // ===============
@@ -902,30 +983,16 @@ export function extractProjectExtension(name: string) {
 export abstract class Backend {
   abstract readonly type: BackendType
 
+  /** Return user details for the current user. */
+  abstract self(): Promise<SmartUser>
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
-  /** Change the username of the current user. */
-  abstract updateUser(body: UpdateUserRequestBody): Promise<void>
-  /** Delete the current user. */
-  abstract deleteUser(): Promise<void>
-  /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(
-    params: UploadUserPictureRequestParams,
-    file: Blob
-  ): Promise<UserOrOrganization>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */
   abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
-  /** Return user details for the current user. */
-  abstract usersMe(): Promise<UserOrOrganization | null>
-  /** Return a list of assets in a directory. */
-  abstract listDirectory(
-    query: ListDirectoryRequestParams,
-    title: string | null
-  ): Promise<AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
@@ -934,25 +1001,6 @@ export abstract class Backend {
     body: UpdateDirectoryRequestBody,
     title: string | null
   ): Promise<UpdatedDirectory>
-  /** Change the parent directory of an asset. */
-  abstract updateAsset(
-    assetId: AssetId,
-    body: UpdateAssetRequestBody,
-    title: string | null
-  ): Promise<void>
-  /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
-  /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
-  /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string | null,
-    parentDirectoryTitle: string | null
-  ): Promise<CopyAssetResponse>
-  /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -973,24 +1021,12 @@ export abstract class Backend {
   ): Promise<UpdatedProject>
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
-  /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<File[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
-  /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
-  /** Change the value of a secret. */
-  abstract updateSecret(
-    secretId: SecretId,
-    body: UpdateSecretRequestBody,
-    title: string | null
-  ): Promise<void>
-  /** Return the secret environment variables accessible by the user. */
-  abstract listSecrets(): Promise<SecretInfo[]>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
@@ -999,6 +1035,4 @@ export abstract class Backend {
   abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
-  /** Return a list of backend or IDE versions. */
-  abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

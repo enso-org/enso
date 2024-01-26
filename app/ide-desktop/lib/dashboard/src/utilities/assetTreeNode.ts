@@ -22,7 +22,7 @@ export class AssetTreeNode {
     public readonly key: backendModule.AssetId,
     /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
      * keep updated values within the row itself as well. */
-    public item: backendModule.AnyAsset,
+    public item: backendModule.AnySmartAsset,
     /** The id of the asset's parent directory (or the placeholder id for new assets).
      * This must never change. */
     public readonly directoryKey: backendModule.AssetId,
@@ -43,20 +43,27 @@ export class AssetTreeNode {
   /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
    * Uses {@link backendModule.compareAssets} internally. */
   static compare(this: void, a: AssetTreeNode, b: AssetTreeNode) {
-    return backendModule.compareAssets(a.item, b.item)
+    return backendModule.compareAssets(a.item.value, b.item.value)
   }
 
-  /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
-  static fromAsset(
+  /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnySmartAsset}. */
+  static fromSmartAsset(
     this: void,
-    asset: backendModule.AnyAsset,
+    smartAsset: backendModule.AnySmartAsset,
     directoryKey: backendModule.AssetId,
     directoryId: backendModule.DirectoryId,
     depth: number,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
   ): AssetTreeNode {
     getKey ??= oldAsset => oldAsset.id
-    return new AssetTreeNode(getKey(asset), asset, directoryKey, directoryId, null, depth)
+    return new AssetTreeNode(
+      getKey(smartAsset.value),
+      smartAsset,
+      directoryKey,
+      directoryId,
+      null,
+      depth
+    )
   }
 
   /** Create a new {@link AssetTreeNode} with the specified properties updated. */
@@ -156,13 +163,15 @@ export function useSetAsset<T extends backendModule.AnyAsset>(
   return React.useCallback(
     (valueOrUpdater: React.SetStateAction<T>) => {
       setNode(oldNode => {
-        const item =
+        const value =
           typeof valueOrUpdater === 'function'
             ? // This is SAFE, because it is a mistake for an item to change type.
               // eslint-disable-next-line no-restricted-syntax
-              valueOrUpdater(oldNode.item as T)
+              valueOrUpdater(oldNode.item.value as T)
             : valueOrUpdater
-        return oldNode.with({ item })
+        // This is SAFE, because it is a mistake for an item to change type.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax, @typescript-eslint/no-explicit-any
+        return oldNode.with({ item: oldNode.item.withValue(value as any) })
       })
     },
     [/* should never change */ setNode]

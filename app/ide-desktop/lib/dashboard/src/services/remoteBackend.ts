@@ -82,34 +82,331 @@ export interface ListUsersResponseBody {
   users: backendModule.SimpleUser[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
+/** HTTP response body for the "list directory" endpoint. */
 export interface ListDirectoryResponseBody {
   assets: backendModule.AnyAsset[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
-export interface ListProjectsResponseBody {
-  projects: backendModule.ListedProjectRaw[]
-}
-
-/** HTTP response body for the "list files" endpoint. */
-export interface ListFilesResponseBody {
-  files: backendModule.File[]
-}
-
-/** HTTP response body for the "list secrets" endpoint. */
-export interface ListSecretsResponseBody {
-  secrets: backendModule.SecretInfo[]
-}
-
-/** HTTP response body for the "list tag" endpoint. */
+/** HTTP response body for the "list tags" endpoint. */
 export interface ListTagsResponseBody {
   tags: backendModule.Label[]
 }
 
-/** HTTP response body for the "list versions" endpoint. */
-export interface ListVersionsResponseBody {
-  versions: [backendModule.Version, ...backendModule.Version[]]
+// =====================
+// === Smart objects ===
+// =====================
+
+/** A wrapper around a subset of the API endpoints. */
+class SmartObject<T> implements backendModule.SmartObject<T> {
+  /** Create a {@link SmartObject}. */
+  constructor(
+    protected readonly client: http.Client,
+    protected readonly logger: loggerProvider.Logger,
+    readonly value: T
+  ) {}
+
+  /** Return a copy of this object, but with a different value. */
+  withValue(value: T): this {
+    // This is SAFE (as long as no child classes override the constructor),
+    // as it uses runtime reflection to get the constructor of the current object.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, no-restricted-syntax, @typescript-eslint/no-explicit-any
+    return new (this.constructor as any)(this.client, this.logger, value)
+  }
+
+  /** Log an error message and throws an {@link Error} with the specified message.
+   * @throws {Error} Always. */
+  protected throw(message: string): never {
+    this.logger.error(message)
+    throw new Error(message)
+  }
+
+  /** Send an HTTP GET request to the given path. */
+  protected httpGet<R = void>(path: string) {
+    return this.client.get<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
+  }
+
+  /** Send a JSON HTTP POST request to the given path. */
+  protected httpPost<R = void>(path: string, payload: object) {
+    return this.client.post<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send a binary HTTP POST request to the given path. */
+  protected httpPostBinary<R = void>(path: string, payload: Blob) {
+    return this.client.postBinary<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send a JSON HTTP PATCH request to the given path. */
+  protected httpPatch<R = void>(path: string, payload: object) {
+    return this.client.patch<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send a JSON HTTP PUT request to the given path. */
+  protected httpPut<R = void>(path: string, payload: object) {
+    return this.client.put<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send an HTTP DELETE request to the given path. */
+  protected httpDelete<R = void>(path: string) {
+    return this.client.delete<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
+  }
+}
+
+/** A smart wrapper around a {@link backendModule.UserOrOrganization}. */
+class SmartUser
+  extends SmartObject<backendModule.UserOrOrganization>
+  implements backendModule.SmartUser
+{
+  /** Change the username of the current user. */
+  async update(body: backendModule.UpdateUserRequestBody): Promise<void> {
+    const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
+    const response = await this.httpPut(path, body)
+    if (!responseIsSuccessful(response)) {
+      if (body.username != null) {
+        return this.throw('Could not change username.')
+      } else {
+        return this.throw('Could not update user.')
+      }
+    } else {
+      return
+    }
+  }
+
+  /** Delete the current user. */
+  async delete(): Promise<void> {
+    const response = await this.httpDelete(remoteBackendPaths.DELETE_USER_PATH)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not delete user.')
+    } else {
+      return
+    }
+  }
+
+  /** Upload a new profile picture for the current user. */
+  async uploadPicture(
+    params: backendModule.UploadUserPictureRequestParams,
+    file: Blob
+  ): Promise<backendModule.UserOrOrganization> {
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
+    const response = await this.httpPostBinary<backendModule.UserOrOrganization>(path, file)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not upload user profile picture.')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Get the root directory for this user. */
+  rootDirectory(): backendModule.SmartDirectory {
+    const rootDirectory = backendModule.createRootDirectoryAsset(this.value.rootDirectoryId)
+    return new SmartDirectory(this.client, this.logger, rootDirectory)
+  }
+}
+
+/** A smart wrapper around a {@link backendModule.AnyAsset}. */
+class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
+  extends SmartObject<T>
+  implements backendModule.SmartAsset
+{
+  /** Change the parent directory of an asset. */
+  async update(body: backendModule.UpdateAssetRequestBody): Promise<unknown> {
+    const path = remoteBackendPaths.updateAssetPath(this.value.id)
+    const response = await this.httpPatch(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not update '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
+
+  /** Move an arbitrary asset to the trash. */
+  async delete(): Promise<void> {
+    const path = remoteBackendPaths.deleteAssetPath(this.value.id)
+    const response = await this.httpDelete(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Unable to delete '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
+
+  /** Restore an arbitrary asset from the trash. */
+  async undoDelete(): Promise<void> {
+    const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
+    const response = await this.httpPatch(path, { assetId: this.value.id })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Unable to restore ${this.value.title} from Trash.`)
+    } else {
+      return
+    }
+  }
+
+  /** Copy an arbitrary asset to another directory. */
+  async copy(
+    parentDirectoryId: backendModule.DirectoryId,
+    parentDirectoryTitle: string
+  ): Promise<backendModule.CopyAssetResponse> {
+    const path = remoteBackendPaths.copyAssetPath(this.value.id)
+    const response = await this.httpPost<backendModule.CopyAssetResponse>(path, {
+      parentDirectoryId,
+    })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Unable to copy '${this.value.title}' to '${parentDirectoryTitle}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Return a copy of this object, but with a different value. */
+  // @ts-expect-error This is SAFE, under the same conditions as `SmartObject.withValue`.
+  override withValue(value: T): this {
+    return super.withValue(value)
+  }
+}
+
+/** Converts an {@link backendModule.AnyAsset} into its corresponding
+ * {@link backendModule.AnySmartAsset}. */
+function intoSmartAsset(client: http.Client, logger: loggerProvider.Logger) {
+  return (asset: backendModule.AnyAsset): backendModule.AnySmartAsset => {
+    switch (asset.type) {
+      case backendModule.AssetType.project: {
+        throw new Error('Not implemented yet: AssetType.project case')
+      }
+      case backendModule.AssetType.file: {
+        throw new Error('Not implemented yet: AssetType.file case')
+      }
+      case backendModule.AssetType.secret: {
+        return new SmartSecret(client, logger, asset)
+      }
+      case backendModule.AssetType.directory: {
+        return new SmartDirectory(client, logger, asset)
+      }
+      case backendModule.AssetType.specialLoading:
+      case backendModule.AssetType.specialEmpty: {
+        throw new Error(
+          `'${asset.type}' is a special asset type that should never be returned by the backend.`
+        )
+      }
+    }
+  }
+}
+
+/** A smart wrapper around a {@link backendModule.DirectoryAsset}. */
+class SmartDirectory
+  extends SmartAsset<backendModule.DirectoryAsset>
+  implements backendModule.SmartDirectory
+{
+  /** Return a list of assets in a directory. */
+  async list(
+    query: backendModule.ListDirectoryRequestParams
+  ): Promise<backendModule.AnySmartAsset[]> {
+    const paramsString = new URLSearchParams([
+      ['parent_id', this.value.id],
+      ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+      ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
+      ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+    ]).toString()
+    const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
+    const response = await this.httpGet<ListDirectoryResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      if (response.status === STATUS_SERVER_ERROR) {
+        // The directory is probably empty.
+        return []
+      } else {
+        return this.throw('Could not list root folder.')
+      }
+    } else {
+      const assets = (await response.json()).assets
+        .map(asset =>
+          object.merge(asset, {
+            // eslint-disable-next-line no-restricted-syntax
+            type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
+          })
+        )
+        .map(asset =>
+          object.merge(asset, {
+            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
+          })
+        )
+      return assets.map(intoSmartAsset(this.client, this.logger))
+    }
+  }
+
+  /** Change the name or description of a directory. */
+  override async update(
+    body: backendModule.UpdateAssetOrDirectoryRequestBody
+  ): Promise<backendModule.UpdatedDirectory> {
+    const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
+    const updateAssetRequest = super.update({
+      description: body.description,
+      parentDirectoryId: body.parentDirectoryId,
+    })
+    const updateDirectoryRequest =
+      body.title != null
+        ? this.httpPut<backendModule.UpdatedDirectory>(path, { title: body.title })
+        : Promise.resolve(null)
+    const [updateAssetResponse, updateDirectoryResponse] = await Promise.allSettled([
+      updateAssetRequest,
+      updateDirectoryRequest,
+    ])
+    if (
+      updateAssetResponse.status === 'rejected' ||
+      updateDirectoryResponse.status === 'rejected' ||
+      (updateDirectoryResponse.value != null &&
+        !responseIsSuccessful(updateDirectoryResponse.value))
+    ) {
+      return this.throw(`Could not update folder '${this.value.title}'.`)
+    } else if (updateDirectoryResponse.value != null) {
+      return await updateDirectoryResponse.value.json()
+    } else {
+      return { id: this.value.id, parentId: this.value.parentId, title: this.value.title }
+    }
+  }
+}
+
+/** A smart wrapper around a {@link backendModule.SecretAsset}. */
+class SmartSecret
+  extends SmartAsset<backendModule.SecretAsset>
+  implements backendModule.SmartSecret
+{
+  /** Return a secret environment variable. */
+  async getValue(): Promise<backendModule.Secret> {
+    const path = remoteBackendPaths.getSecretPath(this.value.id)
+    const response = await this.httpGet<backendModule.Secret>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get secret '${this.value.title}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Change the value or description of a secret environment variable. */
+  override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<void> {
+    const path = remoteBackendPaths.updateSecretPath(this.value.id)
+    const updateAssetRequest = super.update({
+      description: body.description,
+      parentDirectoryId: body.parentDirectoryId,
+    })
+    const updateSecretRequest =
+      body.value != null ? this.httpPut(path, { value: body.value }) : Promise.resolve(null)
+    const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
+      updateAssetRequest,
+      updateSecretRequest,
+    ])
+    if (
+      updateAssetResponse.status === 'rejected' ||
+      updateSecretResponse.status === 'rejected' ||
+      (updateSecretResponse.value != null && !responseIsSuccessful(updateSecretResponse.value))
+    ) {
+      return this.throw(`Could not update secret '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
 }
 
 // =====================
@@ -148,13 +445,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Log an error message and throws an {@link Error} with the specified message.
-   * @throws {Error} Always. */
-  throw(message: string): never {
-    this.logger.error(message)
-    throw new Error(message)
-  }
-
   /** Return a list of all users in the same organization. */
   override async listUsers(): Promise<backendModule.SimpleUser[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
@@ -179,31 +469,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Change the username of the current user. */
-  override async updateUser(body: backendModule.UpdateUserRequestBody): Promise<void> {
-    const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
-    const response = await this.put(path, body)
-    if (!responseIsSuccessful(response)) {
-      if (body.username != null) {
-        return this.throw('Could not change username.')
-      } else {
-        return this.throw('Could not update user.')
-      }
-    } else {
-      return
-    }
-  }
-
-  /** Delete the current user. */
-  override async deleteUser(): Promise<void> {
-    const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not delete user.')
-    } else {
-      return
-    }
-  }
-
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
@@ -212,25 +477,6 @@ export class RemoteBackend extends backendModule.Backend {
       return this.throw(`Could not invite user '${body.userEmail}'.`)
     } else {
       return
-    }
-  }
-
-  /** Upload a new profile picture for the current user. */
-  override async uploadUserPicture(
-    params: backendModule.UploadUserPictureRequestParams,
-    file: Blob
-  ): Promise<backendModule.UserOrOrganization> {
-    const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention */
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention */
-    }).toString()
-    const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.UserOrOrganization>(path, file)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not upload user profile picture.')
-    } else {
-      return await response.json()
     }
   }
 
@@ -246,57 +492,15 @@ export class RemoteBackend extends backendModule.Backend {
   }
 
   /** Return organization info for the current user.
-   * @returns `null` if a non-successful status code (not 200-299) was received. */
-  override async usersMe(): Promise<backendModule.UserOrOrganization | null> {
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async self(): Promise<SmartUser> {
     const path = remoteBackendPaths.USERS_ME_PATH
     const response = await this.get<backendModule.UserOrOrganization>(path)
     if (!responseIsSuccessful(response)) {
-      return null
+      return this.throw(`Could not get user details.`)
     } else {
-      return await response.json()
-    }
-  }
-
-  /** Return a list of assets in a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listDirectory(
-    query: backendModule.ListDirectoryRequestParams,
-    title: string | null
-  ): Promise<backendModule.AnyAsset[]> {
-    const path = remoteBackendPaths.LIST_DIRECTORY_PATH
-    const response = await this.get<ListDirectoryResponseBody>(
-      path +
-        '?' +
-        new URLSearchParams([
-          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-          ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
-          ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
-        ]).toString()
-    )
-    if (!responseIsSuccessful(response)) {
-      if (response.status === STATUS_SERVER_ERROR) {
-        // The directory is probably empty.
-        return []
-      } else if (query.parentId != null) {
-        const name = title != null ? `'${title}'` : `with ID '${query.parentId}'`
-        return this.throw(`Could not list folder ${name}.`)
-      } else {
-        return this.throw('Could not list root folder.')
-      }
-    } else {
-      return (await response.json()).assets
-        .map(asset =>
-          object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
-          })
-        )
-        .map(asset =>
-          object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
-          })
-        )
+      const json = await response.json()
+      return new SmartUser(this.client, this.logger, json)
     }
   }
 
@@ -328,98 +532,6 @@ export class RemoteBackend extends backendModule.Backend {
       return this.throw(`Could not update folder ${name}.`)
     } else {
       return await response.json()
-    }
-  }
-
-  /** Change the parent directory of an asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async updateAsset(
-    assetId: backendModule.AssetId,
-    body: backendModule.UpdateAssetRequestBody,
-    title: string | null
-  ) {
-    const path = remoteBackendPaths.updateAssetPath(assetId)
-    const response = await this.patch(path, body)
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `asset with ID '${assetId}'`
-      return this.throw(`Could not update ${name}.`)
-    } else {
-      return
-    }
-  }
-
-  /** Delete an arbitrary asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteAsset(assetId: backendModule.AssetId, title: string | null) {
-    const path = remoteBackendPaths.deleteAssetPath(assetId)
-    const response = await this.delete(path)
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `asset with ID '${assetId}'`
-      return this.throw(`Unable to delete ${name}.`)
-    } else {
-      return
-    }
-  }
-
-  /** Restore an arbitrary asset from the trash.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async undoDeleteAsset(
-    assetId: backendModule.AssetId,
-    title: string | null
-  ): Promise<void> {
-    const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
-    const response = await this.patch(path, { assetId })
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Unable to restore ${
-          title != null ? `'${title}'` : `asset with ID '${assetId}'`
-        } from Trash.`
-      )
-    } else {
-      return
-    }
-  }
-
-  /** Copy an arbitrary asset to another directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async copyAsset(
-    assetId: backendModule.AssetId,
-    parentDirectoryId: backendModule.DirectoryId,
-    title: string | null,
-    parentDirectoryTitle: string | null
-  ): Promise<backendModule.CopyAssetResponse> {
-    const response = await this.post<backendModule.CopyAssetResponse>(
-      remoteBackendPaths.copyAssetPath(assetId),
-      { parentDirectoryId }
-    )
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Unable to copy ${title != null ? `'${title}'` : `asset with ID '${assetId}'`} to ${
-          parentDirectoryTitle != null
-            ? `'${parentDirectoryTitle}'`
-            : `directory with ID '${parentDirectoryId}'`
-        }.`
-      )
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Return a list of projects belonging to the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listProjects(): Promise<backendModule.ListedProject[]> {
-    const path = remoteBackendPaths.LIST_PROJECTS_PATH
-    const response = await this.get<ListProjectsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list projects.')
-    } else {
-      return (await response.json()).projects.map(project => ({
-        ...project,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
-      }))
     }
   }
 
@@ -539,18 +651,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Return a list of files accessible by the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backendModule.File[]> {
-    const path = remoteBackendPaths.LIST_FILES_PATH
-    const response = await this.get<ListFilesResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list files.')
-    } else {
-      return (await response.json()).files
-    }
-  }
-
   /** Upload a file.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async uploadFile(
@@ -617,51 +717,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Return a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getSecret(
-    secretId: backendModule.SecretId,
-    title: string | null
-  ): Promise<backendModule.Secret> {
-    const path = remoteBackendPaths.getSecretPath(secretId)
-    const response = await this.get<backendModule.Secret>(path)
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${secretId}'`
-      return this.throw(`Could not get secret ${name}.`)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Update a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async updateSecret(
-    secretId: backendModule.SecretId,
-    body: backendModule.UpdateSecretRequestBody,
-    title: string | null
-  ): Promise<void> {
-    const path = remoteBackendPaths.updateSecretPath(secretId)
-    const response = await this.put(path, body)
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${secretId}'`
-      return this.throw(`Could not update secret ${name}.`)
-    } else {
-      return
-    }
-  }
-
-  /** Return the secret environment variables accessible by the user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listSecrets(): Promise<backendModule.SecretInfo[]> {
-    const path = remoteBackendPaths.LIST_SECRETS_PATH
-    const response = await this.get<ListSecretsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list secrets.')
-    } else {
-      return (await response.json()).secrets
-    }
-  }
-
   /** Create a label used for categorizing assets.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createTag(body: backendModule.CreateTagRequestBody): Promise<backendModule.Label> {
@@ -720,16 +775,20 @@ export class RemoteBackend extends backendModule.Backend {
 
   /** Return a list of backend or IDE versions.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listVersions(
+  protected async listVersions(
     params: backendModule.ListVersionsRequestParams
   ): Promise<backendModule.Version[]> {
+    /** HTTP response body for this endpoint. */
+    interface Body {
+      versions: [backendModule.Version, ...backendModule.Version[]]
+    }
     const paramsString = new URLSearchParams({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       version_type: params.versionType,
       default: String(params.default),
     }).toString()
     const path = remoteBackendPaths.LIST_VERSIONS_PATH + '?' + paramsString
-    const response = await this.get<ListVersionsResponseBody>(path)
+    const response = await this.get<Body>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not list versions of type '${params.versionType}'.`)
     } else {
@@ -753,6 +812,13 @@ export class RemoteBackend extends backendModule.Backend {
         return info.version
       }
     }
+  }
+
+  /** Log an error message and throws an {@link Error} with the specified message.
+   * @throws {Error} Always. */
+  private throw(message: string): never {
+    this.logger.error(message)
+    throw new Error(message)
   }
 
   /** Send an HTTP GET request to the given path. */

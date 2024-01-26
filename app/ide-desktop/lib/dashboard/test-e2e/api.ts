@@ -135,21 +135,6 @@ export async function mockApi(page: test.Page) {
         })
       }
     )
-    await page.route(BASE_URL + remoteBackendPaths.LIST_FILES_PATH + '*', async route => {
-      await route.fulfill({
-        json: { files: [] } satisfies remoteBackend.ListFilesResponseBody,
-      })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_PROJECTS_PATH + '*', async route => {
-      await route.fulfill({
-        json: { projects: [] } satisfies remoteBackend.ListProjectsResponseBody,
-      })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_SECRETS_PATH + '*', async route => {
-      await route.fulfill({
-        json: { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody,
-      })
-    })
     await page.route(BASE_URL + remoteBackendPaths.LIST_TAGS_PATH + '*', async route => {
       await route.fulfill({
         json: { tags: [] } satisfies remoteBackend.ListTagsResponseBody,

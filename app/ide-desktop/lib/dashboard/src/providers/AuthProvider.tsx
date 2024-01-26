@@ -100,7 +100,7 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
-  organization: backendModule.UserOrOrganization
+  organization: backendModule.SmartUser
   user: backendModule.SimpleUser | null
 }
 
@@ -209,10 +209,11 @@ export default function AuthProvider(props: AuthProviderProps) {
           return oldUserSession
         } else {
           return object.merge(oldUserSession, {
-            organization:
+            organization: oldUserSession.organization.withValue(
               typeof valueOrUpdater !== 'function'
                 ? valueOrUpdater
-                : valueOrUpdater(oldUserSession.organization),
+                : valueOrUpdater(oldUserSession.organization.value)
+            ),
           })
         }
       })
@@ -318,16 +319,16 @@ export default function AuthProvider(props: AuthProviderProps) {
           setBackendWithoutSavingType(backend)
         }
         gtagEvent('cloud_open')
-        let organization: backendModule.UserOrOrganization | null
+        let organization: backendModule.SmartUser | null
         let user: backendModule.SimpleUser | null
         while (true) {
           try {
-            organization = await backend.usersMe()
+            organization = await backend.self()
             try {
               user =
-                organization?.isEnabled === true
+                organization?.value.isEnabled === true
                   ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === organization?.email
+                      listedUser => listedUser.email === organization?.value.email
                     ) ?? null
                   : null
             } catch {
@@ -364,9 +365,9 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: organization.id,
-            email: organization.email,
-            username: organization.name,
+            id: organization.value.id,
+            email: organization.value.email,
+            username: organization.value.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ip_address: '{{auto}}',
           })

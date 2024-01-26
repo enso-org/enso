@@ -49,13 +49,13 @@ type SanityCheck<
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
   parentKey: backend.DirectoryId
-  parentId: backend.DirectoryId
+  parent: backend.SmartDirectory
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
   parentKey: backend.DirectoryId
-  parentId: backend.DirectoryId
+  parent: backend.SmartDirectory
   templateId: string | null
   templateName: string | null
   onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -64,14 +64,14 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
   parentKey: backend.DirectoryId
-  parentId: backend.DirectoryId
+  parent: backend.SmartDirectory
   files: File[]
 }
 
 /** A signal to create a new secret. */
 interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
   parentKey: backend.DirectoryId
-  parentId: backend.DirectoryId
+  parent: backend.SmartDirectory
   name: string
   value: string
 }
@@ -79,13 +79,13 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 /** A signal to insert new assets. The assets themselves need to be created by the caller. */
 interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
   parentKey: backend.DirectoryId
-  parentId: backend.DirectoryId
-  assets: backend.AnyAsset[]
+  parent: backend.SmartDirectory
+  assets: backend.AnySmartAsset[]
 }
 
 /** A signal to close (collapse) a folder. */
 interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
-  id: backend.DirectoryId
+  folder: backend.SmartDirectory
   key: backend.DirectoryId
 }
 
@@ -93,7 +93,7 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
   newParentKey: backend.AssetId
   newParentId: backend.DirectoryId
-  items: backend.AnyAsset[]
+  items: backend.AnySmartAsset[]
 }
 
 /** A signal that a file has been moved. */

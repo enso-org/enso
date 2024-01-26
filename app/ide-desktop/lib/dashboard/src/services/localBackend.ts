@@ -6,7 +6,6 @@
 import * as detect from 'enso-common/src/detect'
 
 import * as backend from '#/services/backend'
-import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import * as projectManager from '#/utilities/projectManager'
 
@@ -40,50 +39,6 @@ export class LocalBackend extends backend.Backend {
       // because it MUST NOT be used in this codebase.
       window.localBackend = this
     }
-  }
-
-  /** Return a list of assets in a directory.
-   * @throws An error if the JSON-RPC call fails. */
-  override async listDirectory(): Promise<backend.AnyAsset[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map(project => ({
-      type: backend.AssetType.project,
-      id: project.id,
-      title: project.name,
-      modifiedAt: project.lastOpened ?? project.created,
-      parentId: backend.DirectoryId(''),
-      permissions: [],
-      projectState: {
-        type: LocalBackend.currentlyOpenProjects.has(project.id)
-          ? backend.ProjectState.opened
-          : project.id === LocalBackend.currentlyOpeningProjectId
-          ? backend.ProjectState.openInProgress
-          : backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
-      labels: [],
-      description: null,
-    }))
-  }
-
-  /** Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails. */
-  override async listProjects(): Promise<backend.ListedProject[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map(project => ({
-      name: project.name,
-      organizationId: '',
-      projectId: project.id,
-      packageName: project.name,
-      state: {
-        type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
-      jsonAddress: null,
-      binaryAddress: null,
-    }))
   }
 
   /** Create a project.
@@ -265,51 +220,6 @@ export class LocalBackend extends backend.Backend {
     }
   }
 
-  /** Delete an arbitrary asset.
-   * @throws An error if the JSON-RPC call fails. */
-  override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
-    // This is SAFE, as the only asset type on the local backend is projects.
-    // eslint-disable-next-line no-restricted-syntax
-    const projectId = assetId as backend.ProjectId
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
-    try {
-      await this.projectManager.deleteProject({ projectId })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not delete project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
-    }
-  }
-
-  /** Copy an arbitrary asset to another directory. Not yet implemented in the backend.
-   * @throws {Error} Always. */
-  override copyAsset(): Promise<backend.CopyAssetResponse> {
-    throw new Error('Cannot copy assets in local backend yet.')
-  }
-
-  /** Return a list of engine versions. */
-  override async listVersions(params: backend.ListVersionsRequestParams) {
-    const engineVersions = await this.projectManager.listAvailableEngineVersions()
-    const engineVersionToVersion = (version: projectManager.EngineVersion): backend.Version => ({
-      ami: null,
-      created: dateTime.toRfc3339(new Date()),
-      number: {
-        value: version.version,
-        lifecycle: backend.detectVersionLifecycle(version.version),
-      },
-      // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      version_type: params.versionType,
-    })
-    return engineVersions.versions.map(engineVersionToVersion)
-  }
-
   // === Endpoints that intentionally do not work on the Local Backend ===
 
   /** Called for any function that does not make sense in the Local Backend.
@@ -319,11 +229,6 @@ export class LocalBackend extends backend.Backend {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
 
-  /** Do nothing. This function should never need to be called. */
-  override undoDeleteAsset(): Promise<void> {
-    return this.invalidOperation()
-  }
-
   /** Return an empty array. This function should never need to be called. */
   override listUsers() {
     return Promise.resolve([])
@@ -331,21 +236,6 @@ export class LocalBackend extends backend.Backend {
 
   /** Invalid operation. */
   override createUser() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override updateUser() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override deleteUser() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override uploadUserPicture() {
     return this.invalidOperation()
   }
 
@@ -359,8 +249,8 @@ export class LocalBackend extends backend.Backend {
     return Promise.resolve()
   }
 
-  /** Return `null`. This function should never need to be called. */
-  override usersMe() {
+  /** FIXME:. */
+  override self() {
     return Promise.resolve(null)
   }
 
@@ -374,19 +264,9 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
-  /** Return `void`. This function should never need to be called. */
-  override updateAsset() {
-    return Promise.resolve()
-  }
-
   /** Invalid operation. */
   override checkResources() {
     return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listFiles() {
-    return Promise.resolve([])
   }
 
   /** Invalid operation. While project bundles can be uploaded to the Project Manager,
@@ -403,21 +283,6 @@ export class LocalBackend extends backend.Backend {
   /** Invalid operation. */
   override createSecret() {
     return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override updateSecret() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getSecret() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listSecrets() {
-    return Promise.resolve([])
   }
 
   /** Invalid operation. */
