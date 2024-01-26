@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
-import StringInputWidget from '@/components/widgets/StringInputWidget.vue'
+import TextInputWidget from '@/components/widgets/TextInputWidget.vue'
 
 // === Checkbox props ===
 
@@ -37,8 +37,6 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
   <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" autoPropsDisabled>
     <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
       <CheckboxWidget v-model="checkboxState" />
-    <Variant title="checkbox" :meta="{ customBackground: backgroundColor }">
-      <CheckboxWidget v-model="checkboxState" />
 
       <template #controls>
         <HstCheckbox v-model="checkboxState" title="v-model" />
@@ -55,7 +53,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
       </template>
     </Variant>
     <Variant title="text" :meta="{ customBackground: backgroundColor }">
-      <StringInputWidget v-model="text" />
+      <TextInputWidget v-model="text" />
 
       <template #controls>
         <HstText v-model="text" title="v-model" />

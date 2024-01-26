@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import StringInputWidget from '@/components/widgets/StringInputWidget.vue'
+import TextInputWidget from '@/components/widgets/TextInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -42,7 +42,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <StringInputWidget v-model="value" class="WidgetText r-24" />
+  <TextInputWidget v-model="value" class="WidgetText r-24" />
 </template>
 
 <style scoped>

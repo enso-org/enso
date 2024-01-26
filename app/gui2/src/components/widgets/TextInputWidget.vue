@@ -79,7 +79,7 @@ function blur() {
 </script>
 
 <template>
-  <div class="StringInputWidget" @pointerdown.stop="() => inputNode?.focus()" @keydown.backspace.stop> 
+  <div class="TextInputWidget" @pointerdown.stop="() => inputNode?.focus()" @keydown.backspace.stop> 
     <input
       ref="inputNode"
       v-model="editedValue"
@@ -92,7 +92,7 @@ function blur() {
 </template>
 
 <style scoped>
-.StringInputWidget {
+.TextInputWidget {
   position: relative;
   user-select: none;
   background: var(--color-widget);
