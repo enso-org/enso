@@ -7,8 +7,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 
-import * as errorModule from '#/utilities/error'
-
 // ==========================
 // === ConfirmDeleteModal ===
 // ==========================
