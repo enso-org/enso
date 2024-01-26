@@ -10,7 +10,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
@@ -325,8 +325,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde } = props
-  const { doCreateLabel } = props
+  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()

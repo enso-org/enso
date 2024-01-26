@@ -8,15 +8,20 @@ from Standard.Database import all
 
 from Standard.AWS import Redshift_Details, AWS_Credential
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Database.Common.Common_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-redshift_specific_spec connection =
-    Test.group "[Redshift] Info" <|
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t self = self.data.at 1
+
+    setup create_connection_fn = Data.Value <|
+        connection = create_connection_fn Nothing
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.query (SQL_Query.Table_Name tinfo)
@@ -25,45 +30,59 @@ redshift_specific_spec connection =
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
             t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
+        [connection, t]
 
-        Test.specify "should return Table information" <|
-            i = t.info
+    teardown self = self.connection.close
+
+
+add_redshift_specific_specs suite_builder create_connection_fn =
+    suite_builder.group "[Redshift] Info" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should return Table information" <|
+            i = data.t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer Bits.Bits_32, Value_Type.Boolean, Value_Type.Float Bits.Bits_32]
-        Test.specify "should infer standard types correctly" <|
-            t.at "strs" . value_type . is_text . should_be_true
-            t.at "ints" . value_type . is_integer . should_be_true
-            t.at "bools" . value_type . is_boolean . should_be_true
-            t.at "reals" . value_type . is_floating_point . should_be_true
-        connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
-run_tests connection =
+        group_builder.specify "should infer standard types correctly" <|
+            data.t.at "strs" . value_type . is_text . should_be_true
+            data.t.at "ints" . value_type . is_integer . should_be_true
+            data.t.at "bools" . value_type . is_boolean . should_be_true
+            data.t.at "reals" . value_type . is_floating_point . should_be_true
+
+add_database_specs suite_builder create_connection_fn =
     prefix = "[Redshift] "
     name_counter = Ref.new 0
-    tables = Vector.new_builder
-    table_builder columns =
+    table_builder columns connection=(create_connection_fn Nothing) =
         ix = name_counter.get
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table connection name primary_key=Nothing temporary=True
+
     materialize = .read
 
-    Common_Spec.spec prefix connection
-    redshift_specific_spec connection
+    Common_Spec.add_specs suite_builder prefix create_connection_fn
+    add_redshift_specific_specs suite_builder create_connection_fn
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False supports_decimal_type=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
-    tables.append agg_table.name
-    empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
-    tables.append empty_agg_table.name
+    agg_table_fn = _->
+        connection = create_connection_fn Nothing
+        agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
-    Common_Table_Operations.Main.spec setup
+    empty_agg_table_fn = _->
+        connection = create_connection_fn Nothing
+        (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn
+    Common_Table_Operations.Main.add_specs suite_builder setup
 
 connect_via_json_config =
     credentials = enso_project.data / 'redshift_credentials.json'
@@ -107,16 +126,20 @@ uri_parse uri =
     db_name = if host_db_split.length == 1 then '' else host_db_split.at 1
     [db_host, db_port, db_name]
 
-spec =
+add_specs suite_builder =
     db_host_port = Environment.get "ENSO_REDSHIFT_URI"
     connection_details = if db_host_port.is_nothing then connect_via_json_config else
         connect_via_aws_environment db_host_port
 
     case connection_details of
         _ : Text ->
-            Test.group "[Redshift] Database tests" pending=connection_details Nothing
+            suite_builder.group "[Redshift] Database tests" pending=connection_details (_-> Nothing)
         _ ->
-            connection = Database.connect connection_details
-            run_tests connection
+            create_connection_fn = _->
+                Database.connect connection_details
+            add_database_specs suite_builder create_connection_fn
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

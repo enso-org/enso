@@ -26,6 +26,23 @@ pub fn parse(code: &str) -> Vec<u8> {
     enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
 }
 
+#[wasm_bindgen]
+pub fn is_ident_or_operator(code: &str) -> u32 {
+    let parsed = enso_parser::lexer::run(code);
+    if parsed.internal_error.is_some() {
+        return 0;
+    }
+    let token = match &parsed.value[..] {
+        [token] => token,
+        _ => return 0,
+    };
+    match &token.variant {
+        enso_parser::syntax::token::Variant::Ident(_) => 1,
+        enso_parser::syntax::token::Variant::Operator(_) => 2,
+        _ => 0,
+    }
+}
+
 #[wasm_bindgen(start)]
 fn main() {
     console_error_panic_hook::set_once();

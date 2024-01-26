@@ -13,7 +13,11 @@ import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
-import { qnLastSegment, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
+import {
+  qnLastSegment,
+  tryQualifiedName,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -28,7 +32,7 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
-function identToLabel(name: Identifier): string {
+function identToLabel(name: IdentifierOrOperatorIdentifier): string {
   return name.replaceAll('_', ' ')
 }
 

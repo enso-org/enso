@@ -22,6 +22,7 @@ import Button from '#/components/Button'
 export interface UserBarProps {
   supportsLocalBackend: boolean
   page: pageSwitcher.Page
+  setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   projectAsset: backendModule.ProjectAsset | null
@@ -32,7 +33,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
@@ -78,17 +79,22 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
+        className="flex items-center rounded-full overflow-clip w-7.25 h-7.25"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>
             oldModal?.type === UserMenu ? null : (
-              <UserMenu supportsLocalBackend={supportsLocalBackend} onSignOut={onSignOut} />
+              <UserMenu
+                setPage={setPage}
+                supportsLocalBackend={supportsLocalBackend}
+                onSignOut={onSignOut}
+              />
             )
           )
         }}
       >
         <img
-          src={DefaultUserIcon}
+          src={organization?.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}
@@ -97,6 +103,14 @@ export default function UserBar(props: UserBarProps) {
           }}
         />
       </button>
+      {/* Required for shortcuts to work. */}
+      <div className="hidden">
+        <UserMenu
+          setPage={setPage}
+          supportsLocalBackend={supportsLocalBackend}
+          onSignOut={onSignOut}
+        />
+      </div>
     </div>
   )
 }
