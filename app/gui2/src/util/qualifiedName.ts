@@ -1,35 +1,32 @@
+import {
+  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type QualifiedName,
+} from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
+export {
+  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type QualifiedName,
+}
 
-declare const identifierBrand: unique symbol
-declare const qualifiedNameBrand: unique symbol
 const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
-const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRegexPart})\\.Main`)
-
-/** A string representing a valid identifier of our language. */
-export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
-
-export function isIdentifier(str: string): str is Identifier {
-  return identifierRegex.test(str)
-}
 
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
-/** Mark the input as an identifier without any validation. This should always be used to obtain an Identifier from an Ast, and never when creating or modifying an identifier. */
-export function identifierUnchecked(str: string): Identifier {
-  return str as Identifier
+export function tryIdentifierOrOperatorIdentifier(
+  str: string,
+): Result<IdentifierOrOperatorIdentifier> {
+  return isIdentifierOrOperatorIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
-
-/** A string representing a valid qualified name of our language.
- *
- * In our language, the segments are separated by `.`, and its segments
- * must be a valid identifiers. In particular, a single identifier is
- * also a valid qualified name.
- */
-export type QualifiedName = string & { [qualifiedNameBrand]: never }
 
 export function isQualifiedName(str: string): str is QualifiedName {
   return qnRegex.test(str)
@@ -51,17 +48,19 @@ export function qnLastSegmentIndex(name: QualifiedName) {
 }
 
 /** Split the qualified name to parent and last segment (name). */
-export function qnSplit(name: QualifiedName): [QualifiedName | null, Identifier] {
+export function qnSplit(
+  name: QualifiedName,
+): [QualifiedName | null, IdentifierOrOperatorIdentifier] {
   const separator = qnLastSegmentIndex(name)
   const parent = separator > 0 ? (name.substring(0, separator) as QualifiedName) : null
-  const lastSegment = name.substring(separator + 1) as Identifier
+  const lastSegment = name.substring(separator + 1) as IdentifierOrOperatorIdentifier
   return [parent, lastSegment]
 }
 
 /** Get the last segment of qualified name. */
-export function qnLastSegment(name: QualifiedName): Identifier {
+export function qnLastSegment(name: QualifiedName): IdentifierOrOperatorIdentifier {
   const separator = qnLastSegmentIndex(name)
-  return name.substring(separator + 1) as Identifier
+  return name.substring(separator + 1) as IdentifierOrOperatorIdentifier
 }
 
 /** Get the parent qualified name (without last segment) */
@@ -74,12 +73,12 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
   return `${left}.${right}` as QualifiedName
 }
 
-export function qnFromSegments(segments: Iterable<Identifier>): QualifiedName {
+export function qnFromSegments(segments: Iterable<IdentifierOrOperatorIdentifier>): QualifiedName {
   return [...segments].join('.') as QualifiedName
 }
 
-export function qnSegments(name: QualifiedName): Identifier[] {
-  return name.split('.').map((segment) => segment as Identifier)
+export function qnSegments(name: QualifiedName): IdentifierOrOperatorIdentifier[] {
+  return name.split('.').map((segment) => segment as IdentifierOrOperatorIdentifier)
 }
 
 export function qnSlice(
@@ -105,7 +104,6 @@ if (import.meta.vitest) {
   const validIdentifiers = [
     'A',
     'a',
-    '_',
     '_A',
     'A_',
     '_1',
@@ -119,16 +117,18 @@ if (import.meta.vitest) {
     '<=>',
     '*',
     '.',
-    '.+',
     '!=',
   ]
   const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!', '$a', 'a$']
+  // These are not valid identifiers but currently pass the qualified name regex: ['_', '.*']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
-    expect(unwrap(tryIdentifier(name))).toStrictEqual(name as Identifier),
+    expect(unwrap(tryIdentifierOrOperatorIdentifier(name))).toStrictEqual(
+      name as IdentifierOrOperatorIdentifier,
+    ),
   )
   test.each(invalidIdentifiers)("'%s' is an invalid identifier", (name) =>
-    expect(tryIdentifier(name).ok).toBe(false),
+    expect(tryIdentifierOrOperatorIdentifier(name).ok).toBe(false),
   )
 
   test.each(
@@ -155,7 +155,7 @@ if (import.meta.vitest) {
       expect(qnSplit(qn)).toStrictEqual([parent, lastSegment])
       if (parent != null) {
         const qnParent = unwrap(tryQualifiedName(parent))
-        const qnLastSegment = unwrap(tryIdentifier(lastSegment))
+        const qnLastSegment = unwrap(tryIdentifierOrOperatorIdentifier(lastSegment))
         expect(qnParent).not.toBeNull()
         expect(qnLastSegment).not.toBeNull()
         expect(qnJoin(qnParent!, qnLastSegment!)).toBe(qn)

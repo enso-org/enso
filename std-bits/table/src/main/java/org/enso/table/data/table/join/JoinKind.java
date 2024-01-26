@@ -1,21 +1,20 @@
 package org.enso.table.data.table.join;
 
 public enum JoinKind {
-  INNER,
-  FULL,
-  LEFT_OUTER,
-  RIGHT_OUTER,
-  LEFT_ANTI,
-  RIGHT_ANTI;
+  INNER(true, false, false),
+  FULL(true, true, true),
+  LEFT_OUTER(true, true, false),
+  RIGHT_OUTER(true, false, true),
+  LEFT_ANTI(false, true, false),
+  RIGHT_ANTI(false, false, true);
 
-  public static JoinResult.BuilderSettings makeSettings(JoinKind joinKind) {
-    return switch (joinKind) {
-      case INNER -> new JoinResult.BuilderSettings(true, false, false);
-      case FULL -> new JoinResult.BuilderSettings(true, true, true);
-      case LEFT_OUTER -> new JoinResult.BuilderSettings(true, true, false);
-      case RIGHT_OUTER -> new JoinResult.BuilderSettings(true, false, true);
-      case LEFT_ANTI -> new JoinResult.BuilderSettings(false, true, false);
-      case RIGHT_ANTI -> new JoinResult.BuilderSettings(false, false, true);
-    };
+  public final boolean wantsCommon;
+  public final boolean wantsLeftUnmatched;
+  public final boolean wantsRightUnmatched;
+
+  private JoinKind(boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {
+    this.wantsCommon = wantsCommon;
+    this.wantsLeftUnmatched = wantsLeftUnmatched;
+    this.wantsRightUnmatched = wantsRightUnmatched;
   }
 }

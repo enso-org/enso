@@ -222,8 +222,7 @@ public class Table {
       context.safepoint();
     }
     Arrays.sort(keys);
-    int[] positions = Arrays.stream(keys).mapToInt(MultiValueKeyBase::getRowIndex).toArray();
-    OrderMask mask = new OrderMask(positions);
+    OrderMask mask = OrderMask.fromObjects(keys, MultiValueKeyBase::getRowIndex);
     return this.applyMask(mask);
   }
 

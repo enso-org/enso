@@ -2,6 +2,7 @@
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { asNot } from '@/util/data/types.ts'
@@ -18,13 +19,11 @@ const value = computed({
   set(value) {
     const edit = graph.astModule.edit()
     if (props.input.value instanceof Ast.Ast) {
-      const node = getRawBoolNode(props.input.value)
-      if (node != null) {
-        props.onUpdate({
-          edit,
-          portUpdate: { value: value ? 'True' : 'False', origin: node.id },
-        })
-      }
+      setBoolNode(
+        edit.getVersion(props.input.value),
+        value ? ('True' as Identifier) : ('False' as Identifier),
+      )
+      props.onUpdate({ edit })
     } else {
       graph.addMissingImports(edit, [
         {
@@ -46,20 +45,28 @@ const value = computed({
 </script>
 
 <script lang="ts">
-function getRawBoolNode(ast: Ast.Ast) {
+function isBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs : ast
-  if (candidate instanceof Ast.Ident && ['True', 'False'].includes(candidate.code())) {
-    return candidate
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
+      ? ast.rhs
+      : ast instanceof Ast.Ident
+      ? ast.token
+      : undefined
+  return candidate && ['True', 'False'].includes(candidate.code())
+}
+function setBoolNode(ast: Ast.Mutable, value: Identifier) {
+  if (ast instanceof Ast.MutablePropertyAccess) {
+    ast.setRhs(value)
+  } else {
+    assert(ast instanceof Ast.MutableIdent)
+    ast.setToken(value)
   }
-  return null
 }
 
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
-    if (props.input.value instanceof Ast.Ast && getRawBoolNode(props.input.value) != null)
-      return Score.Perfect
+    if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
     return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
       ? Score.Good
       : Score.Mismatch
