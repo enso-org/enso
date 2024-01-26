@@ -127,18 +127,13 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public SpecializedStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
-    int[] positions = mask.getPositions();
-    T[] newData = newUnderlyingArray(positions.length);
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND) {
-        newData[i] = null;
-      } else {
-        newData[i] = data[positions[i]];
-      }
-
+    T[] newData = newUnderlyingArray(mask.length());
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      newData[i] = position == Index.NOT_FOUND ? null : data[position];
       context.safepoint();
     }
-    return newInstance(newData, positions.length);
+    return newInstance(newData, newData.length);
   }
 
   @Override

@@ -6,8 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
 from Standard.Table.Errors import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
@@ -22,10 +21,10 @@ join_lines lines trailing_newline=True =
     eol = default_line_endings_for_new_files.to_text
     if trailing_newline then lines.join eol suffix=eol else lines.join eol
 
-spec =
+add_specs suite_builder =
     line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
-    Test.group "Delimited File Writing" <|
-        Test.specify "should correctly write a simple table and return the written file object on success" <|
+    suite_builder.group "Delimited File Writing" group_builder->
+        group_builder.specify "should correctly write a simple table and return the written file object on success" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type.Value 10]]]
             file = (enso_project.data / "transient" / "written.csv")
             file.delete_if_exists
@@ -39,7 +38,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should allow to specify line ending style" <|
+        group_builder.specify "should allow to specify line ending style" <|
             table = Table.new [["a", ["b", "c"]], ["d", ["e", "f"]]]
             lines = ["a,d", "b,e", "c,f"]
             line_ending_pairs.each setting->
@@ -51,7 +50,7 @@ spec =
                 text.should_equal (lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify 'should quote values that contain the delimiter, newline or quotes, in the [,""] variant' <|
+        group_builder.specify 'should quote values that contain the delimiter, newline or quotes, in the [,""] variant' <|
             data_formatter = Data_Formatter.Value decimal_point=","
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three', 'a\nb']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5, 0.0]]]
             file = (enso_project.data / "transient" / "quotes1.csv")
@@ -69,7 +68,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify 'should quote values that contain the delimiter, newline or quotes, in the [;\\\"] variant' <|
+        group_builder.specify 'should quote values that contain the delimiter, newline or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter.Value thousand_separator="'"
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b", 'n\nm']], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing, 33]]]
             file = (enso_project.data / "transient" / "quotes2.csv")
@@ -88,7 +87,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should quote values that contain the delimiter, newline or quotes, in the [\t''] variant" <|
+        group_builder.specify "should quote values that contain the delimiter, newline or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter.Value thousand_separator="'"
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb', 'x\ny', 'w\vz']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2, 2.0, 42.0]]]
             file = (enso_project.data / "transient" / "quotes3.csv")
@@ -107,7 +106,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should correctly distinguish empty text from a missing value" <|
+        group_builder.specify "should correctly distinguish empty text from a missing value" <|
             table = Table.new [["A", [1,Nothing,3]], ["B", [Nothing,"","abc"]]]
             file = (enso_project.data / "transient" / "empty_vs_null.csv")
             file.delete_if_exists
@@ -121,7 +120,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+        group_builder.specify "should quote values containing the comment symbol if comments are enabled" <|
             table = Table.new [["#", ['b', 'x', '#']], ["B", [Nothing,"#","abc"]]]
             file = (enso_project.data / "transient" / "comments.csv")
             file.delete_if_exists
@@ -142,7 +141,7 @@ spec =
             text_2.should_equal expected_text_2
             file.delete
 
-        Test.specify 'should not quote values if quoting is disabled' <|
+        group_builder.specify 'should not quote values if quoting is disabled' <|
             format = Delimited "," value_formatter=(Data_Formatter.Value decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quote_disabled.csv")
@@ -168,7 +167,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify 'should allow to always quote text and custom values, but for non-text primitives only if absolutely necessary' <|
+        group_builder.specify 'should allow to always quote text and custom values, but for non-text primitives only if absolutely necessary' <|
             format = Delimited "," value_formatter=(Data_Formatter.Value thousand_separator='"' . with_datetime_formats date_formats=["dddd, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type.Value 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
@@ -184,7 +183,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should correctly handle alternative encodings" <|
+        group_builder.specify "should correctly handle alternative encodings" <|
             table = Table.new [["ąęćś", [0]], ["ß", ["żółw 🐢"]]]
             file = (enso_project.data / "transient" / "utf16.csv")
             file.delete_if_exists
@@ -196,7 +195,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should correctly handle encoding errors" <|
+        group_builder.specify "should correctly handle encoding errors" <|
             table = Table.new [["A", [0, 1]], ["B", ["słówka", "🐢"]]]
             file = (enso_project.data / "transient" / "ascii.csv")
             file.delete_if_exists
@@ -214,7 +213,7 @@ spec =
             Problems.get_attached_warnings result . should_equal [Encoding_Error.Error msg]
             file.delete
 
-        Test.specify "should allow only text columns if no formatter is specified" <|
+        group_builder.specify "should allow only text columns if no formatter is specified" <|
             format = Delimited "," value_formatter=Nothing
             table_1 = Table.new [["A", ["x", "y"]], ["B", ["z", "w"]]]
             file_1 = (enso_project.data / "transient" / "textonly.csv")
@@ -239,7 +238,7 @@ spec =
             file_1.delete
             file_2.delete
 
-        Test.specify "should create a new file in append mode if it didn't exist" <|
+        group_builder.specify "should create a new file in append mode if it didn't exist" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
             file = (enso_project.data / "transient" / "append_nonexistent.csv")
             file.delete_if_exists
@@ -248,7 +247,7 @@ spec =
             got_table.should_equal table
             file.delete
 
-        Test.specify "should correctly append to an empty file" <|
+        group_builder.specify "should correctly append to an empty file" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
             file = (enso_project.data / "transient" / "append_empty.csv")
             file.delete_if_exists
@@ -258,7 +257,7 @@ spec =
             got_table.should_equal table
             file.delete
 
-        Test.specify "should correctly append to a file with a missing newline at EOF" <|
+        group_builder.specify "should correctly append to a file with a missing newline at EOF" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
             file = (enso_project.data / "transient" / "append_missing_newline.csv")
             file.delete_if_exists
@@ -269,7 +268,7 @@ spec =
             text.should_equal (expected_lines.join '\r' suffix='\r')
             file.delete
 
-        Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
+        group_builder.specify "should append to a file, matching columns by name (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_by_name.csv")
@@ -281,7 +280,7 @@ spec =
             got_table.should_equal expected_table
             file.delete
 
-        Test.specify "should append to a file, matching columns by name (headers=True)" <|
+        group_builder.specify "should append to a file, matching columns by name (headers=True)" <|
             existing_table = Table.new [["0", [1,2]], ["B1", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B1", [33,44]], ["0", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_by_name_2.csv")
@@ -294,7 +293,7 @@ spec =
             got_table.should_equal expected_table
             file.delete
 
-        Test.specify "should fail when appending and matching columns by name but column names are not available in the file (headers=Infer)" <|
+        group_builder.specify "should fail when appending and matching columns by name but column names are not available in the file (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_no_header.csv")
@@ -304,7 +303,7 @@ spec =
             appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             file.delete
 
-        Test.specify "should fail when appending and matching columns by name but headers are disabled (headers=False)" <|
+        group_builder.specify "should fail when appending and matching columns by name but headers are disabled (headers=False)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_no_header.csv")
@@ -314,7 +313,7 @@ spec =
             appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             file.delete
 
-        Test.specify "should fail on column mismatch when appending to a file by name" <|
+        group_builder.specify "should fail on column mismatch when appending to a file by name" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]]]
             appending_table = Table.new [["B", [33,44]], ["X", [Nothing, 0]]]
             file = (enso_project.data / "transient" / "append_no_header.csv")
@@ -327,7 +326,7 @@ spec =
             result.catch.to_display_text . should_equal "Columns mismatch. Missing from new data: [A] Extras in new data: [X]"
             file.delete
 
-        Test.specify "should append to a file, matching columns by position" <|
+        group_builder.specify "should append to a file, matching columns by position" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["AA", [33,44]], ["...", [Nothing, 0]], ["hmmm", ["a","BB"]]]
 
@@ -353,7 +352,7 @@ spec =
             test_append initial_file_format=no_headers append_format=base_format expected_table_without_headers
             test_append initial_file_format=no_headers append_format=no_headers expected_table_without_headers
 
-        Test.specify "should fail on column count mismatch when appending to a file by position" <|
+        group_builder.specify "should fail on column count mismatch when appending to a file by position" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table_1 = Table.new [["B", [33,44]], ["X", [Nothing, 0]]]
             appending_table_2 = Table.new [["B", [33,44]], ["X", [Nothing, 0]], ["Y", ["a","BB"]], ["Z", [Nothing, 0]]]
@@ -375,7 +374,7 @@ spec =
 
             file.delete
 
-        Test.specify "should use the same line ending style as existing data when appending" <|
+        group_builder.specify "should use the same line ending style as existing data when appending" <|
             initial_table = Table.new [["a", [1, 2]], ["d", ["e", "f"]]]
             table_to_append = Table.new [["a", ["x", "y"]], ["d", ["z", "w"]]]
             expected_lines = ["a,d", "1,e", "2,f", "x,z", "y,w"]
@@ -389,7 +388,7 @@ spec =
                 text.should_equal (expected_lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify "should use Unix line ending style when appending to an empty or nonexistent file" <|
+        group_builder.specify "should use Unix line ending style when appending to an empty or nonexistent file" <|
             empty_file = (enso_project.data / "transient" / "empty.csv")
             "".write empty_file
             nonexistent_file = (enso_project.data / "transient" / "nonexistent.csv")
@@ -404,7 +403,7 @@ spec =
             Data.read_text empty_file . should_equal expected_text
             Data.read_text nonexistent_file . should_equal expected_text
 
-        Test.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
+        group_builder.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
             initial_lines = ["# comment 1", "# comment 2"]
             table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
             expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
@@ -420,7 +419,7 @@ spec =
                 text.should_equal expected_text
                 file.delete
 
-        Test.specify "should use the existing line ending style when appending to a file consisting of only comments missing last EOL" <|
+        group_builder.specify "should use the existing line ending style when appending to a file consisting of only comments missing last EOL" <|
             initial_lines = ["# comment 1", "# comment 2 without EOL"]
             table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
             expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
@@ -436,7 +435,7 @@ spec =
                 text.should_equal expected_text
                 file.delete
 
-        Test.specify "should correctly handle append edge cases" <|
+        group_builder.specify "should correctly handle append edge cases" <|
             table = Table.new [["a", [1, 2]]]
             file = (enso_project.data / "transient" / "append_edge_cases.csv")
             file.delete_if_exists
@@ -507,7 +506,7 @@ spec =
                         text.should_equal expected_text
                         file.delete
 
-        Test.specify "should use the existing line ending style when appending to a file consisting of only one comment with EOL" <|
+        group_builder.specify "should use the existing line ending style when appending to a file consisting of only one comment with EOL" <|
             initial_line = "# comment 1 with EOL"
             table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
             expected_lines = [initial_line] + ["a,b", "x,z", "y,w"]
@@ -523,7 +522,7 @@ spec =
                 text.should_equal expected_text
                 file.delete
 
-        Test.specify "should use the Unix line ending style when appending to a file consisting of only one comment and missing the EOL" <|
+        group_builder.specify "should use the Unix line ending style when appending to a file consisting of only one comment and missing the EOL" <|
             initial_lines = ["# comment 1 without EOL"]
             table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
             expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
@@ -537,7 +536,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should fail if explicitly provided line endings do not match line endings in the file when appending" <|
+        group_builder.specify "should fail if explicitly provided line endings do not match line endings in the file when appending" <|
             initial_table = Table.new [["a", [1, 2]]]
             table_to_append = Table.new [["a", ["x", "y"]]]
             file = (enso_project.data / "transient" / "endings_mismatch.csv")
@@ -548,7 +547,7 @@ spec =
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
 
-        Test.specify "should fail if the target file is read-only" <|
+        group_builder.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission.csv"
             f.delete_if_exists
 
@@ -566,7 +565,7 @@ spec =
             set_writable f True
             f.delete
 
-        Test.specify "should fail if the parent directory does not exist" <|
+        group_builder.specify "should fail if the parent directory does not exist" <|
             parent = enso_project.data / "transient" / "nonexistent"
             parent.exists.should_be_false
 
@@ -576,7 +575,7 @@ spec =
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Not_Found
 
-        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+        group_builder.specify "should warn about not-encodable characters according to the problem behaviour" <|
             f = enso_project.data / "transient" / "encoding-errors.csv"
 
             format = Delimited "," encoding=Encoding.ascii headers=True
@@ -602,4 +601,8 @@ spec =
             f.read Plain_Text . should_equal "Initial Content"
             f.delete
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

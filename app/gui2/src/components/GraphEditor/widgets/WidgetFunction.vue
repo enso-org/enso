@@ -16,7 +16,6 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract.ts'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
@@ -27,6 +26,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
+import { isIdentifier } from '@/util/qualifiedName.ts'
 import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
 
@@ -182,10 +182,13 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       } else {
         newArg = Ast.parse(value, edit)
       }
-      const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
-      edit.takeAndReplaceValue(argApp.appTree.id, (oldAppTree) =>
-        Ast.App.new(oldAppTree, name, newArg, edit),
-      )
+      const name =
+        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name)
+          ? argApp.argument.argInfo.name
+          : undefined
+      edit
+        .getVersion(argApp.appTree)
+        .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       props.onUpdate({ edit })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
@@ -220,7 +223,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         props.onUpdate({
           edit,
           portUpdate: {
-            value: func.node,
+            value: func,
             origin: argApp.appTree.id,
           },
         })
@@ -231,11 +234,10 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
           const lhs = edit.take(argApp.appTree.lhs.id)
-          assert(lhs != null)
           props.onUpdate({
             edit,
             portUpdate: {
-              value: lhs.node,
+              value: lhs,
               origin: argApp.appTree.id,
             },
           })
@@ -253,22 +255,17 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
           if (innerApp.appTree.id === argApp.appTree.id) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
-            const newFunction = edit.take(argApp.appTree.function.id)?.node
-            assert(newFunction != undefined)
-            edit.replaceRef(argApp.appTree.id, newFunction)
+            const appTree = edit.getVersion(argApp.appTree)
+            appTree.replace(appTree.function.take())
             props.onUpdate({ edit })
             return true
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
-            const infoName = innerApp.argument.argInfo?.name ?? null
+            const infoName = innerApp.argument.argInfo?.name
             // Positional arguments following the deleted argument must all be rewritten to named.
-            if (infoName && !innerApp.appTree.argumentName) {
-              const func = edit.take(innerApp.appTree.function.id)?.node
-              const arg = edit.take(innerApp.appTree.argument.id)?.node
-              assert(!!func)
-              assert(!!arg)
-              edit.replaceValue(innerApp.appTree.id, Ast.App.new(func, infoName, arg, edit))
+            if (infoName && isIdentifier(infoName) && !innerApp.appTree.argumentName) {
+              edit.getVersion(innerApp.appTree).setArgumentName(infoName)
             }
           }
         }

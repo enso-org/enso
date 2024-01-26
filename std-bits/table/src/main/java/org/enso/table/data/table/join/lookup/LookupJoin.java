@@ -201,7 +201,7 @@ public class LookupJoin {
       @Override
       public Column build(int[] orderMask) {
         assert orderMask != null;
-        return lookupColumn.applyMask(new OrderMask(orderMask));
+        return lookupColumn.applyMask(OrderMask.fromArray(orderMask));
       }
     }
   }
