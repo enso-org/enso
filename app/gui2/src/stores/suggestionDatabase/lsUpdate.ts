@@ -19,9 +19,9 @@ import {
   normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
-  tryIdentifier,
+  tryIdentifierOrOperatorIdentifier,
   tryQualifiedName,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
@@ -32,7 +32,7 @@ interface UnfinishedEntry {
   memberOf?: QualifiedName
   isPrivate?: boolean
   isUnstable?: boolean
-  name?: Identifier
+  name?: IdentifierOrOperatorIdentifier
   aliases?: string[]
   selfType?: Typename
   arguments?: SuggestionEntryArgument[]
@@ -48,17 +48,17 @@ interface UnfinishedEntry {
 function setLsName(
   entry: UnfinishedEntry,
   name: string,
-): entry is UnfinishedEntry & { name: Identifier } {
-  const ident = tryIdentifier(name)
+): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier } {
+  const ident = tryIdentifierOrOperatorIdentifier(name)
   if (!ident.ok) return false
   entry.name = ident.value
   return true
 }
 
 function setLsModule(
-  entry: UnfinishedEntry & { name: Identifier },
+  entry: UnfinishedEntry & { name: IdentifierOrOperatorIdentifier },
   module: string,
-): entry is UnfinishedEntry & { name: Identifier; definedIn: QualifiedName } {
+): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier; definedIn: QualifiedName } {
   const qn = tryQualifiedName(module)
   if (!qn.ok) return false
   const normalizedQn = normalizeQualifiedName(qn.value)
@@ -148,7 +148,7 @@ export function entryFromLs(
         case 'module': {
           const entry = {
             kind: SuggestionKind.Module,
-            name: 'MODULE' as Identifier,
+            name: 'MODULE' as IdentifierOrOperatorIdentifier,
             arguments: [],
             returnType: '',
             annotations: [],

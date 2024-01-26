@@ -1,0 +1,66 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Runtime.Source_Location.Source_Location
+import Standard.Base.Runtime.Stack_Trace_Element
+
+polyglot java import java.lang.NullPointerException
+
+## PRIVATE
+find_project_root : File -> File
+find_project_root path =
+    if path.is_nothing then Nothing else
+        handler _ = Nothing
+        Panic.catch NullPointerException handler=handler <|
+            if path.name == "src" then path.parent else
+                @Tail_Call find_project_root path.parent
+
+## PRIVATE
+find_caller_script : Vector Stack_Trace_Element -> File
+find_caller_script stack =
+    find_main idx =
+        if stack.at idx . name . split "." . last == "main" then idx else
+            @Tail_Call find_main (idx + 1)
+    main_index = find_main 0
+
+    find_caller idx =
+        source = stack.at idx . source_location
+        case source of
+            _ : Source_Location -> stack.at idx . source_location . file
+            _ ->
+                if (idx + 1 == stack.length) then Nothing else
+                    @Tail_Call find_caller (idx + 1)
+
+    find_caller main_index
+
+## Holds configuration for a Test_Suite
+type Suite_Config
+    ## PRIVATE
+       Construct a configuration
+
+       Arguments:
+       - output_path: The path to the JUnit XML file to write to. If Nothing, no JUnit XML file
+         will be written.
+    Value (print_only_failures : Boolean) (output_path : (File | Nothing)) (use_ansi_colors : Boolean)
+
+    ## Creates an Suite_Config based off environment and caller location
+    from_environment : Suite_Config
+    from_environment =
+        print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
+        junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
+        use_ansi_colors = Environment.get "ENSO_TEST_ANSI_COLORS" . is_nothing . not
+        results_path = if junit_folder.is_nothing then Nothing else
+            caller_script = find_caller_script Runtime.get_stack_trace
+            project_root = find_project_root caller_script
+            case project_root.is_error || project_root.is_nothing of
+                True ->
+                    IO.println "Unable to determine root project path. JUnit output disabled."
+                    Nothing
+                False ->
+                    (File.new junit_folder) / project_root.name / "JUnit.xml"
+
+        Suite_Config.Value print_only_failures results_path use_ansi_colors
+
+    ## Should the results be written to JUnit XML file.
+    should_output_junit self =
+        self.output_path.is_nothing.not

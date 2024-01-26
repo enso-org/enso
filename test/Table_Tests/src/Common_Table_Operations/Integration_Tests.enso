@@ -4,19 +4,38 @@ from Standard.Base import all
 from Standard.Table import all hiding Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
-    table_builder = setup.table_builder
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
+    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
-    Test.group setup.prefix+" Interactions Between various operations" <|
-        Test.specify "using weird column names with operations and filtering" <|
+    suite_builder.group setup.prefix+" Interactions Between various operations" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "using weird column names with operations and filtering" <|
             columns = weird_names.map_with_index ix-> name->
                 [name, [100+ix, 200+ix, 300+ix]]
             table = table_builder columns
@@ -31,8 +50,8 @@ spec setup =
             weird_names.map_with_index ix-> name->
                 result.at name . to_vector . should_equal [200+ix]
 
-        Test.specify "aggregates and joins" <|
-            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]
+        group_builder.specify "aggregates and joins" <|
+            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]] 
             t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
 
             t3 = t2.aggregate [Group_By "Letter", Count]
@@ -44,7 +63,7 @@ spec setup =
             rows.at 2 . should_equal ["C", 2, 2, "Y"]
             rows.at 3 . should_equal ["D", 2, 2, "Y"]
 
-        Test.specify "aggregates and distinct" <|
+        group_builder.specify "aggregates and distinct" <|
             t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C"]], ["Points", [2, 5, 2, 1, 10, 3]]]
 
             t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
@@ -59,7 +78,7 @@ spec setup =
             a_or_b . should_be_true
             rows.at 1 . should_equal ["C", 13]
 
-        Test.specify "aggregates and filtering" <|
+        group_builder.specify "aggregates and filtering" <|
             t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C", "B"]], ["Points", [2, 5, 2, 1, 10, 3, 0]]]
 
             t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
@@ -69,7 +88,7 @@ spec setup =
             rows.at 0 . should_equal ["A", 5]
             rows.at 1 . should_equal ["B", 5]
 
-        Test.specify "aggregates and ordering" <|
+        group_builder.specify "aggregates and ordering" <|
             t1 = table_builder [["Letter", ["C", "A", "B", "A", "A", "C", "C", "B"]], ["Points", [0, -100, 5, 2, 1, 10, 3, 0]]]
             t2 = t1.aggregate [Group_By "Letter", Sum "Points"]
             t3 = t2.order_by "Sum Points" |> materialize
@@ -77,7 +96,7 @@ spec setup =
             t3.at "Letter" . to_vector . should_equal ["A", "B", "C"]
             t3.at "Sum Points" . to_vector . should_equal [-97, 5, 13]
 
-        Test.specify "distinct and ordering" <|
+        group_builder.specify "distinct and ordering" <|
             t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
 
             # These are 'adversarial' white-box examples constructed knowing that Postgres' DISTINCT ON does not play too well with ORDER BY and it needs to be handled carefully.
@@ -89,11 +108,11 @@ spec setup =
             t4.row_count . should_equal 2
 
         if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
-            Test.specify "distinct and ordering if first row is returned after ordering" <|
+            group_builder.specify "distinct and ordering if first row is returned after ordering" <|
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
-                t = table_builder [a, b, c] . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
+                t = (table_builder [a, b, c]) . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
 
                 t2 = t.distinct ["A", "B"] on_problems=Report_Error
                 # Now, reverse the order!
@@ -112,7 +131,7 @@ spec setup =
                It is easier to test this if we can rely on distinct returning
                the first row, if it is returning any row, it is harder to write
                tests that distinguish the two cases (filter before and after).
-            Test.specify "distinct and filtering" <|
+            group_builder.specify "distinct and filtering" <|
                 a = ["A", ["a", "a", "b", "a", "b"]]
                 b = ["B", [1, 2, 5, 5, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5]]
@@ -136,7 +155,7 @@ spec setup =
 
             ## This mostly checks that various operations handle all kinds of Integer storage implementations
                (add_row_number may use a different storage than regular columns)
-            if setup.is_database.not then Test.specify "add_row_number and other operations" <|
+            if setup.is_database.not then group_builder.specify "add_row_number and other operations" <|
                 t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]], ["Z", [0.25, 0.5, 0.75]]]
                 t2 = table_builder [["X", ["ddd", "eee", "fff"]]]
 
@@ -165,9 +184,9 @@ spec setup =
                 r123.at "Row" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1.5, 2.5, 3.5]
 
         if setup.test_selection.fixed_length_text_columns then
-            Test.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
-                t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]] . cast "X" (Value_Type.Char 1 False)
-                t2 = table_builder [["X", ["ddd", "eee", "fff"]], ["Y", [0, 1, 0]]] . cast "X" (Value_Type.Char 3 False)
+            group_builder.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
+                t1 = (table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]]) . cast "X" (Value_Type.Char 1 False)
+                t2 = (table_builder [["X", ["ddd", "eee", "fff"]], ["Y", [0, 1, 0]]]) . cast "X" (Value_Type.Char 3 False)
                 t3 = t1.union t2
 
                 vt1 = t3.at "X" . value_type
@@ -184,7 +203,7 @@ spec setup =
                 t5.at "Y" . to_vector . should_equal [0, 1, 2]
                 t5.at "Shortest X" . to_vector . should_equal ["b", "a", "c"]
 
-            Test.specify "types should be correctly preserved after aggregation after iif" <|
+            group_builder.specify "types should be correctly preserved after aggregation after iif" <|
                 t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
                 t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 

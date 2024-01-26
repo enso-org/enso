@@ -11,23 +11,36 @@ import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Problems, Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Database.Helpers.Name_Generator
 
-spec =
-    connection = Database.connect (SQLite In_Memory)
-    make_table prefix columns =
-        name = prefix
-        column_exprs = columns.map col_def->
-            col_def.first + " " + col_def.second
-        stmt = 'CREATE TABLE "'+name+'" ('+(column_exprs.join ', ')+');'
-        Problems.assume_no_problems <| connection.execute_update stmt
-        connection.query (SQL_Query.Table_Name name)
+type Data
+    Value ~connection
 
-    Test.group "[SQLite] Type Mapping" <|
-        Test.specify "should map its basic affinities" <|
+    setup =
+        connection = Database.connect (SQLite In_Memory)
+        Data.Value connection
+
+    teardown self = self.connection.close
+
+
+add_specs suite_builder =
+    suite_builder.group "[SQLite] Type Mapping" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        make_table prefix columns =
+            name = prefix
+            column_exprs = columns.map col_def->
+                col_def.first + " " + col_def.second
+            stmt = 'CREATE TABLE "'+name+'" ('+(column_exprs.join ', ')+');'
+            Problems.assume_no_problems <| data.connection.execute_update stmt
+            data.connection.query (SQL_Query.Table_Name name)
+
+        group_builder.specify "should map its basic affinities" <|
             t = make_table "basics" [["int", "INTEGER"], ["real", "REAL"], ["text", "TEXT"], ["blob", "BLOB"], ["numeric", "NUMERIC"]]
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
@@ -36,7 +49,7 @@ spec =
             # We treat numeric as a float, since that is what really sits in SQLite under the hood.
             t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
-        Test.specify "should map complex types to their closest approximation" <|
+        group_builder.specify "should map complex types to their closest approximation" <|
             t = make_table "complex" [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
@@ -47,7 +60,7 @@ spec =
             t.at "g" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.at "h" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
-        Test.specify "should allow for special handling of booleans to support the Boolean type that does not have a builtin affinity" <|
+        group_builder.specify "should allow for special handling of booleans to support the Boolean type that does not have a builtin affinity" <|
             t = make_table "bools" [["a", "BOOLEAN"], ["b", "BOOLEAN"]]
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
@@ -60,7 +73,7 @@ spec =
             c3 = t.evaluate_expression "[a] && 10"
             c3.should_fail_with Invalid_Value_Type
 
-        Test.specify "should correctly handle types through operations" <|
+        group_builder.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
             t.evaluate_expression 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
@@ -86,7 +99,7 @@ spec =
             # First is not currently implemented in SQLite
             # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
-        Test.specify "should approximate types to the closest supported one" <|
+        group_builder.specify "should approximate types to the closest supported one" <|
             t = make_table "approx-table" [["a", "BINARY"], ["b", "INT"]]
 
             t1 = t.cast "a" (Value_Type.Binary 10 variable_length=True)
@@ -97,23 +110,22 @@ spec =
             t2.at "b" . value_type . should_equal Value_Type.Integer
             Problems.expect_warning Inexact_Type_Coercion t2
 
-        Test.specify "will coerce date/time columns to Text in existing tables" <|
+        group_builder.specify "will coerce date/time columns to Text in existing tables" <|
             t = make_table "datetime-table" [["a", "DATE"], ["b", "TIME"], ["c", "DATETIME"], ["d", "TIMESTAMP"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
             t.at "c" . value_type . should_equal Value_Type.Char
             t.at "d" . value_type . should_equal Value_Type.Char
 
-        Test.specify "does not support creating tables with date/time values" <|
+        group_builder.specify "does not support creating tables with date/time values" <|
             t = Table.new [["a", [Date.today]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
-            r1 = t.select_into_database_table connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
+            r1 = t.select_into_database_table data.connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
             r1.should_fail_with Unsupported_Database_Operation
 
-        Test.specify "should be able to infer types for all supported operations" <|
+        group_builder.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite
             internal_mapping = dialect.internal_generator_dialect.operation_map
             operation_type_mapping = SQLite_Type_Mapping.operations_map
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 
-main = Test_Suite.run_main spec

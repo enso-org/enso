@@ -174,6 +174,32 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
+  React.useEffect(() => {
+    let isClick = false
+    const onMouseDown = () => {
+      isClick = true
+    }
+    const onMouseUp = (event: MouseEvent) => {
+      if (
+        isClick &&
+        !(event.target instanceof HTMLInputElement) &&
+        !(event.target instanceof HTMLTextAreaElement)
+      ) {
+        document.getSelection()?.removeAllRanges()
+      }
+    }
+    const onSelectStart = () => {
+      isClick = false
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mouseup', onMouseUp)
+    document.addEventListener('selectstart', onSelectStart)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.removeEventListener('selectstart', onSelectStart)
+    }
+  }, [])
   const routes = (
     <router.Routes>
       <React.Fragment>
