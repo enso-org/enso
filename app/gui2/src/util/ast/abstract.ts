@@ -1665,11 +1665,13 @@ const mapping: Record<string, string> = {
   '`': '``',
 }
 
-const reverseMapping: Record<string, string> = Object.entries(mapping).reduce((acc: Record<string, string>, [key, value]) => {
-  acc[value] = key
-  return acc
-}, {})
-
+const reverseMapping: Record<string, string> = Object.entries(mapping).reduce(
+  (acc: Record<string, string>, [key, value]) => {
+    acc[value] = key
+    return acc
+  },
+  {},
+)
 
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * NOT USABLE to insert into raw strings. Does not include quotes. */

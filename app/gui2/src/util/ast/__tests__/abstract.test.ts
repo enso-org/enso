@@ -1,7 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
-import { MutableModule, type Identifier, escape, unescape} from '../abstract'
+import { MutableModule, escape, unescape, type Identifier } from '../abstract'
 
 //const disabledCases = [
 //  ' a',
@@ -481,7 +481,7 @@ test.each([
   'Hello,\vWorld!',
   'Hello, \\World!',
   'Hello, `World!`',
-  '\'Hello, World!\'',
+  "'Hello, World!'",
   '"Hello, World!"',
   'Hello, \fWorld!',
   'Hello, \bWorld!',

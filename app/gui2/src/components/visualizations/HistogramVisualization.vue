@@ -261,9 +261,13 @@ watchPostEffect(() => {
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidthBySizeAndFamily(axis.value.x?.label) / 2)
+const xLabelLeft = computed(
+  () => boxWidth.value / 2 + getTextWidthBySizeAndFamily(axis.value.x?.label) / 2,
+)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidthBySizeAndFamily(axis.value.y?.label) / 2)
+const yLabelLeft = computed(
+  () => -boxHeight.value / 2 + getTextWidthBySizeAndFamily(axis.value.y?.label) / 2,
+)
 
 let startX = 0
 let startY = 0

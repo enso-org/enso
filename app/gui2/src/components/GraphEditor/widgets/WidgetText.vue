@@ -27,15 +27,9 @@ const value = computed({
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
-    if (
-      props.input.value instanceof Ast.TextLiteral
-    )
-      return Score.Perfect
+    if (props.input.value instanceof Ast.TextLiteral) return Score.Perfect
     const type = props.input.expectedType
-    if (
-      type === 'Standard.Base.Data.Text'
-    )
-      return Score.Perfect
+    if (type === 'Standard.Base.Data.Text') return Score.Perfect
     return Score.Mismatch
   },
 })

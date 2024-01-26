@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@/composables/events'
+import { escape, unescape } from '@/util/ast/abstract'
 import { blurIfNecessary } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
-import { escape, unescape } from '@/util/ast/abstract'
 
 const props = defineProps<{
   modelValue: string
@@ -42,7 +42,6 @@ const inputStyle = computed<StyleValue>(() => {
   }
 })
 
-
 /** To prevent other elements from stealing mouse events (which breaks blur),
  * we instead setup our own `pointerdown` handler while the input is focused.
  * Any click outside of the input field causes `blur`. */
@@ -75,11 +74,10 @@ function blur() {
   emit('update:modelValue', escapedValue.value)
   editedValue.value = props.modelValue
 }
-
 </script>
 
 <template>
-  <div class="TextInputWidget" @pointerdown.stop="() => inputNode?.focus()" @keydown.backspace.stop> 
+  <div class="TextInputWidget" @pointerdown.stop="() => inputNode?.focus()" @keydown.backspace.stop>
     <input
       ref="inputNode"
       v-model="editedValue"

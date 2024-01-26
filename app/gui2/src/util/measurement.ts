@@ -21,10 +21,7 @@ export function getTextWidthBySizeAndFamily(
 
 /** Helper function to get text width to make sure that labels on the x axis do not overlap,
  * and keeps it readable. */
-export function getTextWidthByFont(
-  text: string | null | undefined,
-  font: string
-) {
+export function getTextWidthByFont(text: string | null | undefined, font: string) {
   if (text == null) {
     return 0
   }
