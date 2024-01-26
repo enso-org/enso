@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -51,6 +52,8 @@ public class NestedPatternCompilationBenchmarks {
     benchmarkName = SrcUtil.findName(params);
     code =
         """
+            import Standard.Base.Data.Numbers
+
             type List
                 Cons a b
                 Nil
