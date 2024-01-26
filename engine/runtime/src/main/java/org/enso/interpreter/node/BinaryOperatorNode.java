@@ -69,8 +69,8 @@ final class BinaryOperatorNode extends ExpressionNode {
   }
 
   /**
-   * A node that checks the type of {@code that} argument and performs conversion of {@code self} to
-   * {@code that} type, if it contains the requested symbol implementation.
+   * A node that checks the type of {@code that} argument, performs conversion of {@code self} to
+   * {@code that} type, if it contains the requested symbol implementation, and executes that method instead of the original operator.
    */
   @GenerateUncached
   abstract static class DoThatConversionNode extends Node {
