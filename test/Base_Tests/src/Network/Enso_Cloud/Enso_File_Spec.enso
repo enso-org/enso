@@ -22,6 +22,7 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
                The file is expected to contain:
                [1, 2, 3, "foo"]
             assets.map .name . should_contain "test_file.json"
+
         Test.specify "should allow to create and delete a directory" <|
             my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
@@ -47,6 +48,27 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
 
                 # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
                 # my_dir.exists . should_be_false
+
+        Test.specify "should set the current working directory by environment variable" <|
+            # If nothing set, defaults to root:
+            Enso_File.current_working_directory . should_equal Enso_File.root
+
+            subdir = Enso_File.root.create_directory "my_test_CWD-" + (Random.uuid.take 5)
+            cleanup =
+                Enso_User.flush_caches
+                subdir.delete
+            Panic.with_finalizer cleanup <|
+                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_PATH" subdir.id <|
+                    # Flush caches to ensure fresh dir is used
+                    Enso_User.flush_caches
+
+                    # TODO this should work, but further API changes are needed
+                    # Enso_File.current_working_directory . should_equal subdir
+                    # So now just checking id:
+                    Enso_File.current_working_directory.id . should_equal subdir.id
+
+            # It should be back to default afterwards:
+            Enso_File.current_working_directory . should_equal Enso_File.root
 
         Test.specify "should allow to find a file by name" <|
             # TODO the file should be created programmatically when write is implemented
