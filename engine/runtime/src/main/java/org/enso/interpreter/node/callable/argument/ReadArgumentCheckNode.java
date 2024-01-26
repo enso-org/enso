@@ -328,33 +328,34 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     ApplicationNode findConversionNode(Type[] allTypes) {
-      if (allTypes != null) {
-        for (var from : allTypes) {
-          var convAndType = findConversion(from);
+      if (allTypes == null) {
+        allTypes = new Type[] {null};
+      }
+      for (var from : allTypes) {
+        var convAndType = findConversion(from);
 
-          if (convAndType != null) {
-            if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
-              CompilerAsserts.neverPartOfCompilation();
-              var convNode = LiteralNode.build(convAndType.getLeft());
-              var intoNode = LiteralNode.build(convAndType.getRight());
-              var valueNode = ran.plainRead();
-              var args =
-                  new CallArgument[] {
-                    new CallArgument(null, intoNode), new CallArgument(null, valueNode)
-                  };
-              return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-            } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class)
-                instanceof TypeCheckExpressionNode tcen) {
-              CompilerAsserts.neverPartOfCompilation();
-              var convNode = LiteralNode.build(convAndType.getLeft());
-              var intoNode = LiteralNode.build(convAndType.getRight());
-              var valueNode = tcen.original;
-              var args =
-                  new CallArgument[] {
-                    new CallArgument(null, intoNode), new CallArgument(null, valueNode)
-                  };
-              return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-            }
+        if (convAndType != null) {
+          if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = ran.plainRead();
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+          } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class)
+              instanceof TypeCheckExpressionNode tcen) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = tcen.original;
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
           }
         }
       }
