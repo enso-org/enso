@@ -952,13 +952,11 @@ export class App extends Ast {
     argumentName: StrictIdentLike | undefined,
     argument: Owned,
   ) {
-    return App.concrete(
-      module,
-      unspaced(func),
-      undefined,
-      nameSpecification(argumentName),
-      autospaced(argument),
-    )
+    const name = nameSpecification(argumentName)
+    return App.concrete(module, unspaced(func), undefined, name, {
+      node: argument,
+      whitespace: name ? '' : ' ',
+    })
   }
 
   get function(): Ast {
