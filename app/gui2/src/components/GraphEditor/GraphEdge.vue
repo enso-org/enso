@@ -397,6 +397,7 @@ const activeStyle = computed(() => {
     offset += length
   }
   return {
+    ...baseStyle.value,
     strokeDasharray: length,
     strokeDashoffset: offset,
   }
@@ -435,6 +436,7 @@ const arrowTransform = computed(() => {
 
 <template>
   <template v-if="basePath">
+    <path v-if="activePath" :d="basePath" class="edge visible dimmed" :style="baseStyle" />
     <path
       :d="basePath"
       class="edge io"
@@ -442,7 +444,12 @@ const arrowTransform = computed(() => {
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     />
-    <path ref="base" :d="basePath" class="edge visible" :style="baseStyle" />
+    <path
+      ref="base"
+      :d="activePath ?? basePath"
+      class="edge visible"
+      :style="activePath ? activeStyle : baseStyle"
+    />
     <polygon
       v-if="arrowTransform"
       :transform="arrowTransform"
@@ -450,7 +457,6 @@ const arrowTransform = computed(() => {
       class="arrow visible"
       :style="baseStyle"
     />
-    <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
   </template>
 </template>
 
@@ -480,7 +486,8 @@ const arrowTransform = computed(() => {
   stroke-linecap: round;
 }
 
-.edge.visible.active {
-  stroke: rgba(255, 255, 255, 0.4);
+.edge.visible.dimmed {
+  /* stroke: rgba(255, 255, 255, 0.4); */
+  stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>
