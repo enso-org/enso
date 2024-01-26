@@ -311,6 +311,14 @@ spec =
                 delete_afterwards dest_file <|
                     dest_file.read . should_equal "Hello"
 
+        Test.specify "will fail if source file does not exist" <|
+            base_file = my_writable_dir / "nonexistent-src-file.txt"
+            dest_file = my_writable_dir / "nonexistent-dest-file.txt"
+            r = base_file.copy_to dest_file
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
+            dest_file.exists . should_be_false
+
         Test.specify "respects replace_existing setting in copy_to" <|
             base_file = my_writable_dir / "new_file-for-copy-2.txt"
             "Hello".write base_file . should_succeed

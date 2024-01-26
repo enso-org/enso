@@ -8,10 +8,8 @@ type File_Like
 
     ## PRIVATE
        Returns the file's path.
-    path : Text
-    path self = self.underlying.path
+    path self -> Text = self.underlying.path
 
     ## PRIVATE
        Returns the file's name.
-    name : Text
-    name self = self.underlying.name
+    name self -> Text = self.underlying.name

@@ -7,6 +7,7 @@ import project.Panic.Panic
 import project.Runtime.Context
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 
@@ -37,8 +38,8 @@ type Existing_File_Behavior
        Adjust the Existing_File_Behavior to take account of Context enablement.
        If the context is disabled, the returned behavior represents the behavior
        that should be applied to the dry run file.
-    get_effective_behavior : File -> Boolean -> Existing_File_Behavior ! File_Error
-    get_effective_behavior self file is_enabled=Context.Output.is_enabled =
+    get_effective_behavior : Writable_File -> Boolean -> Existing_File_Behavior ! File_Error
+    get_effective_behavior self (file : Writable_File) is_enabled=Context.Output.is_enabled =
         if is_enabled then self else
             case self of
                 Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
@@ -57,8 +58,8 @@ type Existing_File_Behavior
 
        The `action` may not be run at all in case the `Error` behavior is
        selected.
-    write : File -> (Output_Stream -> Any) -> Any ! File_Error
-    write self file action =
+    write : Writable_File -> (Output_Stream -> Any) -> Any ! File_Error
+    write self (file : Writable_File) action =
         case self of
             Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
             Existing_File_Behavior.Append -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
@@ -87,8 +88,8 @@ type Existing_File_Behavior
 
        The `action` takes 2 arguments - the effective file that will be written to
        (the original file or the dry run file) and the output stream to write to.
-    write_handling_dry_run : File -> (File -> Output_Stream -> Any) -> Any ! File_Error
-    write_handling_dry_run self file action =
+    write_handling_dry_run : Writable_File -> (File -> Output_Stream -> Any) -> Any ! File_Error
+    write_handling_dry_run self (file : Writable_File) action =
         if Context.Output.is_enabled then self.write file (action file) else
             effective_behavior = self.get_effective_behavior file is_enabled=False
             needs_original = effective_behavior == Existing_File_Behavior.Append
@@ -97,7 +98,7 @@ type Existing_File_Behavior
                 effective_behavior.write dry_run_file (action dry_run_file)
 
 ## PRIVATE
-write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
+write_file_backing_up_old_one : Writable_File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.absolute.parent
     bak_file = parent / file.name+".bak"

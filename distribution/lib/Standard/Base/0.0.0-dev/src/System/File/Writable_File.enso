@@ -1,8 +1,0 @@
-## PRIVATE
-   Any type that represents a file that can be written to should be convertible
-   to this common type-class.
-
-   This allows our code to work with any kind of file backend, e.g. the local
-   file system as well as remote ones like S3, using the same basic interface.
-type Writable_File
-    Value file
