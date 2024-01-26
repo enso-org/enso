@@ -48,7 +48,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       type === 'Standard.Base.Data.Numbers.Integer' ||
       type === 'Standard.Data.Numbers.Float'
     )
-      return Score.Perfect
+      return Score.Good
     return Score.Mismatch
   },
 })

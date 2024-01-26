@@ -80,9 +80,23 @@ const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : 
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
 const selectedIndex = ref<number>()
-const selectedTag = computed(() =>
-  selectedIndex.value != null ? tags.value[selectedIndex.value] : undefined,
-)
+const selectedTag = computed(() => {
+  if (selectedIndex.value != null) {
+    return tags.value[selectedIndex.value]
+  } else {
+    const currentExpression = WidgetInput.valueRepr(props.input)?.trim()
+    if (!currentExpression) return undefined
+    return tags.value.find((tag) => {
+      const tagExpression = tag.expression.trim()
+      return (
+        tagExpression === currentExpression ||
+        tagExpression === `(${currentExpression})` ||
+        `(${tagExpression})` === currentExpression
+      )
+    })
+  }
+})
+
 const selectedExpression = computed(() => {
   if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
   return selectedTag.value.expression
@@ -118,7 +132,7 @@ watch(selectedIndex, (_index) => {
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 999,
+  priority: 50,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
     if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
