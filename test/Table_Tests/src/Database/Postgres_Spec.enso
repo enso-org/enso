@@ -16,9 +16,8 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
-import Standard.Test.Test_Environment
+from Standard.Test_New import all
+import Standard.Test_New.Test_Environment
 
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
@@ -32,34 +31,27 @@ from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
-postgres_specific_spec connection db_name setup =
-    Test.group "[PostgreSQL] Schemas and Databases" <|
-        Test.specify "should be able to get current database and list databases" <|
-            connection.database . should_equal db_name
-            connection.databases.length . should_not_equal 0
-            connection.databases.contains db_name . should_be_true
-            Meta.is_same_object connection (connection.set_database db_name) . should_be_true
 
-        Test.specify "should be able to get current schema and list schemas" <|
-            connection.schema . should_equal "public"
-            connection.schemas.length . should_not_equal 0
-            connection.schemas.contains "public" . should_be_true
-            connection.schemas.contains "information_schema" . should_be_true
-            Meta.is_same_object connection (connection.set_schema "public") . should_be_true
+type Basic_Test_Data
+    Value ~connection
 
-        Test.specify "should allow changing schema" <|
-            new_connection = connection.set_schema "information_schema"
-            new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
-            new_schema . should_equal "information_schema"
+    setup create_connection_fn =
+        Basic_Test_Data.Value (create_connection_fn Nothing)
 
-        databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
-        pending_database = if databases.length != 0 then Nothing else "Cannot test changing database unless two databases defined."
-        Test.specify "should allow changing database" pending=pending_database <|
-            new_connection = connection.set_database databases.first
-            new_database = new_connection.read (SQL_Query.Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
-            new_database . should_equal databases.first
+    teardown self =
+        self.connection.close
 
-    Test.group "[PostgreSQL] Tables and Table Types" <|
+
+type Postgres_Tables_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    tinfo self = self.data.at 1
+    vinfo self = self.data.at 2
+    temporary_table self = self.data.at 3
+
+    setup create_connection_fn = Postgres_Tables_Data.Value <|
+        connection = create_connection_fn Nothing
         tinfo = Name_Generator.random_name "TestTable"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("A" VARCHAR)'
 
@@ -68,48 +60,141 @@ postgres_specific_spec connection db_name setup =
 
         temporary_table = Name_Generator.random_name "TemporaryTable"
         (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection temporary_table temporary=True
+        [connection, tinfo, vinfo, temporary_table]
 
-        Test.specify "should be able to list table types" <|
-            table_types = connection.table_types
+    teardown self =
+        self.connection.execute_update 'DROP VIEW "'+self.vinfo+'";'
+        self.connection.execute_update 'DROP TABLE "'+self.tinfo+'";'
+        self.connection.close
+
+
+type Postgres_Info_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    tinfo self = self.data.at 1
+    t self = self.data.at 2
+
+    setup create_connection_fn = Postgres_Info_Data.Value <|
+        connection = create_connection_fn Nothing
+        tinfo = Name_Generator.random_name "Tinfo"
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" BIGINT, "bools" BOOLEAN, "doubles" DOUBLE PRECISION)'
+        t = connection.query (SQL_Query.Table_Name tinfo)
+        row1 = ["a", Nothing, False, 1.2]
+        row2 = ["abc", Nothing, Nothing, 1.3]
+        row3 = ["def", 42, True, 1.4]
+        Panic.rethrow <|
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]) update_action=Update_Action.Insert
+        [connection, tinfo, t]
+
+    teardown self =
+        self.connection.execute_update 'DROP TABLE "'+self.tinfo+'"'
+        self.connection.close
+
+
+type Postgres_Aggregate_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    name self = self.data.at 1
+    t self = self.data.at 2
+
+    setup create_connection_fn = Postgres_Aggregate_Data.Value <|
+        connection = create_connection_fn Nothing
+        name = Name_Generator.random_name "Ttypes"
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
+        t = connection.query (SQL_Query.Table_Name name)
+        [connection, name, t]
+
+    teardown self =
+        self.connection.execute_update 'DROP TABLE "'+self.name+'"'
+        self.connection.close
+
+
+postgres_specific_spec suite_builder create_connection_fn db_name setup =
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+
+    suite_builder.group "[PostgreSQL] Schemas and Databases" group_builder->
+        data = Basic_Test_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to get current database and list databases" <|
+            data.connection.database . should_equal db_name
+            data.connection.databases.length . should_not_equal 0
+            data.connection.databases.contains db_name . should_be_true
+            Meta.is_same_object data.connection (data.connection.set_database db_name) . should_be_true
+
+        group_builder.specify "should be able to get current schema and list schemas" <|
+            data.connection.schema . should_equal "public"
+            data.connection.schemas.length . should_not_equal 0
+            data.connection.schemas.contains "public" . should_be_true
+            data.connection.schemas.contains "information_schema" . should_be_true
+            Meta.is_same_object data.connection (data.connection.set_schema "public") . should_be_true
+
+        group_builder.specify "should allow changing schema" <|
+            new_connection = data.connection.set_schema "information_schema"
+            new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
+            new_schema . should_equal "information_schema"
+
+        group_builder.specify "should allow changing database" <|
+            databases = data.connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
+            pending_database = if databases.length != 0 then Nothing else "Cannot test changing database unless two databases defined."
+            case pending_database of
+                Nothing ->
+                    new_connection = data.connection.set_database databases.first
+                    new_database = new_connection.read (SQL_Query.Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
+                    new_database . should_equal databases.first
+                # Nop - skip the test
+                _ -> Nothing
+
+    suite_builder.group "[PostgreSQL] Tables and Table Types" group_builder->
+        data = Postgres_Tables_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to list table types" <|
+            table_types = data.connection.table_types
             table_types.length . should_not_equal 0
             table_types.contains "TABLE" . should_be_true
             table_types.contains "VIEW" . should_be_true
 
-        Test.specify "should be able to list tables" <|
-            tables = connection.tables
+        group_builder.specify "should be able to list tables" <|
+            tables = data.connection.tables
             tables.row_count . should_not_equal 0
             tables.columns.map .name . should_equal ["Database", "Schema", "Name", "Type", "Description"]
 
             table_names = tables.at "Name" . to_vector
-            table_names.should_contain tinfo
-            table_names.should_contain vinfo
-            table_names.should_contain temporary_table
+            table_names.should_contain data.tinfo
+            table_names.should_contain data.vinfo
+            table_names.should_contain data.temporary_table
 
-        Test.specify "should be able to filter tables by name" <|
-            tables = connection.tables tinfo
+        group_builder.specify "should be able to filter tables by name" <|
+            tables = data.connection.tables data.tinfo
             tables.row_count . should_equal 1
             ## The database check is disabled as the Postgres JDBC driver does not return the database name.
             ## tables.at "Database" . to_vector . at 0 . should_equal db_name
             tables.at "Schema" . to_vector . at 0 . should_equal "public"
-            tables.at "Name" . to_vector . at 0 . should_equal tinfo
+            tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
-            connection.tables "TestT_ble%" . row_count . should_equal 1
-            connection.tables "Temporary%ble%" . row_count . should_equal 1
-            connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
-            connection.tables "N_nexistent%" . row_count . should_equal 0
+            data.connection.tables "TestT_ble%" . row_count . should_equal 1
+            data.connection.tables "Temporary%ble%" . row_count . should_equal 1
+            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
+            data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
-        Test.specify "should be able to filter tables by type" <|
-            tables = connection.tables types=["VIEW"]
+        group_builder.specify "should be able to filter tables by type" <|
+            tables = data.connection.tables types=["VIEW"]
             tables.row_count . should_not_equal 0
-            tables.at "Name" . to_vector . contains tinfo . should_be_false
-            tables.at "Name" . to_vector . contains vinfo . should_be_true
+            tables.at "Name" . to_vector . contains data.tinfo . should_be_false
+            tables.at "Name" . to_vector . contains data.vinfo . should_be_true
 
-        connection.execute_update 'DROP VIEW "'+vinfo+'";'
-        connection.execute_update 'DROP TABLE "'+tinfo+'";'
 
-    Test.group "[PostgreSQL] Database Encoding" <|
-        Test.specify "connector should support all known Postgres encodings" <|
+    suite_builder.group "[PostgreSQL] Database Encoding" group_builder->
+        group_builder.specify "connector should support all known Postgres encodings" <|
             known_encodings = (enso_project.data / "postgres_known_encodings.txt") . read . lines
             known_encodings.length . should_equal 41
 
@@ -133,40 +218,35 @@ postgres_specific_spec connection db_name setup =
                     False ->
                         Problems.assume_no_problems encoding
 
+    suite_builder.group "[PostgreSQL] Info" group_builder->
+        data = Postgres_Info_Data.setup create_connection_fn
 
-    tinfo = Name_Generator.random_name "Tinfo"
-    connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" BIGINT, "bools" BOOLEAN, "doubles" DOUBLE PRECISION)'
-    Test.group "[PostgreSQL] Info" <|
-        t = connection.query (SQL_Query.Table_Name tinfo)
-        row1 = ["a", Nothing, False, 1.2]
-        row2 = ["abc", Nothing, Nothing, 1.3]
-        row3 = ["def", 42, True, 1.4]
-        Panic.rethrow <|
-            t.update_rows (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]) update_action=Update_Action.Insert
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "should return Table information" <|
-            i = t.info
+        group_builder.specify "should return Table information" <|
+            i = data.t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
 
-        Test.specify "should return Table information, also for aggregated results" <|
-            i = t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
+        group_builder.specify "should return Table information, also for aggregated results" <|
+            i = data.t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]
 
-        Test.specify "should infer standard types correctly" <|
-            t.at "strs" . value_type . is_text . should_be_true
-            t.at "ints" . value_type . is_integer . should_be_true
-            t.at "bools" . value_type . is_boolean . should_be_true
-            t.at "doubles" . value_type . is_floating_point . should_be_true
+        group_builder.specify "should infer standard types correctly" <|
+            data.t.at "strs" . value_type . is_text . should_be_true
+            data.t.at "ints" . value_type . is_integer . should_be_true
+            data.t.at "bools" . value_type . is_boolean . should_be_true
+            data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
-        Test.specify "should preserve Postgres types when table is materialized, where possible" <|
+        group_builder.specify "should preserve Postgres types when table is materialized, where possible" <|
             name = Name_Generator.random_name "types-test"
             Problems.assume_no_problems <|
-                connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
-            t1 = connection.query (SQL_Query.Table_Name name)
+                data.connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+            t1 = data.connection.query (SQL_Query.Table_Name name)
             t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
             t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
@@ -178,32 +258,38 @@ postgres_specific_spec connection db_name setup =
             in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
             in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
-    Test.group "[PostgreSQL] Dialect-specific codegen" <|
-        Test.specify "should generate queries for the Distinct operation" <|
-            t = connection.query (SQL_Query.Table_Name tinfo)
-            code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM (SELECT DISTINCT ON ("{Tinfo}_inner"."strs") "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."doubles" AS "doubles" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner") AS "{Tinfo}"'
-            expected_code = code_template.replace "{Tinfo}" tinfo
-            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
-    connection.execute_update 'DROP TABLE "'+tinfo+'"'
+    suite_builder.group "[PostgreSQL] Dialect-specific codegen" group_builder->
+        data = Postgres_Info_Data.setup create_connection_fn
 
-    Test.group "[PostgreSQL] Table.aggregate should correctly infer result types" <|
-        name = Name_Generator.random_name "Ttypes"
-        connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
-        t = connection.query (SQL_Query.Table_Name name)
-        Test.specify "Concatenate, Shortest and Longest" <|
-            r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should generate queries for the Distinct operation" <|
+            t = data.connection.query (SQL_Query.Table_Name data.tinfo)
+            code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM (SELECT DISTINCT ON ("{Tinfo}_inner"."strs") "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."doubles" AS "doubles" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner") AS "{Tinfo}"'
+            expected_code = code_template.replace "{Tinfo}" data.tinfo
+            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
+
+    suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types" group_builder->
+        data = Postgres_Aggregate_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "Concatenate, Shortest and Longest" <|
+            r = data.t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
             r.columns.at 0 . value_type . should_equal default_text
             r.columns.at 1 . value_type . should_equal default_text
             r.columns.at 2 . value_type . should_equal default_text
 
-        Test.specify "Counts" <|
-            r = t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
+        group_builder.specify "Counts" <|
+            r = data.t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
             r.column_count . should_equal 6
             r.columns.each column->
                 column.value_type . should_equal Value_Type.Integer
 
-        Test.specify "Sum" <|
-            r = t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
+        group_builder.specify "Sum" <|
+            r = data.t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Integer
             r.columns.at 1 . value_type . should_equal Value_Type.Integer
             r.columns.at 2 . value_type . should_equal Value_Type.Decimal
@@ -211,8 +297,8 @@ postgres_specific_spec connection db_name setup =
             r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
-        Test.specify "Average" <|
-            r = t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
+        group_builder.specify "Average" <|
+            r = data.t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Decimal
             r.columns.at 1 . value_type . should_equal Value_Type.Decimal
             r.columns.at 2 . value_type . should_equal Value_Type.Decimal
@@ -220,51 +306,58 @@ postgres_specific_spec connection db_name setup =
             r.columns.at 4 . value_type . should_equal Value_Type.Float
             r.columns.at 5 . value_type . should_equal Value_Type.Float
 
-        connection.execute_update 'DROP TABLE "'+name+'"'
 
-    Test.group "[PostgreSQL] Warning/Error handling" <|
-        Test.specify "query warnings should be propagated" <|
+    suite_builder.group "[PostgreSQL] Warning/Error handling" group_builder->
+        data = Basic_Test_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "query warnings should be propagated" <|
             long_name = (Name_Generator.random_name "T") + ("a" * 100)
-            r = connection.execute_update 'CREATE TEMPORARY TABLE "'+long_name+'" ("A" VARCHAR)'
+            r = data.connection.execute_update 'CREATE TEMPORARY TABLE "'+long_name+'" ("A" VARCHAR)'
             w1 = Problems.expect_only_warning SQL_Warning r
             # The display text may itself be truncated, so we just check the first words.
             w1.to_display_text . should_contain "identifier"
             # And check the full message for words that could be truncated in short message.
             w1.message . should_contain "truncated to"
 
-            table = connection.query (SQL_Query.Raw_SQL 'SELECT 1 AS "'+long_name+'"')
+            table = data.connection.query (SQL_Query.Raw_SQL 'SELECT 1 AS "'+long_name+'"')
             w2 = Problems.expect_only_warning SQL_Warning table
             w2.message . should_contain "truncated"
             effective_name = table.column_names . at 0
             effective_name . should_not_equal long_name
             long_name.should_contain effective_name
 
-        Test.specify "is capable of handling weird tables" <|
-            connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)' . should_fail_with SQL_Error
+        group_builder.specify "is capable of handling weird tables" <|
+            data.connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)' . should_fail_with SQL_Error
 
             Problems.assume_no_problems <|
-                connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
+                data.connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
             Problems.assume_no_problems <|
-                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
-            t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
+                data.connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
+            t2 = data.connection.query (SQL_Query.Table_Name "clashing-unicode-names")
             Problems.expect_only_warning Duplicate_Output_Column_Names t2
             t2.column_names . should_equal ["ś", "ś 1"]
             m2 = t2.read
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = data.connection.query 'SELECT 1 AS "A", 2 AS "A"'
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = connection.query 'SELECT 1 AS ""'
+            r4 = data.connection.query 'SELECT 1 AS ""'
             r4.should_fail_with SQL_Error
 
-    table_builder = setup.table_builder
-    materialize = setup.materialize
-    Test.group "[PostgreSQL] Edge Cases" <|
-        Test.specify "materialize should respect the overridden type" <|
-            t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
+    suite_builder.group "[PostgreSQL] Edge Cases" group_builder->
+        data = Basic_Test_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "materialize should respect the overridden type" <|
+            t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]] connection=data.connection
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 
             x = t1.at "x"
@@ -283,12 +376,12 @@ postgres_specific_spec connection db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
-        Test.specify "should be able to round-trip a BigInteger column" <|
+        group_builder.specify "should be able to round-trip a BigInteger column" <|
             x = 2^70
             m1 = Table.new [["X", [10, x]]]
             m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
 
-            t1 = m1.select_into_database_table connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
+            t1 = m1.select_into_database_table data.connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
             t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
             t1.at "X" . value_type . scale . should_equal 0
             # If we want to enforce the scale, Postgres requires us to enforce a precision too, so we use the biggest one we can:
@@ -325,7 +418,7 @@ postgres_specific_spec connection db_name setup =
             super_large = 11^2000
             m3 = Table.new [["X", [super_large]]]
             m3.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
-            t3 = m3.select_into_database_table connection (Name_Generator.random_name "BigInteger2") primary_key=[] temporary=True
+            t3 = m3.select_into_database_table data.connection (Name_Generator.random_name "BigInteger2") primary_key=[] temporary=True
             t3 . at "X" . value_type . should_be_a (Value_Type.Decimal ...)
             # If we exceed the 1000 digits precision, we cannot enforce neither scale nor precision anymore.
             t3 . at "X" . value_type . precision . should_equal Nothing
@@ -344,9 +437,9 @@ postgres_specific_spec connection db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
-        Test.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
+        group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
-            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
+            table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
 
             dt1 = Date_Time.new 2022 05 04 15 30
             dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
@@ -377,9 +470,9 @@ postgres_specific_spec connection db_name setup =
                     t2.row_count . should_equal local_equals.length
                     t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
 
-        Test.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
+        group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
             table_name = Name_Generator.random_name "Timestamp"
-            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
+            table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
 
             dt1 = Date_Time.new 2022 05 04 15 30
@@ -439,9 +532,14 @@ postgres_specific_spec connection db_name setup =
                         t2.row_count . should_equal 0
                         t2.at "A" . to_vector . should_equal []
 
-    Test.group "[PostgreSQL] math functions" <|
-        Test.specify "round, trunc, ceil, floor" <|
-            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+    suite_builder.group "[PostgreSQL] math functions" group_builder->
+        data = Basic_Test_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "round, trunc, ceil, floor" <|
+            col = (table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] connection=data.connection) . at "x"
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
 
             col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
@@ -468,70 +566,77 @@ postgres_specific_spec connection db_name setup =
             col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Decimal
 
-        do_op n op =
-            table = table_builder [["x", [n]]]
+        do_op data n op =
+            table = table_builder [["x", [n]]] connection=data.connection
             result = table.at "x" |> op
             result.to_vector.at 0
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
-        Test.specify "Can round correctly near the precision limit" <|
-            do_round 1.2222222222222225 15 . should_equal 1.222222222222223
-            do_round -1.2222222222222225 15 . should_equal -1.222222222222223
-            do_round 1.2222222222222235 15 . should_equal 1.222222222222224
-            do_round -1.2222222222222235 15 . should_equal -1.222222222222224
+        do_round data n dp=0 use_bankers=False = do_op data n (_.round dp use_bankers)
 
-        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+        group_builder.specify "Can round correctly near the precision limit" <|
+            do_round data 1.2222222222222225 15 . should_equal 1.222222222222223
+            do_round data -1.2222222222222225 15 . should_equal -1.222222222222223
+            do_round data 1.2222222222222235 15 . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 . should_equal -1.222222222222224
 
-        Test.specify "Can handle NaN/Infinity" <|
+        group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round data 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round data -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round data 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+
+        group_builder.specify "Can handle NaN/Infinity" <|
             nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
             ops = [.round, .truncate, .ceil, .floor]
             ops.each op->
-                do_op Number.nan op . should_equal nan_result
-                do_op Number.positive_infinity op . should_equal Number.positive_infinity
-                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+                do_op data Number.nan op . should_equal nan_result
+                do_op data Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op data Number.negative_infinity op . should_equal Number.negative_infinity
 
-        Test.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Float
-            do_round 231.2 0 . should_be_a Float
-            do_round 231.2 . should_be_a Float
-            do_round 231.2 -1 . should_be_a Float
+        group_builder.specify "round returns the correct type" <|
+            do_round data 231.2 1 . should_be_a Float
+            do_round data 231.2 0 . should_be_a Float
+            do_round data 231.2 . should_be_a Float
+            do_round data 231.2 -1 . should_be_a Float
 
-        Test.specify "round returns the correct type" <|
-            do_round 231 1 . should_be_a Float
-            do_round 231 0 . should_be_a Float
-            do_round 231 . should_be_a Float
-            do_round 231 -1 . should_be_a Float
+        group_builder.specify "round returns the correct type" <|
+            do_round data 231 1 . should_be_a Float
+            do_round data 231 0 . should_be_a Float
+            do_round data 231 . should_be_a Float
+            do_round data 231 -1 . should_be_a Float
 
-run_tests connection db_name =
+add_postgres_specs suite_builder create_connection_fn db_name =
     prefix = "[PostgreSQL] "
     name_counter = Ref.new 0
-    tables = Vector.new_builder
-    table_builder columns =
+
+    table_builder columns connection=(create_connection_fn Nothing) =
         ix = name_counter.get
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table connection name primary_key=Nothing temporary=True
+
     materialize = .read
 
-    Common_Spec.spec prefix connection
+    Common_Spec.add_specs suite_builder prefix create_connection_fn
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False fixed_length_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=True supports_decimal_type=True supported_replace_params=supported_replace_params
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
-    tables.append agg_table.name
-    empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
-    tables.append empty_agg_table.name
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
-    postgres_specific_spec connection db_name setup
-    Common_Table_Operations.Main.spec setup
+    agg_table_fn = _->
+        connection = create_connection_fn Nothing
+        agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+
+    empty_agg_table_fn = _->
+        connection = create_connection_fn Nothing
+        (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn
+
+    postgres_specific_spec suite_builder create_connection_fn db_name setup
+    Common_Table_Operations.Main.add_specs suite_builder setup
 
 ## PRIVATE
 supported_replace_params : Set Replace_Params
@@ -543,7 +648,7 @@ supported_replace_params =
     e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
-table_spec =
+add_table_specs suite_builder =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
     db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
     db_host = db_host_port.at 0
@@ -553,14 +658,15 @@ table_spec =
     ca_cert_file = Environment.get "ENSO_DATABASE_TEST_CA_CERT_FILE"
 
     ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
-    Test.group "[PostgreSQL] SSL connectivity tests" pending=ssl_pending <|
-        Test.specify "should connect without ssl parameter" <|
+
+    suite_builder.group "[PostgreSQL] SSL connectivity tests" pending=ssl_pending group_builder->
+        group_builder.specify "should connect without ssl parameter" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)) . should_succeed
 
-        Test.specify "should connect, requiring SSL" <|
+        group_builder.specify "should connect, requiring SSL" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Require) . should_succeed
 
-        Test.specify "should connect be able to verify the certificate" <|
+        group_builder.specify "should connect be able to verify the certificate" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Verify_CA ca_cert_file)) . should_succeed
 
             ## Default certificate should not accept the self signed certificate.
@@ -568,13 +674,13 @@ table_spec =
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
-        Test.specify "should connect be able to verify the host name against the certificate" <|
+        group_builder.specify "should connect be able to verify the host name against the certificate" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
 
         alternate_host = Environment.get "ENSO_DATABASE_TEST_ALTERNATE_HOST" . if_nothing <|
             if db_host == "127.0.0.1" then "localhost" else Nothing
         pending_alternate = if alternate_host.is_nothing then "Alternative host name not configured." else Nothing
-        Test.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
+        group_builder.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
             ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
@@ -582,31 +688,31 @@ table_spec =
     case create_connection_builder of
         Nothing ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
-            Test.group "[PostgreSQL] Database tests" pending=message Nothing
+            suite_builder.group "[PostgreSQL] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            connection = connection_builder Nothing
-            run_tests connection db_name
-            Postgres_Type_Mapping_Spec.spec connection
+            add_postgres_specs suite_builder connection_builder db_name
+            Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
 
-            Transaction_Spec.spec connection "[PostgreSQL] "
-            Upload_Spec.spec connection_builder "[PostgreSQL] "
+            Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
+            Upload_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
-            cloud_setup = Cloud_Tests_Setup.prepare
-            cloud_setup.with_prepared_environment <| Test.group "[PostgreSQL] Secrets in connection settings" pending=cloud_setup.pending <|
-                Test.specify "should allow to set up a connection with the password passed as a secret" <|
-                    with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
-                        my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
-                        with_secret "my_postgres_app_name" my_secret_name app_name_secret-> with_retries <|
-                            details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
-                            # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
-                            options = Connection_Options.Value [["ApplicationName", app_name_secret]]
-                            connection = Database.connect details options
-                            connection.should_succeed
-                            Panic.with_finalizer connection.close <|
-                                connection.tables . should_be_a Table
-                                table = connection.read "SELECT application_name FROM pg_stat_activity"
-                                application_names = table.at 0 . to_vector
-                                application_names.should_contain my_secret_name
+            suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->
+                cloud_setup = Cloud_Tests_Setup.prepare
+                group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
+                    cloud_setup.with_prepared_environment <|
+                        with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
+                            my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
+                            with_secret "my_postgres_app_name" my_secret_name app_name_secret-> with_retries <|
+                                details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
+                                # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
+                                options = Connection_Options.Value [["ApplicationName", app_name_secret]]
+                                connection = Database.connect details options
+                                connection.should_succeed
+                                Panic.with_finalizer connection.close <|
+                                    connection.tables . should_be_a Table
+                                    table = connection.read "SELECT application_name FROM pg_stat_activity"
+                                    application_names = table.at 0 . to_vector
+                                    application_names.should_contain my_secret_name
 
 with_secret name value callback =
     secret = Enso_Secret.create name+Random.uuid value
@@ -625,14 +731,15 @@ create_connection_builder =
         True -> Nothing
         False ->
             _ -> Panic.rethrow <|
+                # TODO: Ensure that this returns a function and does not initialize the connection
                 Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
 
 pgpass_file = enso_project.data / "pgpass.conf"
 
-pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
+add_pgpass_specs suite_builder = suite_builder.group "[PostgreSQL] .pgpass" group_builder->
     make_pair username password =
         [Pair.new "user" username, Pair.new "password" password]
-    Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
+    group_builder.specify "should correctly parse the file, including escapes, blank lines and comments" <|
         result = Pgpass.parse_file pgpass_file
         result.length . should_equal 12
         e1 = Pgpass.Pgpass_Entry.Value "localhost" "5432" "postgres" "postgres" "postgres"
@@ -651,7 +758,7 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
         result.should_equal entries
 
     if Platform.is_unix then
-        Test.specify "should only accept the .pgpass file if it has correct permissions" <|
+        group_builder.specify "should only accept the .pgpass file if it has correct permissions" <|
             Process.run "chmod" ["0777", pgpass_file.absolute.path] . exit_code . should_equal Exit_Code.Success
             Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
                 Pgpass.verify pgpass_file . should_equal False
@@ -662,7 +769,7 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
                 Pgpass.verify pgpass_file . should_equal True
                 Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal (make_pair "*" "   pass")
 
-    Test.specify "should correctly match wildcards and use the first matching entry" <|
+    group_builder.specify "should correctly match wildcards and use the first matching entry" <|
         Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
             Pgpass.read "localhost" 5432 "postgres" . should_equal (make_pair "postgres" "postgres")
             Pgpass.read "192.168.4.0" "1234" "foo" . should_equal (make_pair "bar" "baz")
@@ -673,8 +780,8 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
             Pgpass.read "\:" "1234" "blah" . should_equal (make_pair "*" "\:")
             Pgpass.read ":" ":" ":" . should_equal (make_pair ":" ":")
 
-connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
-    Test.specify "should use environment variables as host, port and database defaults and fall back to hardcoded defaults" <|
+add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Connection setup" group_builder->
+    group_builder.specify "should use environment variables as host, port and database defaults and fall back to hardcoded defaults" <|
         c1 = Postgres "example.com" 12345 "my_db"
         c2 = Postgres
         c3 = Test_Environment.unsafe_with_environment_override "PGHOST" "192.168.0.1" <|
@@ -707,12 +814,12 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
         c4.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
     add_ssl props = props+[Pair.new 'sslmode' 'prefer']
-    Test.specify "should use the given credentials" <|
+    group_builder.specify "should use the given credentials" <|
         c = Postgres credentials=(Credentials.Username_And_Password "myuser" "mypass")
         c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "myuser", Pair.new "password" "mypass"]
 
-    Test.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
+    group_builder.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
         c1 = Postgres
         c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
@@ -751,9 +858,13 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
                     [c2, c3, c4].each c->
                         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
 
-spec =
-    table_spec
-    pgpass_spec
-    connection_setup_spec
+add_specs suite_builder =
+    add_table_specs suite_builder
+    add_pgpass_specs suite_builder
+    add_connection_setup_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

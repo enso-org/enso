@@ -80,20 +80,20 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
   @Override
   public Storage<Long> applyMask(OrderMask mask) {
-    int[] positions = mask.getPositions();
-    long[] newData = new long[positions.length];
+    long[] newData = new long[mask.length()];
     BitSet newMissing = new BitSet();
     Context context = Context.getCurrent();
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND) {
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      if (position == Index.NOT_FOUND) {
         newMissing.set(i);
       } else {
-        newData[i] = getItem(positions[i]);
+        newData[i] = getItem(position);
       }
 
       context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing, getType());
+    return new LongStorage(newData, newData.length, newMissing, getType());
   }
 
   @Override

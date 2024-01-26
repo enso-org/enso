@@ -10,22 +10,40 @@ import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.sql.Types as Java_SQL_Types
 
-spec =
-    test_connection =
+
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t1 self = self.data.at 1
+
+    setup = Data.Value <|
         c = Database.connect (SQLite In_Memory)
         c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
         c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
         c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
-        c
-    t1 = test_connection.query (SQL_Query.Table_Name "T1")
-    Test.group "[Codegen] JSON serialization" <|
-        Test.specify "should serialize Tables and Columns to their SQL representation" pending="ToDo: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
-            q1 = t1.filter (t1.at "A" == 42) . to_json
+        t1 = c.query (SQL_Query.Table_Name "T1")
+        [c, t1]
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder =
+
+    suite_builder.group "[Codegen] JSON serialization" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should serialize Tables and Columns to their SQL representation" pending="ToDo: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
+            q1 = data.t1.filter (data.t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
             part2_sub = JS_Object.from_pairs [["value", 42]]
@@ -34,86 +52,115 @@ spec =
             expected = JS_Object.from_pairs [["query", [part1, part2, part3]]] . to_text
             q1.should_equal expected
 
-            q2 = t1.at "A" . to_json
+            q2 = data.t1.at "A" . to_json
             expected_2 = JS_Object.from_pairs [["query", [JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]] . to_text
             q2.should_equal expected_2
 
-    Test.group "[Codegen] Basic Select" <|
-        Test.specify "should select columns from a table" <|
-            t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select_columns ["C", "B", "undefined"] reorder=True error_on_missing_columns=False
+    suite_builder.group "[Codegen] Basic Select" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should select columns from a table" <|
+            data.t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
+            t2 = data.t1.select_columns ["C", "B", "undefined"] reorder=True error_on_missing_columns=False
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
-            foo = t1.at "A" . rename "FOO"
+            foo = data.t1.at "A" . rename "FOO"
             foo.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "FOO" FROM "T1" AS "T1"', []]
 
             t3 = t2.set foo new_name="bar"
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
-        Test.specify "should fail if at is called for a non-existent column" <|
-            t1.at "undefined" . should_fail_with No_Such_Column
+        group_builder.specify "should fail if at is called for a non-existent column" <|
+            data.t1.at "undefined" . should_fail_with No_Such_Column
 
-        Test.specify "should allow to limit the amount of returned results" <|
-            t2 = t1.limit 5
+        group_builder.specify "should allow to limit the amount of returned results" <|
+            t2 = data.t1.limit 5
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
-    Test.group "[Codegen] Masking Tables and Columns" <|
-        Test.specify "should generate a single BETWEEN expression" <|
-            t2 = t1.filter "A" (Filter_Condition.Between 10 20)
+    suite_builder.group "[Codegen] Masking Tables and Columns" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should generate a single BETWEEN expression" <|
+            t2 = data.t1.filter "A" (Filter_Condition.Between 10 20)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [10, 20]]
 
-        Test.specify "should generate an IN expression" <|
-            t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
+        group_builder.specify "should generate an IN expression" <|
+            t2 = data.t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?, ?, ?)', [1, 2, "foo"]]
 
-            t3 = t1.filter "A" (Filter_Condition.Is_In [1])
+            t3 = data.t1.filter "A" (Filter_Condition.Is_In [1])
             t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [1]]
 
-            t4 = t1.filter "A" (Filter_Condition.Is_In [])
+            t4 = data.t1.filter "A" (Filter_Condition.Is_In [])
             t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
 
-            t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
+            t5 = data.t1.filter "A" (Filter_Condition.Is_In [Nothing])
             t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE "T1"."A" IN (?)', [Nothing]]
 
-    Test.group "[Codegen] Handling Missing Values" <|
-        Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
-            c = t1.at "B" . fill_nothing "not-applicable"
+    suite_builder.group "[Codegen] Handling Missing Values" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
+            c = data.t1.at "B" . fill_nothing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "B" FROM "T1" AS "T1"', ["not-applicable"]]
 
-        Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
-            t2 = t1.filter_blank_rows when=Blank_Selector.Any_Cell
+        group_builder.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
+            t2 = data.t1.filter_blank_rows when=Blank_Selector.Any_Cell
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) OR (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) OR ("T1"."C" IS NULL)))', []]
 
-            t3 = t1.filter_blank_rows when=Blank_Selector.All_Cells
+            t3 = data.t1.filter_blank_rows when=Blank_Selector.All_Cells
             t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) AND (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) AND ("T1"."C" IS NULL)))', []]
 
-    Test.group "[Codegen] Sorting" <|
-        Test.specify "should allow sorting by a single column name" <|
-            r1 = t1.order_by ([Sort_Column.Name "A"]) . at "B"
+    suite_builder.group "[Codegen] Sorting" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow sorting by a single column name" <|
+            r1 = data.t1.order_by ([Sort_Column.Name "A"]) . at "B"
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
 
-            r2 = t1.order_by ([Sort_Column.Name "B" Sort_Direction.Descending]) . at "A"
+            r2 = data.t1.order_by ([Sort_Column.Name "B" Sort_Direction.Descending]) . at "A"
             r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
 
-        Test.specify 'should allow sorting by multiple column names' <|
-            r1 = t1.order_by ([Sort_Column.Name 'A', Sort_Column.Name 'B'])
+        group_builder.specify 'should allow sorting by multiple column names' <|
+            r1 = data.t1.order_by ([Sort_Column.Name 'A', Sort_Column.Name 'B'])
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" ASC', []]
 
-        Test.specify 'should allow sorting with specific by-column rules' <|
-            r1 = t1.order_by ([Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
+        group_builder.specify 'should allow sorting with specific by-column rules' <|
+            r1 = data.t1.order_by ([Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
-        Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            t2 = t1.order_by ([Sort_Column.Name 'foobar'])
+        group_builder.specify 'should return warnings and errors when passed a non-existent column' <|
+            t2 = data.t1.order_by ([Sort_Column.Name 'foobar'])
             t2.should_fail_with Missing_Input_Columns
 
-    Test.group "[Codegen] Aggregation" <|
-        Test.specify "should allow to count rows" <|
-            code = t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
+    suite_builder.group "[Codegen] Aggregation" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow to count rows" <|
+            code = data.t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
             code . should_equal ['SELECT "T1"."A grp" AS "A grp", "T1"."counter" AS "counter" FROM (SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A") AS "T1"', []]
 
-        Test.specify "should allow to group by multiple fields" <|
-            code = t1.aggregate [Sum "A" "sum_a", Group_By "C", Group_By "B" "B grp"] . to_sql . prepare
+        group_builder.specify "should allow to group by multiple fields" <|
+            code = data.t1.aggregate [Sum "A" "sum_a", Group_By "C", Group_By "B" "B grp"] . to_sql . prepare
             code . should_equal ['SELECT "T1"."sum_a" AS "sum_a", "T1"."C" AS "C", "T1"."B grp" AS "B grp" FROM (SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B") AS "T1"', []]
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

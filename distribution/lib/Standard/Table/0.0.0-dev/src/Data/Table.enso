@@ -78,7 +78,6 @@ polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.error.UnmatchedRow
-polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
@@ -2423,7 +2422,7 @@ type Table
              example_reverse = Examples.inventory_table.reverse
     reverse : Table
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.row_count
+        mask = OrderMask.reverse self.row_count
         Table.Value <| self.java_table.applyMask mask
 
     ## GROUP Standard.Base.Output

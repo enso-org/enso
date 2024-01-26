@@ -7,42 +7,61 @@ import Standard.Table.Data.Type.Value_Type.Bits
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        connection = create_connection_fn Nothing
+        connection
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
 
-    Test.group prefix+"Column.map" <|
+    suite_builder.group prefix+"Column.map" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         if setup.is_database then
-            Test.specify "should report unsupported error" <|
+            group_builder.specify "should report unsupported error" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 t.at "X" . map (x-> x + 1) . should_fail_with Unsupported_Database_Operation
 
         if setup.is_database.not then
-            Test.specify "should allow to map a column with an arbitrary function" <|
+            group_builder.specify "should allow to map a column with an arbitrary function" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 f x = 2*x + 1
                 t.at "X" . map f . to_vector . should_equal [3, 5, 7]
 
-            Test.specify "should forward dataflow errors that occur within the map" <|
+            group_builder.specify "should forward dataflow errors that occur within the map" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 f x = if x == 2 then Error.throw (Illegal_State.Error "MY ERROR") else 2*x + 1
                 c1 = t.at "X" . map f
                 c1.should_fail_with Illegal_State
                 c1.catch.message . should_equal "MY ERROR"
 
-            Test.specify "should forward panics that occur within the map" <|
+            group_builder.specify "should forward panics that occur within the map" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 f x = if x == 2 then Panic.throw (Illegal_State.Error "MY PANIC") else 2*x + 1
                 Test.expect_panic_with (t.at "X" . map f) Illegal_State
 
-            Test.specify "should forward warnings that are attached to results of function invocation" <|
+            group_builder.specify "should forward warnings that are attached to results of function invocation" <|
                 t = table_builder [["X", [1, 2, 3, 4]]]
                 f x =
                     if (x % 2) == 0 then Warning.attach (Illegal_State.Error "MY WARNING "+x.to_text) (2*x + 1) else 2*x + 1
@@ -51,7 +70,7 @@ spec setup =
                 warnings.map Error.unwrap . map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
                 c1.to_vector . should_equal [3, 5, 7, 9]
 
-            Test.specify "should respect the expected_value_type" <|
+            group_builder.specify "should respect the expected_value_type" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 f x = 2*x + 1
                 c2 = t.at "X" . map f expected_value_type=Value_Type.Float
@@ -89,7 +108,7 @@ spec setup =
                 c7.value_type . should_equal Value_Type.Mixed
                 c7.to_vector . should_equal [2, "A", 4]
 
-            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+            group_builder.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c1 = t.at "X"
 
@@ -132,32 +151,40 @@ spec setup =
                 r8.should_fail_with Invalid_Value_Type
                 r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16 bits)"
 
-    Test.group prefix+"Column.zip" <|
+    suite_builder.group prefix+"Column.zip" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         if setup.is_database then
-            Test.specify "should report unsupported error" <|
+            group_builder.specify "should report unsupported error" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y = 10*x + y
                 (t.at "X") . zip (t.at "Y") f . should_fail_with Unsupported_Database_Operation
 
         if setup.is_database.not then
-            Test.specify "should allow to zip two columns with an arbitrary function" <|
+            group_builder.specify "should allow to zip two columns with an arbitrary function" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y = 10*x + y
                 (t.at "X") . zip (t.at "Y") f . to_vector . should_equal [14, 25, 36]
 
-            Test.specify "should forward dataflow errors that occur within the zip" <|
+            group_builder.specify "should forward dataflow errors that occur within the zip" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y = if x == 2 then Error.throw (Illegal_State.Error "MY ERROR") else 10*x + y
                 c1 = (t.at "X") . zip (t.at "Y") f
                 c1.should_fail_with Illegal_State
                 c1.catch.message . should_equal "MY ERROR"
 
-            Test.specify "should forward panics that occur within the zip" <|
+            group_builder.specify "should forward panics that occur within the zip" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y = if x == 2 then Panic.throw (Illegal_State.Error "MY PANIC") else 10*x + y
                 Test.expect_panic_with ((t.at "X") . zip (t.at "Y") f) Illegal_State
 
-            Test.specify "should forward warnings that are attached to results of function invocation" <|
+            group_builder.specify "should forward warnings that are attached to results of function invocation" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y =
                     if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (10*x + y) else 10*x + y
@@ -166,7 +193,7 @@ spec setup =
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
 
-            Test.specify "should respect the expected_value_type" <|
+            group_builder.specify "should respect the expected_value_type" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
 
                 f x y = 10*x + y
@@ -189,7 +216,7 @@ spec setup =
                 c4.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
                 c4.to_vector . should_equal ["a4", "b5", "c6"]
 
-            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+            group_builder.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
                 t = table_builder [["X", [100, 110, 120]], ["Y", [1, 3, 1]]]
 
                 r1 = (t.at "X") . zip (t.at "Y") (*) expected_value_type=Value_Type.Byte

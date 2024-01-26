@@ -2,13 +2,13 @@ import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
 import {
-  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
   isQualifiedName,
   qnJoin,
   qnLastSegment,
   qnParent,
   qnSplit,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 import type {
@@ -46,7 +46,7 @@ export interface SuggestionEntry {
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
-  name: Identifier
+  name: IdentifierOrOperatorIdentifier
   aliases: string[]
   /** A type of the "self" argument. This field is present only for instance methods. */
   selfType?: Typename
@@ -84,7 +84,7 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
 function makeSimpleEntry(
   kind: SuggestionKind,
   definedIn: QualifiedName,
-  name: Identifier,
+  name: IdentifierOrOperatorIdentifier,
   returnType: QualifiedName,
 ): SuggestionEntry {
   return {
@@ -169,7 +169,7 @@ export function makeFunction(
   returnType: string = 'Any',
 ): SuggestionEntry {
   assert(isQualifiedName(definedIn))
-  assert(isIdentifier(name))
+  assert(isIdentifierOrOperatorIdentifier(name))
   assert(isQualifiedName(returnType))
   return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
 }
@@ -180,7 +180,7 @@ export function makeLocal(
   returnType: string = 'Any',
 ): SuggestionEntry {
   assert(isQualifiedName(definedIn))
-  assert(isIdentifier(name))
+  assert(isIdentifierOrOperatorIdentifier(name))
   assert(isQualifiedName(returnType))
   return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
 }
