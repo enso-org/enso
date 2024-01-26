@@ -24,7 +24,7 @@ const editingEdge: Interaction = {
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
-    let source: Ast.AstId | undefined
+    let source: AstId | undefined
     let sourceNode: NodeId | undefined
     if (graph.unconnectedEdge.source) {
       source = graph.unconnectedEdge.source
