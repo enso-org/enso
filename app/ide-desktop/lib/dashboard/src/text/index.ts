@@ -37,6 +37,9 @@ interface PlaceholderOverrides {
   filesAndProjectsWithoutConflicts: [string, string, string, string]
   andOtherFilesOrProjects: [string, string]
   andOtherFilesAndProjects: [string, string, string, string]
+  emailIsNotAValidEmail: [string]
+  userIsAlreadyInTheOrganization: [string]
+  youAreAlreadyAddingUser: [string]
 
   inviteUserBackendError: [string]
   listFolderBackendError: [string]

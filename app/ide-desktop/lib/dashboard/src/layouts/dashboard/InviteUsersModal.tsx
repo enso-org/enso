@@ -8,7 +8,9 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/backend'
+import type * as text from '#/text'
 
 import Modal from '#/components/Modal'
 
@@ -28,6 +30,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { organization } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState(new Set<string>())
   const [email, setEmail] = React.useState<string>('')
@@ -39,22 +42,26 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   )
   const invalidEmailError = React.useMemo(
     () =>
-      email === ''
-        ? 'Email is blank'
+      (email === ''
+        ? 'emailIsBlank'
         : !isEmail(email)
-        ? `'${email}' is not a valid email`
+        ? 'emailIsNotAValidEmail'
         : existingEmails.has(email)
-        ? `'${email}' is already in the organization`
+        ? 'userIsAlreadyInTheOrganization'
         : newEmails.has(email)
-        ? `You are already adding '${email}'`
-        : null,
+        ? 'youAreAlreadyAddingUser'
+        : null) satisfies text.TextId | null,
     [email, existingEmails, newEmails]
   )
   const isEmailValid = invalidEmailError == null
 
   const doAddEmail = () => {
     if (!isEmailValid) {
-      toastAndLog(invalidEmailError)
+      if (invalidEmailError === 'emailIsBlank') {
+        toastAndLog(invalidEmailError)
+      } else {
+        toastAndLog(invalidEmailError, null, email)
+      }
     } else {
       setNewEmails(oldNewEmails => new Set([...oldNewEmails, email]))
       setEmail('')
@@ -72,7 +79,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {
-            toastAndLog(`Could not invite user '${newEmail}'`, error)
+            toastAndLog('couldNotInviteUser', error, newEmail)
           }
         })()
       }
@@ -110,7 +117,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
       >
         <div className="relative flex flex-col rounded-2xl gap-2 p-2">
           <div>
-            <h2 className="text-sm font-bold">Invite</h2>
+            <h2 className="text-sm font-bold">{getText('invite')}</h2>
             {/* Space reserved for other tabs. */}
           </div>
           <form
@@ -123,7 +130,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-2">
               <input
                 type="text"
-                placeholder="Type email to invite"
+                placeholder={getText('typeEmailToInvite')}
                 className="w-full bg-transparent"
                 value={email}
                 onInput={event => {
@@ -137,7 +144,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               {...(!isEmailValid ? { title: invalidEmailError } : {})}
               className="text-tag-text bg-invite rounded-full whitespace-nowrap px-4 py-1 disabled:opacity-30"
             >
-              <div className="h-6 py-0.5">Add User</div>
+              <div className="h-6 py-0.5">{getText('addUser')}</div>
             </button>
           </form>
           <ul className="flex flex-col px-1">
@@ -157,7 +164,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 doSubmit()
               }}
             >
-              <div className="h-6 py-0.5">Invite All</div>
+              <div className="h-6 py-0.5">{getText('inviteAll')}</div>
             </button>
           </div>
         </div>

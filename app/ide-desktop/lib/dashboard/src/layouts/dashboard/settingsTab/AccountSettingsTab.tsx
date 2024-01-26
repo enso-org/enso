@@ -7,6 +7,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as object from '#/utilities/object'
 
 import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
@@ -62,6 +63,7 @@ export default function AccountSettingsTab() {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const nameInputRef = React.useRef<HTMLInputElement>(null)
 
   const doUpdateName = async () => {
@@ -86,7 +88,7 @@ export default function AccountSettingsTab() {
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
@@ -104,10 +106,10 @@ export default function AccountSettingsTab() {
     <div className="flex gap-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-2.5">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
+          <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('userAccount')}</h3>
           <div className="flex flex-col">
             <InfoEntry>
-              <Name>Name</Name>
+              <Name>{getText('name')}</Name>
               <Value>
                 <input
                   ref={nameInputRef}
@@ -140,13 +142,13 @@ export default function AccountSettingsTab() {
               </Value>
             </InfoEntry>
             <InfoEntry>
-              <Name>Email</Name>
+              <Name>{getText('email')}</Name>
               <Value>{organization?.email ?? ''}</Value>
             </InfoEntry>
           </div>
         </div>
         <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
-          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
+          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">{getText('dangerZone')}</h3>
           <div className="flex gap-2">
             <button
               className="rounded-full bg-danger text-inversed px-2 py-1"
@@ -155,24 +157,19 @@ export default function AccountSettingsTab() {
                 setModal(<ConfirmDeleteUserModal />)
               }}
             >
-              <span className="leading-5 h-6 py-px">Delete this user account</span>
+              <span className="leading-5 h-6 py-px">{getText('deleteUserAccountButtonLabel')}</span>
             </button>
-            <span className="leading-5 h-8 py-1.25">
-              Once deleted, it will be gone forever. Please be certain.
-            </span>
+            <span className="leading-5 h-8 py-1.25">{getText('deleteUserAccountWarning')}</span>
           </div>
         </div>
       </div>
       <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
+        <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('profilePicture')}</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img src={organization?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
         </label>
-        <span className="py-1 w-64">
-          Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
-          should not be a default image provided by Enso.
-        </span>
+        <span className="py-1 w-64">{getText('profilePictureWarning')}</span>
       </div>
     </div>
   )
