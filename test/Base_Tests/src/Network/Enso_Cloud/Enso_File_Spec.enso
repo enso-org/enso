@@ -1,0 +1,45 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Test_Environment
+import Standard.Test.Extensions
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
+spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
+    Test.group "Enso Cloud Files" pending=setup.real_cloud_pending <|
+        Test.specify "should allow to create and delete a directory" <|
+            my_name = "my_test_dir-" + (Random.uuid.take 5)
+            my_dir = Enso_File.root.create_directory my_name
+            my_dir.should_succeed
+            delete_on_fail caught_panic =
+                my_dir.delete
+                Panic.throw caught_panic
+            Panic.catch Any handler=delete_on_fail <| with_retries <|
+                my_dir.is_directory . should_be_true
+                my_dir.exists . should_be_true
+                my_dir.name . should_equal my_name
+
+                # TODO this is a workaround because create does not return organizationId!
+                # Enso_File.root.list . should_contain my_dir
+                Enso_File.root.list.map .name . should_contain my_name
+
+            my_dir.delete . should_succeed
+
+            with_retries <|
+                # TODO workaround for missing organizationId
+                # Enso_File.root.list . should_not_contain my_dir
+                Enso_File.root.list.map .name . should_not_contain my_name
+
+                # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
+                # my_dir.exists . should_be_false
+
+        Test.specify "should not allow to create a directory inside of a regular file" pending="TODO" <|
+            Error.throw "TODO"
+
+        Test.specify "should not allow to delete the root directory" <|
+            Enso_File.root.delete . should_fail_with Illegal_Argument
+
+main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)

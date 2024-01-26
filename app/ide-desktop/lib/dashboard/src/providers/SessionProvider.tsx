@@ -6,7 +6,7 @@ import type * as cognito from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
-import * as error from '#/utilities/error'
+import * as errorModule from '#/utilities/error'
 
 // ======================
 // === SessionContext ===
@@ -17,6 +17,7 @@ interface SessionContextType {
   session: cognito.UserSession | null
   /** Set `initialized` to false. Must be called when logging out. */
   deinitializeSession: () => void
+  onError: (callback: (error: Error) => void) => () => void
 }
 
 /** See `AuthContext` for safety details. */
@@ -51,12 +52,19 @@ export interface SessionProviderProps {
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, userSession, registerAuthEventListener } = props
-
   const [refresh, doRefresh] = refreshHooks.useRefresh()
-
   /** Flag used to avoid rendering child components until we've fetched the user's session at least
    * once. Avoids flash of the login screen when the user is already logged in. */
   const [initialized, setInitialized] = React.useState(false)
+  const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
+
+  /** Returns a function to unregister the listener. */
+  const onError = React.useCallback((callback: (error: Error) => void) => {
+    errorCallbacks.current.add(callback)
+    return () => {
+      errorCallbacks.current.delete(callback)
+    }
+  }, [])
 
   /** Register an async effect that will fetch the user's session whenever the `refresh` state is
    * set. This is useful when a user has just logged in (as their cached credentials are
@@ -64,9 +72,18 @@ export default function SessionProvider(props: SessionProviderProps) {
   const session = asyncEffectHooks.useAsyncEffect(
     null,
     async () => {
-      const innerSession = await userSession()
-      setInitialized(true)
-      return innerSession
+      try {
+        const innerSession = await userSession()
+        setInitialized(true)
+        return innerSession
+      } catch (error) {
+        if (error instanceof Error) {
+          for (const listener of errorCallbacks.current) {
+            listener(error)
+          }
+        }
+        throw error
+      }
     },
     [refresh]
   )
@@ -99,7 +116,7 @@ export default function SessionProvider(props: SessionProviderProps) {
           break
         }
         default: {
-          throw new error.UnreachableCaseError(event)
+          throw new errorModule.UnreachableCaseError(event)
         }
       }
     }
@@ -116,7 +133,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   }
 
   return (
-    <SessionContext.Provider value={{ session, deinitializeSession }}>
+    <SessionContext.Provider value={{ session, deinitializeSession, onError }}>
       {initialized && children}
     </SessionContext.Provider>
   )

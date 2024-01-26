@@ -1600,7 +1600,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
        ICON convert

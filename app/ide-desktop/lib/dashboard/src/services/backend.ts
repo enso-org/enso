@@ -94,6 +94,8 @@ export interface UserOrOrganization {
   id: UserOrOrganizationId
   name: string
   email: EmailAddress
+  /** A URL. */
+  profilePicture: string | null
   /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
    * `usersMe` will not work. */
   isEnabled: boolean
@@ -738,6 +740,11 @@ export interface CreateUserRequestBody {
   organizationId: UserOrOrganizationId | null
 }
 
+/** HTTP request body for the "update user" endpoint. */
+export interface UpdateUserRequestBody {
+  username: string | null
+}
+
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
   organizationId: UserOrOrganizationId
@@ -829,6 +836,11 @@ export interface UploadFileRequestParams {
   // Marked as optional in the data type, however it is required by the actual route handler.
   fileName: string
   parentDirectoryId: DirectoryId | null
+}
+
+/** URL query string parameters for the "upload user profile picture" endpoint. */
+export interface UploadUserPictureRequestParams {
+  fileName: string | null
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -928,6 +940,15 @@ export abstract class Backend {
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+  /** Change the username of the current user. */
+  abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Delete the current user. */
+  abstract deleteUser(): Promise<void>
+  /** Upload a new profile picture for the current user. */
+  abstract uploadUserPicture(
+    params: UploadUserPictureRequestParams,
+    file: Blob
+  ): Promise<UserOrOrganization>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */
@@ -989,7 +1010,7 @@ export abstract class Backend {
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<File[]>
   /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
+  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
   /** Create a Data Link. */

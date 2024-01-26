@@ -22,6 +22,7 @@ import project.Common_Table_Operations.Join.Union_Spec
 import project.Common_Table_Operations.Join.Lookup_Spec
 import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
+import project.Common_Table_Operations.Nothing_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
@@ -144,5 +145,6 @@ spec setup =
     Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
     Temp_Column_Spec.spec setup
+    Nothing_Spec.spec setup
 
 main = run_default_backend spec
