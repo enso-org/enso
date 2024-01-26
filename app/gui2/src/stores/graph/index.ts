@@ -439,22 +439,22 @@ export const useGraphStore = defineStore('graph', () => {
       typeof locator === 'string' ? { binding: locator, expr: undefined } : locator
     const nodeId = db.getIdentDefiningNode(binding)
     if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
-    let expressionId: ExprId | undefined
+    let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
       node?.rootSpan.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
-          expressionId = ast.exprId
+          exprId = ast.id
         }
       })
     } else {
-      expressionId = nodeId
+      exprId = nodeId
     }
 
-    if (expressionId == null) bail(`Cannot find expression located by ${locator}`)
+    if (exprId == null) bail(`Cannot find expression located by ${locator}`)
 
     const update_: ExpressionUpdate = {
-      expressionId,
+      expressionId: db.idToExternal(exprId),
       profilingInfo: update.profilingInfo ?? [],
       fromCache: update.fromCache ?? false,
       payload: update.payload ?? { type: 'Value' },
