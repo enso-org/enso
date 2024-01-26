@@ -1,5 +1,5 @@
 import {
-  averagePositionPlacement,
+  collapsedNodePlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -448,7 +448,7 @@ describe('Mouse dictated placement', () => {
   })
 })
 
-describe('Average position placement', () => {
+describe('Collapsed node placement', () => {
   function environment(selectedNodeRects: Rect[], nonSelectedNodeRects: Rect[]): Environment {
     return {
       screenBounds,
@@ -475,24 +475,24 @@ describe('Average position placement', () => {
     const X = 1100
     const Y = 700
     const selectedNodeRects = [rectAt(X, Y)]
-    const result = averagePositionPlacement(nodeSize, environment(selectedNodeRects, []), options())
+    const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
     expect(result).toEqual({ position: new Vec2(X, Y), pan: undefined })
   })
 
   test('Multiple selected, no other nodes', () => {
     const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
-    const result = averagePositionPlacement(nodeSize, environment(selectedNodeRects, []), options())
-    expect(result).toEqual({ position: new Vec2(1150, 700), pan: undefined })
+    const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
+    expect(result).toEqual({ position: new Vec2(1000, 700), pan: undefined })
   })
 
   test('Average position occupied', () => {
     const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
-    const result = averagePositionPlacement(
+    const result = collapsedNodePlacement(
       nodeSize,
-      environment(selectedNodeRects, [rectAt(1150, 700)]),
+      environment(selectedNodeRects, [rectAt(1000, 700)]),
       options(),
     )
-    expect(result).toEqual({ position: new Vec2(1150, 744), pan: undefined })
+    expect(result).toEqual({ position: new Vec2(1000, 744), pan: undefined })
   })
 })
 

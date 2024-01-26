@@ -4,7 +4,7 @@ import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
@@ -21,19 +21,24 @@ const emits = defineEmits<{
 
 const editingEdge: Interaction = {
   cancel() {
-    const target = graph.unconnectedEdge?.disconnectedEdgeTarget
-    graph.transact(() => {
-      if (target != null) disconnectEdge(target)
-      graph.clearUnconnected()
-    })
+    graph.clearUnconnected()
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
-    const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
+    let source: AstId | undefined
+    let sourceNode: NodeId | undefined
+    if (graph.unconnectedEdge.source) {
+      source = graph.unconnectedEdge.source
+      sourceNode = graph.db.getPatternExpressionNodeId(source)
+    } else if (selection?.hoveredNode) {
+      sourceNode = selection.hoveredNode
+      source = graph.db.getNodeFirstOutputPort(sourceNode)
+    }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
+    console.log(source, target, targetNode)
     graph.transact(() => {
-      if (source != null && source != targetNode) {
+      if (source != null && sourceNode != targetNode) {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
@@ -41,6 +46,8 @@ const editingEdge: Interaction = {
         } else {
           createEdge(source, target)
         }
+      } else if (source == null && target != null) {
+        disconnectEdge(target)
       }
       graph.clearUnconnected()
     })
