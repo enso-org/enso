@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -263,6 +264,33 @@ public class BinaryDispatchTest extends TestBase {
     } catch (PolyglotException ex) {
       assertContains("Type error", ex.getMessage());
       assertContains("`self` to be Z", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void thatArgumentChallengedByManyValues() throws Exception {
+    var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
+
+    var g = ValuesGenerator.create(ctx);
+
+    for (var second : g.allValues()) {
+      try {
+        var result = half.invokeMember("---", second);
+        if (result.isException()) {
+          continue;
+        }
+        fail("No result expected: " + result + " for " + second);
+      } catch (PolyglotException e) {
+        if (e.getMessage().contains("expected `that` to be R, but got")) {
+          continue;
+        }
+        throw e;
+      } catch (PanicException e) {
+        if (e.getMessage().contains("Type_Error")) {
+          continue;
+        }
+        throw e;
+      }
     }
   }
 

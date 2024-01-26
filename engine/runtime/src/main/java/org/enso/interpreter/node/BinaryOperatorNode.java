@@ -2,6 +2,7 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -119,13 +120,13 @@ final class BinaryOperatorNode extends ExpressionNode {
           "symbolFn != null",
           "thatType == findType(typeOfNode, that)"
         })
-    final Object doThatConversion(
+    final Object doThatConversionCached(
         VirtualFrame frame,
         String symbol,
         Object self,
         Object that,
         @Cached("symbol") String cachedSymbol,
-        @Cached TypeOfNode typeOfNode,
+        @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @CachedLibrary(limit = "3") TypesLibrary types,
         @Cached(value = "findType(typeOfNode, self)", uncached = "findTypeUncached(self)")
             Type selfType,
@@ -133,51 +134,44 @@ final class BinaryOperatorNode extends ExpressionNode {
             Type thatType,
         @Cached(allowUncached = true, value = "findSymbol(cachedSymbol, thatType)")
             Function symbolFn,
-        @Cached InteropConversionCallNode convertNode,
-        @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
+        @Shared("convert") @Cached InteropConversionCallNode convertNode,
+        @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
+            InvokeFunctionNode invokeNode) {
       return doDispatch(frame, self, that, thatType, symbolFn, convertNode, invokeNode);
     }
 
-    @Specialization
-    final Object doThatMultiValueConversion(
-        VirtualFrame frame,
-        String symbol,
-        Object self,
-        EnsoMultiValue that,
-        @Cached InteropConversionCallNode convertNode,
-        @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
-      for (var thatType : that.allTypes()) {
-        var fn = findSymbol(symbol, thatType);
-        if (fn != null) {
-          var result =
-              doDispatch(frame, self, that.castTo(thatType), thatType, fn, convertNode, invokeNode);
-          if (result != null) {
-            return result;
-          }
-        }
-      }
-      return null;
-    }
-
-    @Specialization(
-        guards = {
-          "!types.hasSpecialDispatch(that)",
-        })
-    final Object doThatConversionFallback(
+    @Specialization(replaces = "doThatConversionCached")
+    final Object doThatConversionUncached(
         VirtualFrame frame,
         String symbol,
         Object self,
         Object that,
-        @CachedLibrary(limit = "3") TypesLibrary types,
-        @Cached TypeOfNode typeOfNode,
-        @Cached InteropConversionCallNode convertNode,
-        @Cached(allowUncached = true, value = "buildWithArity(2)") InvokeFunctionNode invokeNode) {
-      var thatType = findType(typeOfNode, that);
-      var fn = findSymbol(symbol, thatType);
-      if (fn != null) {
-        var result = doDispatch(frame, self, that, thatType, fn, convertNode, invokeNode);
-        if (result != null) {
-          return result;
+        @Shared("typeOf") @Cached TypeOfNode typeOfNode,
+        @Shared("convert") @Cached InteropConversionCallNode convertNode,
+        @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
+            InvokeFunctionNode invokeNode) {
+      if (that instanceof EnsoMultiValue multi) {
+        for (var thatType : multi.allTypes()) {
+          var fn = findSymbol(symbol, thatType);
+          if (fn != null) {
+            var result =
+                doDispatch(
+                    frame, self, multi.castTo(thatType), thatType, fn, convertNode, invokeNode);
+            if (result != null) {
+              return result;
+            }
+          }
+        }
+      } else {
+        var thatType = findType(typeOfNode, that);
+        if (thatType != null) {
+          var fn = findSymbol(symbol, thatType);
+          if (fn != null) {
+            var result = doDispatch(frame, self, that, thatType, fn, convertNode, invokeNode);
+            if (result != null) {
+              return result;
+            }
+          }
         }
       }
       return null;
