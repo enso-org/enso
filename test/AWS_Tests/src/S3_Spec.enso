@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Runtime import assert
 import Standard.Base.Errors.Common.Forbidden_Operation
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Runtime.Context
@@ -188,6 +189,12 @@ spec =
             hello_txt.is_descendant_of root . should_be_true
             root.is_descendant_of hello_txt . should_be_false
 
+        Test.specify "returns a valid name for files and 'directories'" <|
+            hello_txt.name . should_equal "hello.txt"
+            root.name . should_equal ""
+            (root / "foo/" / "bar") . name . should_equal "bar"
+            (root / "foo/") . name . should_equal "foo"
+
         Test.specify "should be able to read file metadata" <|
             root.exists . should_be_true
             hello_txt.exists . should_be_true
@@ -261,8 +268,10 @@ spec =
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
                 r = "World".write new_file on_existing_file=Existing_File_Behavior.Error
-                r.should_fail_with S3_Error
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Already_Exists
                 r.catch.to_display_text . should_contain "already exists"
+                r.catch.to_display_text . should_contain "new_file-exists.txt"
 
         Test.specify "should be able to copy a file" <|
             base_file = my_writable_dir / "new_file-for-copy.txt"
@@ -283,7 +292,8 @@ spec =
                 "World".write dest_file . should_succeed
                 delete_afterwards dest_file <|
                     r1 = base_file.copy_to dest_file replace_existing=False
-                    r1.should_fail_with S3_Error
+                    r1.should_fail_with File_Error
+                    r1.catch.should_be_a File_Error.Already_Exists
                     r1.catch.to_display_text . should_contain "already exists"
 
                     dest_file.read . should_equal "World"
@@ -301,9 +311,26 @@ spec =
             delete_afterwards new_file <|
                 new_file.read_bytes.should_equal [1, 2, 3]
 
-        Test.specify "is not able to open the stream in append mode" <|
-            new_file = my_writable_dir / "new_file-stream-append.txt"
+        Test.specify "fails if unsupported File_Access options are selected" <|
+            new_file = my_writable_dir / "new_file-stream-file-access.txt"
             r = new_file.with_output_stream [File_Access.Write, File_Access.Append] _->Nothing
+            r.should_fail_with S3_Error
+            r.catch.to_display_text . should_contain "read it, modify and then write the new contents"
+
+            r2 = new_file.with_output_stream [File_Access.Read] _->Nothing
+            r2.should_fail_with S3_Error
+
+        Test.specify "will respect the File_Access.Create_New option and fail if the file already exists" <|
+            new_file = my_writable_dir / "new_file-stream-create-new.txt"
+            r = new_file.with_output_stream [File_Access.Write] stream->
+                stream.write_bytes [1, 2, 3]
+            r.should_succeed
+
+            delete_afterwards new_file <|
+                r2 = new_file.with_output_stream [File_Access.Write, File_Access.Create_New] _->Nothing
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+                r2.catch.to_display_text . should_contain "already exists"
             r.should_fail_with S3_Error
 
         Test.specify "should be able to write a vector of bytes" <|

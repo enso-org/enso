@@ -1,0 +1,17 @@
+import project.Data.Text.Text
+
+## PRIVATE
+   A generic interface for file-like objects.
+type File_Like
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Returns the file's path.
+    path : Text
+    path self = self.underlying.path
+
+    ## PRIVATE
+       Returns the file's name.
+    name : Text
+    name self = self.underlying.name

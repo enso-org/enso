@@ -35,6 +35,8 @@ type Existing_File_Behavior
 
     ## PRIVATE
        Adjust the Existing_File_Behavior to take account of Context enablement.
+       If the context is disabled, the returned behavior represents the behavior
+       that should be applied to the dry run file.
     get_effective_behavior : File -> Boolean -> Existing_File_Behavior ! File_Error
     get_effective_behavior self file is_enabled=Context.Output.is_enabled =
         if is_enabled then self else
