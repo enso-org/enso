@@ -76,10 +76,10 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`absolute left-0 w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:bg-frame before:rounded-xl before:backdrop-blur-3xl before:top-0 before:w-full before:transition-colors ${
+          className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-3xl before:top-0 before:w-full before:transition-colors ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
-              : 'before:h-6 group-hover:before:bg-frame-selected'
+              : 'before:h-6 group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}

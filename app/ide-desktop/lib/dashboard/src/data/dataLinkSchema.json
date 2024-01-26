@@ -31,7 +31,7 @@
       ]
     },
     "AwsDefaultAuth": {
-      "title": "AWS Default",
+      "title": "AWS (Default)",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "aws_auth", "type": "string" },
@@ -40,7 +40,7 @@
       "required": ["type", "subType"]
     },
     "AwsProfileAuth": {
-      "title": "AWS Profile",
+      "title": "AWS (Profile)",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "aws_auth", "type": "string" },
@@ -50,7 +50,7 @@
       "required": ["type", "subType", "profile"]
     },
     "AwsAccessKeyAuth": {
-      "title": "AWS Access Key",
+      "title": "AWS (Access Key)",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "aws_auth", "type": "string" },

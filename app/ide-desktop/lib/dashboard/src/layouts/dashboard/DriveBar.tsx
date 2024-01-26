@@ -30,7 +30,8 @@ export interface DriveBarProps {
   canDownloadFiles: boolean
   doCreateProject: () => void
   doCreateDirectory: () => void
-  doCreateDataConnector: (name: string, value: string) => void
+  doCreateSecret: (name: string, value: string) => void
+  doCreateDataLink: (name: string, value: unknown) => void
   doUploadFiles: (files: File[]) => void
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -39,7 +40,7 @@ export interface DriveBarProps {
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
   const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
-  const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -114,9 +115,7 @@ export default function DriveBar(props: DriveBarProps) {
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()
-                setModal(
-                  <UpsertSecretModal id={null} name={null} doCreate={doCreateDataConnector} />
-                )
+                setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
               }}
             />
           )}
@@ -130,13 +129,7 @@ export default function DriveBar(props: DriveBarProps) {
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()
-                setModal(
-                  <CreateDataLinkModal
-                    doCreate={() => {
-                      // FIXME: doCreateDataLink
-                    }}
-                  />
-                )
+                setModal(<CreateDataLinkModal doCreate={doCreateDataLink} />)
               }}
             />
           )}

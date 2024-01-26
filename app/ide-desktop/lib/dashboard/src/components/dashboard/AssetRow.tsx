@@ -298,6 +298,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
@@ -528,6 +529,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
+    case backendModule.AssetType.dataLink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         key,

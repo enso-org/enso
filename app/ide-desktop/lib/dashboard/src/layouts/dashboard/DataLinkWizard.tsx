@@ -142,12 +142,23 @@ export interface DataLinkWizardProps {
   schema?: object
   state: unknown
   setState: (dataLink: unknown) => void
+  setIsSubmittable: (isSubmittable: boolean) => void
 }
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */
 export default function DataLinkWizard(props: DataLinkWizardProps) {
-  const { dropdownTitle, schema = SCHEMA.$defs.DataLink, state, setState } = props
-  const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
+  const {
+    dropdownTitle,
+    schema = SCHEMA.$defs.DataLink,
+    state,
+    setState,
+    setIsSubmittable: setIsSubmittableRaw,
+  } = props
+  const [selectedChildIndex, setSelectedChildIndex] = React.useState(0)
+  const [isSubmittable, setIsSubmittable] = React.useState(false)
+  const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
+  const [initializing, setInitializing] = React.useState(true)
+
   React.useEffect(() => {
     setState(null)
     if ('const' in schema && state !== schema.const) {
@@ -158,8 +169,30 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
     // This will result in `state` always becoming `null`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChildIndex])
+
+  React.useEffect(() => {
+    if (childSubmittability != null) {
+      setIsSubmittable(childSubmittability.every(submittable => submittable))
+    }
+    // `setIsSubmittable` is a callback, not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childSubmittability])
+
+  React.useEffect(() => {
+    setIsSubmittableRaw(isSubmittable)
+    // `setIsSubmittable` is a callback, not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubmittable])
+
+  React.useEffect(() => {
+    setInitializing(false)
+  }, [])
+
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
+    if (initializing) {
+      setIsSubmittable(true)
+    }
     // This value cannot change.
     return null
   } else if ('type' in schema) {
@@ -170,9 +203,10 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
             type="text"
             value={typeof state === 'string' ? state : ''}
             size={1}
-            className="rounded-full bg-frame-selected w-40 px-2"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter text here"
             onChange={event => {
+              setIsSubmittable(event.currentTarget.value !== '')
               const value: string = event.currentTarget.value
               setState(value)
             }}
@@ -185,11 +219,14 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
             type="number"
             value={typeof state === 'number' ? state : ''}
             size={1}
-            className="rounded-full bg-frame-selected w-40 px-2"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter number here"
             onChange={event => {
+              setIsSubmittable(event.currentTarget.value !== '')
               const value: number = event.currentTarget.valueAsNumber
-              setState(Number.isNaN(value) ? 0 : value)
+              if (Number.isFinite(value)) {
+                setState(value)
+              }
             }}
           />
         )
@@ -200,11 +237,14 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
             type="number"
             value={typeof state === 'number' ? state : ''}
             size={1}
-            className="rounded-full bg-frame-selected w-40 px-2"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter integer here"
             onChange={event => {
+              setIsSubmittable(event.currentTarget.value !== '')
               const value: number = event.currentTarget.valueAsNumber
-              setState(Number.isNaN(value) ? 0 : Math.floor(value))
+              if (Number.isFinite(value)) {
+                setState(Math.floor(value))
+              }
             }}
           />
         )
@@ -212,6 +252,8 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       case 'object': {
         const propertiesObject =
           'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
+        const requiredProperties =
+          'required' in schema && Array.isArray(schema.required) ? schema.required : []
         const propertyDefinitions = Object.entries(propertiesObject).flatMap(
           (kv: [string, unknown]) => {
             const [k, v] = kv
@@ -225,9 +267,14 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
           // eslint-disable-next-line no-restricted-syntax
           (object.asObject(state) as Record<string, unknown> | null) ??
           Object.fromEntries(propertyDefinitions.map(definition => [definition.key, null]))
+        if (initializing) {
+          if (!isSubmittable && !isRenderable(schema)) {
+            setIsSubmittable(true)
+          }
+        }
         return !isRenderable(schema) ? null : (
-          <div className="flex flex-col gap-1 rounded-2xl bg-frame p-2">
-            {propertyDefinitions.map(definition => {
+          <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
+            {propertyDefinitions.map((definition, i) => {
               const { key, schema: childSchema } = definition
               return !isRenderable(childSchema) ? null : (
                 <div key={key} className="flex flex-wrap items-center">
@@ -240,6 +287,15 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
                     setState={newValue => {
                       setState({ ...stateAsObject, [key]: newValue })
                     }}
+                    setIsSubmittable={isChildSubmittable => {
+                      setChildSubmittability(oldSubmittability =>
+                        Array.from(propertyDefinitions, (childDefinition, j) =>
+                          j === i
+                            ? isChildSubmittable || !requiredProperties.includes(key)
+                            : oldSubmittability?.[j] ?? !isRenderable(childDefinition.schema)
+                        )
+                      )
+                    }}
                   />
                 </div>
               )
@@ -249,26 +305,37 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       }
       default: {
         // This is a type we don't care about.
+        setIsSubmittable(true)
         return <></>
       }
     }
   } else if ('$ref' in schema) {
     const referencedSchema = lookupDef(schema)
     if (referencedSchema == null) {
+      setIsSubmittable(true)
       return <></>
     } else {
-      return <DataLinkWizard schema={referencedSchema} state={state} setState={setState} />
+      return (
+        <DataLinkWizard
+          key={String(schema.$ref)}
+          schema={referencedSchema}
+          state={state}
+          setState={setState}
+          setIsSubmittable={setIsSubmittable}
+        />
+      )
     }
   } else if ('anyOf' in schema) {
     if (!Array.isArray(schema.anyOf)) {
       return <></>
     } else {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
-      const selectedChildSchema =
-        selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
+      const selectedChildSchema = childSchemas[selectedChildIndex]
       const isChildRenderable = selectedChildSchema != null && isRenderable(selectedChildSchema)
-      if (selectedChildIndex == null) {
-        setSelectedChildIndex(0)
+      if (initializing) {
+        if (!isSubmittable && !isChildRenderable) {
+          setIsSubmittable(true)
+        }
       }
       const dropdown = (
         <Dropdown
@@ -276,23 +343,29 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
           selectedIndex={selectedChildIndex}
           render={childProps => getSchemaName(childProps.item)}
           className="self-start"
-          onClick={(_childSchema, index) => {
+          onClick={(childSchema, index) => {
             setSelectedChildIndex(index)
+            setIsSubmittable(!isRenderable(childSchema))
           }}
         />
       )
       return (
         <div className={`flex flex-col gap-1 ${isChildRenderable ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
-            <div className="flex items-center gap-2">
-              {dropdownTitle}
+            <div className="flex items-center">
+              <div className="w-12 h-6 py-1">{dropdownTitle}</div>
               {dropdown}
             </div>
           ) : (
             dropdown
           )}
           {isChildRenderable && (
-            <DataLinkWizard schema={selectedChildSchema} state={state} setState={setState} />
+            <DataLinkWizard
+              schema={selectedChildSchema}
+              state={state}
+              setState={setState}
+              setIsSubmittable={setIsSubmittable}
+            />
           )}
         </div>
       )
@@ -305,7 +378,21 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       return (
         <div className="flex flex-col gap-1">
           {childSchemas.map((childSchema, i) => (
-            <DataLinkWizard key={i} schema={childSchema} state={state} setState={setState} />
+            <DataLinkWizard
+              key={i}
+              schema={childSchema}
+              state={state}
+              setState={setState}
+              setIsSubmittable={isChildSubmittable => {
+                setChildSubmittability(oldSubmittability =>
+                  Array.from(childSchemas, (otherChildSchema, j) =>
+                    j === i
+                      ? isChildSubmittable
+                      : oldSubmittability?.[j] ?? !isRenderable(otherChildSchema)
+                  )
+                )
+              }}
+            />
           ))}
         </div>
       )

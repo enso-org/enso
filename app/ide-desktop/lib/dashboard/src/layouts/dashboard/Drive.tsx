@@ -267,10 +267,23 @@ export default function Drive(props: DriveProps) {
     ]
   )
 
-  const doCreateDataConnector = React.useCallback(
+  const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newSecret,
+        parentKey: rootDirectoryId,
+        parentId: rootDirectoryId,
+        name,
+        value,
+      })
+    },
+    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+  )
+
+  const doCreateDataLink = React.useCallback(
+    (name: string, value: unknown) => {
+      dispatchAssetListEvent({
+        type: AssetListEventType.newDataLink,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         name,
@@ -373,7 +386,8 @@ export default function Drive(props: DriveProps) {
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
-              doCreateDataConnector={doCreateDataConnector}
+              doCreateSecret={doCreateSecret}
+              doCreateDataLink={doCreateDataLink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>

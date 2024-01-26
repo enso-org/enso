@@ -8,14 +8,17 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link CreateDataLinkModal}. */
 export interface CreateDataLinkModalProps {
-  doCreate: (dataLink: unknown) => void
+  doCreate: (name: string, dataLink: unknown) => void
 }
 
 /** A modal for creating a Data Link. */
 export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const [name, setName] = React.useState('')
   const [state, setState] = React.useState<unknown>({})
+  const [isValueSubmittable, setIsValueSubmittable] = React.useState(false)
+  const isSubmittable = name !== '' && isValueSubmittable
 
   return (
     <Modal centered className="bg-dim">
@@ -32,16 +35,34 @@ export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
         onSubmit={event => {
           event.preventDefault()
           unsetModal()
-          doCreate(state)
+          doCreate(name, state)
         }}
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
+        <div className="relative flex">
+          <div className="w-12 h-6 py-1">Name</div>
+          <input
+            autoFocus
+            placeholder="Enter the name of the Data Link"
+            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
+            value={name}
+            onInput={event => {
+              setName(event.currentTarget.value)
+            }}
+          />
+        </div>
         <div className="relative">
-          <DataLinkWizard dropdownTitle="Type" state={state} setState={setState} />
+          <DataLinkWizard
+            dropdownTitle="Type"
+            state={state}
+            setState={setState}
+            setIsSubmittable={setIsValueSubmittable}
+          />
         </div>
         <div className="relative flex gap-2">
           <button
             type="submit"
+            disabled={!isSubmittable}
             className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
           >
             Create

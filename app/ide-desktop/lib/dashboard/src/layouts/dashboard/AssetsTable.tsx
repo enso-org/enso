@@ -1163,13 +1163,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.map(item =>
           item.key !== actualParentKey
             ? item
             : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
         )
-      })
+      )
     },
     [rootDirectoryId]
   )
