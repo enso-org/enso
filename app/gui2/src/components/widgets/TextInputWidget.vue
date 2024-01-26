@@ -10,8 +10,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
 
-const inputFieldActive = ref(false)
-
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
 const editedValue = ref(props.modelValue)
 watch(
   () => props.modelValue,
@@ -62,7 +61,6 @@ function prepareForEditing() {
 }
 
 function onFocus() {
-  inputFieldActive.value = true
   setupAutoBlur()
   prepareForEditing()
 }
@@ -70,7 +68,6 @@ function onFocus() {
 const escapedValue = computed(() => `'${escape(editedValue.value)}'`)
 
 function blur() {
-  inputFieldActive.value = false
   emit('update:modelValue', escapedValue.value)
   editedValue.value = props.modelValue
 }
