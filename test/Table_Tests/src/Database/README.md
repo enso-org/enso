@@ -30,8 +30,10 @@ the test suite where to connect. If that variable is not set, the test suite
 will attempt to connect to a local server.
 
 ### Setup via Docker
-The following commands will download the latest Postgres Docker image and run
-it with the default configuration with password "pwd":
+
+The following commands will download the latest Postgres Docker image and run it
+with the default configuration with password "pwd":
+
 ```sh
 docker pull postgres:latest
 docker run -it -e POSTGRES_PASSWORD=pwd -p 5432:5432 postgres
