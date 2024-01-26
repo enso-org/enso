@@ -88,6 +88,7 @@ const menuVisible = ref(false)
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
+  if (!externalId) return
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {
@@ -162,7 +163,9 @@ const dragPointer = usePointer((pos, event, type) => {
 })
 
 const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
-const displayedExpression = computed(() => matches.value.innerExpr)
+const displayedExpression = computed(() =>
+  props.node.rootSpan.module.checkedGet(matches.value.innerExpr),
+)
 
 const isOutputContextOverridden = computed({
   get() {
@@ -176,7 +179,11 @@ const isOutputContextOverridden = computed({
     else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
     // - and that it applies to the current execution context.
     else {
-      const contextWithoutQuotes = override[0]?.code().replace(/^['"]|['"]$/g, '')
+      const module = props.node.rootSpan.module
+      const contextWithoutQuotes = module
+        .get(override[0])
+        ?.code()
+        .replace(/^['"]|['"]$/g, '')
       return contextWithoutQuotes === projectStore.executionMode
     }
   },
@@ -196,10 +203,8 @@ const isOutputContextOverridden = computed({
           enableOutputContext: replacementText,
           disableOutputContext: undefined,
         }
-    const expression = props.node.rootSpan
-    const newAst = prefixes.modify(edit, expression, replacements)
-    const code = newAst.code()
-    graph.setNodeContent(asNodeId(props.node.rootSpan.id), code)
+    prefixes.modify(edit.getVersion(props.node.rootSpan), replacements)
+    graph.commitEdit(edit)
   },
 })
 
