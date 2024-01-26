@@ -18,25 +18,25 @@ declare const self: ServiceWorkerGlobalScope
 // ===============================
 
 self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url)
-    if (
-        (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
-        url.pathname !== '/esbuild'
-    ) {
-        const responsePromise = /\/[^.]+$/.test(new URL(event.request.url).pathname)
-            ? fetch('/index.html')
-            : fetch(event.request.url)
-        event.respondWith(
-            responsePromise.then(response => {
-                const clonedResponse = new Response(response.body, response)
-                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
-                    clonedResponse.headers.set(header, value)
-                }
-                return clonedResponse
-            })
-        )
-        return
-    } else {
-        return
-    }
+  const url = new URL(event.request.url)
+  if (
+    (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+    url.pathname !== '/esbuild'
+  ) {
+    const responsePromise = /\/[^.]+$/.test(new URL(event.request.url).pathname)
+      ? fetch('/index.html')
+      : fetch(event.request.url)
+    event.respondWith(
+      responsePromise.then(response => {
+        const clonedResponse = new Response(response.body, response)
+        for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+          clonedResponse.headers.set(header, value)
+        }
+        return clonedResponse
+      })
+    )
+    return
+  } else {
+    return
+  }
 })

@@ -1,21 +1,40 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        connection = create_connection_fn Nothing
+        connection
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
 
-    Test.group prefix+"Temp column" <|
-        Test.specify "Can generate a temp column" <|
+    suite_builder.group prefix+"Temp column" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "Can generate a temp column" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
             t1.make_temp_column_name . should_equal "temp"
 
-        Test.specify "Can generate a temp column without name conflicts" <|
+        group_builder.specify "Can generate a temp column without name conflicts" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["temp", [40, 20]]]
             t1.make_temp_column_name . should_equal "temp 1"

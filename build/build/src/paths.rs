@@ -33,6 +33,9 @@ ide_ci::define_env_var! {
     /// If Enso-specific assertions should be enabled.
     ENSO_ENABLE_ASSERTIONS, String;
 
+    /// If true, enso tests output will be colored.
+    ENSO_TEST_ANSI_COLORS, String;
+
     /// Can be set to `"espresso"` to enable Espresso interpreter support.
     ENSO_JAVA, String;
 }

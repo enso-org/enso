@@ -12,8 +12,8 @@ test('full file IdMap round trip', () => {
   const { code, idMapJson, metadataJson: _ } = splitFileContents(content)
   const idMapOriginal = deserializeIdMap(idMapJson!)
   const idMap = idMapOriginal.clone()
-  const ast_ = Ast.parseTransitional(code, idMapOriginal.clone())
-  const ast = Ast.parseTransitional(code, idMap)
+  const ast_ = Ast.parseExtended(code, idMapOriginal.clone()).root
+  const ast = Ast.parseExtended(code, idMap).root
   const ast2 = Ast.normalize(ast)
   const astTT = Ast.tokenTreeWithIds(ast)
   expect(ast2.code()).toBe(ast.code())

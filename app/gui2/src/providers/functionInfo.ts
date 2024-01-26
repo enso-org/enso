@@ -1,9 +1,9 @@
 import { createContextStore } from '@/providers'
+import type { AstId } from '@/util/ast/abstract.ts'
 import { identity } from '@vueuse/core'
-import type { ExprId } from 'shared/yjsModel'
 
 interface FunctionInfo {
-  callId: ExprId | undefined
+  callId: AstId | undefined
 }
 
 export { injectFn as injectFunctionInfo, provideFn as provideFunctionInfo }

@@ -2,22 +2,38 @@ from Standard.Base import all
 
 from Standard.Table import Table
 
-from Standard.Test import Test_Suite
+from Standard.Test_New import Test
 
 import project.Common_Table_Operations
 
-run_common_spec spec =
+type Dummy_Connection
+    close = Nothing
+
+add_specs suite_builder =
     selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True supports_time_duration=True supports_nanoseconds_in_time=True supports_mixed_columns=True fixed_length_text_columns=True supports_8bit_integer=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config
 
-    table = (enso_project.data / "data.csv") . read
-    empty_table = table.take 0
+    agg_table_fn = _ ->
+        (enso_project.data / "data.csv") . read
+
+    empty_table_fn = _ ->
+        table = (enso_project.data / "data.csv") . read
+        table.take 0
+
     materialize = x->x
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection connection=Nothing
-    spec setup
+    table_builder columns connection=Nothing =
+        _ = connection
+        Table.new columns
 
-spec =
-    run_common_spec Common_Table_Operations.Main.spec
+    create_connection_func = _-> Dummy_Connection
 
-main = Test_Suite.run_main spec
+    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func
+
+    Common_Table_Operations.Main.add_specs suite_builder setup
+
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

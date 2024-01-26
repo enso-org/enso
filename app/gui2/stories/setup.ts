@@ -13,6 +13,7 @@ import type {
   SuggestionsDatabaseUpdate,
 } from 'shared/languageServerTypes/suggestions'
 import { ref } from 'vue'
+import CustomBackground from './histoire/CustomBackground.vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
 
@@ -73,7 +74,9 @@ MockTransport.addMock('engine', async (method, data, transport) => {
   }
 })
 
-export const setupVue3 = defineSetupVue3(({ app }) => {
+export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
+  addWrapper(CustomBackground)
+
   app.use(createPinia())
   provideGuiConfig._mock(
     ref({
