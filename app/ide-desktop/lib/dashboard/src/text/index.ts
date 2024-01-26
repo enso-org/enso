@@ -33,6 +33,10 @@ interface PlaceholderOverrides {
   confirmDeletePrompt: [string]
   theAssetTypeTitle: [string, string]
   couldNotInviteUser: [string]
+  filesOrProjectsWithoutConflicts: [string, string]
+  filesAndProjectsWithoutConflicts: [string, string, string, string]
+  andOtherFilesOrProjects: [string, string]
+  andOtherFilesAndProjects: [string, string, string, string]
 
   inviteUserBackendError: [string]
   listFolderBackendError: [string]
