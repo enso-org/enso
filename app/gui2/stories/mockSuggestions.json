@@ -975,5 +975,212 @@
     "isStatic": false,
     "documentation": " GROUP DateTime\nReturns the number of days in the month represented by this date.\n\nProduces a warning for a Date that is before epoch start.",
     "annotations": []
+  },
+  {
+    "type": "module",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "documentation": null,
+    "reexport": "Standard.Base.Errors"
+  },
+  {
+    "type": "type",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Problem_Behavior",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Specifies how to handle problems.",
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Ignore",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Ignore the problem and attempt to complete the operation",
+    "annotations": [],
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Report_Warning",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Report the problem as a warning and attempt to complete the operation",
+    "annotations": [],
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Report_Error",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Report the problem as a dataflow error and abort the operation",
+    "annotations": [],
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "module",
+    "module": "Standard.Table.Data.Table",
+    "documentation": null,
+    "reexport": "Standard.Table.Data"
+  },
+  {
+    "type": "type",
+    "module": "Standard.Table.Data.Table",
+    "name": "Table",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Represents a column-oriented table data structure.",
+    "reexport": "Standard.Table.Main"
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Data.Table",
+    "name": "aggregate",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Data.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Table.Data.Aggregate_Column.Aggregate_Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "error_on_missing_columns",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": [
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Ignore",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Warning",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Error"
+        ]
+      }
+    ],
+    "selfType": "Standard.Table.Data.Table.Table",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": " ALIAS group by, summarize\nGROUP Standard.Base.Calculations\nICON sigma\n\nAggregates the rows in a table using any `Group_By` entries in columns.\nThe columns argument specifies which additional aggregations to perform and to return.\n\nArguments:\n- columns: Vector of `Aggregate_Column` specifying the aggregated table.\n Expressions can be used within the aggregate column to perform more\n complicated calculations.\n- error_on_missing_columns: Specifies if a missing columns in aggregates\n should result in an error regardless of the `on_problems` settings.\n Defaults to `False`, meaning that problematic aggregate will not be\n included in the result and the problem reported according to the\n `on_problems` setting.\n- on_problems: Specifies how to handle problems if they occur, reporting\n them as warnings by default.\n\n! Error Conditions\n\n - If there are no columns in the output table, a `No_Output_Columns` is\n   raised as an error regardless of the problem behavior, because it is\n   not possible to create a table without any columns.\n - If a column index is out of range, a `Missing_Input_Columns` is\n   reported according to the `on_problems` setting, unless\n   `error_on_missing_columns` is set to `True`, in which case it is\n   raised as an error. Problems resolving `Group_By` columns are\n   reported as dataflow errors regardless of these settings, as a\n   missing grouping will completely change semantics of the query.\n - If a column selector is given as a `Text` and it does not match any\n   columns in the input table nor is it a valid expression, an\n   `Invalid_Aggregate_Column` problem is raised according to the\n   `on_problems` settings (unless `error_on_missing_columns` is set to\n   `True` in which case it will always be an error). Problems resolving\n   `Group_By` columns are reported as dataflow errors regardless of\n   these settings, as a missing grouping will completely change\n   semantics of the query.\n - If an aggregation fails, an `Invalid_Aggregation` dataflow error is\n   raised.\n - Additionally, the following problems may be reported according to the\n   `on_problems` setting:\n   - If there are invalid column names in the output table,\n     a `Invalid_Column_Names`.\n   - If there are duplicate column names in the output table,\n     a `Duplicate_Output_Column_Names`.\n   - If grouping on or computing the `Mode` on a floating point number,\n     a `Floating_Point_Equality`.\n   - If when concatenating values there is an quoted delimited,\n     an `Unquoted_Delimiter`\n   - If there are more than 10 issues with a single column,\n     an `Additional_Warnings`.\n\n> Example\n Group by the Key column, count the rows\n\n      table.aggregate [Aggregate_Column.Group_By \"Key\", Aggregate_Column.Count]",
+    "annotations": ["columns"]
+  },
+  {
+    "type": "module",
+    "module": "Standard.Table.Data.Aggregate_Column",
+    "documentation": null,
+    "reexport": "Standard.Table.Data"
+  },
+  {
+    "type": "type",
+    "module": "Standard.Table.Data.Aggregate_Column",
+    "name": "Aggregate_Column",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Defines an Aggregate Column",
+    "reexport": "Standard.Table.Main"
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Data.Aggregate_Column",
+    "name": "Group_By",
+    "arguments": [
+      {
+        "name": "column",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Any.Any",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "new_name",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "",
+        "tagValues": null
+      }
+    ],
+    "returnType": "Standard.Table.Data.Aggregate_Column.Aggregate_Column",
+    "documentation": " Specifies a column to group the rows by.\n\nArguments:\n- column: the column (specified by name, expression or index) to group\n by.\n- new_name: name of new column.",
+    "annotations": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Data.Aggregate_Column",
+    "name": "Count",
+    "arguments": [
+      {
+        "name": "new_name",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "",
+        "tagValues": null
+      }
+    ],
+    "returnType": "Standard.Table.Data.Aggregate_Column.Aggregate_Column",
+    "documentation": " Creates a new column with the row count of each group. If no rows,\nevaluates to 0.\n\nArguments:\n- new_name: name of new column.",
+    "annotations": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Data.Aggregate_Column",
+    "name": "Count_Distinct",
+    "arguments": [
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Regex.Regex | (Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Text | Standard.Base.Data.Text.Regex.Regex | Standard.Base.Any.Any)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "new_name",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "",
+        "tagValues": null
+      },
+      {
+        "name": "ignore_nothing",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "returnType": "Standard.Table.Data.Aggregate_Column.Aggregate_Column",
+    "documentation": " Creates a new column with the count of unique items in the selected\ncolumn(s) within each group. If no rows, evaluates to 0.\n\nArguments:\n- columns: either a single or set of columns (specified by name or\n index) to count across. The aggregation may also be computed over\n an expression evaluated on the Table, if provided instead of a\n single column name. Currently expressions are not supported with\n multiple selection.\n- new_name: name of new column.\n- ignore_nothing: if all values are Nothing won't be included.",
+    "annotations": []
   }
 ]

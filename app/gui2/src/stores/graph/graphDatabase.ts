@@ -1,7 +1,7 @@
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { assert, bail } from '@/util/assert'
+import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
@@ -14,12 +14,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import {
-  methodPointerEquals,
-  type ExpressionUpdate,
-  type MethodCall,
-  type StackItem,
-} from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
 import {
   isUuid,
   sourceRangeKey,
@@ -431,20 +426,6 @@ export class GraphDb {
     this.nodeIdToNode.set(asNodeId(id), node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
-  }
-
-  mockExpressionUpdate(binding: string, update: Partial<ExpressionUpdate>) {
-    const nodeId = this.getIdentDefiningNode(binding)
-    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
-    const update_: ExpressionUpdate = {
-      expressionId: this.idToExternal(nodeId)!,
-      profilingInfo: update.profilingInfo ?? [],
-      fromCache: update.fromCache ?? false,
-      payload: update.payload ?? { type: 'Value' },
-      ...(update.type ? { type: update.type } : {}),
-      ...(update.methodCall ? { methodCall: update.methodCall } : {}),
-    }
-    this.valuesRegistry.processUpdates([update_])
   }
 }
 
