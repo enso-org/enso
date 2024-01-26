@@ -101,7 +101,7 @@ public class MethodRootNode extends ClosureRootNode {
           var readRightNode = readRight.get();
           var exprNode = body.get();
           var operatorNode = new BinaryOperatorNode(readLeftNode, readRightNode, exprNode);
-          return BlockNode.build(NO_STATEMENTS, operatorNode);
+          return operatorNode;
         };
     return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName);
   }
