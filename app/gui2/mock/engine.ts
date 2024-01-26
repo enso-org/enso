@@ -41,28 +41,22 @@ export function placeholderGroups(): LibraryComponentGroup[] {
 
 let mainFile = `\
 from Standard.Base import all
-from Standard.Base.Runtime.Ref import Ref
 
-from Standard.Test import Bench
+func1 arg =
+    f2 = Main.func2 arg
+    result = f2 - 5
+    result
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 3 2)
-
-collect_benches = Bench.build builder->
-    range_size = 100000000
-    data = 0.up_to range_size
-
-    builder.group "Range" options group_builder->
-        group_builder.specify "iterate" <|
-            cell = Ref.new 0
-            data . each _->
-                x = cell.get
-                cell.put x+1
-
-            cell.get . should_equal range_size
+func2 a =
+    r = 42 + a
+    r
 
 main =
-    benches = collect_benches
-    result = run_main benches
+    five = 5
+    ten = 10
+    sum = five + ten
+    prod = sum * 3
+    final = Main.func1 prod
 `
 
 export function getMainFile() {

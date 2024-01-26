@@ -16,20 +16,7 @@ import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
-public class EnsoSecretHelper {
-  /**
-   * Gets the value of an HideableValue resolving secrets.
-   *
-   * @param value The value to resolve.
-   * @return The pair's value. Should not be returned to Enso.
-   */
-  private static String resolveValue(HideableValue value) {
-    return switch (value) {
-      case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> EnsoSecretReader.readSecret(
-          secretValue.secretId());
-    };
-  }
+public final class EnsoSecretHelper extends SecretValueResolver {
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(String url, Pair<String, HideableValue>[] properties)
@@ -52,13 +39,7 @@ public class EnsoSecretHelper {
           uri.queryParameters().stream()
               .map(p -> Pair.create(p.getLeft(), resolveValue(p.getRight())))
               .toList();
-      Pair<String, String> resolvedUserInfo =
-          uri.userInfo() == null
-              ? null
-              : Pair.create(
-                  resolveValue(uri.userInfo().username()), resolveValue(uri.userInfo().password()));
-      URISchematic resolvedSchematic =
-          new URISchematic(uri.baseUri(), resolvedQueryParameters, resolvedUserInfo);
+      URISchematic resolvedSchematic = new URISchematic(uri.baseUri(), resolvedQueryParameters);
       return resolvedSchematic.build();
     } catch (URISyntaxException e) {
       // Here we don't display the message of the exception to avoid risking it may leak any
@@ -84,6 +65,19 @@ public class EnsoSecretHelper {
     URI resolvedURI = resolveURI(uri);
     URI renderedURI = uri.render();
 
+    boolean hasSecrets =
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
+    if (hasSecrets) {
+      if (resolvedURI.getScheme() == null) {
+        throw new IllegalArgumentException("The URI must have a scheme.");
+      }
+
+      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+        throw new IllegalArgumentException(
+            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
+      }
+    }
+
     builder.uri(resolvedURI);
 
     // Resolve the header arguments.
@@ -99,5 +93,9 @@ public class EnsoSecretHelper {
     // Extract parts of the response
     return new EnsoHttpResponse(
         renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+  }
+
+  public static void deleteSecretFromCache(String secretId) {
+    EnsoSecretReader.removeFromCache(secretId);
   }
 }

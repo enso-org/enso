@@ -13,8 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 final class PerGenerator {
-  private static final Logger LOG = Logger.getLogger(Persistance.class.getPackageName());
-
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x03, 0x0f};
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
@@ -33,7 +31,7 @@ final class PerGenerator {
   }
 
   static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
-    var histogram = LOG.isLoggable(Level.FINE) ? new Histogram() : null;
+    var histogram = PerUtils.LOG.isLoggable(Level.FINE) ? new Histogram() : null;
 
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
@@ -50,7 +48,7 @@ final class PerGenerator {
     arr[11] = (byte) (at & 0xff);
 
     if (histogram != null) {
-      histogram.dump(LOG, arr.length);
+      histogram.dump(PerUtils.LOG, arr.length);
     }
     return arr;
   }

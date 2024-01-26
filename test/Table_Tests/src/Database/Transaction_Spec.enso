@@ -7,65 +7,80 @@ from Standard.Database.Errors import all
 import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Database.Helpers.Name_Generator
 
 type My_Error
     Error
 
-main = Test_Suite.run_main <|
-    spec (Database.connect (SQLite In_Memory)) "[SQLite] "
+type Data
+    Value ~data
 
-spec connection prefix =
-    Test.group prefix+"Transaction Support" <|
+    connection self = self.data.at 0
+    simple_table_structure self = self.data.at 1
+
+    setup create_connection_func = Data.Value <|
+        connection = create_connection_func Nothing
         simple_table_structure = [Column_Description.Value "X" Value_Type.Integer]
+        [connection, simple_table_structure]
+
+    teardown self =
+        self.connection.close
+
+add_specs suite_builder create_connection_func prefix =
+    suite_builder.group prefix+"Transaction Support" group_builder->
+        data = Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
         insert_value table_name x =
             pairs = [["X", SQL_Expression.Constant x]]
-            sql = connection.dialect.generate_sql <| Query.Insert table_name pairs
-            connection.execute_update sql . should_succeed
-        Test.specify "should commit the changes after the transaction returns a regular value" <|
+            sql = data.connection.dialect.generate_sql <| Query.Insert table_name pairs
+            data.connection.execute_update sql . should_succeed
+
+        group_builder.specify "should commit the changes after the transaction returns a regular value" <|
             table_name = Name_Generator.random_name "transaction-test-1"
-            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
+            t1 = data.connection.create_table table_name=table_name structure=data.simple_table_structure temporary=True
             t1.should_succeed
-            r1 = connection.jdbc_connection.run_within_transaction <|
+            r1 = data.connection.jdbc_connection.run_within_transaction <|
                 insert_value table_name 1
                 42
             r1.should_equal 42
 
             t1.at "X" . to_vector . should_equal [1]
-            connection.drop_table table_name
+            data.connection.drop_table table_name
 
-        Test.specify "should rollback the changes after the inner action panics" <|
+        group_builder.specify "should rollback the changes after the inner action panics" <|
             table_name = Name_Generator.random_name "transaction-test-2"
-            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
+            t1 = data.connection.create_table table_name=table_name structure=data.simple_table_structure temporary=True
             t1.should_succeed
             Test.expect_panic_with matcher=My_Error <|
-                connection.jdbc_connection.run_within_transaction <|
+                data.connection.jdbc_connection.run_within_transaction <|
                     insert_value table_name 1
                     Panic.throw My_Error.Error
 
             t1.at "X" . to_vector . should_equal []
-            connection.drop_table table_name
+            data.connection.drop_table table_name
 
-        Test.specify "should rollback the changes if the inner action returns a dataflow error" <|
+        group_builder.specify "should rollback the changes if the inner action returns a dataflow error" <|
             table_name = Name_Generator.random_name "transaction-test-3"
-            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
+            t1 = data.connection.create_table table_name=table_name structure=data.simple_table_structure temporary=True
             t1.should_succeed
-            r1 = connection.jdbc_connection.run_within_transaction <|
+            r1 = data.connection.jdbc_connection.run_within_transaction <|
                 insert_value table_name 1
                 Error.throw My_Error.Error
             r1.should_fail_with My_Error
 
             t1.at "X" . to_vector . should_equal []
-            connection.drop_table table_name
+            data.connection.drop_table table_name
 
-        Test.specify "should commit the changes even if the inner action return value has warnings attached" <|
+        group_builder.specify "should commit the changes even if the inner action return value has warnings attached" <|
             table_name = Name_Generator.random_name "transaction-test-4"
-            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
+            t1 = data.connection.create_table table_name=table_name structure=data.simple_table_structure temporary=True
             t1.should_succeed
-            r1 = connection.jdbc_connection.run_within_transaction <|
+            r1 = data.connection.jdbc_connection.run_within_transaction <|
                 insert_value table_name 1
                 result = 43
                 with_warnings = Warning.attach My_Error.Error result
@@ -74,4 +89,4 @@ spec connection prefix =
             Problems.expect_only_warning My_Error r1
 
             t1.at "X" . to_vector . should_equal [1]
-            connection.drop_table table_name
+            data.connection.drop_table table_name

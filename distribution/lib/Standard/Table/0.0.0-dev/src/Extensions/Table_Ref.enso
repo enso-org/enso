@@ -86,6 +86,6 @@ check_is_in_values operation_name values =
             Error.throw (Illegal_Argument.Error message)
         _ -> v
     case values of
-        _ : Vector -> values.map on_problems=No_Wrap.Value check_value
-        _ : Array -> values.map on_problems=No_Wrap.Value check_value
+        _ : Vector -> values.map on_problems=No_Wrap check_value
+        _ : Array -> values.map on_problems=No_Wrap check_value
         _ -> check_value values

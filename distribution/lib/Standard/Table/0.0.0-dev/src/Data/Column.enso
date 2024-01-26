@@ -32,6 +32,7 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1256,6 +1257,48 @@ type Column
         Value_Type.expect_text self <|
             simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
 
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the left n characters for each element of the column.
+
+       In the Database backends, the default text left method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the left n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_left 5
+    text_left : Column|Integer -> Column
+    text_left self n =
+        Value_Type.expect_text self <|
+            Value_Type.expect_integer n <|
+                new_name = naming_helper.function_name "text_left" [self, n]
+                run_vectorized_binary_op self Java_Storage.Maps.TEXT_LEFT n new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the right n characters for each element of the column.
+
+       In the Database backends, the default text right method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the right n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_right 5
+    text_right : Column|Integer -> Column
+    text_right self n =
+        Value_Type.expect_text self <|
+            Value_Type.expect_integer n <|
+                new_name = naming_helper.function_name "text_right" [self, n]
+                run_vectorized_binary_op self Java_Storage.Maps.TEXT_RIGHT n new_name
+
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.
 
@@ -1558,7 +1601,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1877,7 +1920,7 @@ type Column
     map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
     map self function skip_nothing=True expected_value_type=Auto =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
-        new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
+        new_st = self.to_vector.map on_problems=No_Wrap new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
     ## ALIAS combine, join by row position, merge
@@ -1925,7 +1968,7 @@ type Column
                             function x y
             False -> function
         new_name = naming_helper.binary_operation_name "x" self that
-        vec = self.to_vector.zip on_problems=No_Wrap.Value that.to_vector new_fn
+        vec = self.to_vector.zip on_problems=No_Wrap that.to_vector new_fn
         Column.from_vector new_name vec value_type=expected_value_type
 
     ## GROUP Standard.Base.Metadata
@@ -2096,7 +2139,8 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -2175,7 +2219,8 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
@@ -2240,7 +2285,7 @@ type Column
              example_reverse = Examples.integer_column.reverse
     reverse : Column
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.length
+        mask = OrderMask.reverse self.length
         Column.Value (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
@@ -2612,4 +2657,4 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
-Column.from (that:Date_Range) (name:Text="Date Range") = Column.from_vector name that.to_vector
+Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector

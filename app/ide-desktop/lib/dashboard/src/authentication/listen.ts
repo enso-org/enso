@@ -21,19 +21,19 @@ const AUTHENTICATION_HUB = 'auth'
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
  * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`. */
 export enum AuthEvent {
-    /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
-    customOAuthState = 'customOAuthState',
-    /** Issued when the user completes the sign-in process (via federated identity provider). */
-    cognitoHostedUi = 'cognitoHostedUI',
-    /** Issued when the user completes the sign-in process (via email/password). */
-    signIn = 'signIn',
-    /** Issued when the user signs out. */
-    signOut = 'signOut',
+  /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
+  customOAuthState = 'customOAuthState',
+  /** Issued when the user completes the sign-in process (via federated identity provider). */
+  cognitoHostedUi = 'cognitoHostedUI',
+  /** Issued when the user completes the sign-in process (via email/password). */
+  signIn = 'signIn',
+  /** Issued when the user signs out. */
+  signOut = 'signOut',
 }
 
 /** Return `true` if the given `string` is an {@link AuthEvent}. */
 function isAuthEvent(value: string): value is AuthEvent {
-    return Object.values<string>(AuthEvent).includes(value)
+  return Object.values<string>(AuthEvent).includes(value)
 }
 
 // =================================
@@ -56,9 +56,9 @@ export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 
 /** Listen to authentication state changes. */
 export function registerAuthEventListener(listener: ListenerCallback) {
-    return amplify.Hub.listen(AUTHENTICATION_HUB, data => {
-        if (isAuthEvent(data.payload.event)) {
-            listener(data.payload.event, data.payload.data)
-        }
-    })
+  return amplify.Hub.listen(AUTHENTICATION_HUB, data => {
+    if (isAuthEvent(data.payload.event)) {
+      listener(data.payload.event, data.payload.data)
+    }
+  })
 }

@@ -23,35 +23,35 @@ export type InterpolationFunction = (progress: number) => number
 
 /** Interpolates between two values over time */
 export function useInterpolateOverTime(
-    interpolationFunction: InterpolationFunction,
-    durationMs: number,
-    initialValue = 0
+  interpolationFunction: InterpolationFunction,
+  durationMs: number,
+  initialValue = 0
 ): [value: number, setTargetValue: react.Dispatch<react.SetStateAction<number>>] {
-    const [value, setValue] = react.useState(initialValue)
-    const [startValue, setStartValue] = react.useState(initialValue)
-    const [endValue, setEndValue] = react.useState(initialValue)
+  const [value, setValue] = react.useState(initialValue)
+  const [startValue, setStartValue] = react.useState(initialValue)
+  const [endValue, setEndValue] = react.useState(initialValue)
 
-    react.useEffect(() => {
-        setStartValue(value)
-        const startTime = Number(new Date())
-        let isRunning = true
-        const onTick = () => {
-            const fraction = Math.min((Number(new Date()) - startTime) / durationMs, 1)
-            if (isRunning && fraction < 1) {
-                setValue(startValue + (endValue - startValue) * interpolationFunction(fraction))
-                requestAnimationFrame(onTick)
-            } else {
-                setValue(endValue)
-                setStartValue(endValue)
-            }
-        }
+  react.useEffect(() => {
+    setStartValue(value)
+    const startTime = Number(new Date())
+    let isRunning = true
+    const onTick = () => {
+      const fraction = Math.min((Number(new Date()) - startTime) / durationMs, 1)
+      if (isRunning && fraction < 1) {
+        setValue(startValue + (endValue - startValue) * interpolationFunction(fraction))
         requestAnimationFrame(onTick)
-        return () => {
-            isRunning = false
-        }
-    }, [endValue])
+      } else {
+        setValue(endValue)
+        setStartValue(endValue)
+      }
+    }
+    requestAnimationFrame(onTick)
+    return () => {
+      isRunning = false
+    }
+  }, [endValue])
 
-    return [value, setEndValue]
+  return [value, setEndValue]
 }
 
 /** Equivalent to the CSS easing function `linear(a, b, c, ...)`.
@@ -61,22 +61,22 @@ export function useInterpolateOverTime(
  * Does not support percentages to control time spent on a specific line segment, unlike the CSS
  * `linear(0, 0.25 75%, 1)` */
 export function interpolationFunctionLinear(...points: number[]): InterpolationFunction {
-    if (points.length === 0) {
-        return progress => progress
-    } else {
-        const length = points.length
-        return progress => {
-            const effectiveIndex = progress * length
-            // The following are guaranteed to be non-null, as `progress` is guaranteed
-            // to be between 0 and 1.
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const start = points[Math.floor(effectiveIndex)]!
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const end = points[Math.ceil(effectiveIndex)]!
-            const progressThroughEffectiveIndex = effectiveIndex % 1
-            return (end - start) * progressThroughEffectiveIndex
-        }
+  if (points.length === 0) {
+    return progress => progress
+  } else {
+    const length = points.length
+    return progress => {
+      const effectiveIndex = progress * length
+      // The following are guaranteed to be non-null, as `progress` is guaranteed
+      // to be between 0 and 1.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const start = points[Math.floor(effectiveIndex)]!
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const end = points[Math.ceil(effectiveIndex)]!
+      const progressThroughEffectiveIndex = effectiveIndex % 1
+      return (end - start) * progressThroughEffectiveIndex
     }
+  }
 }
 
 /** Defines a cubic Bézier curve with control points `(0, 0)`, `(x1, y1)`, `(x2, y2)`,
@@ -84,34 +84,34 @@ export function interpolationFunctionLinear(...points: number[]): InterpolationF
  *
  * Equivalent to the CSS easing function `cubic-bezier(x1, y1, x2, y2)` */
 export function interpolationFunctionCubicBezier(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
 ): InterpolationFunction {
-    return progress => {
-        let minimum = 0
-        let maximum = 1
-        for (let i = 0; i < CUBIC_BEZIER_BISECTIONS; ++i) {
-            const t = (minimum + maximum) / 2
-            const u = 1 - t
-            // See here for the source of the explicit form:
-            // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
-            // `x0 = 0` and `x3 = 1` have been substituted in.
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            const estimatedProgress = 3 * u * t * (u * x1 + t * x2) + t * t * t
-            if (estimatedProgress > progress) {
-                maximum = t
-            } else {
-                minimum = t
-            }
-        }
-        const t = (minimum + maximum) / 2
-        const u = 1 - t
-        // Uses the same formula as above, but calculating `y` instead of `x`.
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        return 3 * u * t * (u * y1 + t * y2) + t * t * t
+  return progress => {
+    let minimum = 0
+    let maximum = 1
+    for (let i = 0; i < CUBIC_BEZIER_BISECTIONS; ++i) {
+      const t = (minimum + maximum) / 2
+      const u = 1 - t
+      // See here for the source of the explicit form:
+      // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
+      // `x0 = 0` and `x3 = 1` have been substituted in.
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      const estimatedProgress = 3 * u * t * (u * x1 + t * x2) + t * t * t
+      if (estimatedProgress > progress) {
+        maximum = t
+      } else {
+        minimum = t
+      }
     }
+    const t = (minimum + maximum) / 2
+    const u = 1 - t
+    // Uses the same formula as above, but calculating `y` instead of `x`.
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    return 3 * u * t * (u * y1 + t * y2) + t * t * t
+  }
 }
 
 // Magic numbers are allowable as these definitions are taken straight from the spec.
@@ -138,33 +138,33 @@ export const interpolationFunctionEaseOut = interpolationFunctionCubicBezier(0.0
 /** Determines which sides should have a "jump" - a step that lasts for zero time, effectively
  * making the anmiation skip that end point. */
 export enum StepJumpSides {
-    start = 'jump-start',
-    end = 'jump-end',
-    both = 'jump-both',
-    none = 'jump-none',
+  start = 'jump-start',
+  end = 'jump-end',
+  both = 'jump-both',
+  none = 'jump-none',
 }
 
 /** Equivalent to the CSS easing function `steps(stepCount, jumpSides)`. */
 export function interpolationFunctionSteps(
-    stepCount: number,
-    jumpSides: StepJumpSides
+  stepCount: number,
+  jumpSides: StepJumpSides
 ): InterpolationFunction {
-    switch (jumpSides) {
-        case StepJumpSides.start: {
-            return progress => Math.ceil(progress * stepCount) / stepCount
-        }
-        case StepJumpSides.end: {
-            return progress => Math.floor(progress * stepCount) / stepCount
-        }
-        case StepJumpSides.both: {
-            const stepCountPlusOne = stepCount + 1
-            return progress => Math.ceil(progress * stepCount) / stepCountPlusOne
-        }
-        case StepJumpSides.none: {
-            const stepCountMinusOne = stepCount - 1
-            return progress => Math.min(1, Math.floor(progress * stepCount) / stepCountMinusOne)
-        }
+  switch (jumpSides) {
+    case StepJumpSides.start: {
+      return progress => Math.ceil(progress * stepCount) / stepCount
     }
+    case StepJumpSides.end: {
+      return progress => Math.floor(progress * stepCount) / stepCount
+    }
+    case StepJumpSides.both: {
+      const stepCountPlusOne = stepCount + 1
+      return progress => Math.ceil(progress * stepCount) / stepCountPlusOne
+    }
+    case StepJumpSides.none: {
+      const stepCountMinusOne = stepCount - 1
+      return progress => Math.min(1, Math.floor(progress * stepCount) / stepCountMinusOne)
+    }
+  }
 }
 
 /** Equivalent to the CSS easing function `step-start`, which is itself equivalent to

@@ -3,10 +3,14 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { Ast, RawAst } from '@/util/ast'
+import { useGraphStore } from '@/stores/graph'
+import { Ast } from '@/util/ast'
+import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
 const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor'
@@ -18,7 +22,7 @@ const defaultItem = computed(() => {
   if (props.input.dynamicConfig?.kind === 'Vector_Editor') {
     return Ast.parse(props.input.dynamicConfig.item_default)
   } else {
-    return Ast.Wildcard.new()
+    return Ast.Wildcard.new(MutableModule.Transient())
   }
 })
 
@@ -32,7 +36,11 @@ const value = computed({
   set(value) {
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    props.onUpdate({ type: 'set', value: newCode, origin: props.input.portId })
+    const edit = graph.astModule.edit()
+    props.onUpdate({
+      edit,
+      portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
+    })
   },
 })
 
@@ -47,7 +55,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
     else if (props.input.value instanceof Ast.Ast)
-      return props.input.value.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+      return props.input.value.children().next().value.code === '[' ? Score.Perfect : Score.Mismatch
     else return Score.Mismatch
   },
 })
@@ -57,10 +65,10 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   <ListWidget
     v-model="value"
     :default="() => defaultItem"
-    :getKey="(ast: Ast.Ast) => ast.exprId"
+    :getKey="(ast: Ast.Ast) => ast.id"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
-    :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
+    :toDragPayload="(ast: Ast.Ast) => Ast.serialize(ast)"
     :fromDragPayload="Ast.deserialize"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
     class="WidgetVector"

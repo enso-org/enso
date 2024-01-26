@@ -8,8 +8,8 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -32,9 +32,8 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @CachedLibrary(limit = "5") StructsLibrary structs) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var fields = structs.getFields(self);
-    Object payload = fields[0];
-    Object originalException = fields[1];
+    var payload = structs.getField(self, 0);
+    var originalException = structs.getField(self, 1);
     if (interopLibrary.isException(originalException)) {
       return DataflowError.withTrace(payload, (AbstractTruffleException) originalException);
     } else {

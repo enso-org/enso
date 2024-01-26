@@ -1,0 +1,660 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Spec_Result.Spec_Result
+import project.Test.Test
+
+## Expect a function to fail with the provided dataflow error.
+
+   Arguments:
+   - matcher: The expected type of dataflow error contained in `self`.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+   - unwrap_errors: If true, remove any wrapping errors from the result before
+     checking against the expected warning.
+
+   > Example
+     Assert that a computation should return an error of a given type.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_fail_with =
+            Examples.throw_error . should_fail_with Examples.My_Error
+Any.should_fail_with : Any -> Integer -> Boolean -> Spec_Result
+Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
+    _ = unwrap_errors
+    loc = Meta.get_source_location 1+frames_to_skip
+    matcher_text = matcher . to_text
+    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
+
+## Expect a function to fail with the provided dataflow error.
+
+   Arguments:
+   - matcher: The expected type of dataflow error contained in `self`.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+   - unwrap_errors: If true, remove any wrapping errors from the result before
+     checking against the expected warning.
+
+   > Example
+     Assert that a computation should return an error of a given type.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_fail_with =
+            Examples.throw_error . should_fail_with Examples.My_Error
+Error.should_fail_with : Any -> Integer -> Boolean -> Spec_Result
+Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
+    unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
+    caught = unwrap_maybe self.catch
+    if caught == matcher || caught.is_a matcher then Nothing else
+        loc = Meta.get_source_location 2+frames_to_skip
+        matcher_text = matcher . to_text
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+
+## Asserts that `self` value is equal to the expected value.
+
+   Arguments:
+   - that: The value to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = Examples.add_1_to 1 . should_equal 2
+Any.should_equal : Any -> Integer -> Spec_Result
+Any.should_equal self that frames_to_skip=0 = case self == that of
+    True -> Spec_Result.Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        additional_comment = case self of
+            _ : Vector -> case that of
+                _ : Vector ->
+                    case self.length == that.length of
+                        True ->
+                            diff = self.zip that . index_of p->
+                                p.first != p.second
+                            "; first difference at index " + diff.to_text + " "
+                        False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
+                _ -> ""
+            _ -> ""
+        msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value is equal to the expected type value.
+
+   Arguments:
+   - that: The type to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that some type is equal to another.,
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = Examples.some_type . should_equal_type Vector
+Any.should_equal_type : Any -> Integer -> Spec_Result
+Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that) of
+    True -> Spec_Result.Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+
+## Added so that dataflow errors are not silently lost.
+Error.should_equal_type self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is not equal to the expected value.
+
+   Arguments:
+   - that: The value to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
+Any.should_not_equal : Any -> Integer -> Spec_Result
+Any.should_not_equal self that frames_to_skip=0 = case self != that of
+    True -> Spec_Result.Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is not equal to the expected type value.
+
+   Arguments:
+   - that: The type to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that some type is equal to another.,
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_not_equal = Examples.some_type . should_not_equal_type Vector
+Any.should_not_equal_type : Any -> Integer -> Spec_Result
+Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that . not) of
+    True -> Spec_Result.Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal_type self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is a Text value and starts with `that`.
+
+   Arguments:
+   - that: The value to check `self` starts with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should start with another.
+
+         from Standard.Test import Test
+
+         example_should_start_with = "Hello World!" . should_start_with "Hello"
+Any.should_start_with : Text -> Integer -> Spec_Result
+Any.should_start_with self that frames_to_skip=0 = case self of
+    _ : Text -> if self.starts_with that then Spec_Result.Success else
+        loc = Meta.get_source_location 3+frames_to_skip
+        msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+    _ ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value is a Text value and ends with `that`.
+
+   Arguments:
+   - that: The value to check `self` ends with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should end with another.
+
+         from Standard.Test import Test
+
+         example_should_end_with = "Hello World!" . should_end_with "ld!"
+Any.should_end_with : Text -> Integer -> Spec_Result
+Any.should_end_with self that frames_to_skip=0 = case self of
+    _ : Text -> if self.ends_with that then Spec_Result.Success else
+        loc = Meta.get_source_location 3+frames_to_skip
+        msg = self.to_text + " does not end with " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+    _ ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value is a Text value and starts with `that`.
+
+   Arguments:
+   - that: The value to check `self` starts with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should start with another.
+
+         from Standard.Test import Test
+
+         example_should_start_with = "Hello World!" . should_start_with "Hello"
+Error.should_start_with : Any -> Integer -> Spec_Result
+Error.should_start_with self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is a Text value and ends with `that`.
+
+   Arguments:
+   - that: The value to check `self` ends with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should end with another.
+
+         from Standard.Test import Test
+
+         example_should_end_with = "Hello World!" . should_end_with "ld!"
+Error.should_end_with : Any -> Integer -> Spec_Result
+Error.should_end_with self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is equal to the expected value.
+
+   Arguments:
+   - _: The value to check `self` for equality with.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = Examples.add_1_to 1 . should_equal 2
+Error.should_equal : Any -> Integer -> Spec_Result
+Error.should_equal self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` is within `epsilon` from `that`.
+
+   Arguments:
+   - that: The value to compare `self` for equality with.
+   - epsilon: The epislon for comparing two float numbers.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Compare two float values.
+
+         from Standard.Test import Test
+
+         example_should_equal = 1.1 . should_equal 1.1
+
+   > Example
+     Compare two float values with an epsilon (tolerance).
+
+         from Standard.Test import Test
+
+         example_should_equal =
+            1.00000001 . should_equal 1.00000002 epsilon=0.0001
+Number.should_equal : Float -> Float -> Integer -> Spec_Result
+Number.should_equal self that epsilon=0 frames_to_skip=0 =
+    matches = case that of
+        _ : Number -> self.equals that epsilon
+        _ -> False
+    case matches of
+        True -> Spec_Result.Success
+        False ->
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+            Test.fail msg
+
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Any.should_succeed : Integer -> Any
+Any.should_succeed self frames_to_skip=0 =
+    _ = frames_to_skip
+    self
+
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Error.should_succeed : Integer -> Any
+Error.should_succeed self frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Handles an unexpected dataflow error.
+Error.should_be_a : Any -> Integer -> Any
+Error.should_be_a self typ frames_to_skip=0 =
+    _ = typ
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that the given `Boolean` is `True`
+
+   > Example
+     Assert that a boolean value is true.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_be_true = Examples.get_boolean . should_be_true
+Boolean.should_be_true : Spec_Result
+Boolean.should_be_true self = case self of
+    True -> Spec_Result.Success
+    False ->
+        loc = Meta.get_source_location 2
+        Test.fail "Expected False to be True (at "+loc+")."
+
+## Asserts that the given `Boolean` is `True`.
+
+   > Example
+     Assert that a boolean value is true.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_be_true = Examples.get_boolean . should_be_true
+Error.should_be_true : Spec_Result
+Error.should_be_true self = Test.fail_match_on_unexpected_error self 1
+
+## Asserts that the given `Boolean` is `False`
+
+   > Example
+     Assert that a boolean value is false.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_be_false = Examples.get_boolean . should_be_false
+Boolean.should_be_false : Spec_Result
+Boolean.should_be_false self = case self of
+    True ->
+        loc = Meta.get_source_location 2
+        Test.fail "Expected True to be False (at "+loc+")."
+    False -> Spec_Result.Success
+
+## Asserts that the given `Boolean` is `False`
+
+   > Example
+     Assert that a boolean value is false.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_be_false = Examples.get_boolean . should_be_false
+Error.should_be_false : Spec_Result
+Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
+
+## Asserts that a value is of a given type.
+
+   Arguments:
+   - typ: The type to assert that `self` is a value of.
+
+   > Examples
+     Assert that 1 is of type Boolean.
+
+         from Standard.Test import Test
+
+         example_should_be_a = 1.should_be_a Boolean
+Any.should_be_a : Any -> Spec_Result
+Any.should_be_a self typ =
+    loc = Meta.get_source_location 1
+    fail_on_wrong_arg_type =
+        Panic.throw <|
+            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or a constructor. Use `should_equal` for value equality test instead."
+    case Meta.meta typ of
+        c : Meta.Constructor -> case Meta.meta self of
+                a : Meta.Atom ->
+                    if a.constructor == c then Spec_Result.Success else
+                        expected_type = Meta.get_qualified_type_name typ
+                        actual_type = Meta.get_qualified_type_name self
+                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
+                        Test.fail message
+                _ ->
+                    expected_type = Meta.get_qualified_type_name typ
+                    actual_type = Meta.get_qualified_type_name self
+                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+" instead (at "+loc+")."
+                    Test.fail message
+        _ : Meta.Type ->
+            ok = self.is_a typ || self==typ
+            if ok then Spec_Result.Success else
+                expected_type = Meta.get_qualified_type_name typ
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of type "+expected_type+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        # Workaround for 0-argument atom constructors which 'unapplies' them.
+        atom : Meta.Atom ->
+            ctor = atom . constructor
+            if ctor.fields.not_empty then fail_on_wrong_arg_type else
+                self.should_be_a (ctor.value ...)
+        _ : Meta.Polyglot ->
+            ok = self.is_a typ
+            if ok then Spec_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of Java class "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        Meta.Primitive.Value (b : Boolean) ->
+            ok = self == b
+            if ok then Spec_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        _ -> fail_on_wrong_arg_type
+
+## Asserts that `self` value contains the same elements as `that`.
+
+   It only checks that all elements from one collection are also present in the
+   other one. Arities of elements are not checked, so the collections can still
+   differ in length by containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain the same elements as another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
+Any.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
+Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    that.each element->
+        if self.contains element . not then
+            msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
+            Test.fail msg
+    self.each element->
+        if that.contains element . not then
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            Test.fail msg
+    Spec_Result.Success
+
+## Asserts that `self` value contains the same elements as `that`.
+
+   It only checks that all elements from one collection are also present in the
+   other one. Arities of elements are not checked, so the collections can still
+   differ in length by containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - _: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain the same elements as another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
+Error.should_contain_the_same_elements_as : Any -> Integer -> Spec_Result
+Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value contains only elements in `that`.
+
+   It checks that all elements from `self` are also present in `that`. It does
+   not require that all elements of `that` are contained in `self`. Arities of
+   elements are not checked, so `self` may still contain more elements than 
+   `that` by containing duplicates.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain only elements in another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
+Any.should_only_contain_elements_in : Any -> Integer -> Spec_Result
+Any.should_only_contain_elements_in self that frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    self.each element->
+        if that.contains element . not then
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            Test.fail msg
+    Spec_Result.Success
+
+## Asserts that `self` value contains only elements in `that`.
+
+   It checks that all elements from `self` are also present in `that`. It does
+   not require that all elements of `that` are contained in `self`. Arities of
+   elements are not checked, so the collections can still differ in length by
+   containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain only elements in another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
+Error.should_only_contain_elements_in  : Any -> Integer -> Spec_Result
+Error.should_only_contain_elements_in self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value contains an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+
+   > Example
+     Assert that a string contains a substring.
+
+         from Standard.Test import Test
+
+         example_should_equal = "foobar".should_contain "foo"
+Any.should_contain : Any -> Integer -> Spec_Result
+Any.should_contain self element frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
+        if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
+            Test.fail msg
+    if contains_result then Spec_Result.Success else
+        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value contains an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+
+   > Example
+     Assert that a string contains a substring.
+
+         from Standard.Test import Test
+
+         example_should_equal = "foobar".should_contain "foo"
+Error.should_contain : Any -> Integer -> Spec_Result
+Error.should_contain self element frames_to_skip=0 =
+    _ = [element]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value does not contain an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+Any.should_not_contain : Any -> Integer -> Spec_Result
+Any.should_not_contain self element frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
+        if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
+            Test.fail msg
+    if contains_result.not then Spec_Result.Success else
+        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value does not contain an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+Error.should_not_contain : Any -> Integer -> Spec_Result
+Error.should_not_contain self element frames_to_skip=0 =
+    _ = [element]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip

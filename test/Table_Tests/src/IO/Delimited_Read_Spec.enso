@@ -7,14 +7,13 @@ from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 from Standard.Table.Extensions.Table_Conversions import all
 from Standard.Table.Errors import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Util
 
-spec =
-    Test.group "Delimited File Parsing" <|
-        Test.specify "should load a simple table with headers" <|
+add_specs suite_builder =
+    suite_builder.group "Delimited File Parsing" group_builder->
+        group_builder.specify "should load a simple table with headers" <|
             c_1 = ["a", ['1', '4', '7', '10']]
             c_2 = ["b", ['2', Nothing, '8', '11']]
             c_3 = ["c", [Nothing, '6', '9', '12']]
@@ -22,7 +21,7 @@ spec =
             simple_empty = Data.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=True value_formatter=Nothing)
             simple_empty.should_equal expected_table
 
-        Test.specify "should load a simple table without headers" <|
+        group_builder.specify "should load a simple table without headers" <|
             c_1 = ["Column 1", ['a', '1', '4', '7', '10']]
             c_2 = ["Column 2", ['b', '2', Nothing, '8', '11']]
             c_3 = ["Column 3", ['c', Nothing, '6', '9', '12']]
@@ -30,7 +29,7 @@ spec =
             simple_empty = Data.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False value_formatter=Nothing)
             simple_empty.should_equal expected_table
 
-        Test.specify "should work in presence of missing headers" <|
+        group_builder.specify "should work in presence of missing headers" <|
             action on_problems = Data.read (enso_project.data / "missing_header.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
             tester table =
                 table.columns.map .name . should_equal ["a", "Column 1", "c", "Column 2", "d"]
@@ -42,7 +41,7 @@ spec =
             problems = [Invalid_Column_Names.Error [Nothing, Nothing]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should infer headers based on the first two rows" <|
+        group_builder.specify "should infer headers based on the first two rows" <|
             t1 = Data.read (enso_project.data / "data_small.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Code", "Index", "Flag", "Value", "ValueWithNothing", "TextWithNothing", "Hexadecimal", "Leading0s", "QuotedNumbers", "Mixed Types"]
 
@@ -74,7 +73,7 @@ spec =
             t6.at "1" . to_vector . should_equal ["y"]
             t6.at "x" . to_vector . should_equal [2]
 
-        Test.specify "should not use the first row as headers if it is the only row, unless specifically asked to" <|
+        group_builder.specify "should not use the first row as headers if it is the only row, unless specifically asked to" <|
             t1 = Data.read (enso_project.data / "one_row.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Column 1", "Column 2", "Column 3"]
             t1.at "Column 1" . to_vector . should_equal ["x"]
@@ -86,11 +85,11 @@ spec =
             t2.row_count .  should_equal 0
             t2.at "x" . to_vector . should_equal []
 
-        Test.specify "should raise an informative error when loading an empty file" <|
+        group_builder.specify "should raise an informative error when loading an empty file" <|
             t = Data.read (enso_project.data / "empty.txt") (Delimited "," headers=True value_formatter=Nothing)
             t.should_fail_with Empty_File_Error
 
-        Test.specify "should correctly handle file opening issues" <|
+        group_builder.specify "should correctly handle file opening issues" <|
             nonexistent_file = enso_project.data / "a_filename_that_does_not_exist.foobar"
             r1 = Data.read nonexistent_file (Delimited "," headers=True value_formatter=Nothing)
             r1.should_fail_with File_Error
@@ -101,7 +100,7 @@ spec =
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.IO_Error
 
-        Test.specify "should work with all kinds of line endings" <|
+        group_builder.specify "should work with all kinds of line endings" <|
             path name = enso_project.data / 'transient' / name
             create_file name ending_style =
                 lines = ['a,b,c', 'd,e,f', '1,2,3']
@@ -128,7 +127,7 @@ spec =
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
-        Test.specify "should allow to override line endings style" <|
+        group_builder.specify "should allow to override line endings style" <|
             file = enso_project.data / "transient" / "lf.csv"
             lines = ['a,b,c', 'd,e,f', '1,2,3']
             text = lines.join '\n'
@@ -155,21 +154,21 @@ spec =
             table . should_equal reference_table
             file_2.delete
 
-        Test.specify "should work with Windows-1252 encoding" <|
+        group_builder.specify "should work with Windows-1252 encoding" <|
             table = Data.read (enso_project.data / "windows.csv") (Delimited "," headers=True encoding=Encoding.windows_1252) Problem_Behavior.Report_Error
             table.columns.map .name . should_equal ['a', 'b', 'c']
             table.at 'a' . to_vector . should_equal ['$¢']
             table.at 'b' . to_vector . should_equal ['¤']
             table.at 'c' . to_vector . should_equal ['¥']
 
-        Test.specify "should work with UTF-16 encoding" <|
+        group_builder.specify "should work with UTF-16 encoding" <|
             table = Data.read (enso_project.data / "utf16.csv") (Delimited "," headers=True encoding=Encoding.utf_16_be) Problem_Behavior.Report_Error
             table.columns.map .name . should_equal ['ą', '🚀b', 'ć😎']
             table.at 'ą' . to_vector . should_equal ['ą']
             table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
             table.at 'ć😎' . to_vector . should_equal ['แมวมีสี่ขา']
 
-        Test.specify "should report errors when encountering malformed characters" <|
+        group_builder.specify "should report errors when encountering malformed characters" <|
             utf8_file = (enso_project.data / "transient" / "utf8_invalid.csv")
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
             utf8_bytes.write_bytes utf8_file
@@ -196,7 +195,7 @@ spec =
             problems_2 = [Encoding_Error.Error "Encoding issues at byte 22."]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
-        Test.specify "should handle duplicated columns" <|
+        group_builder.specify "should handle duplicated columns" <|
             action on_problems = Data.read (enso_project.data / "duplicated_columns.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
             tester table =
                 table.columns.map .name . should_equal ['a', 'b', 'c', 'a 1']
@@ -205,7 +204,7 @@ spec =
             problems = [Duplicate_Output_Column_Names.Error ['a']]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should handle quotes" <|
+        group_builder.specify "should handle quotes" <|
             t1 = Data.read (enso_project.data / "double_quoted.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.at 'a' . to_vector . should_equal ['a, x', '"a']
             t1.at 'c' . to_vector . should_equal ['3', '"']
@@ -218,13 +217,13 @@ spec =
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
 
-        Test.specify "should support rows spanning multiple lines if quoted" <|
+        group_builder.specify "should support rows spanning multiple lines if quoted" <|
             t1 = Data.read (enso_project.data / "multiline_quoted.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.at 'a' . to_vector . should_equal ['1', '4']
             t1.at 'b' . to_vector . should_equal ['start\n\ncontinue', '5']
             t1.at 'c' . to_vector . should_equal ['3', '6']
 
-        Test.specify "should fail in presence of a mismatched quote" <|
+        group_builder.specify "should fail in presence of a mismatched quote" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
                 format = (Delimited "," headers=True value_formatter=Nothing)
                 r1 = Data.read (enso_project.data / "mismatched_quote.csv") format on_problems=pb
@@ -250,7 +249,7 @@ spec =
                 r5.should_fail_with File_Error
                 r5.catch.should_be_a File_Error.Corrupted_Format
 
-        Test.specify "should fail in presence of a mismatched quote (2)" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+        group_builder.specify "should fail in presence of a mismatched quote (2)" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
                 format = (Delimited "," headers=True value_formatter=Nothing)
                 format3 = format . with_quotes quote_escape="\"
@@ -263,7 +262,7 @@ spec =
                 r6.catch.should_be_a File_Error.Corrupted_Format
                 f6.delete
 
-        Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+        group_builder.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
             t1 = Data.read (enso_project.data / "mismatched_quote_at_end.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.column_names . should_equal ["a", "b", "c"]
             t1.at 'a' . to_vector . should_equal ['1', 'abc', '7']
@@ -283,7 +282,7 @@ spec =
             t3.column_names.should_equal ["A", "B", "C"]
             t3.print
 
-        Test.specify "should handle too long and too short rows" <|
+        group_builder.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
                 Data.read (enso_project.data / "varying_rows.csv") (Delimited "," headers=True keep_invalid_rows=keep_invalid_rows value_formatter=Nothing) on_problems=on_problems
 
@@ -321,7 +320,7 @@ spec =
             r3.at 'b' . to_vector . should_equal ['2', '0', '5']
             r3.at 'c' . to_vector . should_equal ['3', Nothing, '6']
 
-        Test.specify "should aggregate invalid rows over some limit" <|
+        group_builder.specify "should aggregate invalid rows over some limit" <|
             action on_problems =
                 Data.read (enso_project.data / "many_invalid_rows.csv") (Delimited "," headers=True keep_invalid_rows=False value_formatter=Nothing) on_problems
 
@@ -333,7 +332,7 @@ spec =
             problems = [Invalid_Row.Error 3 Nothing ['1'] 3, Invalid_Row.Error 4 Nothing ['2'] 3, Invalid_Row.Error 5 Nothing ['3'] 3, Invalid_Row.Error 6 Nothing ['4'] 3, Invalid_Row.Error 8 Nothing ['6'] 3, Invalid_Row.Error 9 Nothing ['7'] 3, Invalid_Row.Error 10 Nothing ['8'] 3, Invalid_Row.Error 11 Nothing ['9'] 3, Invalid_Row.Error 12 Nothing ['10'] 3, Invalid_Row.Error 13 Nothing ['11'] 3, Additional_Invalid_Rows.Error 3]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should allow to skip rows" <|
+        group_builder.specify "should allow to skip rows" <|
             t1 = Data.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False skip_rows=3 value_formatter=Nothing)
             t1.at "Column 1" . to_vector . should_equal ['7', '10']
 
@@ -341,7 +340,7 @@ spec =
             t2.columns.map .name . should_equal ['7', '8', '9']
             t2.at "7" . to_vector . should_equal ['10']
 
-        Test.specify "should allow to set a limit of rows to read" <|
+        group_builder.specify "should allow to set a limit of rows to read" <|
             t1 = Data.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False row_limit=2 value_formatter=Nothing)
             t1.at "Column 1" . to_vector . should_equal ['a', '1']
 
@@ -363,7 +362,7 @@ spec =
             t6 = Data.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False skip_rows=3 row_limit=1000 value_formatter=Nothing)
             t6.at "Column 1" . to_vector . should_equal ['7', '10']
 
-        Test.specify "should check arguments" <|
+        group_builder.specify "should check arguments" <|
             path = (enso_project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
             path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument
@@ -371,7 +370,7 @@ spec =
             path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument
             path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument
 
-        Test.specify "should correctly guess column types" <|
+        group_builder.specify "should correctly guess column types" <|
             t = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True)
             t.at "Code" . to_vector . should_equal ["gxl", "wca", "nfw", "der"]
             t.at "Index" . to_vector . should_equal [7, 0, 1, 7]
@@ -387,7 +386,7 @@ spec =
             t2 = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True value_formatter=(Data_Formatter.Value allow_leading_zeros=True))
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
-        Test.specify "should be able to detect types automatically" <|
+        group_builder.specify "should be able to detect types automatically" <|
             t1 = (enso_project.data / "data_small.csv") . read
             t1.at "Code" . to_vector . should_equal ["gxl", "wca", "nfw", "der"]
             t1.at "Index" . to_vector . should_equal [7, 0, 1, 7]
@@ -398,7 +397,7 @@ spec =
             t2.at "c" . to_vector . should_equal [3, 6]
             t2.columns.map .name . should_equal ["a", "b", "c"]
 
-        Test.specify "should be able to read in a file without splitting it to columns" <|
+        group_builder.specify "should be able to read in a file without splitting it to columns" <|
             t1 = (enso_project.data / "data_small.csv") . read (Delimited "" headers=False)
             expected = ['Code,Index,Flag,Value,ValueWithNothing,TextWithNothing,"Hexadecimal",Leading0s,QuotedNumbers,"Mixed Types"']
                 + ['gxl,7,True,38.76109,63.13,   pq6igd2wyd  ,4DD4675B,001,"1","33"']
@@ -407,7 +406,7 @@ spec =
                 + ['der,7,True,0.86658,,,F32E1EFE,,"34",True']
             t1.at 0 . to_vector . should_equal expected
 
-        Test.specify "should be able to parse raw text" <|
+        group_builder.specify "should be able to parse raw text" <|
             text1 = """
                 a,b,c
                 1,2,3
@@ -424,19 +423,19 @@ spec =
             t2.at "a" . to_vector . should_equal [1, 3]
             t2.at "b" . to_vector . should_equal [2, 4]
 
-        Test.specify "should be able to read column names starting with #" <|
+        group_builder.specify "should be able to read column names starting with #" <|
             reference_table = Table.new [["#", ["a", ";1", "5"]], ["x", [42, 2, 6]], ["y", ["c # comment??", "3", "7;comment?"]]]
             table = Data.read (enso_project.data / "comments.csv")
             table.should_equal reference_table
 
-        Test.specify "should be able to handle comments if enabled" <|
+        group_builder.specify "should be able to handle comments if enabled" <|
             table_hash = Table.new [["a", [";1", "5"]], ["42", [2, 6]], ["c # comment??", ["3", "7;comment?"]]]
             table_semicolon = Table.new [["#", ["a", "5"]], ["x", [42, 6]], ["y", ["c # comment??", "7;comment?"]]]
 
             Data.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments . with_headers) . should_equal table_hash
             Data.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments ';' . with_headers) . should_equal table_semicolon
 
-        Test.specify "should manage to parse a file containing null characters" pending="Parsing NULL character in CSV currently does not handle some edge cases. It may need to be revised. See issue https://github.com/enso-org/enso/issues/5655" <|
+        group_builder.specify "should manage to parse a file containing null characters" pending="Parsing NULL character in CSV currently does not handle some edge cases. It may need to be revised. See issue https://github.com/enso-org/enso/issues/5655" <|
             f = enso_project.data / "transient" / "slash_zero.csv"
             f.delete_if_exists
             txt = 'a,b\n\0,\0\nx\0y,zw\na#b,c\0d'
@@ -449,7 +448,7 @@ spec =
 
             f.delete_if_exists
 
-        Test.specify "should allow to build the Delimited configuration using builders" <|
+        group_builder.specify "should allow to build the Delimited configuration using builders" <|
             Delimited "," . clone . should_equal (Delimited ",")
             Delimited "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)
             Delimited "," . clone quote_style=Quote_Style.No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited "," headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes)
@@ -474,4 +473,8 @@ spec =
             Delimited ',' comment_character='#' . without_comments . should_equal (Delimited ',' comment_character=Nothing)
             Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited ',' line_endings=Line_Ending_Style.Unix)
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -78,7 +78,6 @@ polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.error.UnmatchedRow
-polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
@@ -103,7 +102,7 @@ type Table
     new columns =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
-        cols = columns.map on_problems=No_Wrap.Value c->
+        cols = columns.map on_problems=No_Wrap c->
             case c of
                 v : Vector ->
                     if v.length != 2 then invalid_input_shape else
@@ -971,7 +970,7 @@ type Table
                 False ->
                     Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-            new_columns = self.columns.map on_problems=No_Wrap.Value column-> if selected_column_names.contains_key column.name . not then column else
+            new_columns = self.columns.map on_problems=No_Wrap column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -1483,7 +1482,8 @@ type Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
@@ -1822,7 +1822,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join
+    ## ALIAS cartesian join, append
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1929,10 +1929,10 @@ type Table
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map make_java_lookup_column_description
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
 
         keys = lookup_columns.filter .is_key
-        java_keys = keys.map key_column->
+        java_keys = keys.map on_problems=No_Wrap key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 
         handle_java_errors ~action =
@@ -2193,7 +2193,8 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning max_rows
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
@@ -2345,7 +2346,7 @@ type Table
         normalize_group_by input = case input of
             Aggregate_Column.Group_By c _ -> c
             _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
-            _ : Vector -> input.map on_problems=No_Wrap.Value normalize_group_by
+            _ : Vector -> input.map on_problems=No_Wrap normalize_group_by
             _ -> input
 
         ## validate the name and group_by columns
@@ -2360,7 +2361,7 @@ type Table
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        resolved_values = values_vector.map on_problems=No_Wrap.Value (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        resolved_values = values_vector.map on_problems=No_Wrap (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
@@ -2421,7 +2422,7 @@ type Table
              example_reverse = Examples.inventory_table.reverse
     reverse : Table
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.row_count
+        mask = OrderMask.reverse self.row_count
         Table.Value <| self.java_table.applyMask mask
 
     ## GROUP Standard.Base.Output
@@ -2727,10 +2728,9 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
    Arguments:
    - that: The table to convert.
    - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    case format of
-        _ : Delimited_Format -> Delimited_Writer.write_text that format
-        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') = case format of
+    _ : Delimited_Format -> Delimited_Writer.write_text that format
+    _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
@@ -2740,6 +2740,14 @@ Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table
    Conversion method to a Table from a JS_Object.
 Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Range) (name:Text="Range") = Table.new [Column.from_vector name that.to_vector]
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Date_Range) (name:Text=that.default_column_name) = Table.new [Column.from_vector name that.to_vector]
 
 ## PRIVATE
    Convert an `XML_Element` into a `Table`

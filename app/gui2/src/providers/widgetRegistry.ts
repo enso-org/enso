@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type Owned } from '@/util/ast/abstract.ts'
+import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -12,7 +12,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 export namespace WidgetInput {
   export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
     return {
-      portId: ast.exprId,
+      portId: ast.id,
       value: ast,
     }
   }
@@ -52,10 +52,11 @@ export namespace WidgetInput {
 
   export function isFunctionCall(
     input: WidgetInput,
-  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.OprApp } {
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } {
     return (
       input.value instanceof Ast.App ||
       input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.PropertyAccess ||
       input.value instanceof Ast.OprApp
     )
   }
@@ -91,7 +92,7 @@ export interface WidgetInput {
    *
    * Also, used as usage key (see {@link usageKeyForInput})
    */
-  portId: PortId
+  portId: PortId | TokenId
   /**
    * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
    * code. If string, it may be e.g. a default value of an argument.
@@ -129,9 +130,23 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
-export type UpdatePayload =
-  | { type: 'set'; value: Owned<Ast.Ast> | string | undefined; origin: PortId }
-  | { type: 'edit'; edit: MutableModule }
+/**
+ * Information about widget update.
+ *
+ * When widget want's to change its value, it should emit this with `portUpdate` set (as their
+ * port may not represent any existing AST node) with `edit` containing any additional modifications
+ * (like inserting necessary imports).
+ *
+ * The handlers interested in a specific port update should apply it using received edit. The edit
+ * is committed in {@link NodeWidgetTree}.
+ */
+export interface WidgetUpdate {
+  edit: MutableModule
+  portUpdate?: {
+    value: Ast.Owned | string | undefined
+    origin: PortId
+  }
+}
 
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
@@ -147,22 +162,21 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     nesting: { type: Number, required: true },
     onUpdate: {
-      type: Function as PropType<(update: UpdatePayload) => void>,
+      type: Function as PropType<(update: WidgetUpdate) => void>,
       required: true,
     },
   } as const
 }
 
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
-type InputMatcherSymbol<T extends WidgetInput> = symbol & keyof T
-type InputMatcher<T extends WidgetInput> = InputMatcherSymbol<T> | InputMatcherFn<T>
+type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
 type InputTy<M> = M extends (infer T)[]
   ? InputTy<T>
   : M extends InputMatcherFn<infer T>
   ? T
-  : M extends symbol & keyof WidgetInput
-  ? WidgetInput & { [S in M]: Required<WidgetInput>[S] }
+  : M extends keyof WidgetInput
+  ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {

@@ -5,18 +5,18 @@ import Standard.Base.Runtime.Context
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import project.Util
 
-spec =
+add_specs suite_builder =
     transient = enso_project.data / "transient"
-    Test.group 'Various File Format support on Table' <|
+    suite_builder.group 'Various File Format support on Table' group_builder->
         t1 = Table.new [["X", [1, 2, 3]]]
         simple_empty = enso_project.data/'simple_empty.csv' . read
 
-        Test.specify "should be able to be written as CSV, Excel" <|
+        group_builder.specify "should be able to be written as CSV, Excel" <|
             f1 = transient / "test2.csv"
             f2 = transient / "test3.xlsx"
             [f1, f2].each f->
@@ -25,14 +25,14 @@ spec =
                 f.exists.should_be_true
                 f.delete
 
-        Test.specify "should be able to be written as JSON using Table.write" <|
+        group_builder.specify "should be able to be written as JSON using Table.write" <|
             f1 = transient / "test1.json"
             f1.delete_if_exists
             t1.write f1 . should_succeed
             f1.exists.should_be_true
             f1.delete
 
-        Test.specify 'should write JSON tables' <|
+        group_builder.specify 'should write JSON tables' <|
             simple_empty = enso_project.data/'simple_empty.csv' . read
             out = transient / 'out.json'
             out.delete_if_exists
@@ -40,7 +40,7 @@ spec =
             Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . should_equal simple_empty
             out.delete_if_exists
 
-        Test.specify 'should append to JSON tables' <|
+        group_builder.specify 'should append to JSON tables' <|
             out = transient / 'out.json'
             out.delete_if_exists
             simple_empty.write out . should_equal out
@@ -48,7 +48,7 @@ spec =
             Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . row_count . should_equal 2*simple_empty.row_count
             out.delete_if_exists
 
-        Test.specify 'should fail to append to JSON non-arrays' <|
+        group_builder.specify 'should fail to append to JSON non-arrays' <|
             out = transient / 'out.json'
             out.delete_if_exists
             '1'.write out
@@ -63,7 +63,7 @@ spec =
             simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
             out.delete_if_exists
 
-        Test.specify "should fail gracefully when provided with an unsupported format" <|
+        group_builder.specify "should fail gracefully when provided with an unsupported format" <|
             f1 = (transient / "test4.unknown-format")
             f1.delete_if_exists
             r1 = t1.write f1
@@ -80,11 +80,11 @@ spec =
             r2.catch.should_be_a File_Error.Unsupported_Output_Type
             r2.catch.format . should_equal my_format
 
-    write_tests extension = Test.group 'Writing to '+extension+' files' <|
+    write_tests extension = suite_builder.group 'Writing to '+extension+' files' group_builder->
         count result =
             if result . is_a Table then result.row_count else result.length
 
-        Test.specify "should write to a temporary "+extension+" file part of the data if context is disabled" <|
+        group_builder.specify "should write to a temporary "+extension+" file part of the data if context is disabled" <|
             f = transient / ("big." + extension)
             f.delete_if_exists
             f_bak = transient / ("big." + extension + ".bak")
@@ -112,7 +112,7 @@ spec =
             f_bak.delete_if_exists
             r.delete_if_exists
 
-        Test.specify "should create a backup file if overwriting" <|
+        group_builder.specify "should create a backup file if overwriting" <|
             f = transient / ("test." + extension)
             f.delete_if_exists
             f_bak = transient / ("test." + extension + ".bak")
@@ -138,7 +138,7 @@ spec =
             f_bak.delete_if_exists
 
 
-        Test.specify "should support appending" <|
+        group_builder.specify "should support appending" <|
             f = transient / ("test." + extension)
             f.delete_if_exists
             f_bak = transient / ("test." + extension + ".bak")
@@ -161,4 +161,8 @@ spec =
     write_tests "csv"
     write_tests "json"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

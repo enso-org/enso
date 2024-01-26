@@ -68,7 +68,6 @@ pub enum Tag {
     Modified,
     Private,
     Removed,
-    TextOnly,
     Unstable,
     Upcoming,
 }
@@ -98,7 +97,6 @@ impl Tag {
             "MODIFIED" => Some(Modified),
             "PRIVATE" => Some(Private),
             "REMOVED" => Some(Removed),
-            "TEXT_ONLY" => Some(TextOnly),
             "UNSTABLE" => Some(Unstable),
             "UPCOMING" => Some(Upcoming),
             _ => None,
@@ -117,7 +115,6 @@ impl Tag {
             Tag::Modified => "MODIFIED",
             Tag::Private => "PRIVATE",
             Tag::Removed => "REMOVED",
-            Tag::TextOnly => "TEXT_ONLY",
             Tag::Unstable => "UNSTABLE",
             Tag::Upcoming => "UPCOMING",
         }

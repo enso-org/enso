@@ -24,7 +24,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between values. Must be a positive value.
     new : Integer -> Integer -> Integer -> Range
-    new start=0 end=100 step=1 =
+    new start:Integer=0 end:Integer=100 step:Integer=1 =
         Range.Between start end (if start > end then -1 else 1) . with_step step
 
     ## PRIVATE
@@ -50,13 +50,10 @@ type Range
 
              10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
     with_step : Integer -> Range
-    with_step self new_step = case new_step of
-        _ : Integer ->
-            if new_step == 0 then throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument.Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range.Between self.start self.end self.step.signum*new_step
-        _ ->
-            Error.throw (Illegal_Argument.Error "Range step should be an integer.")
+    with_step self new_step:Integer =
+        if new_step == 0 then throw_zero_step_error else
+            if new_step < 0 then Error.throw (Illegal_Argument.Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                Range.Between self.start self.end self.step.signum*new_step
 
     ## GROUP Selections
        Returns the first element that is included within the range.
