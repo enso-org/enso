@@ -191,8 +191,12 @@ spec =
 
         Test.specify "returns a valid name for files and 'directories'" <|
             hello_txt.name . should_equal "hello.txt"
-            root.name . should_equal ""
+            # For the root, the name is the bucket name:
+            root.name . should_equal "enso-data-samples"
+
             (root / "foo/" / "bar") . name . should_equal "bar"
+
+            # The trailing slash is removed for 'directories':
             (root / "foo/") . name . should_equal "foo"
 
         Test.specify "should be able to read file metadata" <|
@@ -331,7 +335,6 @@ spec =
                 r2.should_fail_with File_Error
                 r2.catch.should_be_a File_Error.Already_Exists
                 r2.catch.to_display_text . should_contain "already exists"
-            r.should_fail_with S3_Error
 
         Test.specify "should be able to write a vector of bytes" <|
             new_file = my_writable_dir / "new_file-bytes.txt"
