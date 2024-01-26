@@ -4,7 +4,7 @@ import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { useGraphStore } from '@/stores/graph'
+import { type NodeId, useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
@@ -24,8 +24,8 @@ const editingEdge: Interaction = {
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
-    let source: ExprId | undefined
-    let sourceNode: ExprId | undefined
+    let source: Ast.AstId | undefined
+    let sourceNode: NodeId | undefined
     if (graph.unconnectedEdge.source) {
       source = graph.unconnectedEdge.source
       sourceNode = graph.db.getPatternExpressionNodeId(source)
