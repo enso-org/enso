@@ -9,6 +9,8 @@ import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 
+const DEBUG = false
+
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
@@ -53,7 +55,11 @@ const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
-    if (targetRectRelative == null) return
+    if (targetRectRelative == null) {
+      // This seems to happen for some `Ast.Ident` ports while processing updates, but is quickly fixed.
+      if (DEBUG) console.warn(`No relative rect found for ${expr}.`)
+      return
+    }
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
@@ -397,6 +403,7 @@ const activeStyle = computed(() => {
     offset += length
   }
   return {
+    ...baseStyle.value,
     strokeDasharray: length,
     strokeDashoffset: offset,
   }
@@ -435,6 +442,7 @@ const arrowTransform = computed(() => {
 
 <template>
   <template v-if="basePath">
+    <path v-if="activePath" :d="basePath" class="edge visible dimmed" :style="baseStyle" />
     <path
       :d="basePath"
       class="edge io"
@@ -442,7 +450,12 @@ const arrowTransform = computed(() => {
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     />
-    <path ref="base" :d="basePath" class="edge visible" :style="baseStyle" />
+    <path
+      ref="base"
+      :d="activePath ?? basePath"
+      class="edge visible"
+      :style="activePath ? activeStyle : baseStyle"
+    />
     <polygon
       v-if="arrowTransform"
       :transform="arrowTransform"
@@ -450,7 +463,6 @@ const arrowTransform = computed(() => {
       class="arrow visible"
       :style="baseStyle"
     />
-    <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
   </template>
 </template>
 
@@ -480,7 +492,8 @@ const arrowTransform = computed(() => {
   stroke-linecap: round;
 }
 
-.edge.visible.active {
-  stroke: rgba(255, 255, 255, 0.4);
+.edge.visible.dimmed {
+  /* stroke: rgba(255, 255, 255, 0.4); */
+  stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>

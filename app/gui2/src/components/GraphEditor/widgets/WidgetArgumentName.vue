@@ -15,7 +15,7 @@ const showArgumentValue = computed(() => {
     !WidgetInput.isAst(props.input) ||
     portInfo == null ||
     !portInfo.connected ||
-    (portInfo.portId as string) !== (props.input.value.exprId as string)
+    (portInfo.portId as string) !== (props.input.value.id as string)
   )
 })
 

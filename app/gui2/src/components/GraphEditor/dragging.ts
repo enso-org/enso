@@ -1,13 +1,12 @@
 import { useApproach } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
 import { iteratorFilter } from 'lib0/iterator'
-import type { ExprId } from 'shared/yjsModel'
 import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
 const DRAG_SNAP_THRESHOLD = 16
@@ -108,13 +107,13 @@ export function useDragging() {
     currentPos: Vec2
   }
   class CurrentDrag {
-    draggedNodes: Map<ExprId, DraggedNode>
+    draggedNodes: Map<NodeId, DraggedNode>
     grid: SnapGrid
     stopPositionUpdate: WatchStopHandle
 
-    constructor(movedId: ExprId) {
+    constructor(movedId: NodeId) {
       markRaw(this)
-      function* draggedNodes(): Generator<[ExprId, DraggedNode]> {
+      function* draggedNodes(): Generator<[NodeId, DraggedNode]> {
         const ids = selection?.isSelected(movedId) ? selection.selected : [movedId]
         for (const id of ids) {
           const node = graphStore.db.nodeIdToNode.get(id)
@@ -189,7 +188,7 @@ export function useDragging() {
   let currentDrag: CurrentDrag | undefined
 
   return {
-    startOrUpdate(movedId: ExprId, offset: Vec2) {
+    startOrUpdate(movedId: NodeId, offset: Vec2) {
       currentDrag ??= new CurrentDrag(movedId)
       currentDrag.updateOffset(offset)
     },

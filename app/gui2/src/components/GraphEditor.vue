@@ -3,7 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
-  averagePositionPlacement,
+  collapsedNodePlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -23,17 +23,18 @@ import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
+import type { AstId } from '@/util/ast/abstract.ts'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
-import type { ExprId, NodeMetadata } from 'shared/yjsModel'
+import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
 import { type Usage } from './ComponentBrowser/input'
@@ -117,7 +118,7 @@ const interactionBindingsHandler = interactionBindings.handler({
 // Return the environment for the placement of a new node. The passed nodes should be the nodes that are
 // used as the source of the placement. This means, for example, the selected nodes when creating from a selection
 // or the node that is being edited when creating from a port double click.
-function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
+function environmentForNodes(nodeIds: IterableIterator<NodeId>): Environment {
   const nodeRects = [...graphStore.nodeRects.values()]
   const selectedNodeRects = [...nodeIds]
     .map((id) => graphStore.nodeRects.get(id))
@@ -273,21 +274,21 @@ const graphBindingsHandler = graphBindings.handler({
       const edit = module.edit()
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        edit,
-        topLevel,
+        edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      graphStore.commitEdit(edit)
-      const { position } = averagePositionPlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      graphStore.setNodePosition(refactoredNodeId, position)
+      const meta = new Map<AstId, Partial<NodeMetadata>>()
+      const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
+      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        graphStore.setNodePosition(outputNodeId, position)
+        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       }
+      graphStore.commitEdit(edit, meta)
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -578,7 +579,7 @@ async function readNodeFromExcelClipboard(
   return undefined
 }
 
-function handleNodeOutputPortDoubleClick(id: ExprId) {
+function handleNodeOutputPortDoubleClick(id: AstId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
@@ -599,7 +600,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
 
 const stackNavigator = useStackNavigator()
 
-function handleEdgeDrop(source: ExprId, position: Vec2) {
+function handleEdgeDrop(source: AstId, position: Vec2) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
   componentBrowserNodePosition.value = position
   interaction.setCurrent(creatingNodeFromEdgeDrop)

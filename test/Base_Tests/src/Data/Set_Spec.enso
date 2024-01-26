@@ -30,6 +30,16 @@ spec =
             s1.contains 3 . should_be_true
             s1.contains 4 . should_be_false
 
+        Test.specify "should allow checking contains with relational NULL logic" <|
+            Set.from_vector [1, 2] . contains_relational 1 . should_be_true
+            Set.from_vector [1, 2] . contains_relational 3 . should_be_false
+            Set.from_vector [1, 2, Nothing] . contains_relational 1 . should_be_true
+            Set.from_vector [1, 2, Nothing] . contains_relational 3 . should_equal Nothing
+            Set.from_vector [1, 2, Nothing] . contains_relational Nothing . should_equal Nothing
+            Set.from_vector [1, 2] . contains_relational Nothing . should_equal Nothing
+            Set.from_vector [Nothing] . contains_relational Nothing . should_equal Nothing
+            Set.from_vector [] . contains_relational Nothing . should_be_false
+
         Test.specify "should allow to compute a union, intersection and difference" <|
             s1 = Set.from_vector [1, 2]
             s2 = Set.from_vector [2, 3]

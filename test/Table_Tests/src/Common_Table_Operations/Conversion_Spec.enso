@@ -7,14 +7,13 @@ from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
 type My_Type
     Value x
@@ -22,14 +21,33 @@ type My_Type
     to_text : Text
     to_text self = "{{{MY Type [x="+self.x.to_text+"] }}}"
 
-spec setup =
+
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
+    create_connection_fn = setup.create_connection_func
     supports_conversion_failure_reporting = setup.is_database.not
-    Test.group prefix+"Table/Column.cast - to text" <|
-        Test.specify "should allow to cast columns of various basic types to text" <|
+    suite_builder.group prefix+"Table/Column.cast - to text" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast t.column_names Value_Type.Char
             t2.at "X" . value_type . is_text . should_be_true
@@ -44,7 +62,7 @@ spec setup =
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
 
         if supports_dates then
-            Test.specify "should allow to cast date/time columns to text" <|
+            group_builder.specify "should allow to cast date/time columns to text" <|
                 t = table_builder [["X", [Date.new 2015 1 1, Date.new 2023 12 31]], ["Y", [Time_Of_Day.new 1 2 3, Time_Of_Day.new 23 57 59]], ["Z", [Date_Time.new 2015 1 1 1 2 3, Date_Time.new 2023 11 30 22 45 44]]]
                 t2 = t.cast t.column_names Value_Type.Char
                 t2.at "X" . value_type . is_text . should_be_true
@@ -61,20 +79,20 @@ spec setup =
                 vz.second . should_contain "22:45:44"
 
         if setup.is_database.not then
-            Test.specify "should allow to cast a column of objects to text" <|
+            group_builder.specify "should allow to cast a column of objects to text" <|
                 t = table_builder [["X", [My_Type.Value 42, My_Type.Value "X"]]]
                 c = t.at "X" . cast Value_Type.Char
                 c.value_type.is_text . should_be_true
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
-            Test.specify "should allow to cast an integer column to a decimal type" <|
+            group_builder.specify "should allow to cast an integer column to a decimal type" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c = t.at "X" . cast Value_Type.Decimal
                 c.value_type.is_decimal . should_be_true
                 c.to_vector . should_equal [1, 2, 3]
 
         if setup.test_selection.fixed_length_text_columns then
-            Test.specify "should allow to cast a text column to fixed-length"  <|
+            group_builder.specify "should allow to cast a text column to fixed-length"  <|
                 t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
@@ -83,7 +101,7 @@ spec setup =
                 # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
                 Problems.assume_no_problems c
 
-            Test.specify "should allow to cast a text column to variable-length with a max size" <|
+            group_builder.specify "should allow to cast a text column to variable-length with a max size" <|
                 t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=True)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
@@ -92,14 +110,14 @@ spec setup =
                 # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
                 Problems.assume_no_problems c
 
-            Test.specify "should allow casting a non-text column to fixed-length text" <|
+            group_builder.specify "should allow casting a non-text column to fixed-length text" <|
                 t = table_builder [["X", [1, 22, 333]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["1  ", "22 ", "333"]
                 Problems.assume_no_problems c
 
-            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if supports_conversion_failure_reporting.not then "Conversion_Failure is not supported in Database yet.") <|
+            group_builder.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if supports_conversion_failure_reporting.not then "Conversion_Failure is not supported in Database yet.") <|
                 t = table_builder [["X", [15, 1000000, 123456, 1000, 1000]]]
                 c1 = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c1.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
@@ -115,7 +133,7 @@ spec setup =
                 w2 = Problems.expect_warning Conversion_Failure c2
                 w2.affected_rows_count . should_equal 4
 
-            Test.specify "should not allow 0-length Char type" <|
+            group_builder.specify "should not allow 0-length Char type" <|
                 c1 = table_builder [["X", ["a", "", "bcd"]]] . at "X"
                 r1 = c1.cast (Value_Type.Char size=0 variable_length=False)
                 r1.should_fail_with Illegal_Argument
@@ -124,8 +142,16 @@ spec setup =
                 r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
                 r2.should_fail_with Illegal_Argument
 
-    Test.group prefix+"Table/Column.cast - numeric" <|
-        Test.specify "should allow to cast a boolean column to integer" <|
+    suite_builder.group prefix+"Table/Column.cast - numeric" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to cast a boolean column to integer" <|
             t = table_builder [["X", [True, False, True]]]
             c = t.at "X" . cast Value_Type.Integer
             vt = c.value_type
@@ -133,14 +159,14 @@ spec setup =
                 vt.is_integer . should_be_true
             c.to_vector . should_equal [1, 0, 1]
 
-        Test.specify "should allow to cast an integer column to floating point" <|
+        group_builder.specify "should allow to cast an integer column to floating point" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.at "X" . cast Value_Type.Float
             c.value_type.is_floating_point . should_be_true
             c.to_vector . should_equal [1.0, 2.0, 3.0]
 
         if setup.test_selection.different_size_integer_types then
-            Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" <|
+            group_builder.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
                 c.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -166,7 +192,7 @@ spec setup =
                 c3.to_vector . should_equal [1, 2, 3]
 
         if setup.test_selection.supports_8bit_integer then
-            Test.specify "should allow to cast an integer column to a byte and back" <|
+            group_builder.specify "should allow to cast an integer column to a byte and back" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c1 = t.at "X" . cast Value_Type.Byte
                 c1.value_type . should_equal Value_Type.Byte
@@ -194,7 +220,7 @@ spec setup =
                     c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
                     c3.to_vector . should_equal [1, 2, Nothing, Nothing, 0]
 
-        Test.specify "should allow to cast a floating point column to integer" <|
+        group_builder.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
             vt = c.value_type
@@ -211,7 +237,7 @@ spec setup =
             [[1, 4], [1, 5]] . should_contain v2
 
         if setup.is_database.not then
-            Test.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
+            group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
                 max_long = Java_Long.MAX_VALUE
                 too_big_double = (max_long + 1.0) * 1000.0
                 (too_big_double > max_long) . should_be_true
@@ -233,20 +259,28 @@ spec setup =
                 warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
-        Test.group prefix+"Table/Column.cast - date/time" <|
-            Test.specify "should allow to get the Date part from a Date_Time" <|
+        suite_builder.group prefix+"Table/Column.cast - date/time" group_builder->
+            data = Data.setup create_connection_fn
+
+            group_builder.teardown <|
+                data.teardown
+
+            table_builder cols =
+                setup.table_builder cols connection=data.connection
+
+            group_builder.specify "should allow to get the Date part from a Date_Time" <|
                 t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
                 c = t.at "X" . cast Value_Type.Date
                 c.value_type . should_equal Value_Type.Date
                 c.to_vector . should_equal [Date.new 2015 1 2, Date.new 2023 12 31]
 
-            Test.specify "should allow to get the Time_Of_Day part from a Date_Time" <|
+            group_builder.specify "should allow to get the Time_Of_Day part from a Date_Time" <|
                 t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
                 c = t.at "X" . cast Value_Type.Time
                 c.value_type . should_equal Value_Type.Time
                 c.to_vector . should_equal [Time_Of_Day.new 3 4 5, Time_Of_Day.new 23 56 59]
 
-            Test.specify "should allow to convert a Date into Date_Time" <|
+            group_builder.specify "should allow to convert a Date into Date_Time" <|
                 day1 = Date.new 2015 1 2
                 day2 = Date.new 2023 12 31
                 t = table_builder [["X", [day1, day2]]]
@@ -258,19 +292,27 @@ spec setup =
                 expected_diff = Duration.between day1.to_date_time day2.to_date_time
                 diff . should_equal expected_diff
 
-    Test.group prefix+"Table/Column.cast - checking invariants" <|
-        Test.specify "should report an error for unsupported conversions" <|
+    suite_builder.group prefix+"Table/Column.cast - checking invariants" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should report an error for unsupported conversions" <|
             t = table_builder [["X", [1, 2, 3]]]
             r1 = t.at "X" . cast Value_Type.Boolean
             r1.should_fail_with Illegal_Argument
 
-        Test.specify "should report an error pointing to the Table.parse method where applicable" <|
+        group_builder.specify "should report an error pointing to the Table.parse method where applicable" <|
             t = table_builder [["X", ["1", "2", "3"]]]
             r1 = t.at "X" . cast Value_Type.Integer
             r1.should_fail_with Illegal_Argument
             r1.to_display_text . should_contain "`parse` should be used instead"
 
-        Test.specify "should report missing columns" <|
+        group_builder.specify "should report missing columns" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
 
             r1 = t.cast ["X", "Z"] Value_Type.Char
@@ -287,7 +329,7 @@ spec setup =
             t3.at "X" . to_vector . should_equal [1, 2, 3]
             t3.at "Y" . to_vector . should_equal [4, 5, 6]
 
-        Test.specify "should work if the first row is NULL" <|
+        group_builder.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
             c1 = t.at "X" . cast Value_Type.Char
@@ -298,7 +340,7 @@ spec setup =
             c2.value_type . should_equal Value_Type.Integer
             c2.to_vector . should_equal [Nothing, 1, 0, 1]
 
-        Test.specify "should not lose the type after further operations were performed on the result" <|
+        group_builder.specify "should not lose the type after further operations were performed on the result" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]]]
             c1 = t.at "X" . cast Value_Type.Char
             c2 = t.at "Y" . cast Value_Type.Integer
@@ -313,7 +355,7 @@ spec setup =
                 vt4.is_integer . should_be_true
             c4.to_vector . should_equal [1001, 1000, 1001]
 
-        Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
+        group_builder.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
             c1 = t.at "X" . cast Value_Type.Char
             c2 = t.at "Y" . cast Value_Type.Integer
@@ -328,7 +370,7 @@ spec setup =
                 vt4.is_integer . should_be_true
             c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
 
-        Test.specify 'Table.cast should cast the columns "in-place" and not reorder them' <|
+        group_builder.specify 'Table.cast should cast the columns "in-place" and not reorder them' <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [4, 5, 6]], ["Z", [7, 8, 9]], ["A", [True, False, True]]]
             t2 = t.cast ["Z", "Y"] Value_Type.Char
             t2.column_names . should_equal ["X", "Y", "Z", "A"]
@@ -344,14 +386,14 @@ spec setup =
             t2.at "A" . to_vector . should_equal [True, False, True]
 
         if setup.test_selection.different_size_integer_types then
-            Test.specify "should preserve the overridden types when materialized (Integer)" <|
+            group_builder.specify "should preserve the overridden types when materialized (Integer)" <|
                 t = table_builder [["X", [1, 2, 100]]]
                 t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16)
                 t3 = materialize t2
                 t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
         if setup.test_selection.fixed_length_text_columns then
-            Test.specify "should preserve the overridden types when materialized (Char)" <|
+            group_builder.specify "should preserve the overridden types when materialized (Char)" <|
                 t = table_builder [["Y", ["a", "abcdef", "abc"]]]
                 t2 = t . cast "Y" (Value_Type.Char size=3 variable_length=False)
                 t3 = materialize t2
@@ -359,7 +401,7 @@ spec setup =
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
 
         if setup.is_database.not then
-            Test.specify "should allow converting a Mixed type back to a specific type" <|
+            group_builder.specify "should allow converting a Mixed type back to a specific type" <|
                 t1 = table_builder [["A", [1, Nothing, 2]], ["B", [1.5, Nothing, 2.5]], ["C", [Nothing, "x", "y"]], ["D", [Nothing, True, False]]]
                 m1 = t1.cast t1.column_names Value_Type.Mixed
                 ["A", "B", "C", "D"].each c->
@@ -381,7 +423,7 @@ spec setup =
                 m2.at "F" . cast Value_Type.Time . value_type . should_equal Value_Type.Time
                 m2.at "G" . cast Value_Type.Date_Time . value_type . should_equal Value_Type.Date_Time
 
-            Test.specify "will extract matching values from a mixed column and replace unconvertible ones with Nothing" <|
+            group_builder.specify "will extract matching values from a mixed column and replace unconvertible ones with Nothing" <|
                 t0 = table_builder [["X", ["a", "b", "c", My_Type.Value 42]]]
                 t0.at "X" . value_type . should_equal Value_Type.Mixed
                 r0 = t0.cast ["X"] Value_Type.Integer
@@ -459,7 +501,7 @@ spec setup =
                 w7.affected_rows_count . should_equal 6+3+1
 
         if setup.is_database.not then
-            Test.specify "should fail if there is no conversion available for a given type" <|
+            group_builder.specify "should fail if there is no conversion available for a given type" <|
                 t = table_builder [["X", [1, 2, 3]]]
 
                 # currently unsupported
@@ -470,8 +512,16 @@ spec setup =
                 r3 = t.cast "X" (Value_Type.Unsupported_Data_Type "foobar" "foobar")
                 r3.should_fail_with Illegal_Argument
 
-    Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
-        Test.specify "should be able to parse simple integers" <|
+    suite_builder.group prefix+"Simple variant of Table/Column.parse in all backends" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
             c1 = t.at "X" . parse Value_Type.Integer
@@ -482,7 +532,7 @@ spec setup =
             c2.value_type.is_integer . should_be_true
             c2.to_vector . should_equal [42, 0, -1]
 
-        Test.specify "should be able to parse simple floats" <|
+        group_builder.specify "should be able to parse simple floats" <|
             t = table_builder [["X", ["42.5", "0.25", "-1.0"]]]
 
             c1 = t.at "X" . parse Value_Type.Float
@@ -494,7 +544,7 @@ spec setup =
             c2.to_vector . should_equal [42.5, 0.25, -1.0]
 
         if supports_dates then
-            Test.specify "should be able to parse dates using a default format" <|
+            group_builder.specify "should be able to parse dates using a default format" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
 
                 c1 = t.at "X" . parse Value_Type.Date
@@ -505,7 +555,7 @@ spec setup =
                 c2.value_type.should_equal Value_Type.Date
                 c2.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
         if supports_dates.not then
-            Test.specify "should report that date parsing is unsupported" <|
+            group_builder.specify "should report that date parsing is unsupported" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
 
                 r1 = t.at "X" . parse Value_Type.Date
@@ -514,7 +564,7 @@ spec setup =
                 r2 = t.parse ["X"] Value_Type.Date
                 r2.should_fail_with Unsupported_Database_Operation
 
-        Test.specify "should be able to parse booleans with default format" <|
+        group_builder.specify "should be able to parse booleans with default format" <|
             t = table_builder [["X", ["true", "false", "true"]]]
 
             c1 = t.at "X" . parse Value_Type.Boolean
@@ -525,7 +575,7 @@ spec setup =
             c2.value_type.should_equal Value_Type.Boolean
             c2.to_vector . should_equal [True, False, True]
 
-        Test.specify "should report missing columns" <|
+        group_builder.specify "should report missing columns" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
             t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
@@ -541,26 +591,58 @@ spec setup =
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
 
-    if setup.is_database then Test.group prefix+"Table/Column auto value type" <|
-        Test.specify "should report unsupported" <|
+    if setup.is_database then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should report unsupported" <|
             t = table_builder [["X", [1, 2, 3]]]
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
             t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then Test.group prefix+"Table.expand_column" <|
-        Test.specify "should report unsupported" <|
+    if setup.is_database then suite_builder.group prefix+"Table.expand_column" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
     # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
-    if setup.is_database then Test.group prefix+"Table.expand_to_rows" <|
-        Test.specify "should report unsupported" <|
+    if setup.is_database then suite_builder.group prefix+"Table.expand_to_rows" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
 
-    if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
-        Test.specify "should allow to narrow down types of a Mixed column" <|
+    if setup.is_database.not then suite_builder.group prefix+"Table/Column auto value type" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each shrink_types->
                 mixer = My_Type.Value 1
                 t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]], ["mix", [1, mixer, "a"]], ["dates", [mixer, Date.new 2022, Date.new 2020]], ["datetimes", [mixer, Date_Time.new 2022 12 30 13 45, Date_Time.new 2020]], ["times", [mixer, Time_Of_Day.new 12 30, Time_Of_Day.new 13 45]], ["mixed_time", [Date.new 2022, Time_Of_Day.new 12 30, Date_Time.new 2019]], ["bools", [mixer, True, False]]]
@@ -588,7 +670,7 @@ spec setup =
                 t2.at "mixed_time" . value_type . should_equal Value_Type.Mixed
                 t2.at "bools" . value_type . should_equal Value_Type.Boolean
 
-        Test.specify "will only modify selected columns" <|
+        group_builder.specify "will only modify selected columns" <|
             mixer = My_Type.Value 1
             t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]]]
             t1 = t0.drop 1
@@ -609,7 +691,7 @@ spec setup =
             t4.at "ints" . value_type . should_equal Value_Type.Integer
             t4.at "floats" . value_type . should_equal Value_Type.Float
 
-        Test.specify "will convert a Float column to Integer if all values can be represented as long" <|
+        group_builder.specify "will convert a Float column to Integer if all values can be represented as long" <|
             t1 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [1.0, 2.5, 3.0]], ["Z", [1.0, 2.0, (2.0^100)]]]
             t1.at "X" . value_type . should_equal Value_Type.Float
             t1.at "Y" . value_type . should_equal Value_Type.Float
@@ -627,12 +709,12 @@ spec setup =
                automatically.
             t2.at "Z" . value_type . should_equal Value_Type.Float
 
-        Test.specify "will not parse text columns" <|
+        group_builder.specify "will not parse text columns" <|
             t1 = table_builder [["X", ["1", "2", "3"]]]
             c2 = t1.at "X" . auto_value_type
             c2.value_type . should_equal Value_Type.Char
 
-        Test.specify "will 'undo' a cast to Mixed" <|
+        group_builder.specify "will 'undo' a cast to Mixed" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
             t2 = t1.cast ["X", "Y"] Value_Type.Mixed
             t2.at "X" . value_type . should_equal Value_Type.Mixed
@@ -642,7 +724,7 @@ spec setup =
             t3.at "X" . value_type . should_equal Value_Type.Integer
             t3.at "Y" . value_type . should_equal Value_Type.Char
 
-        Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
+        group_builder.specify "will choose Decimal type if all values are integers but cannot fit long" <|
             c0 = table_builder [["X", [My_Type.Value 42, 1, 2, (2^100)+1]]] . at "X"
             c1 = c0.drop 1
 
@@ -651,7 +733,7 @@ spec setup =
             c2.value_type . should_be_a (Value_Type.Decimal ...)
             c2.to_vector . should_equal [1, 2, (2^100)+1]
 
-        Test.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
+        group_builder.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
             [False, True].each is_mixed->
                 prefix = if is_mixed then "mixed" else 0
                 t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]], ["F", [prefix, 1.0, 2.0, 3.0]]]
@@ -679,7 +761,7 @@ spec setup =
                 # Shrinking Floats also finds the smallest type that fits.
                 t3.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
-        Test.specify "will not return Byte columns by default, but should leave existing Byte columns intact" <|
+        group_builder.specify "will not return Byte columns by default, but should leave existing Byte columns intact" <|
             c1 = table_builder [["X", [1, 2, 3]]] . at "X" . cast Value_Type.Byte
             c1.value_type . should_equal Value_Type.Byte
 
@@ -687,7 +769,7 @@ spec setup =
                 c2 = c1.auto_value_type shrink_types=shrink_types
                 c2.value_type . should_equal Value_Type.Byte
 
-        Test.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
+        group_builder.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
             t0 = table_builder [["X", [2^100, 1, 2, 3]], ["Y", [10, 20, 2^100, 30]], ["Z", [1, 2, 3, 4]]] . cast "Z" (Value_Type.Decimal scale=0)
             t1 = t0.drop 1
 
@@ -708,7 +790,7 @@ spec setup =
             t3.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
-        Test.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
+        group_builder.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
             [False, True].each is_mixed->
                 prefix = if is_mixed then 42 else "FOOBARBAZ"
                 c0 = table_builder [["X", [prefix, "aa", "bb", "cc"]]] . at "X"
@@ -735,7 +817,7 @@ spec setup =
             c6 = c4.auto_value_type shrink_types=True
             c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
-        Test.specify "if all text values are empty string, the type will remain unchanged" <|
+        group_builder.specify "if all text values are empty string, the type will remain unchanged" <|
             c1 = table_builder [["X", ["", ""]]] . at "X"
             c2 = c1.cast (Value_Type.Char size=100 variable_length=True)
 
@@ -749,7 +831,7 @@ spec setup =
                 c2_b = c2.auto_value_type shrink_types=shrink_types
                 c2_b.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
 
-        Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
+        group_builder.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
             t1 = table_builder [["short_unbounded", ["a", "bb", "ccc"]], ["long_unbounded", ["a"*100, "b"*200, "c"*300]]]
 
             t2 = t1 . set (t1.at "short_unbounded" . cast (Value_Type.Char size=1000)) "short_1000" . set (t1.at "short_unbounded" . cast (Value_Type.Char size=10)) "short_10" . set (t1.at "long_unbounded" . cast (Value_Type.Char size=400)) "long_400" . set (t1.at "short_unbounded" . cast Value_Type.Mixed) "short_mixed"
@@ -774,7 +856,7 @@ spec setup =
             t4.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t4.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
 
-        Test.specify "can deal with all-null columns" <|
+        group_builder.specify "can deal with all-null columns" <|
             t0 = table_builder [["mix", [My_Type.Value 1, Nothing, Nothing]], ["int", [42, Nothing, Nothing]], ["str", ["a", Nothing, Nothing]], ["float", [1.5, Nothing, Nothing]], ["decimal", [2^100, 2^10, 2]]]
             t1 = t0.drop 1
 

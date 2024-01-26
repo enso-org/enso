@@ -11,11 +11,12 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number | string] }>()
 
 const inputFieldActive = ref(false)
-const currentInputValue = ref(props.modelValue)
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
+const editedValue = ref(props.modelValue)
 watch(
   () => props.modelValue,
   (newValue) => {
-    currentInputValue.value = newValue
+    editedValue.value = newValue
   },
 )
 const SLIDER_INPUT_THRESHOLD = 4.0
@@ -29,7 +30,6 @@ const dragPointer = usePointer(
 
     if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
       inputNode.value?.focus()
-      inputFieldActive.value = true
       return
     }
 
@@ -38,16 +38,16 @@ const dragPointer = usePointer(
       return
     }
 
-    if (inputFieldActive.value == true || props.limits == null) return
+    if (inputFieldActive.value || props.limits == null) return
 
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
     const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
     const fraction = Math.max(0, Math.min(1, fractionRaw))
     const newValue = min + Math.round(fraction * (max - min))
-    currentInputValue.value = newValue
+    editedValue.value = newValue
     if (eventType === 'stop') {
-      emit('update:modelValue', currentInputValue.value)
+      emit('update:modelValue', editedValue.value)
     }
   },
   PointerButtonMask.Main,
@@ -56,9 +56,9 @@ const dragPointer = usePointer(
 
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
-  if (typeof currentInputValue.value === 'string') return undefined
+  if (typeof editedValue.value === 'string') return undefined
   return `${
-    ((currentInputValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
+    ((editedValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
   }%`
 })
 
@@ -97,12 +97,14 @@ const inputStyle = computed<StyleValue>(() => {
 
 function blur() {
   inputFieldActive.value = false
-  emit('update:modelValue', currentInputValue.value)
+  emit('update:modelValue', editedValue.value)
 }
 
 /** To prevent other elements from stealing mouse events (which breaks blur),
  * we instead setup our own `pointerdown` handler while the input is focused.
- * Any click outside of the input field causes `blur`. */
+ * Any click outside of the input field causes `blur`.
+ * We don’t want to `useAutoBlur` here, because it would require a separate `pointerdown` handler per input widget.
+ * Instead we setup a single handler for the currently focused widget only, and thus safe performance. */
 function setupAutoBlur() {
   const options = { capture: true }
   function callback(event: MouseEvent) {
@@ -112,18 +114,24 @@ function setupAutoBlur() {
   }
   window.addEventListener('pointerdown', callback, options)
 }
+
+function focus() {
+  inputNode.value?.select()
+  inputFieldActive.value = true
+  setupAutoBlur()
+}
 </script>
 
 <template>
-  <div class="NumericInputWidget" v-on="dragPointer.events" @keydown.backspace.stop>
+  <div class="SliderWidget" v-on="dragPointer.events" @keydown.backspace.stop>
     <div v-if="props.limits != null" class="fraction" :style="{ width: sliderWidth }"></div>
     <input
       ref="inputNode"
-      v-model="currentInputValue"
+      v-model="editedValue"
       class="value"
       :style="inputStyle"
       @blur="blur"
-      @focus="() => (inputNode && inputNode.select()) || setupAutoBlur()"
+      @focus="focus"
     />
   </div>
 </template>

@@ -10,7 +10,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
@@ -119,10 +119,10 @@ export default function Drive(props: DriveProps) {
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && organization?.isEnabled !== true
-      ? DriveStatus.notEnabled
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
+      : isCloud && organization?.isEnabled !== true
+      ? DriveStatus.notEnabled
       : DriveStatus.ok
 
   React.useEffect(() => {
@@ -198,9 +198,9 @@ export default function Drive(props: DriveProps) {
         type: AssetListEventType.newProject,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        templateId,
+        templateName,
+        onSpinnerStateChange,
       })
     },
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]

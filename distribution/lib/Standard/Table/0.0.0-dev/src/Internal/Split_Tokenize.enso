@@ -4,8 +4,6 @@ import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 from project.Internal.Fan_Out import all
 
-polyglot java import org.enso.table.data.mask.OrderMask
-
 ## PRIVATE
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
