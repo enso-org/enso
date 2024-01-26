@@ -31,7 +31,7 @@ from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Te
 type Enso_File
     ## PRIVATE
        Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text organisation:Text asset_type:Enso_Asset_Type
+    Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
 
     ## Represents the root folder of the current users.
     root : Enso_File
@@ -46,8 +46,9 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        # TODO
-        Enso_File.root
+        java_dir = Utils.internal_cloud_project_directory
+        if java_dir.is_nothing then Enso_File.root else
+            Enso_File.Value java_dir.name java_dir.id java_dir.organizationId Enso_Asset_Type.Directory
 
     ## PRIVATE
        Target URI for the api

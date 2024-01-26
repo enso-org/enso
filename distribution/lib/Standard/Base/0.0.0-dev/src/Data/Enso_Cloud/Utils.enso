@@ -49,5 +49,10 @@ projects_api = cloud_root_uri + "projects"
 secrets_api = cloud_root_uri + "secrets"
 
 ## PRIVATE
+   The current project directory that will be used as the working directory,
+   if the user is running in the Cloud.
+internal_cloud_project_directory = AuthenticationProvider.getCurrentWorkingDirectory
+
+## PRIVATE
 flush_caches : Nothing
 flush_caches = AuthenticationProvider.flushCloudCaches
