@@ -10,7 +10,6 @@ import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.CompilerError;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
