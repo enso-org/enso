@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
+import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/backend'
 import * as dateTime from '#/utilities/dateTime'
 
@@ -20,6 +21,7 @@ export interface AssetSummaryProps {
 /** Displays a few details of an asset. */
 export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
+  const { getText } = textProvider.useText()
   return (
     <div className={`flex items-center gap-2.5 rounded-2xl bg-frame px-2 ${className}`}>
       <div className="grid place-items-center h-8 w-4">
@@ -36,7 +38,9 @@ export default function AssetSummary(props: AssetSummaryProps) {
           )}
         </span>
         {!isNew && (
-          <span>last modified on {dateTime.formatDateTime(new Date(asset.modifiedAt))}</span>
+          <span>
+            {getText('lastModifiedOn', dateTime.formatDateTime(new Date(asset.modifiedAt)))}
+          </span>
         )}
         <span>{asset.labels}</span>
       </div>

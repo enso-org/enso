@@ -5,6 +5,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -15,9 +16,10 @@ import Modal from '#/components/Modal'
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal() {
   const { backend } = backendProvider.useBackend()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { signOut } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const onSubmit = async () => {
     unsetModal()
@@ -51,12 +53,12 @@ export default function ConfirmDeleteUserModal() {
           void onSubmit()
         }}
       >
-        <h3 className="relative font-bold text-xl h-9.5 py-0.5">Are you sure?</h3>
+        <h3 className="relative font-bold text-xl h-9.5 py-0.5">{getText('areYouSure')}</h3>
         <div className="relative flex flex-col gap-2">
-          Once deleted, this user account will be gone forever.
+          {getText('confirmDeleteUserAccountWarning')}
           <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
             <span className="leading-5 h-6 py-px">
-              I confirm that I want to delete this user account.
+              {getText('confirmDeleteUserAccountButtonLabel')}
             </span>
           </button>
         </div>

@@ -5,6 +5,7 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
@@ -16,13 +17,14 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 export default function MembersSettingsTab() {
   const { backend } = backendProvider.useBackend()
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Members</h3>
+        <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('members')}</h3>
         <div className="flex gap-2.5">
           <button
             className="flex items-center bg-frame rounded-full h-8 px-2.5"
@@ -32,7 +34,7 @@ export default function MembersSettingsTab() {
             }}
           >
             <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">
-              Invite Members
+              {getText('inviteMembers')}
             </span>
           </button>
         </div>
@@ -40,10 +42,10 @@ export default function MembersSettingsTab() {
           <thead>
             <tr className="h-8">
               <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-32">
-                Name
+                {getText('name')}
               </th>
               <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-48">
-                Email
+                {getText('email')}
               </th>
             </tr>
           </thead>

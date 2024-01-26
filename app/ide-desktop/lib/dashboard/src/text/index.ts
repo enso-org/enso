@@ -28,6 +28,7 @@ interface PlaceholderOverrides {
   unknownThreadIdError: [string]
   needsOwnerError: [string]
   inviteSuccess: [string]
+
   labelAssetDescription: [string]
   selectedAssetsDescription: [string, string]
   confirmDeletePrompt: [string]
@@ -40,6 +41,7 @@ interface PlaceholderOverrides {
   emailIsNotAValidEmail: [string]
   userIsAlreadyInTheOrganization: [string]
   youAreAlreadyAddingUser: [string]
+  lastModifiedOn: [string]
 
   inviteUserBackendError: [string]
   listFolderBackendError: [string]
