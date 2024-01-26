@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Test_Suite
 import Standard.Test.Extensions
+import Standard.Test_New
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
@@ -89,80 +90,89 @@ import project.System.Temporary_File_Spec
 
 import project.Random_Spec
 
-main = Test_Suite.run_main <|
-    Any_Spec.spec
-    Array_Spec.spec
-    Array_Proxy_Spec.spec
-    Array_Polyglot_Spec.spec
-    Bool_Spec.spec
-    Base_64_Spec.spec
-    Function_Spec.spec
-    Case_Spec.spec
-    Conversion_Spec.spec
-    Deep_Export_Spec.spec
-    Error_Spec.spec
-    Environment_Spec.spec
-    File_Spec.spec
-    Temporary_File_Spec.spec
-    File_Read_Spec.spec
-    Reporting_Stream_Decoder_Spec.spec
-    Reporting_Stream_Encoder_Spec.spec
-    Http_Header_Spec.spec
-    Http_Request_Spec.spec
-    Http_Spec.spec
-    Http_Auto_Parse_Spec.spec
-    Enso_Cloud_Main.spec
-    Import_Loop_Spec.spec
-    Interval_Spec.spec
-    Java_Interop_Spec.spec
-    Js_Interop_Spec.spec
-    Json_Spec.spec
-    List_Spec.spec
-    Locale_Spec.spec
-    Map_Spec.spec
-    Set_Spec.spec
-    Maybe_Spec.spec
-    Meta_Spec.spec
-    Instrumentor_Spec.spec
-    Meta_Location_Spec.spec
-    Names_Spec.spec
-    Equals_Spec.spec
-    Numbers_Spec.spec
-    Ordering_Spec.spec
-    Comparator_Spec.spec
-    Natural_Order_Spec.spec
-    Vector_Lexicographic_Order_Spec.spec
-    Process_Spec.spec
-    Python_Interop_Spec.spec
-    R_Interop_Spec.spec
-    Pair_Spec.spec
-    Parse_Spec.spec
-    Problems_Spec.spec
-    Range_Spec.spec
-    Ref_Spec.spec
-    Regex_Spec.spec
-    Ascribed_Parameters_Spec.spec
-    Asserts_Spec.spec
-    Lazy_Spec.spec
-    Runtime_Spec.spec
-    Self_Type_Spec.spec
-    Span_Spec.spec
-    State_Spec.spec
-    Encoding_Spec.spec
-    Text_Sub_Range_Spec.spec
-    Managed_Resource_Spec.spec
-    Missing_Required_Arguments_Spec.spec
-    Lazy_Generator_Spec.spec
-    Stack_Traces_Spec.spec
-    Utils_Spec.spec
-    Text_Spec.spec
-    Time_Spec.spec
-    URI_Spec.spec
-    Vector_Spec.spec
-    Slicing_Helpers_Spec.spec
-    Statistics_Spec.spec
-    Regression_Spec.spec
-    Warnings_Spec.spec
-    System_Spec.spec
-    Random_Spec.spec
-    XML_Spec.spec
+main =
+    # Round_Spec needs to be migrated to Test_New, as it is used also from Table_Tests, that
+    # are entirely migrated to Test_New. This is just a temporary workaround, until the migration
+    # is complete.
+    suite = Test_New.Test.build suite_builder->
+        Numbers_Spec.add_specs suite_builder
+    succeeded = suite.run_with_filter should_exit=False
+    if succeeded.not then System.exit 1
+
+    Test_Suite.run_main <|
+        Any_Spec.spec
+        Array_Spec.spec
+        Array_Proxy_Spec.spec
+        Array_Polyglot_Spec.spec
+        Bool_Spec.spec
+        Base_64_Spec.spec
+        Function_Spec.spec
+        Case_Spec.spec
+        Conversion_Spec.spec
+        Deep_Export_Spec.spec
+        Error_Spec.spec
+        Environment_Spec.spec
+        File_Spec.spec
+        Temporary_File_Spec.spec
+        File_Read_Spec.spec
+        Reporting_Stream_Decoder_Spec.spec
+        Reporting_Stream_Encoder_Spec.spec
+        Http_Header_Spec.spec
+        Http_Request_Spec.spec
+        Http_Spec.spec
+        Http_Auto_Parse_Spec.spec
+        Enso_Cloud_Main.spec
+        Import_Loop_Spec.spec
+        Interval_Spec.spec
+        Java_Interop_Spec.spec
+        Js_Interop_Spec.spec
+        Json_Spec.spec
+        List_Spec.spec
+        Locale_Spec.spec
+        Map_Spec.spec
+        Set_Spec.spec
+        Maybe_Spec.spec
+        Meta_Spec.spec
+        Instrumentor_Spec.spec
+        Meta_Location_Spec.spec
+        Names_Spec.spec
+        Equals_Spec.spec
+        Ordering_Spec.spec
+        Comparator_Spec.spec
+        Natural_Order_Spec.spec
+        Vector_Lexicographic_Order_Spec.spec
+        Process_Spec.spec
+        Python_Interop_Spec.spec
+        R_Interop_Spec.spec
+        Pair_Spec.spec
+        Parse_Spec.spec
+        Problems_Spec.spec
+        Range_Spec.spec
+        Ref_Spec.spec
+        Regex_Spec.spec
+        Ascribed_Parameters_Spec.spec
+        Asserts_Spec.spec
+        Lazy_Spec.spec
+        Runtime_Spec.spec
+        Self_Type_Spec.spec
+        Span_Spec.spec
+        State_Spec.spec
+        Encoding_Spec.spec
+        Text_Sub_Range_Spec.spec
+        Managed_Resource_Spec.spec
+        Missing_Required_Arguments_Spec.spec
+        Lazy_Generator_Spec.spec
+        Stack_Traces_Spec.spec
+        Utils_Spec.spec
+        Text_Spec.spec
+        Time_Spec.spec
+        URI_Spec.spec
+        Vector_Spec.spec
+        Slicing_Helpers_Spec.spec
+        Statistics_Spec.spec
+        Regression_Spec.spec
+        Warnings_Spec.spec
+        System_Spec.spec
+        Random_Spec.spec
+        XML_Spec.spec
+
