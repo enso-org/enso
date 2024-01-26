@@ -13,8 +13,8 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
-  asset: backend.AnyAsset
-  className?: string
+  readonly asset: backend.AnyAsset
+  readonly className?: string
 }
 
 /** Displays a few details of an asset. */
