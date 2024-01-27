@@ -605,6 +605,8 @@
 - [Added text_left and text_right to Column][8691]
 - [Implement relational `NULL` semantics for `Nothing` for in-memory Column
   operations.][5156]
+- [Attach a warning when Nothing is used as a value in a comparison or `is_in`
+  `Filter_Condition`.][8865]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -869,6 +871,7 @@
 [8606]: https://github.com/enso-org/enso/pull/8606
 [8627]: https://github.com/enso-org/enso/pull/8627
 [8691]: https://github.com/enso-org/enso/pull/8691
+[8865]: https://github.com/enso-org/enso/pull/8865
 
 #### Enso Compiler
 
