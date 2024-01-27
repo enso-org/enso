@@ -67,6 +67,8 @@ public class ListBenchmarks {
 
           plus_v self (other : V) = V.Val self.a+other.a
 
+          + self other:V -> Integer = self.a+other.a
+
           sum_int list (acc:V) =
               case list of
                   Nil -> acc.a
@@ -126,6 +128,8 @@ public class ListBenchmarks {
           go x v l = if x > n then l else
               @Tail_Call go x+1 v+1 (Cons v l)
           go 1 1 Nil
+
+      wrap_v s = s.map v-> V.Val v
       """;
 
     var module = ctx.eval(SrcUtil.source(benchmarkName, code));
@@ -181,6 +185,16 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
+      case "mapVConvertThatArgumentOfPlus" -> {
+        var intList = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.list = getMethod.apply("wrap_v").execute(self, intList);
+        this.zero = 0;
+        this.sum = getMethod.apply("sum_int");
+        this.oldSum = sum.execute(self, this.list, this.zero);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+      }
       case "mapConvOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = getMethod.apply("v_zero").execute(self);
@@ -225,6 +239,11 @@ public class ListBenchmarks {
 
   @Benchmark
   public void mapVOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapVConvertThatArgumentOfPlus(Blackhole matter) {
     performBenchmark(matter);
   }
 

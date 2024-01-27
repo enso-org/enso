@@ -3371,7 +3371,7 @@ class RuntimeVisualizationsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val idX      = metadata.addItem(65, 1, "aa")
     val idY      = metadata.addItem(65, 7, "ab")
@@ -3429,18 +3429,18 @@ class RuntimeVisualizationsTest
       TestMessages.update(
         contextId,
         idY,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
       ),
-      TestMessages.update(contextId, idS, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idS, ConstantsGen.INTEGER),
       TestMessages.update(
         contextId,
         idZ,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "p"))
       ),
-      TestMessages.update(contextId, idZexprS, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idZexpr1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idZexprS, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idZexpr1, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -3491,7 +3491,7 @@ class RuntimeVisualizationsTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(7, 8), model.Position(7, 9)),
+              model.Range(model.Position(9, 8), model.Position(9, 9)),
               "x"
             )
           ),
@@ -3526,7 +3526,7 @@ class RuntimeVisualizationsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val idOp1 = metadata.addItem(23, 2)
     val idOp2 = metadata.addItem(42, 13)
@@ -3569,8 +3569,19 @@ class RuntimeVisualizationsTest
       4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idOp2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
 
@@ -3614,7 +3625,7 @@ class RuntimeVisualizationsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val idOp1 = metadata.addItem(23, 2)
     val idOp2 = metadata.addItem(42, 13)
@@ -3658,9 +3669,20 @@ class RuntimeVisualizationsTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idOp2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
+      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -3704,7 +3726,7 @@ class RuntimeVisualizationsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val idOp1        = metadata.addItem(23, 2)
     val idOp2        = metadata.addItem(42, 13)
@@ -3749,11 +3771,22 @@ class RuntimeVisualizationsTest
       6
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idOp2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages
-        .update(contextId, idOp2Binding, ConstantsGen.NOTHING_BUILTIN),
-      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER_BUILTIN),
+        .update(contextId, idOp2Binding, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -3797,7 +3830,7 @@ class RuntimeVisualizationsTest
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val idOp1  = metadata.addItem(23, 2)
     val idOp2  = metadata.addItem(42, 13)
@@ -3841,9 +3874,20 @@ class RuntimeVisualizationsTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idOp2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
