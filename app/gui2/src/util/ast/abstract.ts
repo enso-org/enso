@@ -64,7 +64,7 @@ export class ReactiveModule implements Module {
         }
       }
       this.rebuildSpans(update.deleteNodes)
-      const dirtyNodes = new Set<AstId>(update.addNodes)
+      const dirtyNodes = new Set<AstId>()
       for (const { id } of update.updateNodes) dirtyNodes.add(id)
       for (const hook of this.updateHooks) hook(dirtyNodes)
     })
