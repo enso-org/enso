@@ -307,7 +307,7 @@ export function spanMapToIdMap(spans: SpanMap): IdMap {
   return idMap
 }
 
-function spanMapToSpanGetter(spans: SpanMap): (id: AstId) => SourceRange | undefined {
+export function spanMapToSpanGetter(spans: SpanMap): (id: AstId) => SourceRange | undefined {
   const reverseMap = new Map<AstId, SourceRange>()
   for (const [key, asts] of spans.nodes) {
     for (const ast of asts) {

@@ -130,6 +130,7 @@ export class GraphDb {
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
+  private currentFunction: AstId | undefined = undefined
 
   constructor(
     private suggestionDb: SuggestionDb,
@@ -330,7 +331,22 @@ export class GraphDb {
     moduleCode: string,
     getMeta: (id: ExternalId) => NodeMetadata | undefined,
     getSpan: (id: AstId) => SourceRange | undefined,
+    dirtyNodes: Set<AstId>,
   ) {
+    let knownDirtySubtrees: Set<AstId> | null = null
+    if (functionAst_.id === this.currentFunction) {
+      knownDirtySubtrees = new Set()
+      const module = functionAst_.module
+      for (const id of dirtyNodes) {
+        let node = module.get(id)
+        while (node != null && !knownDirtySubtrees.has(node.id)) {
+          knownDirtySubtrees.add(node.id)
+          node = node.parent()
+        }
+      }
+    }
+    const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
+    this.currentFunction = functionAst_.id
     const currentNodeIds = new Set<NodeId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
@@ -342,17 +358,16 @@ export class GraphDb {
       if (node == null) {
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
-        node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) {
-          node.outerExprId = newNode.outerExprId
-        }
-        node.rootSpan = newNode.rootSpan
+        const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
+          a?.id !== b?.id || (a && subtreeDirty(a.id))
+        if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
+        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
+        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
       }
       if (nodeMeta) {
         this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
       }
     }
-
     for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
         this.nodeIdToNode.delete(nodeId)

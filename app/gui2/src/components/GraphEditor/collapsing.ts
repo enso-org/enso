@@ -252,7 +252,7 @@ if (import.meta.vitest) {
     assert(func instanceof Ast.Function)
     const rawFunc = toRaw.get(func.id)
     assert(rawFunc?.type === RawAst.Tree.Type.Function)
-    graphDb.readFunctionAst(func, rawFunc, code, (_id) => undefined, getSpan)
+    graphDb.readFunctionAst(func, rawFunc, code, (_id) => undefined, getSpan, new Set())
   }
 
   interface TestCase {

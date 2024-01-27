@@ -105,30 +105,11 @@ export interface NodeMetadata {
 export class ModuleDoc {
   ydoc: Y.Doc
   metadata: Y.Map<NodeMetadata>
-  data: Y.Map<any>
+  nodes: Y.Map<any>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
     this.metadata = ydoc.getMap('metadata')
-    this.data = ydoc.getMap('data')
-  }
-
-  setIdMap(map: IdMap) {
-    const oldMap = new IdMap(this.data.get('idmap') ?? [])
-    if (oldMap.isEqual(map)) return
-    this.data.set('idmap', map.entries())
-  }
-
-  getIdMap(): IdMap {
-    const map = this.data.get('idmap')
-    return new IdMap(map ?? [])
-  }
-
-  setCode(code: string) {
-    this.data.set('code', code)
-  }
-
-  getCode(): string {
-    return this.data.get('code') ?? ''
+    this.nodes = ydoc.getMap('nodes')
   }
 }
 
@@ -144,7 +125,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
+    this.undoManager = new Y.UndoManager([this.doc.nodes, this.doc.metadata])
   }
 
   transact<T>(fn: () => T): T {
@@ -158,10 +139,6 @@ export class DistributedModule {
 
   getNodeMetadata(id: ExternalId): NodeMetadata | null {
     return this.doc.metadata.get(id) ?? null
-  }
-
-  getIdMap(): IdMap {
-    return new IdMap(this.doc.data.get('idmap') ?? [])
   }
 
   dispose(): void {

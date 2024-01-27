@@ -46,13 +46,12 @@ export class ReactiveModule implements Module {
   /////////////////////////////////
 
   private readonly ymodule: MutableModule
-  private readonly nodes: Map<AstId, FixedMapView<AstFields>>
-  private readonly spans: Map<AstId, SourceRange>
+  private readonly nodes: Map<AstId, FixedMapView<AstFields>> = reactive(new Map())
+  private readonly spans: Map<AstId, SourceRange> = reactive(new Map())
+  private readonly updateHooks: ((dirtyNodes: SetView<AstId>) => void)[] = []
 
   constructor(base: MutableModule) {
     this.ymodule = base
-    this.nodes = reactive(new Map())
-    this.spans = reactive(new Map())
     base.observe((update) => {
       for (const id of update.addNodes) this.nodes.set(id, new Map() as any)
       for (const id of update.deleteNodes) this.nodes.delete(id)
@@ -65,7 +64,14 @@ export class ReactiveModule implements Module {
         }
       }
       this.rebuildSpans(update.deleteNodes)
+      const dirtyNodes = new Set<AstId>(update.addNodes)
+      for (const { id } of update.updateNodes) dirtyNodes.add(id)
+      for (const hook of this.updateHooks) hook(dirtyNodes)
     })
+  }
+
+  onUpdate(hook: (dirtyNodes: SetView<AstId>) => void) {
+    this.updateHooks.push(hook)
   }
 
   private rebuildSpans(deleted: AstId[]) {
@@ -113,6 +119,11 @@ export class ReactiveModule implements Module {
   has(id: AstId): boolean {
     return this.nodes.has(id)
   }
+}
+
+export interface SetView<Key> {
+  has(key: Key): boolean
+  [Symbol.iterator](): IterableIterator<Key>
 }
 
 export function deserialize(serialized: string): Owned {

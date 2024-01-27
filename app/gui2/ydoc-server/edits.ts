@@ -6,8 +6,10 @@
 import diff from 'fast-diff'
 import * as json from 'lib0/json'
 import * as Y from 'yjs'
+import { MutableModule, print, spanMapToIdMap } from '../shared/ast'
 import { combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { TextEdit } from '../shared/languageServerTypes'
+import { assert } from '../shared/util/assert'
 import { ModuleDoc, type NodeMetadata, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 import { serializeIdMap } from './serialization'
@@ -22,47 +24,30 @@ export function applyDocumentUpdates(
   doc: ModuleDoc,
   syncedMeta: fileFormat.Metadata,
   syncedContent: string,
-  dataKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
+  nodesEvents: Y.YEvent<any>[],
   metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
 ): AppliedUpdates {
   const synced = splitFileContents(syncedContent)
 
-  let codeUpdated = false
-  let idMapUpdated = false
-  if (dataKeys != null) {
-    for (const [key, op] of dataKeys) {
-      switch (op.action) {
-        case 'add':
-        case 'update': {
-          if (key === 'code') {
-            codeUpdated = true
-          } else if (key === 'idmap') {
-            idMapUpdated = true
-          }
-          break
-        }
-      }
-    }
-  }
-
   let newCode: string
   let idMapJson: string
-  let metadataJson: string
-
   const allEdits: TextEdit[] = []
-  if (codeUpdated) {
-    const text = doc.getCode()
-    allEdits.push(...applyDiffAsTextEdits(0, synced.code, text))
-    newCode = text
+
+  if (nodesEvents.length || synced.idMapJson == null) {
+    const syncModule = new MutableModule(doc.ydoc)
+    const root = syncModule.root()
+    assert(root != null)
+    const { code, info } = print(root)
+    newCode = code
+    if (nodesEvents.length) allEdits.push(...applyDiffAsTextEdits(0, synced.code, code))
+    const idMap = spanMapToIdMap(info)
+    idMapJson = serializeIdMap(idMap)
   } else {
     newCode = synced.code
-  }
-
-  if (idMapUpdated || synced.idMapJson == null) {
-    idMapJson = serializeIdMap(doc.getIdMap())
-  } else {
     idMapJson = synced.idMapJson
   }
+
+  let metadataJson: string
 
   let newMetadata = syncedMeta
   if (metadataKeys != null) {

@@ -17,7 +17,7 @@ const value = computed({
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = graph.astModule.edit()
+    const edit = graph.astModule!.edit()
     if (props.input.value instanceof Ast.Ast) {
       setBoolNode(
         edit.getVersion(props.input.value),

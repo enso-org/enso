@@ -89,6 +89,30 @@ export class MutableModule implements Module {
     }
   }
 
+  syncRoot(root: Owned) {
+    this.replaceRoot(root)
+    this.gc()
+  }
+
+  private gc() {
+    const live = new Set<AstId>()
+    const active = new Array<Ast>()
+    let next: Ast | undefined = this.root()
+    while (next) {
+      for (const child of next.children()) {
+        if (child instanceof Ast) active.push(child)
+      }
+      live.add(next.id)
+      next = active.pop()
+    }
+    const all = Array.from(this.nodes.keys())
+    for (const id of all) {
+      if (id === ROOT_ID) continue
+      assert(isAstId(id))
+      if (!live.has(id)) this.nodes.delete(id)
+    }
+  }
+
   /** Copy the given node into the module. */
   copy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     const id = newAstId(ast.typeName())

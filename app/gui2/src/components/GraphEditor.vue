@@ -268,7 +268,7 @@ const graphBindingsHandler = graphBindings.handler({
       const currentFunctionEnv = environmentForNodes(selected.values())
       const module = graphStore.astModule
       const topLevel = graphStore.topLevel
-      if (!topLevel) {
+      if (!module || !topLevel) {
         bail('BUG: no top level, collapsing not possible.')
       }
       const edit = module.edit()

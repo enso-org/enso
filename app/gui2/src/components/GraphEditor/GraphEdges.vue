@@ -10,6 +10,8 @@ import { isAstId, type AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
 
+const DEBUG = false
+
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
@@ -35,7 +37,7 @@ const editingEdge: Interaction = {
     }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
-    console.log(source, target, targetNode)
+    if (DEBUG) console.info(`edge click`, source, target, targetNode)
     graph.transact(() => {
       if (source != null && sourceNode != targetNode) {
         if (target == null) {
@@ -77,11 +79,11 @@ function createEdge(source: AstId, target: PortId) {
   const sourceNode = graph.db.getPatternExpressionNodeId(source)
   const targetNode = graph.getPortNodeId(target)
   if (sourceNode == null || targetNode == null) {
-    console.log(sourceNode, targetNode, source, target)
+    if (DEBUG) console.log(`createEdge`, sourceNode, targetNode, source, target)
     return console.error(`Failed to connect edge, source or target node not found.`)
   }
 
-  const edit = graph.astModule.edit()
+  const edit = graph.astModule!.edit()
   const reorderResult = graph.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
   if (reorderResult === 'circular') {
     // Creating this edge would create a circular dependency. Prevent that and display error.
