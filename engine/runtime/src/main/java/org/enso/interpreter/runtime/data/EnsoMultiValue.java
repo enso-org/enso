@@ -3,8 +3,12 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -14,11 +18,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
@@ -55,6 +61,10 @@ public final class EnsoMultiValue implements EnsoObject {
   @ExportMessage
   public final Type getType() {
     return types[0];
+  }
+
+  public final Type[] allTypes() {
+    return types.clone();
   }
 
   @ExportMessage
@@ -343,6 +353,58 @@ public final class EnsoMultiValue implements EnsoObject {
       }
     }
     throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  @TruffleBoundary
+  Object getMembers(
+      boolean includeInternal, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    var names = new TreeSet<String>();
+    for (var i = 0; i < values.length; i++) {
+      try {
+        var members = iop.getMembers(values[i]);
+        var len = iop.getArraySize(members);
+        for (var j = 0L; j < len; i++) {
+          var name = iop.readArrayElement(members, j);
+          names.add(iop.asString(name));
+        }
+      } catch (InvalidArrayIndexException | UnsupportedMessageException ex) {
+      }
+    }
+    return ArrayLikeHelpers.wrapObjectsWithCheckAt(names.toArray());
+  }
+
+  @ExportMessage
+  boolean isMemberInvocable(
+      String name, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isMemberInvocable(values[i], name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  Object invokeMember(
+      String name,
+      Object[] args,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException,
+          ArityException,
+          UnsupportedTypeException,
+          UnknownIdentifierException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isMemberInvocable(values[i], name)) {
+        return iop.invokeMember(values[i], name, args);
+      }
+    }
+    throw UnknownIdentifierException.create(name);
   }
 
   @TruffleBoundary

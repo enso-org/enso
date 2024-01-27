@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class LessOrEqualNode extends IntegerNode {
 
   @Override
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static LessOrEqualNode build() {
     return LessOrEqualNodeGen.create();

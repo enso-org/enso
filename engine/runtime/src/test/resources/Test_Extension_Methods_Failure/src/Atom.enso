@@ -1,4 +1,5 @@
 from Standard.Base.Data.Numbers import Integer
+import Standard.Base.Data.Numbers
 
 type Foo
     A
