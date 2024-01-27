@@ -46,8 +46,8 @@ fan_out_to_columns table input_column_id function column_count=Nothing column_bu
    - at_least_one_row: When true, if the function returns an empty list, a
      single row is output with `Nothing` for the transformed column. If false,
     the row is not output at all.
-fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Vector | Function -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id function column_names=[input_column_id] at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+fan_out_to_rows : Table -> Text -> (Any -> Vector Any) -> Vector | Function -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id:Text function column_names=[input_column_id] at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
