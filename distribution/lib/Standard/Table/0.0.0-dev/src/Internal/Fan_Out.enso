@@ -171,7 +171,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     unique.mark_used <| non_input_columns.map .name
 
     # Build the output column
-    output_columns = column_map.get.to_vector.map pair->
+    output_columns = column_map.get.to_vector.sort on=_.second . map pair->
         column_name = unique.make_unique pair.first
         Column.from_storage column_name (output_column_builders.at pair.second . seal)
 
