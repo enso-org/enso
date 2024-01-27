@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 import project.Data.Type.Value_Type.Value_Type
+from project.Errors import Nothing_Value_In_Filter_Condition
 
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask
@@ -15,15 +16,17 @@ import project.Data.Type.Value_Type.Value_Type
 make_filter_column source_column filter_condition on_problems = case filter_condition of
     # Equality
     Equal value ->
-        Warning.with_suspended source_column source_column->
-            Warning.with_suspended value value->
-                on_problems.escalate_warnings <|
-                    source_column == value
+        warn_on_nothing_in_comparison filter_condition value <|
+            Warning.with_suspended source_column source_column->
+                Warning.with_suspended value value->
+                    on_problems.escalate_warnings <|
+                        source_column == value
     Not_Equal value ->
-        Warning.with_suspended source_column source_column->
-            Warning.with_suspended value value->
-                on_problems.escalate_warnings <|
-                    source_column != value
+        warn_on_nothing_in_comparison filter_condition value <|
+            Warning.with_suspended source_column source_column->
+                Warning.with_suspended value value->
+                    on_problems.escalate_warnings <|
+                        source_column != value
     # Nothing
     Is_Nothing -> source_column.is_nothing
     Not_Nothing -> source_column.is_nothing.not
@@ -32,11 +35,22 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
         Value_Type.expect_boolean source_column <| source_column
     Is_False -> source_column.not
     # Comparisons
-    Less value -> (source_column < value)
-    Equal_Or_Less value -> (source_column <= value)
-    Equal_Or_Greater value -> (source_column >= value)
-    Greater value -> (source_column > value)
-    Between lower upper -> source_column.between lower upper
+    Less value ->
+        warn_on_nothing_in_comparison filter_condition value <|
+            source_column < value
+    Equal_Or_Less value ->
+        warn_on_nothing_in_comparison filter_condition value <|
+            source_column <= value
+    Equal_Or_Greater value ->
+        warn_on_nothing_in_comparison filter_condition value <|
+            source_column >= value
+    Greater value ->
+        warn_on_nothing_in_comparison filter_condition value <|
+            source_column > value
+    Between lower upper ->
+        warn_on_nothing_in_comparison filter_condition lower <|
+            warn_on_nothing_in_comparison filter_condition upper <|
+                source_column.between lower upper
     # Text
     Equal_Ignore_Case value locale ->
         source_column.equals_ignore_case value locale
@@ -67,5 +81,24 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
         if is_nan_column.is_error then is_infinite_column.not else
             (is_infinite_column || is_nan_column).not
     # Vector
-    Is_In values -> source_column.is_in values
-    Not_In values -> source_column.is_in values . not
+    Is_In values ->
+        warn_on_nothing_in_comparison_vector filter_condition values <|
+            source_column.is_in values
+    Not_In values ->
+        warn_on_nothing_in_comparison_vector filter_condition values <|
+            source_column.is_in values . not
+
+## Attach a warning if the provided value is `Nothing`.
+warn_on_nothing_in_comparison : Filter_Condition -> Any -> Any -> Any
+warn_on_nothing_in_comparison filter_condition value ~action =
+    case value of
+        Nothing -> Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) action
+        _ -> action
+
+## Attach a warning if the provided value is a `Vector` that contains `Nothing`.
+warn_on_nothing_in_comparison_vector : Filter_Condition -> Vector Any -> Any -> Any
+warn_on_nothing_in_comparison_vector filter_condition values ~action =
+    case values of
+        _ : Vector ->
+            values.fold action (flip (warn_on_nothing_in_comparison filter_condition))
+        _ -> action

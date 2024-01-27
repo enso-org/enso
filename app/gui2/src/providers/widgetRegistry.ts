@@ -264,7 +264,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
   if (typeof definition.score === 'function') {
     score = definition.score
   } else {
-    const staticScore = definition.score ?? Score.Perfect
+    const staticScore = definition.score ?? Score.Good
     score = () => staticScore
   }
 

@@ -49,7 +49,7 @@ const navigator = injectGraphNavigator(true)
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
+  priority: 500,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
     else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))

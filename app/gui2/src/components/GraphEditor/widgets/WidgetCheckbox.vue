@@ -64,7 +64,7 @@ function setBoolNode(ast: Ast.Mutable, value: Identifier) {
 }
 
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
+  priority: 500,
   score: (props) => {
     if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
     return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'

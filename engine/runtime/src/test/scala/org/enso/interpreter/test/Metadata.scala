@@ -1,6 +1,7 @@
 package org.enso.interpreter.test
 
 import java.util.UUID
+import org.enso.text.editing.model
 
 private case class Item(start: Int, len: Int, id: UUID) {
   def toJsonString: String =
@@ -9,7 +10,7 @@ private case class Item(start: Int, len: Int, id: UUID) {
 
 /** A helper class for decorating source code with expression IDs.
   */
-class Metadata {
+class Metadata(val prelude: String = "") {
 
   private var items: List[Item] = List()
 
@@ -27,7 +28,7 @@ class Metadata {
       val hi = id.getMostSignificantBits();
       id = new UUID(lo, hi)
     }
-    items ::= Item(start, len, id)
+    items ::= Item(prelude.length + start, len, id)
     id
   }
 
@@ -40,7 +41,7 @@ class Metadata {
     * @return the code decorated with this metadata.
     */
   def appendToCode(code: String): String =
-    s"$code\n\n\n#### METADATA ####\n$toJsonString\n[]"
+    s"$prelude$code\n\n\n#### METADATA ####\n$toJsonString\n[]"
 
   /** Checks whether given UUID is assigned to expected string
     * @param uuid the UUID to search for; defined by {@code #addItem}
@@ -48,9 +49,10 @@ class Metadata {
     * @param expected the text that should be assigned to the UUID
     */
   def assertInCode(uuid: UUID, code: String, expected: String): Unit = {
+    val full = prelude + code
     for (item <- items) {
       if (item.id == uuid) {
-        val real = code.substring(item.start, item.start + item.len)
+        val real = full.substring(item.start, item.start + item.len)
         if (real != expected) {
           throw new AssertionError(
             "Expecting\n`" + expected + "`\nbut found\n'" + real + "'"
@@ -60,5 +62,30 @@ class Metadata {
       }
     }
     throw new AssertionError("UUID " + uuid + " not found")
+  }
+
+  /** Verifies given line/column based position range contains
+    * requested text and if so, it returns a range representing
+    * those positions.
+    */
+  def assertInCode(
+    code: String,
+    start: model.Position,
+    end: model.Position,
+    expected: String
+  ): model.Range = {
+    val full = prelude + code
+    if (start.line != end.line) {
+      throw new AssertionError("Supporting only same line right now")
+    }
+    val actual = full.lines
+      .toList()
+      .get(start.line)
+      .substring(start.character, end.character)
+    val range = model.Range(start, end)
+    if (actual != expected) {
+      throw new AssertionError(s"Unexpected text at $range: $actual")
+    }
+    range
   }
 }

@@ -15,11 +15,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class TruncateNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-  Object execute(double self) {
-    if (fitsProfile.profile(BigIntegerOps.fitsInLong(self))) {
-      return (long) self;
+  Object execute(double own) {
+    if (fitsProfile.profile(BigIntegerOps.fitsInLong(own))) {
+      return (long) own;
     } else {
-      return new EnsoBigInteger(toBigInteger(self));
+      return new EnsoBigInteger(toBigInteger(own));
     }
   }
 
