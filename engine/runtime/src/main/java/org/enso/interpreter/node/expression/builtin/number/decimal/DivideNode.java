@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Float", name = "/", description = "Division of numbers.")
 public abstract class DivideNode extends FloatNode {
-  abstract double execute(double self, Object that);
+  abstract double execute(double own, Object that);
 
   static DivideNode build() {
     return DivideNodeGen.create();
