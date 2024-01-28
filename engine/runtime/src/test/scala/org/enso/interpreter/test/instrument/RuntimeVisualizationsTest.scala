@@ -3668,7 +3668,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ConstantsGen.INTEGER,
           Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
         ),
-        TestMessages.update(contextId, idS, ConstantsGen.INTEGER,
+        TestMessages.update(contextId, idS, ConstantsGen.INTEGER),
         TestMessages.update(
           contextId,
           idZ,
