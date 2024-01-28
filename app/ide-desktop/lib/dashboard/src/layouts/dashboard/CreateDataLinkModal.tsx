@@ -1,7 +1,7 @@
 /** @file A modal for creating a Data Link. */
 import * as React from 'react'
 
-import DataLinkWizard from '#/layouts/dashboard/DataLinkWizard'
+import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
@@ -52,10 +52,10 @@ export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
           />
         </div>
         <div className="relative">
-          <DataLinkWizard
+          <DataLinkInput
             dropdownTitle="Type"
-            state={state}
-            setState={setState}
+            value={state}
+            setValue={setState}
             setIsSubmittable={setIsValueSubmittable}
           />
         </div>

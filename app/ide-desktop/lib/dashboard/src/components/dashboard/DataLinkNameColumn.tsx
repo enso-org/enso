@@ -126,7 +126,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
-          // FIXME: Open sidebar and show DataLinkWizard populated with the current value
+          // FIXME: Open sidebar and show DataLinkInput populated with the current value
         }
       }}
     >

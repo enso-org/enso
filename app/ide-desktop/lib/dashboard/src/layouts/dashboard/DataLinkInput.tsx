@@ -161,33 +161,33 @@ function getSchemaName(schema: object) {
   }
 }
 
-// ======================
-// === DataLinkWizard ===
-// ======================
+// =====================
+// === DataLinkInput ===
+// =====================
 
-/** Props for a {@link DataLinkWizard}. */
-export interface DataLinkWizardProps {
+/** Props for a {@link DataLinkInput}. */
+export interface DataLinkInputProps {
   dropdownTitle?: string
   schema?: object
-  state: NonNullable<unknown> | null
-  setState: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
+  value: NonNullable<unknown> | null
+  setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
   setIsSubmittable: (isSubmittable: boolean) => void
 }
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */
-export default function DataLinkWizard(props: DataLinkWizardProps) {
+export default function DataLinkInput(props: DataLinkInputProps) {
   const {
     dropdownTitle,
     schema = SCHEMA.$defs.DataLink,
-    state: stateRaw,
-    setState: setStateRaw,
+    value: valueRaw,
+    setValue: setValueRaw,
     setIsSubmittable: setIsSubmittableRaw,
   } = props
   const [selectedChildIndex, setSelectedChildIndex] = React.useState(0)
   const [isSubmittable, setIsSubmittable] = React.useState(false)
   const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
   const [initializing, setInitializing] = React.useState(true)
-  const [state, setState] = React.useState(stateRaw)
+  const [value, setValue] = React.useState(valueRaw)
 
   React.useEffect(() => {
     if (childSubmittability != null) {
@@ -202,10 +202,10 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
   }, [isSubmittable])
 
   React.useEffect(() => {
-    setStateRaw(state)
+    setValueRaw(value)
     // `setStateRaw` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state])
+  }, [value])
 
   React.useEffect(() => {
     setInitializing(false)
@@ -215,7 +215,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
   if ('const' in schema) {
     if (initializing) {
       setIsSubmittable(true)
-      setState(schema.const ?? null)
+      setValue(schema.const ?? null)
     }
     // This value cannot change.
     return null
@@ -225,14 +225,14 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
         return (
           <input
             type="text"
-            value={typeof state === 'string' ? state : ''}
+            value={typeof value === 'string' ? value : ''}
             size={1}
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter text here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
-              const value: string = event.currentTarget.value
-              setState(value)
+              const newValue: string = event.currentTarget.value
+              setValue(newValue)
             }}
           />
         )
@@ -241,15 +241,15 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
         return (
           <input
             type="number"
-            value={typeof state === 'number' ? state : ''}
+            value={typeof value === 'number' ? value : ''}
             size={1}
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter number here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
-              const value: number = event.currentTarget.valueAsNumber
-              if (Number.isFinite(value)) {
-                setState(value)
+              const newValue: number = event.currentTarget.valueAsNumber
+              if (Number.isFinite(newValue)) {
+                setValue(newValue)
               }
             }}
           />
@@ -259,15 +259,15 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
         return (
           <input
             type="number"
-            value={typeof state === 'number' ? state : ''}
+            value={typeof value === 'number' ? value : ''}
             size={1}
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
             placeholder="Enter integer here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
-              const value: number = event.currentTarget.valueAsNumber
-              if (Number.isFinite(value)) {
-                setState(Math.floor(value))
+              const newValue: number = event.currentTarget.valueAsNumber
+              if (Number.isFinite(newValue)) {
+                setValue(Math.floor(newValue))
               }
             }}
           />
@@ -289,7 +289,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
         const stateAsObject: Record<string, NonNullable<unknown> | null> =
           // This is SAFE, as `state` is an untyped object.
           // eslint-disable-next-line no-restricted-syntax
-          (object.asObject(state) as Record<string, NonNullable<unknown> | null> | null) ??
+          (object.asObject(value) as Record<string, NonNullable<unknown> | null> | null) ??
           Object.fromEntries(
             propertyDefinitions.map(definition => [
               definition.key,
@@ -297,12 +297,12 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
             ])
           )
         if (initializing) {
-          const value = constantValue(schema)
-          if (!isSubmittable && value.length === 1) {
+          const theValue = constantValue(schema)
+          if (!isSubmittable && theValue.length === 1) {
             setIsSubmittable(true)
           }
-          if (state == null) {
-            setState(stateAsObject)
+          if (value == null) {
+            setValue(stateAsObject)
           }
         }
         return constantValue(schema).length === 1 ? null : (
@@ -314,11 +314,11 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
                   <div className="inline-block w-24">
                     {'title' in childSchema ? String(childSchema.title) : key}
                   </div>
-                  <DataLinkWizard
+                  <DataLinkInput
                     schema={childSchema}
-                    state={stateAsObject[key] ?? null}
-                    setState={newValue => {
-                      setState(oldState => ({ ...oldState, [key]: newValue }))
+                    value={stateAsObject[key] ?? null}
+                    setValue={newValue => {
+                      setValue(oldState => ({ ...oldState, [key]: newValue }))
                     }}
                     setIsSubmittable={isChildSubmittable => {
                       setChildSubmittability(oldSubmittability =>
@@ -350,11 +350,11 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       return <></>
     } else {
       return (
-        <DataLinkWizard
+        <DataLinkInput
           key={String(schema.$ref)}
           schema={referencedSchema}
-          state={state}
-          setState={setState}
+          value={value}
+          setValue={setValue}
           setIsSubmittable={setIsSubmittable}
         />
       )
@@ -369,7 +369,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       if (initializing) {
         if (!isSubmittable && childValue.length === 1) {
           setIsSubmittable(true)
-          setState(childValue[0])
+          setValue(childValue[0])
         }
       }
       const dropdown = (
@@ -380,7 +380,7 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
           className="self-start"
           onClick={(childSchema, index) => {
             setSelectedChildIndex(index)
-            setState(null)
+            setValue(null)
             setIsSubmittable(constantValue(childSchema).length === 1)
           }}
         />
@@ -396,10 +396,10 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
             dropdown
           )}
           {selectedChildSchema != null && childValue.length === 0 && (
-            <DataLinkWizard
+            <DataLinkInput
               schema={selectedChildSchema}
-              state={state}
-              setState={setState}
+              value={value}
+              setValue={setValue}
               setIsSubmittable={setIsSubmittable}
             />
           )}
@@ -414,11 +414,11 @@ export default function DataLinkWizard(props: DataLinkWizardProps) {
       return (
         <div className="flex flex-col gap-1">
           {childSchemas.map((childSchema, i) => (
-            <DataLinkWizard
+            <DataLinkInput
               key={i}
               schema={childSchema}
-              state={state}
-              setState={setState}
+              value={value}
+              setValue={setValue}
               setIsSubmittable={isChildSubmittable => {
                 setChildSubmittability(oldSubmittability =>
                   Array.from(childSchemas, (otherChildSchema, j) =>
