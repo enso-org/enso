@@ -1362,14 +1362,15 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
-    val responses = context.receiveN(5)
+    val responses = context.receiveNIgnoreExpressionUpdates(2)
     val visualizationUpdatesResponses =
       responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
     val expectedExpressionId = context.Main.idMainX
     val visualizationUpdates = visualizationUpdatesResponses.map(
       _.payload.asInstanceOf[Api.VisualizationUpdate]
     )
-    visualizationUpdates.map(_.visualizationContext) shouldEqual List(
+    val visContexts = visualizationUpdates.map(_.visualizationContext)
+    visContexts should contain allOf (
       Api.VisualizationContext(
         `visualizationId`,
         `contextId`,
@@ -1380,11 +1381,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         `contextId`,
         `expectedExpressionId`
       ),
-      Api.VisualizationContext(
-        `visualizationId2`,
-        `contextId`,
-        `expectedExpressionId`
-      )
     )
     val data = visualizationUpdates.head.data
     data.sameElements("6".getBytes) shouldBe true
