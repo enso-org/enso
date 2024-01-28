@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Runtime import assert
 
 from Standard.Table import Table, Sort_Column, Aggregate_Column
 from Standard.Table.Errors import all
@@ -7,48 +8,78 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+import Standard.Test_New.Suite.Suite_Builder
 
 import project.Util
 import project.Database.Helpers.Name_Generator
 
-spec prefix connection =
-    Test.group prefix+"Table.default_ordering" <|
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
+    suite.run_with_filter
+
+
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    db_table_without_key self = self.data.at 1
+    db_table_with_key self = self.data.at 2
+
+    setup create_connection_func = Data.Value <|
+        connection = create_connection_func Nothing
         src_table = Table.new [["X", [1, 2, 3]], ["Y", [30, 20, 10]]]
         db_table_without_key = src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=Nothing
         db_table_with_key = src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=["X"]
+        [connection, db_table_without_key, db_table_with_key]
 
-        Test.specify "will return Nothing if no primary key is defined" <|
-            db_table_without_key.default_ordering . should_equal Nothing
+    teardown self = self.connection.close
 
-        Test.specify "will return the key for a table with a primary key" <|
-            v1 = db_table_with_key.default_ordering
+
+## Adds test specifications for default ordering to the given `suite_builder`. Adds it as
+   group with the given `prefix` as its name prefix.
+
+   Arguments:
+   - suite_builder: A Suite_Builder in which a new group will be created
+   - create_connection_fn: A function that creates an appropriate Connection to the database backend.
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : Any) =
+    group_name = prefix + "Table.default_ordering"
+
+    suite_builder.group group_name group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "will return Nothing if no primary key is defined" <|
+            data.db_table_without_key.default_ordering . should_equal Nothing
+
+        group_builder.specify "will return the key for a table with a primary key" <|
+            v1 = data.db_table_with_key.default_ordering
             v1.length . should_equal 1
             v1.first.expression.name . should_equal "X"
             v1.first.direction . should_equal Sort_Direction.Ascending
 
-            t2 = db_table_with_key.set "10 - [X]" "X"
+            t2 = data.db_table_with_key.set "10 - [X]" "X"
             v2 = t2.default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "X"
 
-        Test.specify "will return Nothing for composite tables (join, aggregate)"
-            db_table_with_key.join db_table_with_key . default_ordering . should_equal Nothing
-            db_table_with_key.aggregate [Aggregate_Column.Group_By "X"] . default_ordering . should_equal Nothing
+        group_builder.specify "will return Nothing for composite tables (join, aggregate)"
+            data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
+            data.db_table_with_key.aggregate [Aggregate_Column.Group_By "X"] . default_ordering . should_equal Nothing
 
-        Test.specify "will return the ordering determined by order_by" <|
-            v1 = db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering
+        group_builder.specify "will return the ordering determined by order_by" <|
+            v1 = data.db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering
             v1.length . should_equal 2
             v1.first.expression.name . should_equal "Y"
             v1.first.direction . should_equal Sort_Direction.Ascending
             v1.second.expression.name . should_equal "X"
             v1.second.direction . should_equal Sort_Direction.Descending
 
-            v2 = db_table_without_key.order_by ["Y"] . default_ordering
+            v2 = data.db_table_without_key.order_by ["Y"] . default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "Y"
             v2.first.direction . should_equal Sort_Direction.Ascending
 
-main = Test_Suite.run_main <|
-    spec "[SQLite] " (Database.connect (SQLite In_Memory))

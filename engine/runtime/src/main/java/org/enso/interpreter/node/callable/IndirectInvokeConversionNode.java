@@ -23,16 +23,16 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @GenerateUncached
 @ReportPolymorphism
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
-public abstract class IndirectInvokeConversionNode extends Node {
+abstract class IndirectInvokeConversionNode extends Node {
 
   /**
    * @return a new indirect method invocation node
    */
-  public static IndirectInvokeConversionNode build() {
+  static IndirectInvokeConversionNode build() {
     return IndirectInvokeConversionNodeGen.create();
   }
 
-  public abstract Object execute(
+  abstract Object execute(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,

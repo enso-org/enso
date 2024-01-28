@@ -10,19 +10,32 @@ import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
-main = run_default_backend spec
+type Data
+    Value ~connection
 
-spec setup =
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self = self.connection.close
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
-    Test.group prefix+"Table.cross_join" <|
-        Test.specify "should allow to create a cross product of two tables in the right order" <|
+    suite_builder.group prefix+"Table.cross_join" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to create a cross product of two tables in the right order" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
 
@@ -42,7 +55,7 @@ spec setup =
                 True -> r.should_contain_the_same_elements_as expected_rows
                 False -> r.should_equal expected_rows
 
-        Test.specify "should work correctly with empty tables" <|
+        group_builder.specify "should work correctly with empty tables" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a']], ["W", ['c']]]
             # Workaround to easily create empty table until table builder allows that directly.
@@ -59,7 +72,7 @@ spec setup =
             t4.row_count.should_equal 0
             t4.at "X" . to_vector . should_equal []
 
-        Test.specify "should respect the right row limit" <|
+        group_builder.specify "should respect the right row limit" <|
             t2 = table_builder [["X", [1, 2]]]
             t3 = table_builder [["X", [1, 2, 3]]]
             t100 = table_builder [["Y", 0.up_to 100 . to_vector]]
@@ -76,7 +89,7 @@ spec setup =
             t2.cross_join t101 right_row_limit=Nothing . row_count . should_equal 202
             t2.cross_join t3 right_row_limit=2 on_problems=Problem_Behavior.Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
 
-        Test.specify "should ensure 1-1 mapping even with duplicate rows" <|
+        group_builder.specify "should ensure 1-1 mapping even with duplicate rows" <|
             t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]
             t2 = table_builder [["Z", ['a', 'b', 'a', 'b']]]
 
@@ -94,7 +107,7 @@ spec setup =
                 True -> r.should_contain_the_same_elements_as expected_rows
                 False -> r.should_equal expected_rows
 
-        Test.specify "should allow self-joins" <|
+        group_builder.specify "should allow self-joins" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = t1.cross_join t1
 
@@ -111,7 +124,7 @@ spec setup =
                 True -> r.should_contain_the_same_elements_as expected_rows
                 False -> r.should_equal expected_rows
 
-        Test.specify "should rename columns of the right table to avoid duplicates" <|
+        group_builder.specify "should rename columns of the right table to avoid duplicates" <|
             t1 = table_builder [["X", [1]], ["Y", [5]], ["Right Y", [10]]]
             t2 = table_builder [["X", ['a']], ["Y", ['d']]]
 
@@ -133,7 +146,7 @@ spec setup =
             expect_column_names ["X", "Y", "Right Y", "Right X 1", "Right X"] (t1.cross_join t4)
             expect_column_names ["X", "Right X", "Right X 1", "Y", "Right Y"] (t4.cross_join t1)
 
-        Test.specify "should respect the column ordering" <|
+        group_builder.specify "should respect the column ordering" <|
             t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'd', 'd']]]
 
@@ -157,12 +170,12 @@ spec setup =
                 True -> r.should_contain_the_same_elements_as expected_rows
                 False -> r.should_equal expected_rows
 
-        Test.specify "Cross join is not possible via call to .join" <|
+        group_builder.specify "Cross join is not possible via call to .join" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
             Test.expect_panic_with (t1.join t2 join_kind=Join_Kind_Cross.Cross on=[]) Type_Error
 
-        Test.specify "should gracefully handle tables from different backends" <|
+        group_builder.specify "should gracefully handle tables from different backends" <|
             t1 = table_builder [["A", ["a", "b"]]]
             alternative_connection = Database.connect (SQLite In_Memory)
             t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True

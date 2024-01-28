@@ -1,18 +1,56 @@
 from Standard.Base import all
+from Standard.Table import Table
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-import project.In_Memory.Common_Spec as In_Memory_Table_Spec
+import project.Common_Table_Operations.Main.Test_Setup
+import project.Common_Table_Operations.Main.Test_Selection
+import project.Common_Table_Operations.Aggregate_Spec
 
 expect_column_names names table =
     table.columns . map .name . should_equal names frames_to_skip=2
 
+type Dummy_Connection
+    Value
+
+    close self = Nothing
+
+    drop_table self table =
+        _ = table
+        Nothing
+
+
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
    a shortcut that allows to run these tests with the in-memory backend.
-run_default_backend spec =
-    Test_Suite.run_main (In_Memory_Table_Spec.run_common_spec spec)
+
+   Arguments:
+   - add_specs: A function that takes two parameters: a suite builder and Test_Setup.
+     And adds test specs to the suite builder.
+run_default_backend add_specs =
+    selection = Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True supports_time_duration=True supports_nanoseconds_in_time=True supports_mixed_columns=True fixed_length_text_columns=True supports_8bit_integer=True
+    aggregate_selection = Aggregate_Spec.Test_Selection.Config
+
+    table_fn _ = (enso_project.data / "data.csv") . read
+
+    empty_table_fn _ =
+        table = table_fn Nothing
+        table.take 0
+
+    materialize = x->x
+
+    table_builder cols connection=Nothing =
+        _ = connection
+        Table.new cols
+
+    create_connection_func _ =
+        Dummy_Connection.Value
+
+    setup = Test_Setup.Config "[In-Memory] " table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func
+    suite = Test.build suite_builder->
+        add_specs suite_builder setup
+    suite.run_with_filter
+
 
 ## Adds a clue which will display the provided table next to the failed test
    description.

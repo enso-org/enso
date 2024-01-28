@@ -4,12 +4,11 @@ import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type_Helpers
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "Value_Type" <|
-        Test.specify "should have a nice display text representation" <|
+add_specs suite_builder =
+    suite_builder.group "Value_Type" group_builder->
+        group_builder.specify "should have a nice display text representation" <|
             Value_Type.Boolean.to_display_text . should_equal "Boolean"
             Value_Type.Byte.to_display_text . should_equal "Byte"
 
@@ -28,7 +27,7 @@ spec =
             Value_Type.Unsupported_Data_Type.to_display_text . should_equal "Unsupported_Data_Type"
             (Value_Type.Unsupported_Data_Type "FOO-BAR").to_display_text . should_equal "Unsupported_Data_Type (FOO-BAR)"
 
-        Test.specify "should use correct in-memory logic to reconcile pairs of types for operations like union/iif" <|
+        group_builder.specify "should use correct in-memory logic to reconcile pairs of types for operations like union/iif" <|
             Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Boolean . should_equal Value_Type.Boolean
 
             Value_Type_Helpers.reconcile_types (Value_Type.Integer Bits.Bits_16) (Value_Type.Integer Bits.Bits_32) . should_equal (Value_Type.Integer Bits.Bits_32)
@@ -62,4 +61,8 @@ spec =
             Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Byte . should_equal Value_Type.Mixed
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Mixed
 
-main = Test_Suite.run_main spec
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
