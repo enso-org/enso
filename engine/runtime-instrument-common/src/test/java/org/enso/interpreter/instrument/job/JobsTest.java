@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.job;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
 import org.enso.polyglot.runtime.Runtime$Api$VisualizationConfiguration;
