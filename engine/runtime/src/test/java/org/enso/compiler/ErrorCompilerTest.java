@@ -507,6 +507,21 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void testMissingEqualsInMethodDefinition() throws Exception {
+    var ir = parse("""
+    type T
+      method self
+        42
+    """);
+    assertSingleSyntaxError(
+        ir,
+        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        "Unexpected declaration in the body of a type",
+        9,
+        27);
+  }
+
+  @Test
   public void testAnnotation1() throws Exception {
     var ir = parse("""
     @x `
