@@ -1900,9 +1900,9 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "junit" % "junit" % junitVersion % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion % Test,
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
     .dependsOn(`refactoring-utils`)
