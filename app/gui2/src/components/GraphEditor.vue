@@ -330,7 +330,7 @@ function onPlayButtonPress() {
     if (modeValue == undefined) {
       return
     }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', 'Live')
   })
 }
 

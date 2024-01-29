@@ -114,6 +114,7 @@ public class BigNumberTest extends TestBase {
     var code =
         """
     from Standard.Base.Data.Vector import Vector
+    import Standard.Base.Data.Numbers
     polyglot java import org.enso.example.TestClass
 
     powers n =
@@ -135,6 +136,7 @@ public class BigNumberTest extends TestBase {
 
   private Value assertMul(Object a, Object b) throws URISyntaxException {
     var code = """
+    import Standard.Base.Data.Numbers
     mul a b = a * b
     """;
     var fn = evalCode(code, "mul");

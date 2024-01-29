@@ -18,7 +18,7 @@ public class UtilsTest {
 
   @Test
   public void detectParentProject() throws Exception {
-    var dir = folder.newFolder("dir", "prj", "src", "some", "file");
+    var dir = folder.newFolder("dir", "prj", "src", "some", "file").getCanonicalFile();
     var prj = dir.getParentFile().getParentFile().getParentFile();
     assertEquals("prj", prj.getName());
     var yaml = new File(prj, "package.yaml");
@@ -35,7 +35,7 @@ public class UtilsTest {
 
   @Test
   public void specifyProjectDir() throws Exception {
-    var dir = folder.newFolder("dir", "prj", "src", "some", "file");
+    var dir = folder.newFolder("dir", "prj", "src", "some", "file").getCanonicalFile();
     var prj = dir.getParentFile().getParentFile().getParentFile();
     assertEquals("prj", prj.getName());
     var yaml = new File(prj, "package.yaml");
@@ -52,12 +52,12 @@ public class UtilsTest {
 
   @Test
   public void specifyProjectAndFile() throws Exception {
-    var dir = folder.newFolder("dir", "prj", "src", "some", "file");
+    var dir = folder.newFolder("dir", "prj", "src", "some", "file").getCanonicalFile();
     var prj = dir.getParentFile().getParentFile().getParentFile();
     assertEquals("prj", prj.getName());
     var yaml = new File(prj, "package.yaml");
     Files.writeString(yaml.toPath(), "enso pkg");
-    var src = folder.newFile("Standalone.enso");
+    var src = folder.newFile("Standalone.enso").getCanonicalFile();
     Files.writeString(src.toPath(), "main = 42");
 
     var found = Utils.findFileAndProject(src.getPath(), prj.getPath());
@@ -69,7 +69,7 @@ public class UtilsTest {
 
   @Test
   public void dontDetectParentProjectIfMissingPackageYaml() throws Exception {
-    var dir = folder.newFolder("dir", "prj", "src", "some", "file");
+    var dir = folder.newFolder("dir", "prj", "src", "some", "file").getCanonicalFile();
     var prj = dir.getParentFile().getParentFile().getParentFile();
     assertEquals("prj", prj.getName());
     var yamlInWrongDir = new File(dir.getParent(), "package.yaml");
@@ -86,7 +86,7 @@ public class UtilsTest {
 
   @Test
   public void dontDetectParentProjectWithoutSrcDir() throws Exception {
-    var dir = folder.newFolder("dir", "prj", "nosrc", "some", "file");
+    var dir = folder.newFolder("dir", "prj", "nosrc", "some", "file").getCanonicalFile();
     var prj = dir.getParentFile().getParentFile().getParentFile();
     assertEquals("prj", prj.getName());
     var yaml = new File(prj, "package.yaml");

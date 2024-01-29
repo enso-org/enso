@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
@@ -10,6 +11,18 @@ from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retrie
 
 spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     Test.group "Enso Cloud Files" pending=setup.real_cloud_pending <|
+        Test.specify "should be able to list the root directory" <|
+            assets = Enso_File.root.list
+            # We don't a priori know the contents, so we can only check very generic properties
+            assets . should_be_a Vector
+            assets.each f-> f.should_be_a Enso_File
+
+            ## We assume that it contains a test file `test_file.json`
+               TODO in future iterations this file will be created by the test suite itself, to make it self-contained
+               The file is expected to contain:
+               [1, 2, 3, "foo"]
+            assets.map .name . should_contain "test_file.json"
+
         Test.specify "should allow to create and delete a directory" <|
             my_name = "my_test_dir-" + (Random.uuid.take 5)
             my_dir = Enso_File.root.create_directory my_name
@@ -36,10 +49,152 @@ spec setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
                 # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
                 # my_dir.exists . should_be_false
 
-        Test.specify "should not allow to create a directory inside of a regular file" pending="TODO" <|
-            Error.throw "TODO"
+        Test.specify "should set the current working directory by environment variable" <|
+            # If nothing set, defaults to root:
+            Enso_File.current_working_directory . should_equal Enso_File.root
+
+            subdir = Enso_File.root.create_directory "my_test_CWD-"+(Random.uuid.take 5)
+            cleanup =
+                Enso_User.flush_caches
+                subdir.delete
+            Panic.with_finalizer cleanup <|
+                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_PATH" subdir.id <|
+                    # Flush caches to ensure fresh dir is used
+                    Enso_User.flush_caches
+
+                    # TODO this should work, but further API changes are needed
+                    # Enso_File.current_working_directory . should_equal subdir
+                    # So now just checking id:
+                    Enso_File.current_working_directory.id . should_equal subdir.id
+
+            # It should be back to default afterwards:
+            Enso_File.current_working_directory . should_equal Enso_File.root
+
+        Test.specify "should allow to find a file by name" <|
+            # TODO the file should be created programmatically when write is implemented
+            f = Enso_File.root / "test_file.json"
+            f.should_succeed
+            f.name . should_equal "test_file.json"
+            f.is_directory . should_be_false
+            f.exists . should_be_true
+
+        Test.specify "should not find nonexistent files" <|
+            f = Enso_File.root / "nonexistent_file.json"
+            f.should_fail_with Not_Found
+
+        Test.specify "should not allow to create a directory inside of a regular file" <|
+            # TODO the file should be created programmatically when write is implemented
+            test_file = Enso_File.root / "test_file.json"
+            test_file.exists . should_be_true
+
+            r = test_file.create_directory "my_test_dir"
+            r.should_fail_with Illegal_Argument
+
+        Test.specify "should delete all contents of a directory when deleting a directory" pending="TODO discuss recursive delete" <|
+            dir1 = Enso_File.root.create_directory "my_test_dir1"+(Random.uuid.take 5)
+            dir1.should_succeed
+
+            dir2 = dir1.create_directory "my_test_dir2"
+            dir2.should_succeed
+
+            dir1.delete . should_succeed
+
+            with_retries <|
+                dir1.exists . should_be_false
+                # The inner directory should also have been trashed if its parent is removed
+                dir2.exists . should_be_false
 
         Test.specify "should not allow to delete the root directory" <|
             Enso_File.root.delete . should_fail_with Illegal_Argument
+
+        Test.specify "should be able to create and delete a file" pending="TODO: Cloud file write support" <|
+            Error.throw "TODO"
+
+        expected_file_text = '[1, 2, 3, "foo"]'
+        Test.specify "should be able to read and decode a file using various formats" <|
+            # TODO the file should be created programmatically when write is implemented
+            test_file = Enso_File.root / "test_file.json"
+            test_file.exists . should_be_true
+
+            test_file.read Plain_Text . should_equal expected_file_text
+
+            # auto-detection of JSON format:
+            json = test_file.read
+            json.should_be_a Vector
+            json.should_equal [1, 2, 3, "foo"]
+
+            test_file.read_bytes . should_equal expected_file_text.utf_8
+
+        Test.specify "should be able to open a file as input stream" <|
+            test_file = Enso_File.root / "test_file.json"
+            test_file.exists . should_be_true
+
+            bytes = test_file.with_input_stream [File_Access.Read] stream->
+                stream.read_all_bytes
+
+            bytes.should_equal expected_file_text.utf_8
+
+        Test.specify "should be able to read file metadata" <|
+            Enso_File.root.exists . should_be_true
+            Enso_File.root.name . should_equal "/"
+
+            # TODO this structure should be created once we get file writing
+            dir = Enso_File.root / "test-directory"
+            dir.exists.should_be_true
+            dir.name . should_equal "test-directory"
+            dir.extension . should_fail_with Illegal_Argument
+            dir.is_directory.should_be_true
+            dir.is_regular_file.should_be_false
+            dir.size . should_fail_with Illegal_Argument
+
+            nested_file = dir / "another.txt"
+            nested_file.exists.should_be_true
+            nested_file.name . should_equal "another.txt"
+            nested_file.extension . should_equal ".txt"
+            nested_file.is_directory.should_be_false
+            nested_file.is_regular_file.should_be_true
+            nested_file.size . should_equal nested_file.read_bytes.length
+
+        Test.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata, waiting on https://github.com/enso-org/cloud-v2/issues/870" <|
+            Enso_File.root.parent . should_equal Nothing
+            Enso_File.root.path . should_equal "enso://"
+
+            dir = Enso_File.root / "test-directory"
+            dir.path . should_equal "enso://test-directory/"
+            dir.parent . should_equal Enso_File.root
+            dir.is_child_of Enso_File.root . should_be_true
+            Enso_File.root.is_child_of dir . should_be_false
+            dir.creation_time . should_be_a Date_Time
+            dir.last_modified_time . should_be_a Date_Time
+
+            nested_file = dir / "another.txt"
+            nested_file.path . should_equal "enso://test-directory/another.txt"
+            nested_file.parent . should_equal dir
+            nested_file.is_child_of dir . should_be_true
+            nested_file.is_child_of Enso_File.root . should_be_true
+            nested_file.creation_time . should_be_a Date_Time
+            nested_file.last_modified_time . should_be_a Date_Time
+
+        Test.specify "should be able to read other file metadata" pending="TODO needs further design" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+
+            nested_file.is_absolute.should_be_true
+            nested_file.absolute . should_equal nested_file
+            nested_file.normalize . should_equal nested_file
+            nested_file.posix_permissions . should_be_a File_Permissions
+            nested_file.is_writable . should_be_a Boolean
+
+        Test.specify "should be able to copy a file" pending="TODO Cloud file writing" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+            ## TODO currently `/` only works if the file already exists, so how will we construct a path for a copy target?
+               We either need to make all files just paths (like on regular File), or we need to have concrete files (with ID) and abstract files (just path).
+            new_file = nested_file.copy_to "TODO this needs design"
+            nested_file.exists.should_be_true
+            new_file.exists.should_be_true
+
+        Test.specify "should be able to move a file" pending="TODO Cloud file writing" <|
+            nested_file = Enso_File.root / "test-directory" / "another.txt"
+            nested_file.move_to "TODO this needs design"
+            nested_file.exists . should_be_false
 
 main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)

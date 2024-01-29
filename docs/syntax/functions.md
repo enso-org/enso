@@ -251,6 +251,59 @@ parts:
 ^ a n = a * a ^ (n-1)
 ```
 
+### Type Ascriptions and Operator Resolution
+
+Just like with any other function definition in Enso operator arguments may be
+associated with _type ascriptions_. Having a type `Num` we can add `+` operator
+to it as:
+
+```ruby
+Num.+ self that:Num -> Num = # add somehow
+```
+
+This inlined ascribed arguments increase type safety of the program by checking
+the types of values passed as arguments at runtime and yielding a `Type_Error`
+automatically when the types don't match. Moreover they support flexibility by
+_automatically using conversions_ when the actual argument values don't match,
+but there is a way to make them match. Should there be a conversion from an
+`Integer`:
+
+```ruby
+Num.from (that:Integer) = # convert somehow
+```
+
+then one can invoke the `+` on `Num` with `Integer` argument:
+
+```ruby
+add_five n:Num = n+5
+```
+
+the above statement first converts the `Integer` literal `5` used as second
+argument of the operator to `Num` using the above defined `Num.from` conversion
+method and then it invokes the `Num.+` operator with `n` and `Num` value
+representing `5` obtained from the conversion method. This is a regular behavior
+of every Enso function.
+
+However, in order to support extensibility of types, the operators also offer
+additional resolution _based on `that` argument_. Because (while it is possible
+to write `add_five` method as shown above) the following wouldn't be properly
+typed according to standard Enso function dispatch rules:
+
+```ruby
+five_add n:Num = 5+n
+```
+
+this would fail as the `Integer.+` expects both arguments to be `Integer` and
+here we are trying to pass `Num` as the second argument. Should `+` be a regular
+function (and not an operator) we would get `Type_Error`. However the special
+**binary operator resolution based on `that` argument** kicks in and finds out
+the `that` argument type is `Num` and the type `Num` also defines `+` operator.
+Moreover there is a conversion from `Integer` (type of the `self` argument) to
+`Num`. Hence the Enso runtime system decides to convert `5` to `Num` and perform
+the addition by invoking `Num.+`. This behavior allows one to write libraries
+that extend existing number types with `Complex_Number`, `Rational_Number` and
+make them behave as first class citizen numbers.
+
 ### Precedence
 
 Operator precedence in Enso is a collection of rules that reflect conventions

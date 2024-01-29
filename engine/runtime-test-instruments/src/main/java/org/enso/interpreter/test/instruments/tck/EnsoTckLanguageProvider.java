@@ -39,9 +39,11 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
     """).invokeMember("eval_expression", "plus");
 
     return List.of(
+      /* disabled until + is defined on Numbers again
       Snippet.newBuilder("plus:Number", plus, TypeDescriptor.NUMBER)
         .parameterTypes(TypeDescriptor.NUMBER, TypeDescriptor.NUMBER)
         .build(),
+        */
       Snippet.newBuilder("plus:Text", plus, TypeDescriptor.STRING)
         .parameterTypes(TypeDescriptor.STRING, TypeDescriptor.STRING)
         .build()
