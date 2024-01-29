@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import com.oracle.truffle.api.source.{Source}
 import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
@@ -21,7 +22,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
-import java.io.PrintStream
+import java.io.{PrintStream}
 import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
@@ -652,8 +653,8 @@ class Compiler(
     * @param source The inline code to parse
     * @return A Tree representation of `source`
     */
-  def parseInline(source: CharSequence): Tree =
-    ensoCompiler.parse(source)
+  def parseInline(source: Source): Tree =
+    ensoCompiler.parse(source.getCharacters())
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
