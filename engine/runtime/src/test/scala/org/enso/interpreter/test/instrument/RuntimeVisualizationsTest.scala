@@ -1362,7 +1362,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
-    val responses = context.receiveNIgnoreExpressionUpdates(2)
+    val responses = context.receiveNIgnoreExpressionUpdates(3)
     val visualizationUpdatesResponses =
       responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
     val expectedExpressionId = context.Main.idMainX
