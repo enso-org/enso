@@ -300,8 +300,11 @@ export function isMatch(
         } else if (
           'multipleOf' in schema &&
           typeof schema.multipleOf === 'number' &&
-          // Should be mostly equivalent to `%`, except more accurate in some cases like `1 % 0.01`.
-          value - Math.floor(value / schema.multipleOf) !== 0
+          value !== 0 &&
+          value % schema.multipleOf !== 0 &&
+          // Should be mostly equivalent to `%`, except more robust for multiple detection
+          // in some cases like`1 % 0.01`.
+          value - schema.multipleOf * Math.round(value / schema.multipleOf) !== 0
         ) {
           return false
         } else if (
