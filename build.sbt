@@ -31,7 +31,7 @@ val graalVersion = "21.0.1"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "23.1.0"
+val graalMavenPackagesVersion = "24.1.0-SNAPSHOT"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -1228,6 +1228,7 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
+      "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
@@ -1261,6 +1262,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
+      "org.graalvm.polyglot"        % "polyglot"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
       "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
@@ -1432,6 +1434,7 @@ lazy val frgaalJavaCompilerSetting =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
 
 def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
+  resolvers += Resolver.mavenLocal,
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
@@ -1482,10 +1485,11 @@ lazy val `runtime-language-epb` =
       Test / javaOptions ++= Seq(),
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "junit"               % "junit"                 % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
       )
     )
 
@@ -1620,6 +1624,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % Test,
@@ -1866,11 +1871,12 @@ lazy val `runtime-compiler` =
       frgaalJavaCompilerSetting,
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "junit"            % "junit"                   % junitVersion       % Test,
-        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
-        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-        "com.lihaoyi"     %% "fansi"                   % fansiVersion
+        "junit"                % "junit"                   % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
+        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+        "com.lihaoyi"         %% "fansi"                   % fansiVersion
       )
     )
     .dependsOn(`runtime-parser`)
@@ -2085,14 +2091,15 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"     % commonsCliVersion,
-      "com.monovore"       %% "decline"         % declineVersion,
-      "org.jline"           % "jline"           % jlineVersion,
-      "org.typelevel"      %% "cats-core"       % catsVersion,
-      "junit"               % "junit"           % junitVersion              % Test,
-      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
+      "org.graalvm.polyglot" % "polyglot"        % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"      % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle"  % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"          % "commons-cli"     % commonsCliVersion,
+      "com.monovore"        %% "decline"         % declineVersion,
+      "org.jline"            % "jline"           % jlineVersion,
+      "org.typelevel"       %% "cats-core"       % catsVersion,
+      "junit"                % "junit"           % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
@@ -2592,6 +2599,7 @@ lazy val `std-base` = project
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
@@ -2708,6 +2716,7 @@ lazy val `std-table` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"          % "collections"             % graalMavenPackagesVersion,
       "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
@@ -2797,6 +2806,7 @@ lazy val `std-database` = project
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"       % "postgresql"              % "42.4.0"

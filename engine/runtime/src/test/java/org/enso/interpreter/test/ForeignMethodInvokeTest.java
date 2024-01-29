@@ -3,12 +3,12 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Random;
 import java.util.concurrent.Executors;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ForeignMethodInvokeTest extends TestBase {
@@ -16,7 +16,19 @@ public class ForeignMethodInvokeTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = defaultContextBuilder("enso", "js").build();
+    var r = new Random();
+    var b =
+        defaultContextBuilder("enso", "js")
+            .onDeniedThreadAccess(
+                (ex) -> {
+                  ex.printStackTrace();
+                  try {
+                    Thread.sleep(r.nextInt(100));
+                  } catch (InterruptedException ignore) {
+                  }
+                  System.err.println("Trying again");
+                });
+    ctx = b.build();
   }
 
   @AfterClass
@@ -85,7 +97,6 @@ public class ForeignMethodInvokeTest extends TestBase {
     assertEquals(12, res2.getArrayElement(2).asInt());
   }
 
-  @Ignore
   @Test
   public void testParallelInteropWithJavaScript() throws Exception {
     var source =

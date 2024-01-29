@@ -10,7 +10,12 @@ import scala.collection.immutable.Seq
   */
 object GraalVM {
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  val version: String = "23.1.0"
+  val version: String       = "24.1.0-SNAPSHOT"
+  private val pythonVersion = "23.1.0"
+  private val jsVersion     = "23.1.0"
+  private val llvmVersion   = "23.1.0"
+  private val regexVersion  = "23.1.0"
+  private val toolVersion   = "23.1.0"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -52,39 +57,39 @@ object GraalVM {
     */
 
   val pythonPkgs = Seq(
-    "org.graalvm.python"   % "python-language"    % version,
-    "org.graalvm.python"   % "python-resources"   % version,
+    "org.graalvm.python"   % "python-language"    % pythonVersion,
+    "org.graalvm.python"   % "python-resources"   % pythonVersion,
     "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
     "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
     "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
-    "org.graalvm.llvm"     % "llvm-api"           % version,
+    "org.graalvm.llvm"     % "llvm-api"           % llvmVersion,
     "org.graalvm.truffle"  % "truffle-nfi"        % version,
     "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
-    "org.graalvm.regex"    % "regex"              % version,
-    "org.graalvm.tools"    % "profiler-tool"      % version,
+    "org.graalvm.regex"    % "regex"              % regexVersion,
+    "org.graalvm.tools"    % "profiler-tool"      % toolVersion,
     "org.graalvm.shadowed" % "json"               % version,
     "org.graalvm.shadowed" % "icu4j"              % version,
     "org.tukaani"          % "xz"                 % "1.9"
   )
 
   val jsPkgs = Seq(
-    "org.graalvm.js"       % "js-language" % version,
-    "org.graalvm.regex"    % "regex"       % version,
-    "org.graalvm.shadowed" % "icu4j"       % version
+    "org.graalvm.js"       % "js-language" % jsVersion,
+    "org.graalvm.regex"    % "regex"       % regexVersion,
+    "org.graalvm.shadowed" % "icu4j"       % jsVersion
   )
 
   val chromeInspectorPkgs = Seq(
-    "org.graalvm.tools"    % "chromeinspector-tool" % version,
+    "org.graalvm.tools"    % "chromeinspector-tool" % toolVersion,
     "org.graalvm.shadowed" % "json"                 % version,
-    "org.graalvm.tools"    % "profiler-tool"        % version
+    "org.graalvm.tools"    % "profiler-tool"        % toolVersion
   )
 
   val debugAdapterProtocolPkgs = Seq(
-    "org.graalvm.tools" % "dap-tool" % version
+    "org.graalvm.tools" % "dap-tool" % toolVersion
   )
 
   val insightPkgs = Seq(
-    "org.graalvm.tools" % "insight-tool" % version
+    "org.graalvm.tools" % "insight-tool" % toolVersion
   )
 
   val espressoPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
