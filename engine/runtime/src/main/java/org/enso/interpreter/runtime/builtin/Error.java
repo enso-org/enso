@@ -200,6 +200,34 @@ public final class Error {
   }
 
   /**
+   * Checks whether given atom represents a type error.
+   *
+   * @param payload the atom to check
+   * @return true or false
+   */
+  public boolean isTypeError(Atom payload) {
+    if (payload instanceof Atom atom) {
+      return typeError.getUniqueConstructor() == atom.getConstructor();
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Checks whether given atom represents a conversion error.
+   *
+   * @param payload the atom to check
+   * @return true or false
+   */
+  public boolean isNoSuchConversionError(Object payload) {
+    if (payload instanceof Atom atom) {
+      return noSuchConversion.getUniqueConstructor() == atom.getConstructor();
+    } else {
+      return false;
+    }
+  }
+
+  /**
    * Create an instance of the runtime representation of an {@code Arithmetic_Error}.
    *
    * @param reason the reason that the error is being thrown for

@@ -6,7 +6,7 @@ const _props = defineProps(widgetProps(widgetDefinition))
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.astMatcher(Ast.Wildcard), {
-  priority: 1001,
+  priority: 500,
   score: Score.Good,
 })
 </script>

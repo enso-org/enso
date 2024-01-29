@@ -16,6 +16,7 @@ class NamedArgumentsTest extends InterpreterTest {
     "be used in function bodies" in {
       val code =
         """import Standard.Base.Nothing
+          |import Standard.Base.Data.Numbers
           |
           |Nothing.a = 10
           |Nothing.add_ten = b -> Nothing.a + b

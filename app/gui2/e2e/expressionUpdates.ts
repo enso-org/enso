@@ -1,9 +1,15 @@
 import type { Page } from '@playwright/test'
 import type { ExpressionUpdate, MethodCall } from 'shared/languageServerTypes'
 
+export type ExpressionLocator = string | { binding: string; expr: string }
+
 /** Provide method call info for collapsed function call. */
-export async function mockCollapsedFunctionInfo(page: Page, binding: string, functionName: string) {
-  await mockMethodCallInfo(page, binding, {
+export async function mockCollapsedFunctionInfo(
+  page: Page,
+  expression: ExpressionLocator,
+  functionName: string,
+) {
+  await mockMethodCallInfo(page, expression, {
     methodPointer: {
       module: 'local.Mock.Main',
       definedOnType: 'local.Mock.Main',
@@ -14,18 +20,22 @@ export async function mockCollapsedFunctionInfo(page: Page, binding: string, fun
 }
 
 /** Provide custom method call info for the specific node. */
-export async function mockMethodCallInfo(page: Page, binding: string, methodCallInfo: MethodCall) {
-  await mockExpressionUpdate(page, binding, { methodCall: methodCallInfo })
+export async function mockMethodCallInfo(
+  page: Page,
+  expression: ExpressionLocator,
+  methodCallInfo: MethodCall,
+) {
+  await mockExpressionUpdate(page, expression, { methodCall: methodCallInfo })
 }
 
 /** Provide custom expression update for the specific node. */
 export async function mockExpressionUpdate(
   page: Page,
-  binding: string,
+  expression: ExpressionLocator,
   update: Partial<ExpressionUpdate>,
 ) {
   await page.evaluate(
-    ({ binding, update }) => (window as any).mockExpressionUpdate(binding, update),
-    { binding, update },
+    ({ expression, update }) => (window as any).mockExpressionUpdate(expression, update),
+    { expression, update },
   )
 }

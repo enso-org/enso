@@ -61,6 +61,7 @@ public class JavaInteropTest extends TestBase {
   public void testClassImportAndMethodCall() {
     var code =
         """
+        import Standard.Base.Data.Numbers
         polyglot java import org.enso.example.TestClass
         main =
             instance = TestClass.new (x -> x * 2)
