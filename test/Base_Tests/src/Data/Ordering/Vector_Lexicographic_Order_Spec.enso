@@ -8,7 +8,7 @@ from Standard.Test_New import all
 type My_Type
     Value a b
 
-spec = suite_builder.group "Lexicographic Order on Vectors" group_builder->
+add_specs suite_builder = suite_builder.group "Lexicographic Order on Vectors" group_builder->
     group_builder.specify "should behave as shown in examples" <|
         Vector_Lexicographic_Order.compare [1, 2, 3] [1, 3, 0] . should_equal Ordering.Less
         Vector_Lexicographic_Order.compare [1, 2, 3] [1, 2] . should_equal Ordering.Greater

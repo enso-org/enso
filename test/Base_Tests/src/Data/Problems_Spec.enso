@@ -10,7 +10,7 @@ main =
     suite.run_with_filter
 
 
-spec = suite_builder.group "Problem_Behavior" group_builder->
+add_specs suite_builder = suite_builder.group "Problem_Behavior" group_builder->
     group_builder.specify "escalate_warnings should escalate warnings according to its setting" <|
         w = Illegal_State.Error "Foo"
         x = Warning.attach w 42

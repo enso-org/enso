@@ -12,7 +12,7 @@ Array.method self = 0
 make_enso_array vector =
     vector.to_array
 
-test_arrays array_from_vector =
+test_arrays group_builder array_from_vector =
     group_builder.specify "should allow accessing elements" <|
         arr = array_from_vector [1, 2, 3]
         arr.at 0 . should_equal 1
@@ -26,7 +26,7 @@ test_arrays array_from_vector =
 
 add_specs suite_builder =
     suite_builder.group "Enso Arrays" group_builder->
-        test_arrays make_enso_array
+        test_arrays group_builder make_enso_array
 
         group_builder.specify "should allow for functional dispatch on a method defined in this module" <|
             arr = make_enso_array [1, 2, 3]

@@ -1,10 +1,11 @@
 from Standard.Base import all
 
 from Standard.Test_New import all
+import Standard.Test_New.Test_Environment
 
 
 
-spec = suite_builder.group "Environment" group_builder->
+add_specs suite_builder = suite_builder.group "Environment" group_builder->
     group_builder.specify "should allow to internally override environment variables for testing purposes" <|
         old = Environment.get "foobar"
 

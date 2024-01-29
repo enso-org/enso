@@ -10,7 +10,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Test_New import all
 
 
-spec = suite_builder.group "Range" group_builder->
+add_specs suite_builder = suite_builder.group "Range" group_builder->
     group_builder.specify "should be created with a start, an end and a step" <|
         range = 1.up_to 100
         range.start . should_equal 1

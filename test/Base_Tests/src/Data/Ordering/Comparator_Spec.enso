@@ -36,7 +36,7 @@ Comparable.from (_:No_Ord) = No_Ord_Comparator
 
 # Tests
 
-spec = suite_builder.group "Object Comparator" group_builder->
+add_specs suite_builder = suite_builder.group "Object Comparator" group_builder->
     handle_comp_exc = Panic.catch CompareException handler=(exc -> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
     default_comparator a b = handle_comp_exc <| ObjectComparator.DEFAULT.compare a b
     case_insensitive a b = handle_comp_exc <| ObjectComparator.new False Locale.default.java_locale . compare a b

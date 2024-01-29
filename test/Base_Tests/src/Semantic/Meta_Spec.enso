@@ -12,6 +12,7 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test_New import all
+import Standard.Test_New.Test_Result.Test_Result
 
 
 
@@ -430,14 +431,14 @@ add_specs suite_builder =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
-    Test.group "Unresolved symbol"
+    suite_builder.group "Unresolved symbol" group_builder->
         group_builder.specify "should be treated as a Function" <|
             (_.is_nothing) . is_a Function . should_equal True
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
 
-    Test.group "Meta.Type.find"
+    suite_builder.group "Meta.Type.find" group_builder->
         group_builder.specify "find boolean and use it" <|
             fqn = "Standard.Base.Data.Boolean.Boolean"
             typ = Meta.Type.find fqn

@@ -4,7 +4,7 @@ from Standard.Base.Data.Text.Text_Sub_Range import character_ranges
 from Standard.Test_New import all
 
 
-spec = suite_builder.group "Text_Sub_Range_Data" group_builder->
+add_specs suite_builder = suite_builder.group "Text_Sub_Range_Data" group_builder->
     group_builder.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
         character_ranges "" . should_equal []
         character_ranges "A" . should_equal [0.up_to 1]

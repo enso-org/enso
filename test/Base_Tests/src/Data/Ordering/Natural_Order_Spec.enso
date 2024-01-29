@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Test_New import all
 
 
-spec = suite_builder.group "Natural Order" group_builder->
+add_specs suite_builder = suite_builder.group "Natural Order" group_builder->
     case_insensitive_compare a b = Natural_Order.compare a b Case_Sensitivity.Insensitive
 
     group_builder.specify "should behave as shown in examples" <|
