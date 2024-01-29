@@ -491,3 +491,22 @@ test('Construct app', () => {
   )
   expect(namedApp.code()).toBe('func argName=arg')
 })
+
+test('Automatic parenthesis', () => {
+  const block = Ast.parseBlock('main = func arg1 arg2')
+  let arg1: Ast.MutableAst | undefined
+  block.visitRecursiveAst((ast) => {
+    if (ast instanceof Ast.MutableIdent && ast.code() === 'arg1') {
+      assert(!arg1)
+      arg1 = ast
+    }
+  })
+  assert(arg1 != null)
+  arg1.replace(Ast.parse('innerfunc innerarg', block.module))
+  const correctCode = 'main = func (innerfunc innerarg) arg2'
+  // This assertion will fail when smart printing handles this case.
+  // At that point we should test tree repair separately.
+  assert(block.code() !== correctCode)
+  Ast.repair(block, block.module)
+  expect(block.code()).toBe(correctCode)
+})

@@ -1,5 +1,5 @@
 import * as map from 'lib0/map'
-import { assert } from '../util/assert'
+import { assert, assertEqual } from '../util/assert'
 import type { SourceRange, SourceRangeKey } from '../yjsModel.ts'
 import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel.ts'
 import { parse_tree } from './ffi.ts'
@@ -247,7 +247,7 @@ function abstractTree(
     }
   }
   toRaw.set(node.id, tree)
-  map.setIfUndefined(nodesOut, spanKey, (): Ast[] => []).push(node)
+  map.setIfUndefined(nodesOut, spanKey, (): Ast[] => []).unshift(node)
   return { node, whitespace }
 }
 
@@ -405,4 +405,33 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
       `asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}, haveRoot=${!!module.root()}`,
     )
   return module.root() ? asts - astsMatched : 0
+}
+
+function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap) {
+  const lost = new Array<Ast>()
+  for (const [key, asts] of expected) {
+    const outermostPrinted = asts[0]
+    if (!outermostPrinted) continue
+    for (let i = 1; i < asts.length; ++i) assertEqual(asts[i]?.parentId, asts[i - 1]?.id)
+    const reparsedAsts = encountered.get(key)
+    if (reparsedAsts === undefined) lost.push(outermostPrinted)
+  }
+  return { lost }
+}
+
+export function repair(
+  root: BodyBlock,
+  module?: MutableModule,
+): { code: string; fixes: MutableModule | undefined } {
+  const printed = print(root)
+  const reparsed = parseBlockWithSpans(printed.code)
+  const { lost } = checkSpans(printed.info.nodes, reparsed.spans.nodes)
+  if (lost.length === 0) return { code: printed.code, fixes: undefined }
+  const fixes = module ?? root.module.edit()
+  for (const ast of lost) fixes.getVersion(ast).update((ast) => Group.new(fixes, ast))
+  const printed2 = print(fixes.getVersion(root))
+  const reparsed2 = parseBlockWithSpans(printed2.code)
+  const { lost: lost2 } = checkSpans(printed2.info.nodes, reparsed2.spans.nodes)
+  if (lost2.length !== 0) console.error(`Failed to repair AST!`, lost2)
+  return { code: printed2.code, fixes }
 }

@@ -132,8 +132,7 @@ export abstract class Ast {
       }
     }
     const span = nodeKey(offset, code.length)
-    const infos = map.setIfUndefined(info.nodes, span, (): Ast[] => [])
-    infos.push(this)
+    map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(this)
     return code
   }
 
@@ -149,10 +148,13 @@ export abstract class Ast {
     }
   }
 
-  parent(): Ast | undefined {
+  get parentId(): AstId | undefined {
     const parentId = this.fields.get('parent')
-    if (parentId === 'ROOT_ID') return
-    return this.module.checkedGet(parentId)
+    if (parentId !== 'ROOT_ID') return parentId
+  }
+
+  parent(): Ast | undefined {
+    return this.module.checkedGet(this.parentId)
   }
 
   static parseBlock(source: string, inModule?: MutableModule) {
@@ -1238,6 +1240,12 @@ export class Group extends Ast {
     return asOwned(new MutableGroup(module, fields))
   }
 
+  static new(module: MutableModule, expression: Owned) {
+    const open = unspaced(Token.new('(', RawAst.Token.Type.OpenSymbol))
+    const close = unspaced(Token.new(')', RawAst.Token.Type.CloseSymbol))
+    return this.concrete(module, open, unspaced(expression), close)
+  }
+
   get expression(): Ast | undefined {
     return this.module.checkedGet(this.fields.get('expression')?.node)
   }
@@ -1610,7 +1618,7 @@ export class BodyBlock extends Ast {
       }
     }
     const span = nodeKey(offset, code.length)
-    map.setIfUndefined(info.nodes, span, (): Ast[] => []).push(this)
+    map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(this)
     return code
   }
 }
