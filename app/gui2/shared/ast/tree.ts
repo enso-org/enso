@@ -35,11 +35,14 @@ declare const brandAstId: unique symbol
 export type AstId = string & { [brandAstId]: never }
 
 /** @internal */
+export type MetadataFields = {
+  externalId: ExternalId
+}
 export type AstFields = {
   id: AstId
-  externalId: ExternalId
   type: string
   parent: AstId | undefined
+  metadata: FixedMap<MetadataFields>
 }
 export abstract class Ast {
   readonly module: Module
@@ -51,7 +54,7 @@ export abstract class Ast {
   }
 
   get externalId(): ExternalId {
-    const id = this.fields.get('externalId')
+    const id = this.fields.get('metadata').get('externalId')
     assert(id != null)
     return id
   }
@@ -183,7 +186,7 @@ export abstract class MutableAst extends Ast {
   declare readonly fields: FixedMap<AstFields>
 
   setExternalId(id: ExternalId) {
-    this.fields.set('externalId', id)
+    this.fields.get('metadata').set('externalId', id)
   }
 
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
@@ -203,7 +206,7 @@ export abstract class MutableAst extends Ast {
   replaceValue<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
     const replacement_ = this.module.copyIfForeign(replacement)
     const old = this.replace(replacement_)
-    replacement_.setExternalId(old.externalId)
+    replacement_.fields.set('metadata', old.fields.get('metadata').clone())
     old.setExternalId(newExternalId())
     return old
   }

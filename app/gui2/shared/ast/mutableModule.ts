@@ -134,6 +134,14 @@ export class MutableModule implements Module {
       const addNodes = []
       const deleteNodes = []
       const updateNodes = []
+      const fieldUpdate = ([key, value]: readonly [string, unknown]): [string, unknown] => {
+        if (value instanceof Y.Map) {
+          return [key, new Map(value)]
+        } else {
+          assert(!(value instanceof Y.AbstractType))
+          return [key, value]
+        }
+      }
       for (const event of events) {
         if (event.target === this.nodes) {
           for (const [key, change] of event.changes.keys) {
@@ -141,18 +149,23 @@ export class MutableModule implements Module {
             switch (change.action) {
               case 'add':
                 addNodes.push(id)
-                updateNodes.push({ id, fields: Array.from(this.nodes.get(id)!.entries()) })
+                updateNodes.push({
+                  id,
+                  fields: Array.from(this.nodes.get(id)!.entries(), fieldUpdate),
+                })
                 break
               case 'update':
-                updateNodes.push({ id, fields: Array.from(this.nodes.get(id)!.entries()) })
+                updateNodes.push({
+                  id,
+                  fields: Array.from(this.nodes.get(id)!.entries(), fieldUpdate),
+                })
                 break
               case 'delete':
                 deleteNodes.push(id)
                 break
             }
           }
-        } else {
-          assert(event.target.parent === this.nodes)
+        } else if (event.target.parent === this.nodes) {
           assert(event.target instanceof Y.Map)
           const id = event.target.get('id') as AstId
           const node = this.nodes.get(id)
@@ -164,7 +177,7 @@ export class MutableModule implements Module {
               case 'update': {
                 assert((node as Y.Map<unknown>).has(key as any))
                 const value: unknown = node.get(key as any)
-                fields.push([key, value])
+                fields.push(fieldUpdate([key, value]))
                 break
               }
               case 'delete':
@@ -172,6 +185,13 @@ export class MutableModule implements Module {
                 break
             }
           }
+          updateNodes.push({ id, fields })
+        } else {
+          assert(event.target.parent.parent === this.nodes)
+          const id = event.target.parent.get('id') as AstId
+          const node = this.nodes.get(id)
+          assertDefined(node)
+          const fields = [fieldUpdate(['metadata', node.get('metadata')])]
           updateNodes.push({ id, fields })
         }
       }
@@ -238,11 +258,15 @@ export class MutableModule implements Module {
     const map = new Y.Map<unknown>()
     const map_ = map as unknown as FixedMap<{}>
     const id = overrideId ?? newAstId(type)
+    const metadata = new Y.Map<unknown>() as unknown as FixedMap<{}>
+    setAll(metadata, {
+      externalId: externalId ?? newExternalId(),
+    })
     const fields = setAll(map_, {
       id,
-      externalId: externalId ?? newExternalId(),
       type: type,
       parent: undefined,
+      metadata,
     })
     this.nodes.set(id, fields)
     return fields
