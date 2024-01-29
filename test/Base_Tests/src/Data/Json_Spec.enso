@@ -6,6 +6,7 @@ import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
 
 from Standard.Test_New import all
+import Standard.Test_New.Spec_Result.Spec_Result
 
 
 
@@ -17,17 +18,17 @@ type Book
 
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
-        _ -> Test_Result.Failure "Expected a parse error, but no error reported."
+        _ -> Spec_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
         Invalid_JSON.Error msg ->
-            if msg.contains expected then Test_Result.Success else
+            if msg.contains expected then Spec_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
-                Test_Result.Failure fail_msg
+                Spec_Result.Failure fail_msg
         _ ->
             fail_msg = "Expected a parser error, but " + e.to_text + " was thrown."
-            Test_Result.Failure fail_msg
+            Spec_Result.Failure fail_msg
     case result of
-        Test_Result.Success -> Test_Result.Success
+        Spec_Result.Success -> Spec_Result.Success
         _ -> Panic.throw result
 
 Text.should_parse_as self expected =
