@@ -28,8 +28,21 @@ export interface DropdownProps<T> {
 export default function Dropdown<T>(props: DropdownProps<T>) {
   const { readOnly = false, className, items, selectedIndex, render: Child, onClick } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
+  const [tempSelectedIndex, setTempSelectedIndex] = React.useState<number | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const isMouseDown = React.useRef(false)
-  const selectedItem = selectedIndex == null ? null : items[selectedIndex]
+  const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
+  const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
+
+  React.useEffect(() => {
+    setTempSelectedIndex(selectedIndex)
+  }, [selectedIndex])
+
+  React.useEffect(() => {
+    if (!isDropdownVisible) {
+      rootRef.current?.blur()
+    }
+  }, [isDropdownVisible])
 
   React.useEffect(() => {
     const onDocumentClick = () => {
@@ -41,37 +54,68 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     }
   }, [])
 
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+      switch (event.key) {
+        case 'Escape': {
+          event.stopPropagation()
+          setIsDropdownVisible(false)
+          break
+        }
+        case 'Enter':
+        case 'Tab': {
+          event.stopPropagation()
+          if (tempSelectedIndex != null) {
+            const item = items[tempSelectedIndex]
+            if (item != null) {
+              onClick(item, tempSelectedIndex)
+            }
+          }
+          setIsDropdownVisible(false)
+          break
+        }
+        case 'ArrowUp': {
+          event.preventDefault()
+          setTempSelectedIndex(
+            tempSelectedIndex == null ||
+              tempSelectedIndex === 0 ||
+              tempSelectedIndex >= items.length
+              ? items.length - 1
+              : tempSelectedIndex - 1
+          )
+          break
+        }
+        case 'ArrowDown': {
+          event.preventDefault()
+          setTempSelectedIndex(
+            tempSelectedIndex == null || tempSelectedIndex >= items.length - 1
+              ? 0
+              : tempSelectedIndex + 1
+          )
+          break
+        }
+      }
+    }
+  }
+
   return (
     <div
-      tabIndex={-1}
-      ref={el => {
-        if (isDropdownVisible && el?.contains(document.activeElement) === true) {
-          el.focus()
-        }
-      }}
+      ref={rootRef}
+      tabIndex={0}
       className={`group relative flex flex-col w-max items-center rounded-xl cursor-pointer leading-5 whitespace-nowrap ${
         className ?? ''
       }`}
       onFocus={event => {
-        if (event.target === event.currentTarget) {
+        if (!readOnly && event.target === event.currentTarget) {
           setIsDropdownVisible(true)
         }
       }}
       onBlur={event => {
-        if (event.target === event.currentTarget) {
+        if (!readOnly && event.target === event.currentTarget) {
           setIsDropdownVisible(false)
         }
       }}
-      onKeyDown={event => {
-        if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
-          switch (event.key) {
-            case 'Escape': {
-              event.stopPropagation()
-              setIsDropdownVisible(false)
-            }
-          }
-        }
-      }}
+      onKeyDown={onKeyDown}
     >
       <div
         className={`absolute left-0 w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
@@ -84,12 +128,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           }`}
         >
           {/* Spacing. */}
-          <div
-            className="relative padding h-6"
-            onClick={() => {
-              setIsDropdownVisible(visible => !visible)
-            }}
-          />
+          <div className="relative padding h-6" />
           <div
             className={`relative grid rounded-xl w-full max-h-10lh transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
@@ -97,9 +136,8 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           >
             {items.map((item, i) => (
               <div
-                tabIndex={0}
                 className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
-                  i === selectedIndex
+                  i === visuallySelectedIndex
                     ? 'cursor-default bg-frame font-bold'
                     : 'hover:bg-frame-selected'
                 }`}
@@ -112,7 +150,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                   isMouseDown.current = false
                 }}
                 onClick={() => {
-                  if (i !== selectedIndex) {
+                  if (i !== visuallySelectedIndex) {
                     setIsDropdownVisible(false)
                     onClick(item, i)
                   }
@@ -135,14 +173,11 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
           readOnly ? 'opacity-75 cursor-not-allowed' : ''
         }`}
-        onClick={() => {
-          if (!readOnly) {
-            setIsDropdownVisible(visible => !visible)
-          }
-        }}
       >
         <SvgMask src={TriangleDownIcon} />
-        <div className="grow">{selectedItem != null && <Child item={selectedItem} />}</div>
+        <div className="grow">
+          {visuallySelectedItem != null && <Child item={visuallySelectedItem} />}
+        </div>
       </div>
     </div>
   )

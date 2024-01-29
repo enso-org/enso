@@ -39,10 +39,12 @@ function getSchemaNameHelper(schema: object): string {
     return referencedSchema == null ? '(unknown)' : getSchemaName(referencedSchema)
   } else if ('anyOf' in schema) {
     const members = Array.isArray(schema.anyOf) ? schema.anyOf : []
-    return members.flatMap(object.singletonObjectOrNull).map(getSchemaName).join('|') || '(unknown)'
+    return (
+      members.flatMap(object.singletonObjectOrNull).map(getSchemaName).join(' | ') || '(unknown)'
+    )
   } else if ('allOf' in schema) {
     const members = Array.isArray(schema.allOf) ? schema.allOf : []
-    return members.flatMap(object.singletonObjectOrNull).join('&') || '(unknown)'
+    return members.flatMap(object.singletonObjectOrNull).join(' & ') || '(unknown)'
   } else {
     return '(unknown)'
   }
