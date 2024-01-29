@@ -2,6 +2,9 @@
 dist
 target
 
+# Release body template should not be auto-formatted, as the word wrap does not really looks good in the GitHub UI.
+build/build/release-body.md
+
 .github/PULL_REQUEST_TEMPLATE.md
 .github/ISSUE_TEMPLATE
 distribution/launcher/THIRD-PARTY
