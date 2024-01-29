@@ -75,13 +75,13 @@ initialize secret_file =
    - start_date
    - end_date
 run_google_report : Text -> Text -> Text -> Table
-run_google_report self property_id start_date end_date =
+run_google_report property_id start_date end_date =
     analytics_data = BetaAnalyticsDataClient.create
     request = RunReportRequest.newBuilder
-          .setProperty("properties/" + '415432269')
-          .addDimensions(Dimension.newBuilder.setName("city"))
-          .addMetrics(Metric.newBuilder.setName("activeUsers"))
-          .addDateRanges(DateRange.newBuilder.setStartDate("2020-03-31").setEndDate("today"))
-          .build
-    response = RunReportResponse analytics_data.runReport(request)
-    Table.new response.GetRowsList
+        . setProperty "properties/"+"415432269"
+        . addDimensions (Dimension.newBuilder.setName "city")
+        . addMetrics (Metric.newBuilder.setName "activeUsers")
+        . addDateRanges (DateRange.newBuilder.setStartDate "2020-03-31" . setEndDate "today")
+        . build
+    response = analytics_data.runReport request
+    response.getRowsList

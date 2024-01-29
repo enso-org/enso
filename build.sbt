@@ -2776,7 +2776,7 @@ lazy val `std-google-api` = project
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
-      "com.google.api-client" % "google-api-client"          % "1.35.2",
+      "com.google.api-client" % "google-api-client"          % "2.2.0",
       "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0",
       "com.google.analytics"  % "google-analytics-data"      % "0.44.0"
     ),
