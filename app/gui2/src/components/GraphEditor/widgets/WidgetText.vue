@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TextInputWidget from '@/components/widgets/TextInputWidget.vue'
+import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -28,15 +28,16 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
     if (props.input.value instanceof Ast.TextLiteral) return Score.Perfect
+    if (props.input.dynamicConfig?.kind === 'Text_Input') return Score.Perfect
     const type = props.input.expectedType
-    if (type === 'Standard.Base.Data.Text') return Score.Perfect
+    if (type === 'Standard.Base.Data.Text') return Score.Good
     return Score.Mismatch
   },
 })
 </script>
 
 <template>
-  <TextInputWidget v-model="value" class="WidgetText r-24" />
+  <EnsoTextInputWidget v-model="value" class="WidgetText r-24" />
 </template>
 
 <style scoped>

@@ -43,7 +43,9 @@ const inputStyle = computed<StyleValue>(() => {
 
 /** To prevent other elements from stealing mouse events (which breaks blur),
  * we instead setup our own `pointerdown` handler while the input is focused.
- * Any click outside of the input field causes `blur`. */
+ * Any click outside of the input field causes `blur`.
+ * We don’t want to `useAutoBlur` here, because it would require a separate `pointerdown` handler per input widget.
+ * Instead we setup a single handler for the currently focused widget only, and thus safe performance. */
 function setupAutoBlur() {
   const options = { capture: true }
   function callback(event: MouseEvent) {
@@ -60,7 +62,7 @@ function prepareForEditing() {
   editedValue.value = unescape(editedValue.value.replace(separators, ''))
 }
 
-function onFocus() {
+function focus() {
   setupAutoBlur()
   prepareForEditing()
 }
@@ -74,20 +76,25 @@ function blur() {
 </script>
 
 <template>
-  <div class="TextInputWidget" @pointerdown.stop="() => inputNode?.focus()" @keydown.backspace.stop>
+  <div
+    class="EnsoTextInputWidget"
+    @pointerdown.stop="() => inputNode?.focus()"
+    @keydown.backspace.stop
+    @keydown.delete.stop
+  >
     <input
       ref="inputNode"
       v-model="editedValue"
       class="value"
       :style="inputStyle"
-      @focus="onFocus"
+      @focus="focus"
       @blur="blur"
     />
   </div>
 </template>
 
 <style scoped>
-.TextInputWidget {
+.EnsoTextInputWidget {
   position: relative;
   user-select: none;
   background: var(--color-widget);

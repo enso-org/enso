@@ -475,16 +475,18 @@ test('Splice', () => {
 })
 
 test.each([
-  'Hello, World!',
-  'Hello\t\tWorld!',
-  'He\nllo, W\rorld!',
-  'Hello,\vWorld!',
-  'Hello, \\World!',
-  'Hello, `World!`',
-  "'Hello, World!'",
-  '"Hello, World!"',
-  'Hello, \fWorld!',
-  'Hello, \bWorld!',
-])('Text literals escaping and unescaping', (input) => {
-  expect(unescape(escape(input))).toBe(input)
+  ['Hello, World!', 'Hello, World!'],
+  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
+  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
+  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
+  ['Hello, \\World!', 'Hello, \\World!'],
+  ['Hello, `World!`', 'Hello, ``World!``'],
+  ["'Hello, World!'", "\\'Hello, World!\\'"],
+  ['"Hello, World!"', '\\"Hello, World!\\"'],
+  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
+  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
+])('Text literals escaping and unescaping', (original, expectedEscaped) => {
+  const escaped = escape(original)
+  expect(escaped).toBe(expectedEscaped)
+  expect(unescape(escaped)).toBe(original)
 })

@@ -123,7 +123,12 @@ function focus() {
 </script>
 
 <template>
-  <div class="NumericInputWidget" v-on="dragPointer.events" @keydown.backspace.stop>
+  <div
+    class="NumericInputWidget"
+    v-on="dragPointer.events"
+    @keydown.backspace.stop
+    @keydown.delete.stop
+  >
     <div v-if="props.limits != null" class="fraction" :style="{ width: sliderWidth }"></div>
     <input
       ref="inputNode"

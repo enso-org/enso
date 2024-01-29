@@ -4,7 +4,7 @@ import { parseEnso } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { is_ident_or_operator } from '@/util/ffi'
 import type { LazyObject } from '@/util/parserSupport'
-import { unsafeEntries } from '@/util/record'
+import { swapKeysAndValues, unsafeEntries } from '@/util/record'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -1665,13 +1665,7 @@ const mapping: Record<string, string> = {
   '`': '``',
 }
 
-const reverseMapping: Record<string, string> = Object.entries(mapping).reduce(
-  (acc: Record<string, string>, [key, value]) => {
-    acc[value] = key
-    return acc
-  },
-  {},
-)
+const reverseMapping = swapKeysAndValues(mapping)
 
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * NOT USABLE to insert into raw strings. Does not include quotes. */
