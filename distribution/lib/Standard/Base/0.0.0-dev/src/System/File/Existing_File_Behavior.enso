@@ -34,6 +34,8 @@ type Existing_File_Behavior
        raised.
     Error
 
+    ## TODO move the implementation to a separate module, maybe Writable_File could set how to customize it
+
     ## PRIVATE
        Adjust the Existing_File_Behavior to take account of Context enablement.
        If the context is disabled, the returned behavior represents the behavior

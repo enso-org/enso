@@ -58,13 +58,6 @@ type S3_File
     is_regular_file : Boolean
     is_regular_file self = self.is_directory.not
 
-    ## PRIVATE
-       Internal method. May not reflect the actual permissions associated with user's credentials.
-    is_writable self =
-        ## Currently we just always return True - this is needed for the `Existing_File_Behavior` integration.
-           Later we could actually do some permissions check.
-        True
-
     ## GROUP Standard.Base.Metadata
        Gets the size of a file in bytes.
     size : Integer

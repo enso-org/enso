@@ -1,0 +1,86 @@
+## PRIVATE
+   Specifies the logic for handling writing files with options like `Existing_File_Behavior` and dry run.
+type File_Write_Strategy
+    ## PRIVATE
+       Each of the `write_` strategies takes the file as a first argument, an
+       action taking an `Output_Stream` as a second argument and should run this
+       action against the output stream opened for the file and return its
+       result.
+
+       The `dry_run_behavior` takes an `Existing_File_Behavior` and returns a
+       transformed one that is supposed to be applied on a dry run file if it
+       already exists (since the dry run file often needs to be treated
+       differently than the original file).
+    Value write_overwriting write_appending write_raising_error write_backing_up dry_run_behavior
+
+## PRIVATE
+default_overwrite file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
+
+## PRIVATE
+default_append file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
+
+## PRIVATE
+default_raise_error file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create_New] action
+
+## PRIVATE
+   A `Backup` strategy that does the following:
+   1. First, write to a temporary file.
+     i. If the write fails, do nothing more. The original file is kept intact.
+     ii. If the write succeeds, we move the original file (if it exists) to a
+         backup location, and then move the temporary new file to the target location.
+
+   This strategy assumes that the `move` operation on a single filesystem is
+   cheap (it is a rename), and is optimized for that case.
+moving_backup file action = recover_io_and_not_found <|
+    parent = file.parent
+    bak_file = parent / file.name+".bak"
+    # The loop is looking for a name for a temporary file that is not yet taken.
+    go i =
+        new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
+        new_file = parent / new_name
+        handle_existing_file _ = go i+1
+        handle_write_failure_panic panic =
+            ## Since we were already inside of the write operation,
+               the file must have been created, but since we failed, we need to clean it up.
+            new_file.delete
+            Panic.throw panic.payload.cause
+        handle_write_failure_dataflow caught_panic =
+            ## Since we were already inside of the write operation,
+               the file must have been created, but since we failed, we need to clean it up.
+            new_file.delete
+            Error.throw caught_panic.payload.cause
+        handle_file_already_exists = catch_already_exists handle_existing_file
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
+        handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
+
+            ## First we write the temporary file, handling any failures.
+               If the write fails, we'll do nothing more.
+            result = Panic.rethrow <|
+                new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
+                    result = Panic.catch Any (action output_stream) caught_panic->
+                        Panic.throw (Internal_Write_Operation_Panicked.Panic caught_panic)
+                    result.catch Any dataflow_error->
+                        Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
+
+            ## After successful write to a temp file, we move the original file
+               to the backup location.
+               We ignore the file not found error, because it means that there
+               is no file to back-up. This may also be caused by someone
+               removing the original file during the time when we have been
+               writing the new one to the temporary location. There is nothing
+               to back-up anymore, but this is not a failure, so it can be
+               safely ignored.
+            not_found_handler caught_panic = case caught_panic.payload of
+                File_Error.Not_Found _ -> Nothing
+                _ -> Panic.throw caught_panic
+            Panic.catch File_Error handler=not_found_handler <|
+                Panic.rethrow <| file.move_to bak_file replace_existing=True
+
+            ## Lastly, we move the temporary new file to the destination, and
+               return the result.
+            Panic.rethrow <| new_file.move_to file
+            result

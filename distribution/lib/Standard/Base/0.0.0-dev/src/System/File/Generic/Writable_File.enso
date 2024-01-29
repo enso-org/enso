@@ -26,10 +26,6 @@ type Writable_File
         self.file.delete
 
     ## PRIVATE
-    is_writable self -> Boolean =
-        self.file.is_writable
-
-    ## PRIVATE
     copy_to self (destination : Writable_File) -> Nothing =
         self.file.copy_to destination
 
