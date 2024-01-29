@@ -1,11 +1,23 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.{Source}
-import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Diagnostic, Expression, IdentifiedLocation, Name, Warning, Module => IRModule}
+import org.enso.compiler.core.ir.{
+  Diagnostic,
+  Expression,
+  IdentifiedLocation,
+  Name,
+  Warning,
+  Module => IRModule
+}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
@@ -16,7 +28,11 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
+import org.enso.compiler.phase.{
+  ExportCycleException,
+  ExportsResolution,
+  ImportResolver
+}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
@@ -24,7 +40,14 @@ import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
-import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
+import java.util.concurrent.{
+  CompletableFuture,
+  ExecutorService,
+  Future,
+  LinkedBlockingDeque,
+  ThreadPoolExecutor,
+  TimeUnit
+}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -969,8 +992,9 @@ class Compiler(
     compilerModule: CompilerContext.Module
   ): Boolean = {
     val isOutputRedirected = config.outputRedirect.isDefined
-    diagnostics.foreach{diag =>
-      val formattedDiag = context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+    diagnostics.foreach { diag =>
+      val formattedDiag =
+        context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
       printDiagnostic(formattedDiag)
     }
     diagnostics.exists(_.isInstanceOf[Error])

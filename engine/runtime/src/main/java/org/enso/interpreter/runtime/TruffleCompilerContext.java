@@ -235,8 +235,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public String formatDiagnostic(CompilerContext.Module module, Diagnostic diagnostic,
-      boolean isOutputRedirected) {
+  public String formatDiagnostic(
+      CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
     if (diagnostic.location().isDefined()) {
       Source source;

@@ -206,9 +206,9 @@ class DiagnosticFormatter(
           source.createSection(loc.location.start, loc.location.length)
         val locStr =
           "" + section.getStartLine + ":" +
-            section.getStartColumn + "-" +
-            section.getEndLine + ":" +
-            section.getEndColumn
+          section.getStartColumn + "-" +
+          section.getEndLine + ":" +
+          section.getEndColumn
         "[" + locStr + "]"
       }
       .getOrElse("")

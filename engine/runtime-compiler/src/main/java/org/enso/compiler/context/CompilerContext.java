@@ -51,8 +51,8 @@ public interface CompilerContext extends CompilerStub {
   void notifySerializeModule(QualifiedName moduleName);
 
   Module findTopScopeModule(String name);
-  String formatDiagnostic(Module module, Diagnostic diagnostic,
-      boolean isOutputRedirected);
+
+  String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();
