@@ -1746,9 +1746,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
       "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
-    Test / compile := (Test / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value
+    Test / test := {
+      (LocalProject("runtime-instrument-common") / Test / compile).value
+      (Test / test).value
+    }
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
