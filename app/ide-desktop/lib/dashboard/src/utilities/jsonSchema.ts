@@ -110,6 +110,7 @@ function constantValueHelper(
         const propertiesObject =
           'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
         const object: Record<string, unknown> = {}
+        result = [object]
         for (const [key, child] of Object.entries(propertiesObject)) {
           const childSchema = objectModule.asObject(child)
           if (childSchema == null) {
@@ -124,7 +125,6 @@ function constantValueHelper(
             object[key] = value[0]
           }
         }
-        result = [object]
         break
       }
       case 'array': {

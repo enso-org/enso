@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -150,9 +151,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           action={shortcuts.KeyboardAction.newDataLink}
           doAction={() => {
             setModal(
-              <UpsertSecretModal
-                id={null}
-                name={null}
+              <UpsertDataLinkModal
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newDataLink,

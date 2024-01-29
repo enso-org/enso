@@ -324,6 +324,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
       const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
       if (initializing) {
+        if (selectedChildIndex == null) {
+          setSelectedChildIndex(0)
+        }
         if (!isSubmittable && childValue.length === 1) {
           setIsSubmittable(true)
           setValue(childValue[0])
@@ -337,10 +340,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           if (newIndex !== -1 && newIndex !== selectedChildIndex) {
             setSelectedChildIndex(newIndex)
           }
-        }
-      } else {
-        if (selectedChildIndex == null) {
-          setSelectedChildIndex(0)
         }
       }
       const dropdown = (
@@ -368,7 +367,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           ) : (
             dropdown
           )}
-          {selectedChildSchema != null && childValue.length === 0 && (
+          {selectedChildSchema != null && (
             <DataLinkInput
               key={selectedChildIndex}
               readOnly={readOnly}

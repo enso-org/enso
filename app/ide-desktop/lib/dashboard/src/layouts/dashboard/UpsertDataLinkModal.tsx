@@ -6,13 +6,13 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 
-/** Props for a {@link CreateDataLinkModal}. */
-export interface CreateDataLinkModalProps {
+/** Props for a {@link UpsertDataLinkModal}. */
+export interface UpsertDataLinkModalProps {
   doCreate: (name: string, dataLink: unknown) => void
 }
 
 /** A modal for creating a Data Link. */
-export default function CreateDataLinkModal(props: CreateDataLinkModalProps) {
+export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
