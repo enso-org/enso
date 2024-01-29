@@ -700,19 +700,19 @@
       <mask id="path-1-inside-1_1_657" fill="white">
         <rect x="8" width="7" height="7" rx="1"></rect>
       </mask>
-      <rect x="8" width="7" height="7" rx="1" stroke="currentColor" stroke-width="7" mask="url(#path-1-inside-1_1_657)"></rect>
+      <rect x="8" width="7" height="7" rx="1" fill="currentColor" stroke-width="7" mask="url(#path-1-inside-1_1_657)"></rect>
     </g>
     <g opacity="0.8">
       <mask id="path-2-inside-2_1_657" fill="white">
         <rect y="8" width="7" height="7" rx="1"></rect>
       </mask>
-      <rect y="8" width="7" height="7" rx="1" stroke="currentColor" stroke-width="7" mask="url(#path-2-inside-2_1_657)"></rect>
+      <rect y="8" width="7" height="7" rx="1" fill="currentColor" stroke-width="7" mask="url(#path-2-inside-2_1_657)"></rect>
     </g>
     <g opacity="0.8">
       <mask id="path-3-inside-3_1_657" fill="white">
         <rect x="8" y="8" width="7" height="7" rx="1"></rect>
       </mask>
-      <rect x="8" y="8" width="7" height="7" rx="1" stroke="currentColor" stroke-width="7" mask="url(#path-3-inside-3_1_657)"></rect>
+      <rect x="8" y="8" width="7" height="7" rx="1" fill="currentColor" stroke-width="7" mask="url(#path-3-inside-3_1_657)"></rect>
     </g>
     <path d="M3.5 0V7M0 3.5H7" stroke="currentColor" stroke-width="1.5"></path>
   </symbol>
