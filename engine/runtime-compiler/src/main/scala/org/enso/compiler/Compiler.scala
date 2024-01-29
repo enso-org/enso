@@ -5,7 +5,7 @@ import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContex
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Diagnostic, Expression, Name, Warning, Module => IRModule}
+import org.enso.compiler.core.ir.{Diagnostic, Expression, IdentifiedLocation, Name, Warning, Module => IRModule}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
@@ -648,6 +648,39 @@ class Compiler(
     }
   }
 
+  /** Finds and processes a language source by its qualified name.
+    *
+    * The results of this operation are cached internally so we do not need to
+    * process the same source file multiple times.
+    *
+    * @param qualifiedName the qualified name of the module
+    * @param loc the location of the import
+    * @return the scope containing all definitions in the requested module
+    */
+  def processImport(
+    qualifiedName: String,
+    loc: Option[IdentifiedLocation],
+    source: Source
+  ): Unit = {
+    val module = Option(context.findTopScopeModule(qualifiedName))
+      .getOrElse {
+        val locStr = fileLocationFromSectionOption(loc, source)
+        throw new CompilerError(
+          s"Attempted to import the unresolved module $qualifiedName " +
+          s"during code generation. Defined at $locStr."
+        )
+      }
+    if (
+      !module.getCompilationStage.isAtLeast(
+        CompilationStage.AFTER_RUNTIME_STUBS
+      )
+    ) {
+      throw new CompilerError(
+        "Trying to use a module in codegen without generating runtime stubs"
+      )
+    }
+  }
+
   /** Parses the given source with the new Rust parser.
     *
     * @param source The inline code to parse
@@ -933,6 +966,25 @@ class Compiler(
       printDiagnostic(formattedDiag)
     }
     diagnostics.exists(_.isInstanceOf[Error])
+  }
+
+  private def fileLocationFromSectionOption(
+    loc: Option[IdentifiedLocation],
+    source: Source
+  ): String = {
+    val srcLocation = loc
+      .map { loc =>
+        val section =
+          source.createSection(loc.location.start, loc.location.length)
+        val locStr =
+          "" + section.getStartLine + ":" +
+          section.getStartColumn + "-" +
+          section.getEndLine + ":" +
+          section.getEndColumn
+        "[" + locStr + "]"
+      }
+      .getOrElse("")
+    source.getPath + ":" + srcLocation
   }
 
   /** Performs shutdown actions for the compiler.
