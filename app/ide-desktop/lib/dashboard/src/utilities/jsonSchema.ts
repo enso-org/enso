@@ -1,6 +1,6 @@
 /** @file Utilities for using JSON schemas. */
 
-import * as object from '#/utilities/object'
+import * as objectModule from '#/utilities/object'
 
 // =================
 // === lookupDef ===
@@ -10,7 +10,72 @@ import * as object from '#/utilities/object'
 export function lookupDef(defs: Record<string, object>, schema: object) {
   const ref = '$ref' in schema && typeof schema.$ref === 'string' ? schema.$ref : null
   const [, name] = ref?.match(/^#[/][$]defs[/](.+)$/) ?? ''
-  return name == null ? null : object.asObject(defs[name])
+  return name == null ? null : objectModule.asObject(defs[name])
+}
+
+// =============================
+// === constantValueToSchema ===
+// =============================
+
+/** Convert a constant value to a JSON schema representing the value, or `null` if it cannot be
+ * represented. */
+export function constantValueToSchema(value: unknown): object | null {
+  let result: object | null
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean': {
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        result = null
+      } else {
+        // Note that `NaN`, `Infinity` and `-Infinity` are not represntable in JSON schema.
+        result = { const: value, type: typeof value }
+      }
+      break
+    }
+    case 'object': {
+      if (value == null) {
+        result = { type: 'null' }
+      } else if (Array.isArray(value)) {
+        const prefixItems: object[] = []
+        result = { type: 'array', prefixItems, items: false }
+        for (const child of value) {
+          const schema = constantValueToSchema(child)
+          if (schema == null) {
+            result = null
+            break
+          }
+          prefixItems.push(schema)
+        }
+      } else {
+        const properties: Record<string, object> = {}
+        result = { type: 'object', properties, required: Object.keys(value) }
+        for (const [key, childValue] of Object.entries(value)) {
+          const schema = constantValueToSchema(childValue)
+          if (schema == null) {
+            result = null
+            break
+          }
+          properties[key] = schema
+        }
+      }
+      break
+    }
+    case 'bigint': {
+      // Non-standard.
+      result = { const: String(value), type: 'string', format: 'bigint' }
+      break
+    }
+    case 'symbol':
+    case 'function':
+    case 'undefined': {
+      // Not possible to represent in JSON schema - they will be replaced with the schema for
+      // `null`.
+      result = null
+      break
+    }
+  }
+  return result
 }
 
 // =====================
@@ -24,90 +89,123 @@ function constantValueHelper(
   defs: Record<string, object>,
   schema: object
 ): [] | [NonNullable<unknown> | null] {
+  let result: [] | [NonNullable<unknown> | null]
   if ('const' in schema) {
-    return [schema.const ?? null]
+    result = [schema.const ?? null]
   } else if ('type' in schema) {
     switch (schema.type) {
       case 'string':
       case 'number':
       case 'integer':
       case 'boolean': {
-        return []
+        // These should already be covered by the `const` check above.
+        result = []
+        break
       }
       case 'null': {
-        return [null]
+        result = [null]
+        break
       }
       case 'object': {
         const propertiesObject =
-          'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
-        const result: Record<string, unknown> = {}
+          'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
+        const object: Record<string, unknown> = {}
         for (const [key, child] of Object.entries(propertiesObject)) {
-          const childSchema = object.asObject(child)
+          const childSchema = objectModule.asObject(child)
           if (childSchema == null) {
             continue
           }
           const value = constantValue(defs, childSchema)
           if (value.length === 0) {
             // eslint-disable-next-line no-restricted-syntax
-            return []
+            result = []
+            break
           } else {
-            result[key] = value[0]
+            object[key] = value[0]
           }
         }
-        return [result]
+        result = [object]
+        break
+      }
+      case 'array': {
+        if (!('items' in schema) || schema.items !== false) {
+          // This array may contain extra items.
+          result = []
+          break
+        } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
+          // Invalid format.
+          result = []
+          break
+        } else {
+          const array: unknown[] = []
+          result = [array]
+          for (const childSchema of schema.prefixItems) {
+            const childSchemaObject = objectModule.asObject(childSchema)
+            const childValue =
+              childSchemaObject == null ? [] : constantValue(defs, childSchemaObject)
+            if (childValue.length === 0) {
+              result = []
+              break
+            }
+            array.push(childValue[0])
+          }
+          break
+        }
       }
       default: {
-        return []
+        result = []
+        break
       }
     }
   } else if ('$ref' in schema) {
     const referencedSchema = lookupDef(defs, schema)
-    return referencedSchema == null ? [] : constantValue(defs, referencedSchema)
+    result = referencedSchema == null ? [] : constantValue(defs, referencedSchema)
   } else if ('anyOf' in schema) {
     if (!Array.isArray(schema.anyOf) || schema.anyOf.length !== 1) {
-      return []
+      result = []
     } else {
-      const firstMember = object.asObject(schema.anyOf[0])
-      return firstMember == null ? [] : constantValue(defs, firstMember)
+      const firstMember = objectModule.asObject(schema.anyOf[0])
+      result = firstMember == null ? [] : constantValue(defs, firstMember)
     }
   } else if ('allOf' in schema) {
     if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
-      return []
+      result = []
     } else {
-      const firstMember = object.asObject(schema.allOf[0])
+      const firstMember = objectModule.asObject(schema.allOf[0])
       const firstValue = firstMember == null ? [] : constantValue(defs, firstMember)
       if (firstValue.length === 0) {
-        return []
+        result = []
       } else {
-        const result = firstValue[0]
-        for (const child of schema.allOf) {
-          const childSchema = object.asObject(child)
+        const intersection = firstValue[0]
+        result = [intersection]
+        for (const child of schema.allOf.slice(1)) {
+          const childSchema = objectModule.asObject(child)
           if (childSchema == null) {
             continue
           }
           const value = constantValue(defs, childSchema)
           if (value.length === 0) {
-            // eslint-disable-next-line no-restricted-syntax
-            return []
-          } else if (typeof result !== 'object' || result == null) {
-            if (result !== value[0]) {
-              // eslint-disable-next-line no-restricted-syntax
-              return []
+            result = []
+            break
+          } else if (typeof intersection !== 'object' || intersection == null) {
+            if (intersection !== value[0]) {
+              result = []
+              break
             }
           } else {
-            if (value[0] == null || typeof result !== typeof value[0]) {
-              // eslint-disable-next-line no-restricted-syntax
-              return []
+            if (value[0] == null || typeof intersection !== typeof value[0]) {
+              result = []
+              break
             }
-            Object.assign(result, value[0])
+            Object.assign(intersection, value[0])
           }
         }
-        return [result]
       }
     }
   } else {
-    return []
+    result = []
   }
+  return result
 }
 
 /** The value of the schema, if it can only have one possible value.
@@ -252,12 +350,12 @@ export function isMatch(
           // eslint-disable-next-line no-restricted-syntax
           const valueObject = value as Record<string, unknown>
           const propertiesObject =
-            'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
+            'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
           result = Object.entries(propertiesObject).every(kv => {
             // This is SAFE, as it is safely converted to an `object` on the next line.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const [key, childSchema] = kv
-            const childSchemaObject = object.asObject(childSchema)
+            const childSchemaObject = objectModule.asObject(childSchema)
             return (
               key in valueObject &&
               childSchemaObject != null &&
@@ -326,7 +424,7 @@ export function isMatch(
       result = false
     } else {
       result = schema.anyOf.some(childSchema => {
-        const childSchemaObject = object.asObject(childSchema)
+        const childSchemaObject = objectModule.asObject(childSchema)
         return childSchemaObject != null && isMatch(defs, childSchemaObject, value, options)
       })
     }
@@ -335,7 +433,7 @@ export function isMatch(
       result = false
     } else {
       result = schema.allOf.every(childSchema => {
-        const childSchemaObject = object.asObject(childSchema)
+        const childSchemaObject = objectModule.asObject(childSchema)
         return childSchemaObject != null && isMatch(defs, childSchemaObject, value, options)
       })
     }
