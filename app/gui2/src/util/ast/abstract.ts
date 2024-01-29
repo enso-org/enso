@@ -48,7 +48,7 @@ export class ReactiveModule implements Module {
   private readonly ymodule: MutableModule
   private readonly nodes: Map<AstId, FixedMapView<AstFields>> = reactive(new Map())
   private readonly spans: Map<AstId, SourceRange> = reactive(new Map())
-  private readonly updateHooks: ((dirtyNodes: SetView<AstId>) => void)[] = []
+  private readonly updateHooks: UpdateHandler[] = []
 
   constructor(base: MutableModule) {
     this.ymodule = base
@@ -63,14 +63,28 @@ export class ReactiveModule implements Module {
           node_.set(key, value)
         }
       }
+      for (const { id, changes } of update.updateMetadata) {
+        const node = this.nodes.get(id)
+        assertDefined(node)
+        if (!node.has('metadata'))
+          (node as unknown as Map<string, unknown>).set('metadata', new Map())
+        const metadata = node.get('metadata') as unknown as Map<string, unknown>
+        for (const [key, value] of changes) {
+          if (value === undefined) {
+            metadata.delete(key)
+          } else {
+            metadata.set(key, value)
+          }
+        }
+      }
       this.rebuildSpans(update.deleteNodes)
       const dirtyNodes = new Set<AstId>()
       for (const { id } of update.updateNodes) dirtyNodes.add(id)
-      for (const hook of this.updateHooks) hook(dirtyNodes)
+      for (const hook of this.updateHooks) hook(dirtyNodes, update.updateMetadata)
     })
   }
 
-  onUpdate(hook: (dirtyNodes: SetView<AstId>) => void) {
+  onUpdate(hook: UpdateHandler) {
     this.updateHooks.push(hook)
   }
 
@@ -125,6 +139,11 @@ export interface SetView<Key> {
   has(key: Key): boolean
   [Symbol.iterator](): IterableIterator<Key>
 }
+
+type UpdateHandler = (
+  dirtyNodes: SetView<AstId>,
+  metadataChanges: { id: AstId; changes: Map<string, unknown> }[],
+) => void
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)

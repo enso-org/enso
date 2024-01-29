@@ -2,7 +2,7 @@ import * as map from 'lib0/map'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
-import type { ExternalId, SourceRange } from '../yjsModel.ts'
+import type { ExternalId, SourceRange, VisualizationMetadata } from '../yjsModel'
 import * as RawAst from './generated/ast'
 import type {
   Identifier,
@@ -38,6 +38,16 @@ export type AstId = string & { [brandAstId]: never }
 export type MetadataFields = {
   externalId: ExternalId
 }
+export type NodeMetadataFields = {
+  position?: { x: number; y: number } | undefined
+  visualization?: VisualizationMetadata | undefined
+}
+export type NodeMetadata = FixedMapView<NodeMetadataFields>
+export type MutableNodeMetadata = FixedMap<NodeMetadataFields>
+export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
+  return map as unknown as NodeMetadata
+}
+/** @internal */
 export type AstFields = {
   id: AstId
   type: string
@@ -57,6 +67,11 @@ export abstract class Ast {
     const id = this.fields.get('metadata').get('externalId')
     assert(id != null)
     return id
+  }
+
+  get nodeMetadata(): NodeMetadata {
+    const metadata = this.fields.get('metadata')
+    return metadata as FixedMapView<NodeMetadataFields>
   }
 
   typeName(): string {
@@ -188,6 +203,34 @@ export abstract class MutableAst extends Ast {
   setExternalId(id: ExternalId) {
     this.fields.get('metadata').set('externalId', id)
   }
+
+  mutableNodeMetadata(): MutableNodeMetadata {
+    const metadata = this.fields.get('metadata')
+    return metadata as FixedMap<NodeMetadataFields>
+  }
+
+  setNodeMetadata(nodeMeta: NodeMetadataFields) {
+    const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
+    for (const [key, value] of Object.entries(nodeMeta))
+      if (value !== undefined) metadata.set(key, value)
+  }
+
+  /*
+  getOrInitNodeMetadata(init: () => NodeMetadataFields): FixedMap<NodeMetadataFields> {
+    const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
+    if (!metadata.has('position')) {
+      const nodeMeta = init()
+      for (const [key, value] of Object.entries(nodeMeta)) metadata.set(key, value)
+    }
+    return metadata as unknown as FixedMap<NodeMetadataFields>
+  }
+
+  getNodeMetadataOrSetDefault(): FixedMap<NodeMetadataFields> {
+    const metadata = this.fields.get('metadata') as FixedMap<NodeMetadataFields>
+    if (!(metadata as unknown as Map<string, unknown>).has('position')) metadata.set('position', { x: 0, y: 0})
+    return metadata
+  }
+   */
 
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
   replace<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
@@ -1948,11 +1991,11 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
   bail(`Invalid type: ${type}`)
 }
 
-/** @internal */
 export type FixedMapView<Fields> = {
   get<Key extends string & keyof Fields>(key: Key): Fields[Key]
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
+  has(key: string): boolean
 }
 
 export type FixedMap<Fields> = FixedMapView<Fields> & {

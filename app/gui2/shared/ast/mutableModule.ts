@@ -16,6 +16,8 @@ import {
   setAll,
 } from './tree'
 
+const DEBUG = false
+
 export interface Module {
   edit(): MutableModule
   root(): Ast | undefined
@@ -33,10 +35,11 @@ export interface Module {
   getSpan(id: AstId): SourceRange | undefined
 }
 
-interface ModuleUpdate {
+export interface ModuleUpdate {
   addNodes: AstId[]
   deleteNodes: AstId[]
   updateNodes: { id: AstId; fields: (readonly [string, unknown])[] }[]
+  updateMetadata: { id: AstId; changes: Map<string, unknown> }[]
 }
 
 type YNode = FixedMap<AstFields>
@@ -130,73 +133,85 @@ export class MutableModule implements Module {
   }
 
   observe(observer: (update: ModuleUpdate) => void) {
-    this.nodes.observeDeep((events) => {
-      const addNodes = []
-      const deleteNodes = []
-      const updateNodes = []
-      const fieldUpdate = ([key, value]: readonly [string, unknown]): [string, unknown] => {
-        if (value instanceof Y.Map) {
-          return [key, new Map(value)]
+    this.nodes.observeDeep((events) => observer(this.observeEvents(events)))
+  }
+
+  applyUpdate(update: Uint8Array, origin?: string): ModuleUpdate | undefined {
+    let summary: ModuleUpdate | undefined
+    const observer = (events: Y.YEvent<any>[]) => {
+      summary = this.observeEvents(events)
+    }
+    this.nodes.observeDeep(observer)
+    Y.applyUpdate(this.ydoc, update, origin)
+    this.nodes.unobserveDeep(observer)
+    return summary
+  }
+
+  private observeEvents(events: Y.YEvent<any>[]): ModuleUpdate {
+    const addNodes = []
+    const deleteNodes = []
+    const updateNodes = []
+    const updateMetadata = []
+    const collectChanges = (entries: Iterable<readonly [string, unknown]>) => {
+      const fields = new Array<readonly [string, unknown]>()
+      let metadataChanges = undefined
+      for (const entry of entries) {
+        const [key, value] = entry
+        if (key === 'metadata') {
+          assert(value instanceof Y.Map)
+          metadataChanges = new Map<string, unknown>(value.entries())
         } else {
           assert(!(value instanceof Y.AbstractType))
-          return [key, value]
+          fields.push(entry)
         }
       }
-      for (const event of events) {
-        if (event.target === this.nodes) {
-          for (const [key, change] of event.changes.keys) {
-            const id = key as AstId
-            switch (change.action) {
-              case 'add':
-                addNodes.push(id)
-                updateNodes.push({
-                  id,
-                  fields: Array.from(this.nodes.get(id)!.entries(), fieldUpdate),
-                })
-                break
-              case 'update':
-                updateNodes.push({
-                  id,
-                  fields: Array.from(this.nodes.get(id)!.entries(), fieldUpdate),
-                })
-                break
-              case 'delete':
-                deleteNodes.push(id)
-                break
+      return { fields, metadataChanges }
+    }
+    for (const event of events) {
+      if (event.target === this.nodes) {
+        // Updates to the node map.
+        for (const [key, change] of event.changes.keys) {
+          const id = key as AstId
+          switch (change.action) {
+            case 'add':
+            case 'update': {
+              if (change.action === 'add') addNodes.push(id)
+              const { fields, metadataChanges } = collectChanges(this.nodes.get(id)!.entries())
+              if (fields.length !== 0) updateNodes.push({ id, fields })
+              if (metadataChanges) updateMetadata.push({ id, changes: metadataChanges })
+              break
             }
+            case 'delete':
+              deleteNodes.push(id)
+              break
           }
-        } else if (event.target.parent === this.nodes) {
-          assert(event.target instanceof Y.Map)
-          const id = event.target.get('id') as AstId
-          const node = this.nodes.get(id)
-          assertDefined(node)
-          const fields: [string, unknown][] = []
-          for (const [key, change] of event.changes.keys) {
-            switch (change.action) {
-              case 'add':
-              case 'update': {
-                assert((node as Y.Map<unknown>).has(key as any))
-                const value: unknown = node.get(key as any)
-                fields.push(fieldUpdate([key, value]))
-                break
-              }
-              case 'delete':
-                fields.push([key, undefined])
-                break
-            }
-          }
-          updateNodes.push({ id, fields })
-        } else {
-          assert(event.target.parent.parent === this.nodes)
-          const id = event.target.parent.get('id') as AstId
-          const node = this.nodes.get(id)
-          assertDefined(node)
-          const fields = [fieldUpdate(['metadata', node.get('metadata')])]
-          updateNodes.push({ id, fields })
         }
+      } else if (event.target.parent === this.nodes) {
+        // Updates to a node's fields.
+        assert(event.target instanceof Y.Map)
+        const id = event.target.get('id') as AstId
+        const node = this.nodes.get(id)
+        assertDefined(node)
+        const { fields, metadataChanges } = collectChanges(
+          Array.from(event.changes.keys, ([key]) => [key, node.get(key as any)]),
+        )
+        if (fields.length !== 0) updateNodes.push({ id, fields })
+        if (metadataChanges) updateMetadata.push({ id, changes: metadataChanges })
+      } else {
+        // Updates to fields of a metadata object within a node.
+        assert(event.target.parent.parent === this.nodes)
+        const id = event.target.parent.get('id') as AstId
+        const node = this.nodes.get(id)
+        assertDefined(node)
+        const metadata = node.get('metadata') as unknown as Map<string, unknown>
+        const changes = new Map<string, unknown>()
+        for (const [key] of event.changes.keys) changes.set(key, metadata.get(key))
+        updateMetadata.push({ id, changes })
       }
-      observer({ addNodes, deleteNodes, updateNodes })
-    })
+    }
+    if (DEBUG)
+      console.info(`observeEvents`, events, { addNodes, deleteNodes, updateNodes, updateMetadata })
+    return { addNodes, deleteNodes, updateNodes, updateMetadata }
   }
 
   clear() {

@@ -5,12 +5,12 @@
 
 import diff from 'fast-diff'
 import * as json from 'lib0/json'
-import * as Y from 'yjs'
+import type { ModuleUpdate } from '../shared/ast'
 import { MutableModule, print, spanMapToIdMap } from '../shared/ast'
 import { combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { TextEdit } from '../shared/languageServerTypes'
 import { assert } from '../shared/util/assert'
-import { ModuleDoc, type NodeMetadata, type VisualizationMetadata } from '../shared/yjsModel'
+import { ModuleDoc, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 import { serializeIdMap } from './serialization'
 
@@ -18,87 +18,94 @@ interface AppliedUpdates {
   edits: TextEdit[]
   newContent: string
   newMetadata: fileFormat.Metadata
+  newCode: string | undefined
+  newIdMap: string | undefined
+  newMetaJson: string | undefined
 }
 
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   syncedMeta: fileFormat.Metadata,
   syncedContent: string,
-  nodesEvents: Y.YEvent<any>[],
-  metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
+  update: ModuleUpdate,
 ): AppliedUpdates {
   const synced = splitFileContents(syncedContent)
 
-  let newCode: string
-  let idMapJson: string
-  const allEdits: TextEdit[] = []
-
-  if (nodesEvents.length || synced.idMapJson == null) {
-    const syncModule = new MutableModule(doc.ydoc)
-    const root = syncModule.root()
-    assert(root != null)
-    const { code, info } = print(root)
-    newCode = code
-    if (nodesEvents.length) allEdits.push(...applyDiffAsTextEdits(0, synced.code, code))
-    const idMap = spanMapToIdMap(info)
-    idMapJson = serializeIdMap(idMap)
-  } else {
-    newCode = synced.code
-    idMapJson = synced.idMapJson
-  }
-
-  let metadataJson: string
-
-  let newMetadata = syncedMeta
-  if (metadataKeys != null) {
-    const nodeMetadata = { ...syncedMeta.ide.node }
-    for (const [key, op] of metadataKeys) {
-      switch (op.action) {
-        case 'delete':
-          delete nodeMetadata[key]
-          break
-        case 'add':
-        case 'update': {
-          const updatedMeta = doc.metadata.get(key)
-          const oldMeta = nodeMetadata[key] ?? {}
-          if (updatedMeta == null) continue
-          nodeMetadata[key] = {
-            ...oldMeta,
-            position: {
-              vector: [updatedMeta.x, updatedMeta.y],
-            },
-            visualization: updatedMeta.vis
-              ? translateVisualizationToFile(updatedMeta.vis)
-              : undefined,
-          }
-          break
-        }
+  const codeChanged = update.updateNodes.length !== 0
+  let idsChanged = false
+  let metadataChanged = false
+  for (const { changes } of update.updateMetadata) {
+    for (const [key] of changes) {
+      if (key === 'externalId') {
+        idsChanged = true
+      } else {
+        metadataChanged = true
       }
     }
-    // Update the metadata object without changing the original order of keys.
-    newMetadata = { ...syncedMeta }
-    newMetadata.ide = { ...syncedMeta.ide }
-    newMetadata.ide.node = nodeMetadata
-    metadataJson = json.stringify(newMetadata)
-  } else {
-    metadataJson = synced.metadataJson ?? '{}'
+    if (idsChanged && metadataChanged) break
   }
 
+  let newIdMap = undefined
+  let newCode = undefined
+  let newMetadata = undefined
+  const edits: TextEdit[] = []
+
+  const syncModule = new MutableModule(doc.ydoc)
+  const root = syncModule.root()
+  assert(root != null)
+  if (codeChanged || idsChanged || synced.idMapJson == null) {
+    const { code, info } = print(root)
+    if (codeChanged) {
+      newCode = code
+      edits.push(...applyDiffAsTextEdits(0, synced.code, code))
+    }
+    newIdMap = spanMapToIdMap(info)
+  }
+  if (codeChanged || idsChanged || metadataChanged) {
+    // Update the metadata object.
+    // Depth-first key order keeps diffs small.
+    let newNodeMetadata: typeof syncedMeta.ide.node = {}
+    root.visitRecursiveAst((ast) => {
+      let pos = ast.nodeMetadata.get('position')
+      const vis = ast.nodeMetadata.get('visualization')
+      if (vis && !pos) pos = { x: 0, y: 0 }
+      if (pos) {
+        newNodeMetadata![ast.externalId] = {
+          position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
+          visualization: vis && translateVisualizationToFile(vis),
+        }
+      }
+    })
+    newMetadata = { ...syncedMeta }
+    newMetadata.ide = { ...syncedMeta.ide }
+    newMetadata.ide.node = newNodeMetadata
+  }
+
+  const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
+  const newMetaJson = newMetadata && json.stringify(newMetadata)
+
+  const code = newCode ?? synced.code
+  const idMapJson = newIdMapJson ?? synced.idMapJson
+  const metadataJson = newMetaJson ?? synced.metadataJson ?? '{}'
+
   const newContent = combineFileParts({
-    code: newCode,
+    code,
     idMapJson,
     metadataJson,
   })
 
   const oldMetaContent = syncedContent.slice(synced.code.length)
-  const metaContent = newContent.slice(newCode.length)
-  const metaStartLine = (newCode.match(/\n/g) ?? []).length
-  allEdits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
+  const metaContent = newContent.slice(code.length)
+  const metaStartLine = (code.match(/\n/g) ?? []).length
+  edits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
 
   return {
-    edits: allEdits,
+    edits,
     newContent,
-    newMetadata,
+    newMetadata: newMetadata ?? syncedMeta,
+    newCode,
+    newIdMap: newIdMapJson,
+    newMetaJson,
   }
 }
 

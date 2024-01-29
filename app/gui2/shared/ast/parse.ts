@@ -394,7 +394,8 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
     if (asts) {
       for (const ast of asts) {
         astsMatched += 1
-        module.getVersion(ast).setExternalId(externalId)
+        const ast_ = module.getVersion(ast)
+        if (ast_.externalId !== externalId) ast_.setExternalId(externalId)
       }
     } else {
       idsUnmatched += 1

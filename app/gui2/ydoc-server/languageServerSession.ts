@@ -3,23 +3,34 @@ import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import { MutableModule, parseBlockWithSpans, setExternalIds } from '../shared/ast'
+import {
+  Ast,
+  ModuleUpdate,
+  MutableModule,
+  parseBlockWithSpans,
+  setExternalIds,
+} from '../shared/ast'
 import { print } from '../shared/ast/parse'
 import { splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
-import { DistributedProject, ModuleDoc, type NodeMetadata, type Uuid } from '../shared/yjsModel'
+import {
+  DistributedProject,
+  ExternalId,
+  ModuleDoc,
+  visMetadataEquals,
+  type Uuid,
+} from '../shared/yjsModel'
 import { applyDocumentUpdates, prettyPrintDiff, translateVisualizationFromFile } from './edits'
 import * as fileFormat from './fileFormat'
 import { deserializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
-const DEBUG = false
-
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
+const DEBUG = false
 const DEBUG_LOG_SYNC = false
 
 function createOpenRPCClient(url: string) {
@@ -263,6 +274,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   readonly lastAction = Promise.resolve()
   updateToApply: Uint8Array | null = null
   syncedCode: string | null = null
+  syncedIdMap: string | null = null
+  syncedMetaJson: string | null = null
   syncedContent: string | null = null
   syncedVersion: Checksum | null = null
   syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
@@ -397,32 +410,19 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const update = this.updateToApply
     this.updateToApply = null
 
-    let nodesEvents: Y.YEvent<any>[] = []
-    let metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null = null
-    const observeNodes = (events: Y.YEvent<any>[]) => (nodesEvents = events)
-    const observeMetadata = (event: Y.YMapEvent<NodeMetadata>) => (metadataKeys = event.keys)
-
-    this.doc.nodes.observeDeep(observeNodes)
-    this.doc.metadata.observe(observeMetadata)
-    Y.applyUpdate(this.doc.ydoc, update, 'remote')
-    this.doc.nodes.unobserveDeep(observeNodes)
-    this.doc.metadata.unobserve(observeMetadata)
-    this.writeSyncedEvents(nodesEvents, metadataKeys)
+    const syncModule = new MutableModule(this.doc.ydoc)
+    const moduleUpdate = syncModule.applyUpdate(update, 'remote')
+    if (moduleUpdate) this.writeSyncedEvents(moduleUpdate)
   }
 
-  private writeSyncedEvents(
-    nodesEvents: Y.YEvent<any>[],
-    metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
-  ) {
+  private writeSyncedEvents(update: ModuleUpdate) {
     if (this.syncedContent == null || this.syncedVersion == null) return
-    if (!nodesEvents.length && !metadataKeys) return
 
-    const { edits, newContent, newMetadata } = applyDocumentUpdates(
+    const { edits, newContent, newMetadata, newCode, newIdMap, newMetaJson } = applyDocumentUpdates(
       this.doc,
       this.syncedMeta,
       this.syncedContent,
-      nodesEvents,
-      metadataKeys,
+      update,
     )
 
     const newVersion = computeTextChecksum(newContent)
@@ -430,8 +430,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     if (DEBUG_LOG_SYNC) {
       console.debug(' === changes === ')
       console.debug('number of edits:', edits.length)
-      console.debug('metadata:', metadataKeys)
-      console.debug('nodes events:', nodesEvents)
+      console.debug('module update:', update)
       if (edits.length > 0) {
         console.debug('version:', this.syncedVersion, '->', newVersion)
         console.debug('Content diff:')
@@ -442,7 +441,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     this.setState(LsSyncState.WritingFile)
 
-    const execute = nodesEvents.length > 0
+    const execute = newCode != null || newIdMap != null
     const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
     const apply = this.ls.applyEdit(edit, execute)
     const promise = apply.then(
@@ -450,6 +449,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.syncedContent = newContent
         this.syncedVersion = newVersion
         this.syncedMeta = newMetadata
+        this.syncedCode = newCode ?? this.syncedCode
+        this.syncedIdMap = newIdMap ?? this.syncedIdMap
+        this.syncedMetaJson = newMetaJson ?? this.syncedMetaJson
         this.setState(LsSyncState.Synchronized)
       },
       (error) => {
@@ -459,6 +461,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.setState(LsSyncState.WriteError)
         this.syncedContent = null
         this.syncedVersion = null
+        this.syncedCode = null
+        this.syncedIdMap = null
+        this.syncedMetaJson = null
         return this.reload()
       },
     )
@@ -470,20 +475,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = splitFileContents(content)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
-      const nodeMeta = metadata.ide.node
-
-      const keysToDelete = new Set(this.doc.metadata.keys())
-      for (const [id, meta] of Object.entries(nodeMeta)) {
-        if (typeof id !== 'string') continue
-        const formattedMeta: NodeMetadata = {
-          x: meta.position.vector[0],
-          y: meta.position.vector[1],
-          vis: (meta.visualization && translateVisualizationFromFile(meta.visualization)) ?? null,
-        }
-        keysToDelete.delete(id)
-        this.doc.metadata.set(id, formattedMeta)
-      }
-      for (const id of keysToDelete) this.doc.metadata.delete(id)
+      const nodeMeta = Object.entries(metadata.ide.node)
 
       if (DEBUG) console.info(`syncFileContents`)
       let parsedSpans
@@ -495,17 +487,50 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         parsedSpans = spans
       }
       const astRoot = syncModule.root()
-      if (idMapJson && astRoot) {
+      if (!astRoot) return
+      if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         if (DEBUG) console.info(`- applying id map`)
         const idMap = deserializeIdMap(idMapJson)
         const spans = parsedSpans ?? print(astRoot).info
         setExternalIds(syncModule, spans, idMap)
       }
+      if (
+        (code !== this.syncedCode ||
+          idMapJson !== this.syncedIdMap ||
+          metadataJson !== this.syncedMetaJson) &&
+        nodeMeta.length !== 0
+      ) {
+        if (DEBUG) console.info(`- applying metadata (${nodeMeta.length} entries)`)
+        const externalIdToAst = new Map<ExternalId, Ast>()
+        astRoot.visitRecursiveAst((ast) => {
+          if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
+        })
+        const missing = new Set<string>()
+        for (const [id, meta] of nodeMeta) {
+          if (typeof id !== 'string') continue
+          const ast = externalIdToAst.get(id as ExternalId)
+          if (!ast) {
+            missing.add(id)
+            continue
+          }
+          const metadata = syncModule.getVersion(ast).mutableNodeMetadata()
+          const oldPos = metadata.get('position')
+          const newPos = { x: meta.position.vector[0], y: -meta.position.vector[1] }
+          if (oldPos?.x !== newPos.x || oldPos?.y !== newPos.y) metadata.set('position', newPos)
+          const oldVis = metadata.get('visualization')
+          const newVis = meta.visualization && translateVisualizationFromFile(meta.visualization)
+          if (!visMetadataEquals(newVis, oldVis)) metadata.set('visualization', newVis)
+        }
+        if (DEBUG && missing.size !== 0)
+          console.warn(`${missing.size} nodes not found when applying metadata`)
+      }
 
       this.syncedCode = code
+      this.syncedIdMap = idMapJson
       this.syncedContent = content
       this.syncedVersion = version
       this.syncedMeta = metadata
+      this.syncedMetaJson = metadataJson
     }, 'file')
   }
 

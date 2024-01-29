@@ -59,7 +59,7 @@ const editingEdge: Interaction = {
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
-  graph.editScope((edit) => {
+  graph.commitDirect((edit) => {
     if (!graph.updatePortValue(edit, target, undefined)) {
       if (isAstId(target)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)

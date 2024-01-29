@@ -3,7 +3,7 @@ import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDa
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
+import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
@@ -18,9 +18,7 @@ import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/lan
 import {
   isUuid,
   sourceRangeKey,
-  visMetadataEquals,
   type ExternalId,
-  type NodeMetadata,
   type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
@@ -329,12 +327,12 @@ export class GraphDb {
     functionAst_: Ast.Function,
     rawFunction: RawAst.Tree.Function,
     moduleCode: string,
-    getMeta: (id: ExternalId) => NodeMetadata | undefined,
     getSpan: (id: AstId) => SourceRange | undefined,
     dirtyNodes: Set<AstId>,
   ) {
     let knownDirtySubtrees: Set<AstId> | null = null
-    if (functionAst_.id === this.currentFunction) {
+    let functionChanged = functionAst_.id !== this.currentFunction
+    if (!functionChanged) {
       knownDirtySubtrees = new Set()
       const module = functionAst_.module
       for (const id of dirtyNodes) {
@@ -346,16 +344,23 @@ export class GraphDb {
       }
     }
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
+    const hadPreviousFunction = this.currentFunction != null
     this.currentFunction = functionAst_.id
     const currentNodeIds = new Set<NodeId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
-      const externalId = this.idToExternal(nodeId)
-      const nodeMeta = externalId && getMeta(externalId)
+      const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
+        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
+        // when we switch to a different function.
+        if (functionChanged && hadPreviousFunction) {
+          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+          newNode.position = new Vec2(pos.x, pos.y)
+          newNode.vis = nodeMeta.get('visualization')
+        }
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
@@ -363,9 +368,6 @@ export class GraphDb {
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
         if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
-      }
-      if (nodeMeta) {
-        this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -392,14 +394,13 @@ export class GraphDb {
     updateMap(this.idFromExternalMap, idFromExternalNew)
   }
 
-  assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
-    const newPosition = new Vec2(meta.x, -meta.y)
-    if (!node.position.equals(newPosition)) {
-      node.position = newPosition
-    }
-    if (!visMetadataEquals(node.vis, meta.vis)) {
-      node.vis = meta.vis
-    }
+  updateMetadata(id: Ast.AstId, changes: NodeMetadata) {
+    const node = this.nodeIdToNode.get(id as NodeId)
+    if (!node) return
+    const newPos = changes.get('position')
+    if (newPos) node.position = new Vec2(newPos.x, newPos.y)
+    const visChanged = changes.has('visualization')
+    if (visChanged) node.vis = changes.get('visualization')
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
