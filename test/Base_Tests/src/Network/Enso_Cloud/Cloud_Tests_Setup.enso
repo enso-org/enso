@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Test.Test_Environment
+import Standard.Test_New.Test_Environment
+
 
 polyglot java import java.lang.Thread
 polyglot java import java.security.KeyStore

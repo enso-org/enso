@@ -4,12 +4,16 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 import Standard.Base.Network.HTTP.Response.Response
 
-import Standard.Test.Extensions
-from Standard.Test import Test, Test_Suite
 
-main = Test_Suite.run_main spec
+from Standard.Test_New import all
 
-spec =
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
+
+add_specs suite_builder =
     ## To run this test locally:
        $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
@@ -19,7 +23,7 @@ spec =
     base_url_with_slash = base_url.if_not_nothing <|
         if base_url.ends_with "/" then base_url else base_url + "/"
 
-    Test.group "Format Detection in HTTP Fetch" pending=pending_has_url <|
+    suite_builder.group "Format Detection in HTTP Fetch" pending=pending_has_url group_builder->
         content_utf = '["x", "Hello! 😊👍 ąę"]'
         content_windows_1250 = '["y", "Hello! ąę"]'
 
@@ -31,11 +35,11 @@ spec =
             . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
             . add_query_argument "base64_response_data" (Base_64.encode_text content_windows_1250 Encoding.windows_1250)
 
-        Test.specify "should detect the encoding from Content-Type in fetch" <|
+        group_builder.specify "should detect the encoding from Content-Type in fetch" <|
             url_utf8.fetch . should_equal content_utf
             url_windows_1250.fetch . should_equal content_windows_1250
 
-        Test.specify "should detect the encoding from Content-Type in decode_as_text" <|
+        group_builder.specify "should detect the encoding from Content-Type in decode_as_text" <|
             r1 = url_utf8.fetch try_auto_parse_response=False
             r1.decode_as_text . should_equal content_utf
 
@@ -46,7 +50,7 @@ spec =
             # We may override the encoding detected from Content-Type:
             r3.decode_as_text Encoding.ascii . should_fail_with Encoding_Error
 
-        Test.specify "should detect the encoding from Content-Type in decode_as_json" <|
+        group_builder.specify "should detect the encoding from Content-Type in decode_as_json" <|
             r1 = url_utf8.fetch try_auto_parse_response=False
             r1.decode_as_json . should_equal ["x", "Hello! 😊👍 ąę"]
 
