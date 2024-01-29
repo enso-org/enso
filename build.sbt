@@ -1105,6 +1105,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test

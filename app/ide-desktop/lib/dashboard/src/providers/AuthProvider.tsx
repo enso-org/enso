@@ -26,6 +26,7 @@ import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
 import * as http from '#/utilities/http'
 import * as localStorageModule from '#/utilities/localStorage'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -134,6 +135,7 @@ interface AuthContextType {
    *
    * If the user has not signed in, the session will be `null`. */
   session: UserSession | null
+  setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
 }
 
 // Eslint doesn't like headings.
@@ -195,6 +197,28 @@ export default function AuthProvider(props: AuthProviderProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
+
+  const setOrganization = React.useCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.UserOrOrganization>) => {
+      setUserSession(oldUserSession => {
+        if (
+          oldUserSession == null ||
+          !('organization' in oldUserSession) ||
+          oldUserSession.organization == null
+        ) {
+          return oldUserSession
+        } else {
+          return object.merge(oldUserSession, {
+            organization:
+              typeof valueOrUpdater !== 'function'
+                ? valueOrUpdater
+                : valueOrUpdater(oldUserSession.organization),
+          })
+        }
+      })
+    },
+    []
+  )
 
   const goOfflineInternal = React.useCallback(() => {
     setInitialized(true)
@@ -311,12 +335,9 @@ export default function AuthProvider(props: AuthProviderProps) {
             }
             break
           } catch (error) {
-            if (
-              // The value may have changed after the `await`.
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-              !navigator.onLine ||
-              isNetworkError(error)
-            ) {
+            // The value may have changed after the `await`.
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (!navigator.onLine || isNetworkError(error)) {
               void goOffline()
               // eslint-disable-next-line no-restricted-syntax
               return
@@ -589,6 +610,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     changePassword: withLoadingToast(changePassword),
     signOut,
     session: userSession,
+    setOrganization,
   }
 
   return (

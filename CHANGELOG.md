@@ -605,6 +605,8 @@
 - [Added text_left and text_right to Column][8691]
 - [Implement relational `NULL` semantics for `Nothing` for in-memory Column
   operations.][5156]
+- [Attach a warning when Nothing is used as a value in a comparison or `is_in`
+  `Filter_Condition`.][8865]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -869,6 +871,7 @@
 [8606]: https://github.com/enso-org/enso/pull/8606
 [8627]: https://github.com/enso-org/enso/pull/8627
 [8691]: https://github.com/enso-org/enso/pull/8691
+[8865]: https://github.com/enso-org/enso/pull/8865
 
 #### Enso Compiler
 
@@ -1024,6 +1027,7 @@
 - [Introduce Arrow language][8512]
 - [DataflowError.withoutTrace doesn't store stacktrace][8608]
 - [Derive --in-project from --run source location][8775]
+- [Binary operator resolution based on that value][8779]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1178,6 +1182,7 @@
 [8512]: https://github.com/enso-org/enso/pull/8512
 [8608]: https://github.com/enso-org/enso/pull/8608
 [8775]: https://github.com/enso-org/enso/pull/8775
+[8779]: https://github.com/enso-org/enso/pull/8779
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

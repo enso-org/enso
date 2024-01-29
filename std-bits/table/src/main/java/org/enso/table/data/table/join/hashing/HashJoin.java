@@ -5,6 +5,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.PluggableJoinStrategy;
@@ -24,10 +25,10 @@ public class HashJoin implements JoinStrategy {
   public HashJoin(
       List<HashableCondition> conditions,
       PluggableJoinStrategy remainingMatcher,
-      JoinResult.BuilderSettings resultBuilderSettings) {
+      JoinKind joinKind) {
     JoinStrategy.ensureConditionsNotEmpty(conditions);
     this.remainingMatcher = remainingMatcher;
-    this.resultBuilderSettings = resultBuilderSettings;
+    this.joinKind = joinKind;
 
     List<HashEqualityCondition> equalConditions =
         conditions.stream().map(HashJoin::makeHashEqualityCondition).toList();
@@ -46,7 +47,7 @@ public class HashJoin implements JoinStrategy {
   private final Column[] leftEquals, rightEquals;
   private final List<TextFoldingStrategy> textFoldingStrategies;
   private final PluggableJoinStrategy remainingMatcher;
-  private final JoinResult.BuilderSettings resultBuilderSettings;
+  private final JoinKind joinKind;
 
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
@@ -59,7 +60,7 @@ public class HashJoin implements JoinStrategy {
         MultiValueIndex.makeUnorderedIndex(
             rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
 
-    JoinResult.Builder resultBuilder = new JoinResult.Builder(resultBuilderSettings);
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
     for (var leftEntry : leftIndex.mapping().entrySet()) {
       UnorderedMultiValueKey leftKey = leftEntry.getKey();
       List<Integer> leftRows = leftEntry.getValue();
@@ -68,7 +69,7 @@ public class HashJoin implements JoinStrategy {
       if (rightRows != null) {
         remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
       } else {
-        if (resultBuilderSettings.wantsLeftUnmatched()) {
+        if (joinKind.wantsLeftUnmatched) {
           for (int leftRow : leftRows) {
             resultBuilder.addUnmatchedLeftRow(leftRow);
             context.safepoint();
@@ -79,7 +80,7 @@ public class HashJoin implements JoinStrategy {
       context.safepoint();
     }
 
-    if (resultBuilderSettings.wantsRightUnmatched()) {
+    if (joinKind.wantsRightUnmatched) {
       for (var rightEntry : rightIndex.mapping().entrySet()) {
         UnorderedMultiValueKey rightKey = rightEntry.getKey();
         boolean wasCompletelyUnmatched = !leftIndex.contains(rightKey);
@@ -91,7 +92,7 @@ public class HashJoin implements JoinStrategy {
       }
     }
 
-    return resultBuilder.build();
+    return resultBuilder.buildAndInvalidate();
   }
 
   private static HashEqualityCondition makeHashEqualityCondition(HashableCondition eq) {

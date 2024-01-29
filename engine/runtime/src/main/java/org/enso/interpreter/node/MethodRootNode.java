@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
 public class MethodRootNode extends ClosureRootNode {
+  private static final ExpressionNode[] NO_STATEMENTS = new ExpressionNode[0];
 
   private final Type type;
   private final String methodName;
@@ -81,6 +82,27 @@ public class MethodRootNode extends ClosureRootNode {
       Type type,
       String methodName) {
     return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
+  }
+
+  public static MethodRootNode buildOperator(
+      EnsoLanguage language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      Supplier<ExpressionNode> readLeft,
+      Supplier<ExpressionNode> readRight,
+      Supplier<ExpressionNode> body,
+      SourceSection section,
+      Type type,
+      String methodName) {
+    Supplier<ExpressionNode> supplyWholeBody =
+        () -> {
+          var readLeftNode = readLeft.get();
+          var readRightNode = readRight.get();
+          var exprNode = body.get();
+          var operatorNode = new BinaryOperatorNode(readLeftNode, readRightNode, exprNode);
+          return operatorNode;
+        };
+    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName);
   }
 
   /**

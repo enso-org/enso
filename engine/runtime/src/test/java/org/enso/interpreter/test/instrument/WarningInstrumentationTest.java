@@ -67,7 +67,7 @@ public class WarningInstrumentationTest {
 
   @Test
   public void instrumentValueWithWarnings() throws Exception {
-    var metadata = new Metadata();
+    var metadata = new Metadata("");
 
     var idOp1 = metadata.addItem(151, 34, null);
     var idOp2 = metadata.addItem(202, 31, null);

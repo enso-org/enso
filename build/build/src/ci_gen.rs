@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
+use crate::ci::labels::CLEAN_BUILD_REQUIRED;
 use crate::ci_gen::job::plain_job;
-use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::with_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::version::promote::Designation;
@@ -118,11 +118,154 @@ impl RunsOn for BenchmarkRunner {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         vec![RunnerLabel::Benchmark]
     }
-    fn os_name(&self) -> Option<String> {
+    fn job_name_suffix(&self) -> Option<String> {
         None
     }
 }
 
+
+/// Condition under which the runner should be cleaned.
+#[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq)]
+pub enum CleaningCondition {
+    /// Always clean, even if the job was canceled or failed.
+    Always,
+    /// Clean only if the "Clean required" label is present on the pull request.
+    #[default]
+    OnLabel,
+}
+
+impl CleaningCondition {
+    /// Pretty print (for GH Actions) the `if` condition for the cleaning step.
+    pub fn format(self) -> String {
+        // Note that we need to use `always() &&` to make this condition evaluate on failed and
+        // canceled runs. See: https://docs.github.com/en/actions/learn-github-actions/expressions#always
+        //
+        // Using `always() &&` is not a no-op like `true &&` would be.
+        match self {
+            Self::Always => "always()".into(),
+            Self::OnLabel => format!(
+                "contains(github.event.pull_request.labels.*.name, '{CLEAN_BUILD_REQUIRED}')"
+            ),
+        }
+    }
+
+    /// Format condition as `if` expression.
+    ///
+    /// All the conditions are joined with `&&`.
+    pub fn format_conjunction(conditions: impl IntoIterator<Item = Self>) -> Option<String> {
+        let conditions = conditions.into_iter().collect::<BTreeSet<_>>();
+        if conditions.is_empty() {
+            None
+        } else {
+            Some(conditions.into_iter().map(Self::format).join(" && "))
+        }
+    }
+}
+
+
+/// Create a step that cleans the runner if the conditions are met.
+pub fn cleaning_step(
+    name: impl Into<String>,
+    conditions: impl IntoIterator<Item = CleaningCondition>,
+) -> Step {
+    let mut ret = run("git-clean").with_name(name);
+    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret
+}
+
+/// Data needed to generate a typical sequence of CI steps invoking `./run` script.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct RunStepsBuilder {
+    /// The command passed to `./run` script.
+    pub run_command: String,
+    /// Condition under which the runner should be cleaned before and after the run.
+    pub cleaning:    CleaningCondition,
+    /// Customize the step that runs the command.
+    ///
+    /// Allows replacing the run step with one or more custom steps.
+    #[derivative(Debug = "ignore")]
+    pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+}
+
+impl RunStepsBuilder {
+    /// Create a builder with the given command.
+    pub fn new(run_command: impl Into<String>) -> Self {
+        Self { run_command: run_command.into(), cleaning: default(), customize: default() }
+    }
+
+    /// Set the cleaning condition.
+    pub fn cleaning(mut self, cleaning: CleaningCondition) -> Self {
+        self.cleaning = cleaning;
+        self
+    }
+
+    /// Customize the step that runs the command.
+    pub fn customize(mut self, customize: impl FnOnce(Step) -> Vec<Step> + 'static) -> Self {
+        self.customize = Some(Box::new(customize));
+        self
+    }
+
+    /// Build the steps.
+    pub fn build(self) -> Vec<Step> {
+        let clean_before = cleaning_step("Clean before", [self.cleaning]);
+        let clean_after = cleaning_step("Clean after", [CleaningCondition::Always, self.cleaning]);
+        let run_step = run(self.run_command);
+        let run_steps = match self.customize {
+            Some(customize) => customize(run_step),
+            None => vec![run_step],
+        };
+        let mut steps = setup_script_steps();
+        steps.push(clean_before);
+        steps.extend(run_steps);
+        steps.extend(list_everything_on_failure());
+        steps.push(clean_after);
+        steps
+    }
+
+    pub fn job_builder(self, name: impl Into<String>, runs_on: impl RunsOn) -> RunJobBuilder {
+        RunJobBuilder::new(self, name, runs_on)
+    }
+
+    pub fn build_job(self, name: impl Into<String>, runs_on: impl RunsOn) -> Job {
+        self.job_builder(name, runs_on).build()
+    }
+}
+
+/// Data needed to generate a job that invokes `./run` script.
+#[derive(Debug)]
+pub struct RunJobBuilder {
+    /// Data to generate the steps.
+    pub inner:   RunStepsBuilder,
+    /// Name of the job. Might be modified to include the runner info.
+    pub name:    String,
+    /// The runners on which the job should run.
+    pub runs_on: Box<dyn RunsOn>,
+}
+
+impl RunJobBuilder {
+    pub fn new(
+        build_steps: RunStepsBuilder,
+        name: impl Into<String>,
+        runs_on: impl RunsOn + 'static,
+    ) -> Self {
+        Self { name: name.into(), runs_on: Box::new(runs_on), inner: build_steps }
+    }
+
+    pub fn build(self) -> Job {
+        let name = if let Some(os_name) = self.runs_on.job_name_suffix() {
+            format!("{} ({})", self.name, os_name)
+        } else {
+            self.name
+        };
+        let steps = self.inner.build();
+        let runs_on = self.runs_on.runs_on();
+        let strategy = self.runs_on.strategy();
+        Job { name, runs_on, steps, strategy, ..default() }
+    }
+}
+
+/// Trigger the workflow on push to the default branch.
 pub fn on_default_branch_push() -> Push {
     Push { inner_branches: Branches::new([DEFAULT_BRANCH_NAME]), ..default() }
 }
@@ -136,12 +279,18 @@ pub fn runs_on(os: OS) -> Vec<RunnerLabel> {
     }
 }
 
+/// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
     let mut ret = vec![setup_conda(), setup_wasm_pack_step(), setup_artifact_api()];
     ret.extend(checkout_repo_step());
+    // We run `./run --help` so:
+    // * The build-script is build in a separate step. This allows us to monitor its build-time and
+    //   not affect timing of the actual build.
+    // * The help message is printed to the log, including environment-dependent flag defaults.
     ret.push(run("--help").with_name("Build Script Setup"));
     ret
 }
+
 
 pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
     let win = Step {
@@ -159,32 +308,6 @@ pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
     };
 
     [win, non_win]
-}
-
-/// The `f` is applied to the step that does an actual script invocation.
-pub fn setup_customized_script_steps(
-    command_line: impl AsRef<str>,
-    customize: impl FnOnce(Step) -> Vec<Step>,
-) -> Vec<Step> {
-    use crate::ci::labels::CLEAN_BUILD_REQUIRED;
-    // Check if the pull request has a "Clean required" label.
-    let pre_clean_condition =
-        format!("contains(github.event.pull_request.labels.*.name, '{CLEAN_BUILD_REQUIRED}')",);
-    let post_clean_condition = format!("always() && {pre_clean_condition}");
-
-    let mut steps = setup_script_steps();
-    let clean_step = run("git-clean").with_if(&pre_clean_condition).with_name("Clean before");
-    steps.push(clean_step.clone());
-    steps.extend(customize(run(command_line)));
-    steps.extend(list_everything_on_failure());
-    steps.push(
-        clean_step.with_if(format!("always() && {post_clean_condition}")).with_name("Clean after"),
-    );
-    steps
-}
-
-pub fn setup_script_and_steps(command_line: impl AsRef<str>) -> Vec<Step> {
-    setup_customized_script_steps(command_line, |s| vec![s])
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -220,7 +343,7 @@ impl DraftRelease {
 pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
     fn job(&self, os: OS) -> Job {
-        let mut ret = plain_job(&os, "Publish release", "release publish");
+        let mut ret = plain_job(os, "Publish release", "release publish");
         ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
         ret.expose_secret_as(
             secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
@@ -235,7 +358,9 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", with_packaging_steps(os))
+        RunStepsBuilder::new("ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}")
+            .customize(with_packaging_steps(os))
+            .build_job("Build Old IDE", os)
     }
 }
 
@@ -243,12 +368,11 @@ impl JobArchetype for UploadIde {
 pub struct UploadIde2;
 impl JobArchetype for UploadIde2 {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(
-            &os,
-            "Build New IDE",
+        RunStepsBuilder::new(
             "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
-            with_packaging_steps(os),
         )
+        .customize(with_packaging_steps(os))
+        .build_job("Build New IDE", os)
     }
 }
 
@@ -257,9 +381,9 @@ pub struct PromoteReleaseJob;
 impl JobArchetype for PromoteReleaseJob {
     fn job(&self, os: OS) -> Job {
         let command = format!("release promote {}", get_input_expression(DESIGNATOR_INPUT_NAME));
-        let mut job = plain_job_customized(&os, "Promote release", command, |step| {
-            vec![step.with_id(Self::PROMOTE_STEP_ID)]
-        });
+        let mut job = RunStepsBuilder::new(command)
+            .customize(|step| vec![step.with_id(Self::PROMOTE_STEP_ID)])
+            .build_job("Promote release", os);
         self.expose_outputs(&mut job);
         job
     }
@@ -289,12 +413,7 @@ pub fn changelog() -> Result<Workflow> {
         Opened,
         Reopened,
     ]));
-    ret.add_job(Job {
-        name: "Changelog".into(),
-        runs_on: vec![RunnerLabel::X64],
-        steps: setup_script_and_steps("changelog-check"),
-        ..default()
-    });
+    ret.add_job(RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64));
     Ok(ret)
 }
 
@@ -480,7 +599,7 @@ pub fn std_libs_benchmark() -> Result<Workflow> {
     benchmark("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
 }
 
-fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflow> {
+fn benchmark(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean{default: Some(false)},
@@ -501,8 +620,10 @@ fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflo
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let mut benchmark_job = plain_job(&BenchmarkRunner, name, cmd_line);
-    benchmark_job.timeout_minutes = timeout;
+    let mut benchmark_job = RunStepsBuilder::new(command_line)
+        .cleaning(CleaningCondition::Always)
+        .build_job(name, BenchmarkRunner);
+    benchmark_job.timeout_minutes = timeout_minutes;
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }

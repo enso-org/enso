@@ -319,7 +319,18 @@ class RuntimeRefactoringTest
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, exprOperator2, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        exprOperator2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -358,6 +369,14 @@ class RuntimeRefactoringTest
         contextId,
         exprOperator2,
         ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        ),
+        fromCache   = false,
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -393,6 +412,14 @@ class RuntimeRefactoringTest
           contextId,
           exprOperator2,
           ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          ),
+          fromCache   = false,
           typeChanged = false
         ),
       context.executionComplete(contextId)

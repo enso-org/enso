@@ -5,23 +5,21 @@ import Standard.Base.Errors.Common.Incomparable_Values
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-type My_Type
-    Foo x
+main = run_default_backend add_specs
 
-main = run_default_backend spec
+type Data
+    Value ~data
 
-spec setup =
-    prefix = setup.prefix
-    table_builder = setup.table_builder
-    test_selection = setup.test_selection
-    order_by_pending = if test_selection.order_by.not then
-        "ToDo: order_by is not yet supported by this backend."
-    Test.group prefix+"Table.order_by" pending=order_by_pending <|
+    connection self = self.data.at 0
+    table self = self.data.at 1
+    
+    setup create_connection_fn table_builder = Data.Value <|
+        connection = create_connection_fn Nothing
         mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]
             col2 = ["beta", ["a", "b", "a", "b"]]
@@ -33,30 +31,53 @@ spec setup =
             col8 = ["phi", ["śc", Nothing, 's\u0301b', "śa"]]
             col9 = ["tau", [32.0, 0.5, -0.1, 1.6]]
             col10 = ["rho", ["BB", Nothing, Nothing, "B"]]
-            table_builder [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10]
-        table = mk_table
+            table_builder [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10] connection=connection
+        [connection, mk_table]
 
-        Test.specify "should work as shown in the doc examples" <|
-            t1 = table.order_by ["alpha"]
+    teardown self =
+        self.connection.close
+
+
+type My_Type
+    Foo x
+
+
+add_specs suite_builder setup =
+    prefix = setup.prefix
+    create_connection_fn = setup.create_connection_func
+    test_selection = setup.test_selection
+    order_by_pending = if test_selection.order_by.not then
+        "ToDo: order_by is not yet supported by this backend."
+    suite_builder.group prefix+"Table.order_by" pending=order_by_pending group_builder->
+        data = Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should work as shown in the doc examples" <|
+            t1 = data.table.order_by ["alpha"]
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
             ## Assumes stable sorting on database engine.
-            t2 = table.order_by [1, Sort_Column.Index -8 Sort_Direction.Descending]
+            t2 = data.table.order_by [1, Sort_Column.Index -8 Sort_Direction.Descending]
             t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
             t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
-            t3 = table.order_by [Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
+            t3 = data.table.order_by [Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
 
-        Test.specify "should work with single column name" <|
-            t1 = table.order_by "alpha"
+        group_builder.specify "should work with single column name" <|
+            t1 = data.table.order_by "alpha"
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should work with single Sort_Column" <|
-            t1 = table.order_by [Sort_Column.Name "alpha"]
+        group_builder.specify "should work with single Sort_Column" <|
+            t1 = data.table.order_by [Sort_Column.Name "alpha"]
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
@@ -64,7 +85,7 @@ spec setup =
             t2.at "alpha" . to_vector . should_equal [3, 2, 1, 0]
             t2.at "gamma" . to_vector . should_equal [1, 2, 3, 4]
 
-            t3 = table.order_by [Sort_Column.Index 0]
+            t3 = data.table.order_by [Sort_Column.Index 0]
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t3.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
@@ -72,89 +93,89 @@ spec setup =
             t4.at "alpha" . to_vector . should_equal [3, 2, 1, 0]
             t4.at "gamma" . to_vector . should_equal [1, 2, 3, 4]
 
-        Test.specify "should allow the selector to mix regex and case insensitive matching" <|
-            t4 = table.order_by [Sort_Column.Select_By_Name "A.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
+        group_builder.specify "should allow the selector to mix regex and case insensitive matching" <|
+            t4 = data.table.order_by [Sort_Column.Select_By_Name "A.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
             t4.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
 
-        Test.specify "should correctly handle regexes matching multiple names" <|
-            t1 = table.order_by [Sort_Column.Select_By_Name ".*ta" Sort_Direction.Descending use_regex=True]
+        group_builder.specify "should correctly handle regexes matching multiple names" <|
+            t1 = data.table.order_by [Sort_Column.Select_By_Name ".*ta" Sort_Direction.Descending use_regex=True]
             t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
             t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
             t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
 
-        Test.specify "should correctly handle problems: out of bounds indices" <|
+        group_builder.specify "should correctly handle problems: out of bounds indices" <|
             selector = [0, 100, Sort_Column.Index -200, Sort_Column.Index 300]
             expected_problem = Missing_Input_Columns.Error [100, -200, 300]
-            t1 = table.order_by selector
+            t1 = data.table.order_by selector
             t1.should_fail_with Missing_Input_Columns
             t1.catch . should_equal expected_problem
 
-            action = table.order_by selector error_on_missing_columns=False on_problems=_
+            action = data.table.order_by selector error_on_missing_columns=False on_problems=_
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             Problems.test_problem_handling action [expected_problem] tester
 
-        Test.specify "should correctly handle edge-cases: duplicate selectors" <|
+        group_builder.specify "should correctly handle edge-cases: duplicate selectors" <|
             selector1 = ["alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]
-            t1 = table.order_by selector1
+            t1 = data.table.order_by selector1
             Problems.assume_no_problems t1
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t2 = table.order_by [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]
+            t2 = data.table.order_by [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]
             Problems.assume_no_problems t2
             t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t3 = table.order_by [Sort_Column.Index 0, Sort_Column.Name "alpha" Sort_Direction.Descending]
+            t3 = data.table.order_by [Sort_Column.Index 0, Sort_Column.Name "alpha" Sort_Direction.Descending]
             Problems.assume_no_problems t3
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t3.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
+        group_builder.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = [Sort_Column.Select_By_Name "ALPHA" case_sensitivity=Case_Sensitivity.Insensitive, Sort_Column.Select_By_Name "alpha" Sort_Direction.Descending]
-            t1 = table.order_by selector
+            t1 = data.table.order_by selector
             Problems.assume_no_problems t1
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle edge-cases: duplicate matches due to regexes" <|
+        group_builder.specify "should correctly handle edge-cases: duplicate matches due to regexes" <|
             selector = [Sort_Column.Select_By_Name "a.*" use_regex=True, Sort_Column.Select_By_Name "alpha" Sort_Direction.Descending]
-            t1 = table.order_by selector
+            t1 = data.table.order_by selector
             Problems.assume_no_problems t1
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle edge-cases: mixed selector types" <|
-            t1 = table.order_by [Sort_Column.Name "alpha", Sort_Column.Index 1]
+        group_builder.specify "should correctly handle edge-cases: mixed selector types" <|
+            t1 = data.table.order_by [Sort_Column.Name "alpha", Sort_Column.Index 1]
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t2 = table.order_by [Sort_Column.Select_By_Name "a.*a" use_regex=True, Sort_Column.Index 1]
+            t2 = data.table.order_by [Sort_Column.Select_By_Name "a.*a" use_regex=True, Sort_Column.Index 1]
             t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t2.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle problems: unmatched names" <|
+        group_builder.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = [Sort_Column.Name "alpha", "hmm", Sort_Column.Name weird_name]
             expected_problem = Missing_Input_Columns.Error ["hmm", weird_name]
-            t1 = table.order_by selector
+            t1 = data.table.order_by selector
             t1.should_fail_with Missing_Input_Columns
             t1.catch . should_equal expected_problem
 
-            action = table.order_by selector error_on_missing_columns=False on_problems=_
+            action = data.table.order_by selector error_on_missing_columns=False on_problems=_
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             Problems.test_problem_handling action [expected_problem] tester
 
-        Test.specify "should report a problem if no columns are selected for ordering" <|
-            t2 = table.order_by []
+        group_builder.specify "should report a problem if no columns are selected for ordering" <|
+            t2 = data.table.order_by []
             t2.should_fail_with No_Input_Columns_Selected
 
-        Test.specify "should stack consecutive ordering operations" <|
-            t1 = table.order_by [Sort_Column.Name "alpha"]
+        group_builder.specify "should stack consecutive ordering operations" <|
+            t1 = data.table.order_by [Sort_Column.Name "alpha"]
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
 
@@ -172,51 +193,51 @@ spec setup =
             t4.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t4.at "alpha" . to_vector . should_equal [3, 1, 2, 0]
 
-        Test.specify "should give priority to the first selected column and use the next ones for breaking ties" <|
-            t1 = table.order_by ["beta", Sort_Column.Name "alpha" Sort_Direction.Ascending]
+        group_builder.specify "should give priority to the first selected column and use the next ones for breaking ties" <|
+            t1 = data.table.order_by ["beta", Sort_Column.Name "alpha" Sort_Direction.Ascending]
             t1.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t1.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
             t1.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
 
-            t1a = table.order_by ["beta", Sort_Column.Name "alpha" Sort_Direction.Ascending]
+            t1a = data.table.order_by ["beta", Sort_Column.Name "alpha" Sort_Direction.Ascending]
             t1a.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t1a.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
             t1a.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
 
-            t2 = table.order_by [Sort_Column.Name "beta", Sort_Column.Name "alpha" Sort_Direction.Descending]
+            t2 = data.table.order_by [Sort_Column.Name "beta", Sort_Column.Name "alpha" Sort_Direction.Descending]
             t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t2.at "alpha" . to_vector . should_equal [3, 1, 2, 0]
             t2.at "gamma" . to_vector . should_equal [1, 3, 2, 4]
 
-            t3 = table.order_by [Sort_Column.Name "alpha", Sort_Column.Name "beta"]
+            t3 = data.table.order_by [Sort_Column.Name "alpha", Sort_Column.Name "beta"]
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t3.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t3.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t4 = table.order_by [Sort_Column.Index 1, Sort_Column.Index 0 Sort_Direction.Ascending]
+            t4 = data.table.order_by [Sort_Column.Index 1, Sort_Column.Index 0 Sort_Direction.Ascending]
             t4.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t4.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
             t4.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
 
-        Test.specify "should deal with real numbers, and not warn when ordering by floats" <|
-            t1 = table.order_by ["tau"]
+        group_builder.specify "should deal with real numbers, and not warn when ordering by floats" <|
+            t1 = data.table.order_by ["tau"]
             t1.at "tau" . to_vector . should_equal [-0.1, 0.5, 1.6, 32.0]
             t1.at "alpha" . to_vector . should_equal [1, 2, 0, 3]
             Problems.assume_no_problems t1
 
-        Test.specify "should deal with nulls" <|
-            t1 = table.order_by ["xi"]
+        group_builder.specify "should deal with nulls" <|
+            t1 = data.table.order_by ["xi"]
             t1.at "xi" . to_vector . should_equal [Nothing, 0.5, 1.0, 1.5]
             t1.at "alpha" . to_vector . should_equal [1, 0, 3, 2]
 
-            t2 = table.order_by [Sort_Column.Name "rho"]
+            t2 = data.table.order_by [Sort_Column.Name "rho"]
             t2.at "rho" . to_vector . should_equal [Nothing, Nothing, "B", "BB"]
 
-            t3 = table.order_by [Sort_Column.Name "rho" Sort_Direction.Descending]
+            t3 = data.table.order_by [Sort_Column.Name "rho" Sort_Direction.Descending]
             t3.at "rho" . to_vector . should_equal ["BB", "B", Nothing, Nothing]
 
-        Test.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
-            t1 = table.order_by [Sort_Column.Name "phi"]
+        group_builder.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
+            t1 = data.table.order_by [Sort_Column.Name "phi"]
             case test_selection.order_by_unicode_normalization_by_default of
                 True ->
                     t1.at "phi" . to_vector . should_equal [Nothing, "śa", 's\u0301b', "śc"]
@@ -225,55 +246,55 @@ spec setup =
                     t1.at "phi" . to_vector . should_equal [Nothing, 's\u0301b', "śa", "śc"]
                     t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
-        Test.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
-            t1 = table.order_by [Sort_Column.Name "delta"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
+        group_builder.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
+            t1 = data.table.order_by [Sort_Column.Name "delta"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
             t1.at "delta" . to_vector . should_equal ["a1", "a2", "a03", "a10"]
             t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
-            t2 = table.order_by ["delta"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=False)
+            t2 = data.table.order_by ["delta"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=False)
             t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
             t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
 
-        Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
-            t1 = table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Insensitive)
+        group_builder.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
+            t1 = data.table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Insensitive)
             expected = case test_selection.case_insensitive_ascii_only of
                 True -> ["Aleph", "alpha", "Beta", "bądź"]
                 False -> ["Aleph", "alpha", "bądź", "Beta"]
             t1.at "eta" . to_vector . should_equal expected
 
-            t2 = table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Sensitive)
+            t2 = data.table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Sensitive)
             t2.at "eta" . to_vector . should_equal ["Aleph", "Beta", "alpha", "bądź"]
 
-            t3 = table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive)
+            t3 = data.table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive)
             t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
 
-            t4 = table.order_by [Sort_Column.Name "psi" Sort_Direction.Descending] text_ordering=(Text_Ordering.Case_Sensitive)
+            t4 = data.table.order_by [Sort_Column.Name "psi" Sort_Direction.Descending] text_ordering=(Text_Ordering.Case_Sensitive)
             t4.at "psi" . to_vector . should_equal ["c10", "c01", "C2", Nothing]
 
-        Test.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
-            t1 = table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+        group_builder.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
+            t1 = data.table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
             t1.at "psi" . to_vector . should_equal [Nothing, "c01", "C2", "c10"]
 
-            t2 = table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
+            t2 = data.table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
             t2.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
-            t3 = table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive)
+            t3 = data.table.order_by [Sort_Column.Name "psi"] text_ordering=(Text_Ordering.Case_Insensitive)
             t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
 
-            t4 = table.order_by [Sort_Column.Name "psi"]
+            t4 = data.table.order_by [Sort_Column.Name "psi"]
             t4.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
-        Test.specify "text ordering settings should not affect numeric columns" <|
+        group_builder.specify "text ordering settings should not affect numeric columns" <|
             ordering = Text_Ordering.Case_Insensitive sort_digits_as_numbers=True
-            t1 = table.order_by [Sort_Column.Name "alpha"] text_ordering=ordering
+            t1 = data.table.order_by [Sort_Column.Name "alpha"] text_ordering=ordering
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
         if setup.is_database.not then
-            Test.specify "should allow ordering enso objects with a comparator" <|
+            group_builder.specify "should allow ordering enso objects with a comparator" <|
                 t = table_builder [["X", [Day_Of_Week.Friday, Day_Of_Week.Monday, Nothing, Nothing, Day_Of_Week.Wednesday]]]
                 t.order_by "X" . at "X" . to_vector . should_equal [Nothing, Nothing, Day_Of_Week.Monday, Day_Of_Week.Wednesday, Day_Of_Week.Friday]
 
-            Test.specify "should raise Incomparable_Values if ordering by incomparable values" <|
+            group_builder.specify "should raise Incomparable_Values if ordering by incomparable values" <|
                 t = table_builder [["X", [My_Type.Foo 42, My_Type.Foo "a"]]]
                 t.order_by "X" . should_fail_with Incomparable_Values
