@@ -2,124 +2,24 @@
 import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
+import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 
 import Dropdown from '#/components/Dropdown'
 
 // =================
-// === lookupDef ===
+// === Constants ===
 // =================
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 
-/** Look up a `{ "$ref": "" }` in the root schema. */
-function lookupDef(schema: object) {
-  const ref = '$ref' in schema && typeof schema.$ref === 'string' ? schema.$ref : null
-  const [, name] = ref?.match(/^#[/][$]defs[/](.+)$/) ?? ''
-  return name == null ? null : object.asObject(DEFS[name])
-}
-
-// ====================
-// === isRenderable ===
-// ====================
-
-const CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
+// =====================
+// === constantValue ===
+// =====================
 
 /** The value of the schema, if it can only have one possible value. */
-function constantValueHelper(schema: object): [] | [NonNullable<unknown> | null] {
-  if ('const' in schema) {
-    return [schema.const ?? null]
-  } else if ('type' in schema) {
-    switch (schema.type) {
-      case 'string':
-      case 'number':
-      case 'integer': {
-        return []
-      }
-      case 'object': {
-        const propertiesObject =
-          'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
-        const result: Record<string, unknown> = {}
-        for (const [key, child] of Object.entries(propertiesObject)) {
-          const childSchema = object.asObject(child)
-          if (childSchema == null) {
-            continue
-          }
-          const value = constantValue(childSchema)
-          if (value.length === 0) {
-            // eslint-disable-next-line no-restricted-syntax
-            return []
-          } else {
-            result[key] = value[0]
-          }
-        }
-        return [result]
-      }
-      default: {
-        return []
-      }
-    }
-  } else if ('$ref' in schema) {
-    const referencedSchema = lookupDef(schema)
-    return referencedSchema == null ? [] : constantValue(referencedSchema)
-  } else if ('anyOf' in schema) {
-    if (!Array.isArray(schema.anyOf) || schema.anyOf.length !== 1) {
-      return []
-    } else {
-      const firstMember = object.asObject(schema.anyOf[0])
-      return firstMember == null ? [] : constantValue(firstMember)
-    }
-  } else if ('allOf' in schema) {
-    if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
-      return []
-    } else {
-      const firstMember = object.asObject(schema.allOf[0])
-      const firstValue = firstMember == null ? [] : constantValue(firstMember)
-      if (firstValue.length === 0) {
-        return []
-      } else {
-        const result = firstValue[0]
-        for (const child of schema.allOf) {
-          const childSchema = object.asObject(child)
-          if (childSchema == null) {
-            continue
-          }
-          const value = constantValue(childSchema)
-          if (value.length === 0) {
-            // eslint-disable-next-line no-restricted-syntax
-            return []
-          } else if (typeof result !== 'object' || result == null) {
-            if (result !== value[0]) {
-              // eslint-disable-next-line no-restricted-syntax
-              return []
-            }
-          } else {
-            if (value[0] == null || typeof result !== typeof value[0]) {
-              // eslint-disable-next-line no-restricted-syntax
-              return []
-            }
-            Object.assign(result, value[0])
-          }
-        }
-        return [result]
-      }
-    }
-  } else {
-    return [null]
-  }
-}
-
-/** The value of the schema, if it can only have one possible value.
- * This function is a memoized version of {@link constantValueHelper}. */
 function constantValue(schema: object) {
-  const cached = CONSTANT_VALUE.get(schema)
-  if (cached != null) {
-    return cached
-  } else {
-    const renderable = constantValueHelper(schema)
-    CONSTANT_VALUE.set(schema, renderable)
-    return renderable
-  }
+  return jsonSchema.constantValue(DEFS, schema)
 }
 
 // =====================
@@ -135,7 +35,7 @@ function getSchemaNameHelper(schema: object): string {
   } else if ('type' in schema) {
     return String(schema.type)
   } else if ('$ref' in schema) {
-    const referencedSchema = lookupDef(schema)
+    const referencedSchema = jsonSchema.lookupDef(DEFS, schema)
     return referencedSchema == null ? '(unknown)' : getSchemaName(referencedSchema)
   } else if ('anyOf' in schema) {
     const members = Array.isArray(schema.anyOf) ? schema.anyOf : []
@@ -169,6 +69,7 @@ function getSchemaName(schema: object) {
 export interface DataLinkInputProps {
   dropdownTitle?: string
   schema?: object
+  readOnly?: boolean
   value: NonNullable<unknown> | null
   setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
   setIsSubmittable: (isSubmittable: boolean) => void
@@ -176,14 +77,9 @@ export interface DataLinkInputProps {
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */
 export default function DataLinkInput(props: DataLinkInputProps) {
-  const {
-    dropdownTitle,
-    schema = SCHEMA.$defs.DataLink,
-    value: valueRaw,
-    setValue: setValueRaw,
-    setIsSubmittable: setIsSubmittableRaw,
-  } = props
-  const [selectedChildIndex, setSelectedChildIndex] = React.useState(0)
+  const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
+  const { setValue: setValueRaw, setIsSubmittable: setIsSubmittableRaw } = props
+  const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [isSubmittable, setIsSubmittable] = React.useState(false)
   const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
   const [initializing, setInitializing] = React.useState(true)
@@ -200,6 +96,14 @@ export default function DataLinkInput(props: DataLinkInputProps) {
     // `setIsSubmittableRaw` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSubmittable])
+
+  React.useEffect(() => {
+    if (!initializing) {
+      setValue(valueRaw)
+    }
+    // `initializing` is not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valueRaw])
 
   React.useEffect(() => {
     setValueRaw(value)
@@ -222,12 +126,19 @@ export default function DataLinkInput(props: DataLinkInputProps) {
   } else if ('type' in schema) {
     switch (schema.type) {
       case 'string': {
+        if (initializing) {
+          const newIsSubmittable = typeof value === 'string'
+          if (newIsSubmittable !== isSubmittable) {
+            setIsSubmittable(newIsSubmittable)
+          }
+        }
         return (
           <input
             type="text"
+            readOnly={readOnly}
             value={typeof value === 'string' ? value : ''}
             size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter text here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
@@ -238,12 +149,19 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         )
       }
       case 'number': {
+        if (initializing) {
+          const newIsSubmittable = typeof value === 'number'
+          if (newIsSubmittable !== isSubmittable) {
+            setIsSubmittable(newIsSubmittable)
+          }
+        }
         return (
           <input
             type="number"
+            readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter number here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
@@ -256,12 +174,19 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         )
       }
       case 'integer': {
+        if (initializing) {
+          const newIsSubmittable = typeof value === 'number' && Number.isInteger(value)
+          if (newIsSubmittable !== isSubmittable) {
+            setIsSubmittable(newIsSubmittable)
+          }
+        }
         return (
           <input
             type="number"
+            readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50"
+            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter integer here"
             onChange={event => {
               setIsSubmittable(event.currentTarget.value !== '')
@@ -269,6 +194,22 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               if (Number.isFinite(newValue)) {
                 setValue(Math.floor(newValue))
               }
+            }}
+          />
+        )
+      }
+      case 'boolean': {
+        if (initializing) {
+          setIsSubmittable(true)
+          setValue(false)
+        }
+        return (
+          <input
+            type="checkbox"
+            readOnly={readOnly}
+            checked={typeof value === 'boolean' && value}
+            onChange={event => {
+              setValue(event.currentTarget.checked)
             }}
           />
         )
@@ -315,10 +256,22 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                     {'title' in childSchema ? String(childSchema.title) : key}
                   </div>
                   <DataLinkInput
+                    readOnly={readOnly}
                     schema={childSchema}
                     value={stateAsObject[key] ?? null}
                     setValue={newValue => {
-                      setValue(oldState => ({ ...oldState, [key]: newValue }))
+                      if (stateAsObject[key] !== newValue) {
+                        setValue(oldState =>
+                          typeof oldState === 'object' &&
+                          oldState != null &&
+                          // This is SAFE; but there is no way to tell TypeScript that an object
+                          // has an index signature.
+                          // eslint-disable-next-line no-restricted-syntax
+                          (oldState as Record<string, unknown>)[key] === newValue
+                            ? oldState
+                            : { ...oldState, [key]: newValue }
+                        )
+                      }
                     }}
                     setIsSubmittable={isChildSubmittable => {
                       setChildSubmittability(oldSubmittability =>
@@ -344,7 +297,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       }
     }
   } else if ('$ref' in schema) {
-    const referencedSchema = lookupDef(schema)
+    const referencedSchema = jsonSchema.lookupDef(DEFS, schema)
     if (referencedSchema == null) {
       setIsSubmittable(true)
       return <></>
@@ -352,6 +305,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       return (
         <DataLinkInput
           key={String(schema.$ref)}
+          readOnly={readOnly}
           schema={referencedSchema}
           value={value}
           setValue={setValue}
@@ -364,24 +318,41 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       return <></>
     } else {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
-      const selectedChildSchema = childSchemas[selectedChildIndex]
+      const selectedChildSchema =
+        selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
       const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
       if (initializing) {
         if (!isSubmittable && childValue.length === 1) {
           setIsSubmittable(true)
           setValue(childValue[0])
+        } else if (
+          value != null &&
+          (selectedChildSchema == null || jsonSchema.isMatch(DEFS, selectedChildSchema, value))
+        ) {
+          const newIndex = childSchemas.findIndex(childSchema =>
+            jsonSchema.isMatch(DEFS, childSchema, value)
+          )
+          if (newIndex !== -1 && newIndex !== selectedChildIndex) {
+            setSelectedChildIndex(newIndex)
+          }
+        }
+      } else {
+        if (selectedChildIndex == null) {
+          setSelectedChildIndex(0)
         }
       }
       const dropdown = (
         <Dropdown
+          readOnly={readOnly}
           items={childSchemas}
           selectedIndex={selectedChildIndex}
           render={childProps => getSchemaName(childProps.item)}
           className="self-start"
           onClick={(childSchema, index) => {
             setSelectedChildIndex(index)
-            setValue(null)
-            setIsSubmittable(constantValue(childSchema).length === 1)
+            const newConstantValue = constantValue(childSchema)
+            setValue(newConstantValue[0] ?? null)
+            setIsSubmittable(newConstantValue.length === 1)
           }}
         />
       )
@@ -397,6 +368,8 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           )}
           {selectedChildSchema != null && childValue.length === 0 && (
             <DataLinkInput
+              key={selectedChildIndex}
+              readOnly={readOnly}
               schema={selectedChildSchema}
               value={value}
               setValue={setValue}
@@ -416,6 +389,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           {childSchemas.map((childSchema, i) => (
             <DataLinkInput
               key={i}
+              readOnly={readOnly}
               schema={childSchema}
               value={value}
               setValue={setValue}

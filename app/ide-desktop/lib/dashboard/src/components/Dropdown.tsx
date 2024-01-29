@@ -16,6 +16,7 @@ interface InternalChildProps<T> {
 
 /** Props for a {@link Dropdown}. */
 export interface DropdownProps<T> {
+  readOnly?: boolean
   className?: string
   items: T[]
   selectedIndex: number | null
@@ -25,7 +26,7 @@ export interface DropdownProps<T> {
 
 /** A styled dropdown. */
 export default function Dropdown<T>(props: DropdownProps<T>) {
-  const { className, items, selectedIndex, render: Child, onClick } = props
+  const { readOnly = false, className, items, selectedIndex, render: Child, onClick } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
   const isMouseDown = React.useRef(false)
   const selectedItem = selectedIndex == null ? null : items[selectedIndex]
@@ -131,9 +132,13 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''}`}
+        className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
+          readOnly ? 'opacity-75 cursor-not-allowed' : ''
+        }`}
         onClick={() => {
-          setIsDropdownVisible(visible => !visible)
+          if (!readOnly) {
+            setIsDropdownVisible(visible => !visible)
+          }
         }}
       >
         <SvgMask src={TriangleDownIcon} />

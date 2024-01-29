@@ -97,7 +97,7 @@ export function getSecretPath(secretId: backend.SecretId) {
 }
 /** Relative HTTP path to the "get connector" endpoint of the Cloud backend API. */
 export function getConnectorPath(connectorId: backend.ConnectorId) {
-  return `secrets/${connectorId}`
+  return `connectors/${connectorId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 export function associateTagPath(assetId: backend.AssetId) {
