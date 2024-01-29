@@ -59,10 +59,10 @@ pub enum RunnerType {
 #[derive(Clone, Copy, Debug)]
 pub struct BenchmarkRunner;
 
-pub const PRIMARY_OS: OS = OS::Linux;
-pub const PRIMARY_ARCH: Arch = Arch::X86_64;
+/// The default target for CI jobs.
+pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
-pub const PRIMARY_TARGET: Target = (PRIMARY_OS, PRIMARY_ARCH);
+const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 
 pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
     (OS::Windows, Arch::X86_64),
@@ -377,16 +377,19 @@ impl JobArchetype for PublishRelease {
     }
 }
 
+/// Build IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}")
+            .cleaning(RELEASE_CLEANING_POLICY)
             .customize(with_packaging_steps(target.0))
             .build_job("Build Old IDE", target)
     }
 }
 
+/// Build new IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
 pub struct UploadIde2;
 impl JobArchetype for UploadIde2 {
@@ -394,6 +397,7 @@ impl JobArchetype for UploadIde2 {
         RunStepsBuilder::new(
             "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
         )
+        .cleaning(RELEASE_CLEANING_POLICY)
         .customize(with_packaging_steps(target.0))
         .build_job("Build New IDE", target)
     }
