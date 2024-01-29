@@ -1406,21 +1406,24 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     modifyVisualizationResponses should contain(
       Api.Response(requestId, Api.VisualizationModified())
     )
-    val Some(dataAfterModification) =
+    val Some((dataAfterModification, foundVisualizatonId)) =
       modifyVisualizationResponses.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  modifiedId,
                   `contextId`,
                   `expectedExpressionId`
                 ),
                 data
               )
             ) =>
-          data
+          (data, modifiedId)
       }
+
+    List(visualizationId, visualizationId2) should contain(foundVisualizatonId)
+
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
