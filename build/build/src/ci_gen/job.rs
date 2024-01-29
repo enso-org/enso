@@ -5,6 +5,7 @@ use crate::ci_gen::secret;
 use crate::ci_gen::step;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
+use crate::ci_gen::RELEASE_CLEANING_POLICY;
 
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
@@ -203,7 +204,9 @@ impl JobArchetype for BuildBackend {
 pub struct UploadBackend;
 impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Upload Backend", "backend upload")
+        RunStepsBuilder::new("backend upload")
+            .cleaning(RELEASE_CLEANING_POLICY)
+            .build_job("Upload Backend", target)
     }
 }
 
