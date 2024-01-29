@@ -143,8 +143,6 @@ trait FileSystem[F] {
 }
 
 object FileSystem {
-  /** Java accessor */
-  def getDefault(): FileSystem[File] = Default
 
   /** Exposes [[FileSystem]] operations through method call syntax.
     * All methods have the same semantics as the corresponding [[FileSystem]]

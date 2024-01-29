@@ -1,12 +1,12 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +17,6 @@ import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.util.TruffleFileConversions;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
@@ -85,7 +84,7 @@ public final class ImportExportCache
         .map(
             pkg -> {
               var bindingsCacheRoot = pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
-              var localCacheRootPath = bindingsCacheRoot.toPath().resolve(libraryName.namespace());
+              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =
                   new String[] {
@@ -100,7 +99,6 @@ public final class ImportExportCache
                       .irCacheDirectory()
                       .resolve(StringUtils.join(pathSegments, "/"));
               var globalCacheRoot = context.getTruffleFile(path.toFile());
-              var localCacheRoot = context.getTruffleFile(localCacheRootPath.toFile());
               return new Cache.Roots(localCacheRoot, globalCacheRoot);
             });
   }
@@ -162,7 +160,7 @@ public final class ImportExportCache
   public static record CachedBindings(
       LibraryName libraryName,
       MapToBindings bindings,
-      Optional<List<SourceFile<File>>> sources) {}
+      Optional<List<SourceFile<TruffleFile>>> sources) {}
 
   public record Metadata(String sourceHash, String blobHash) implements Cache.Metadata {
     byte[] toBytes() throws IOException {

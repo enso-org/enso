@@ -2,10 +2,8 @@ package org.enso.interpreter.caches;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -379,15 +377,14 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return string representation of bytes' hash
    */
   protected final String computeDigestOfLibrarySources(
-      List<SourceFile<File>> pkgSources, TruffleLogger logger) {
+      List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
     pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
 
     var digest = messageDigest();
     pkgSources.forEach(
         source -> {
           try {
-            var srcFileBytes = Files.readAllBytes(source.file().toPath());
-            digest.update(srcFileBytes);
+            digest.update(source.file().readAllBytes());
           } catch (IOException e) {
             logger.log(
                 logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
