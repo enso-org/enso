@@ -1,7 +1,11 @@
+import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Nothing.Nothing
+import project.System.Input_Stream.Input_Stream
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
    Any type that represents a file that can be written to should be convertible
