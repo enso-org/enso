@@ -7,9 +7,6 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.Source;
-import java.io.IOException;
-import java.io.StringReader;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.Constants;
@@ -24,7 +21,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.polyglot.LanguageInfo;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -83,18 +79,7 @@ public abstract class EvalNode extends BaseNode {
     }
     var newInlineContext = tuppleOption.get()._1();
     var ir = tuppleOption.get()._2();
-    Source src = null;
-    try {
-      src = Source
-          .newBuilder(
-              LanguageInfo.ID,
-              new StringReader(expression),
-              "<interactive_source>"
-          )
-          .build();
-    } catch (IOException e) {
-      throw new AssertionError("Unreachable", e);
-    }
+    var src = tuppleOption.get()._3();
 
     var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
     var mod = newInlineContext.module$access$0().module$access$0();
