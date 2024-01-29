@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
@@ -72,11 +73,7 @@ export default function DriveBar(props: DriveBarProps) {
         <button
           disabled={!isHomeCategory}
           className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          {...(!isHomeCategory
-            ? {
-                title: 'You can only create a new project in Home.',
-              }
-            : {})}
+          {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
           onClick={() => {
             unsetModal()
             doCreateProject()
@@ -109,9 +106,9 @@ export default function DriveBar(props: DriveBarProps) {
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
-              error="You can only create a new data connector in Home."
-              image={AddConnectorIcon}
-              alt="New Data Connector"
+              error="You can only create a new secret in Home."
+              image={AddKeyIcon}
+              alt="New Secret"
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()

@@ -3,6 +3,7 @@ import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
@@ -472,10 +473,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
   [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
   [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
   [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
-  [KeyboardAction.uploadToCloud]: {
-    name: 'Upload To Cloud',
-    icon: CloudToIcon,
-  },
+  [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
   [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
   [KeyboardAction.edit]: { name: 'Edit', icon: PenIcon },
   [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
@@ -489,24 +487,10 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     icon: TrashIcon,
     colorClass: 'text-delete',
   },
-  [KeyboardAction.delete]: {
-    name: 'Delete',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.deleteAll]: {
-    name: 'Delete All',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.restoreFromTrash]: {
-    name: 'Restore From Trash',
-    icon: UntrashIcon,
-  },
-  [KeyboardAction.restoreAllFromTrash]: {
-    name: 'Restore All From Trash',
-    icon: UntrashIcon,
-  },
+  [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.restoreFromTrash]: { name: 'Restore From Trash', icon: UntrashIcon },
+  [KeyboardAction.restoreAllFromTrash]: { name: 'Restore All From Trash', icon: UntrashIcon },
   [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
   [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
   [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
@@ -518,27 +502,17 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
   [KeyboardAction.pasteAll]: { name: 'Paste All', icon: PasteIcon },
   [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
   [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
-  [KeyboardAction.uploadProjects]: {
-    name: 'Upload Projects',
-    icon: DataUploadIcon,
-  },
+  [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
   [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
   [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
-  [KeyboardAction.newSecret]: { name: 'New Secret', icon: AddConnectorIcon },
+  [KeyboardAction.newSecret]: { name: 'New Secret', icon: AddKeyIcon },
   [KeyboardAction.newDataLink]: { name: 'New Data Link', icon: AddConnectorIcon },
   // These should not appear in any context menus.
   [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
   [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
-  [KeyboardAction.changeYourPassword]: {
-    name: 'Change Your Password',
-    icon: ChangePasswordIcon,
-  },
+  [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
   [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
-  [KeyboardAction.signOut]: {
-    name: 'Logout',
-    icon: SignOutIcon,
-    colorClass: 'text-delete',
-  },
+  [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
   [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
   [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }

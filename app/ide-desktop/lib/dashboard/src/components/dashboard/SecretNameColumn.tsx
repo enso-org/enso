@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import ConnectorIcon from 'enso-assets/connector.svg'
+import KeyIcon from 'enso-assets/key.svg'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -21,6 +21,7 @@ import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
 
 // =====================
 // === ConnectorName ===
@@ -144,7 +145,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <img src={ConnectorIcon} className="m-1" />
+      <SvgMask src={KeyIcon} className="group-hover:hidden h-4 w-4 m-1" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
