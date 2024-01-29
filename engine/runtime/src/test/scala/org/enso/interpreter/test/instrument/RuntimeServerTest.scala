@@ -108,7 +108,7 @@ class RuntimeServerTest
       def code =
         metadata.appendToCode(
           """
-            |from Standard.Base.Data.Numbers import Number
+            |from Standard.Base.Data.Numbers import    all
             |
             |main =
             |    x = 6
@@ -211,7 +211,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idMainZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -233,7 +241,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idFooY,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -255,7 +271,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idFooZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "*"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -441,9 +465,10 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -466,7 +491,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idFoo    = metadata.addItem(41, 6)
+    val idFoo    = metadata.addItem(41, 6, "ffff")
 
     val code =
       """from Standard.Base import all
@@ -509,7 +534,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idFoo, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idFoo,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -1050,7 +1086,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x_1   = metadata.addItem(17, 9, "aa")
     val id_x_2   = metadata.addItem(37, 5, "ab")
 
@@ -1094,7 +1130,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1117,7 +1153,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_2,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api
             .MethodPointer(moduleName, moduleName, "func2"),
@@ -1133,7 +1169,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x_1   = metadata.addItem(17, 9, "aa")
     val id_x_2   = metadata.addItem(37, 5, "ab")
     val id_x_3   = metadata.addItem(53, 7, "ac")
@@ -1181,7 +1217,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1223,7 +1259,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x_3,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(moduleName, s"$moduleName.T", "func2")
         )
@@ -1237,7 +1273,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(18, 7, "aa")
     val id_x1_2  = metadata.addItem(37, 6, "ab")
     val id_x1    = metadata.addItem(53, 6, "ac")
@@ -1285,7 +1321,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1336,7 +1372,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1355,7 +1391,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(18, 7, "aa")
     val id_x1_2  = metadata.addItem(37, 4, "ab")
     val id_x1    = metadata.addItem(51, 8, "ac")
@@ -1403,7 +1439,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1435,7 +1471,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1453,7 +1489,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(18, 7, "aa")
     val id_x1_2  = metadata.addItem(37, 6, "ab")
     val id_x1    = metadata.addItem(53, 6, "ac")
@@ -1501,7 +1537,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1552,7 +1588,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1570,7 +1606,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(30, 7, "aa")
     val id_x1_2  = metadata.addItem(49, 6, "ab")
     val id_x1    = metadata.addItem(65, 6, "ac")
@@ -1619,7 +1655,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1670,7 +1706,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1688,7 +1724,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(30, 7, "aa")
     val id_x1_2  = metadata.addItem(49, 6, "ab")
     val id_x1    = metadata.addItem(65, 6, "ac")
@@ -1737,7 +1773,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1788,7 +1824,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1806,7 +1842,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(30, 7, "aa")
     val id_x1_2  = metadata.addItem(49, 10, "ab")
     val id_x1    = metadata.addItem(69, 6, "ac")
@@ -1855,7 +1891,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1906,7 +1942,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
@@ -1924,7 +1960,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(18, 5, "aa")
     val id_x1_2  = metadata.addItem(35, 8, "ab")
     val id_x1    = metadata.addItem(53, 8, "ac")
@@ -1969,7 +2005,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2012,7 +2048,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "func1"))
       ),
       context.executionComplete(contextId)
@@ -2024,7 +2060,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
+    val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(18, 10, "aa")
     val id_x1_2  = metadata.addItem(40, 8, "ab")
     val id_x1    = metadata.addItem(58, 8, "ac")
@@ -2069,7 +2105,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2112,7 +2148,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id_x1,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "func1"))
       ),
       context.executionComplete(contextId)
@@ -2308,7 +2344,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata  = new Metadata
+    val metadata  = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val idMain    = metadata.addItem(23, 12)
     val idMainFoo = metadata.addItem(28, 7)
 
@@ -2349,15 +2385,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
         idMainFoo,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -2555,7 +2591,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata  = new Metadata
+    val metadata  = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val idMain    = metadata.addItem(23, 18)
     val idMainFoo = metadata.addItem(28, 7)
 
@@ -2597,15 +2633,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
         idMainFoo,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -2925,11 +2961,12 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       TestMessages
         .update(contextId, idMain, ConstantsGen.INTEGER, typeChanged = false),
-      context.Main.Update.mainY(contextId, fromCache                 = true),
       context.executionComplete(contextId)
     )
 
@@ -3090,7 +3127,18 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMainA, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idMainA,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -3984,12 +4032,12 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       TestMessages
         .update(contextId, idMain, ConstantsGen.INTEGER, typeChanged = false),
-      context.Main.Update
-        .mainY(contextId, fromCache = true, typeChanged = true),
       context.executionComplete(contextId)
     )
 
@@ -4596,7 +4644,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n")
     val code =
       """main = bar 40 2 123
         |
@@ -4633,7 +4681,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -4641,14 +4689,14 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Not_Invokable.Error",
             Some(mainFile),
-            Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
+            Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
             None,
             Vector(
               Api.StackTraceElement(
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(0, 7), model.Position(0, 19))
+                  model.Range(model.Position(1, 7), model.Position(1, 19))
                 ),
                 None
               )
@@ -4663,7 +4711,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n")
     val code =
       """from Standard.Base.Errors.Common import all
         |main = bar 40 2 123
@@ -4709,14 +4757,14 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type error: expected a function, but got 42.",
             Some(mainFile),
-            Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
+            Some(model.Range(model.Position(2, 7), model.Position(2, 19))),
             None,
             Vector(
               Api.StackTraceElement(
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(1, 7), model.Position(1, 19))
+                  model.Range(model.Position(2, 7), model.Position(2, 19))
                 ),
                 None
               )
@@ -5170,7 +5218,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     val code =
       """main =
@@ -5217,22 +5265,28 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
-            Some(mainFile),
-            Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
+            None,
+            Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Integer.+",
+                None,
+                Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.baz",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(10, 8), model.Position(10, 17))
+                  model.Range(model.Position(12, 8), model.Position(12, 17))
                 ),
                 None
               ),
@@ -5240,7 +5294,7 @@ class RuntimeServerTest
                 "Main.bar",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(7, 8), model.Position(7, 11))
+                  model.Range(model.Position(9, 8), model.Position(9, 11))
                 ),
                 None
               ),
@@ -5248,7 +5302,7 @@ class RuntimeServerTest
                 "Main.foo",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(4, 8), model.Position(4, 11))
+                  model.Range(model.Position(6, 8), model.Position(6, 11))
                 ),
                 None
               ),
@@ -5256,7 +5310,7 @@ class RuntimeServerTest
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(1, 4), model.Position(1, 7))
+                  model.Range(model.Position(3, 4), model.Position(3, 7))
                 ),
                 None
               )
@@ -5271,7 +5325,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n")
 
     val code =
       """from Standard.Base.Errors.Common import all
@@ -5326,15 +5380,21 @@ class RuntimeServerTest
           contextId,
           Api.ExecutionResult.Diagnostic.error(
             "Type error: expected `that` to be Integer, but got Function.",
-            Some(mainFile),
-            Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
+            None,
+            Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
             Vector(
+              Api.StackTraceElement(
+                "Integer.+",
+                None,
+                Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
+                None
+              ),
               Api.StackTraceElement(
                 "Main.baz",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(11, 8), model.Position(11, 17))
+                  model.Range(model.Position(12, 8), model.Position(12, 17))
                 ),
                 None
               ),
@@ -5342,7 +5402,7 @@ class RuntimeServerTest
                 "Main.bar",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(8, 8), model.Position(8, 11))
+                  model.Range(model.Position(9, 8), model.Position(9, 11))
                 ),
                 None
               ),
@@ -5350,7 +5410,7 @@ class RuntimeServerTest
                 "Main.foo",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(5, 8), model.Position(5, 11))
+                  model.Range(model.Position(6, 8), model.Position(6, 11))
                 ),
                 None
               ),
@@ -5358,7 +5418,7 @@ class RuntimeServerTest
                 "Main.main",
                 Some(mainFile),
                 Some(
-                  model.Range(model.Position(2, 4), model.Position(2, 7))
+                  model.Range(model.Position(3, 4), model.Position(3, 7))
                 ),
                 None
               )
@@ -6005,7 +6065,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -6017,6 +6077,7 @@ class RuntimeServerTest
         fromCache   = true,
         typeChanged = true
       ),
+      context.Main.Update.mainZ(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -6215,6 +6276,15 @@ class RuntimeServerTest
           contextId,
           idY,
           ConstantsGen.INTEGER,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                ConstantsGen.INTEGER,
+                "+"
+              )
+            )
+          ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
@@ -6302,7 +6372,7 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata  = new Metadata
+    val metadata  = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val x         = metadata.addItem(15, 1, "aa")
     val y         = metadata.addItem(25, 5, "ab")
     val `y_inc`   = metadata.addItem(25, 3, "ac")
@@ -6349,18 +6419,18 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(7) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, x, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, x, ConstantsGen.INTEGER),
       TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),
-      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER),
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc"))
       ),
-      TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -6373,7 +6443,20 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(
+        contextId,
+        `inc_res`,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
 
@@ -6384,7 +6467,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")),
         fromCache   = true,
         typeChanged = true
@@ -6392,7 +6475,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         res,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -6407,18 +6490,37 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(
+        contextId,
+        `inc_res`,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
 
     // Modify the inc method
+    val at = metadata.assertInCode(
+      code,
+      model.Position(7, 12),
+      model.Position(7, 13),
+      "1"
+    )
     context.send(
       Api.Request(
         Api.EditFileNotification(
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(5, 12), model.Position(5, 13)),
+              at,
               "2"
             )
           ),
@@ -6431,7 +6533,16 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         `inc_res`,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          )
+        ),
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -6450,13 +6561,13 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         `y_x`,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")),
         fromCache   = false,
         typeChanged = false
@@ -6464,7 +6575,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         res,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -6553,7 +6664,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val code =
       """main =
         |    fac 10
@@ -6598,12 +6709,12 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
         res,
-        ConstantsGen.INTEGER_BUILTIN,
+        ConstantsGen.INTEGER,
         methodCall =
           Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "fac")))
       ),

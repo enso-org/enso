@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends IntegerNode {
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static BitShiftRightNode build() {
     return BitShiftRightNodeGen.create();

@@ -276,11 +276,12 @@ public class ExecCompilerTest {
         ctx.eval(
             "enso",
             """
-    type My_Type
-        Value x
+            import Standard.Base.Data.Numbers
+            type My_Type
+                Value x
 
-        member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
-    """);
+                member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+            """);
     var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
     var result = instance.invokeMember("member_foo", 2, 3);
     assertEquals(321, result.asInt());

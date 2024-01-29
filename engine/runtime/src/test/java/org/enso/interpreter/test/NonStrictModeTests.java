@@ -75,6 +75,8 @@ public class NonStrictModeTests extends TestBase {
     // will simply not see the second conversion and succeed with the first one.
     String src =
         """
+        import Standard.Base.Data.Numbers
+
         type Foo
            Mk_Foo data
         type Bar
@@ -91,14 +93,16 @@ public class NonStrictModeTests extends TestBase {
 
     logHandler.assertMessage(
         "enso.org.enso.compiler.Compiler",
-        "Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this"
+        "Unnamed:9:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this"
             + " module.");
   }
 
   @Test
   public void testBadImport() {
-    String src = """
+    String src =
+        """
         import That.Does.Not.Exist
+        import Standard.Base.Data.Numbers
 
         main = 2+2
         """;
