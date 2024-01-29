@@ -425,12 +425,13 @@ export const useGraphStore = defineStore('graph', () => {
 
   function commitEdit(edit: MutableModule, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
     const root = edit.root()
-    if (!root) {
-      console.error(`BUG: Cannot commit edit: No module root.`)
+    if (!(root instanceof Ast.BodyBlock)) {
+      console.error(`BUG: Cannot commit edit: No module root block.`)
       return
     }
     const module_ = proj.module
     if (!module_) return
+    Ast.repair(root, edit)
     module_.transact(() => {
       Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc))
       if (metadataUpdates) {

@@ -356,6 +356,9 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   const idMap = Ast.spanMapToIdMap(printed.info)
   idMap.validate()
 
+  // Parsed tree shouldn't need any repair.
+  expect(Ast.repair(root).fixes).toBe(undefined)
+
   // Re-parse.
   const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
   Ast.setExternalIds(root1.module, spans1, idMap)
