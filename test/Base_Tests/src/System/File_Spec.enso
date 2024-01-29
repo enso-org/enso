@@ -738,7 +738,7 @@ add_specs suite_builder =
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Not_Found
             # The write fails because the _parent_ directory did not exist.
-            r1.catch.file . should_equal parent
+            r1.catch.file.path . should_equal parent.path
 
             r2 = [65, 67].write_bytes f
             r2.should_fail_with File_Error

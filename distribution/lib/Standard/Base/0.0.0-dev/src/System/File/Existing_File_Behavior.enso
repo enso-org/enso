@@ -100,7 +100,7 @@ type Existing_File_Behavior
 ## PRIVATE
 write_file_backing_up_old_one : Writable_File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
-    parent = file.absolute.parent
+    parent = file.parent
     bak_file = parent / file.name+".bak"
     go i =
         new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text

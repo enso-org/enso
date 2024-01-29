@@ -836,4 +836,6 @@ file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 File_Like.from (that : File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : File) = Writable_File.Value that
+Writable_File.from (that : File) =
+    # We normalize the path to ensure correct behaviour of `parent`.
+    Writable_File.Value that.absolute.normalize
