@@ -5,8 +5,8 @@ import Standard.Base.Panic.Panic
 
 from Standard.Base.Runtime.Context import Input, Output
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 in_fn : Integer -> Integer
 in_fn a = Input.if_enabled (a * 2)
@@ -14,22 +14,22 @@ in_fn a = Input.if_enabled (a * 2)
 out_fn : Integer -> Integer
 out_fn a = Output.if_enabled (a + 1)
 
-spec =
-    Test.group "Inlining Helpers" <|
-        Test.specify "should allow to run an action" <|
+add_specs suite_builder =
+    suite_builder.group "Inlining Helpers" group_builder->
+        group_builder.specify "should allow to run an action" <|
             x = Runtime.no_inline (2 + 3)
             x . should_equal 5
-        Test.specify "should allow to call a function" <|
+        group_builder.specify "should allow to call a function" <|
             x = Runtime.no_inline_with_arg (x -> x + 4) 3
             x . should_equal 7
-    Test.group "Contexts and Execution Environment" <|
-        Test.specify "should not prevent execution in the default live environment" <|
+    suite_builder.group "Contexts and Execution Environment" group_builder->
+        group_builder.specify "should not prevent execution in the default live environment" <|
             res = Panic.catch Any (in_fn 1) p-> p.payload.to_text
             res . should_equal 2
-        Test.specify "should prevent execution with explicitly disabled context" <|
+        group_builder.specify "should prevent execution with explicitly disabled context" <|
             res = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment (in_fn 1)) p-> p.payload.to_text
             res . should_equal "(Forbidden_Operation.Error 'Input')"
-        Test.specify "should be configurable" <|
+        group_builder.specify "should be configurable" <|
             r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
                 Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
                   in_fn (out_fn 10)
@@ -38,4 +38,8 @@ spec =
             r2 = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <| in_fn (out_fn 10)) p-> p.payload.to_text
             r2 . should_equal "(Forbidden_Operation.Error 'Input')"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

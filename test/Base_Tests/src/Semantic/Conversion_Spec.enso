@@ -6,8 +6,8 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 import project.Semantic.Conversion_Use.Hello
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.lang.Object
 polyglot java import java.time.format.DateTimeFormatter
@@ -92,57 +92,57 @@ Blob.from (that:Text) = Blob.Text that
 Blob.from (that:File) = Blob.Binary that
 Blob.from (that:Any) = Blob.Json that
 
-spec =
-    Test.group "Conversion" <|
-        Test.specify "should be able to convert atoms" <|
+add_specs suite_builder =
+    suite_builder.group "Conversion" group_builder->
+        group_builder.specify "should be able to convert atoms" <|
             ((Foo.from (Baz.Value 10)).foo + (Foo.from (Bar.Value 20)).foo) . should_equal 30
             Foo.from Quaffle . foo . should_equal "quaffle"
-        Test.specify "should be able to convert text" <|
+        group_builder.specify "should be able to convert text" <|
             Foo.from "123" . foo . should_equal 3
-        Test.specify "should be able to convert foreign text" <|
+        group_builder.specify "should be able to convert foreign text" <|
             Foo.from (make_str 4) . foo . should_equal 9
-        Test.specify "should be able to convert numbers" <|
+        group_builder.specify "should be able to convert numbers" <|
             Foo.from 4 . should_equal (Foo.Value [4, 0, 0, 0])
             Foo.from (10^100) . should_equal (Foo.Value [10^100, 0, 0, 0])
             Foo.from 4.5 . should_equal (Foo.Value [4.5, 0, 0, 0])
-        Test.specify "should be able to convert dataflow errors" <|
+        group_builder.specify "should be able to convert dataflow errors" <|
             Foo.from (Error.throw <| My_Error.Value "i was bad") . should_equal (Foo.Value "oops")
-        Test.specify "should be able to convert functions" <|
+        group_builder.specify "should be able to convert functions" <|
             Foo.from (e -> e) . foo . should_equal 5
-        Test.specify "should be able to convert booleans" <|
+        group_builder.specify "should be able to convert booleans" <|
             Foo.from True . foo . should_be_true
             Foo.from False . foo . should_be_false
-        Test.specify "should be able to convert arrays" <|
+        group_builder.specify "should be able to convert arrays" <|
             Foo.from [1,2,3].to_array . foo . should_equal 3
-        Test.specify "should be able to convert Any" <|
+        group_builder.specify "should be able to convert Any" <|
             Not_Foo.from that=Quaffle . notfoo . should_equal "ANY!!!"
             Not_Foo.from 4 . notfoo . should_equal "ANY!!!"
             Not_Foo.from (e -> e) . notfoo . should_equal "ANY!!!"
             Not_Foo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
             Not_Foo.from [1,2,3] . notfoo . should_equal "ANY!!!"
-        Test.specify "apply Any conversion to foreign object" <|
+        group_builder.specify "apply Any conversion to foreign object" <|
             Not_Foo.from Object.new . notfoo . should_equal "ANY!!!"
-        Test.specify "apply Any conversion to type" <|
+        group_builder.specify "apply Any conversion to type" <|
             Not_Foo.from Boolean . notfoo . should_equal "ANY!!!"
-        Test.specify "should call intrinsic object conversions for unimported constructors" <|
+        group_builder.specify "should call intrinsic object conversions for unimported constructors" <|
             Vector.from Methods.get_foo . should_equal ["foo"]
-        Test.specify "should call extension conversions" <|
+        group_builder.specify "should call extension conversions" <|
             Text.from Methods.get_bar . should_equal "bar"
 
-        Test.specify "should fail graciously when there is no conversion" <|
+        group_builder.specify "should fail graciously when there is no conversion" <|
             Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`."
-        Test.specify "should fail graciously when the conversion target is invalid" <|
+        group_builder.specify "should fail graciously when the conversion target is invalid" <|
             Panic.recover Any (123.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
-        Test.specify "should be callable with by-name arguments" <|
+        group_builder.specify "should be callable with by-name arguments" <|
             .from self=Foo that=4 first_param=2 . should_equal (Foo.Value [4, 2, 0, 0])
-        Test.specify "should support the use of multiple arguments" <|
+        group_builder.specify "should support the use of multiple arguments" <|
             Foo.from that=4 second_param=1 2 . should_equal (Foo.Value [4, 2, 1, 0])
 
-        Test.specify "should play nicely with polyglot" <|
+        group_builder.specify "should play nicely with polyglot" <|
             call_function .from Foo . should_equal (Foo.Value 8)
 
-        Test.specify "should support the meta functions" <|
+        group_builder.specify "should support the meta functions" <|
             meta_from = Meta.meta .from
             is_symbol = case meta_from of
                 _ : Meta.Unresolved_Symbol -> True
@@ -159,37 +159,37 @@ spec =
             meta_from.rename "foo" 123 . should_equal "foo called"
             meta_from.rename "foo" . should_equal .foo
 
-        Test.specify "should not allow currying" <|
+        group_builder.specify "should not allow currying" <|
             Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."
 
-        Test.specify "Use conversions to in Conversion_Use module" <|
+        group_builder.specify "Use conversions to in Conversion_Use module" <|
             Hello.formulate [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
 
-        Test.specify "Convert Foo.to Hello" <|
+        group_builder.specify "Convert Foo.to Hello" <|
             hello = Foo.Value "Perform" . to Hello
             hello . msg . should_equal "PERFORM "
 
-        Test.specify "Convert Bar.to Hello" <|
+        group_builder.specify "Convert Bar.to Hello" <|
             hello = Bar.Value "Conversion" . to Hello
             hello . msg . should_equal "conversion!"
 
-        Test.specify "Convert Bar.to Hello with other suffix" <|
+        group_builder.specify "Convert Bar.to Hello with other suffix" <|
             hello = Bar.Value "Conversion" . to Hello suffix="?"
             hello . msg . should_equal "conversion?"
 
-        Test.specify "Idempotent convert Hello.to Hello" <|
+        group_builder.specify "Idempotent convert Hello.to Hello" <|
             Hello.Say "Hi there!" . to Hello . msg . should_equal "Hi there!"
 
-        Test.specify "Unknown convertion Text.to Hello" <|
+        group_builder.specify "Unknown convertion Text.to Hello" <|
             h = Panic.recover No_Such_Conversion <| "Hi there!" . to Hello
             h . should_fail_with No_Such_Conversion
 
-        Test.specify "Use Any.to in Conversion_Use module" <|
+        group_builder.specify "Use Any.to in Conversion_Use module" <|
             Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
 
-        Test.specify "Avoid parameter conversion of Blob into Blob" <|
+        group_builder.specify "Avoid parameter conversion of Blob into Blob" <|
             blob_me (b:Blob) = b
 
             once = blob_me "Ahoj"
@@ -200,7 +200,7 @@ spec =
             once . should_equal second
             Meta.is_same_object once second . should_be_true
 
-        Test.specify "Avoid Any.to conversion of Blob into Blob" <|
+        group_builder.specify "Avoid Any.to conversion of Blob into Blob" <|
             blob_me b = b.to Blob
 
             once = blob_me "Ahoj"
@@ -211,7 +211,7 @@ spec =
             once . should_equal second
             Meta.is_same_object once second . should_be_true
 
-        Test.specify "Avoid inline conversion of Blob into Blob" <|
+        group_builder.specify "Avoid inline conversion of Blob into Blob" <|
             once = "Ahoj" : Blob
             second = once : Blob
 
@@ -220,7 +220,7 @@ spec =
             once . should_equal second
             Meta.is_same_object once second . should_be_true
 
-        Test.specify "Avoid back and forth conversions" <|
+        group_builder.specify "Avoid back and forth conversions" <|
             one = Forth.Times 1
 
             two = Back.exchange one
@@ -235,7 +235,7 @@ spec =
             # no conversions needed when calling `exchange` methods
             nine . should_equal one
 
-        Test.specify "Requesting Text & Foo" <|
+        group_builder.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of
                 0 -> n.foo
                 1 -> n.take (First 3)
@@ -247,7 +247,7 @@ spec =
             fail = Panic.recover Type_Error <| check 0 True
             fail . should_fail_with Type_Error
 
-        Test.specify "Requesting Foo & Not_Foo & Boolean" <|
+        group_builder.specify "Requesting Foo & Not_Foo & Boolean" <|
             check a (n : Foo & Not_Foo & Boolean) = case a of
                 0 -> n.foo
                 1 -> n.not
@@ -260,7 +260,7 @@ spec =
             fail = Panic.recover Type_Error <| check 0 "not a boolean"
             fail . should_fail_with Type_Error
 
-        Test.specify "Requesting Number & Integer & Float" <|
+        group_builder.specify "Requesting Number & Integer & Float" <|
             m = MultiNumber.Value 5
 
             m.to Number . should_equal 1.5
@@ -285,7 +285,7 @@ spec =
             to_6 (v : Number & Float & Integer) = v
             to_6 m . should_equal 1.5
 
-        Test.specify "Requesting Integer & Fool" <|
+        group_builder.specify "Requesting Integer & Fool" <|
             do_number (x : Integer & Fool) =
                 x.foo . should_equal "foo called"
                 x.fool . should_equal 42
@@ -306,7 +306,7 @@ spec =
 
             do_number 42
 
-        Test.specify "Requesting Float & Fool" <|
+        group_builder.specify "Requesting Float & Fool" <|
             do_number (x : Float & Fool) =
                 x.foo . should_equal "foo called"
                 x.fool . should_equal 42.3
@@ -327,7 +327,7 @@ spec =
 
             do_number 42.3
 
-        Test.specify "Requesting Boolean & Fool" <|
+        group_builder.specify "Requesting Boolean & Fool" <|
             do_boolean (x : Boolean & Fool) =
                 x.fool . should_equal True
                 x==x . should_be_true
@@ -344,7 +344,7 @@ spec =
 
             do_boolean True
 
-        Test.specify "Requesting Text & Fool" <|
+        group_builder.specify "Requesting Text & Fool" <|
             do_text (x : Text & Fool) =
                 x.fool . should_equal "Hello"
                 x==x . should_be_true
@@ -361,7 +361,7 @@ spec =
 
             do_text "Hello"
 
-        Test.specify "Requesting Time_Of_Day & Fool" <|
+        group_builder.specify "Requesting Time_Of_Day & Fool" <|
             now = Time_Of_Day.now
 
             do_time (x : Time_Of_Day & Fool) =
@@ -377,7 +377,7 @@ spec =
 
             do_time now
 
-        Test.specify "Requesting Date & Fool" <|
+        group_builder.specify "Requesting Date & Fool" <|
             now = Date.today
 
             do_date (x : Date & Fool) =
@@ -393,7 +393,7 @@ spec =
 
             do_date now
 
-        Test.specify "Requesting Date_Time & Fool" <|
+        group_builder.specify "Requesting Date_Time & Fool" <|
             now = Date_Time.now
 
             do_time (x : Date_Time & Fool) =
@@ -409,7 +409,7 @@ spec =
 
             do_time now
 
-        Test.specify "Requesting Duration & Fool" <|
+        group_builder.specify "Requesting Duration & Fool" <|
             now = Duration.new hours=5
 
             do_duration (x : Duration & Fool) =
@@ -425,7 +425,7 @@ spec =
 
             do_duration now
 
-    Test.group "Polyglot Argument" <|
+    suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
             _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
@@ -442,44 +442,44 @@ spec =
 
         d = DateTimeFormatter.ISO_DATE
 
-        Test.specify "f1 d" <|
+        group_builder.specify "f1 d" <|
             (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
 
-        Test.specify "f1 42" <|
+        group_builder.specify "f1 42" <|
             Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
 
-        Test.specify "f2 AAA" <|
+        group_builder.specify "f2 AAA" <|
             (f2 "AAA").to_display_text . should_equal "TEXT: AAA"
 
-        Test.specify "f2 d" <|
+        group_builder.specify "f2 d" <|
             (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
-        Test.specify "f3 AAA" <|
+        group_builder.specify "f3 AAA" <|
             (f3 "AAA").to_display_text . should_equal "TEXT: AAA"
 
-        Test.specify "f3 d" <|
+        group_builder.specify "f3 d" <|
             (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
-        Test.specify "f4 d" <|
+        group_builder.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
 
-    Test.group "Polyglot Argument with Inheritance" <|
+    suite_builder.group "Polyglot Argument with Inheritance" group_builder->
         f1 (x : JPeriod) = x.to_text
         f2 (x : ChronoPeriod) = x.negated.to_text
         f3 (x : TemporalAmount) = x.getUnits.to_text
 
         quarter = JPeriod.ofMonths 3
 
-        Test.specify "f1 quarter" <|
+        group_builder.specify "f1 quarter" <|
             (f1 quarter) . should_equal "P3M"
 
-        Test.specify "f2 quarter" <|
+        group_builder.specify "f2 quarter" <|
             (f2 quarter) . should_equal "P-3M"
 
-        Test.specify "f3 quarter" <|
+        group_builder.specify "f3 quarter" <|
             (f3 quarter) . should_equal "[Years, Months, Days]"
 
-    Test.group "Polyglot Conversion" <|
+    suite_builder.group "Polyglot Conversion" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Hello | DateTimeFormatter) = case x of
             _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
@@ -500,50 +500,54 @@ spec =
 
         d = DateTimeFormatter.ISO_DATE
 
-        Test.specify "f1 d" <|
+        group_builder.specify "f1 d" <|
             (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
 
-        Test.specify "f1 42" <|
+        group_builder.specify "f1 42" <|
             Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
 
-        Test.specify "f2 foo AAA" <|
+        group_builder.specify "f2 foo AAA" <|
             (f2 <| Foo.Value "AAA").to_display_text . should_equal "HELLO: (Say 'AAA ')"
 
-        Test.specify "f2 hello AAA" <|
+        group_builder.specify "f2 hello AAA" <|
             (f2 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
 
-        Test.specify "f2 d" <|
+        group_builder.specify "f2 d" <|
             (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
-        Test.specify "f3 bar AAA" <|
+        group_builder.specify "f3 bar AAA" <|
             (f3 <| Bar.Value "AAA").to_display_text . should_equal "HELLO: (Say 'aaa!')"
 
-        Test.specify "f3 hello AAA" <|
+        group_builder.specify "f3 hello AAA" <|
             (f3 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
 
-        Test.specify "f3 AAA" <|
+        group_builder.specify "f3 AAA" <|
             (f3 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
 
-        Test.specify "f3 d" <|
+        group_builder.specify "f3 d" <|
             (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
-        Test.specify "f4 d" <|
+        group_builder.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
 
-        Test.specify "f4 AAA" <|
+        group_builder.specify "f4 AAA" <|
             (f4 'AAA').to_display_text . should_equal "OTHER"
 
-        Test.specify "f5 AAA" <|
+        group_builder.specify "f5 AAA" <|
             (f5 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
 
-        Test.specify "f5 hello AAA" <|
+        group_builder.specify "f5 hello AAA" <|
             (f5 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
 
-        Test.specify "f5 d" <|
+        group_builder.specify "f5 d" <|
             (f5 d).to_display_text . should_contain "HELLO: (Say 'Any fallback:ParseCaseSensitive(false)(Value"
 
 Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) + suffix
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
