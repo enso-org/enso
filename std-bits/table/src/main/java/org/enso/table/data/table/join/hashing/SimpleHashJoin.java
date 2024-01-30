@@ -1,8 +1,12 @@
 package org.enso.table.data.table.join.hashing;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
@@ -54,47 +58,47 @@ public class SimpleHashJoin implements JoinStrategy {
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    var leftIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            leftEquals, leftEquals[0].getSize(), textFoldingStrategies, problemAggregator);
     var rightIndex =
         MultiValueIndex.makeUnorderedIndex(
             rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
-    for (var leftEntry : leftIndex.mapping().entrySet()) {
-      UnorderedMultiValueKey leftKey = leftEntry.getKey();
-      List<Integer> leftRows = leftEntry.getValue();
+    final Storage<?>[] storage =
+        Arrays.stream(leftEquals).map(Column::getStorage).toArray(Storage[]::new);
+
+    Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
+
+    for (int leftRow = 0; leftRow < leftEquals[0].getSize(); leftRow++) {
+      var leftKey = new UnorderedMultiValueKey(storage, leftRow, textFoldingStrategies);
       // If any field of the key is null, it cannot match anything.
       List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
-
       if (rightRows != null) {
+        List<Integer> leftRows = List.of(leftRow);
         remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
+        if (joinKind.wantsRightUnmatched) {
+            matchedRightKeys.add(leftKey);
+        }
       } else {
         if (joinKind.wantsLeftUnmatched) {
-          for (int leftRow : leftRows) {
             resultBuilder.addUnmatchedLeftRow(leftRow);
             context.safepoint();
-          }
         }
       }
-
       context.safepoint();
     }
 
     if (joinKind.wantsRightUnmatched) {
       for (var rightEntry : rightIndex.mapping().entrySet()) {
         UnorderedMultiValueKey rightKey = rightEntry.getKey();
-        // If any field of the key is null, it cannot match anything.
-        boolean wasCompletelyUnmatched =
-            rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
+        boolean wasCompletelyUnmatched = !matchedRightKeys.contains(rightKey);
         if (wasCompletelyUnmatched) {
           for (int rightRow : rightEntry.getValue()) {
             resultBuilder.addUnmatchedRightRow(rightRow);
+            context.safepoint();
           }
         }
       }
-    }
+    } 
 
     return resultBuilder.buildAndInvalidate();
   }
