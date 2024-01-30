@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -17,13 +18,24 @@ public class ForeignMethodInvokeTest extends TestBase {
   @BeforeClass
   public static void prepareCtx() {
     var r = new Random();
+    var counter = new long[1];
     var b =
         defaultContextBuilder("enso", "js")
             .onDeniedThreadAccess(
                 (ex) -> {
-                  ex.printStackTrace();
+                  System.err.println(
+                      "Denied thread access: "
+                          + ex.getMessage()
+                          + " in "
+                          + Thread.currentThread().getName());
+                  if (counter[0] > 500) {
+                    throw ex;
+                  }
                   try {
-                    Thread.sleep(r.nextInt(100));
+                    long waitTime = r.nextInt(100);
+                    System.err.println("Waiting " + waitTime + " ms like Ethernet");
+                    Thread.sleep(waitTime);
+                    counter[0] += waitTime;
                   } catch (InterruptedException ignore) {
                   }
                   System.err.println("Trying again");
@@ -106,7 +118,9 @@ public class ForeignMethodInvokeTest extends TestBase {
         polyglot java import java.lang.Thread
 
         foreign js js_array t f = \"\"\"
+            print("In JavaScript...")
             f(300)
+            print("In JavaScript after waiting...")
             return [1, 2, t]
 
         third t = js_array t (delay-> Thread.sleep delay)
@@ -119,16 +133,37 @@ public class ForeignMethodInvokeTest extends TestBase {
         Executors.newSingleThreadExecutor()
             .submit(
                 () -> {
-                  return third.execute(12);
+                  try {
+                    Thread.sleep(100);
+                    System.err.println(
+                        "Entering context in executor thread in "
+                            + Thread.currentThread().getName());
+                    ctx.enter();
+                    System.err.println("Entered context in executor thread");
+                    return third.execute(12);
+                  } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                    return null;
+                  } finally {
+                    ctx.leave();
+                    System.err.println("Left context in executor thread");
+                  }
                 });
+    ctx.enter();
+    System.err.println("Entered context on main thread in " + Thread.currentThread().getName());
     var res = third.execute(13);
+    System.err.println("Got result on main thread: " + res);
     assertTrue("It is an array", res.hasArrayElements());
     assertEquals(3, res.getArraySize());
     assertEquals(1, res.getArrayElement(0).asInt());
     assertEquals(2, res.getArrayElement(1).asInt());
     assertEquals(13, res.getArrayElement(2).asInt());
+    ctx.leave();
+    System.err.println("Context left on main thread");
 
-    var res2 = future.get();
+    var res2 = future.get(10, TimeUnit.SECONDS);
+
+    System.err.println("Future result obtained: " + res2);
 
     assertTrue("It is an array2", res2.hasArrayElements());
     assertEquals(12, res2.getArrayElement(2).asInt());
