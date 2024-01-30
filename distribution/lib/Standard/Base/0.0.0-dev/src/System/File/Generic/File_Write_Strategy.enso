@@ -13,6 +13,23 @@ type File_Write_Strategy
        differently than the original file).
     Value write_overwriting write_appending write_raising_error write_backing_up dry_run_behavior
 
+    ## PRIVATE
+       Writes to a file according to the provided existing file behaviour.
+       This variant does not handle dry run logic.
+       It will most likely fail at `with_output_stream` if the output context is
+       not enabled. It may be used if the caller has custom handling for dry run
+       and calls this method within `Context.Output.with_enabled`.
+    write self file existing_file_behavior action =
+        case existing_file_behavior of
+            Existing_File_Behavior.Overwrite -> self.write_overwriting file action
+            Existing_File_Behavior.Backup -> self.write_backing_up file action
+            Existing_File_Behavior.Append -> self.write_appending file action
+            Existing_File_Behavior.Error -> self.write_raising_error file action
+
+    ## PRIVATE
+       Writes to a file, relying on
+    write_handling_dry_run
+
 ## PRIVATE
 default_overwrite file action =
     file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
@@ -84,3 +101,36 @@ moving_backup file action = recover_io_and_not_found <|
                return the result.
             Panic.rethrow <| new_file.move_to file
             result
+
+## PRIVATE
+type Dry_Run_File_Settings
+    ## PRIVATE
+       Arguments:
+       - existing_file_behavior: Specifies how to treat an existing dry run file.
+         Usually, `Overwrite` is used regardless of the original setting.
+         The exception is `Append`, which usually requires to copy the original
+         file first to keep the state consistent.
+       - copy_original: Specifies whether to copy the original file to the dry
+         run file before writing. If the file is not copied, contents from a
+         previous dry run may still be there, so any options other than
+         `Overwrite` may be risky.
+    Value existing_file_behavior:Existing_File_Behavior copy_original:Boolean
+
+## PRIVATE
+default_dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_Behavior = case behavior of
+    Existing_File_Behavior.Error ->
+        ## In case the _original_ file exists, the dry run will raise error because the actual write would have errored.
+           If the original file does not exist, we can just overwrite the dry run file.
+        if file.exists then Error.throw (File_Error.Already_Exists file) else
+            Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Backup ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Overwrite ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Append ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Append copy_original=True
+
+type Dry_Run_Strategy
+    ## PRIVATE
+       This strategy
+    Not_Allowed
