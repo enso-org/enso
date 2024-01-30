@@ -2,19 +2,13 @@ package org.enso.lockmanager
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.enso.distribution.locking.{
-  LockManager,
-  LockType,
-  ThreadSafeFileLockManager
-}
+import org.enso.distribution.locking.{LockManager, LockType, ThreadSafeFileLockManager}
 import org.enso.lockmanager.ActorToHandlerConnector.SetRequestHandler
-import org.enso.lockmanager.client.{
-  ConnectedLockManager,
-  RuntimeServerRequestHandler
-}
+import org.enso.lockmanager.client.{ConnectedLockManager, RuntimeServerRequestHandler}
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{TestSynchronizer, WithTemporaryDirectory}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -24,7 +18,13 @@ class ConnectedLockManagerTest
     extends TestKit(ActorSystem("TestSystem"))
     with AnyWordSpecLike
     with Matchers
+    with BeforeAndAfterAll
     with WithTemporaryDirectory {
+
+  override def afterAll(): Unit = {
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
+  }
 
   private def lockRoot = getTestDirectory.resolve("locks")
 

@@ -22,6 +22,7 @@ class MessageHandlerSpec
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   case object MyRequest extends Method("RequestMethod") {
