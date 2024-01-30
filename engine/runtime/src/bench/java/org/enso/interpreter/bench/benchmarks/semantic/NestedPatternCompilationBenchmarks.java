@@ -51,6 +51,8 @@ public class NestedPatternCompilationBenchmarks {
     benchmarkName = SrcUtil.findName(params);
     code =
         """
+            import Standard.Base.Data.Numbers
+
             type List
                 Cons a b
                 Nil
