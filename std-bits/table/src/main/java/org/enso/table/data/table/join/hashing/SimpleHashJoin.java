@@ -1,6 +1,7 @@
 package org.enso.table.data.table.join.hashing;
 
 import java.util.List;
+
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
