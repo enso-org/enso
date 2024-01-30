@@ -30,15 +30,15 @@ public class LongArrayList {
   }
 
   // ** Adds an element to the list. */
-  public synchronized void add(long x) {
+  public void add(long x) {
     int index;
 
     index = lastIndex + 1;
-    lastIndex = index;
     if (index >= backingStorage.length) {
       backingStorage = Arrays.copyOf(backingStorage, backingStorage.length * 2);
     }
 
     backingStorage[index] = x;
+    lastIndex = index;
   }
 }
