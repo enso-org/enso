@@ -53,7 +53,7 @@ class UpsertVisualizationJob(
   override def equalsTo(that: UniqueJob[_]): Boolean =
     that match {
       case that: UpsertVisualizationJob =>
-        this.expressionId == that.expressionId
+        this.expressionId == that.expressionId && this.visualizationId == that.visualizationId
       case _ => false
     }
 
@@ -146,7 +146,7 @@ class UpsertVisualizationJob(
     ctx.executionService.getLogger.log(
       Level.SEVERE,
       "Visualization for expression {0} failed: {1} (evaluation result: {2})",
-      Array(expressionId, message, executionResult)
+      Array[Object](expressionId, message, executionResult)
     )
     ctx.endpoint.sendToClient(
       Api.Response(
@@ -157,6 +157,10 @@ class UpsertVisualizationJob(
         )
       )
     )
+  }
+
+  override def toString: String = {
+    s"UpsertVisualizationJob(visualizationId=$visualizationId, expressionId=$expressionId)"
   }
 
 }

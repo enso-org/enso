@@ -1,6 +1,6 @@
-import { assertDefined } from '@/util/assert'
+import { assertDefined, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
-import { unsafeEntries } from '@/util/record'
+import { swapKeysAndValues, unsafeEntries } from '@/util/record'
 import { reactive } from 'vue'
 import type {
   AstFields,
@@ -121,9 +121,64 @@ export class ReactiveModule implements Module {
   }
 }
 
+export class EmptyModule implements Module {
+  edit(): never {
+    bail(`EmptyModule cannot be edited.`)
+  }
+  root(): undefined {
+    return
+  }
+  get(_id: AstId | undefined): undefined {
+    return
+  }
+  checkedGet(id: AstId): never
+  checkedGet(id: AstId | undefined): undefined {
+    if (id) bail(`${id} is not in an EmptyModule.`)
+  }
+  getToken(token: SyncTokenId): never
+  getToken(token: SyncTokenId | undefined): undefined {
+    if (token) bail(`EmptyModule contains no tokens.`)
+    return
+  }
+  getAny(node: AstId | SyncTokenId): never {
+    bail(`EmptyModule does not contain ${node}.`)
+  }
+  has(_id: AstId): false {
+    return false
+  }
+  getSpan(_id: AstId): undefined {
+    return
+  }
+}
+
 export interface SetView<Key> {
   has(key: Key): boolean
   [Symbol.iterator](): IterableIterator<Key>
+}
+
+const mapping: Record<string, string> = {
+  '\b': '\\b',
+  '\f': '\\f',
+  '\n': '\\n',
+  '\r': '\\r',
+  '\t': '\\t',
+  '\v': '\\v',
+  '"': '\\"',
+  "'": "\\'",
+  '`': '``',
+}
+
+const reverseMapping = swapKeysAndValues(mapping)
+
+/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
+ * NOT USABLE to insert into raw strings. Does not include quotes. */
+export function escape(string: string) {
+  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
+}
+
+/** The reverse of `escape`: transform the string into human-readable form, not suitable for interpolation. */
+export function unescape(string: string) {
+  return string.replace(/\\[0bfnrtv"']|``/g, (match) => reverseMapping[match]!)
 }
 
 export function deserialize(serialized: string): Owned {

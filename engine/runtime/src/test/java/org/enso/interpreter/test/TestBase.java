@@ -61,6 +61,7 @@ public abstract class TestBase {
   protected static Value executeInContext(Context ctx, Callable<Object> callable) {
     // Force initialization of the context
     ctx.eval("enso", "42");
+    var err = new Exception[1];
     ctx.getPolyglotBindings()
         .putMember(
             "testSymbol",
@@ -69,10 +70,15 @@ public abstract class TestBase {
                   try {
                     return callable.call();
                   } catch (Exception e) {
-                    throw new AssertionError(e);
+                    err[0] = e;
+                    return null;
                   }
                 });
-    return ctx.getPolyglotBindings().getMember("testSymbol").execute();
+    var res = ctx.getPolyglotBindings().getMember("testSymbol").execute();
+    if (err[0] != null) {
+      throw raise(RuntimeException.class, err[0]);
+    }
+    return res;
   }
 
   /**
@@ -177,5 +183,10 @@ public abstract class TestBase {
     boolean isExecutable() {
       return true;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }
