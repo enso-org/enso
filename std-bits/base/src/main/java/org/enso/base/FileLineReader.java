@@ -18,13 +18,14 @@ import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
 import org.graalvm.polyglot.Context;
 
+/** A reader for reading lines from a file one at a time. */
 public class FileLineReader {
   public static class ByteArrayOutputStreamWithContains extends ByteArrayOutputStream {
     public ByteArrayOutputStreamWithContains(int size) {
       super(size);
     }
 
-    // ** Creates a preloaded stream from a byte array. */
+    /** Creates a preloaded stream from a byte array. */
     public static ByteArrayOutputStreamWithContains fromByteArray(byte[] bytes) {
       var stream = new ByteArrayOutputStreamWithContains(0);
       stream.buf = bytes;
@@ -32,7 +33,9 @@ public class FileLineReader {
       return stream;
     }
 
-    // ** Based on https://www.geeksforgeeks.org/kmp-algorithm-for-pattern-searching/ */
+    /** Computes the longest prefix for the given byte array.
+     *  Based on <a href="https://www.geeksforgeeks.org/kmp-algorithm-for-pattern-searching/">Geeks for geeks</a>
+     */
     public static int[] computeLongestPrefix(byte[] bytes) {
       int[] longestPrefix = new int[bytes.length];
 
@@ -52,7 +55,9 @@ public class FileLineReader {
       return longestPrefix;
     }
 
+    /** Checks if the stream contains the given byte array. */
     public boolean contains(byte[] bytes, int[] longestPrefix) {
+      // ToDo: Needs to deal with the Unicode scenario where the next character is a combining character.
       if (bytes.length > count) {
         return false;
       }
@@ -92,10 +97,10 @@ public class FileLineReader {
 
   private static final Logger LOGGER = Logger.getLogger("enso-file-line-reader");
 
-  // ** Amount of data to read at a time for a single line (4KB). */
+  /** Amount of data to read at a time for a single line (4KB). */
   private static final int LINE_BUFFER = 4 * 1024;
 
-  // ** Amount of data to read at a time (4MB). */
+  /** Amount of data to read at a time (4MB). */
   private static final int BUFFER_SIZE = 4 * 1024 * 1024;
 
   private static boolean moreToRead(int c, MappedByteBuffer buffer) {
@@ -116,8 +121,9 @@ public class FileLineReader {
     return buffer.hasRemaining() ? buffer.get() : -1;
   }
 
-  // ** Reads a line into an OutputStream.
-  //    Returns true if the end of the line was found, false if the buffer finished. */
+  /** Reads a line into an OutputStream.
+   *  Returns true if the end of the line was found, false if the buffer finished.
+   */
   private static boolean readLine(MappedByteBuffer buffer, ByteArrayOutputStream result) {
     int c = readByte(buffer);
     while (moreToRead(c, buffer)) {
@@ -128,8 +134,9 @@ public class FileLineReader {
     return c != -1 && (c != '\r' || buffer.hasRemaining());
   }
 
-  // ** Scans forward one line.
-  //    Returns true if the end of the line was found, false if the buffer finished. */
+  /** Scans forward one line.
+   *  Returns true if the end of the line was found, false if the buffer finished.
+   */
   private static boolean scanLine(MappedByteBuffer buffer) {
     int c = readByte(buffer);
     while (moreToRead(c, buffer)) {
@@ -139,7 +146,7 @@ public class FileLineReader {
     return c != -1 && (c != '\r' || buffer.hasRemaining());
   }
 
-  // ** Reads a line from a file at the given index using the existing rowMap. */
+  /** Reads a line from a file at the given index using the existing rowMap. */
   private static String readLineByIndex(
       File file, long length, LongArrayList rowMap, int index, Charset charset) throws IOException {
     if (index >= rowMap.getSize()) {
@@ -175,7 +182,7 @@ public class FileLineReader {
     return outputStream.toString(charset);
   }
 
-  // ** Scans forward in a file and returns the line at the given index. */
+  /** Scans forward in a file and returns the line at the given index. */
   public static String readSingleLine(
       File file,
       long length,
@@ -193,6 +200,7 @@ public class FileLineReader {
     return forEachLine(file, length, rowMap, size - 1, index, charset, filter, null);
   }
 
+  /** Scans forward in a file reading line by line. Returning all the matching lines. */
   public static List<String> readLines(
       File file,
       long length,
@@ -208,16 +216,16 @@ public class FileLineReader {
     return result;
   }
 
-  // ** Scans forward in a file reading line by line.
-  // * @param file The file to read.
-  // * @param rowMap The rowMap to use.
-  // * @param startAt The index to start at.
-  // * @param endAt The index to end at (inclusive).
-  // * @param charset The charset to use.
-  // * @param filter The filter to apply to each line.
-  // * @param action The action to apply to each line (optional).
-  // * @return The last line read or null if end of file is reached.
-  // * *//
+  /** Scans forward in a file reading line by line.
+   * @param file The file to read.
+   * @param rowMap The rowMap to use.
+   * @param startAt The index to start at.
+   * @param endAt The index to end at (inclusive).
+   * @param charset The charset to use.
+   * @param filter The filter to apply to each line.
+   * @return The last line read or null if end of file is reached.
+   * @param action The action to apply to each line (optional).
+   */
   public static String forEachLine(
       File file,
       long length,
@@ -327,8 +335,7 @@ public class FileLineReader {
     }
   }
 
-  // ** Scans forward in a file reading line by line until it finds a line that matches the new
-  // filter. */
+  /** Scans forward in a file reading line by line until it finds a line that matches the new filter. */
   public static long findFirstNewFilter(
       File file,
       long length,
@@ -353,7 +360,7 @@ public class FileLineReader {
     return result.isEmpty() ? rowMap.get(rowMap.getSize() - 1) : result.get(0);
   }
 
-  // ** Creates a filter that checks if the line contains the given string. */
+  /** Creates a filter that checks if the line contains the given string. */
   public static Function<ByteArrayOutputStreamWithContains, String> createContainsFilter(
       String contains, Charset charset) {
     if (isUnicodeCharset(charset)) {
@@ -374,7 +381,7 @@ public class FileLineReader {
         outputStream.contains(bytes, prefixes) ? outputStream.toString(charset) : null;
   }
 
-  // ** Wraps an Enso function filter in a FileLineReader filter. */
+  /** Wraps an Enso function filter in a FileLineReader filter. */
   public static Function<ByteArrayOutputStreamWithContains, String> wrapBooleanFilter(
       Function<String, Boolean> filter, Charset charset) {
     return (outputStream) -> {
@@ -383,7 +390,7 @@ public class FileLineReader {
     };
   }
 
-  // Joins two filters together. */
+  /** Joins two filters together. */
   public static Function<ByteArrayOutputStreamWithContains, String> mergeTwoFilters(
       Function<ByteArrayOutputStreamWithContains, String> first,
       Function<ByteArrayOutputStreamWithContains, String> second) {

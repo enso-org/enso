@@ -90,8 +90,11 @@ type File_By_Line
 
     ## Performs an action on each line.
 
-       Arguments
-       - function: The action to perform on each line.
+       Arguments:
+       - function: A function to apply that takes an index and an item.
+
+       The function is called with both the element index as well as the
+       element itself.
     each_with_index : (Integer -> Text -> Any) -> Nothing
     each_with_index self function =
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
