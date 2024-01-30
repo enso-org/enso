@@ -34,7 +34,7 @@ class AttachVisualizationCmd(
     )
     val maybeFutureExecutable =
       ctx.jobProcessor.run(
-        new UpsertVisualizationJob(
+        upsertVisualization(
           maybeRequestId,
           request.visualizationId,
           request.expressionId,
@@ -46,6 +46,20 @@ class AttachVisualizationCmd(
       case None             => Future.successful(())
       case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
     }
+  }
+
+  def upsertVisualization(
+    maybeRequestId: Option[Api.RequestId],
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
+    config: Api.VisualizationConfiguration
+  ): UpsertVisualizationJob = {
+    new UpsertVisualizationJob(
+      maybeRequestId,
+      visualizationId,
+      expressionId,
+      config
+    )
   }
 
   override def toString: String = {

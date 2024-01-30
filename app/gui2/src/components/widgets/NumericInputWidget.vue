@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
 import { blurIfNecessary } from '@/util/autoBlur'
-import { getTextWidth } from '@/util/measurement'
+import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
 const props = defineProps<{
@@ -84,9 +84,9 @@ const inputStyle = computed<StyleValue>(() => {
     const textAfter = value.slice(dotIdx + 1)
 
     const measurements = inputMeasurements.value
-    const total = getTextWidth(value, measurements.font)
-    const beforeDot = getTextWidth(textBefore, measurements.font)
-    const afterDot = getTextWidth(textAfter, measurements.font)
+    const total = getTextWidthByFont(value, measurements.font)
+    const beforeDot = getTextWidthByFont(textBefore, measurements.font)
+    const afterDot = getTextWidthByFont(textAfter, measurements.font)
     const blankSpace = Math.max(measurements.availableWidth - total, 0)
     indent = Math.min(Math.max(-blankSpace, afterDot - beforeDot), blankSpace)
   }
@@ -123,7 +123,12 @@ function focus() {
 </script>
 
 <template>
-  <div class="SliderWidget" v-on="dragPointer.events">
+  <div
+    class="NumericInputWidget"
+    v-on="dragPointer.events"
+    @keydown.backspace.stop
+    @keydown.delete.stop
+  >
     <div v-if="props.limits != null" class="fraction" :style="{ width: sliderWidth }"></div>
     <input
       ref="inputNode"
@@ -137,7 +142,7 @@ function focus() {
 </template>
 
 <style scoped>
-.SliderWidget {
+.NumericInputWidget {
   position: relative;
   user-select: none;
   justify-content: space-around;
