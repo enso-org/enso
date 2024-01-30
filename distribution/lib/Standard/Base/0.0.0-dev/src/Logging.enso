@@ -9,7 +9,7 @@ polyglot java import java.util.logging.Logger
    This function needs to be enabled by importing `Standard.Base.Logging` using
    `from Standard.Base.Logging import all`.
 Any.log : Text -> Log_Level -> Any
-Any.log self message:Text level:Log_Level=Log_Level.Info =
+Any.log self ~message:Text level:Log_Level=Log_Level.Info =
     type_name = Meta.get_qualified_type_name self
     logger = Logger.getLogger type_name
     case level of
