@@ -5,7 +5,10 @@ import akka.testkit.{TestDuration, TestKit, TestProbe}
 import org.apache.commons.lang3.SystemUtils
 import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
-import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{ContentRootsAddedNotification, SubscribeToNotifications}
+import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
+  ContentRootsAddedNotification,
+  SubscribeToNotifications
+}
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
@@ -34,7 +37,6 @@ class ContentRootManagerSpec
 
   var rootManager: ContentRootManagerWrapper = _
   var rootActor: ActorRef                    = _
-
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system, verifySystemShutdown = true)

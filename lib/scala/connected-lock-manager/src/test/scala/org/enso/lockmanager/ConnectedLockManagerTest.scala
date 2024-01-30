@@ -2,9 +2,16 @@ package org.enso.lockmanager
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.enso.distribution.locking.{LockManager, LockType, ThreadSafeFileLockManager}
+import org.enso.distribution.locking.{
+  LockManager,
+  LockType,
+  ThreadSafeFileLockManager
+}
 import org.enso.lockmanager.ActorToHandlerConnector.SetRequestHandler
-import org.enso.lockmanager.client.{ConnectedLockManager, RuntimeServerRequestHandler}
+import org.enso.lockmanager.client.{
+  ConnectedLockManager,
+  RuntimeServerRequestHandler
+}
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{TestSynchronizer, WithTemporaryDirectory}
