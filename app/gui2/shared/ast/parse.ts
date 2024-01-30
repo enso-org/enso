@@ -1,12 +1,12 @@
 import * as map from 'lib0/map'
+import type { AstId, NodeChild, Owned } from '.'
+import { Token, asOwned, parentId } from '.'
 import { assert, assertEqual } from '../util/assert'
-import type { SourceRange, SourceRangeKey } from '../yjsModel.ts'
-import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel.ts'
-import { parse_tree } from './ffi.ts'
+import type { SourceRange, SourceRangeKey } from '../yjsModel'
+import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
+import { parse_tree } from './ffi'
 import * as RawAst from './generated/ast'
-import type { AstId, NodeChild, Owned } from './index.ts'
-import { Token, asOwned, parentId } from './index.ts'
-import { MutableModule } from './mutableModule.ts'
+import { MutableModule } from './mutableModule'
 import type { LazyObject } from './parserSupport'
 import {
   App,
@@ -29,7 +29,7 @@ import {
   TextLiteral,
   UnaryOprApp,
   Wildcard,
-} from './tree.ts'
+} from './tree'
 
 const DEBUG = false
 
@@ -408,31 +408,63 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
   return module.root() ? asts - astsMatched : 0
 }
 
-function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap) {
-  const lost = new Array<Ast>()
+function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: string) {
+  const lost = new Array<readonly [NodeKey, Ast]>()
   for (const [key, asts] of expected) {
     const outermostPrinted = asts[0]
     if (!outermostPrinted) continue
     for (let i = 1; i < asts.length; ++i) assertEqual(asts[i]?.parentId, asts[i - 1]?.id)
-    const reparsedAsts = encountered.get(key)
-    if (reparsedAsts === undefined) lost.push(outermostPrinted)
+    const encounteredAsts = encountered.get(key)
+    if (encounteredAsts === undefined) lost.push([key, outermostPrinted])
   }
-  return { lost }
+  const lostInline = new Array<Ast>()
+  const lostBlock = new Array<Ast>()
+  for (const [key, ast] of lost) {
+    const [start, end] = sourceRangeFromKey(key)
+    ;(code.substring(start, end).match(/[\r\n]/) ? lostBlock : lostInline).push(ast)
+  }
+  return { lostInline, lostBlock }
 }
 
+/** If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
+ *  structure), insert parentheses to fix it. */
 export function repair(
   root: BodyBlock,
   module?: MutableModule,
 ): { code: string; fixes: MutableModule | undefined } {
+  // Print the input to see what spans its nodes expect to have in the output.
   const printed = print(root)
+  // Parse the printed output to see what spans actually correspond to nodes in the printed code.
   const reparsed = parseBlockWithSpans(printed.code)
-  const { lost } = checkSpans(printed.info.nodes, reparsed.spans.nodes)
-  if (lost.length === 0) return { code: printed.code, fixes: undefined }
+  // See if any span we expected to be a node isn't; if so, it likely merged with its parent due to wrong precedence.
+  const { lostInline, lostBlock } = checkSpans(
+    printed.info.nodes,
+    reparsed.spans.nodes,
+    printed.code,
+  )
+  if (lostInline.length === 0) {
+    if (lostBlock.length !== 0)
+      console.warn(`Failed to repair ast: Lost block elements, but no inline elements?`, lostBlock)
+    return { code: printed.code, fixes: undefined }
+  }
+
+  // Wrap any "lost" nodes in parentheses.
   const fixes = module ?? root.module.edit()
-  for (const ast of lost) fixes.getVersion(ast).update((ast) => Group.new(fixes, ast))
+  for (const ast of lostInline) {
+    if (ast instanceof Group) continue
+    fixes.getVersion(ast).update((ast) => Group.new(fixes, ast))
+  }
+
+  // Verify that it's fixed.
   const printed2 = print(fixes.getVersion(root))
   const reparsed2 = parseBlockWithSpans(printed2.code)
-  const { lost: lost2 } = checkSpans(printed2.info.nodes, reparsed2.spans.nodes)
-  if (lost2.length !== 0) console.error(`Failed to repair AST!`, lost2)
+  const { lostInline: lostInline2, lostBlock: lostBlock2 } = checkSpans(
+    printed2.info.nodes,
+    reparsed2.spans.nodes,
+    printed2.code,
+  )
+  if (lostInline2.length !== 0 || lostBlock2.length !== 0)
+    console.error(`Failed to repair AST!`, lostInline2, lostBlock2)
+
   return { code: printed2.code, fixes }
 }

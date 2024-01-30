@@ -77,13 +77,13 @@ export const useGraphStore = defineStore('graph', () => {
     getSpan: (id: Ast.AstId) => SourceRange | undefined
     toRaw: (id: Ast.AstId) => RawAst.Tree.Tree | undefined
   }>()
-  const astModule = ref<Module>()
+  const astModule = ref<Module>(new Ast.EmptyModule())
   const moduleRoot = ref<Ast.Ast>()
   const topLevel = ref<Ast.BodyBlock>()
 
   watch(syncModule, (syncModule) => {
     if (!syncModule) return
-    assert(astModule.value === undefined)
+    assert(astModule.value instanceof Ast.EmptyModule)
     const newAstModule = new ReactiveModule(syncModule)
     newAstModule.onUpdate((dirtyNodes, newMetadataUpdates) =>
       handleModuleUpdate(newAstModule, dirtyNodes, newMetadataUpdates),
@@ -144,7 +144,6 @@ export const useGraphStore = defineStore('graph', () => {
     if (!module) return
     const textContentLocal = moduleCode.value
     if (!textContentLocal) return
-    if (!astModule.value) return
     methodAst.value = methodAstInModule(astModule.value)
     if (methodAst.value) {
       const rawFunc = moduleData.value.toRaw(methodAst.value.id)
@@ -217,7 +216,7 @@ export const useGraphStore = defineStore('graph', () => {
     const mod = proj.module
     if (!mod) return
     const ident = generateUniqueIdent()
-    const edit = astModule.value!.edit()
+    const edit = astModule.value.edit()
     if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
     const method = Ast.findModuleMethod(topLevel.value!, currentFunc)

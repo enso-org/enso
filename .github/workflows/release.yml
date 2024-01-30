@@ -116,7 +116,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -179,7 +179,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -236,15 +236,15 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
           AWS_DEFAULT_REGION: eu-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
+          ENSO_BUILD_ECR_REPOSITORY: runtime
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-          crate_ECR_REPOSITORY: runtime
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -307,7 +307,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -368,7 +368,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -431,7 +431,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -502,7 +502,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -570,7 +570,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -646,7 +646,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -713,7 +713,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -777,7 +777,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -852,7 +852,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:
@@ -918,7 +918,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean after
         run: ./run git-clean
         env:

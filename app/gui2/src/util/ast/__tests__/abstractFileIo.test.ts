@@ -21,6 +21,6 @@ test('full file IdMap round trip', () => {
   expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
   expect([...idMap.entries()].sort()).toStrictEqual([...idMapOriginal.entries()].sort())
 
-  // Parsed tree houldn't need any repair.
+  // Parsed tree shouldn't need any repair.
   expect(Ast.repair(ast).fixes).toBe(undefined)
 })

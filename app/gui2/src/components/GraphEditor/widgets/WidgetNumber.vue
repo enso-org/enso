@@ -16,7 +16,7 @@ const value = computed({
   },
   set(value) {
     props.onUpdate({
-      edit: graph.astModule!.edit(),
+      edit: graph.astModule.edit(),
       portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
     })
   },

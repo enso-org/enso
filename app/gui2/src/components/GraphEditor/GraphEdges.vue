@@ -83,7 +83,7 @@ function createEdge(source: AstId, target: PortId) {
     return console.error(`Failed to connect edge, source or target node not found.`)
   }
 
-  const edit = graph.astModule!.edit()
+  const edit = graph.astModule.edit()
   const reorderResult = graph.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
   if (reorderResult === 'circular') {
     // Creating this edge would create a circular dependency. Prevent that and display error.

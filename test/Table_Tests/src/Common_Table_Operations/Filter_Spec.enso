@@ -453,6 +453,28 @@ add_specs suite_builder setup =
             err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
             err2.should_fail_with Floating_Point_Equality
 
+        group_builder.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` `Filter_Condition`" <|
+            t = table_builder [["x", [1, 2, 3]]]
+            fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing]
+                + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
+                + [Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
+                + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
+                + [Filter_Condition.Not_In [Nothing]]
+                + [Filter_Condition.Is_In [1, Nothing, 2]]
+            fcs.map fc->
+                Test.with_clue fc.to_text <|
+                    Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc . at "x")
+
+        group_builder.specify "should not attach a warning when comparing with a column containing Nothing in a comparison `Filter_Condition`" <|
+            t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal (t.at "y")))
+
+        group_builder.specify "should not attach a warning when Nothing is not used as a value in a comparison or `is_in` `Filter_Condition`" <|
+            t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal 12))
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
+            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
+
     suite_builder.group prefix+"Table.filter_by_expression" group_builder->
         data = Data.setup create_connection_fn
 
