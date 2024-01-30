@@ -737,8 +737,8 @@ export interface UpdateDirectoryRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  parentDirectoryId: DirectoryId | null
-  description: string | null
+  parentDirectoryId?: DirectoryId | null
+  description?: string | null
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -923,6 +923,8 @@ export interface SmartUser extends SmartObject<UserOrOrganization> {
 
 /** A smart wrapper around an {@link AnyAsset}. */
 export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T> {
+  /** This is required to exist so that {@link AnySmartAsset} is a discriminated union. */
+  readonly type: T['type']
   /** Change the parent directory of an asset. */
   readonly update: (body: UpdateAssetRequestBody) => Promise<unknown>
   /** Move an arbitrary asset to the trash. */
@@ -984,7 +986,7 @@ export abstract class Backend {
   abstract readonly type: BackendType
 
   /** Return user details for the current user. */
-  abstract self(): Promise<SmartUser>
+  abstract self(): Promise<SmartUser | null>
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */

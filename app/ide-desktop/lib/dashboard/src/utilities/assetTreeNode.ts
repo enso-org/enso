@@ -11,7 +11,7 @@ import * as backendModule from '#/services/backend'
 export interface AssetTreeNodeData
   extends Pick<
     AssetTreeNode,
-    'children' | 'depth' | 'directoryId' | 'directoryKey' | 'item' | 'key'
+    'children' | 'depth' | 'directory' | 'directoryKey' | 'item' | 'key'
   > {}
 
 /** A node in the drive's item tree. */
@@ -27,7 +27,7 @@ export class AssetTreeNode {
      * This must never change. */
     public readonly directoryKey: backendModule.AssetId,
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
-    public readonly directoryId: backendModule.DirectoryId,
+    public readonly directory: backendModule.SmartDirectory,
     /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
      * asset. */
     public readonly children: AssetTreeNode[] | null,
@@ -51,7 +51,7 @@ export class AssetTreeNode {
     this: void,
     smartAsset: backendModule.AnySmartAsset,
     directoryKey: backendModule.AssetId,
-    directoryId: backendModule.DirectoryId,
+    directory: backendModule.SmartDirectory,
     depth: number,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
   ): AssetTreeNode {
@@ -60,7 +60,7 @@ export class AssetTreeNode {
       getKey(smartAsset.value),
       smartAsset,
       directoryKey,
-      directoryId,
+      directory,
       null,
       depth
     )
@@ -72,7 +72,7 @@ export class AssetTreeNode {
       update.key ?? this.key,
       update.item ?? this.item,
       update.directoryKey ?? this.directoryKey,
-      update.directoryId ?? this.directoryId,
+      update.directory ?? this.directory,
       // `null` MUST be special-cases in the following line.
       // eslint-disable-next-line eqeqeq
       update.children === null ? update.children : update.children ?? this.children,

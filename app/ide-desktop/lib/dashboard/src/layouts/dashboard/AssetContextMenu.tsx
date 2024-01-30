@@ -17,6 +17,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
+import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as http from '#/utilities/http'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -42,7 +43,7 @@ export interface AssetContextMenuProps {
   doDelete: () => void
   doCopy: () => void
   doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
@@ -58,9 +59,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const asset = item.item
+  const smartAsset = item.item
+  const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.email
+    permission => permission.user.user_email === organization?.value.email
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
@@ -77,21 +79,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backend.type !== backendModule.BackendType.local &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
-    asset.projectState.opened_by !== organization?.email
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      if (typeof valueOrUpdater === 'function') {
-        setItem(oldItem =>
-          oldItem.with({
-            item: valueOrUpdater(oldItem.item),
-          })
-        )
-      } else {
-        setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
-      }
-    },
-    [/* should never change */ setItem]
-  )
+    asset.projectState.opened_by !== organization?.value.email
+  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
@@ -212,18 +202,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
+        {smartAsset.type === backendModule.AssetType.secret && canEditThisAsset && (
           <MenuEntry
             hidden={hidden}
             action={shortcuts.KeyboardAction.edit}
             doAction={() => {
               setModal(
                 <UpsertSecretModal
-                  id={asset.id}
+                  id={smartAsset.value.id}
                   name={asset.title}
                   doCreate={async (_name, value) => {
                     try {
-                      await backend.updateSecret(asset.id, { value }, asset.title)
+                      await smartAsset.update({ value })
                     } catch (error) {
                       toastAndLog(null, error)
                     }
@@ -279,10 +269,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   self={self}
                   eventTarget={eventTarget}
                   doRemoveSelf={() => {
-                    dispatchAssetEvent({
-                      type: AssetEventType.removeSelf,
-                      id: asset.id,
-                    })
+                    dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                   }}
                 />
               )
@@ -315,9 +302,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             unsetModal()
             dispatchAssetListEvent({
               type: AssetListEventType.copy,
-              newParentId: item.directoryId,
               newParentKey: item.directoryKey,
-              items: [asset],
+              newParent: item.directory,
+              items: [smartAsset],
             })
           }}
         />
@@ -344,11 +331,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action={shortcuts.KeyboardAction.paste}
             doAction={() => {
-              const [directoryKey, directoryId] =
-                item.item.type === backendModule.AssetType.directory
-                  ? [item.key, item.item.id]
-                  : [item.directoryKey, item.directoryId]
-              doPaste(directoryKey, directoryId)
+              const directoryKey =
+                item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+              doPaste(directoryKey)
             }}
           />
         )}
@@ -364,8 +349,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               ? item.key
               : item.directoryKey) as backendModule.DirectoryId
           }
-          directoryId={
-            asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
+          directory={
+            smartAsset.type === backendModule.AssetType.directory ? smartAsset : item.directory
           }
           dispatchAssetListEvent={dispatchAssetListEvent}
           doPaste={doPaste}

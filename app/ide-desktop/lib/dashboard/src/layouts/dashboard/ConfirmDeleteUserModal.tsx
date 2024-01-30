@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
@@ -14,7 +13,7 @@ import Modal from '#/components/Modal'
 
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal() {
-  const { backend } = backendProvider.useBackend()
+  const { organization } = authProvider.useNonPartialUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { signOut } = authProvider.useAuth()
@@ -22,7 +21,7 @@ export default function ConfirmDeleteUserModal() {
   const onSubmit = async () => {
     unsetModal()
     try {
-      await backend.deleteUser()
+      await organization?.delete()
       await signOut()
     } catch (error) {
       toastAndLog(null, error)

@@ -83,9 +83,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === organization?.email
+          permission.user.user_email === organization?.value.email
       ),
-    [organization?.email, permissions, self.permission]
+    [organization?.value.email, permissions, self.permission]
   )
 
   React.useEffect(() => {
@@ -136,7 +136,7 @@ export default function ManagePermissionsModal<
           setEmail('')
           if (email != null) {
             await backend.inviteUser({
-              organizationId: organization.id,
+              organizationId: organization.value.id,
               userEmail: backendModule.EmailAddress(email),
             })
             toast.toast.success(`You've invited '${email}' to join Enso!`)
@@ -151,7 +151,7 @@ export default function ManagePermissionsModal<
             // The names come from a third-party API and cannot be
             // changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            organization_id: organization.id,
+            organization_id: organization.value.id,
             pk: newUser.id,
             user_email: newUser.email,
             user_name: newUser.name,

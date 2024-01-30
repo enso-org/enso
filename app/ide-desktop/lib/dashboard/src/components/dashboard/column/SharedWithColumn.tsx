@@ -8,8 +8,7 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
+import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -35,27 +34,19 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
   const { category, dispatchAssetEvent } = state
-  const asset = item.item
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
+  const smartAsset = item.item
+  const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.email
+    permission => permission.user.user_email === organization?.value.email
   )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        object.merge(oldItem, {
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [/* should never change */ setItem]
-  )
+  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+
   return (
     <div className="group flex items-center gap-1">
       {(asset.permissions ?? []).map(user => (

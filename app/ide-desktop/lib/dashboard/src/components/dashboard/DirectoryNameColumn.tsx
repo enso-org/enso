@@ -40,11 +40,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.directory) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display directory assets.')
   }
+  const asset = smartAsset.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -143,7 +144,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             window.setTimeout(() => {
               setSelected(false)
             }, 0)
-            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+            doToggleDirectoryExpansion(smartAsset, item.key)
           }
         }
       }}
@@ -155,7 +156,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }`}
         onClick={event => {
           event.stopPropagation()
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          doToggleDirectoryExpansion(smartAsset, item.key)
         }}
       />
       <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
@@ -167,9 +168,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
               // All siblings,
               child.key === item.key ||
               // that are directories,
-              !backendModule.assetIsDirectory(child.item) ||
+              !backendModule.assetIsDirectory(child.item.value) ||
               // must have a different name.
-              child.item.title !== newTitle
+              child.item.value.title !== newTitle
           )
         }
         onSubmit={doRename}

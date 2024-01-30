@@ -111,17 +111,15 @@ export default function Drive(props: DriveProps) {
     () => new Map(labels.map(label => [label.value, label])),
     [labels]
   )
-  const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
-  )
+  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const isCloud = backend.type === backendModule.BackendType.remote
+  const isEnabled = organization?.value.isEnabled ?? false
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
-      : isCloud && organization?.isEnabled !== true
+      : isCloud && !isEnabled
       ? DriveStatus.notEnabled
       : DriveStatus.ok
 
@@ -159,22 +157,25 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (backend.type !== backendModule.BackendType.local && organization?.isEnabled === true) {
+      if (
+        backend.type !== backendModule.BackendType.local &&
+        organization?.value.isEnabled === true
+      ) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, organization?.isEnabled, /* should never change */ setLabels])
+  }, [backend, organization?.value.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
       if (backend.type !== backendModule.BackendType.local && organization == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('Files cannot be uploaded while offline')
-      } else {
+      } else if (rootDirectory != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
-          parentKey: rootDirectoryId,
-          parentId: rootDirectoryId,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
           files,
         })
       }
@@ -182,7 +183,7 @@ export default function Drive(props: DriveProps) {
     [
       backend,
       organization,
-      rootDirectoryId,
+      rootDirectory,
       toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -194,25 +195,29 @@ export default function Drive(props: DriveProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId,
-        templateName,
-        onSpinnerStateChange,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newProject,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          templateId,
+          templateName,
+          onSpinnerStateChange,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateDirectory = React.useCallback(() => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newFolder,
-      parentKey: rootDirectoryId,
-      parentId: rootDirectoryId,
-    })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+    if (rootDirectory != null) {
+      dispatchAssetListEvent({
+        type: AssetListEventType.newFolder,
+        parentKey: rootDirectory.value.id,
+        parent: rootDirectory,
+      })
+    }
+  }, [rootDirectory, /* should never change */ dispatchAssetListEvent])
 
   const doCreateLabel = React.useCallback(
     async (value: string, color: backendModule.LChColor) => {
@@ -269,15 +274,17 @@ export default function Drive(props: DriveProps) {
 
   const doCreateDataConnector = React.useCallback(
     (name: string, value: string) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newSecret,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        name,
-        value,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newSecret,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          name,
+          value,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   React.useEffect(() => {
@@ -429,12 +436,14 @@ export default function Drive(props: DriveProps) {
               onDrop={event => {
                 event.preventDefault()
                 setIsFileBeingDragged(false)
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: rootDirectoryId,
-                  parentId: rootDirectoryId,
-                  files: Array.from(event.dataTransfer.files),
-                })
+                if (rootDirectory != null) {
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.uploadFiles,
+                    parentKey: rootDirectory.value.id,
+                    parent: rootDirectory,
+                    files: Array.from(event.dataTransfer.files),
+                  })
+                }
               }}
             >
               Drop to upload files.

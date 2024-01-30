@@ -36,11 +36,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.file) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display file assets.')
   }
+  const asset = smartAsset.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the

@@ -75,7 +75,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { keyProp: key, item: rawItem, initialRowState, hidden: hiddenRaw, selected } = props
   const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
   const { tableRowRef, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
@@ -85,11 +85,13 @@ export default function AssetRow(props: AssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const asset = item.item
+  const smartAsset = item.item
+  const asset = smartAsset.value
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(initialRowState, { setVisibility: setInsertionVisibility })
   )
+  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(key)
   const visibility =
@@ -105,9 +107,13 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
     // re - rendering the parent.
-    rawItem.item = asset
+    // @ts-expect-error Because `smartAsset` is of an unknown type, its parameter is contravariant.
+    // However, this is safe because the type of an asset cannot change.
+    rawItem.item = smartAsset.withValue(asset)
+    // FIXME: Must this be omitted?
+    // `smartAsset` is NOT a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset, rawItem])
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
@@ -126,11 +132,10 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
-        const copiedAsset = await backend.copyAsset(
-          asset.id,
-          newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-          asset.title,
-          null
+        newParentId ??= organization?.rootDirectory().value.id ?? backendModule.DirectoryId('')
+        const copiedAsset = await smartAsset.copy(
+          newParentId,
+          nodeMap.current.get(newParentId)?.item.value.title ?? '(unknown)'
         )
         setAsset(
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
@@ -148,11 +153,12 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      backend,
       organization,
       user,
+      smartAsset,
       asset,
       item.key,
+      /* should never change */ nodeMap,
       /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
@@ -162,50 +168,46 @@ export default function AssetRow(props: AssetRowProps) {
   const doMove = React.useCallback(
     async (
       newParentKey: backendModule.AssetId | null,
-      newParentId: backendModule.DirectoryId | null
+      newParent: backendModule.SmartDirectory | null
     ) => {
-      const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
-      const nonNullNewParentKey = newParentKey ?? rootDirectoryId
-      const nonNullNewParentId = newParentId ?? rootDirectoryId
-      try {
-        dispatchAssetListEvent({
-          type: AssetListEventType.move,
-          newParentKey: nonNullNewParentKey,
-          newParentId: nonNullNewParentId,
-          key: item.key,
-          item: asset,
-        })
-        setItem(oldItem =>
-          oldItem.with({
-            directoryKey: nonNullNewParentKey,
-            directoryId: nonNullNewParentId,
+      const rootDirectory = organization?.rootDirectory()
+      newParentKey ??= rootDirectory?.value.id ?? null
+      newParent ??= rootDirectory ?? null
+      if (newParentKey != null && newParent != null) {
+        const nonNullNewParentKey = newParentKey
+        const nonNullNewParent = newParent
+        try {
+          dispatchAssetListEvent({
+            type: AssetListEventType.move,
+            newParentKey: nonNullNewParentKey,
+            newParent: nonNullNewParent,
+            key: item.key,
+            item: smartAsset,
           })
-        )
-        await backend.updateAsset(
-          asset.id,
-          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
-          asset.title
-        )
-      } catch (error) {
-        toastAndLog(`Could not move '${asset.title}'`, error)
-        setItem(oldItem =>
-          oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
-        )
-        // Move the asset back to its original position.
-        dispatchAssetListEvent({
-          type: AssetListEventType.move,
-          newParentKey: item.directoryKey,
-          newParentId: item.directoryId,
-          key: item.key,
-          item: asset,
-        })
+          setItem(oldItem =>
+            oldItem.with({ directoryKey: nonNullNewParentKey, directory: nonNullNewParent })
+          )
+          await smartAsset.update({ parentDirectoryId: nonNullNewParent.value.id })
+        } catch (error) {
+          toastAndLog(`Could not move '${smartAsset.value.title}'`, error)
+          setItem(oldItem =>
+            oldItem.with({ directoryKey: item.directoryKey, directory: item.directory })
+          )
+          // Move the asset back to its original position.
+          dispatchAssetListEvent({
+            type: AssetListEventType.move,
+            newParentKey: item.directoryKey,
+            newParent: item.directory,
+            key: item.key,
+            item: smartAsset,
+          })
+        }
       }
     },
     [
-      backend,
       organization,
-      asset,
-      item.directoryId,
+      smartAsset,
+      item.directory,
       item.directoryKey,
       item.key,
       /* should never change */ toastAndLog,
@@ -221,10 +223,10 @@ export default function AssetRow(props: AssetRowProps) {
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
-    if (asset.type === backendModule.AssetType.directory) {
+    if (smartAsset.type === backendModule.AssetType.directory) {
       dispatchAssetListEvent({
         type: AssetListEventType.closeFolder,
-        id: asset.id,
+        folder: smartAsset,
         // This is SAFE, as this asset is already known to be a directory.
         // eslint-disable-next-line no-restricted-syntax
         key: item.key as backendModule.DirectoryId,
@@ -236,22 +238,22 @@ export default function AssetRow(props: AssetRowProps) {
         key: item.key,
       })
       if (
-        asset.type === backendModule.AssetType.project &&
+        smartAsset.type === backendModule.AssetType.project &&
         backend.type === backendModule.BackendType.local
       ) {
         if (
-          asset.projectState.type !== backendModule.ProjectState.placeholder &&
-          asset.projectState.type !== backendModule.ProjectState.closed
+          smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
+          smartAsset.value.projectState.type !== backendModule.ProjectState.closed
         ) {
-          await backend.openProject(asset.id, null, asset.title)
+          await backend.openProject(smartAsset.value.id, null, smartAsset.value.title)
         }
         try {
-          await backend.closeProject(asset.id, asset.title)
+          await backend.closeProject(smartAsset.value.id, smartAsset.value.title)
         } catch {
           // Ignored. The project was already closed.
         }
       }
-      await backend.deleteAsset(asset.id, asset.title)
+      await smartAsset.delete()
       dispatchAssetListEvent({
         type: AssetListEventType.delete,
         key: item.key,
@@ -260,13 +262,13 @@ export default function AssetRow(props: AssetRowProps) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
         errorModule.tryGetMessage(error)?.slice(0, -1) ??
-          `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+          `Could not delete ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`
       )
     }
   }, [
     backend,
     dispatchAssetListEvent,
-    asset,
+    smartAsset,
     /* should never change */ item.key,
     /* should never change */ toastAndLog,
   ])
@@ -275,19 +277,15 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await backend.undoDeleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      await smartAsset.undoDelete()
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+      toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`, error)
     }
   }, [
-    backend,
     dispatchAssetListEvent,
-    asset,
+    smartAsset,
     /* should never change */ item.key,
     /* should never change */ toastAndLog,
   ])
@@ -307,7 +305,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.copy: {
         if (event.ids.has(item.key)) {
-          await doCopyOnBackend(event.newParentId)
+          await doCopyOnBackend(event.newParent.value.id)
         }
         break
       }
@@ -326,7 +324,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.move: {
         if (event.ids.has(item.key)) {
           setInsertionVisibility(Visibility.visible)
-          await doMove(event.newParentKey, event.newParentId)
+          await doMove(event.newParentKey, event.newParent)
         }
         break
       }
@@ -583,9 +581,9 @@ export default function AssetRow(props: AssetRowProps) {
                 if (dragOverTimeoutHandle.current != null) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (backendModule.assetIsDirectory(asset)) {
+                if (smartAsset.type === backendModule.AssetType.directory) {
                   dragOverTimeoutHandle.current = window.setTimeout(() => {
-                    doToggleDirectoryExpansion(asset.id, item.key, asset.title, true)
+                    doToggleDirectoryExpansion(smartAsset, item.key, true)
                   }, DRAG_EXPAND_DELAY_MS)
                 }
                 // Required because `dragover` does not fire on `mouseenter`.
@@ -613,22 +611,18 @@ export default function AssetRow(props: AssetRowProps) {
               onDrop={event => {
                 props.onDrop?.(event)
                 clearDragState()
-                const [directoryKey, directoryId, directoryTitle] =
+                const [newParentKey, newParent] =
                   item.item.type === backendModule.AssetType.directory
-                    ? [item.key, item.item.id, asset.title]
-                    : [item.directoryKey, item.directoryId, null]
+                    ? [item.key, item.item]
+                    : [item.directoryKey, item.directory]
                 const payload = drag.ASSET_ROWS.lookup(event)
-                if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+                if (payload != null && payload.every(innerItem => innerItem.key !== newParentKey)) {
                   event.preventDefault()
                   event.stopPropagation()
                   unsetModal()
-                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
-                  dispatchAssetEvent({
-                    type: AssetEventType.move,
-                    newParentKey: directoryKey,
-                    newParentId: directoryId,
-                    ids: new Set(payload.map(dragItem => dragItem.key)),
-                  })
+                  doToggleDirectoryExpansion(newParent, newParentKey, true)
+                  const ids = new Set(payload.map(dragItem => dragItem.key))
+                  dispatchAssetEvent({ type: AssetEventType.move, newParentKey, newParent, ids })
                 }
               }}
             >

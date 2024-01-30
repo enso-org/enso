@@ -38,7 +38,7 @@ export default function Settings() {
       <div className="flex gap-2.5 font-bold text-xl h-9.5 px-4.75">
         <span className="py-0.5">Settings for </span>
         <div className="rounded-full leading-144.5 bg-frame h-9 px-2.25 pt-0.5 pb-1.25">
-          {organization?.name ?? '(Unknown Organization)'}
+          {organization?.value.name ?? '(Unknown Organization)'}
         </div>
       </div>
       <div className="flex gap-8 pl-3">

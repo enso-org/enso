@@ -103,7 +103,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         } else if (organization != null) {
           newProjectState = object.merge(newProjectState, {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: organization.email,
+            opened_by: organization.value.email,
           })
         }
         return object.merge(oldItem, { projectState: newProjectState })
@@ -127,7 +127,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
-    item.projectState.opened_by !== organization?.email
+    item.projectState.opened_by !== organization?.value.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {

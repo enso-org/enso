@@ -212,6 +212,11 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   extends SmartObject<T>
   implements backendModule.SmartAsset
 {
+  /** The type of the wrapped value. */
+  get type(): T['type'] {
+    return this.value.type
+  }
+
   /** Change the parent directory of an asset. */
   async update(body: backendModule.UpdateAssetRequestBody): Promise<unknown> {
     const path = remoteBackendPaths.updateAssetPath(this.value.id)
@@ -341,14 +346,17 @@ class SmartDirectory
     body: backendModule.UpdateAssetOrDirectoryRequestBody
   ): Promise<backendModule.UpdatedDirectory> {
     const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
-    const updateAssetRequest = super.update({
-      description: body.description,
-      parentDirectoryId: body.parentDirectoryId,
-    })
+    const updateAssetRequest =
+      body.description == null && body.parentDirectoryId == null
+        ? Promise.resolve(null)
+        : super.update({
+            description: body.description ?? null,
+            parentDirectoryId: body.parentDirectoryId ?? null,
+          })
     const updateDirectoryRequest =
-      body.title != null
-        ? this.httpPut<backendModule.UpdatedDirectory>(path, { title: body.title })
-        : Promise.resolve(null)
+      body.title == null
+        ? Promise.resolve(null)
+        : this.httpPut<backendModule.UpdatedDirectory>(path, { title: body.title })
     const [updateAssetResponse, updateDirectoryResponse] = await Promise.allSettled([
       updateAssetRequest,
       updateDirectoryRequest,
@@ -387,12 +395,15 @@ class SmartSecret
   /** Change the value or description of a secret environment variable. */
   override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<void> {
     const path = remoteBackendPaths.updateSecretPath(this.value.id)
-    const updateAssetRequest = super.update({
-      description: body.description,
-      parentDirectoryId: body.parentDirectoryId,
-    })
+    const updateAssetRequest =
+      body.description == null && body.parentDirectoryId == null
+        ? Promise.resolve(null)
+        : super.update({
+            description: body.description ?? null,
+            parentDirectoryId: body.parentDirectoryId ?? null,
+          })
     const updateSecretRequest =
-      body.value != null ? this.httpPut(path, { value: body.value }) : Promise.resolve(null)
+      body.value == null ? Promise.resolve(null) : this.httpPut(path, { value: body.value })
     const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
       updateAssetRequest,
       updateSecretRequest,
@@ -492,12 +503,13 @@ export class RemoteBackend extends backendModule.Backend {
   }
 
   /** Return organization info for the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async self(): Promise<SmartUser> {
+   * @returns `null` if a non-successful status code (not 200-299) was received. */
+  override async self(): Promise<SmartUser | null> {
     const path = remoteBackendPaths.USERS_ME_PATH
     const response = await this.get<backendModule.UserOrOrganization>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get user details.`)
+      // This user has probably not finished registering.
+      return null
     } else {
       const json = await response.json()
       return new SmartUser(this.client, this.logger, json)

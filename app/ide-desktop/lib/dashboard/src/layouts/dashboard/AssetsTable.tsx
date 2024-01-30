@@ -146,7 +146,7 @@ function insertAssetTreeNodeChildren(
   item: assetTreeNode.AssetTreeNode,
   children: backendModule.AnySmartAsset[],
   directoryKey: backendModule.AssetId,
-  directoryId: backendModule.DirectoryId
+  directory: backendModule.SmartDirectory
 ): assetTreeNode.AssetTreeNode {
   const depth = item.depth + 1
   const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].value.type] : 0
@@ -154,7 +154,7 @@ function insertAssetTreeNodeChildren(
     node => node.item.value.type !== backendModule.AssetType.specialEmpty
   )
   const nodesToInsert = children.map(asset =>
-    assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directoryId, depth)
+    assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
   )
   const newNodes = array.splicedBefore(
     nodes,
@@ -170,7 +170,7 @@ function insertArbitraryAssetTreeNodeChildren(
   item: assetTreeNode.AssetTreeNode,
   children: backendModule.AnySmartAsset[],
   directoryKey: backendModule.AssetId,
-  directoryId: backendModule.DirectoryId,
+  directory: backendModule.SmartDirectory,
   getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
 ): assetTreeNode.AssetTreeNode {
   const depth = item.depth + 1
@@ -194,7 +194,7 @@ function insertArbitraryAssetTreeNodeChildren(
     if (firstChild) {
       const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.value.type]
       const nodesToInsert = childrenOfSpecificType.map(asset =>
-        assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directoryId, depth, getKey)
+        assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
       )
       newNodes = array.splicedBefore(
         newNodes,
@@ -262,7 +262,7 @@ export interface AssetsTableState {
   doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   doCopy: () => void
   doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -338,16 +338,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
-  const rootDirectoryId = React.useMemo(
-    () => organization?.value.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
-  )
+  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     return assetTreeNode.AssetTreeNode.fromSmartAsset(
-      organization?.rootDirectory(),
+      rootDirectory,
       rootParentDirectoryId,
-      rootParentDirectoryId,
+      rootDirectory,
       -1
     )
   })
@@ -767,14 +764,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         asset.title === initialProjectName || asset.id === initialProjectName
       const projectToLoad = assetTree
         .preorderTraversal()
-        .map(node => node.item)
+        .map(node => node.item.value)
         .filter(backendModule.assetIsProject)
         .find(isInitialProject)
       if (projectToLoad != null) {
         window.setTimeout(() => {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
-            id: projectToLoad.value.id,
+            id: projectToLoad.id,
             shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
@@ -794,17 +791,17 @@ export default function AssetsTable(props: AssetsTableProps) {
       setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
         setInitialized(true)
         const rootParentDirectoryId = backendModule.DirectoryId('')
-        const rootDirectory = organization?.rootDirectory()
         const newRootNode = new assetTreeNode.AssetTreeNode(
           rootDirectory?.value.id,
           rootDirectory,
           rootParentDirectoryId,
-          rootParentDirectoryId,
+          // This is INCORRECT, but it should not ever need to be accessed.
+          rootDirectory,
           newAssets.map(asset =>
             assetTreeNode.AssetTreeNode.fromSmartAsset(
               asset,
               rootDirectory?.value.id,
-              rootDirectory?.value.id,
+              rootDirectory,
               0
             )
           ),
@@ -818,13 +815,14 @@ export default function AssetsTable(props: AssetsTableProps) {
           asset.id === oldNameOfProjectToImmediatelyOpen
         if (oldNameOfProjectToImmediatelyOpen != null) {
           const projectToLoad = newAssets
+            .map(smartAsset => smartAsset.value)
             .filter(backendModule.assetIsProject)
             .find(isInitialProject)
           if (projectToLoad != null) {
             window.setTimeout(() => {
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
-                id: projectToLoad.value.id,
+                id: projectToLoad.id,
                 shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
               })
@@ -847,7 +845,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
     },
     [
-      organization,
+      rootDirectory,
       /* should never change */ setNameOfProjectToImmediatelyOpen,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ toastAndLog,
@@ -867,11 +865,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     async signal => {
       switch (backend.type) {
         case backendModule.BackendType.local: {
-          const newAssets = await organization.rootDirectory().list({
-            filterBy: CATEGORY_TO_FILTER_BY[category],
-            recentProjects: category === Category.recent,
-            labels: null,
-          })
+          const newAssets =
+            (await rootDirectory?.list({
+              filterBy: CATEGORY_TO_FILTER_BY[category],
+              recentProjects: category === Category.recent,
+              labels: null,
+            })) ?? []
           if (!signal.aborted) {
             setIsLoading(false)
             overwriteNodes(newAssets)
@@ -885,9 +884,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           >()
           const withChildren = (node: assetTreeNode.AssetTreeNode): assetTreeNode.AssetTreeNode => {
             const queuedListing = queuedDirectoryListings.get(node.item.value.id)
-            if (queuedListing == null || !backendModule.assetIsDirectory(node.item.value)) {
+            if (queuedListing == null || node.item.type !== backendModule.AssetType.directory) {
               return node
             } else {
+              const directory = node.item
               const directoryAsset = node.item.value
               const depth = node.depth + 1
               return node.with({
@@ -896,7 +896,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.AssetTreeNode.fromSmartAsset(
                       asset,
                       directoryAsset.id,
-                      directoryAsset.id,
+                      directory,
                       depth
                     )
                   )
@@ -905,18 +905,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }
           for (const entry of nodeMapRef.current.values()) {
-            if (backendModule.assetIsDirectory(entry.item.value) && entry.children != null) {
-              const id = entry.item.value.id
-              void backend
-                .listDirectory(
-                  {
-                    parentId: id,
-                    filterBy: CATEGORY_TO_FILTER_BY[category],
-                    recentProjects: category === Category.recent,
-                    labels: null,
-                  },
-                  entry.item.value.title
-                )
+            if (entry.item.type === backendModule.AssetType.directory && entry.children != null) {
+              void entry.item
+                .list({
+                  filterBy: CATEGORY_TO_FILTER_BY[category],
+                  recentProjects: category === Category.recent,
+                  labels: null,
+                })
                 .then(
                   assets => {
                     setAssetTree(oldTree => {
@@ -944,11 +939,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }
           try {
-            const newAssets = await organization.rootDirectory().list({
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            })
+            const newAssets =
+              (await rootDirectory?.list({
+                filterBy: CATEGORY_TO_FILTER_BY[category],
+                recentProjects: category === Category.recent,
+                labels: null,
+              })) ?? []
             if (!signal.aborted) {
               setIsLoading(false)
               overwriteNodes(newAssets)
@@ -1089,7 +1085,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.AssetTreeNode.fromSmartAsset(
                       child,
                       key,
-                      directory.value.id,
+                      directory,
                       item.depth + 1
                     )
                   )
@@ -1133,9 +1129,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           ? assetTree.children ?? []
           : nodeMapRef.current.get(parentKey)?.children ?? []
       const projectIndices = siblings
-        .map(node => node.item)
+        .map(node => node.item.value)
         .filter(backendModule.assetIsProject)
-        .map(item => projectNameTemplate.exec(item.value.title)?.groups?.projectIndex)
+        .map(item => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
         .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
       return `${prefix}${Math.max(0, ...projectIndices) + 1}`
     },
@@ -1149,47 +1145,51 @@ export default function AssetsTable(props: AssetsTableProps) {
   /** All items must have the same type. */
   const insertAssets = React.useCallback(
     (
-      assets: backendModule.AnyAsset[],
+      assets: backendModule.AnySmartAsset[],
       parentKey: backendModule.AssetId | null,
-      parentId: backendModule.DirectoryId | null
+      parent: backendModule.SmartDirectory | null
     ) => {
-      const actualParentKey = parentKey ?? rootDirectoryId
-      const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
-        )
-      })
+      const actualParentKey = parentKey ?? rootDirectory?.value.id
+      const actualParent = parent ?? rootDirectory
+      if (actualParent != null) {
+        setAssetTree(oldAssetTree => {
+          return oldAssetTree.map(item =>
+            item.key !== actualParentKey
+              ? item
+              : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParent)
+          )
+        })
+      }
     },
-    [rootDirectoryId]
+    [rootDirectory]
   )
 
   const insertArbitraryAssets = React.useCallback(
     (
       assets: backendModule.AnySmartAsset[],
       parentKey: backendModule.AssetId | null,
-      parentId: backendModule.DirectoryId | null,
+      parent: backendModule.SmartDirectory | null,
       getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
     ) => {
-      const actualParentKey = parentKey ?? rootDirectoryId
-      const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertArbitraryAssetTreeNodeChildren(
-                item,
-                assets,
-                actualParentKey,
-                actualParentId,
-                getKey
-              )
-        )
-      })
+      const actualParentKey = parentKey ?? rootDirectory?.value.id
+      const actualParent = parent ?? rootDirectory
+      if (actualParent != null) {
+        setAssetTree(oldAssetTree => {
+          return oldAssetTree.map(item =>
+            item.key !== actualParentKey
+              ? item
+              : insertArbitraryAssetTreeNodeChildren(
+                  item,
+                  assets,
+                  actualParentKey,
+                  actualParent,
+                  getKey
+                )
+          )
+        })
+      }
     },
-    [rootDirectoryId]
+    [rootDirectory]
   )
 
   eventHooks.useEventHandler(assetListEvents, event => {
@@ -1197,9 +1197,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
         const directoryIndices = siblings
-          .map(node => node.item)
+          .map(node => node.item.value)
           .filter(backendModule.assetIsDirectory)
-          .map(item => /^New Folder (?<directoryIndex>\d+)$/.exec(item.value.title))
+          .map(item => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
           .map(match => match?.groups?.directoryIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
@@ -1237,7 +1237,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(organization != null ? { opened_by: organization.email } : {}),
+            ...(organization != null ? { opened_by: organization.value.email } : {}),
           },
           labels: [],
           description: null,
@@ -1255,7 +1255,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.uploadFiles: {
         const reversedFiles = Array.from(event.files).reverse()
         const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
-        const siblings = siblingNodes.map(node => node.item)
+        const siblings = siblingNodes.map(node => node.item.value)
         const siblingFiles = siblings.filter(backendModule.assetIsFile)
         const siblingProjects = siblings.filter(backendModule.assetIsProject)
         const siblingFileTitles = new Set(siblingFiles.map(asset => asset.title))
@@ -1275,14 +1275,17 @@ export default function AssetsTable(props: AssetsTableProps) {
               ownerPermission
             )
           )
-          const placeholderProjects = projects.map(project =>
-            backendModule.createPlaceholderProjectAsset(
-              project.name,
-              event.parent,
-              ownerPermission,
-              organization
-            )
-          )
+          const placeholderProjects =
+            organization == null
+              ? []
+              : projects.map(project =>
+                  backendModule.createPlaceholderProjectAsset(
+                    project.name,
+                    event.parent.value.id,
+                    ownerPermission,
+                    organization.value
+                  )
+                )
           doToggleDirectoryExpansion(event.parent, event.parentKey, true)
           insertAssets(placeholderFiles, event.parentKey, event.parent.value.id)
           insertAssets(placeholderProjects, event.parentKey, event.parent.value.id)
@@ -1326,7 +1329,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 basename,
                 event.parent.value.id,
                 ownerPermission,
-                organization
+                organization?.value ?? null
               ),
               file: project,
             }
@@ -1371,7 +1374,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       backendModule.stripProjectExtension(project.name),
                       event.parent.value.id,
                       ownerPermission,
-                      organization
+                      organization?.value ?? null
                     )
                     fileMap.set(asset.id, project)
                     return asset
@@ -1410,7 +1413,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.insertAssets: {
-        insertArbitraryAssets(event.assets, event.parentKey, event.parent.value.id)
+        insertArbitraryAssets(event.assets, event.parentKey, event.parent)
         break
       }
       case AssetListEventType.willDelete: {
@@ -1430,18 +1433,18 @@ export default function AssetsTable(props: AssetsTableProps) {
           ids.add(newId)
           return newId
         }
-        insertArbitraryAssets(event.items, event.newParentKey, event.newParentId, getKey)
+        insertArbitraryAssets(event.items, event.newParentKey, event.newParent, getKey)
         dispatchAssetEvent({
           type: AssetEventType.copy,
           ids,
           newParentKey: event.newParentKey,
-          newParentId: event.newParentId,
+          newParent: event.newParent,
         })
         break
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
-        insertAssets([event.item], event.newParentKey, event.newParentId)
+        insertAssets([event.item], event.newParentKey, event.newParent)
         break
       }
       case AssetListEventType.delete: {
@@ -1521,22 +1524,19 @@ export default function AssetsTable(props: AssetsTableProps) {
   ])
 
   const doPaste = React.useCallback(
-    (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => {
+    (newParentKey: backendModule.AssetId) => {
       unsetModal()
       if (pasteData != null) {
-        const newParent = nodeMapRef.current.get(newParentKey)
+        const newParentNode = nodeMapRef.current.get(newParentKey)
         if (pasteData.data.has(newParentKey)) {
           toastAndLog('Cannot paste a folder into itself')
-        } else if (newParent == null) {
+        } else if (newParentNode == null) {
           toastAndLog('New parent folder was not found')
+        } else if (newParentNode.item.type !== backendModule.AssetType.directory) {
+          toastAndLog('New parent is not a foler')
         } else {
-          doToggleDirectoryExpansion(
-            // This is SAFE, as the `id` used to obtain this item is a `DirectoryId`.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax
-            newParent.item as backendModule.SmartDirectory,
-            newParentKey,
-            true
-          )
+          const newParent = newParentNode.item
+          doToggleDirectoryExpansion(newParentNode.item, newParentKey, true)
           if (pasteData.type === PasteType.copy) {
             const assets = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
               asset => (asset ? [asset.item] : [])
@@ -1544,15 +1544,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetListEvent({
               type: AssetListEventType.copy,
               items: assets,
-              newParentId,
               newParentKey,
+              newParent,
             })
           } else {
             dispatchAssetEvent({
               type: AssetEventType.move,
               ids: pasteData.data,
               newParentKey,
-              newParentId,
+              newParent,
             })
           }
           setPasteData(null)
@@ -1600,7 +1600,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+    const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory?.value.id)
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     }
@@ -2022,22 +2022,21 @@ export default function AssetsTable(props: AssetsTableProps) {
           </tr>
         </tbody>
       </table>
-
       <div
         className="grow"
         onDragEnter={onDragOver}
         onDragOver={onDragOver}
         onDrop={event => {
           const payload = drag.ASSET_ROWS.lookup(event)
-          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-          if (filtered != null && filtered.length > 0) {
+          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory?.value.id)
+          if (filtered != null && filtered.length > 0 && rootDirectory != null) {
             event.preventDefault()
             event.stopPropagation()
             unsetModal()
             dispatchAssetEvent({
               type: AssetEventType.move,
-              newParentKey: rootDirectoryId,
-              newParentId: rootDirectoryId,
+              newParentKey: rootDirectory.value.id,
+              newParent: rootDirectory,
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
           }

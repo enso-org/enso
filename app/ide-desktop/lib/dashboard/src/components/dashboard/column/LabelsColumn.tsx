@@ -9,8 +9,8 @@ import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/backend'
 import * as assetQuery from '#/utilities/assetQuery'
+import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
@@ -32,30 +32,22 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
   const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
-  const asset = item.item
-  const session = authProvider.useNonPartialUserSession()
+  const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isHovered, setIsHovered] = React.useState(false)
+  const smartAsset = item.item
+  const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.organization?.email
+    permission => permission.user.user_email === organization?.value.email
   )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        object.merge(oldItem, {
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [/* should never change */ setItem]
-  )
+  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+
   return (
     <div
       className="flex items-center gap-1"

@@ -9,9 +9,8 @@ import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import type * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
+import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -55,7 +54,6 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
   const { organization } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
@@ -64,33 +62,28 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     },
     [/* should never change */ rawSetItem]
   )
-  const self = item.item.permissions?.find(
-    permission => permission.user.user_email === organization?.email
+  const smartAsset = item.item
+  const asset = smartAsset.value
+  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const self = asset.permissions?.find(
+    permission => permission.user.user_email === organization?.value.email
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
 
   React.useEffect(() => {
-    setDescription(item.item.description ?? '')
-  }, [item.item.description])
+    setDescription(asset.description ?? '')
+  }, [asset.description])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
-    if (description !== item.item.description) {
-      const oldDescription = item.item.description
-      setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
+    if (description !== asset.description) {
+      const oldDescription = asset.description
+      setAsset(object.merger({ description }))
       try {
-        await backend.updateAsset(
-          item.item.id,
-          { parentDirectoryId: null, description },
-          item.item.title
-        )
+        await smartAsset.update({ description })
       } catch (error) {
         toastAndLog('Could not edit asset description')
-        setItem(oldItem =>
-          oldItem.with({
-            item: object.merge(oldItem.item, { description: oldDescription }),
-          })
-        )
+        setAsset(object.merger({ description: oldDescription }))
       }
     }
   }
@@ -132,14 +125,14 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
               image={PenIcon}
               onClick={() => {
                 setIsEditingDescription(true)
-                setQueuedDescripion(item.item.description)
+                setQueuedDescripion(asset.description)
               }}
             />
           )}
         </span>
         <div className="py-1 self-stretch">
           {!isEditingDescription ? (
-            <span className="leading-170 py-px">{item.item.description}</span>
+            <span className="leading-170 py-px">{asset.description}</span>
           ) : (
             <form className="flex flex-col gap-2" onSubmit={doEditDescription}>
               <textarea

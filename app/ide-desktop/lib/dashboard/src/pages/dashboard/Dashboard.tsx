@@ -55,7 +55,7 @@ export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, appRunner, initialProjectName: rawInitialProjectName } = props
   const { projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
-  const session = authProvider.useNonPartialUserSession()
+  const { organization, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setBackend } = backendProvider.useSetBackend()
   const { modalRef } = modalProvider.useModalRef()
@@ -85,10 +85,7 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ?? false
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
-  const rootDirectoryId = React.useMemo(
-    () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [session.organization]
-  )
+  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
 
   React.useEffect(() => {
     setInitialized(true)
@@ -126,10 +123,10 @@ export default function Dashboard(props: DashboardProps) {
       }
     } else if (savedProjectStartupInfo != null) {
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
-        if (session.accessToken != null) {
+        if (accessToken != null) {
           if (
             currentBackend.type === backendModule.BackendType.remote &&
-            savedProjectStartupInfo.projectAsset.parentId === session.organization.rootDirectoryId
+            savedProjectStartupInfo.projectAsset.parentId === organization.value.rootDirectoryId
           ) {
             // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
             setPage(pageSwitcher.Page.drive)
@@ -144,7 +141,7 @@ export default function Dashboard(props: DashboardProps) {
           } else {
             setPage(pageSwitcher.Page.drive)
             const httpClient = new http.Client(
-              new Headers([['Authorization', `Bearer ${session.accessToken}`]])
+              new Headers([['Authorization', `Bearer ${accessToken}`]])
             )
             const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger)
             void (async () => {
@@ -308,9 +305,7 @@ export default function Dashboard(props: DashboardProps) {
             setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
             break
           case backendModule.BackendType.remote: {
-            const client = new http.Client([
-              ['Authorization', `Bearer ${session.accessToken ?? ''}`],
-            ])
+            const client = new http.Client([['Authorization', `Bearer ${accessToken ?? ''}`]])
             setBackend(new remoteBackendModule.RemoteBackend(client, logger))
             break
           }
@@ -319,7 +314,7 @@ export default function Dashboard(props: DashboardProps) {
     },
     [
       backend.type,
-      session.accessToken,
+      accessToken,
       logger,
       /* should never change */ projectManagerUrl,
       /* should never change */ setBackend,
@@ -332,16 +327,18 @@ export default function Dashboard(props: DashboardProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newProject,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          templateId,
+          templateName,
+          onSpinnerStateChange,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   const openEditor = React.useCallback(
@@ -359,11 +356,11 @@ export default function Dashboard(props: DashboardProps) {
           projectAsset: newProject,
           setProjectAsset: setProjectAsset,
           backendType: backend.type,
-          accessToken: session.accessToken,
+          accessToken,
         })
       }
     },
-    [backend, projectStartupInfo?.project.projectId, session.accessToken]
+    [backend, projectStartupInfo?.project.projectId, accessToken]
   )
 
   const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
@@ -457,8 +454,8 @@ export default function Dashboard(props: DashboardProps) {
             appRunner={appRunner}
           />
           {page === pageSwitcher.Page.settings && <Settings />}
-          {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {isHelpChatVisible && session.accessToken != null ? (
+          {/* `accessToken` MUST be present in order for the `Chat` component to work. */}
+          {isHelpChatVisible && accessToken != null ? (
             <Chat
               page={page}
               isOpen={isHelpChatOpen}
@@ -483,9 +480,9 @@ export default function Dashboard(props: DashboardProps) {
         >
           {assetSettingsPanelProps && (
             <AssetSettingsPanel
-              supportsLocalBackend={supportsLocalBackend}
-              key={assetSettingsPanelProps.item.item.id}
+              key={assetSettingsPanelProps.item.item.value.id}
               {...assetSettingsPanelProps}
+              supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
               category={Category.home}

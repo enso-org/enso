@@ -68,7 +68,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         void (async () => {
           try {
             await backend.inviteUser({
-              organizationId: organization.id,
+              organizationId: organization.value.id,
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {

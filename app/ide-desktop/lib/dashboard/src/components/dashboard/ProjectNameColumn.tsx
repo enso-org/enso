@@ -44,15 +44,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { shortcuts } = shortcutsProvider.useShortcuts()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.project) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display project assets.')
   }
+  const asset = smartAsset.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
-    null
+    asset.permissions?.find(
+      permission => permission.user.user_email === organization?.value.email
+    ) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -66,7 +68,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     projectState.opened_by != null &&
-    projectState.opened_by !== organization?.email
+    projectState.opened_by !== organization?.value.email
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
@@ -303,9 +305,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               // All siblings,
               child.key === item.key ||
               // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
+              backendModule.assetIsDirectory(child.item.value) ||
               // must have a different name.
-              child.item.title !== newTitle
+              child.item.value.title !== newTitle
           )
         }
         onSubmit={doRename}

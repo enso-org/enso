@@ -41,7 +41,7 @@ export default function UserBar(props: UserBarProps) {
   const self =
     organization != null
       ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === organization.email
+          permissions => permissions.user.user_email === organization.value.email
         ) ?? null
       : null
   const shouldShowShareButton =
@@ -94,7 +94,7 @@ export default function UserBar(props: UserBarProps) {
         }}
       >
         <img
-          src={organization?.profilePicture ?? DefaultUserIcon}
+          src={organization?.value.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}

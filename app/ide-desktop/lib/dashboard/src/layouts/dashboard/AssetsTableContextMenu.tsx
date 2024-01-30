@@ -50,7 +50,7 @@ export interface AssetsTableContextMenuProps {
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   doCopy: () => void
   doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
@@ -62,10 +62,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
-  )
+  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const pluralized = pluralize(selectedKeys.size)
@@ -75,9 +72,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     isCloud ||
     (organization != null &&
       Array.from(selectedKeys, key => {
-        const userPermissions = nodeMapRef.current.get(key)?.item.permissions
+        const userPermissions = nodeMapRef.current.get(key)?.item.value.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.email
+          permission => permission.user.user_email === organization.value.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
@@ -96,10 +93,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           description={`${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
             setSelectedKeys(new Set())
-            dispatchAssetEvent({
-              type: AssetEventType.delete,
-              ids: selectedKeys,
-            })
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />
       )
@@ -166,9 +160,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                       ? nodeMapRef.current.get(firstKey)
                       : null
                   if (selectedNode?.item.type === backendModule.AssetType.directory) {
-                    doPaste(selectedNode.key, selectedNode.item.id)
-                  } else {
-                    doPaste(rootDirectoryId, rootDirectoryId)
+                    doPaste(selectedNode.key)
+                  } else if (rootDirectory != null) {
+                    doPaste(rootDirectory.value.id)
                   }
                 }}
               />
@@ -179,7 +173,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           hidden={hidden}
           hasCopyData={pasteData != null}
           directoryKey={null}
-          directoryId={null}
+          directory={null}
           dispatchAssetListEvent={dispatchAssetListEvent}
           doPaste={doPaste}
         />

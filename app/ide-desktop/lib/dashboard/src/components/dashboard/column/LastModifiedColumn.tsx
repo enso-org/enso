@@ -7,5 +7,6 @@ import type * as column from '#/components/dashboard/column'
 
 /** A column displaying the time at which the asset was last modified. */
 export default function LastModifiedColumn(props: column.AssetColumnProps) {
-  return <>{dateTime.formatDateTime(new Date(props.item.item.modifiedAt))}</>
+  const { item } = props
+  return <>{dateTime.formatDateTime(new Date(item.item.value.modifiedAt))}</>
 }

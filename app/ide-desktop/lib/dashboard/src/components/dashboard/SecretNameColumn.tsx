@@ -39,11 +39,12 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.secret) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
+  const asset = smartAsset.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
@@ -96,10 +97,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merger({ id }))
             } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
               toastAndLog('Error creating new data connector', error)
             }
           }
@@ -133,7 +131,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
               name={asset.title}
               doCreate={async (_name, value) => {
                 try {
-                  await backend.updateSecret(asset.id, { value }, asset.title)
+                  await smartAsset.update({ value })
                 } catch (error) {
                   toastAndLog(null, error)
                 }

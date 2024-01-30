@@ -106,7 +106,7 @@ export interface AssetCancelOpeningAllProjectsEvent
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
   ids: Set<backendModule.AssetId>
   newParentKey: backendModule.AssetId
-  newParentId: backendModule.DirectoryId
+  newParent: backendModule.SmartDirectory
 }
 
 /** A signal to cut multiple assets. */
@@ -123,7 +123,7 @@ export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cance
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
   ids: Set<backendModule.AssetId>
   newParentKey: backendModule.AssetId
-  newParentId: backendModule.DirectoryId
+  newParent: backendModule.SmartDirectory
 }
 
 /** A signal to delete assets. */

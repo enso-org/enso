@@ -92,7 +92,7 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
   newParentKey: backend.AssetId
-  newParentId: backend.DirectoryId
+  newParent: backend.SmartDirectory
   items: backend.AnySmartAsset[]
 }
 
@@ -100,8 +100,8 @@ interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy>
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
   key: backend.AssetId
   newParentKey: backend.AssetId
-  newParentId: backend.DirectoryId
-  item: backend.AnyAsset
+  newParent: backend.SmartDirectory
+  item: backend.AnySmartAsset
 }
 
 /** A signal that a file has been deleted. */

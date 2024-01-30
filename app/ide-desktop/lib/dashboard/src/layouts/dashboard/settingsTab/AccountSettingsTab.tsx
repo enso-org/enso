@@ -5,7 +5,6 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as object from '#/utilities/object'
 
@@ -60,23 +59,22 @@ export default function AccountSettingsTab() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setOrganization } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const nameInputRef = React.useRef<HTMLInputElement>(null)
 
   const doUpdateName = async () => {
-    const oldName = organization?.name ?? ''
+    const oldName = organization?.value.name ?? ''
     const newName = nameInputRef.current?.value ?? ''
     if (newName === oldName) {
       return
     } else {
       try {
-        await backend.updateUser({ username: newName })
+        await organization?.update({ username: newName })
         setOrganization(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
         if (nameInputRef.current) {
-          nameInputRef.current.value = organization?.name ?? ''
+          nameInputRef.current.value = organization?.value.name ?? ''
         }
       }
       return
@@ -87,9 +85,11 @@ export default function AccountSettingsTab() {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('Could not upload a new profile picture because no image was found')
+    } else if (organization == null) {
+      // Ignore. If `organization` is `null`, all other endpoints will not work either.
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
+        const newUser = await organization.uploadPicture({ fileName: image.name }, image)
         setOrganization(newUser)
       } catch (error) {
         toastAndLog(null, error)
@@ -112,16 +112,16 @@ export default function AccountSettingsTab() {
                 <input
                   ref={nameInputRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.name}
+                  key={organization?.value.name}
                   type="text"
                   size={1}
-                  defaultValue={organization?.name ?? ''}
+                  defaultValue={organization?.value.name ?? ''}
                   onBlur={doUpdateName}
                   onKeyDown={event => {
                     switch (event.key) {
                       case 'Escape': {
                         event.stopPropagation()
-                        event.currentTarget.value = organization?.name ?? ''
+                        event.currentTarget.value = organization?.value.name ?? ''
                         event.currentTarget.blur()
                         break
                       }
@@ -141,7 +141,7 @@ export default function AccountSettingsTab() {
             </InfoEntry>
             <InfoEntry>
               <Name>Email</Name>
-              <Value>{organization?.email ?? ''}</Value>
+              <Value>{organization?.value.email ?? ''}</Value>
             </InfoEntry>
           </div>
         </div>
@@ -167,7 +167,11 @@ export default function AccountSettingsTab() {
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
-          <img src={organization?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
+          <img
+            src={organization?.value.profilePicture ?? DefaultUserIcon}
+            width={128}
+            height={128}
+          />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
