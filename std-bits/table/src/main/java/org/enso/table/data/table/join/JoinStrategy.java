@@ -1,6 +1,7 @@
 package org.enso.table.data.table.join;
 
 import java.util.List;
+
 import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.data.table.join.conditions.HashableCondition;
@@ -32,12 +33,12 @@ public interface JoinStrategy {
       assert !betweenConditions.isEmpty();
       return new SortJoin(betweenConditions, joinKind);
     } else if (betweenConditions.isEmpty()) {
-      return new HashJoin(
+      return new SimpleHashJoin(
           hashableConditions,
           joinKind.wantsCommon ? new MatchAllStrategy() : new NoOpStrategy(),
           joinKind);
     } else {
-      return new HashJoin(hashableConditions, new SortJoin(betweenConditions, joinKind), joinKind);
+      return new CompoundHashJoin(hashableConditions, new SortJoin(betweenConditions, joinKind), joinKind);
     }
   }
 
