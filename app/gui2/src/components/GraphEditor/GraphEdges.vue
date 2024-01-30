@@ -35,7 +35,6 @@ const editingEdge: Interaction = {
     }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
-    console.log(source, target, targetNode)
     graph.transact(() => {
       if (source != null && sourceNode != targetNode) {
         if (target == null) {
