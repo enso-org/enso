@@ -30,7 +30,8 @@ final class DeserializeLibrarySuggestionsJob(
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getLogger.log(
       Level.FINE,
-      s"Deserializing suggestions for library [$libraryName]."
+      "Deserializing suggestions for library [{}].",
+      libraryName
     )
     val serializationManager = SerializationManager(
       ctx.executionService.getContext.getCompiler.context
