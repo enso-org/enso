@@ -279,6 +279,17 @@ pub fn runs_on(os: OS) -> Vec<RunnerLabel> {
     }
 }
 
+/// Concurrency configuration that allows only one workflow run for a given branch (ref) at a time.
+/// Previous runs are canceled. The default branch is excluded from this rule.
+pub fn cancel_previous_concurrency() -> Concurrency {
+    let group = "${{ github.workflow }}-${{ github.ref }}";
+    let cancel_in_progress = format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'");
+    Concurrency::Map {
+        cancel_in_progress: wrap_expression(cancel_in_progress),
+        group:              group.into(),
+    }
+}
+
 /// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
     let mut ret = vec![setup_conda(), setup_wasm_pack_step(), setup_artifact_api()];
@@ -558,8 +569,8 @@ pub fn typical_check_triggers() -> Event {
 
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
-    workflow.add(PRIMARY_OS, job::CancelWorkflow);
+    let concurrency = Some(cancel_previous_concurrency());
+    let mut workflow = Workflow { name: "GUI CI".into(), concurrency, on, ..default() };
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
@@ -583,8 +594,8 @@ pub fn gui() -> Result<Workflow> {
 
 pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
-    workflow.add(PRIMARY_OS, job::CancelWorkflow);
+    let concurrency = Some(cancel_previous_concurrency());
+    let mut workflow = Workflow { name: "Engine CI".into(), on, concurrency, ..default() };
     for os in TARGETED_SYSTEMS {
         workflow.add(os, job::CiCheckBackend);
     }
