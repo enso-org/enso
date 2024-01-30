@@ -132,3 +132,19 @@ export function cachedGetter<T>(
   // Since the watch is immediate, the value is guaranteed to be assigned at least once this point.
   return valueRef as Ref<T>
 }
+
+export function debouncedGetter<T>(getter: () => T, delayMs: number): Ref<T> {
+  const valueRef = shallowRef<T>()
+  let currentTimer: ReturnType<typeof setTimeout> | undefined
+  watch(
+    getter,
+    (newValue) => {
+      clearTimeout(currentTimer)
+      currentTimer = setTimeout(() => {
+        valueRef.value = newValue
+      }, delayMs)
+    },
+    {},
+  )
+  return valueRef as Ref<T>
+}
