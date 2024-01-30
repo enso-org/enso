@@ -12,7 +12,7 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test_New import all
-import Standard.Test_New.Test_Result.Test_Result
+import Standard.Test_New.Spec_Result.Spec_Result
 
 
 
@@ -152,15 +152,15 @@ add_specs suite_builder =
         group_builder.specify "constructor True check" <|
             True . should_be_a True
             True . should_be_a Boolean
-            Panic.recover Any (True . should_be_a False) . should_fail_with Test_Result
+            Panic.recover Any (True . should_be_a False) . should_fail_with Spec_Result
 
         group_builder.specify "constructor Case.Lower check" <|
             Case.Lower . should_be_a Case.Lower
             Case.Lower . should_be_a Case
-            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Test_Result
+            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Spec_Result
 
         group_builder.specify "5 isn't a constructor" <|
-            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Test_Result
+            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Spec_Result
 
         group_builder.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
