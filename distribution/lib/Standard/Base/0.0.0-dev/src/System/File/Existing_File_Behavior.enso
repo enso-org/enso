@@ -141,39 +141,3 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
                 Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
             result
-
-    ## Here we manually check if the target file is writable. This is necessary,
-       because the `Backup` scenario would go around the original file not being
-       writable by moving it (which is permitted for read-only files too) and
-       then writing a new file and removing the old one (it is often possible to
-       delete a read-only file). So without this check, the `Backup` mode would
-       be able to replace contents of a read-only file, which is not desired.
-       Thus we add this additional check to ensure the operation will proceed
-       only if it is allowed. Other scenarios do not need this check, as they
-       write to the file directly and will fail if the file is not writable.
-    if parent.exists.not then Error.throw (File_Error.Not_Found file.parent) else
-        if file.is_writable.not then File_Error.access_denied file else
-            go 0
-
-type Internal_Write_Operation_Panicked
-    ## PRIVATE
-    Panic (cause : Caught_Panic)
-
-type Internal_Write_Operation_Errored
-    ## PRIVATE
-    Error (cause : Any)
-
-## PRIVATE
-catch_already_exists handler =
-    panic_handler caught_panic = case caught_panic.payload of
-        File_Error.Already_Exists _ -> handler caught_panic
-        _ -> Panic.throw caught_panic
-    Panic.catch File_Error handler=panic_handler
-
-## PRIVATE
-recover_io_and_not_found =
-    panic_handler caught_panic = case caught_panic.payload of
-        File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error
-        File_Error.Not_Found _ -> caught_panic.convert_to_dataflow_error
-        _ -> Panic.throw caught_panic
-    Panic.catch File_Error handler=panic_handler

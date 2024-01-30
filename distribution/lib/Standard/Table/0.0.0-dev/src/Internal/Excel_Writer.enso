@@ -54,6 +54,7 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
 write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (headers : Boolean|Infer) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
     _ = on_problems
+    # TODO if file is not a File, create a temporary local file, write to it and then transfer its input stream to the output stream of the actual backend
     if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
         java_file = file_as_java file
         file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX

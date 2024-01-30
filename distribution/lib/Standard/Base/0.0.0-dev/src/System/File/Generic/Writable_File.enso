@@ -3,6 +3,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.Input_Stream.Input_Stream
+import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 from project.Data.Boolean import Boolean, False, True
@@ -13,49 +14,18 @@ from project.Data.Boolean import Boolean, False, True
 
    This allows our code to work with any kind of file backend, e.g. the local
    file system as well as remote ones like S3, using the same basic interface.
+
+   The type-class currently provides the following capabilities:
+   - write_strategy: a `File_Write_Strategy` instance denoting how to handle
+     file writing depending on `Existing_File_Behavior` and dry run settings.
+   - exists: the underlying `file` should have an `exists` method available,
+     because it is used by some logic as an early exit condition.
 type Writable_File
     ## PRIVATE
-    Value file
+    Value file (write_strategy : File_Write_Strategy)
 
     ## PRIVATE
-    exists self -> Boolean =
-        self.file.exists
-
-    ## PRIVATE
-    delete self -> Nothing =
-        self.file.delete
-
-    ## PRIVATE
-    copy_to self (destination : Writable_File) -> Nothing =
-        self.file.copy_to destination
-
-    ## PRIVATE
-       This method is optional, it may choose to raise Forbidden_Operation error
-       if dry run should not be supported for a given backend.
-    create_dry_run_file self (copy_original : Boolean) -> Writable_File =
-        self.file.create_dry_run_file copy_original
-
-    ## PRIVATE
-    with_output_stream self (open_options : Vector File_Access) (action : Input_Stream -> Any) =
-        self.file.with_output_stream open_options action
-
-    ## PRIVATE
-       The `parent` and `/` methods are needed to be able to create path for the
-       backup file and temporary files used in the Existing_File_Behavior.Backup
-       mode.
-    parent self -> Writable_File =
-        Writable_File.from self.file.parent
-
-    ## PRIVATE
-       The `parent` and `/` methods are needed to be able to create path for the
-       backup file and temporary files used in the Existing_File_Behavior.Backup
-       mode.
-    / self (that : Text) -> Writable_File =
-        Writable_File.from (self.file / that)
-
-    ## PRIVATE
-    name self -> Text =
-        self.file.name
+    exists self -> Boolean = self.file.exists
 
 ## PRIVATE
 Writable_File.from (that : Text) =
