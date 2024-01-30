@@ -1,9 +1,9 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
-import { isDevMode } from 'shared/util/detect'
 import { urlParams } from '@/util/urlParams'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as dashboard from 'enso-dashboard'
 import 'enso-dashboard/src/tailwind.css'
+import { isDevMode } from 'shared/util/detect'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
