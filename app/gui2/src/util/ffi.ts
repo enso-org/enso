@@ -1,5 +1,5 @@
 import { isNode } from '@/util/detect'
-import init, { parse, parse_doc_to_json } from 'rust-ffi/pkg/rust_ffi'
+import init, { is_ident_or_operator, parse, parse_doc_to_json } from 'rust-ffi/pkg/rust_ffi'
 
 if (isNode) {
   const fs = await import('node:fs/promises')
@@ -10,4 +10,4 @@ if (isNode) {
 }
 
 // eslint-disable-next-line camelcase
-export { parse, parse_doc_to_json }
+export { is_ident_or_operator, parse, parse_doc_to_json }

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 from Standard.Table import Table
 
@@ -74,14 +75,28 @@ initialize secret_file =
    - property_id
    - start_date
    - end_date
-run_google_report : Text -> Text -> Text -> Table
-run_google_report property_id start_date end_date =
+run_google_report : Text -> Date -> Date -> Table
+run_google_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today =
     analytics_data = BetaAnalyticsDataClient.create
     request = RunReportRequest.newBuilder
-        . setProperty "properties/"+"415432269"
+        . setProperty ("properties/"+property_id)
         . addDimensions (Dimension.newBuilder.setName "city")
         . addMetrics (Metric.newBuilder.setName "activeUsers")
-        . addDateRanges (DateRange.newBuilder.setStartDate "2020-03-31" . setEndDate "today")
+        . addDateRanges (DateRange.newBuilder.setStartDate start_date.to_text . setEndDate end_date.to_text)
         . build
     response = analytics_data.runReport request
-    response.getRowsList
+
+    dimension_count = response.getDimensionHeadersCount
+    dimensions = 0.up_to dimension_count . map i-> response.getDimensionHeaders i . getName
+    metric_count = response.getMetricHeadersCount
+    metrics = 0.up_to metric_count . map i-> response.getMetricHeaders i . getName
+    headers = dimensions + metrics
+
+    row_count = response.getRowCount
+    row_proxy = Array_Proxy.new row_count i->
+        row = response.getRows i
+        dimension_values = 0.up_to dimension_count . map i-> row.getDimensionValues i . getValue
+        metric_values = 0.up_to metric_count . map i-> row.getMetricValues i . getValue
+        dimension_values + metric_values
+
+    Table.from_rows headers (Vector.from_polyglot_array row_proxy)

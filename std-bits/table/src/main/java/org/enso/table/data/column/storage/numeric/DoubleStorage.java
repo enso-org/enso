@@ -278,20 +278,20 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
   @Override
   public Storage<Double> applyMask(OrderMask mask) {
-    int[] positions = mask.getPositions();
-    long[] newData = new long[positions.length];
+    long[] newData = new long[mask.length()];
     BitSet newMissing = new BitSet();
     Context context = Context.getCurrent();
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      if (position == Index.NOT_FOUND || isMissing.get(position)) {
         newMissing.set(i);
       } else {
-        newData[i] = data[positions[i]];
+        newData[i] = data[position];
       }
 
       context.safepoint();
     }
-    return new DoubleStorage(newData, positions.length, newMissing);
+    return new DoubleStorage(newData, newData.length, newMissing);
   }
 
   @Override

@@ -35,15 +35,14 @@ export function useStackNavigator() {
 
   function handleBreadcrumbClick(index: number) {
     const activeStack = projectStore.executionContext.desiredStack
-    if (index < activeStack.length) {
-      const diff = activeStack.length - index - 1
-      for (let i = 0; i < diff; i++) {
+    // Number of items in desired stack should be index + 1
+    if (index + 1 < activeStack.length) {
+      for (let i = activeStack.length; i > index + 1; i--) {
         projectStore.executionContext.pop()
       }
-    } else if (index >= activeStack.length) {
-      const diff = index - activeStack.length + 1
-      for (let i = 0; i < diff; i++) {
-        const stackItem = breadcrumbs.value[index - i]
+    } else if (index + 1 > activeStack.length) {
+      for (let i = activeStack.length; i <= index; i++) {
+        const stackItem = breadcrumbs.value[i]
         if (stackItem?.type === 'LocalCall') {
           const exprId = stackItem.expressionId
           projectStore.executionContext.push(exprId)

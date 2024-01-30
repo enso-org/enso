@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test_New import all
 
 import project.IO.Csv_Spec
 import project.IO.Delimited_Read_Spec
@@ -10,13 +10,16 @@ import project.IO.Fetch_Spec
 import project.IO.Formats_Spec
 import project.IO.Json_Spec
 
-spec =
-    Csv_Spec.spec
-    Delimited_Read_Spec.spec
-    Delimited_Write_Spec.spec
-    Excel_Spec.spec
-    Formats_Spec.spec
-    Fetch_Spec.spec
-    Json_Spec.spec
+add_specs suite_builder =
+    Csv_Spec.add_specs suite_builder
+    Delimited_Read_Spec.add_specs suite_builder
+    Delimited_Write_Spec.add_specs suite_builder
+    Excel_Spec.add_specs suite_builder
+    Formats_Spec.add_specs suite_builder
+    Fetch_Spec.add_specs suite_builder
+    Json_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

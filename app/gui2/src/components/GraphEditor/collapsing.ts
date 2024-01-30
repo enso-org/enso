@@ -1,12 +1,15 @@
 import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
-import { assert } from '@/util/assert'
-import { Ast } from '@/util/ast'
-import { moduleMethodNames } from '@/util/ast/abstract'
+import { assert, assertDefined } from '@/util/assert'
+import { Ast, RawAst } from '@/util/ast'
+import { isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
-import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
+import {
+  isIdentifierOrOperatorIdentifier,
+  tryIdentifier,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/qualifiedName'
 import * as set from 'lib0/set'
-import { IdMap } from '../../../shared/yjsModel'
 
 // === Types ===
 
@@ -41,7 +44,7 @@ interface RefactoredInfo {
   /** The id of the refactored node. */
   id: NodeId
   /** The pattern of the refactored node. Included for convenience, collapsing does not affect it. */
-  pattern: string
+  pattern: Identifier
   /** The list of necessary arguments for a call of the collapsed function. */
   arguments: Identifier[]
 }
@@ -99,6 +102,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   }
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
+  assert(isIdentifier(pattern))
 
   return {
     extracted: {
@@ -115,8 +119,11 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(module: Ast.Module, baseName: string): string {
-  const allIdentifiers = moduleMethodNames(module)
+function findSafeMethodName(
+  topLevel: Ast.BodyBlock,
+  baseName: IdentifierOrOperatorIdentifier,
+): IdentifierOrOperatorIdentifier {
+  const allIdentifiers = moduleMethodNames(topLevel)
   if (!allIdentifiers.has(baseName)) {
     return baseName
   }
@@ -124,14 +131,16 @@ function findSafeMethodName(module: Ast.Module, baseName: string): string {
   while (allIdentifiers.has(`${baseName}${index}`)) {
     index++
   }
-  return `${baseName}${index}`
+  const name = `${baseName}${index}`
+  assert(isIdentifierOrOperatorIdentifier(name))
+  return name
 }
 
 // === performCollapse ===
 
 // We support working inside `Main` module of the project at the moment.
-const MODULE_NAME = 'Main'
-const COLLAPSED_FUNCTION_NAME = 'collapsed'
+const MODULE_NAME = 'Main' as IdentifierOrOperatorIdentifier
+const COLLAPSED_FUNCTION_NAME = 'collapsed' as IdentifierOrOperatorIdentifier
 
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
@@ -147,43 +156,45 @@ interface CollapsingResult {
 /** Perform the actual AST refactoring for collapsing nodes. */
 export function performCollapse(
   info: CollapsedInfo,
-  edit: Ast.MutableModule,
-  topLevel: Ast.BodyBlock,
+  topLevel: Ast.MutableBodyBlock,
   db: GraphDb,
   currentMethodName: string,
 ): CollapsingResult {
-  const functionAst = Ast.findModuleMethod(edit, currentMethodName)
-  if (!(functionAst instanceof Ast.Function) || !(functionAst.body instanceof Ast.BodyBlock)) {
-    throw new Error(`Expected a collapsable function, found ${functionAst}.`)
-  }
-  const functionBlock = functionAst.body
-  const posToInsert = findInsertionPos(edit, topLevel, currentMethodName)
-  const collapsedName = findSafeMethodName(edit, COLLAPSED_FUNCTION_NAME)
+  const edit = topLevel.module
+  const functionAst = Ast.findModuleMethod(topLevel, currentMethodName)
+  assertDefined(functionAst)
+  const functionBlock = edit.getVersion(functionAst).bodyAsBlock()
+  const posToInsert = findInsertionPos(topLevel, currentMethodName)
+  const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
     [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
   )
   const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
-  const collapsed = []
-  const refactored = []
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
     collapsedName,
     edit,
   )
-  const lines = functionBlock.statements()
-  for (const line of lines) {
-    const astId = line.id
-    const ast = edit.take(astId)?.node
-    assert(ast != null)
-    if (astIdsToExtract.has(astId)) {
-      collapsed.push(ast)
-      if (astId === astIdToReplace) {
-        refactored.push({ expression: { node: refactoredAst } })
+  const collapsed: Ast.Owned[] = []
+  // Update the definition of the refactored function.
+  functionBlock.updateLines((lines) => {
+    const refactored: Ast.OwnedBlockLine[] = []
+    for (const line of lines) {
+      const ast = line.expression?.node
+      if (!ast) continue
+      if (astIdsToExtract.has(ast.id)) {
+        collapsed.push(ast)
+        if (ast.id === astIdToReplace) {
+          refactored.push({ expression: { node: refactoredAst } })
+        }
+      } else {
+        refactored.push(line)
       }
-    } else {
-      refactored.push({ expression: { node: ast } })
     }
-  }
+    return refactored
+  })
+
+  // Insert a new function.
   const collapsedNodeIds = collapsed.map((ast) => asNodeId(nodeFromAst(ast).rootSpan.id)).reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
@@ -192,21 +203,22 @@ export function performCollapse(
     collapsed.push(ident)
     outputNodeId = asNodeId(ident.id)
   }
-  // Update the definiton of the refactored function.
-  const refactoredBlock = Ast.BodyBlock.new(refactored, edit)
-  edit.replaceRef(functionBlock.id, refactoredBlock)
-
-  // Insert a new function.
-  const args: Ast.Owned[] = info.extracted.inputs.map((arg) => Ast.Ident.new(edit, arg))
-  const collapsedFunction = Ast.Function.fromExprs(edit, collapsedName, args, collapsed, true)
-  topLevel.insert(edit, posToInsert, collapsedFunction)
+  const argNames = info.extracted.inputs
+  const collapsedFunction = Ast.Function.fromStatements(
+    edit,
+    collapsedName,
+    argNames,
+    collapsed,
+    true,
+  )
+  topLevel.insert(posToInsert, collapsedFunction)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
 /** Prepare a method call expression for collapsed method. */
 function collapsedCallAst(
   info: CollapsedInfo,
-  collapsedName: string,
+  collapsedName: IdentifierOrOperatorIdentifier,
   edit: Ast.MutableModule,
 ): { ast: Ast.Owned; nodeId: NodeId } {
   const pattern = info.refactored.pattern
@@ -219,14 +231,9 @@ function collapsedCallAst(
 }
 
 /** Find the position before the current method to insert a collapsed one. */
-function findInsertionPos(
-  module: Ast.Module,
-  topLevel: Ast.BodyBlock,
-  currentMethodName: string,
-): number {
-  const currentFuncPosition = topLevel.lines().findIndex((line) => {
-    const node = line.expression?.node
-    const expr = node ? module.get(node.id)?.innerExpression() : null
+function findInsertionPos(topLevel: Ast.BodyBlock, currentMethodName: string): number {
+  const currentFuncPosition = topLevel.lines.findIndex((line) => {
+    const expr = line.expression?.node?.innerExpression()
     return expr instanceof Ast.Function && expr.name?.code() === currentMethodName
   })
 
@@ -239,11 +246,13 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
-    const ast = Ast.parseTransitional(code, new IdMap())
-    const expressions = Array.from(ast.statements())
+    const { root, toRaw, getSpan } = Ast.parseExtended(code)
+    const expressions = Array.from(root.statements())
     const func = expressions[0]
     assert(func instanceof Ast.Function)
-    graphDb.readFunctionAst(func, () => undefined)
+    const rawFunc = toRaw.get(func.id)
+    assert(rawFunc?.type === RawAst.Tree.Type.Function)
+    graphDb.readFunctionAst(func, rawFunc, code, (_id) => undefined, getSpan)
   }
 
   interface TestCase {

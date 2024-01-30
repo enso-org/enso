@@ -3,7 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
-  averagePositionPlacement,
+  collapsedNodePlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
@@ -274,21 +274,21 @@ const graphBindingsHandler = graphBindings.handler({
       const edit = module.edit()
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        edit,
-        topLevel,
+        edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      graphStore.commitEdit(edit)
-      const { position } = averagePositionPlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      graphStore.setNodePosition(refactoredNodeId, position)
+      const meta = new Map<AstId, Partial<NodeMetadata>>()
+      const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
+      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        graphStore.setNodePosition(outputNodeId, position)
+        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       }
+      graphStore.commitEdit(edit, meta)
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -330,7 +330,7 @@ function onPlayButtonPress() {
     if (modeValue == undefined) {
       return
     }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', 'Live')
   })
 }
 
