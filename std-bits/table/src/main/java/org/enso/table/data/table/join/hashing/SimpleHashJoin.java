@@ -21,8 +21,8 @@ import org.graalvm.polyglot.Context;
  * <p>It then delegates to {@code remainingMatcher} to perform the remaining conditions on the
  * matching pairs of row subsets.
  */
-public class HashJoin implements JoinStrategy {
-  public HashJoin(
+public class SimpleHashJoin implements JoinStrategy {
+  public SimpleHashJoin(
       List<HashableCondition> conditions,
       PluggableJoinStrategy remainingMatcher,
       JoinKind joinKind) {
@@ -31,7 +31,7 @@ public class HashJoin implements JoinStrategy {
     this.joinKind = joinKind;
 
     List<HashEqualityCondition> equalConditions =
-        conditions.stream().map(HashJoin::makeHashEqualityCondition).toList();
+        conditions.stream().map(SimpleHashJoin::makeHashEqualityCondition).toList();
 
     if (equalConditions.isEmpty()) {
       throw new IllegalArgumentException(

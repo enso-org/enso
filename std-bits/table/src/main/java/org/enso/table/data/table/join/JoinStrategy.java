@@ -5,7 +5,8 @@ import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.data.table.join.conditions.JoinCondition;
-import org.enso.table.data.table.join.hashing.HashJoin;
+import org.enso.table.data.table.join.hashing.CompoundHashJoin;
+import org.enso.table.data.table.join.hashing.SimpleHashJoin;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A strategy used for performing a join of two tables. */
