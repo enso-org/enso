@@ -21,8 +21,7 @@ polyglot java import java.io.File as Java_File
 polyglot java import java.nio.charset.Charset
 
 type File_By_Line
-    ## PUBLIC
-       Creates a new File_By_Line object.
+    ## Creates a new File_By_Line object.
 
        Arguments
        - file: The file to read.

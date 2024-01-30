@@ -159,8 +159,13 @@ add_specs suite_builder =
     suite_builder.group "expand_column" group_builder->
         group_builder.specify "Expands a column of single values" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
-            expected = Table.new [["aaa", [1, 2]], ["bbb Value", [3, 4]], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_equal expected
+
+        group_builder.specify "Expands a column of single values by index" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_column 1 . should_equal expected
 
         group_builder.specify "Expands a uniform column of JSON objects" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
