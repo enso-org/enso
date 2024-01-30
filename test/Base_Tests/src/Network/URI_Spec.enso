@@ -281,8 +281,9 @@ add_specs suite_builder =
             uri2.to_text . should_equal "https://example.com/path#FRAG"
 
         cloud_setup = Cloud_Tests_Setup.prepare
-        cloud_setup.with_prepared_environment <|
-            group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+
+        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-1" "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
@@ -294,7 +295,8 @@ add_specs suite_builder =
                     uri.to_java_uri . should_fail_with Enso_Secret_Error
                     uri.raw_query . should_fail_with Enso_Secret_Error
 
-            group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-4" "My Very Secret Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
@@ -314,7 +316,8 @@ add_specs suite_builder =
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
-            group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
