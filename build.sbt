@@ -298,6 +298,7 @@ lazy val enso = (project in file("."))
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
+    `runtime-suggestions`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1586,7 +1587,7 @@ lazy val `runtime-test-instruments` =
       )
     )
 
-lazy val runtime = (project in file("engine/runtime"))
+lazy val runtime: Project = (project in file("engine/runtime"))
   .configs(Benchmark)
   .enablePlugins(JPMSPlugin)
   .settings(
@@ -1911,6 +1912,7 @@ lazy val `runtime-suggestions` =
     .dependsOn(`runtime-compiler`)
     .dependsOn(`polyglot-api`)
     .dependsOn(`runtime`)
+    .dependsOn(`runtime` % "test->test")
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -1938,6 +1940,7 @@ lazy val `runtime-instrument-common` =
       )
     )
     .dependsOn(`refactoring-utils`)
+    .dependsOn(`runtime-suggestions`)
     .dependsOn(
       LocalProject(
         "runtime"
@@ -2054,11 +2057,11 @@ lazy val `runtime-fat-jar` =
         case _ => MergeStrategy.first
       }
     )
-    .dependsOn(`runtime-instrument-common`)
-    .dependsOn(`runtime-instrument-id-execution`)
-    .dependsOn(`runtime-instrument-repl-debugger`)
-    .dependsOn(`runtime-instrument-runtime-server`)
-    .dependsOn(`runtime-language-epb`)
+    .dependsOn(LocalProject("runtime-instrument-common"))
+    .dependsOn(LocalProject("runtime-instrument-id-execution"))
+    .dependsOn(LocalProject("runtime-instrument-repl-debugger"))
+    .dependsOn(LocalProject("runtime-instrument-runtime-server"))
+    .dependsOn(LocalProject("runtime-language-epb"))
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]

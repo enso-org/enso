@@ -2,8 +2,8 @@ package org.enso.languageserver.boot.resource;
 
 import akka.event.EventStream;
 import java.util.concurrent.Executor;
+import org.enso.common.LanguageInfo;
 import org.enso.languageserver.event.InitializedEvent;
-import org.enso.polyglot.LanguageInfo;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

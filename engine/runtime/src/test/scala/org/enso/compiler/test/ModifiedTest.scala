@@ -4,7 +4,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.{IOFileFilter, TrueFileFilter}
 import org.enso.interpreter.test.{InterpreterException, ValueEquality}
 import org.enso.pkg.PackageManager
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec

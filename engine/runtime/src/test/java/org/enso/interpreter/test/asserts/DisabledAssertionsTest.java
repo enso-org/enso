@@ -5,10 +5,10 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.TopScope;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;

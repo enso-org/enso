@@ -11,10 +11,10 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;

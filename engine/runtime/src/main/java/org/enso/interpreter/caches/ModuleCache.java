@@ -15,12 +15,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
-import org.enso.common.CompilationStage;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 

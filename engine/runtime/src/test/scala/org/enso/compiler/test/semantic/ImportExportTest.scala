@@ -10,7 +10,9 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
+import org.enso.common.LanguageInfo
+import org.enso.common.MethodNames
+import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers

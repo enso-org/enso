@@ -13,12 +13,8 @@ import org.enso.polyglot.debugger.{
   ReplExecutor,
   SessionManager
 }
-import org.enso.polyglot.{
-  Function,
-  LanguageInfo,
-  PolyglotContext,
-  RuntimeOptions
-}
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.{Function, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
 import org.scalatest.matchers.should.Matchers

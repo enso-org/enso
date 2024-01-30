@@ -1,12 +1,8 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.polyglot.{
-  LanguageInfo,
-  RuntimeOptions,
-  RuntimeServerInfo,
-  Suggestion
-}
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo, Suggestion}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model

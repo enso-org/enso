@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.{LanguageInfo, MethodNames}
+import org.enso.common.{LanguageInfo, MethodNames}
 
 import scala.ref.WeakReference
 import scala.util.Try

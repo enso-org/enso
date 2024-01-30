@@ -2,7 +2,10 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context

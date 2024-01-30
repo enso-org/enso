@@ -1,7 +1,9 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.Metadata
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context

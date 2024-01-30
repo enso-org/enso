@@ -4,8 +4,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import org.enso.common.LanguageInfo;
 import org.enso.interpreter.test.TestBase;
-import org.enso.polyglot.LanguageInfo;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.AfterClass;

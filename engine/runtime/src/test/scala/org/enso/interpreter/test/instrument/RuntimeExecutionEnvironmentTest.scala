@@ -4,7 +4,10 @@ import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.MethodNames
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context

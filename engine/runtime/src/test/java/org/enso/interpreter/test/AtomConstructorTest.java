@@ -5,12 +5,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.function.Function;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

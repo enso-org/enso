@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -8,7 +11,6 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
@@ -24,11 +26,6 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
-
 import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -445,9 +442,16 @@ final class TruffleCompilerContext implements CompilerContext {
 
   private static interface Mock {
     public void shutdown(boolean waitForPendingJobCompletion);
-    public Object serializeModule(Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations, boolean b);
+
+    public Object serializeModule(
+        Compiler compiler,
+        CompilerContext.Module module,
+        boolean useGlobalCacheLocations,
+        boolean b);
+
     public Option<Boolean> deserialize(Compiler compiler, CompilerContext.Module module);
 
-        public Object serializeLibrary(Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+    public Object serializeLibrary(
+        Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
   }
 }

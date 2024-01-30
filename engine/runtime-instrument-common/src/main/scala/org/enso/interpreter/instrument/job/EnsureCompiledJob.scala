@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
+import org.enso.common.CompilationStage
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -31,7 +32,6 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.CompilationStage
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
