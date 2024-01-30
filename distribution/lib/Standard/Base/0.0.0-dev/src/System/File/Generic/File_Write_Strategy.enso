@@ -1,4 +1,9 @@
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Runtime.Context
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File_Access.File_Access
+from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
    Specifies the logic for handling writing files with options like `Existing_File_Behavior` and dry run.
@@ -72,7 +77,7 @@ type Dry_Run_File_Settings
     Value existing_file_behavior:Existing_File_Behavior copy_original:Boolean
 
 ## PRIVATE
-dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Setting = case behavior of
+dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings = case behavior of
     Existing_File_Behavior.Error ->
         ## In case the _original_ file exists, the dry run will raise error because the actual write would have errored.
            If the original file does not exist, we can just overwrite the dry run file.

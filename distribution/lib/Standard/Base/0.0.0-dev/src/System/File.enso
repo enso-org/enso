@@ -25,6 +25,7 @@ import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
+import project.System.File.Local_File_Write_Strategy
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
 import project.System.File.Generic.Writable_File.Writable_File
@@ -838,5 +839,4 @@ File_Like.from (that : File) = File_Like.Value that
 
 ## PRIVATE
 Writable_File.from (that : File) =
-    # We normalize the path to ensure correct behaviour of `parent`.
-    Writable_File.Value that.absolute.normalize
+    Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance

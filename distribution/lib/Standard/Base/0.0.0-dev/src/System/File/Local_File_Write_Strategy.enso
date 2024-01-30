@@ -1,12 +1,16 @@
 import project.Any.Any
 import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Nothing.Nothing
 import project.Panic.Caught_Panic
 import project.Panic.Panic
+import project.System.File.File_Access.File_Access
 import project.System.Output_Stream.Output_Stream
-from project.System.File.File_Write_Strategy import all
+from project.Data.Boolean import Boolean, False, True
+from project.System.File.Generic.File_Write_Strategy import all
 
 ## PRIVATE
-local_file_write_strategy =
+instance =
     File_Write_Strategy.Value default_overwrite default_append default_raise_error moving_backup create_dry_run_file
 
 ## PRIVATE
@@ -15,14 +19,33 @@ create_dry_run_file file copy_original =
 
 ## PRIVATE
    A `Backup` strategy that does the following:
-   1. First, write to a temporary file.
+   1. If the file does not exist, we write to it.
+   2. If the file exists, write to a temporary file.
      i. If the write fails, do nothing more. The original file is kept intact.
-     ii. If the write succeeds, we move the original file (if it exists) to a
-         backup location, and then move the temporary new file to the target location.
+     ii. If the write succeeds, we move the original file to a backup location,
+         and then move the temporary new file to the target location.
 
    This strategy assumes that the `move` operation on a single filesystem is
    cheap (it is a rename), and is optimized for that case.
 moving_backup file action = recover_io_and_not_found <|
+    handle_existing_file _ =
+        write_file_backing_up_old_one file action
+    handle_write_failure_dataflow caught_panic =
+        Error.throw caught_panic.payload.cause
+    handle_file_already_exists = catch_already_exists handle_existing_file
+    handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+
+    ## We first attempt to write the file to the original
+       destination, but if that fails due to the file already
+       existing, we will run the alternative algorithm which uses a
+       temporary file and creates a backup.
+    handle_file_already_exists <| handle_internal_dataflow <|
+        Panic.rethrow <| file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
+            action output_stream . catch Any dataflow_error->
+                Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
+
+## PRIVATE
+write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.parent
     bak_file = parent / file.name+".bak"
     # The loop is looking for a name for a temporary file that is not yet taken.
