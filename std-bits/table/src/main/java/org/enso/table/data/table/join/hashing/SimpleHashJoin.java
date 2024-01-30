@@ -17,6 +17,7 @@ import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -67,9 +68,13 @@ public class SimpleHashJoin implements JoinStrategy {
         Arrays.stream(leftEquals).map(Column::getStorage).toArray(Storage[]::new);
 
     Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
-
+    ColumnAggregatedProblemAggregator groupingProblemAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     for (int leftRow = 0; leftRow < leftEquals[0].getSize(); leftRow++) {
       var leftKey = new UnorderedMultiValueKey(storage, leftRow, textFoldingStrategies);
+      leftKey.checkAndReportFloatingEquality(
+          groupingProblemAggregator, columnIx -> leftEquals[columnIx].getName());
+
       // If any field of the key is null, it cannot match anything.
       List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
       if (rightRows != null) {

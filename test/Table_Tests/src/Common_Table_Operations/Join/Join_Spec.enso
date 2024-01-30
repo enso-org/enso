@@ -455,7 +455,7 @@ add_specs suite_builder setup =
                 t1.at "Y" . to_vector . should_equal [10,  20,  20]
                 t1.at "Z" . to_vector . should_equal [1.5, 2.0, 2.0]
                 t1.at "W" . to_vector . should_equal [2,   1,   3]
-            problems1 = [Floating_Point_Equality.Error "X", Floating_Point_Equality.Error "Z"]
+            problems1 = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "W") on_problems=_
