@@ -1894,7 +1894,6 @@ lazy val `runtime-compiler` =
     .dependsOn(pkg)
     .dependsOn(`engine-common`)
     .dependsOn(`text-buffer`)
-    .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-suggestions` =
