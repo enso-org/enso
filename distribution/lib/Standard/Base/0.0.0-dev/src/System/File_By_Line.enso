@@ -127,9 +127,8 @@ type File_By_Line
     skip self lines:Integer =
         ## Read the line
         create_row_map parent line =
-            position = if parent.row_map.getSize > line then parent.row_map.get line else
-                for_each_lines self 0 line Nothing
-                parent.row_map.get parent.row_map.getSize-1
+            if parent.row_map.getSize <= line then for_each_lines self 0 line Nothing
+            position = parent.row_map.getOrLast line
             row_map = LongArrayList.new
             row_map.add position
             parent.log "Created Skipped Row Map ("+line.to_text+")"
