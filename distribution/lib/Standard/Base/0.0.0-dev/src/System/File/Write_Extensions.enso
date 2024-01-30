@@ -56,8 +56,9 @@ Text.write : Writable_File -> Encoding -> Existing_File_Behavior -> Problem_Beha
 Text.write self (path : Writable_File) (encoding:Encoding = Encoding.utf_8) (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Backup) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
     bytes = self.bytes encoding on_problems
     bytes.if_not_error <|
-        path.write_handling_dry_run on_existing_file stream->
-            stream.write_bytes bytes
+        path.write_handling_dry_run on_existing_file effective_file-> stream->
+            # If the write succeeded, we return the file that was written to (original file or a dry run file).
+            stream.write_bytes bytes . if_not_error effective_file
 
 ## ICON data_output
    Writes (or appends) the Vector of bytes into the specified file. The behavior
@@ -97,6 +98,8 @@ Vector.write_bytes self (path : Writable_File) (on_existing_file:Existing_File_B
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Utils.ensureByteArray self
 
-        r = on_existing_file.write path stream->
+        # write_bytes does not allow dry run
+        r = path.write_handling_dry_run on_existing_file stream->
+            # If the write succeeded, we return the file that was written to (original file or a dry run file).
             stream.write_bytes (Vector.from_polyglot_array byte_array)
         r.if_not_error path.file

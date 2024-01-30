@@ -30,14 +30,10 @@ type Writable_File
     exists self -> Boolean = self.file.exists
 
     ## PRIVATE
-       TODO doc?
-       It returns the file that has been written to.
     write self (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) -> Any =
         self.write_strategy.write self.file existing_file_behavior action
 
     ## PRIVATE
-       TODO doc?
-       It returns the effective file (the original destination or a dry run file) that has been written to.
     write_handling_dry_run self (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) -> Any =
         self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
 
