@@ -43,10 +43,10 @@ type File_Write_Strategy
        The `action` is called with the effective file (original destination file
        or its dry run counterpart) and an output stream to that file.
     write_handling_dry_run self file existing_file_behavior action =
-        if Context.Output.is_enabled then self.write file existing_file_behavior action else
+        if Context.Output.is_enabled then self.write file existing_file_behavior (action file) else
             effective_behavior = dry_run_behavior file existing_file_behavior
             effective_file = self.create_dry_run_file file effective_behavior.copy_original
-            effective_file.if_not_error <|
+            effective_file.if_not_error <| Context.Output.with_enabled <|
                 self.write effective_file effective_behavior.existing_file_behavior output_stream->
                     action effective_file output_stream
 

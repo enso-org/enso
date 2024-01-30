@@ -6,6 +6,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
@@ -642,7 +643,7 @@ add_specs suite_builder =
             [bak_file, new_file].each .delete_if_exists
 
             result = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
@@ -656,7 +657,7 @@ add_specs suite_builder =
             f.delete
 
             result2 = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
