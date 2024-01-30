@@ -2,7 +2,6 @@
  * {@link RemoteLogger} provides a convenient way to manage remote logging with access token authorization. */
 
 import * as app from 'ensogl-runner/src/runner'
-import * as authConfig from '../../dashboard/src/utilities/config'
 
 const logger = app.log.logger
 
@@ -11,7 +10,7 @@ const logger = app.log.logger
 // =================
 
 /** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = new URL(`${authConfig.ACTIVE_CONFIG.apiUrl}/logs`)
+const REMOTE_LOG_URL = new URL(`${API_URL}/logs`)
 
 // ====================
 // === RemoteLogger ===
