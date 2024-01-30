@@ -64,15 +64,24 @@ object JPMSUtils {
       )
     }
 
+    val found = mutable.Seq()
     val ret = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-      shouldFilterModule(moduleID)
+      if (shouldFilterModule(moduleID)) {
+        found :+ moduleID
+        true
+      } else {
+        false
+      }
     })
     if (shouldContainAll) {
       if (ret.size < distinctModules.size) {
         log.error("Not all modules from classpath were found")
         log.error(s"Returned (${ret.size}): $ret")
         log.error(s"Expected: (${distinctModules.size}): $distinctModules")
+
+        val missing = distinctModules.diff(found)
+        log.error(s"Missing IDs: $missing")
       }
     }
     ret
