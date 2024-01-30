@@ -287,7 +287,7 @@ type Postgres_Dialect
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace]]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -485,6 +485,14 @@ make_contains_expr expr substring =
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+
+## PRIVATE
+left = Base_Generator.lift_binary_op "LEFT" str-> n->
+    Builder.code "left(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
+
+## PRIVATE
+right = Base_Generator.lift_binary_op "RIGHT" str-> n->
+    Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =

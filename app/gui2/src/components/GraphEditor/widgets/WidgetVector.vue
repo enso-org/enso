@@ -2,12 +2,15 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { ForcePort } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { Ast, RawAst } from '@/util/ast'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
+import { Ast } from '@/util/ast'
+import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
 const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor'
@@ -19,20 +22,25 @@ const defaultItem = computed(() => {
   if (props.input.dynamicConfig?.kind === 'Vector_Editor') {
     return Ast.parse(props.input.dynamicConfig.item_default)
   } else {
-    return Ast.Wildcard.new()
+    return Ast.Wildcard.new(MutableModule.Transient())
   }
 })
 
 const value = computed({
   get() {
-    if (props.input.ast == null) return []
-    return Array.from(props.input.ast.children()).filter(
+    if (!(props.input.value instanceof Ast.Ast)) return []
+    return Array.from(props.input.value.children()).filter(
       (child): child is Ast.Ast => child instanceof Ast.Ast,
     )
   },
   set(value) {
+    // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    props.onUpdate(newCode, props.input.portId)
+    const edit = graph.astModule.edit()
+    props.onUpdate({
+      edit,
+      portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
+    })
   },
 })
 
@@ -40,14 +48,15 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget, {
-  priority: 1000,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 500,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.argInfo?.reprType.startsWith('Standard.Base.Data.Vector.Vector'))
+    else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
-    else
-      return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    else if (props.input.value instanceof Ast.Ast)
+      return props.input.value.children().next().value.code === '[' ? Score.Perfect : Score.Mismatch
+    else return Score.Mismatch
   },
 })
 </script>
@@ -56,17 +65,20 @@ export const widgetDefinition = defineWidget(AnyWidget, {
   <ListWidget
     v-model="value"
     :default="() => defaultItem"
-    :getKey="(ast: Ast.Ast) => ast.exprId"
+    :getKey="(ast: Ast.Ast) => ast.id"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
-    :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
+    :toDragPayload="(ast: Ast.Ast) => Ast.serialize(ast)"
     :fromDragPayload="Ast.deserialize"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
     class="WidgetVector"
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="new ForcePort(AnyWidget.Ast(item, itemConfig))" />
+      <NodeWidget
+        :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
+        nest
+      />
     </template>
   </ListWidget>
 </template>

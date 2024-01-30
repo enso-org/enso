@@ -8,23 +8,41 @@ from Standard.Table import Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import project.Database.Helpers.Name_Generator
 from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
 
-    Test.group prefix+"Table.add_row_number (common)" <|
-        Test.specify "should rename existing column upon a name clash" <|
+    suite_builder.group prefix+"Table.add_row_number (common)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should rename existing column upon a name clash" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
             t2 = t1.add_row_number name="Y" order_by=["X"] |> materialize |> _.order_by "X"
 
@@ -38,13 +56,13 @@ spec setup =
             r3 = t1.add_row_number name="X" on_problems=Problem_Behavior.Report_Error
             r3.should_fail_with Duplicate_Output_Column_Names
 
-        Test.specify "should allow to order the row numbers by some columns" <|
+        group_builder.specify "should allow to order the row numbers by some columns" <|
             t2 = table_builder [["X", ["a", "b", "a", "a"]], ["Y", [1, 2, 3, 4]]]
             t3 = t2.add_row_number order_by=["X", (Sort_Column.Name "Y" Sort_Direction.Descending)] |> materialize |> _.order_by "Y"
             t3.at "Y" . to_vector . should_equal [1, 2, 3, 4]
             t3.at "Row" . to_vector . should_equal [3, 4, 2, 1]
 
-        Test.specify "should allow mixing grouping with ordering and custom start and step" <|
+        group_builder.specify "should allow mixing grouping with ordering and custom start and step" <|
             vx = ['a', 'b', 'a', 'a', 'a', 'b', 'c', 'c']
             vy = [9, 8, 7, 6, 5, 4, 100, 200]
             vr = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -56,7 +74,7 @@ spec setup =
             t1.at "Y" . to_vector . should_equal vy
             t1.at "Row" . to_vector . should_equal [400, 200, 300, 200, 100, 100, 100, 200]
 
-        Test.specify "should report floating point equality warning when grouping on float columns" <|
+        group_builder.specify "should report floating point equality warning when grouping on float columns" <|
             t = table_builder [["X", [1.0, 1.5, 1.0, 2.5, 2.5]], ["row_id", [1, 2, 3, 4, 5]]]
             t1 = t.add_row_number group_by=["X"] order_by=["row_id"] |> materialize |> _.order_by "row_id"
             Problems.expect_warning Floating_Point_Equality t1
@@ -75,7 +93,7 @@ spec setup =
                 Problems.expect_warning Floating_Point_Equality t5
                 t5.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2, 3, 4]
 
-        Test.specify "should fail if columns provided in ordering/grouping do not exist" <|
+        group_builder.specify "should fail if columns provided in ordering/grouping do not exist" <|
             t = table_builder [["X", [20, 30, 10]]]
             r1 = t.add_row_number group_by=["X", "Y", "Z"] order_by=["X"]
             r1.should_fail_with Missing_Input_Columns
@@ -88,7 +106,7 @@ spec setup =
             r3 = t.add_row_number group_by=[44] order_by=["X"]
             r3.should_fail_with Missing_Input_Columns
 
-        Test.specify "will respect the row order of order_by" <|
+        group_builder.specify "will respect the row order of order_by" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [40, 30, 20, 10]]]
             t1 = t.order_by "Y"
 
@@ -98,7 +116,7 @@ spec setup =
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40]
             t2.at "Row" . to_vector . should_equal [1, 2, 3, 4]
 
-        Test.specify "Should work correctly after aggregation" <|
+        group_builder.specify "Should work correctly after aggregation" <|
             t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
             t1 = t0.aggregate [Group_By "X", Sum "Y"]
 
@@ -107,8 +125,16 @@ spec setup =
             t2.at "Sum Y" . to_vector . should_equal [5.0, 2.0, 8.0]
             t2.at "Row" . to_vector . should_equal [1, 2, 3]
 
-    if setup.is_database.not then Test.group prefix+"Table.add_row_number (in-memory specific)" <|
-        Test.specify "should add a row numbering column" <|
+    if setup.is_database.not then suite_builder.group prefix+"Table.add_row_number (in-memory specific)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should add a row numbering column" <|
             t = table_builder [["X", ['a', 'b', 'a', 'a', 'c']]]
             t1 = t.add_row_number
             rows = t1.rows.to_vector . map .to_vector
@@ -116,7 +142,7 @@ spec setup =
             t1.at "Row" . to_vector . should_equal [1, 2, 3, 4, 5]
             t1.at "Row" . value_type . is_integer . should_be_true
 
-        Test.specify "should allow customizing the starting index and step" <|
+        group_builder.specify "should allow customizing the starting index and step" <|
             t = table_builder [["X", ['a', 'b', 'a']]]
             t1 = t.add_row_number from=10
             t1.at "Row" . to_vector . should_equal [10, 11, 12]
@@ -133,7 +159,7 @@ spec setup =
             t5 = t.add_row_number from=(-1)
             t5.at "Row" . to_vector . should_equal [-1, 0, 1]
 
-        Test.specify "should allow to assign row numbers separately within each group" <|
+        group_builder.specify "should allow to assign row numbers separately within each group" <|
             t = table_builder [["X", ['a', 'a', 'a', 'a', 'b', 'b']], ["Y", [40, 30, 20, 40, 20, 10]]]
             t1 = t.add_row_number group_by=["X"]
             t1.at "Row" . to_vector . should_equal [1, 2, 3, 4, 1, 2]
@@ -142,7 +168,7 @@ spec setup =
             t3 = t2.add_row_number group_by=["X", "Y"]
             t3.at "Row" . to_vector . should_equal [1, 2, 1, 2, 1, 1]
 
-        Test.specify "should allow to assign row numbers separately within scattered groups, preserving the row layout" <|
+        group_builder.specify "should allow to assign row numbers separately within scattered groups, preserving the row layout" <|
             v = ['a', 'b', 'a', 'b', 'b', 'b', 'c', 'a']
             t = table_builder [["X", v]]
             t1 = t.add_row_number group_by=["X"]
@@ -150,7 +176,7 @@ spec setup =
             t1.at "X" . to_vector . should_equal v
             t1.at "Row" . to_vector . should_equal [1, 1, 2, 2, 3, 4, 1, 3]
 
-        Test.specify "should allow mixing grouping with ordering and custom start and step, preserving the original row layout" <|
+        group_builder.specify "should allow mixing grouping with ordering and custom start and step, preserving the original row layout" <|
             vx = ['a', 'b', 'a', 'a', 'a', 'b', 'c', 'c']
             vy = [9, 8, 7, 6, 5, 4, 100, 200]
             vr = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -163,7 +189,7 @@ spec setup =
             t1.at "Y" . to_vector . should_equal vy
             t1.at "Row" . to_vector . should_equal [400, 200, 300, 200, 100, 100, 100, 200]
 
-        Test.specify "should allow to order the row numbers by some columns, keeping the row ordering intact" <|
+        group_builder.specify "should allow to order the row numbers by some columns, keeping the row ordering intact" <|
             v = [9, 8, 7, 6, 5, 4, 100, 200]
             t = table_builder [["X", v]]
             t1 = t.add_row_number order_by=["X"]
@@ -175,7 +201,7 @@ spec setup =
             t3 = t2.add_row_number order_by=["X", (Sort_Column.Name "Y" Sort_Direction.Descending)]
             t3.at "Row" . to_vector . should_equal [3, 4, 2, 1]
 
-        Test.specify "will fail if the row number exceeds Long range" <|
+        group_builder.specify "will fail if the row number exceeds Long range" <|
             max_long = Java_Long.MAX_VALUE
 
             t1 = table_builder [["X", [1, 2, 3, 4, 5]], ["Y", [1, 2, 2, 2, 2]], ["Z", [1, 5, 3, 4, 2]]]
@@ -195,10 +221,18 @@ spec setup =
             t1.add_row_number from=(max_long + 10) order_by=["Z"] . should_fail_with Illegal_Argument
             t1.add_row_number from=(max_long + 10) group_by=["Y"] order_by=["Z"] . should_fail_with Illegal_Argument
 
-    if setup.is_database then Test.group prefix+"Table.add_row_number (Database specific)" <|
-        Test.specify "will use the primary key by default" <|
+    if setup.is_database then suite_builder.group prefix+"Table.add_row_number (Database specific)" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "will use the primary key by default" <|
             src = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]]
-            db_table = src.select_into_database_table setup.connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
+            db_table = src.select_into_database_table data.connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
 
             t2 = db_table.add_row_number |> materialize |> _.order_by ["Y"]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]

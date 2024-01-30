@@ -58,7 +58,7 @@ object BuiltinsIrBuilder {
       }
     )
 
-    new ExportsResolution().run(List(module))
+    new ExportsResolution(context).run(List(module))
     val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,

@@ -384,7 +384,7 @@ final class EnsureCompiledJob(
                 _
               ) =>
             DataflowAnalysis.DependencyInfo.Type.Static(
-              err.getId,
+              err.getId(),
               err.getExternalId
             )
         }
@@ -429,7 +429,8 @@ final class EnsureCompiledJob(
     if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
+        "Invalidated visualizations [{}]",
+        invalidatedVisualizations.map(_.id)
       )
     }
 

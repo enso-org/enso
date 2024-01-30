@@ -35,6 +35,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -355,7 +356,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   protected Object getLanguageView(EnsoContext context, Object value) {
     if (value instanceof Boolean b) {
       var bool = context.getBuiltins().bool();
-      return b ? bool.getTrue().newInstance() : bool.getFalse().newInstance();
+      var cons = b ? bool.getTrue() : bool.getFalse();
+      return AtomNewInstanceNode.getUncached().newInstance(cons);
     }
     return null;
   }

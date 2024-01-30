@@ -44,6 +44,9 @@ public final class UnresolvedConversion implements EnsoObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
+   * @param ctx execution context
+   * @param into the target type to convert {@code from} to
+   * @param from original type
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {

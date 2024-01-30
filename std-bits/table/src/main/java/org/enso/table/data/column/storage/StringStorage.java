@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -11,12 +10,11 @@ import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
@@ -48,17 +46,6 @@ public final class StringStorage extends SpecializedStorage<String> {
     return type;
   }
 
-  @Override
-  public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-    if (arg.isString()) {
-      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
-      return fillMissingHelper(arg, new StringBuilder(size(), newType));
-    } else {
-      return super.fillMissing(arg, commonType, problemAggregator);
-    }
-  }
-
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
     MapOperationStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
@@ -72,7 +59,7 @@ public final class StringStorage extends SpecializedStorage<String> {
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null) {
+              if (storage.getItem(i) == null || arg == null) {
                 missing.set(i);
               } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
@@ -141,6 +128,20 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected long doOperation(String a) {
             return Text_Utils.grapheme_length(a);
+          }
+        });
+    t.add(
+        new StringLongToStringOp(Maps.TEXT_LEFT) {
+          @Override
+          protected String doOperation(String a, long b) {
+            return Text_Utils.take_prefix(a, b);
+          }
+        });
+    t.add(
+        new StringLongToStringOp(Maps.TEXT_RIGHT) {
+          @Override
+          protected String doOperation(String a, long b) {
+            return Text_Utils.take_suffix(a, b);
           }
         });
     t.add(

@@ -522,10 +522,15 @@ public final class EnsoContext {
 
   private Object lookupHostSymbol(String pkgName, String curClassName)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    if (findGuestJava() == null) {
-      return environment.asHostSymbol(hostClassLoader.loadClass(pkgName + "." + curClassName));
-    } else {
-      return InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
+    var fqn = pkgName + "." + curClassName;
+    try {
+      if (findGuestJava() == null) {
+        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
+      } else {
+        return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
+      }
+    } catch (Error e) {
+      throw new ClassNotFoundException("Error loading " + fqn, e);
     }
   }
 
@@ -663,6 +668,15 @@ public final class EnsoContext {
    */
   public boolean isInterpreterSequentialCommandExection() {
     return getOption(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY);
+  }
+
+  /**
+   * Checks value of {@link RuntimeOptions#INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY}.
+   *
+   * @return the value of the option
+   */
+  public boolean isRandomDelayedCommandExecution() {
+    return getOption(RuntimeOptions.INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY);
   }
 
   /**
@@ -804,10 +818,6 @@ public final class EnsoContext {
 
   public State emptyState() {
     return State.create(this);
-  }
-
-  public int getMaxUnboxingLayouts() {
-    return 10;
   }
 
   /**

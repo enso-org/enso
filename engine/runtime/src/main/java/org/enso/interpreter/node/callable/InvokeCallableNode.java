@@ -18,10 +18,10 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -276,7 +276,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null);
+      extracted = warnings.getWarnings(warning, null, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
@@ -307,8 +307,6 @@ public abstract class InvokeCallableNode extends BaseNode {
 
       if (result instanceof DataflowError) {
         return result;
-      } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
         return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }

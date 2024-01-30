@@ -50,7 +50,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: always()
         name: Clean before
         run: ./run git-clean
         env:
@@ -64,7 +64,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: always()
         name: Clean after
         run: ./run git-clean
         env:

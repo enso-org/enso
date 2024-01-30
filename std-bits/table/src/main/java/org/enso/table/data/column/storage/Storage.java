@@ -110,6 +110,8 @@ public abstract class Storage<T> {
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String TEXT_LENGTH = "text_length";
+    public static final String TEXT_LEFT = "text_left";
+    public static final String TEXT_RIGHT = "text_right";
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
@@ -415,7 +417,20 @@ public abstract class Storage<T> {
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     Builder builder = Builder.getForType(commonType, size(), problemAggregator);
-    return fillMissingHelper(arg, builder);
+    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (it == null) {
+        builder.appendNoGrow(convertedFallback);
+      } else {
+        builder.appendNoGrow(it);
+      }
+
+      context.safepoint();
+    }
+
+    return builder.seal();
   }
 
   /**
@@ -434,23 +449,6 @@ public abstract class Storage<T> {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
-    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
-      if (it == null) {
-        builder.appendNoGrow(convertedFallback);
-      } else {
-        builder.appendNoGrow(it);
       }
 
       context.safepoint();

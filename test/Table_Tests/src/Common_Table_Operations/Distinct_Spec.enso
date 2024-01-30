@@ -3,18 +3,36 @@ from Standard.Base import all
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
-    table_builder = setup.table_builder
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     materialize = setup.materialize
-    Test.group setup.prefix+"Table.distinct" <|
-        Test.specify "should group by all columns by default" <|
+    create_connection_fn = setup.create_connection_func
+    suite_builder.group setup.prefix+"Table.distinct" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should group by all columns by default" <|
             a = ["A", ["a", "b", "a", "b", "a", "b"]]
             b = ["B", [2, 1, 2, 2, 2, 1]]
             t = table_builder [a, b]
@@ -22,7 +40,7 @@ spec setup =
             r.at "A" . to_vector . should_equal ["a", "b", "b"]
             r.at "B" . to_vector . should_equal [2, 1, 2]
 
-        Test.specify "should allow to select distinct rows based on a subset of columns, returning any row from each group" <|
+        group_builder.specify "should allow to select distinct rows based on a subset of columns, returning any row from each group" <|
             a = ["A", ["a", "a", "a", "a", "a", "a"]]
             b = ["B", [1, 1, 2, 2, 1, 2]]
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
@@ -41,7 +59,7 @@ spec setup =
             [0.3, 0.4, 0.6].contains (cv.at 1) . should_be_true
 
         if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
-            Test.specify "should allow to select distinct rows based on a subset of columns, returning any first from each group if the table was ordered" <|
+            group_builder.specify "should allow to select distinct rows based on a subset of columns, returning any first from each group if the table was ordered" <|
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
@@ -52,7 +70,7 @@ spec setup =
                 r2.at "B" . to_vector . should_equal [1, 2]
                 r2.at "C" . to_vector . should_equal [0.5, 0.6]
 
-        Test.specify "should allow to control case-sensitivity of keys" <|
+        group_builder.specify "should allow to control case-sensitivity of keys" <|
             x = ["X", ['A', 'a', 'enso', 'Enso', 'A']]
             t1 = table_builder [x]
             d1 = t1.distinct ["X"] on_problems=Report_Error |> materialize |> _.order_by ["X"]
@@ -64,7 +82,7 @@ spec setup =
             v.filter (_.equals_ignore_case "enso") . length . should_equal 1
             v.filter (_.equals_ignore_case "a") . length . should_equal 1
 
-        Test.specify "should report a warning if the key contains floating point values" <|
+        group_builder.specify "should report a warning if the key contains floating point values" <|
             t1 = table_builder [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
             action1 = t1.distinct on_problems=_
             tester1 table =
@@ -74,7 +92,7 @@ spec setup =
             problems1 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
-        Test.specify "should handle nulls correctly" <|
+        group_builder.specify "should handle nulls correctly" <|
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = table_builder [a, b]
@@ -92,7 +110,7 @@ spec setup =
             va.at 2 . should_equal "b"
             [3, 5, 8].contains (vb.at 2) . should_be_true
 
-        Test.specify "should report missing input columns" <|
+        group_builder.specify "should report missing input columns" <|
             t1 = table_builder [["X", [1, 2, 3, 2, 2]]]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 t2 = t1.distinct ["Y", "Z"] on_problems=pb

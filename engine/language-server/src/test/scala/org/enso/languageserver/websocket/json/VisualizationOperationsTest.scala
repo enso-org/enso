@@ -5,10 +5,13 @@ import org.enso.languageserver.runtime.{
   MethodPointer,
   VisualizationConfiguration
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 
-class VisualizationOperationsTest extends BaseServerTest {
+class VisualizationOperationsTest
+    extends BaseServerTest
+    with ReportLogsOnFailure {
 
   "executionContext/attachVisualization" must {
 

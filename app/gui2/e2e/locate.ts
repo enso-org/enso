@@ -137,6 +137,7 @@ export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
+export const nodeOutputPort = componentLocator('outputPortHoverArea')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -160,6 +161,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
 }
 
+export const navBreadcrumb = componentLocator('NavBreadcrumb')
 export const componentBrowserInput = componentLocator('CBInput')
 export const jsonVisualization = componentLocator('JSONVisualization')
 export const tableVisualization = componentLocator('TableVisualization')

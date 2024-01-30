@@ -1,13 +1,15 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.FlakySpec
 
 class ConfigApiSpec
     extends BaseServerSpec
     with FlakySpec
-    with ProjectManagementOps {
+    with ProjectManagementOps
+    with ReportLogsOnFailure {
 
   "global-config/get" must {
     "return none for missing keys" in {

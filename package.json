@@ -1,8 +1,7 @@
 {
   "devDependencies": {
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.0",
-    "vue-react-wrapper": "^0.3.1"
+    "prettier": "^3.0.0"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
@@ -20,7 +19,6 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
-    "app/ide-desktop/lib/dashboard/src/authentication",
     "app/gui2",
     "lib/rust/ensogl/pack/js"
   ],

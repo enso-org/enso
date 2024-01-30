@@ -3,21 +3,24 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Table.Errors import Loss_Of_Integer_Precision
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
 
-spec =
+
+add_specs suite_builder =
     table_builder = Table.new
-    Test.group "[In-Memory] Loss_Of_Integer_Precision (large integers not being exactly representable in Float)" <|
+    suite_builder.group "[In-Memory] Loss_Of_Integer_Precision (large integers not being exactly representable in Float)" group_builder->
         # The power of 2 is still represented exactly, but x+1 is not anymore.
         x = 2^60
         y = x+1
 
-        Test.specify "should be reported in `cast`" <|
+        group_builder.specify "should be reported in `cast`" <|
             t1 = table_builder [["X", [y]]]
             c1 = t1.at "X" . cast Value_Type.Float
             c1.value_type . should_equal Value_Type.Float
@@ -49,7 +52,7 @@ spec =
             w2.to_display_text . should_contain "too large to represent exactly"
             w2.affected_rows_count . should_equal 4
 
-        Test.specify "should be reported in Column.from_vector and Table.new" <|
+        group_builder.specify "should be reported in Column.from_vector and Table.new" <|
             c1 = Column.from_vector "X" [1, 2, x, x+1, x+2, 100]
             # No problems if integers only.
             Problems.assume_no_problems c1
@@ -78,7 +81,7 @@ spec =
             Problems.assume_no_problems c6
             c6.to_vector.map .to_text . should_equal ([x+1, 1.0, x+2, "a", x+3].map .to_text)
 
-        Test.specify "should not be reported when numeric operation mixes Float and Integer" <|
+        group_builder.specify "should not be reported when numeric operation mixes Float and Integer" <|
             t = table_builder [["A", [y]], ["B", [1.0]]]
             a = t.at "A"
             b = t.at "B"
@@ -97,7 +100,7 @@ spec =
             Problems.assume_no_problems (a - b)
             Problems.assume_no_problems (b / a)
 
-        Test.specify "should be reported if mixing column types in `iif` causes an Integer column to be casted" <|
+        group_builder.specify "should be reported if mixing column types in `iif` causes an Integer column to be casted" <|
             t = table_builder [["A", [x+1, x+2]], ["B", [1.5, 2.5]], ["C", [True, False]]]
             r = (t.at "C").iif (t.at "A") (t.at "B")
             r.value_type . should_equal Value_Type.Float
@@ -107,7 +110,7 @@ spec =
             w.affected_rows_count . should_equal 1
             w.example_value.to_text . should_equal (x+1).to_text
 
-        Test.specify "should be reported when reading a CSV file" <|
+        group_builder.specify "should be reported when reading a CSV file" <|
             t = (enso_project.data / "lossy_int.csv") . read
             t.column_names . should_equal ["X", "Y", "Z"]
             t.at "X" . value_type . should_equal Value_Type.Char

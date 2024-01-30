@@ -104,6 +104,6 @@ test.each([
   const pattern = Pattern.parse(template)
   const edit = MutableModule.Transient()
   const intron = Ast.parse(source, edit)
-  const instantiated = pattern.instantiate(edit, [intron.exprId])
-  expect(instantiated.code(edit)).toBe(result)
+  const instantiated = pattern.instantiate(edit, [intron])
+  expect(instantiated.code()).toBe(result)
 })

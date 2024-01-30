@@ -141,6 +141,10 @@ public class LoggingServiceConfig implements BaseConfig {
     return (ConsoleAppender) appenders.getOrDefault(ConsoleAppender.appenderName, null);
   }
 
+  public MemoryAppender getMemoryAppender() {
+    return (MemoryAppender) appenders.getOrDefault(MemoryAppender.appenderName, null);
+  }
+
   public SentryAppender getSentryAppender() {
     return (SentryAppender) appenders.getOrDefault(SentryAppender.appenderName, null);
   }

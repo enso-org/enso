@@ -8,11 +8,12 @@ import org.enso.languageserver.runtime.{
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
-class ContextRegistryTest extends BaseServerTest {
+class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
 
   "ContextRegistry" must {
 

@@ -25,6 +25,8 @@ This specification is broken down into the following sections:
   compiler diagnostics.
 - [**Dispatch:**](./dispatch.md) The semantics of Enso's dispatch system.
 - [**Errors:**](./errors.md) The semantics of Enso's various error systems.
+- [**Wrapped Errors:**](./wrapped-errors.md) The semantics of Enso's various
+  error systems.
 - [**Evaluation:**](./evaluation.md) Enso's evaluation semantics, including
   those of suspended computations.
 - [**Modules:**](./modules.md) The semantics of Enso's modules.

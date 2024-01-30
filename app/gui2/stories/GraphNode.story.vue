@@ -47,7 +47,7 @@ const node = computed((): Node => {
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.exprId
+  const id = node.value.rootSpan.id
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)

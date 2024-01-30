@@ -41,28 +41,28 @@ export function placeholderGroups(): LibraryComponentGroup[] {
 
 let mainFile = `\
 from Standard.Base import all
-from Standard.Base.Runtime.Ref import Ref
 
-from Standard.Test import Bench
+func1 arg =
+    f2 = Main.func2 arg
+    result = f2 - 5
+    result
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 3 2)
-
-collect_benches = Bench.build builder->
-    range_size = 100000000
-    data = 0.up_to range_size
-
-    builder.group "Range" options group_builder->
-        group_builder.specify "iterate" <|
-            cell = Ref.new 0
-            data . each _->
-                x = cell.get
-                cell.put x+1
-
-            cell.get . should_equal range_size
+func2 a =
+    r = 42 + a
+    r
 
 main =
-    benches = collect_benches
-    result = run_main benches
+    five = 5
+    ten = 10
+    sum = five + ten
+    prod = sum * 3
+    final = Main.func1 prod
+    list = []
+    
+    # Widget tests
+    data = Data.read
+    filtered = data.filter
+    aggregated = data.aggregate
 `
 
 export function getMainFile() {
@@ -99,7 +99,7 @@ const scatterplotJson = encodeJSON({
   ],
 })
 
-const mockVizData: Record<string, Uint8Array> = {
+const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
   // JSON
   'Standard.Visualization.Preprocessor.default_preprocessor': scatterplotJson,
   'Standard.Visualization.Scatter_Plot.process_to_json_text': scatterplotJson,
@@ -157,6 +157,133 @@ const mockVizData: Record<string, Uint8Array> = {
     'warning 1',
     "warning 2!!&<>;'\x22",
   ]),
+  'Standard.Visualization.Widgets.get_widget_json': (params) => {
+    switch (params[0]) {
+      case '.read':
+        return encodeJSON([
+          [
+            'path',
+            {
+              type: 'Widget',
+              constructor: 'Single_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: '"File 1"',
+                  label: 'File 1',
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: '"File 2"',
+                  label: 'File 2',
+                  parameters: [],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+          ],
+        ])
+      case '.aggregate':
+        return encodeJSON([
+          [
+            'columns',
+            {
+              type: 'Widget',
+              constructor: 'Vector_Editor',
+              item_default: 'Aggregate_Column.Group_By',
+              item_editor: {
+                type: 'Widget',
+                constructor: 'Single_Choice',
+                label: null,
+                values: [
+                  {
+                    type: 'Choice',
+                    constructor: 'Option',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Group_By',
+                    label: null,
+                    parameters: [
+                      [
+                        'column',
+                        {
+                          type: 'Widget',
+                          constructor: 'Single_Choice',
+                          label: null,
+                          values: [
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 1"',
+                              label: 'column 1',
+                              parameters: [],
+                            },
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 2"',
+                              label: 'column 2',
+                              parameters: [],
+                            },
+                          ],
+                          display: { type: 'Display', constructor: 'Always' },
+                        },
+                      ],
+                    ],
+                  },
+                  {
+                    type: 'Choice',
+                    constructor: 'Option',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count',
+                    label: null,
+                    parameters: [],
+                  },
+                  {
+                    type: 'Choice',
+                    constructor: 'Option',
+                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                    label: null,
+                    parameters: [
+                      [
+                        'columns',
+                        {
+                          type: 'Widget',
+                          constructor: 'Single_Choice',
+                          label: null,
+                          values: [
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 1"',
+                              label: 'column 1',
+                              parameters: [],
+                            },
+                            {
+                              type: 'Choice',
+                              constructor: 'Option',
+                              value: '"column 2"',
+                              label: 'column 2',
+                              parameters: [],
+                            },
+                          ],
+                          display: { type: 'Display', constructor: 'Always' },
+                        },
+                      ],
+                    ],
+                  },
+                ],
+                display: { type: 'Display', constructor: 'Always' },
+              },
+              display: { type: 'Display', constructor: 'Always' },
+            },
+          ],
+        ])
+      default:
+        return encodeJSON([])
+    }
+  },
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
   Image: encodeJSON({
@@ -189,8 +316,17 @@ function createId(id: Uuid) {
 }
 
 function sendVizData(id: Uuid, config: VisualizationConfiguration) {
-  const vizData = mockVizData[`${config.visualizationModule}.${config.expression}`]
-  if (!vizData || !sendData) return
+  const vizDataHandler =
+    mockVizData[
+      typeof config.expression === 'string'
+        ? `${config.visualizationModule}.${config.expression}`
+        : `${config.expression.definedOnType}.${config.expression.name}`
+    ]
+  if (!vizDataHandler || !sendData) return
+  const vizData =
+    vizDataHandler instanceof Uint8Array
+      ? vizDataHandler
+      : vizDataHandler(config.positionalArgumentsExpressions ?? [])
   const builder = new Builder()
   const exprId = visualizationExprIds.get(id)
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(

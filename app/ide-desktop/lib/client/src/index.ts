@@ -204,13 +204,13 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
+                await this.loadWindowContent()
                 /** The non-null assertion on the following line is safe because the window
                  * initialization is guarded by the `createWindowIfEnabled` method. The window is
                  * not yet created at this point, but it will be created by the time the
                  * authentication module uses the lambda providing the window. */
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 authentication.initModule(() => this.window!)
-                this.loadWindowContent()
             })
         } catch (err) {
             console.error('Failed to initialize the application, shutting down. Error:', err)
@@ -386,7 +386,7 @@ class App {
     }
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
-    loadWindowContent() {
+    async loadWindowContent() {
         if (this.window != null) {
             const searchParams: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
@@ -398,7 +398,7 @@ class App {
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)
-            void this.window.loadURL(address.toString())
+            await this.window.loadURL(address.toString())
         }
     }
 

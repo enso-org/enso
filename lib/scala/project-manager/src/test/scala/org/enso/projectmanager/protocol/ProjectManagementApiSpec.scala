@@ -4,6 +4,7 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -14,7 +15,6 @@ import org.scalactic.source.Position
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
 import scala.concurrent.duration._
 import scala.io.Source
 
@@ -22,7 +22,8 @@ class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
     with OverrideTestVersionSuite
-    with ProjectManagementOps {
+    with ProjectManagementOps
+    with ReportLogsOnFailure {
 
   override val testVersion: SemVer = SemVer(0, 0, 1)
 

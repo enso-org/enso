@@ -15,7 +15,7 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --build",
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts"
@@ -37,7 +37,7 @@
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^6.7.2",
     "@typescript-eslint/parser": "^6.7.2",
-    "enso-authentication": "^1.0.0",
+    "enso-dashboard": "^0.1.0",
     "esbuild": "^0.19.3",
     "esbuild-plugin-copy-directories": "^1.0.0",
     "esbuild-plugin-time": "^1.0.0",

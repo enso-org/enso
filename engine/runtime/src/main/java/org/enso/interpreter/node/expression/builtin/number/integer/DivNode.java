@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "div", description = "Division of numbers.")
 public abstract class DivNode extends IntegerNode {
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static DivNode build() {
     return DivNodeGen.create();
