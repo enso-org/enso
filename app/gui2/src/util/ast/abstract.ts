@@ -1,4 +1,4 @@
-import { assertDefined } from '@/util/assert'
+import { assertDefined, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { unsafeEntries } from '@/util/record'
 import { reactive } from 'vue'
@@ -118,6 +118,36 @@ export class ReactiveModule implements Module {
 
   has(id: AstId): boolean {
     return this.nodes.has(id)
+  }
+}
+
+export class EmptyModule implements Module {
+  edit(): never {
+    bail(`EmptyModule cannot be edited.`)
+  }
+  root(): undefined {
+    return
+  }
+  get(_id: AstId | undefined): undefined {
+    return
+  }
+  checkedGet(id: AstId): never
+  checkedGet(id: AstId | undefined): undefined {
+    if (id) bail(`${id} is not in an EmptyModule.`)
+  }
+  getToken(token: SyncTokenId): never
+  getToken(token: SyncTokenId | undefined): undefined {
+    if (token) bail(`EmptyModule contains no tokens.`)
+    return
+  }
+  getAny(node: AstId | SyncTokenId): never {
+    bail(`EmptyModule does not contain ${node}.`)
+  }
+  has(_id: AstId): false {
+    return false
+  }
+  getSpan(_id: AstId): undefined {
+    return
   }
 }
 

@@ -86,13 +86,13 @@ export const useGraphStore = defineStore('graph', () => {
     getSpan: (id: Ast.AstId) => SourceRange | undefined
     toRaw: (id: Ast.AstId) => RawAst.Tree.Tree | undefined
   }>()
-  const astModule = ref<Module>()
+  const astModule = ref<Module>(new Ast.EmptyModule())
   const moduleRoot = ref<Ast.Ast>()
   const topLevel = ref<Ast.BodyBlock>()
 
   watch(syncModule, (syncModule) => {
     if (!syncModule) return
-    assert(astModule.value === undefined)
+    assert(astModule.value instanceof Ast.EmptyModule)
     const newAstModule = new ReactiveModule(syncModule)
     newAstModule.onUpdate((dirtyNodes) => handleModuleUpdate(newAstModule, dirtyNodes))
     astModule.value = newAstModule
@@ -135,7 +135,6 @@ export const useGraphStore = defineStore('graph', () => {
     const meta = module.doc.metadata
     const textContentLocal = moduleCode.value
     if (!textContentLocal) return
-    if (!astModule.value) return
     methodAst.value = methodAstInModule(astModule.value)
     if (methodAst.value) {
       const rawFunc = moduleData.value.toRaw(methodAst.value.id)
@@ -230,7 +229,7 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    const edit = astModule.value!.edit()
+    const edit = astModule.value.edit()
     if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
     const method = Ast.findModuleMethod(topLevel.value!, currentFunc)
@@ -259,7 +258,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNodes(ids: NodeId[]) {
-    const edit = astModule.value!.edit()
+    const edit = astModule.value.edit()
     for (const id of ids) {
       const node = db.nodeIdToNode.get(id)
       if (!node) return
@@ -274,7 +273,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: NodeId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    const edit = astModule.value!.edit()
+    const edit = astModule.value.edit()
     edit.getVersion(node.rootSpan).replaceValue(Ast.parse(content, edit))
     commitEdit(edit)
   }
@@ -475,7 +474,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
-    const edit = astModule.value!.edit()
+    const edit = astModule.value.edit()
     const metadataUpdates = scope(edit)
     commitEdit(edit, metadataUpdates ?? undefined)
   }

@@ -56,7 +56,7 @@ export function useStackNavigator() {
   }
 
   function enterNode(id: AstId) {
-    const node = graphStore.astModule?.get(id)!
+    const node = graphStore.astModule.get(id)!
     const expressionInfo = graphStore.db.getExpressionInfo(id)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
