@@ -45,6 +45,7 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
   const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
+  const supportsCloudBackend = process.env.API_URL != null
 
   return (
     <div
@@ -53,7 +54,7 @@ export default function TopBar(props: TopBarProps) {
       }`}
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
+      {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
@@ -75,17 +76,19 @@ export default function TopBar(props: TopBarProps) {
             isSettingsPanelVisible={isSettingsPanelVisible}
             setIsSettingsPanelVisible={setIsSettingsPanelVisible}
           />
-          <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            page={page}
-            setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />
+          {supportsCloudBackend && (
+            <UserBar
+              supportsLocalBackend={supportsLocalBackend}
+              page={page}
+              setPage={setPage}
+              isHelpChatOpen={isHelpChatOpen}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectAsset}
+              setProjectAsset={setProjectAsset}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          )}
         </div>
       )}
     </div>

@@ -77,6 +77,15 @@ declare global {
             APPLEID?: string
             APPLEIDPASS?: string
             APPLETEAMID?: string
+            // Cloud environment variables.
+            readonly CLOUD_REDIRECT: string
+            readonly CLOUD_ENVIRONMENT: string
+            readonly API_URL?: string
+            readonly CHAT_URL?: string
+            readonly AMPLIFY_USER_POOL_ID?: string
+            readonly AMPLIFY_USER_POOL_WEB_CLIENT_ID?: string
+            readonly AMPLIFY_DOMAIN?: string
+            readonly AMPLIFY_REGION?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
@@ -86,13 +95,5 @@ declare global {
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    const CLOUD_REDIRECT: string
-    const CLOUD_ENVIRONMENT: string
-    const API_URL: string
-    const CHAT_URL: string
-    const AMPLIFY_USER_POOL_ID: string
-    const AMPLIFY_USER_POOL_WEB_CLIENT_ID: string
-    const AMPLIFY_DOMAIN: string
-    const AMPLIFY_REGION: string
     const IS_VITE: boolean
 }

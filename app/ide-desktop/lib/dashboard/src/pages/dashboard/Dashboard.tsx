@@ -458,13 +458,14 @@ export default function Dashboard(props: DashboardProps) {
           />
           {page === pageSwitcher.Page.settings && <Settings />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {isHelpChatVisible && session.accessToken != null ? (
+          {isHelpChatVisible && session.accessToken != null && process.env.CHAT_URL != null ? (
             <Chat
               page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
+              endpoint={process.env.CHAT_URL}
             />
           ) : (
             <ChatPlaceholder

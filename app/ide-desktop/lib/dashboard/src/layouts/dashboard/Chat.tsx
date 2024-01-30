@@ -371,11 +371,12 @@ export interface ChatProps {
   /** This should only be false when the panel is closing. */
   isOpen: boolean
   doClose: () => void
+  endpoint: string
 }
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-  const { page, isOpen, doClose } = props
+  const { page, isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
   const logger = loggerProvider.useLogger()
 
@@ -397,7 +398,7 @@ export default function Chat(props: ChatProps) {
   const [isAtBottom, setIsAtBottom] = React.useState(true)
   const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
     React.useState<number | null>(null)
-  const [websocket] = React.useState(() => new WebSocket(CHAT_URL))
+  const [websocket] = React.useState(() => new WebSocket(endpoint))
   const [right, setTargetRight] = animations.useInterpolateOverTime(
     animations.interpolationFunctionEaseInOut,
     ANIMATION_DURATION_MS,

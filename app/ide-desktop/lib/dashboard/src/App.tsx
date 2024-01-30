@@ -42,7 +42,6 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 import * as authServiceModule from '#/authentication/service'
-import * as navigateHooks from '#/hooks/navigateHooks'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
@@ -138,7 +137,10 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
-  const navigate = navigateHooks.useNavigate()
+  // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
+  // yet been initialized at this point.
+  // eslint-disable-next-line no-restricted-properties
+  const navigate = router.useNavigate()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -167,8 +169,8 @@ function AppRouter(props: AppProps) {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const registerAuthEventListener = authService.registerAuthEventListener
+  const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
+  const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: backend.Backend = isAuthenticationDisabled
     ? new localBackend.LocalBackend(projectManagerUrl)
     : // This is safe, because the backend is always set by the authentication flow.

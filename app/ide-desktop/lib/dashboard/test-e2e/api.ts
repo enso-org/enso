@@ -24,7 +24,7 @@ const GLOB_PROJECT_ID = '*' as backend.ProjectId
 const GLOB_TAG_ID = '*' as backend.TagId
 /* eslint-enable no-restricted-syntax */
 /** The base URL for all backend endpoints. */
-const BASE_URL = API_URL + '/'
+const BASE_URL = process.env.API_URL + '/'
 
 // ===============
 // === mockApi ===

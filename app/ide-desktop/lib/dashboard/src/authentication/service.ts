@@ -7,7 +7,7 @@ import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as cognito from '#/authentication/cognito'
+import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
@@ -108,8 +108,8 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognito.Cognito}. */
-  cognito: cognito.Cognito
+  /** @see {@link cognitoModule.Cognito}. */
+  cognito: cognitoModule.Cognito
   /** @see {@link listen.ListenFunction}. */
   registerAuthEventListener: listen.ListenFunction
 }
@@ -120,14 +120,16 @@ export interface AuthService {
  *
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
-export function initAuthService(authConfig: AuthConfig): AuthService {
+export function initAuthService(authConfig: AuthConfig): AuthService | null {
   const { logger, supportsDeepLinks, navigate } = authConfig
   const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-  const cognitoClient = new cognito.Cognito(logger, supportsDeepLinks, amplifyConfig)
-  return {
-    cognito: cognitoClient,
-    registerAuthEventListener: listen.registerAuthEventListener,
-  }
+  const cognito =
+    amplifyConfig == null
+      ? null
+      : new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+  return cognito == null
+    ? null
+    : { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
@@ -135,7 +137,7 @@ function loadAmplifyConfig(
   logger: loggerProvider.Logger,
   supportsDeepLinks: boolean,
   navigate: (url: string) => void
-): AmplifyConfig {
+): AmplifyConfig | null {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: string | null) => void) | null = null
   if ('authenticationApi' in window) {
@@ -167,19 +169,26 @@ function loadAmplifyConfig(
     setDeepLinkHandler(logger, navigate)
   }
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : CLOUD_REDIRECT
-  return {
-    userPoolId: AMPLIFY_USER_POOL_ID,
-    userPoolWebClientId: AMPLIFY_USER_POOL_WEB_CLIENT_ID,
-    domain: AMPLIFY_DOMAIN,
-    region: AMPLIFY_REGION,
-    redirectSignIn: signInOutRedirect,
-    redirectSignOut: signInOutRedirect,
-    scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
-    responseType: 'code',
-    urlOpener,
-    saveAccessToken,
-  }
+  const signInOutRedirect = supportsDeepLinks
+    ? `${common.DEEP_LINK_SCHEME}://auth`
+    : process.env.CLOUD_REDIRECT
+  return process.env.AMPLIFY_USER_POOL_ID == null ||
+    process.env.AMPLIFY_USER_POOL_WEB_CLIENT_ID == null ||
+    process.env.AMPLIFY_DOMAIN == null ||
+    process.env.AMPLIFY_REGION == null
+    ? null
+    : {
+        userPoolId: process.env.AMPLIFY_USER_POOL_ID,
+        userPoolWebClientId: process.env.AMPLIFY_USER_POOL_WEB_CLIENT_ID,
+        domain: process.env.AMPLIFY_DOMAIN,
+        region: process.env.AMPLIFY_REGION,
+        redirectSignIn: signInOutRedirect,
+        redirectSignOut: signInOutRedirect,
+        scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
+        responseType: 'code',
+        urlOpener,
+        saveAccessToken,
+      }
 }
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
