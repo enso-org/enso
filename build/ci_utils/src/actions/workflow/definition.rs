@@ -126,7 +126,11 @@ pub struct JobId(String);
 #[serde(rename_all = "kebab-case", untagged)]
 pub enum Concurrency {
     Plain(String),
-    Map { group: String, cancel_in_progress: String },
+    #[serde(rename_all = "kebab-case")]
+    Map {
+        group:              String,
+        cancel_in_progress: String,
+    },
 }
 
 impl Concurrency {

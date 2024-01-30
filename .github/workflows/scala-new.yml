@@ -254,4 +254,4 @@ env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel_in_progress: ${{ github.ref != 'refs/heads/develop' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
