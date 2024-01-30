@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
@@ -13,6 +12,8 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.MatchAllStrategy;
+import org.enso.table.data.table.join.NoOpStrategy;
 import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
@@ -28,12 +29,9 @@ import org.graalvm.polyglot.Context;
  * matching pairs of row subsets.
  */
 public class SimpleHashJoin implements JoinStrategy {
-  public SimpleHashJoin(
-      List<HashableCondition> conditions,
-      PluggableJoinStrategy remainingMatcher,
-      JoinKind joinKind) {
+  public SimpleHashJoin(List<HashableCondition> conditions, JoinKind joinKind) {
     JoinStrategy.ensureConditionsNotEmpty(conditions);
-    this.remainingMatcher = remainingMatcher;
+    this.remainingMatcher = joinKind.wantsCommon ? new MatchAllStrategy() : new NoOpStrategy();
     this.joinKind = joinKind;
 
     List<HashEqualityCondition> equalConditions =
@@ -81,12 +79,12 @@ public class SimpleHashJoin implements JoinStrategy {
         List<Integer> leftRows = List.of(leftRow);
         remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
         if (joinKind.wantsRightUnmatched) {
-            matchedRightKeys.add(leftKey);
+          matchedRightKeys.add(leftKey);
         }
       } else {
         if (joinKind.wantsLeftUnmatched) {
-            resultBuilder.addUnmatchedLeftRow(leftRow);
-            context.safepoint();
+          resultBuilder.addUnmatchedLeftRow(leftRow);
+          context.safepoint();
         }
       }
       context.safepoint();
@@ -103,7 +101,7 @@ public class SimpleHashJoin implements JoinStrategy {
           }
         }
       }
-    } 
+    }
 
     return resultBuilder.buildAndInvalidate();
   }

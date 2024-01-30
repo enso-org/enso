@@ -1,7 +1,6 @@
 package org.enso.table.data.table.join.hashing;
 
 import java.util.List;
-
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
@@ -10,6 +9,8 @@ import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.PluggableJoinStrategy;
+import org.enso.table.data.table.join.between.SortJoin;
+import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
@@ -24,15 +25,15 @@ import org.graalvm.polyglot.Context;
  */
 public class CompoundHashJoin implements JoinStrategy {
   public CompoundHashJoin(
-      List<HashableCondition> conditions,
-      PluggableJoinStrategy remainingMatcher,
+      List<HashableCondition> hashableConditions,
+      List<Between> betweenConditions,
       JoinKind joinKind) {
-    JoinStrategy.ensureConditionsNotEmpty(conditions);
-    this.remainingMatcher = remainingMatcher;
+    JoinStrategy.ensureConditionsNotEmpty(hashableConditions);
+    this.remainingMatcher = new SortJoin(betweenConditions, joinKind);
     this.joinKind = joinKind;
 
     List<HashEqualityCondition> equalConditions =
-        conditions.stream().map(CompoundHashJoin::makeHashEqualityCondition).toList();
+        hashableConditions.stream().map(CompoundHashJoin::makeHashEqualityCondition).toList();
 
     if (equalConditions.isEmpty()) {
       throw new IllegalArgumentException(
