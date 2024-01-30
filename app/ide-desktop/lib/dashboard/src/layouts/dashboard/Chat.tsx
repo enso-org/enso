@@ -14,7 +14,6 @@ import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as animations from '#/utilities/animations'
-import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
@@ -398,8 +397,7 @@ export default function Chat(props: ChatProps) {
   const [isAtBottom, setIsAtBottom] = React.useState(true)
   const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
     React.useState<number | null>(null)
-  // TODO: proper URL
-  const [websocket] = React.useState(() => new WebSocket(config.ACTIVE_CONFIG.chatUrl))
+  const [websocket] = React.useState(() => new WebSocket(CHAT_URL))
   const [right, setTargetRight] = animations.useInterpolateOverTime(
     animations.interpolationFunctionEaseInOut,
     ANIMATION_DURATION_MS,

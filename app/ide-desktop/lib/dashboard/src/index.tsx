@@ -11,7 +11,6 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
-import * as config from '#/utilities/config'
 
 // =================
 // === Constants ===
@@ -40,7 +39,7 @@ function run(props: app.AppProps) {
   if (!detect.IS_DEV_MODE) {
     sentry.init({
       dsn: 'https://0dc7cb80371f466ab88ed01739a7822f@o4504446218338304.ingest.sentry.io/4506070404300800',
-      environment: config.ENVIRONMENT,
+      environment: CLOUD_ENVIRONMENT,
       integrations: [
         new sentry.BrowserTracing({
           routingInstrumentation: sentry.reactRouterV6Instrumentation(
@@ -54,7 +53,7 @@ function run(props: app.AppProps) {
         new sentry.Replay(),
       ],
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [config.ACTIVE_CONFIG.apiUrl.split('//')[1] ?? ''],
+      tracePropagationTargets: [API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
     })

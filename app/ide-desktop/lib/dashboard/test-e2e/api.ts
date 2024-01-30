@@ -4,7 +4,6 @@ import * as test from '@playwright/test'
 import * as backend from '../src/services/backend'
 import type * as remoteBackend from '../src/services/remoteBackend'
 import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
-import * as config from '../src/utilities/config'
 import * as dateTime from '../src/utilities/dateTime'
 import * as uniqueString from '../src/utilities/uniqueString'
 
@@ -25,7 +24,7 @@ const GLOB_PROJECT_ID = '*' as backend.ProjectId
 const GLOB_TAG_ID = '*' as backend.TagId
 /* eslint-enable no-restricted-syntax */
 /** The base URL for all backend endpoints. */
-const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
+const BASE_URL = API_URL + '/'
 
 // ===============
 // === mockApi ===

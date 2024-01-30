@@ -36,9 +36,10 @@ import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
+import type * as service from '#/authentication/service'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+
 import * as original from '../../src/authentication/cognito'
-import type * as config from '../../src/authentication/config'
-import type * as loggerProvider from '../../src/providers/LoggerProvider'
 /* eslint-enable no-restricted-syntax */
 
 import * as listen from './listen'
@@ -88,7 +89,7 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: config.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig
   ) {}
 
   /** Save the access token to a file for further reuse. */

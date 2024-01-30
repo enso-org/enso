@@ -20,6 +20,7 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
 import * as utils from '../../utils'
+import * as globals from './globals'
 import * as tailwindConfig from './tailwind.config'
 
 // =================
@@ -121,21 +122,7 @@ export function bundlerOptions(args: Arguments) {
     alias: {
       '#': './src',
     },
-    define: {
-      // We are defining constants, so it should be `CONSTANT_CASE`.
-      /* eslint-disable @typescript-eslint/naming-convention */
-      /** Whether the application is being run locally. This enables a service worker that
-       * properly serves `/index.html` to client-side routes like `/login`. */
-      'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
-      /** Overrides the redirect URL for OAuth logins in the production environment.
-       * This is needed for logins to work correctly under `./run gui watch`. */
-      REDIRECT_OVERRIDE: 'undefined',
-      CLOUD_ENV:
-        process.env.ENSO_CLOUD_ENV != null
-          ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
-          : 'undefined',
-      /* eslint-enable @typescript-eslint/naming-convention */
-    },
+    define: globals.globals(devMode),
     pure: ['assert'],
     sourcemap: true,
     minify: !devMode,

@@ -86,15 +86,13 @@ declare global {
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    // This will be `undefined` when it is not defined by esbuild.
-    // eslint-disable-next-line no-restricted-syntax
-    const REDIRECT_OVERRIDE: string | undefined
+    const CLOUD_REDIRECT: string
+    const CLOUD_ENVIRONMENT: string
+    const API_URL: string
+    const CHAT_URL: string
+    const AMPLIFY_USER_POOL_ID: string
+    const AMPLIFY_USER_POOL_WEB_CLIENT_ID: string
+    const AMPLIFY_DOMAIN: string
+    const AMPLIFY_REGION: string
     const IS_VITE: boolean
-    // eslint-disable-next-line no-restricted-syntax
-    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
-    /* eslint-disable @typescript-eslint/naming-convention */
-    /** Only exists in development mode. */
-    // This is a function.
-    // eslint-disable-next-line no-restricted-syntax
-    const assert: (invariant: boolean, message: string) => void
 }
