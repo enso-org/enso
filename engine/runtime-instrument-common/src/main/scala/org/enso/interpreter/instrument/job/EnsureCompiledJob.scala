@@ -429,7 +429,8 @@ final class EnsureCompiledJob(
     if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
+        "Invalidated visualizations [{}]",
+        invalidatedVisualizations.map(_.id)
       )
     }
 

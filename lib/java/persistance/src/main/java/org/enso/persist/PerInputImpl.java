@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.logging.Level;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
 
@@ -213,7 +212,7 @@ final class PerInputImpl implements Input {
       sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
       var ex = new IOException(sb.toString());
       if (bothObjectsAreTheSame) {
-        PerUtils.LOG.log(Level.WARNING, sb.toString(), ex);
+        PerUtils.LOG.warn(sb.toString(), ex);
       } else {
         throw raise(RuntimeException.class, ex);
       }

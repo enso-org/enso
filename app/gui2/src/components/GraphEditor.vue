@@ -311,6 +311,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
+    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
 ).handleClick
@@ -330,7 +331,7 @@ function onPlayButtonPress() {
     if (modeValue == undefined) {
       return
     }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', 'Live')
   })
 }
 
