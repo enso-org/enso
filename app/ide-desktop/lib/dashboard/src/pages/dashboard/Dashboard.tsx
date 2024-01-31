@@ -85,6 +85,7 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ?? false
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
+  const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [session.organization]
@@ -409,6 +410,7 @@ export default function Dashboard(props: DashboardProps) {
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
             setPage={setPage}
+            isCloud={isCloud}
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}

@@ -23,11 +23,12 @@ export interface AssetSearchBarProps {
   setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
   labels: backend.Label[]
   suggestions: Suggestion[]
+  isCloud: boolean
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { query, setQuery, labels, suggestions: rawSuggestions, isCloud } = props
   const [isTabbing, setIsTabbing] = React.useState(false)
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
@@ -253,39 +254,42 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               })}
             </div>
             {/* Asset labels */}
-            <div className="flex gap-2 p-2 pointer-events-auto">
-              {labels.map(label => {
-                const negated = query.negativeLabels.some(term =>
-                  array.shallowEqual(term, [label.value])
-                )
-                return (
-                  <Label
-                    key={label.id}
-                    color={label.color}
-                    group={false}
-                    active={
-                      negated || query.labels.some(term => array.shallowEqual(term, [label.value]))
-                    }
-                    negated={negated}
-                    onClick={event => {
-                      setWasQueryModified(true)
-                      setSelectedIndex(null)
-                      setQuery(oldQuery => {
-                        const newQuery = assetQuery.toggleLabel(
-                          oldQuery,
-                          label.value,
-                          event.shiftKey
-                        )
-                        baseQuery.current = newQuery
-                        return newQuery
-                      })
-                    }}
-                  >
-                    {label.value}
-                  </Label>
-                )
-              })}
-            </div>
+            {isCloud && labels.length !== 0 && (
+              <div className="flex gap-2 p-2 pointer-events-auto">
+                {labels.map(label => {
+                  const negated = query.negativeLabels.some(term =>
+                    array.shallowEqual(term, [label.value])
+                  )
+                  return (
+                    <Label
+                      key={label.id}
+                      color={label.color}
+                      group={false}
+                      active={
+                        negated ||
+                        query.labels.some(term => array.shallowEqual(term, [label.value]))
+                      }
+                      negated={negated}
+                      onClick={event => {
+                        setWasQueryModified(true)
+                        setSelectedIndex(null)
+                        setQuery(oldQuery => {
+                          const newQuery = assetQuery.toggleLabel(
+                            oldQuery,
+                            label.value,
+                            event.shiftKey
+                          )
+                          baseQuery.current = newQuery
+                          return newQuery
+                        })
+                      }}
+                    >
+                      {label.value}
+                    </Label>
+                  )
+                })}
+              </div>
+            )}
             {/* Suggestions */}
             <div className="flex flex-col max-h-[16rem] overflow-y-auto">
               {suggestions.map((suggestion, index) => (
