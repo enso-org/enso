@@ -243,7 +243,7 @@ function selectWithoutScrolling(index: number) {
 const previewedExpression = debouncedGetter(() => {
   if (selectedSuggestion.value == null) return input.code.value
   else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
-}, 100)
+}, 200)
 
 const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
   if (!previewedExpression.value.trim()) return
