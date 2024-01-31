@@ -209,9 +209,8 @@ export function performCollapse(
     collapsedName,
     argNames,
     collapsed,
-    true,
   )
-  topLevel.insert(posToInsert, collapsedFunction)
+  topLevel.insert(posToInsert, collapsedFunction, undefined)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 

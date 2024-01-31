@@ -1422,14 +1422,10 @@ export class Function extends Ast {
     name: IdentLike,
     argumentNames: StrictIdentLike[],
     statements: Owned[],
-    trailingNewline?: boolean,
   ): Owned<MutableFunction> {
     const statements_: OwnedBlockLine[] = statements.map((statement) => ({
       expression: unspaced(statement),
     }))
-    if (trailingNewline) {
-      statements_.push({ expression: undefined })
-    }
     const argumentDefinitions = argumentNames.map((name) => [spaced(Ident.new(module, name))])
     const body = BodyBlock.new(statements_, module)
     return MutableFunction.new(module, name, argumentDefinitions, body)
@@ -1671,11 +1667,11 @@ export class MutableBodyBlock extends BodyBlock implements MutableAst {
   }
 
   /** Insert the given statement(s) starting at the specified line index. */
-  insert(index: number, ...statements: Owned[]) {
+  insert(index: number, ...statements: (Owned | undefined)[]) {
     const before = this.fields.get('lines').slice(0, index)
     const insertions = statements.map((statement) => ({
       newline: unspaced(Token.new('\n', RawAst.Token.Type.Newline)),
-      expression: unspaced(this.claimChild(statement)),
+      expression: statement && unspaced(this.claimChild(statement)),
     }))
     const after = this.fields.get('lines').slice(index)
     this.fields.set('lines', [...before, ...insertions, ...after])
