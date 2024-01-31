@@ -45,7 +45,7 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
   const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
-  const supportsCloudBackend = process.env.API_URL != null
+  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
 
   return (
     <div

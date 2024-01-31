@@ -13,22 +13,26 @@ export function globals(devMode: boolean, serverPort = 8080) {
     // Whether the application is being run locally. This determines whether some variables are
     // exposed to the global scope.
     'process.env.NODE_ENV': stringify(devMode ? 'development' : 'production'),
-    'process.env.CLOUD_REDIRECT': stringify(
+    'process.env.ENSO_CLOUD_REDIRECT': stringify(
       // The actual environment variable does not necessarily exist.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      process.env.CLOUD_REDIRECT ?? `http://localhost:${serverPort}`
+      process.env.ENSO_CLOUD_REDIRECT ?? `http://localhost:${serverPort}`
     ),
-    // The actual environment variable does not necessarily exist.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    'process.env.CLOUD_ENVIRONMENT': stringify(process.env.CLOUD_ENVIRONMENT ?? 'production'),
-    'process.env.API_URL': stringify(process.env.API_URL),
-    'process.env.CHAT_URL': stringify(process.env.CHAT_URL),
-    'process.env.AMPLIFY_USER_POOL_ID': stringify(process.env.AMPLIFY_USER_POOL_ID),
-    'process.env.AMPLIFY_USER_POOL_WEB_CLIENT_ID': stringify(
-      process.env.AMPLIFY_USER_POOL_WEB_CLIENT_ID
+    'process.env.ENSO_CLOUD_ENVIRONMENT': stringify(
+      // The actual environment variable does not necessarily exist.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      process.env.ENSO_CLOUD_ENVIRONMENT ?? 'production'
     ),
-    'process.env.AMPLIFY_DOMAIN': stringify(process.env.AMPLIFY_DOMAIN),
-    'process.env.AMPLIFY_REGION': stringify(process.env.AMPLIFY_REGION ?? 'eu-west-1'),
+    'process.env.ENSO_CLOUD_API_URL': stringify(process.env.ENSO_CLOUD_API_URL),
+    'process.env.ENSO_CLOUD_CHAT_URL': stringify(process.env.ENSO_CLOUD_CHAT_URL),
+    'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID': stringify(
+      process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID
+    ),
+    'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID': stringify(
+      process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID
+    ),
+    'process.env.ENSO_CLOUD_AMPLIFY_DOMAIN': stringify(process.env.ENSO_CLOUD_AMPLIFY_DOMAIN),
+    'process.env.ENSO_CLOUD_AMPLIFY_REGION': stringify(process.env.ENSO_CLOUD_AMPLIFY_REGION),
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 }

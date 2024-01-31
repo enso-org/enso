@@ -10,7 +10,7 @@ const logger = app.log.logger
 // =================
 
 /** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = new URL(`${API_URL}/logs`)
+const REMOTE_LOG_URL = new URL(`${process.env.ENSO_CLOUD_API_URL}/logs`)
 
 // ====================
 // === RemoteLogger ===

@@ -756,31 +756,31 @@ export class RemoteBackend extends backendModule.Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${process.env.API_URL}/${path}`)
+    return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${process.env.API_URL}/${path}`, payload)
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${process.env.API_URL}/${path}`, payload)
+    return this.client.postBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${process.env.API_URL}/${path}`, payload)
+    return this.client.patch<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${process.env.API_URL}/${path}`, payload)
+    return this.client.put<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string) {
-    return this.client.delete<T>(`${process.env.API_URL}/${path}`)
+    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
   }
 }

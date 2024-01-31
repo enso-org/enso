@@ -15,16 +15,14 @@ import * as uniqueString from '../src/utilities/uniqueString'
 const HTTP_STATUS_BAD_REQUEST = 400
 /** The HTTP status code representing a URL that does not exist. */
 const HTTP_STATUS_NOT_FOUND = 404
-/* eslint-disable no-restricted-syntax */
 /** An asset ID that is a path glob. */
-const GLOB_ASSET_ID = '*' as backend.AssetId
+const GLOB_ASSET_ID: backend.AssetId = backend.ProjectId('*')
 /** A projet ID that is a path glob. */
-const GLOB_PROJECT_ID = '*' as backend.ProjectId
+const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
-const GLOB_TAG_ID = '*' as backend.TagId
-/* eslint-enable no-restricted-syntax */
+const GLOB_TAG_ID = backend.TagId('*')
 /** The base URL for all backend endpoints. */
-const BASE_URL = process.env.API_URL + '/'
+const BASE_URL = process.env.ENSO_CLOUD_API_URL + '/'
 
 // ===============
 // === mockApi ===

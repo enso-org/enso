@@ -72,20 +72,32 @@ declare global {
     namespace NodeJS {
         /** Environment variables. */
         interface ProcessEnv {
+            readonly [key: string]: never
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             APPLEID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             APPLEIDPASS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             APPLETEAMID?: string
             // Cloud environment variables.
-            readonly CLOUD_REDIRECT: string
-            readonly CLOUD_ENVIRONMENT: string
-            readonly API_URL?: string
-            readonly CHAT_URL?: string
-            readonly AMPLIFY_USER_POOL_ID?: string
-            readonly AMPLIFY_USER_POOL_WEB_CLIENT_ID?: string
-            readonly AMPLIFY_DOMAIN?: string
-            readonly AMPLIFY_REGION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_REDIRECT: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENVIRONMENT: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_API_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_CHAT_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_AMPLIFY_USER_POOL_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_AMPLIFY_DOMAIN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_AMPLIFY_REGION?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
