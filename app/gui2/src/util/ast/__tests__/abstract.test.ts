@@ -530,3 +530,35 @@ test('Automatic parenthesis', () => {
   Ast.repair(block, block.module)
   expect(block.code()).toBe(correctCode)
 })
+
+test('Resync', () => {
+  const root = Ast.parseBlock('main = func arg1 arg2')
+  const module = root.module
+  module.replaceRoot(root)
+  const arg1 = 'arg1' as Identifier
+  const func = Ast.Function.fromStatements(
+    module,
+    'func' as Identifier,
+    [arg1],
+    [Ast.Ident.new(module, arg1)],
+  )
+  // Add a trailing line to the function's block. This is syntactically non-canonical; it should belong to the parent.
+  func.bodyAsBlock().insert(1, undefined)
+  expect(func.bodyAsBlock().lines.length).toBe(2)
+  root.insert(0, func)
+  const codeBeforeRepair = root.code()
+  const rootExternalIdBeforeRepair = root.externalId
+  const funcExternalIdBeforeRepair = func.externalId
+  Ast.repair(root, module)
+  const repairedRoot = module.root()
+  assert(repairedRoot instanceof Ast.BodyBlock)
+  const repairedFunc = repairedRoot.statements().next().value
+  assert(repairedFunc instanceof Ast.Function)
+  assert(repairedFunc.body instanceof Ast.BodyBlock)
+  // The function's body has been corrected.
+  expect(repairedFunc.body.lines.length).toBe(1)
+  expect(repairedRoot.code()).toBe(codeBeforeRepair)
+  expect(repairedRoot.externalId).toBe(rootExternalIdBeforeRepair)
+  // The resync operation loses metadata within the non-canonical subtree.
+  expect(repairedFunc.body?.externalId).not.toBe(funcExternalIdBeforeRepair)
+})

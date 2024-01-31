@@ -442,11 +442,11 @@ function ensureSpacedOnlyIf<T>(
 }
 function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
   if (verbatim && child.whitespace != null) return child
-  return child.whitespace ? child : { whitespace: ' ', node: child.node }
+  return child.whitespace ? child : { whitespace: ' ', ...child }
 }
 function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
   if (verbatim && child.whitespace != null) return child
-  return child.whitespace ?? ' ' ? { whitespace: '', node: child.node } : child
+  return child.whitespace === '' ? child : { whitespace: '', ...child }
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
@@ -1445,7 +1445,8 @@ export class Function extends Ast {
     yield name
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
-    if (body) yield body
+    if (body)
+      yield ensureSpacedOnlyIf(body, !(this.module.get(body.node) instanceof BodyBlock), verbatim)
   }
 }
 export class MutableFunction extends Function implements MutableAst {

@@ -4,6 +4,7 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
+import { subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
@@ -331,19 +332,8 @@ export class GraphDb {
     getSpan: (id: AstId) => SourceRange | undefined,
     dirtyNodes: Set<AstId>,
   ) {
-    let knownDirtySubtrees: Set<AstId> | null = null
     const functionChanged = functionAst_.id !== this.currentFunction
-    if (!functionChanged) {
-      knownDirtySubtrees = new Set()
-      const module = functionAst_.module
-      for (const id of dirtyNodes) {
-        let node = module.get(id)
-        while (node != null && !knownDirtySubtrees.has(node.id)) {
-          knownDirtySubtrees.add(node.id)
-          node = node.parent()
-        }
-      }
-    }
+    const knownDirtySubtrees = functionChanged ? null : subtrees(functionAst_.module, dirtyNodes)
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
     this.currentFunction = functionAst_.id
     const currentNodeIds = new Set<NodeId>()

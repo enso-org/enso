@@ -1,7 +1,7 @@
 import * as map from 'lib0/map'
 import type { AstId, NodeChild, Owned } from '.'
-import { Token, asOwned, parentId } from '.'
-import { assert, assertEqual } from '../util/assert'
+import { Token, asOwned, parentId, subtreeRoots } from '.'
+import { assert, assertDefined, assertEqual } from '../util/assert'
 import type { SourceRange, SourceRangeKey } from '../yjsModel'
 import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
 import { parse_tree } from './ffi'
@@ -421,7 +421,9 @@ function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: strin
 }
 
 /** If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
- *  structure), insert parentheses to fix it. */
+ *  structure), try to fix it. If possible, it will be repaired by inserting parentheses; if that doesn't fix it, the
+ *  affected subtree will be re-synced to faithfully represent the source code the incorrect tree prints to.
+ */
 export function repair(
   root: BodyBlock,
   module?: MutableModule,
@@ -437,8 +439,12 @@ export function repair(
     printed.code,
   )
   if (lostInline.length === 0) {
-    if (lostBlock.length !== 0)
-      console.warn(`Failed to repair ast: Lost block elements, but no inline elements?`, lostBlock)
+    if (lostBlock.length !== 0) {
+      console.warn(`repair: Bad block elements, but all inline elements OK?`)
+      const fixes = module ?? root.module.edit()
+      resync(lostBlock, printed.info.nodes, reparsed.spans.nodes, fixes)
+      return { code: printed.code, fixes }
+    }
     return { code: printed.code, fixes: undefined }
   }
 
@@ -458,7 +464,51 @@ export function repair(
     printed2.code,
   )
   if (lostInline2.length !== 0 || lostBlock2.length !== 0)
-    console.error(`Failed to repair AST!`, lostInline2, lostBlock2)
+    resync([...lostInline2, ...lostBlock2], printed2.info.nodes, reparsed2.spans.nodes, fixes)
 
   return { code: printed2.code, fixes }
+}
+
+/**
+ * Replace subtrees in the module to ensure that the module contents are consistent with the module's code.
+ *
+ * @param badAsts - ASTs that, if printed, would not parse to exactly their current content.
+ * @param badSpans - Span map produced by printing the `badAsts` nodes and all their parents.
+ * @param goodSpans - Span map produced by parsing the code from the module of `badAsts`.
+ * @param edit - Module to apply the fixes to; must contain all ASTs in `badAsts`.
+ */
+function resync(
+  badAsts: Iterable<Ast>,
+  badSpans: NodeSpanMap,
+  goodSpans: NodeSpanMap,
+  edit: MutableModule,
+) {
+  const parentsOfBadSubtrees = new Set<AstId>()
+  const badAstIds = new Set(Array.from(badAsts, (ast) => ast.id))
+  for (const id of subtreeRoots(edit, badAstIds)) {
+    const parent = edit.checkedGet(id)?.parentId
+    if (parent) parentsOfBadSubtrees.add(parent)
+  }
+
+  const spanOfBadParent = new Array<readonly [AstId, NodeKey]>()
+  for (const [span, asts] of badSpans) {
+    for (const ast of asts) {
+      if (parentsOfBadSubtrees.has(ast.id)) spanOfBadParent.push([ast.id, span])
+    }
+  }
+  // All ASTs in the module of badAsts should have entries in badSpans.
+  assertEqual(spanOfBadParent.length, parentsOfBadSubtrees.size)
+
+  for (const [id, span] of spanOfBadParent) {
+    const parent = edit.checkedGet(id)
+    const goodAst = goodSpans.get(span)?.[0]
+    // The parent of the root of a bad subtree must be a good AST.
+    assertDefined(goodAst)
+    parent.replaceValue(edit.copy(goodAst))
+  }
+
+  console.warn(
+    `repair: Replaced ${parentsOfBadSubtrees.size} subtrees with their reparsed equivalents.`,
+    parentsOfBadSubtrees,
+  )
 }
