@@ -1,11 +1,23 @@
-/** @file An object containing globals to inject. */
+/** @file An object containing app configuration to inject.
+ *
+ * This includes:
+ * - the base URL for backend endpoints
+ * - the WebSocket URL for the chatbot
+ * - the unique identifier for the cloud environment, for use in Sentry logs
+ * - Stripe, Sentry and Amplify public keys */
 
 /** The value as JSON if it is not nullish, else `'undefined'`. */
 function stringify(string: unknown) {
   return string == null ? 'undefined' : JSON.stringify(string)
 }
 
-/** Return an object containing globals to inject. */
+/** An object containing app configuration to inject.
+ *
+ * This includes:
+ * - the base URL for backend endpoints
+ * - the WebSocket URL for the chatbot
+ * - the unique identifier for the cloud environment, for use in Sentry logs
+ * - Stripe, Sentry and Amplify public keys */
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 export function globals(devMode: boolean, serverPort = 8080) {
   return {
