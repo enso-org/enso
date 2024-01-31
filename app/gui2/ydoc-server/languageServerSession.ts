@@ -6,10 +6,10 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import {
   Ast,
-  ModuleUpdate,
   MutableModule,
   parseBlockWithSpans,
   setExternalIds,
+  spanMapToIdMap,
 } from '../shared/ast'
 import { print } from '../shared/ast/parse'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
@@ -503,8 +503,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private syncFileContents(content: string, version: Checksum) {
+    let contentsReceived = splitFileContents(content)
+    let unsyncedIdMap: IdMap | undefined
     this.doc.ydoc.transact(() => {
-      const { code, idMapJson, metadataJson } = splitFileContents(content)
+      const { code, idMapJson, metadataJson } = contentsReceived
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = Object.entries(metadata.ide.node)
 
@@ -520,7 +522,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const idMap = deserializeIdMap(idMapJson)
         const spans = parsedSpans ?? print(astRoot).info
-        setExternalIds(syncModule, spans, idMap)
+        const newExternalIds = setExternalIds(syncModule, spans, idMap)
+        if (newExternalIds !== 0) {
+          if (code !== this.syncedCode) {
+            unsyncedIdMap = spanMapToIdMap(spans)
+          } else {
+            console.warn(
+              `The LS sent an IdMap-only edit that is missing ${newExternalIds} of our expected ASTs.`,
+            )
+          }
+        }
       }
       if (
         (code !== this.syncedCode ||
@@ -551,12 +562,13 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       }
 
       this.syncedCode = code
-      this.syncedIdMap = idMapJson
+      this.syncedIdMap = unsyncedIdMap ? null : idMapJson
       this.syncedContent = content
       this.syncedVersion = version
       this.syncedMeta = metadata
       this.syncedMetaJson = metadataJson
     }, 'file')
+    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, undefined, unsyncedIdMap, undefined)
   }
 
   async close() {
