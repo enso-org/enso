@@ -13,7 +13,7 @@ public abstract class AbsNode extends IntegerNode {
     return AbsNodeGen.create();
   }
 
-  public abstract Object execute(Object self);
+  public abstract Object execute(Object own);
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doLong(long self) {

@@ -25,9 +25,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -60,18 +60,13 @@ public abstract class EqualsComplexNode extends Node {
   }
 
   @Specialization
-  boolean equalsModuleScopes(
-      ModuleScope selfModuleScope,
-      ModuleScope otherModuleScope,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
+  boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope) {
+    return selfModuleScope == otherModuleScope;
   }
 
   @Specialization
-  @TruffleBoundary
-  boolean equalsModules(
-      Module selfModule, Module otherModule, @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
+  boolean equalsModules(Module selfModule, Module otherModule) {
+    return selfModule == otherModule;
   }
 
   @Specialization

@@ -110,6 +110,26 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void lessThanTwoArgumentsToAnOperator() throws Exception {
+    var ir = parse("""
+    type T
+       %& self = 0
+    """);
+    assertSingleSyntaxError(
+        ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 21);
+  }
+
+  @Test
+  public void moreThanTwoArgumentsToAnOperator() throws Exception {
+    var ir = parse("""
+    type X
+       &% self one two = one+two
+    """);
+    assertSingleSyntaxError(
+        ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 35);
+  }
+
+  @Test
   public void badCase1() throws Exception {
     var ir = parse("""
     foo = case x of
@@ -484,6 +504,21 @@ public class ErrorCompilerTest extends CompilerTest {
     assertTrue(errors.head().reason() instanceof Syntax.UnsupportedSyntax);
     assertEquals(errors.head().location().get().start(), 0);
     assertEquals(errors.head().location().get().length(), 6);
+  }
+
+  @Test
+  public void testMissingEqualsInMethodDefinition() throws Exception {
+    var ir = parse("""
+    type T
+      method self
+        42
+    """);
+    assertSingleSyntaxError(
+        ir,
+        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        "Unexpected declaration in the body of a type",
+        9,
+        27);
   }
 
   @Test

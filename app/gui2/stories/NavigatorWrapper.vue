@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-import { useNavigator } from '@/util/navigator'
+import { useNavigator } from '@/composables/navigator'
 
 const viewportNode = ref<HTMLElement>()
 

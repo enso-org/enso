@@ -1,0 +1,12 @@
+private
+
+from Standard.Base import all
+
+
+type Spec
+    Impl (name : Text) (code : Any -> Any) (pending : (Nothing | Text))
+
+    to_text self =
+        pend = if self.pending.is_nothing then "" else
+            "pending = " + self.pending
+        "Spec '" + self.name + "' " + pend

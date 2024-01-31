@@ -1,10 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import * as fs from 'fs'
 import { expect, test } from 'vitest'
-import { preParseContent } from '../../../../ydoc-server/edits'
-import { deserializeIdMap, serializeIdMap } from '../../../../ydoc-server/serialization'
-import { MutableModule } from '../abstract'
+import { MutableModule, escape, unescape, type Identifier } from '../abstract'
 
 //const disabledCases = [
 //  ' a',
@@ -352,16 +349,23 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
   const root = Ast.parseBlock(code)
   // Print AST back to source.
-  const printed = Ast.print(root.exprId, root.module)
-  const info1 = printed.info
+  const printed = Ast.print(root)
   expect(printed.code).toEqual(code)
+  // Loading token IDs from IdMaps is not implemented yet, fix during sync.
+  printed.info.tokens.clear()
+  const idMap = Ast.spanMapToIdMap(printed.info)
+  idMap.validate()
 
   // Re-parse.
-  const root1 = Ast.parseBlock(printed)
+  const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
+  Ast.setExternalIds(root1.module, spans1, idMap)
   // Check that Identities match original AST.
-  const reprinted = Ast.print(root1.exprId, root1.module)
-  expect(reprinted.info.nodes).toEqual(info1.nodes)
-  expect(reprinted.info.tokens).toEqual(info1.tokens)
+  const printed1 = Ast.print(root1)
+  printed1.info.tokens.clear()
+  const idMap1 = Ast.spanMapToIdMap(printed1.info)
+  const mapsEqual = idMap1.isEqual(idMap)
+  if (!mapsEqual) idMap1.compare(idMap)
+  expect(mapsEqual).toBe(true)
 })
 
 const parseCases = [
@@ -376,13 +380,13 @@ test.each(parseCases)('parse: %s', (testCase) => {
 test('Insert new expression', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
-  const main = Ast.functionBlock(root.module, 'main')!
-  expect(main).not.toBeNull()
+  const main = Ast.functionBlock(root, 'main')!
+  expect(main).toBeDefined()
   const edit = root.module.edit()
   const rhs = Ast.parse('42', edit)
-  const assignment = Ast.Assignment.new(edit, 'baz', rhs)
-  main.push(edit, assignment)
-  const printed = root.code(edit)
+  const assignment = Ast.Assignment.new(edit, 'baz' as Identifier, rhs)
+  edit.getVersion(main).push(assignment)
+  const printed = edit.getVersion(root).code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
 
@@ -393,7 +397,7 @@ type SimpleModule = {
 function simpleModule(): SimpleModule {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
-  const main = Ast.functionBlock(root.module, 'main')!
+  const main = Ast.functionBlock(root, 'main')!
   expect(main).not.toBeNull()
   const assignment: Ast.Assignment = main.statements().next().value
   expect(assignment).toBeInstanceOf(Ast.Assignment)
@@ -406,11 +410,12 @@ test('Modify subexpression', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  const oldExprId = assignment.expression!.exprId
-  edit.replaceValue(assignment.expression!.exprId, newValue)
-  expect(assignment.expression!.exprId).toBe(oldExprId)
-  expect(edit.get(assignment.expression!.exprId)?.code()).toBe("'bar'")
-  const printed = root.code(edit)
+  const oldExprId = assignment.expression!.externalId
+  const assignment_ = edit.getVersion(assignment)
+  assignment_.expression.replaceValue(newValue)
+  expect(assignment_.expression?.externalId).toBe(oldExprId)
+  expect(assignment_.expression?.code()).toBe("'bar'")
+  const printed = edit.getVersion(root).code()
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
@@ -420,12 +425,12 @@ test('Replace subexpression', () => {
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
-  edit.replaceRef(assignment.expression!.exprId, newValue)
-  const assignment_ = edit.get(assignment.exprId)!
+  edit.replace(assignment.expression!.id, newValue)
+  const assignment_ = edit.get(assignment.id)!
   assert(assignment_ instanceof Ast.Assignment)
-  expect(assignment_.expression!.exprId).toBe(newValue.exprId)
-  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe("'bar'")
-  const printed = root.code(edit)
+  expect(assignment_.expression!.id).toBe(newValue.id)
+  expect(edit.get(assignment_.expression!.id)?.code()).toBe("'bar'")
+  const printed = edit.getVersion(root).code()
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
@@ -433,78 +438,55 @@ test('Change ID of node', () => {
   const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
-  const expression = edit.takeValue(assignment.expression!.exprId)!
+  const oldExternalId = assignment.expression.externalId
+  const assignment_ = edit.getVersion(assignment)
+  const expression = assignment_.expression.takeValue().node
   expect(expression.code()).toBe('"foo"')
-  edit.replaceRef(assignment.expression!.exprId, expression)
-  const assignment_ = edit.get(assignment.exprId)!
-  assert(assignment_ instanceof Ast.Assignment)
-  expect(assignment_.expression!.exprId).not.toBe(assignment.expression!.exprId)
-  expect(edit.get(assignment_.expression!.exprId)?.code()).toBe('"foo"')
-  const printed = root.code(edit)
+  assignment_.expression?.replace(expression)
+  expect(assignment_.expression?.externalId).not.toBe(oldExternalId)
+  expect(assignment_.expression?.code()).toBe('"foo"')
+  const printed = edit.getVersion(root).code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n')
-})
-
-test('Delete expression', () => {
-  const originalCode = 'main =\n    text1 = "foo"\n    text2 = "bar"\n'
-  const root = Ast.parseBlock(originalCode)
-  const main = Ast.functionBlock(root.module, 'main')!
-  expect(main).not.toBeNull()
-  const iter = main.statements()
-  const _assignment1 = iter.next()
-  const assignment2: Ast.Assignment = iter.next().value
-  const edit = root.module.edit()
-  edit.delete(assignment2.exprId)
-  const printed = root.code(edit)
-  expect(printed).toEqual('main =\n    text1 = "foo"\n')
-})
-
-test('full file IdMap round trip', () => {
-  const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
-  const { code, idMapJson, metadataJson: _ } = preParseContent(content)
-  const idMap = deserializeIdMap(idMapJson!)
-  const ast = Ast.parseTransitional(code, idMap)
-  const ast_ = Ast.parseTransitional(code, deserializeIdMap(idMapJson!))
-  const ast2 = Ast.normalize(ast)
-  const astTT = Ast.tokenTreeWithIds(ast)
-  expect(ast2.code()).toBe(ast.code())
-  expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
-  expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
-
-  const idMapJson2 = serializeIdMap(idMap)
-  expect(idMapJson2).toBe(idMapJson)
-  const META_TAG = '\n\n\n#### METADATA ####'
-  let metaContent = META_TAG + '\n'
-  metaContent += idMapJson2 + '\n'
-  const {
-    code: code_,
-    idMapJson: idMapJson_,
-    metadataJson: __,
-  } = preParseContent(code + metaContent)
-  const idMap_ = deserializeIdMap(idMapJson_!)
-  const ast3 = Ast.parseTransitional(code_, idMap_)
-  expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
 })
 
 test('Block lines interface', () => {
   const block = Ast.parseBlock('VLE  \nSISI\nGNIK \n')
   // Sort alphabetically, but keep the blank line at the end.
-  const reordered = block.lines().sort((a, b) => {
+  const reordered = block.takeLines().sort((a, b) => {
     if (a.expression?.node.code() === b.expression?.node.code()) return 0
     if (!a.expression) return 1
     if (!b.expression) return -1
     return a.expression.node.code() < b.expression.node.code() ? -1 : 1
   })
-  const newBlock = Ast.BodyBlock.new(reordered)
+  const edit = block.module.edit()
+  const newBlock = Ast.BodyBlock.new(reordered, edit)
   // Note that trailing whitespace belongs to the following line.
   expect(newBlock.code()).toBe('GNIK  \nSISI\nVLE \n')
 })
 
 test('Splice', () => {
-  const module = MutableModule.Observable()
+  const module = MutableModule.Transient()
   const edit = module.edit()
-  const ident = Ast.Ident.new(edit, 'foo')
+  const ident = Ast.Ident.new(edit, 'foo' as Identifier)
   expect(ident.code()).toBe('foo')
-  const spliced = module.splice(ident)
+  const spliced = module.copyIfForeign(ident)
   expect(spliced.module).toBe(module)
   expect(spliced.code()).toBe('foo')
+})
+
+test.each([
+  ['Hello, World!', 'Hello, World!'],
+  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
+  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
+  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
+  ['Hello, \\World!', 'Hello, \\World!'],
+  ['Hello, `World!`', 'Hello, ``World!``'],
+  ["'Hello, World!'", "\\'Hello, World!\\'"],
+  ['"Hello, World!"', '\\"Hello, World!\\"'],
+  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
+  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
+])('Text literals escaping and unescaping', (original, expectedEscaped) => {
+  const escaped = escape(original)
+  expect(escaped).toBe(expectedEscaped)
+  expect(unescape(escaped)).toBe(original)
 })

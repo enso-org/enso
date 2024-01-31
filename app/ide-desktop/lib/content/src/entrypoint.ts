@@ -49,7 +49,7 @@ if (detect.IS_DEV_MODE && !detect.isOnElectron()) {
     })
 }
 void (async () => {
-    // `navigator.serviceWorker` may be disabled in certainsituations, for example in Private mode
+    // `navigator.serviceWorker` may be disabled in certain situations, for example in Private mode
     // on Safari.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const registration = await navigator.serviceWorker?.getRegistration()
@@ -300,7 +300,7 @@ class Main implements AppRunner {
         const ideElement = document.getElementById('root')
         if (ideElement) {
             ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
+            ideElement.style.position = 'fixed'
         }
         const ide2Element = document.getElementById('app')
         if (ide2Element) {

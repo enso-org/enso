@@ -8,8 +8,7 @@ from Standard.Table import Table, Column
 from Standard.Table.Errors import No_Such_Column
 from Standard.Table.Extensions.Table_Conversions import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
@@ -18,171 +17,186 @@ type My_Mod_Type
 
     to_text self = "x%10="+(self.x%10).to_text
 
-spec =
-    single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
-    uniform_json = Json.parse <| '''
-        [
-            { "first": "Mary", "last": "Smith", "age": 23 },
-            { "first": "Joe", "last": "Burton", "age": 34 }
-        ]
-    non_uniform_json = Json.parse <| '''
-        [
-            { "first": "Mary", "last": "Smith", "age": 23 },
-            { "height": 1.9, "weight": 70 }
-        ]
 
-    library_test_file = enso_project.data / "xml" / "library.xml"
-    library_document = XML_Document.from_file library_test_file
-    library_root = library_document . root_element
+type Data
+    Value ~data
 
+    single_values self = self.data.at 0
+    uniform_json self = self.data.at 1
+    non_uniform_json self = self.data.at 2
+    library_document self = self.data.at 3
+    library_root self = self.data.at 4
+
+    setup = Data.Value <|
+        single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
+        uniform_json = Json.parse <| '''
+            [
+                { "first": "Mary", "last": "Smith", "age": 23 },
+                { "first": "Joe", "last": "Burton", "age": 34 }
+            ]
+        non_uniform_json = Json.parse <| '''
+            [
+                { "first": "Mary", "last": "Smith", "age": 23 },
+                { "height": 1.9, "weight": 70 }
+            ]
+
+        library_test_file = enso_project.data / "xml" / "library.xml"
+        library_document = XML_Document.from_file library_test_file
+        library_root = library_document . root_element
+        [single_values, uniform_json, non_uniform_json, library_document, library_root]
+
+
+add_specs suite_builder =
     trim_if_text x = case x of
         _ : Text -> x.trim
         _ -> x
+    
+    data = Data.setup
 
-    Test.group "from_objects with single values" <|
-        Test.specify "Can create a table from a single value" <|
-            single_values.map v->
+    suite_builder.group "from_objects with single values" group_builder->
+        group_builder.specify "Can create a table from a single value" <|
+            data.single_values.map v->
                 expected = Table.from_rows ["Value"] [[v]]
                 Table.from_objects v . should_equal expected
 
-        Test.specify "Can create a table from a vector of single values" <|
-            expected = Table.new [["Value", single_values]]
-            Table.from_objects single_values . should_equal expected
+        group_builder.specify "Can create a table from a vector of single values" <|
+            expected = Table.new [["Value", data.single_values]]
+            Table.from_objects data.single_values . should_equal expected
 
-        Test.specify "A single value with a field list results in columns of Nothing" <|
+        group_builder.specify "A single value with a field list results in columns of Nothing" <|
             expected = Table.new [["aaa", [Nothing]], ["bbb", [Nothing]]]
             Table.from_objects 1 ['aaa', 'bbb'] . should_equal expected
 
-        Test.specify "A single value with the field list [Value] results in a column with the value" <|
+        group_builder.specify "A single value with the field list [Value] results in a column with the value" <|
             expected = Table.new [["Value", [1]], ["bbb", [Nothing]]]
             Table.from_objects 1 ["Value", "bbb"] . should_equal expected
 
-        Test.specify "A vector of single values with a field list results in a column of Nothing" <|
+        group_builder.specify "A vector of single values with a field list results in a column of Nothing" <|
             expected = Table.new [["aaa", [Nothing, Nothing]], ["bbb", [Nothing, Nothing]]]
             Table.from_objects [1, 2] ['aaa', 'bbb'] . should_equal expected
 
-    Test.group "from_objects with JSON (single values)" <|
-        Test.specify "Generates a single-row table from a JSON object" <|
+    suite_builder.group "from_objects with JSON (single values)" group_builder->
+        group_builder.specify "Generates a single-row table from a JSON object" <|
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23]]
-            Table.from_objects (uniform_json.at 0) . should_equal expected
+            Table.from_objects (data.uniform_json.at 0) . should_equal expected
 
-        Test.specify "works fine even if requested fields are duplicated" <|
+        group_builder.specify "works fine even if requested fields are duplicated" <|
             expected = Table.from_rows ["first", "last"] [["Mary", "Smith"]]
-            Table.from_objects (uniform_json.at 0) ["first", "last", "first", "first"] . should_equal expected
+            Table.from_objects (data.uniform_json.at 0) ["first", "last", "first", "first"] . should_equal expected
 
-    Test.group "from_objects with uniform JSON vector" <|
-        Test.specify "Generates a table from a vector of JSON objects" <|
+    suite_builder.group "from_objects with uniform JSON vector" group_builder->
+        group_builder.specify "Generates a table from a vector of JSON objects" <|
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
-            Table.from_objects uniform_json . should_equal expected
+            Table.from_objects data.uniform_json . should_equal expected
 
-        Test.specify "Generates a table from a vector of JSON objects, with exact fields" <|
+        group_builder.specify "Generates a table from a vector of JSON objects, with exact fields" <|
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
-            Table.from_objects uniform_json ["first", "last", "age"] . should_equal expected
+            Table.from_objects data.uniform_json ["first", "last", "age"] . should_equal expected
 
-        Test.specify "Generates a table from a vector of JSON objects, with a subset of fields" <|
+        group_builder.specify "Generates a table from a vector of JSON objects, with a subset of fields" <|
             expected = Table.from_rows ["last", "age"] [["Smith", 23], ["Burton", 34]]
-            Table.from_objects uniform_json ["last", "age"] . should_equal expected
+            Table.from_objects data.uniform_json ["last", "age"] . should_equal expected
 
-        Test.specify "Generates a table from a vector of JSON objects, with extra fields" <|
+        group_builder.specify "Generates a table from a vector of JSON objects, with extra fields" <|
             expected = Table.from_rows ["first", "middle", "last", "age"] [["Mary", Nothing, "Smith", 23], ["Joe", Nothing, "Burton", 34]]
-            Table.from_objects uniform_json ["first", "middle", "last", "age"] . should_equal expected
+            Table.from_objects data.uniform_json ["first", "middle", "last", "age"] . should_equal expected
 
-        Test.specify "Generates a table from a vector of JSON objects, with ignored and extra fields" <|
+        group_builder.specify "Generates a table from a vector of JSON objects, with ignored and extra fields" <|
             expected = Table.from_rows ["first", "middle", "age"] [["Mary", Nothing, 23], ["Joe", Nothing, 34]]
-            Table.from_objects uniform_json ["first", "middle", "age"] . should_equal expected
+            Table.from_objects data.uniform_json ["first", "middle", "age"] . should_equal expected
 
-    Test.group "from_objects with non-uniform JSON vector" <|
-        Test.specify "Generates a table from a non-uniform vector of JSON objects" <|
+    suite_builder.group "from_objects with non-uniform JSON vector" group_builder->
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects" <|
             expected = Table.from_rows ["first", "last", "age", "height", "weight"] [["Mary", "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, 1.9, 70]]
-            Table.from_objects non_uniform_json . should_equal expected
+            Table.from_objects data.non_uniform_json . should_equal expected
 
-        Test.specify "Generates a table from a non-uniform vector of JSON objects, with exact fields" <|
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects, with exact fields" <|
             expected = Table.from_rows ["first", "last", "age", "height", "weight"] [["Mary", "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, 1.9, 70]]
-            Table.from_objects non_uniform_json ["first", "last", "age", "height", "weight"] . should_equal expected
+            Table.from_objects data.non_uniform_json ["first", "last", "age", "height", "weight"] . should_equal expected
 
-        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored fields" <|
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects, with ignored fields" <|
             expected = Table.from_rows ["last", "weight"] [["Smith", Nothing], [Nothing, 70]]
-            Table.from_objects non_uniform_json ["last", "weight"] . should_equal expected
+            Table.from_objects data.non_uniform_json ["last", "weight"] . should_equal expected
 
-        Test.specify "Generates a table from a non-uniform vector of JSON objects, with extra fields" <|
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects, with extra fields" <|
             expected = Table.from_rows ["first", "middle", "last", "age", "height", "weight"] [["Mary", Nothing, "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, Nothing, 1.9, 70]]
-            Table.from_objects non_uniform_json ["first", "middle", "last", "age", "height", "weight"] . should_equal expected
+            Table.from_objects data.non_uniform_json ["first", "middle", "last", "age", "height", "weight"] . should_equal expected
 
-        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields" <|
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields" <|
             expected = Table.from_rows ["first", "middle", "height", "weight"] [["Mary", Nothing, Nothing, Nothing], [Nothing, Nothing, 1.9, 70]]
-            Table.from_objects non_uniform_json ["first", "middle", "height", "weight"] . should_equal expected
+            Table.from_objects data.non_uniform_json ["first", "middle", "height", "weight"] . should_equal expected
 
-        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields, taking only from one kind of value" <|
+        group_builder.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields, taking only from one kind of value" <|
             expected = Table.from_rows ["first"] [["Mary"], [Nothing]]
-            Table.from_objects non_uniform_json ["first"] . should_equal expected
+            Table.from_objects data.non_uniform_json ["first"] . should_equal expected
 
-    Test.group "from_objects with mixed vector of single and JSON objects" <|
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects" <|
+    suite_builder.group "from_objects with mixed vector of single and JSON objects" group_builder->
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects" <|
             expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
-            Table.from_objects uniform_json+[12] . should_equal expected
+            Table.from_objects data.uniform_json+[12] . should_equal expected
 
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with exact fields" <|
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects, with exact fields" <|
             expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
-            Table.from_objects uniform_json+[12] ["first", "last", "age", "Value"] . should_equal expected
+            Table.from_objects data.uniform_json+[12] ["first", "last", "age", "Value"] . should_equal expected
 
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored fields" <|
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored fields" <|
             expected = Table.from_rows ["last", "age", "Value"] [["Smith", 23, Nothing], ["Burton", 34, Nothing], [Nothing, Nothing, 12]]
-            Table.from_objects uniform_json+[12] ["last", "age", "Value"] . should_equal expected
+            Table.from_objects data.uniform_json+[12] ["last", "age", "Value"] . should_equal expected
 
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with extra fields" <|
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects, with extra fields" <|
             expected = Table.from_rows ["first", "last", "age", "blah", "Value"] [["Mary", "Smith", 23, Nothing, Nothing], ["Joe", "Burton", 34, Nothing, Nothing], [Nothing, Nothing, Nothing, Nothing, 12]]
-            Table.from_objects uniform_json+[12] ["first", "last", "age", "blah", "Value"] . should_equal expected
+            Table.from_objects data.uniform_json+[12] ["first", "last", "age", "blah", "Value"] . should_equal expected
 
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
             expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
-            Table.from_objects uniform_json+[12] ["first", "last", "blah", "Value"] . should_equal expected
+            Table.from_objects data.uniform_json+[12] ["first", "last", "blah", "Value"] . should_equal expected
 
-    Test.group "from_objects with Array" <|
-        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
+    suite_builder.group "from_objects with Array" group_builder->
+        group_builder.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
             expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
-            Table.from_objects (uniform_json+[12]).to_array ["first", "last", "blah", "Value"] . should_equal expected
+            Table.from_objects (data.uniform_json+[12]).to_array ["first", "last", "blah", "Value"] . should_equal expected
 
-    Test.group "expand_column" <|
-        Test.specify "Expands a column of single values" <|
+    suite_builder.group "expand_column" group_builder->
+        group_builder.specify "Expands a column of single values" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb Value", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_equal expected
 
-        Test.specify "Expands a uniform column of JSON objects" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Expands a uniform column of JSON objects" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", "Joe"]], ["bbb last", ["Smith", "Burton"]], ["bbb age", [23, 34]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_equal expected
 
-        Test.specify "Expands a uniform column of JSON objects, with extra and ignored fields" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Expands a uniform column of JSON objects, with extra and ignored fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb age", [23, 34]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["age", "foo"] . should_equal expected
 
-        Test.specify "Expands a non-uniform column of JSON objects" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Expands a non-uniform column of JSON objects" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", Nothing]], ["bbb last", ["Smith", Nothing]], ["bbb age", [23, Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb weight", [Nothing, 70]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_equal expected
 
-        Test.specify "Expands a non-uniform column of JSON objects with extra and ignored fields" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Expands a non-uniform column of JSON objects with extra and ignored fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] . should_equal expected
 
-        Test.specify "accept vectors/arrays within a column" <|
+        group_builder.specify "accept vectors/arrays within a column" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6].to_array]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb Value", [[1, 2, 3], [4, 5, 6].to_array]]]
             table.expand_column "bbb" . should_equal expected
 
-        Test.specify "will work even if keys are not Text" <|
+        group_builder.specify "will work even if keys are not Text" <|
             table = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[1, "x"], [2, "y"]], Map.from_vector [[2, "z"], [3, "w"]]]]]
             expected = Table.new [["a", [1, 2]], ["b 1", ["x", Nothing]], ["b 2", ["y", "z"]], ["b 3", [Nothing, "w"]]]
             table.expand_column "b" . should_equal expected
 
             table2 = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[My_Mod_Type.Value 12, "x"], [My_Mod_Type.Value 23, "y"]], Map.from_vector [[My_Mod_Type.Value 32, "z"]]]]]
-            expected2 = Table.new [["a", [1, 2]], ["b x%10=2", ["x", "z"]], ["b x%10=3", ["y", Nothing]]]
+            expected2 = Table.new [["a", [1, 2]], ["b x%10=3", ["y", Nothing]], ["b x%10=2", ["x", "z"]]]
             table2.expand_column "b" . should_equal expected2
 
-        Test.specify "will fail if text representation of keys is not unique" <|
+        group_builder.specify "will fail if text representation of keys is not unique" <|
             k1 = My_Mod_Type.Value 12
             k2 = My_Mod_Type.Value 32
             m = Map.from_vector [[k1, "a"], [k2, "b"]]
@@ -196,46 +210,46 @@ spec =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "keys are duplicated when converted to text"
 
-        Test.specify "will error when all objects have no fields" <|
+        group_builder.specify "will error when all objects have no fields" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
             r = table.expand_column "bbb"
             r.should_fail_with Illegal_Argument
             r.catch.message.should_contain "all input objects had no fields"
 
-        Test.specify "will error when fields=[]" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "will error when fields=[]" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             r = table.expand_column "bbb" fields=[]
             r.should_fail_with Illegal_Argument
             r.catch.message . should_equal "The fields parameter cannot be empty."
 
-        Test.specify "Can expand with no prefix" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Can expand with no prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["last", ["Smith", Nothing]], ["height", [Nothing, 1.9]], ["foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] Prefix_Name.None . should_equal expected
 
-        Test.specify "Can expand with an explicit column name prefix" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Can expand with an explicit column name prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] Prefix_Name.Column_Name . should_equal expected
 
-        Test.specify "Can expand with a custom prefix" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Can expand with a custom prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] (Prefix_Name.Custom "expanded ") . should_equal expected
 
-        Test.specify "Can expand with a custom prefix, via from conversion" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+        group_builder.specify "Can expand with a custom prefix, via from conversion" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] "expanded " . should_equal expected
 
-    Test.group "expand_to_rows" <|
-        Test.specify "Can expand single values" <|
+    suite_builder.group "expand_to_rows" group_builder->
+        group_builder.specify "Can expand single values" <|
             values_to_expand = [3, 4]
             table = Table.new [["aaa", [1, 2]], ["bbb", values_to_expand], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand Vectors" <|
+        group_builder.specify "Can expand Vectors" <|
             values_to_expand = [[10, 11], [20, 21, 22], [30]]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
@@ -243,31 +257,31 @@ spec =
             r . should_equal expected
             r.at "bbb" . value_type . should_equal Value_Type.Integer
 
-        Test.specify "Can expand Arrays" <|
+        group_builder.specify "Can expand Arrays" <|
             values_to_expand = [[10, 11].to_array, [20, 21, 22].to_array, [30].to_array]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand Lists" <|
+        group_builder.specify "Can expand Lists" <|
             values_to_expand = [[10, 11].to_list, [20, 21, 22].to_list, [30].to_list]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand Pairs" <|
+        group_builder.specify "Can expand Pairs" <|
             values_to_expand = [Pair.new 10 20, Pair.new "a" [30], Pair.new 40 50]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 3, 3]], ["bbb", [10, 20, "a", [30], 40, 50]], ["ccc", [5, 5, 6, 6, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand Ranges" <|
+        group_builder.specify "Can expand Ranges" <|
             values_to_expand = [Range.new 10 12, Range.new 20 27 step=3, Range.new 30 31]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 23, 26, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand Date_Ranges" <|
+        group_builder.specify "Can expand Date_Ranges" <|
             range0 = (Date.new 2020 02 28).up_to (Date.new 2020 03 01)
             range1 = (Date.new 2020 10 28).up_to (Date.new 2020 11 16) . with_step Date_Period.Week
             range2 = (Date.new 2023 07 03).up_to (Date.new 2023 10 03) . with_step Date_Period.Month
@@ -277,32 +291,32 @@ spec =
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 7, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Can expand mixed columns" <|
+        group_builder.specify "Can expand mixed columns" <|
             values_to_expand = [[10, 11], 22.up_to 26, (Date.new 2020 02 28).up_to (Date.new 2020 03 01)]
             values_expanded = [10, 11, 22, 23, 24, 25, Date.new 2020 02 28, Date.new 2020 02 29]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 2, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 6, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Respects `at_least_one_row=True`" <|
+        group_builder.specify "Respects `at_least_one_row=True`" <|
             values_to_expand = [[10, 11], [], [30]]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 3]], ["bbb", [10, 11, Nothing, 30]], ["ccc", [5, 5, 6, 7]]]
             table.expand_to_rows "bbb" at_least_one_row=True . should_equal expected
 
-        Test.specify "Respects `at_least_one_row=False`" <|
+        group_builder.specify "Respects `at_least_one_row=False`" <|
             values_to_expand = [[10, 11], [], [30]]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 3]], ["bbb", [10, 11, 30]], ["ccc", [5, 5, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
-        Test.specify "Missing column" <|
+        group_builder.specify "Missing column" <|
             table = Table.new [["aaa", [1, 2, 3]], ["notbbb", [8, 8, 8]], ["ccc", [5, 6, 7]]]
             table.expand_to_rows "bbb" . should_fail_with No_Such_Column
 
-    Test.group "XML" <|
-        Test.specify "Can convert XML_Document and XML_Element to a table" <|
-            [library_document, library_root].map x->
+    suite_builder.group "XML" group_builder->
+        group_builder.specify "Can convert XML_Document and XML_Element to a table" <|
+            [data.library_document, data.library_root].map x->
                 t = x.to Table
                 t.at "Name" . to_vector . should_equal ["Library"]
                 t.at "@catalog" . to_vector . should_equal ["Fiction"]
@@ -314,8 +328,8 @@ spec =
                 t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
                 t.column_names . should_not_contain "Value"
 
-        Test.specify "Can expand the Children column to rows" <|
-            t = library_root.to Table . expand_to_rows "Children"
+        group_builder.specify "Can expand the Children column to rows" <|
+            t = data.library_root.to Table . expand_to_rows "Children"
             t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
             t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
             t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
@@ -326,8 +340,8 @@ spec =
             t.at "Children" . at 4 . name . should_equal "Magazine"
             t.column_names . should_not_contain "Value"
 
-        Test.specify "Can expand the child nodes" <|
-            t = library_root.to Table . expand_to_rows "Children" . expand_column "Children"
+        group_builder.specify "Can expand the child nodes" <|
+            t = data.library_root.to Table . expand_to_rows "Children" . expand_column "Children"
             t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
             t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
             t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
@@ -338,7 +352,7 @@ spec =
             t.at "Children @series" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'AutoCar']
             t.column_names . should_not_contain "Children Children"
 
-        Test.specify "Can expand nested child nodes" <|
+        group_builder.specify "Can expand nested child nodes" <|
             xml_string = '''
                 <a>
                   <b>
@@ -354,15 +368,15 @@ spec =
             t = xml.to Table . expand_to_rows "Children" . expand_column "Children" . expand_to_rows "Children Children" . expand_column "Children Children"
             t.at "Children Children @id" . to_vector . should_equal ["1", "2", "3", "4"]
 
-        Test.specify "Converting a node without child nodes produces a Value column" <|
-            book = library_root . at 1
+        group_builder.specify "Converting a node without child nodes produces a Value column" <|
+            book = data.library_root . at 1
             t = book.to Table
             t.at "Name" . to_vector . should_equal ["Book"]
             t.at "@author" . to_vector . should_equal ["An Author"]
             t.column_names . should_not_contain "Children"
             t.at "Value" . to_vector . should_equal ["My Book"]
 
-        Test.specify "Converting a node without any child nodes does not produce Value or Children columns" <|
+        group_builder.specify "Converting a node without any child nodes does not produce Value or Children columns" <|
             xml = XML_Document.from_text '<foo id="10"></foo>'
             t = xml.to Table
             t.at "Name" . to_vector . should_equal ["foo"]
@@ -370,4 +384,8 @@ spec =
             t.column_names . should_not_contain "Children"
             t.column_names . should_not_contain "Value"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -33,15 +33,14 @@ import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
@@ -739,6 +738,10 @@ public final class ExecutionService {
     }
 
     public static FunctionPointer fromFunction(Function function) {
+      var cons = AtomConstructor.accessorFor(function);
+      if (cons != null) {
+        return fromAtomConstructor(cons);
+      }
       RootNode rootNode = function.getCallTarget().getRootNode();
 
       QualifiedName moduleName;
@@ -750,12 +753,6 @@ public final class ExecutionService {
           moduleName = methodNode.getModuleScope().getModule().getName();
           typeName = methodNode.getType().getQualifiedName();
           functionName = methodNode.getMethodName();
-        }
-        case QualifiedAccessorNode qualifiedAccessor -> {
-          AtomConstructor atomConstructor = qualifiedAccessor.getAtomConstructor();
-          moduleName = atomConstructor.getDefinitionScope().getModule().getName();
-          typeName = atomConstructor.getType().getQualifiedName();
-          functionName = atomConstructor.getName();
         }
         case BuiltinRootNode builtinRootNode -> {
           moduleName = builtinRootNode.getModuleName();

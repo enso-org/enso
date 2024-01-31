@@ -4,9 +4,9 @@ import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
 import type { PortId } from '@/providers/portInfo.ts'
+import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
-import { type ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
@@ -22,7 +22,7 @@ export function useSelection<T>(
   const anchor = shallowRef<Vec2>()
   const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
-  const hoveredNode = ref<ExprId>()
+  const hoveredNode = ref<NodeId>()
   const hoveredPort = ref<PortId>()
 
   useEvent(document, 'pointerover', (event) => {

@@ -16,6 +16,10 @@ class EnsoSecretReader {
     secrets.clear();
   }
 
+  static void removeFromCache(String secretId) {
+    secrets.remove(secretId);
+  }
+
   /**
    * * Reads a secret from the Enso Cloud.
    *
@@ -27,7 +31,7 @@ class EnsoSecretReader {
       return secrets.get(secretId);
     }
 
-    var apiUri = AuthenticationProvider.getAPIRootURI() + "/s3cr3tz/" + secretId;
+    var apiUri = AuthenticationProvider.getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()

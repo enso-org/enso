@@ -137,7 +137,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
         Column.from_storage column_name output_storage
 
     # Build the order mask.
-    order_mask = OrderMask.new (order_mask_positions.to_vector)
+    order_mask = OrderMask.fromArray (order_mask_positions.to_vector)
 
     ## Build the new table, replacing the input column with the new output
        columns.

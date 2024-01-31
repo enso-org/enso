@@ -1447,8 +1447,7 @@ Text.parse_float self locale=Nothing = Float.parse self locale
      Parse the text "20220216" into an integer number.
 
         "20220216".parse
-Text.parse_integer : Integer -> Integer ! Number_Parse_Error
-Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
+Text.parse_integer self (radix:Integer = 10) -> Integer ! Number_Parse_Error = Integer.parse self radix
 
 ## ALIAS json from text
    GROUP Conversions

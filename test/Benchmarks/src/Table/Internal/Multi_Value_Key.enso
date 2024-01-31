@@ -26,11 +26,11 @@ Comparable.from (_:My_Pair) = My_Pair_Comparator
 create_table : Integer -> Table
 create_table num_rows =
     rng = Random.new_generator 42
-    x = Vector.new num_rows _-> rng.integer min=0 max=100
+    x = Vector.new num_rows _-> rng.integer min=0 max=99
     y = Vector.new num_rows _-> rng.integer min=0 max=20 . to_text
     z = Vector.new num_rows _->
-        a = Random.integer min=0 max=100
-        b = Random.integer min=0 max=100
+        a = Random.integer min=0 max=99
+        b = Random.integer min=0 max=99
         My_Pair.Value a b
     t = Table.new [["X", x], ["Y", y], ["Z", z]]
 

@@ -255,22 +255,16 @@ make_is_in arguments = case arguments.length of
     _ ->
         expr = arguments.first
         list = arguments.drop 1
-        is_in = expr ++ " IN (" ++ (Builder.join ", " list) ++ ")"
-        ## We ensure that even `NULL IN (...)` is coalesced to False, so that
-           negation will work as expected.
-        Builder.code "COALESCE(" ++ is_in ++ ", FALSE)"
+        expr ++ " IN (" ++ (Builder.join ", " list) ++ ")"
 
 ## PRIVATE
 make_is_in_column : Vector Builder -> Builder
 make_is_in_column arguments = case arguments.length of
-    3 ->
+    2 ->
         expr = arguments.at 0
         in_query = arguments.at 1
-        has_nulls_query = arguments.at 2
-        is_in = Builder.code "COALESCE(" ++ expr ++ " IN (" ++ in_query ++ "), FALSE)"
-        has_nulls = has_nulls_query.paren ++ " = TRUE"
-        Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
-    _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
+        Builder.code "(" ++ expr ++ " IN (" ++ in_query ++ "))"
+    _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 2 arguments: the expression and the IN subquery.")
 
 ## PRIVATE
 make_row_number : Vector Builder -> Row_Number_Metadata -> Builder

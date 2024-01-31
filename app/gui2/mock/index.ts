@@ -5,9 +5,7 @@ import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { MockTransport, MockWebSocket } from '@/util/net'
-import * as random from 'lib0/random'
 import { getActivePinia } from 'pinia'
-import type { ExprId } from 'shared/yjsModel'
 import { ref, type App } from 'vue'
 import { mockDataHandler, mockLSHandler } from './engine'
 export * as providers from './providers'
@@ -74,10 +72,6 @@ export function projectStore() {
 /** The stores should be initialized in this order, as `graphStore` depends on `projectStore`. */
 export function projectStoreAndGraphStore() {
   return [projectStore(), graphStore()] satisfies [] | unknown[]
-}
-
-export function newExprId() {
-  return random.uuidv4() as ExprId
 }
 
 /** This should only be used for supplying as initial props when testing.
