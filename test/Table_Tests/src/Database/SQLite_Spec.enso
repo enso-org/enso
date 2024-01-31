@@ -41,7 +41,7 @@ type Metadata_Data
     tinfo self = self.data.at 1
     t self = self.data.at 2
 
-    setup create_connection_func =
+    setup create_connection_func = Metadata_Data.Value <|
         connection = create_connection_func Nothing
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
@@ -51,10 +51,11 @@ type Metadata_Data
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
             t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
-        Metadata_Data.Value [connection, tinfo, t]
+        [connection, tinfo, t]
 
     teardown self =
         self.connection.drop_table self.t.name
+        self.connection.drop_table self.tinfo
         self.connection.close
 
 
@@ -80,6 +81,9 @@ type Tables_And_Table_Types_Data
         [connection, tinfo, vinfo, temporary_table]
 
     teardown self =
+        self.connection.drop_table self.tinfo
+        self.connection.drop_table self.vinfo
+        self.connection.drop_table self.temporary_table
         self.connection.close
 
 
