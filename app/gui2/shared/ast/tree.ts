@@ -1,9 +1,4 @@
 import * as map from 'lib0/map'
-import { assert, assertDefined, assertEqual, bail } from '../util/assert'
-import type { Result } from '../util/data/result'
-import { Err, Ok } from '../util/data/result'
-import type { ExternalId, SourceRange, VisualizationMetadata } from '../yjsModel'
-import * as RawAst from './generated/ast'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -30,6 +25,11 @@ import {
   print,
   tokenKey,
 } from '.'
+import { assert, assertDefined, assertEqual, bail } from '../util/assert'
+import type { Result } from '../util/data/result'
+import { Err, Ok } from '../util/data/result'
+import type { ExternalId, SourceRange, VisualizationMetadata } from '../yjsModel'
+import * as RawAst from './generated/ast'
 
 declare const brandAstId: unique symbol
 export type AstId = string & { [brandAstId]: never }
