@@ -10,14 +10,17 @@
     },
     "SecureValue": {
       "title": "Secure Value",
-      "anyOf": [{ "type": "string" }, { "$ref": "#/$defs/EnsoSecret" }]
+      "anyOf": [
+        { "title": "Text", "type": "string" },
+        { "$ref": "#/$defs/EnsoSecret" }
+      ]
     },
     "EnsoSecret": {
       "title": "Enso Secret",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "secret", "type": "string" },
-        "secretPath": { "title": "SecretPath", "type": "string" }
+        "secretPath": { "title": "Path", "type": "string" }
       },
       "required": ["type", "secretPath"]
     },
