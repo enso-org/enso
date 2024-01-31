@@ -72,6 +72,7 @@
                     <target>1.8</target>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
+                        <arg>-XDignore.symbol.file</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

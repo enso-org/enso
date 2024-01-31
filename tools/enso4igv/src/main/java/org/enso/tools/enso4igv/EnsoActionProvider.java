@@ -1,12 +1,19 @@
 package org.enso.tools.enso4igv;
 
+import com.sun.jdi.connect.Connector;
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Future;
+import org.netbeans.api.debugger.jpda.JPDADebugger;
+import org.netbeans.api.debugger.jpda.ListeningDICookie;
 import org.netbeans.api.extexecution.ExecutionDescriptor;
 import org.netbeans.api.extexecution.ExecutionService;
+import org.netbeans.api.extexecution.base.ExplicitProcessParameters;
 import org.netbeans.spi.project.ActionProvider;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
@@ -15,10 +22,12 @@ import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
 import org.netbeans.api.extexecution.base.ProcessBuilder;
+import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.NbBundle;
 import org.openide.util.NbPreferences;
+import org.openide.util.RequestProcessor;
 import org.openide.windows.IOProvider;
 
 @NbBundle.Messages({
@@ -41,8 +50,9 @@ public final class EnsoActionProvider implements ActionProvider {
     @Override
     public void invokeAction(String action, Lookup lkp) throws IllegalArgumentException {
         var process = ActionProgress.start(lkp);
-        var script = FileUtil.toFile(lkp.lookup(FileObject.class));
-
+        var params = ExplicitProcessParameters.buildExplicitParameters(lkp);
+        var fo = lkp.lookup(FileObject.class);
+        var script = FileUtil.toFile(fo);
 
         var io = IOProvider.getDefault().getIO(script.getName(), false);
         var  dd = DialogDisplayer.getDefault();
@@ -78,14 +88,18 @@ public final class EnsoActionProvider implements ActionProvider {
                 .postExecution((exitCode) -> {
                     cf.complete(exitCode);
                 });
-            var service = ExecutionService.newService(builder, descriptor, script.getName());
+            var launch = ActionProvider.COMMAND_DEBUG_SINGLE.equals(action) ?
+                new DebugAndLaunch(fo, builder, params) : builder;
+            var service = ExecutionService.newService(launch, descriptor, script.getName());
             service.run();
             return cf;
         });
 
         waitForProcessFuture.thenAcceptBoth(builderFuture, (exitCode, builder) -> {
             if (exitCode != 0) {
-                dd.notifyLater(new NotifyDescriptor.Message(Bundle.MSG_ExecutionError(builder.getDescription(), exitCode), NotifyDescriptor.ERROR_MESSAGE));
+                var msg = Bundle.MSG_ExecutionError(builder.getDescription(), exitCode);
+                var md = new NotifyDescriptor.Message(msg, NotifyDescriptor.ERROR_MESSAGE);
+                dd.notifyLater(md);
             }
             process.finished(exitCode == 0);
         }).exceptionally((ex) -> {
@@ -105,6 +119,56 @@ public final class EnsoActionProvider implements ActionProvider {
         } else {
             var fo = lkp.lookup(FileObject.class);
             return fo != null && fo.getLookup().lookup(EnsoDataObject.class) != null;
+        }
+    }
+
+    static final class DebugAndLaunch implements Callable<Process> {
+        private static final RequestProcessor RP = new RequestProcessor(DebugAndLaunch.class);
+        private final FileObject script;
+        private final ProcessBuilder builder;
+        private final ExplicitProcessParameters params;
+        private final Future<String> computeAddress;
+
+        DebugAndLaunch(FileObject script, ProcessBuilder builder, ExplicitProcessParameters params) {
+            this.script = script;
+            this.builder = builder;
+            this.computeAddress = RP.submit(this::initAddress);
+            this.params = params;
+    }
+
+        @Override
+        public Process call() throws Exception {
+            var port = computeAddress.get();
+            builder.getEnvironment().setVariable("JAVA_OPTS", "-agentlib:jdwp=transport=dt_socket,address=" + port);
+            return builder.call();
+        }
+
+        private String initAddress() throws Exception {
+            var lc = ListeningDICookie.create(-1);
+            var connector = lc.getListeningConnector();
+
+            var args = lc.getArgs();
+            var address = connector.startListening(args);
+
+            var properties = new HashMap<>();
+            {
+                var sourcePath = ClassPath.getClassPath(script, ClassPath.SOURCE);
+                properties.put("sourcepath", sourcePath);
+                properties.put("baseDir", FileUtil.toFile(script.getParent()));
+                properties.put("name", script.getName());
+            }
+
+            var services = new Object[] { properties };
+            int port = Integer.parseInt(address.substring(address.indexOf(':') + 1));
+            Connector.IntegerArgument portArg = (Connector.IntegerArgument) args.get("port");
+            portArg.setValue(port);
+
+            RP.submit(() -> {
+                JPDADebugger.startListening(connector, args, services);
+                return null;
+            });
+
+            return Integer.toString(port);
         }
     }
 }
