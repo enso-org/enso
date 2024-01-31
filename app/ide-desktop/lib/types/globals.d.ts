@@ -91,6 +91,10 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_CHAT_URL?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_SENTRY_DSN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_STRIPE_KEY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_AMPLIFY_USER_POOL_ID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID?: string

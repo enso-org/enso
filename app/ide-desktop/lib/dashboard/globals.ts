@@ -24,6 +24,8 @@ export function globals(devMode: boolean, serverPort = 8080) {
       process.env.ENSO_CLOUD_ENVIRONMENT ?? 'production'
     ),
     'process.env.ENSO_CLOUD_API_URL': stringify(process.env.ENSO_CLOUD_API_URL),
+    'process.env.ENSO_CLOUD_SENTRY_DSN': stringify(process.env.ENSO_CLOUD_SENTRY_DSN),
+    'process.env.ENSO_CLOUD_STRIPE_KEY': stringify(process.env.ENSO_CLOUD_STRIPE_KEY),
     'process.env.ENSO_CLOUD_CHAT_URL': stringify(process.env.ENSO_CLOUD_CHAT_URL),
     'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID': stringify(
       process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID

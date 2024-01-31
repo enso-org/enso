@@ -36,9 +36,13 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 function run(props: app.AppProps) {
   const { logger, supportsDeepLinks } = props
   logger.log('Starting authentication/dashboard UI.')
-  if (!detect.IS_DEV_MODE && process.env.ENSO_CLOUD_API_URL != null) {
+  if (
+    !detect.IS_DEV_MODE &&
+    process.env.ENSO_CLOUD_SENTRY_DSN != null &&
+    process.env.ENSO_CLOUD_API_URL != null
+  ) {
     sentry.init({
-      dsn: 'https://0dc7cb80371f466ab88ed01739a7822f@o4504446218338304.ingest.sentry.io/4506070404300800',
+      dsn: process.env.ENSO_CLOUD_SENTRY_DSN,
       environment: process.env.ENSO_CLOUD_ENVIRONMENT,
       integrations: [
         new sentry.BrowserTracing({
