@@ -25,17 +25,40 @@ import org.graalvm.polyglot.Context;
 public class SimpleHashJoin implements JoinStrategy {
 
   public SimpleHashJoin(List<HashableCondition> conditions, JoinKind joinKind) {
-    this.hashJoinConfig = new HashJoinConfig(conditions);
-    this.joinKind = joinKind;
+    var tempHashJoinConfig = new HashJoinConfig(conditions);
+
+    // alogirthm assumes that left table is the big table. If not we will flip the tables round to
+    // do the join
+    if (tempHashJoinConfig.getLeftEquals()[0].getSize()
+        >= tempHashJoinConfig.getRightEquals()[0].getSize()) {
+      this.hashJoinConfig = tempHashJoinConfig;
+      this.joinKind = joinKind;
+      this.resultBuilder = new SimpleHashJoinResultBuilder(false);
+    } else {
+      // flip left and right inside of HashJoinConfig
+      this.hashJoinConfig =
+          new HashJoinConfig(
+              tempHashJoinConfig.getRightEquals(),
+              tempHashJoinConfig.getLeftEquals(),
+              tempHashJoinConfig.getTextFoldingStrategies());
+      this.joinKind = flipJoinKind(joinKind);
+      this.resultBuilder = new SimpleHashJoinResultBuilder(true);
+    }
   }
 
   private final HashJoinConfig hashJoinConfig;
   private final JoinKind joinKind;
+  private final SimpleHashJoinResultBuilder resultBuilder;
 
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    // alogirthm assumes that left table is the big table. If not we have flipped the tables round
+    // to do the join
+    // so if you are debugging your left table might not be your left table here
+    // the result builder flips the indexes back as you add them
+    assert (hashJoinConfig.getLeftEquals()[0].getSize()
+        >= hashJoinConfig.getRightEquals()[0].getSize());
+
     var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
     var rightIndex = makeRightIndex(problemAggregator);
@@ -45,6 +68,7 @@ public class SimpleHashJoin implements JoinStrategy {
 
     Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
 
+    Context context = Context.getCurrent();
     for (int leftRow = 0; leftRow < leftEquals[0].getSize(); leftRow++) {
       var leftKey = makeLeftKey(storage, leftRow, groupingProblemAggregator);
       // If any field of the key is null, it cannot match anything.
@@ -102,12 +126,57 @@ public class SimpleHashJoin implements JoinStrategy {
   }
 
   private static void addAll(
-      int leftRow, List<Integer> rightGroup, JoinResult.Builder resultBuilder) {
+      int leftRow, List<Integer> rightGroup, SimpleHashJoinResultBuilder resultBuilder) {
     Context context = Context.getCurrent();
     for (var rightRow : rightGroup) {
       resultBuilder.addMatchedRowsPair(leftRow, rightRow);
       context.safepoint();
     }
     context.safepoint();
+  }
+
+  private static JoinKind flipJoinKind(JoinKind joinKind) {
+    return switch (joinKind) {
+      case LEFT_OUTER -> JoinKind.RIGHT_OUTER;
+      case RIGHT_OUTER -> JoinKind.LEFT_OUTER;
+      case LEFT_ANTI -> JoinKind.RIGHT_ANTI;
+      case RIGHT_ANTI -> JoinKind.LEFT_ANTI;
+      default -> joinKind;
+    };
+  }
+
+  private class SimpleHashJoinResultBuilder {
+
+    public SimpleHashJoinResultBuilder(boolean flipLeftAndRight) {
+      this.flipLeftAndRight = flipLeftAndRight;
+      this.resultBuilder = new JoinResult.Builder();
+    }
+
+    JoinResult.Builder resultBuilder;
+    private final boolean flipLeftAndRight;
+
+    public void addMatchedRowsPair(int leftIndex, int rightIndex) {
+      addPair(leftIndex, rightIndex);
+    }
+
+    public void addUnmatchedLeftRow(int leftIndex) {
+      addPair(leftIndex, -1);
+    }
+
+    public void addUnmatchedRightRow(int rightIndex) {
+      addPair(-1, rightIndex);
+    }
+
+    public JoinResult buildAndInvalidate() {
+      return resultBuilder.buildAndInvalidate();
+    }
+
+    private void addPair(int leftIndex, int rightIndex) {
+      if (flipLeftAndRight) {
+        resultBuilder.addMatchedRowsPair(rightIndex, leftIndex);
+      } else {
+        resultBuilder.addMatchedRowsPair(leftIndex, rightIndex);
+      }
+    }
   }
 }

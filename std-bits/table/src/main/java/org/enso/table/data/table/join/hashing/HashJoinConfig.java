@@ -10,19 +10,14 @@ import org.enso.table.data.table.join.conditions.HashableCondition;
 
 public class HashJoinConfig {
 
-  private Column[] leftEquals;
-  private Column[] rightEquals;
-  private List<TextFoldingStrategy> textFoldingStrategies;
+  private final Column[] leftEquals;
+  private final Column[] rightEquals;
+  private final List<TextFoldingStrategy> textFoldingStrategies;
 
   public HashJoinConfig(List<HashableCondition> conditions) {
     JoinStrategy.ensureConditionsNotEmpty(conditions);
     List<HashEqualityCondition> equalConditions =
         conditions.stream().map(HashJoinConfig::makeHashEqualityCondition).toList();
-
-    if (equalConditions.isEmpty()) {
-      throw new IllegalArgumentException(
-          "EqualityHashJoin is applicable if there is at least one equality condition.");
-    }
 
     this.leftEquals =
         equalConditions.stream().map(HashEqualityCondition::left).toArray(Column[]::new);
@@ -30,6 +25,13 @@ public class HashJoinConfig {
         equalConditions.stream().map(HashEqualityCondition::right).toArray(Column[]::new);
     this.textFoldingStrategies =
         equalConditions.stream().map(HashEqualityCondition::textFoldingStrategy).toList();
+  }
+
+  public HashJoinConfig(
+      Column[] leftEquals, Column[] rightEquals, List<TextFoldingStrategy> textFoldingStrategies) {
+    this.leftEquals = leftEquals;
+    this.rightEquals = rightEquals;
+    this.textFoldingStrategies = textFoldingStrategies;
   }
 
   public Column[] getLeftEquals() {
