@@ -6,6 +6,7 @@ import type {
   AstId,
   FixedMapView,
   Module,
+  ModuleUpdate,
   MutableAst,
   NodeKey,
   Owned,
@@ -50,42 +51,41 @@ export class ReactiveModule implements Module {
   private readonly spans: Map<AstId, SourceRange> = reactive(new Map())
   private readonly updateHooks: UpdateHandler[] = []
 
-  constructor(base: MutableModule) {
+  constructor(base: MutableModule, updateHooks?: UpdateHandler[]) {
     this.ymodule = base
-    base.observe((update) => {
-      for (const id of update.nodesAdded) this.nodes.set(id, new Map() as any)
-      for (const id of update.nodesDeleted) this.nodes.delete(id)
-      for (const { id, fields } of update.fieldsUpdated) {
-        const node = this.nodes.get(id)
-        assertDefined(node)
-        for (const [key, value] of fields) {
-          const node_ = node as unknown as Map<string, unknown>
-          node_.set(key, value)
-        }
-      }
-      for (const { id, changes } of update.metadataUpdated) {
-        const node = this.nodes.get(id)
-        assertDefined(node)
-        if (!node.has('metadata'))
-          (node as unknown as Map<string, unknown>).set('metadata', new Map())
-        const metadata = node.get('metadata') as unknown as Map<string, unknown>
-        for (const [key, value] of changes) {
-          if (value === undefined) {
-            metadata.delete(key)
-          } else {
-            metadata.set(key, value)
-          }
-        }
-      }
-      this.rebuildSpans(update.nodesDeleted)
-      const dirtyNodes = new Set<AstId>()
-      for (const { id } of update.fieldsUpdated) dirtyNodes.add(id)
-      for (const hook of this.updateHooks) hook(dirtyNodes, update.metadataUpdated)
-    })
+    this.updateHooks = updateHooks ?? []
+    base.observe(this.handleUpdate.bind(this))
   }
 
-  onUpdate(hook: UpdateHandler) {
-    this.updateHooks.push(hook)
+  private handleUpdate(update: ModuleUpdate) {
+    for (const id of update.nodesAdded) this.nodes.set(id, new Map() as any)
+    for (const id of update.nodesDeleted) this.nodes.delete(id)
+    for (const { id, fields } of update.fieldsUpdated) {
+      const node = this.nodes.get(id)
+      assertDefined(node)
+      for (const [key, value] of fields) {
+        const node_ = node as unknown as Map<string, unknown>
+        node_.set(key, value)
+      }
+    }
+    for (const { id, changes } of update.metadataUpdated) {
+      const node = this.nodes.get(id)
+      assertDefined(node)
+      if (!node.has('metadata'))
+        (node as unknown as Map<string, unknown>).set('metadata', new Map())
+      const metadata = node.get('metadata') as unknown as Map<string, unknown>
+      for (const [key, value] of changes) {
+        if (value === undefined) {
+          metadata.delete(key)
+        } else {
+          metadata.set(key, value)
+        }
+      }
+    }
+    this.rebuildSpans(update.nodesDeleted)
+    const dirtyNodes = new Set<AstId>()
+    for (const { id } of update.fieldsUpdated) dirtyNodes.add(id)
+    for (const hook of this.updateHooks) hook(this, dirtyNodes, update.metadataUpdated)
   }
 
   private rebuildSpans(deleted: AstId[]) {
@@ -141,6 +141,7 @@ export interface SetView<Key> {
 }
 
 type UpdateHandler = (
+  module: ReactiveModule,
   dirtyNodes: SetView<AstId>,
   metadataChanges: { id: AstId; changes: Map<string, unknown> }[],
 ) => void

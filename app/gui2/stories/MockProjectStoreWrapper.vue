@@ -16,14 +16,15 @@ watch(
   (mod) => {
     if (!mod) return
     syncModule.value = new Ast.MutableModule(mod.doc.ydoc)
-    const astModule = new Ast.ReactiveModule(syncModule.value)
-    astModule.onUpdate(() => {
-      const root = astModule.root()
-      if (root) {
-        const { code } = Ast.print(root)
-        if (code !== props.modelValue) emit('update:modelValue', code)
-      }
-    })
+    const _astModule = new Ast.ReactiveModule(syncModule.value, [
+      (module) => {
+        const root = module.root()
+        if (root) {
+          const { code } = Ast.print(root)
+          if (code !== props.modelValue) emit('update:modelValue', code)
+        }
+      },
+    ])
   },
 )
 

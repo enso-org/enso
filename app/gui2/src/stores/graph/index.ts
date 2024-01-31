@@ -82,11 +82,7 @@ export const useGraphStore = defineStore('graph', () => {
   watch(syncModule, (syncModule) => {
     if (!syncModule) return
     assert(astModule.value instanceof Ast.EmptyModule)
-    const newAstModule = new ReactiveModule(syncModule)
-    newAstModule.onUpdate((dirtyNodes, metadataUpdates) =>
-      handleModuleUpdate(newAstModule, dirtyNodes, metadataUpdates),
-    )
-    astModule.value = newAstModule
+    astModule.value = new ReactiveModule(syncModule, [handleModuleUpdate])
   })
 
   function handleModuleUpdate(
