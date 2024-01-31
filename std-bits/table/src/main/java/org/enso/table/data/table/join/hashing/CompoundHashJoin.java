@@ -37,16 +37,18 @@ public class CompoundHashJoin implements JoinStrategy {
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    var rightEquals = hashJoinConfig.getRightEquals();
-    var leftEquals = hashJoinConfig.getLeftEquals();
-    var textFoldingStrategies = hashJoinConfig.getTextFoldingStrategies();
-
     var leftIndex =
         MultiValueIndex.makeUnorderedIndex(
-            leftEquals, leftEquals[0].getSize(), textFoldingStrategies, problemAggregator);
+            hashJoinConfig.getLeftEquals(),
+            hashJoinConfig.getLeftNumRows(),
+            hashJoinConfig.getTextFoldingStrategies(),
+            problemAggregator);
     var rightIndex =
         MultiValueIndex.makeUnorderedIndex(
-            rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
+            hashJoinConfig.getRightEquals(),
+            hashJoinConfig.getRightNumRows(),
+            hashJoinConfig.getTextFoldingStrategies(),
+            problemAggregator);
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
     for (var leftEntry : leftIndex.mapping().entrySet()) {
