@@ -80,3 +80,9 @@ add_specs suite_builder setup =
             expected = table_builder [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]] |> materialize
             result = table.replace lookup_table 'duplicate_key' |> materialize
             result . should_equal expected
+
+        group_builder.specify "(edge-case) should allow lookup with itself" <|
+            table = table_builder [['x', [2, 1, 4, 3]], ['y', [20, 10, 40, 30]]]
+            expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]] |> materialize
+            result = table.replace table 'x' |> materialize
+            result . should_equal expected
