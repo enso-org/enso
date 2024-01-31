@@ -1,7 +1,10 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -14,9 +17,11 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -335,5 +340,55 @@ public class EqualsTest extends TestBase {
           assertTrue(equalsNode.execute(hundred42, 142L));
           return null;
         });
+  }
+
+  @Test
+  public void testUnresolvedConversionInNamedModules() throws Exception {
+    var mod1 = context.eval(Source.newBuilder("enso", "one = 'one'", "one.enso").build());
+    var mod2 = context.eval(Source.newBuilder("enso", "two = 'two'", "two.enso").build());
+    assertUnresolvedConversions(mod1, mod2);
+  }
+
+  @Test
+  public void testUnresolvedConversionInUnamedModules() throws Exception {
+    var mod1 = context.eval("enso", "one = 'one'");
+    var mod2 = context.eval("enso", "two = 'two'");
+    assertUnresolvedConversions(mod1, mod2);
+  }
+
+  private void assertUnresolvedConversions(Value mod1, Value mod2) {
+
+    assertEquals("one", mod1.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "one").asString());
+    assertEquals("two", mod2.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "two").asString());
+
+    if (unwrapValue(context, mod1) instanceof org.enso.interpreter.runtime.Module m1
+        && unwrapValue(context, mod2) instanceof org.enso.interpreter.runtime.Module m2) {
+      var scope1 = m1.getScope();
+      var scope2 = m2.getScope();
+      assertNotEquals("Different modules have different scopes", scope1, scope2);
+
+      var conv1 = UnresolvedConversion.build(scope1);
+      var conv1_2 = UnresolvedConversion.build(scope1);
+      var conv2 = UnresolvedConversion.build(scope2);
+      var conv2_2 = UnresolvedConversion.build(scope2);
+
+      executeInContext(
+          context,
+          () -> {
+            assertTrue(
+                "Conversions from same module are the same", equalsNode.execute(conv1, conv1_2));
+            assertTrue(
+                "Conversions from same module are the same", equalsNode.execute(conv2, conv2_2));
+            assertFalse(
+                "Conversions from other modules aren't the same", equalsNode.execute(conv1, conv2));
+            assertFalse(
+                "Conversions from other modueles aren't the same",
+                equalsNode.execute(conv2_2, conv1_2));
+            return null;
+          });
+
+    } else {
+      fail("Expecting module: " + mod1);
+    }
   }
 }

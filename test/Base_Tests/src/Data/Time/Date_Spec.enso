@@ -3,78 +3,80 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test import Problems, Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import project.Data.Time.Date_Part_Spec
 
 polyglot java import java.time.LocalDate
 polyglot java import java.time.format.DateTimeFormatter
 
-spec =
-    spec_with "Date" Date.new Date.parse
-    spec_with "JavaScriptDate" js_date js_parse
+add_specs suite_builder =
+    spec_with suite_builder "Date" Date.new Date.parse
+    spec_with suite_builder "JavaScriptDate" js_date js_parse
     if Polyglot.is_language_installed "python" then
-        spec_with "PythonDate" python_date python_parse
-    spec_with "JavaDate" java_date java_parse
-    spec_with "JavaScriptArrayWithADate" js_array_date js_parse
+        spec_with suite_builder "PythonDate" python_date python_parse pending="https://github.com/enso-org/enso/issues/8913"
+    spec_with suite_builder "JavaDate" java_date java_parse
+    spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse
 
-spec_with name create_new_date parse_date =
-    Test.group name <|
+spec_with suite_builder name create_new_date parse_date pending=Nothing =
+    if pending.is_nothing then Date_Part_Spec.add_specs suite_builder name create_new_date
 
-        Test.specify "should create local date" <|
+    suite_builder.group name pending=pending group_builder->
+
+        group_builder.specify "should create local date" <|
             date = create_new_date 2020 1 1
             date . year . should_equal 2020
             date . month . should_equal 1
             date . day . should_equal 1
 
-        Test.specify "should handle errors when creating local date" <|
+        group_builder.specify "should handle errors when creating local date" <|
             case create_new_date 2020 30 30 . catch of
                 Time_Error.Error msg _ ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should format local date using provided pattern" <|
+        group_builder.specify "should format local date using provided pattern" <|
             text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
-        Test.specify "should support to_display_text" <|
+        group_builder.specify "should support to_display_text" <|
             text = create_new_date 2020 12 21 . to_display_text
             text . should_equal "2020-12-21"
 
-        Test.specify "should format local date using provided pattern and locale" <|
+        group_builder.specify "should format local date using provided pattern and locale" <|
             d = create_new_date 2020 6 21
             d.format "d. MMM yyyy" . should_equal "21. Jun 2020"
             d.format "d. MMMM yyyy" . should_equal "21. June 2020"
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" locale=(Locale.uk)) . should_equal "21. June 2020"
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" locale=(Locale.france)) . should_equal "21. juin 2020"
 
-        Test.specify "should format local date using default pattern" <|
+        group_builder.specify "should format local date using default pattern" <|
             text = create_new_date 2020 12 21 . to_text
             text . should_equal "2020-12-21"
 
-        Test.specify "should parse default time format" <|
+        group_builder.specify "should parse default time format" <|
             text = create_new_date 2020 12 21 . to_text
             date = parse_date text
             date . year . should_equal 2020
             date . month . should_equal 12
             date . day . should_equal 21
 
-        Test.specify "should throw error when parsing invalid date" <|
+        group_builder.specify "should throw error when parsing invalid date" <|
             case parse_date "birthday" . catch of
                 Time_Error.Error msg _ ->
                     msg . should_contain "Text 'birthday' could not be parsed"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should parse local date" <|
+        group_builder.specify "should parse local date" <|
             date = parse_date "1999-01-01"
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
 
-        Test.specify "should convert to time" <|
+        group_builder.specify "should convert to time" <|
             time = create_new_date 2000 12 21 . to_date_time (Time_Of_Day.new 12 30 45) Time_Zone.utc
             time . year . should_equal 2000
             time . month . should_equal 12
@@ -85,45 +87,45 @@ spec_with name create_new_date parse_date =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "date-time conversion should work with interop values" <|
+        group_builder.specify "date-time conversion should work with interop values" <|
             date = create_new_date 2000 12 21
             time = Time_Of_Day.new 12 30 45
             datetime = time.to_date_time date
             datetime.date . should_equal date
             datetime.time_of_day . should_equal time
 
-        Test.specify "should convert to Json" <|
+        group_builder.specify "should convert to Json" <|
             date = create_new_date 2001 12 21
             date.to_json.should_equal <|
                 JS_Object.from_pairs [["type", "Date"], ["constructor", "new"], ["day", date.day], ["month", date.month], ["year", date.year]] . to_text
 
-        Test.specify "should add date-based interval" <|
+        group_builder.specify "should add date-based interval" <|
             date = create_new_date 1970 + (Period.new days=1)
             date . year . should_equal 1970
             date . month . should_equal 1
             date . day . should_equal 2
 
-        Test.specify "should subtract date-based interval" <|
+        group_builder.specify "should subtract date-based interval" <|
             date = create_new_date 1970 - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 1
             date . day . should_equal 1
 
-        Test.specify "should support mixed interval operators" <|
+        group_builder.specify "should support mixed interval operators" <|
             date = create_new_date 1970 + (Period.new months=1) - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 2
             date . day . should_equal 1
 
-        Test.specify "should throw error when adding time-based Duration" <|
+        group_builder.specify "should throw error when adding time-based Duration" <|
             Test.expect_panic_with matcher=Type_Error <|
                  create_new_date 1970 + (Duration.new hours=1)
 
-        Test.specify "should throw error when subtracting time-based Duration" <|
+        group_builder.specify "should throw error when subtracting time-based Duration" <|
             Test.expect_panic_with matcher=Type_Error <|
                  create_new_date 1970 - (Duration.new minutes=1)
 
-        Test.specify "should support addition of Date_Period" <|
+        group_builder.specify "should support addition of Date_Period" <|
             time = create_new_date 1970
             time+Date_Period.Year . should_equal <| create_new_date 1971
             time+Date_Period.Quarter . should_equal <| create_new_date 1970 4
@@ -131,7 +133,7 @@ spec_with name create_new_date parse_date =
             time+Date_Period.Week . should_equal <| create_new_date 1970 1 8
             time+Date_Period.Day . should_equal <| create_new_date 1970 1 2
 
-        Test.specify "should support subtraction of Date_Period" <|
+        group_builder.specify "should support subtraction of Date_Period" <|
             time = create_new_date 1970
             time-Date_Period.Year . should_equal <| create_new_date 1969
             time-Date_Period.Quarter . should_equal <| create_new_date 1969 10
@@ -139,12 +141,12 @@ spec_with name create_new_date parse_date =
             time-Date_Period.Week . should_equal <| create_new_date 1969 12 25
             time-Date_Period.Day . should_equal <| create_new_date 1969 12 31
 
-        Test.specify "should support mixed addition and subtraction of Date_Period" <|
+        group_builder.specify "should support mixed addition and subtraction of Date_Period" <|
             time = create_new_date 1970
             time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_date 1970 3 1
             time-Date_Period.Month+Date_Period.Year . should_equal <| create_new_date 1970 12 1
 
-        Test.specify "should be comparable" <|
+        group_builder.specify "should be comparable" <|
             date_1 = parse_date "2021-01-02"
             date_2 = parse_date "2021-01-01"
             (date_1 == date_2) . should_be_false
@@ -159,12 +161,12 @@ spec_with name create_new_date parse_date =
             date_1>=datetime . should_fail_with Incomparable_Values
             date_1==datetime . should_be_false
 
-        Test.specify "should create date before epoch start" <|
+        group_builder.specify "should create date before epoch start" <|
             (create_new_date 100 1 2).year   . should_equal 100
             (create_new_date 100 1 2).month  . should_equal 1
             (create_new_date 100 1 2).day    . should_equal 2
 
-        Test.specify "Gregorian calendar related functionality should produce warning before epoch start" <|
+        group_builder.specify "Gregorian calendar related functionality should produce warning before epoch start" <|
             is_time_error v = case v of
                 _ : Time_Error -> True
                 _ -> False
@@ -178,7 +180,7 @@ spec_with name create_new_date parse_date =
                 expect_warning date.length_of_year
                 expect_warning date.week_of_year
 
-        Test.specify "Gregorian calendar related functionality should work after epoch start" <|
+        group_builder.specify "Gregorian calendar related functionality should work after epoch start" <|
             expect_no_warning value =
                 ((Warning.get_all value).length == 0) . should_be_true
             dates_after_epoch = [(create_new_date 1583), (create_new_date 1582 10 16), (create_new_date 2020)]
@@ -190,14 +192,14 @@ spec_with name create_new_date parse_date =
                 expect_no_warning date.length_of_year
                 expect_no_warning date.week_of_year
 
-        Test.specify "should correctly determine the type of date" <|
+        group_builder.specify "should correctly determine the type of date" <|
             new_date = create_new_date 2020 6 1
             parsed_date = parse_date "2021-01-02"
 
             Meta.type_of new_date . should_equal_type Date
             Meta.type_of parsed_date . should_equal_type Date
 
-        Test.specify "should allow to find start and end of a Date_Period containing the current date" <|
+        group_builder.specify "should allow to find start and end of a Date_Period containing the current date" <|
             d1 = create_new_date 2022 9 12
             d1.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
             d1.end_of Date_Period.Year . should_equal (Date.new 2022 12 31)
@@ -250,17 +252,17 @@ spec_with name create_new_date parse_date =
             (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
             (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
-        Test.specify "should allow to compute the next Date_Period after a date" <|
+        group_builder.specify "should allow to compute the next Date_Period after a date" <|
             create_new_date 2000 2 1 . next Date_Period.Day . should_equal <| create_new_date 2000 2 2
             create_new_date 2000 2 1 . next Date_Period.Month . should_equal <| create_new_date 2000 3 1
             create_new_date 2000 2 1 . next Date_Period.Year . should_equal <| create_new_date 2001 2 1
 
-        Test.specify "should allow to compute the previous Date_Period after a date" <|
+        group_builder.specify "should allow to compute the previous Date_Period after a date" <|
             create_new_date 2000 2 1 . previous Date_Period.Day . should_equal <| create_new_date 2000 1 31
             create_new_date 2000 2 1 . previous Date_Period.Month . should_equal <| create_new_date 2000 1 1
             create_new_date 2000 2 1 . previous Date_Period.Year . should_equal <| create_new_date 1999 2 1
 
-        Test.specify "should allow to compute the Period between two dates." <|
+        group_builder.specify "should allow to compute the Period between two dates." <|
             create_new_date 2000 2 1 . until (create_new_date 2000 2 12) . should_equal <| Period.new 0 0 11
             create_new_date 2000 2 1 . until (create_new_date 2000 12 12) . should_equal <| Period.new 0 10 11
             create_new_date 2000 2 1 . until (create_new_date 2010 2 12) . should_equal <| Period.new 10 0 11
@@ -269,7 +271,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 12 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new 0 -10 -11
             create_new_date 2010 2 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new -10 0 -11
 
-        Test.specify "should allow to compute the number of days until a date" <|
+        group_builder.specify "should allow to compute the number of days until a date" <|
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) . should_equal 0
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) . should_equal 1
             create_new_date 2000 2 2 . days_until (create_new_date 2000 2 1) . should_equal -1
@@ -277,7 +279,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 3 1 . days_until (create_new_date 2001 3 1) . should_equal 365
             create_new_date 2001 3 1 . days_until (create_new_date 2000 3 1) . should_equal -365
 
-        Test.specify "should allow to compute the number of days until a date including the end date" <|
+        group_builder.specify "should allow to compute the number of days until a date including the end date" <|
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) include_end_date=True . should_equal 1
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) include_end_date=True . should_equal 2
             create_new_date 2000 2 2 . days_until (create_new_date 2000 2 1) include_end_date=True . should_equal -2
@@ -285,7 +287,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 3 1 . days_until (create_new_date 2001 3 1) include_end_date=True . should_equal 366
             create_new_date 2001 3 1 . days_until (create_new_date 2000 3 1) include_end_date=True . should_equal -366
 
-        Test.specify "should allow to compute the number of working days until a later date" <|
+        group_builder.specify "should allow to compute the number of working days until a later date" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) . should_equal 0
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 2) . should_equal 1
@@ -336,7 +338,7 @@ spec_with name create_new_date parse_date =
         # We duplicate the holiday entries to check that the functions are resilient to such input data.
         duplicated_holiday_november year =
             holiday_november year + holiday_november year + holiday_november year
-        Test.specify "should allow to compute the number of working days until a date, skipping custom set holidays" <|
+        group_builder.specify "should allow to compute the number of working days until a date, skipping custom set holidays" <|
             holiday_february = Vector.new 29 (i -> create_new_date 2000 2 i+1)
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 3 1) holiday_february . should_equal 0
             create_new_date 2000 2 10 . work_days_until (create_new_date 2000 2 12) holiday_february . should_equal 0
@@ -351,7 +353,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (duplicated_holiday_november 2020) . should_equal 22
             create_new_date 1999 11 1 . work_days_until (create_new_date 1999 12 1) (duplicated_holiday_november 1999) . should_equal 19
 
-        Test.specify "should allow to compute the number of working days including the end, in a manner consistent with NETWORKDAYS" <|
+        group_builder.specify "should allow to compute the number of working days including the end, in a manner consistent with NETWORKDAYS" <|
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) include_end_date=True . should_equal 1
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 2) include_end_date=True . should_equal 2
             create_new_date 2000 2 3 . work_days_until (create_new_date 2000 2 16) include_end_date=True . should_equal 10
@@ -368,7 +370,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 8) include_end_date=True . should_equal 2
             create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 5) include_end_date=True . should_equal 0
 
-        Test.specify "should allow to shift the date by N working days" <|
+        group_builder.specify "should allow to shift the date by N working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days 0 . should_equal (Date.new 2000 2 1)
             create_new_date 2000 2 1 . add_work_days . should_equal (Date.new 2000 2 2)
@@ -400,7 +402,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2022 3 27 . add_work_days 0 . should_equal (Date.new 2022 3 28)
             create_new_date 2022 3 27 . add_work_days 1 . should_equal (Date.new 2022 3 29)
 
-        Test.specify "should allow to shift the date by negative amount of working days" <|
+        group_builder.specify "should allow to shift the date by negative amount of working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days -1 . should_equal (Date.new 2000 1 31)
             create_new_date 2000 2 1 . add_work_days -2 . should_equal (Date.new 2000 1 28)
@@ -429,7 +431,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 6 . add_work_days -5 . should_equal (Date.new 2000 1 31)
             create_new_date 2000 2 6 . add_work_days -6 . should_equal (Date.new 2000 1 28)
 
-        Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
+        group_builder.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = create_new_date year 1 1
                 Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
@@ -450,7 +452,7 @@ spec_with name create_new_date parse_date =
             create_new_date 1999 10 30 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 3)
             create_new_date 1999 10 30 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 4)
 
-        Test.specify "add_work_days and work_days_until should be consistent with each other"  <|
+        group_builder.specify "add_work_days and work_days_until should be consistent with each other"  <|
             first_day = create_new_date 2020 1 1
             dates = Vector.new 100 (n -> first_day + (Period.new days=n))
             holidays = [1, 2, 10, 11, 12, 13, 14, 15, 30, 40, 41, 42, 50, 60].map (n -> first_day + (Period.new days=n))
@@ -466,7 +468,7 @@ spec_with name create_new_date parse_date =
                     (date.add_work_days -n).work_days_until date . should_equal n
                     (date.add_work_days -n holidays).work_days_until date holidays . should_equal n
 
-        Test.specify "should allow extracting a date_part" <|
+        group_builder.specify "should allow extracting a date_part" <|
             d1 = create_new_date 2023 12 30
             d1.date_part Date_Period.Year . should_equal 2023
             d1.date_part Date_Period.Quarter . should_equal 4
@@ -476,7 +478,7 @@ spec_with name create_new_date parse_date =
 
             Test.expect_panic_with (d1.date_part Time_Period.Day) Type_Error
 
-        Test.specify "should allow computing date_diff" <|
+        group_builder.specify "should allow computing date_diff" <|
             d1 = create_new_date 2021 11 3
             d2 = create_new_date 2021 12 5
 
@@ -506,7 +508,7 @@ spec_with name create_new_date parse_date =
             Test.expect_panic_with (d1.date_diff d2 Time_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_diff d2 Time_Period.Hour) Type_Error
 
-        Test.specify "should allow shifting with date_add" <|
+        group_builder.specify "should allow shifting with date_add" <|
             d1 = create_new_date 2021 01 31
             d1.date_add 5 Date_Period.Day . should_equal (Date.new 2021 02 05)
             d1.date_add -1 Date_Period.Day . should_equal (Date.new 2021 01 30)
@@ -523,10 +525,13 @@ spec_with name create_new_date parse_date =
             Test.expect_panic_with (d1.date_add 1.5 Date_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_add 1.0 Date_Period.Day) Type_Error
 
-    Date_Part_Spec.spec name create_new_date
 
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 parseNormally x y = (Date.parse x y) . to_text
 

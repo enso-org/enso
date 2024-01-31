@@ -13,6 +13,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
@@ -40,7 +41,11 @@ public class BenchmarksRunner {
             .include("^" + label + "$");
 
     if (Boolean.getBoolean("bench.compileOnly")) {
-      builder.measurementIterations(1).warmupIterations(0);
+      builder
+          .measurementIterations(1)
+          .warmupIterations(0)
+          .measurementTime(TimeValue.seconds(1))
+          .forks(0);
     }
 
     Options benchmarkOptions = builder.build();

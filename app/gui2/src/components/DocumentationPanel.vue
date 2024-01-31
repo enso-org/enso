@@ -192,6 +192,7 @@ function handleBreadcrumbClick(index: number) {
 }
 
 .sections {
+  width: 100%;
   padding: 0 8px;
 }
 </style>

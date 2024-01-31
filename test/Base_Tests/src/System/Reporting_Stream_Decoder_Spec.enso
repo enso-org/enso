@@ -3,14 +3,14 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 polyglot java import java.nio.CharBuffer
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
+
+add_specs suite_builder =
     windows_file = enso_project.data / "windows.txt"
 
-    Test.group "ReportingStreamDecoder" <|
-        Test.specify "should allow reading a file character by character" <|
+    suite_builder.group "ReportingStreamDecoder" group_builder->
+        group_builder.specify "should allow reading a file character by character" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -24,7 +24,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should work correctly when reading chunks of varying sizes" <|
+        group_builder.specify "should work correctly when reading chunks of varying sizes" <|
             f = enso_project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'
@@ -73,7 +73,7 @@ spec =
             result.should_succeed
             f.delete
 
-        Test.specify "should allow reading a UTF-8 file" <|
+        group_builder.specify "should allow reading a UTF-8 file" <|
             f = enso_project.data / "transient" / "utf8.txt"
             encoding = Encoding.utf_8
             ((0.up_to 100).map _->'Hello World!' . join '\n').write f . should_succeed
@@ -81,13 +81,13 @@ spec =
             contents = read_file_one_by_one f encoding expected_contents.length
             contents.should_equal expected_contents
 
-        Test.specify "should allow reading a Windows file" <|
+        group_builder.specify "should allow reading a Windows file" <|
             encoding = Encoding.windows_1252
             expected_contents = "Hello World! $¢¤¥"
             contents = read_file_one_by_one windows_file encoding expected_contents.length
             contents.should_equal expected_contents
 
-        Test.specify "should raise warnings when reading invalid characters" <|
+        group_builder.specify "should raise warnings when reading invalid characters" <|
             encoding = Encoding.ascii
             expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
             expected_problems = [Encoding_Error.Error "Encoding issues at bytes 14, 15, 16."]
@@ -106,7 +106,7 @@ spec =
             contents_2.should_equal expected_contents
             Problems.get_attached_warnings contents_2 . should_equal expected_problems
 
-        Test.specify "should work correctly if no data is read from it" <|
+        group_builder.specify "should work correctly if no data is read from it" <|
             result = windows_file.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder Encoding.ascii Problem_Behavior.Report_Error _->Nothing
             result.should_succeed
@@ -134,4 +134,8 @@ read_characters decoder n =
         transfer_codepoints Nothing
         v.to_vector
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

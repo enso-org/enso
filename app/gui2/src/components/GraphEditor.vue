@@ -36,7 +36,7 @@ import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -311,6 +311,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
+    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
 ).handleClick
@@ -330,7 +331,7 @@ function onPlayButtonPress() {
     if (modeValue == undefined) {
       return
     }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', 'Live')
   })
 }
 

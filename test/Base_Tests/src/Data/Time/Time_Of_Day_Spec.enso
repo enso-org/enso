@@ -4,40 +4,40 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter
 
-spec =
-    specWith "Time_Of_Day" enso_time Time_Of_Day.parse
-    specWith "JavaLocalTime" java_time java_parse
+add_specs suite_builder =
+    specWith suite_builder "Time_Of_Day" enso_time Time_Of_Day.parse
+    specWith suite_builder "JavaLocalTime" java_time java_parse
     if Polyglot.is_language_installed "python" then
-        specWith "PythonLocalTime" python_time python_parse nanoseconds_loss_in_precision=True
+        specWith suite_builder "PythonLocalTime" python_time python_parse nanoseconds_loss_in_precision=True
 
-specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
-    Test.group name <|
+specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_precision=False =
+    suite_builder.group name group_builder->
 
-        Test.specify "should create local time" <|
+        group_builder.specify "should create local time" <|
             time = create_new_time 1 0 0
             time . hour . should_equal 1
             time . minute . should_equal 0
             time . second . should_equal 0
             time . to_seconds . should_equal 3600
 
-        Test.specify "should handle errors when creating a time" <|
+        group_builder.specify "should handle errors when creating a time" <|
             case create_new_time 24 0 0 . catch of
                 Time_Error.Error msg _ ->
                     msg.to_text . contains "24" . should_not_equal -1
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should format local time using provided pattern" <|
+        group_builder.specify "should format local time using provided pattern" <|
             text = create_new_time 12 20 44 . format "HHmmss"
             text . should_equal "122044"
 
-        Test.specify "should support display_text" <|
+        group_builder.specify "should support display_text" <|
             text = create_new_time 12 20 44 . to_display_text
             text . should_equal "12:20:44"
 
@@ -47,33 +47,33 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             text_3 = create_new_time 12 20 44 123000000 . to_display_text
             text_3 . should_equal "12:20:44.123"
 
-        Test.specify "should format using provided pattern and locale" <|
+        group_builder.specify "should format using provided pattern and locale" <|
             d = create_new_time 12 20 44
             # Note that the results are all the same.
             d.format "HH:mm" . should_equal "12:20"
             d.format (Date_Time_Formatter.from "HH:mm" (Locale.new "gb")) . should_equal "12:20"
             d.format (Date_Time_Formatter.from "HH:mm" (Locale.new "fr")) . should_equal "12:20"
 
-        Test.specify "should format local time using default pattern" <|
+        group_builder.specify "should format local time using default pattern" <|
             text = create_new_time 12 20 44 . to_text
             text . should_equal "12:20:44"
 
-        Test.specify "should convert to Json" <|
+        group_builder.specify "should convert to Json" <|
             time = create_new_time 1 2 3
             time.to_json.should_equal <|
                 time_pairs = [["hour", 1], ["minute", 2], ["second", 3], ["nanosecond", 0]]
                 JS_Object.from_pairs ([["type", "Time_Of_Day"], ["constructor", "new"]] + time_pairs) . to_text
 
-        Test.specify "should parse default time format" <|
+        group_builder.specify "should parse default time format" <|
             text = create_new_time 12 20 44 . to_text
             time = Time_Of_Day.parse text
             time.to_seconds . should_equal 44444
 
-        Test.specify "should parse local time" <|
+        group_builder.specify "should parse local time" <|
             time = parse_time "10:00:00"
             time.to_seconds . should_equal 36000
 
-        Test.specify "should throw error when parsing invalid time" <|
+        group_builder.specify "should throw error when parsing invalid time" <|
             case parse_time "1200" . catch of
                 Time_Error.Error msg _ ->
                     ## This error message may or may not contain the suffix:
@@ -83,11 +83,11 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should parse custom format" <|
+        group_builder.specify "should parse custom format" <|
             time = parse_time "12:30AM" "hh:mma"
             time.to_seconds . should_equal 1800
 
-        Test.specify "should throw error when parsing custom format" <|
+        group_builder.specify "should throw error when parsing custom format" <|
             time = parse_time "12:30" "HH:mm:ss"
             case time.catch of
                 Time_Error.Error msg _ ->
@@ -95,7 +95,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should convert to time" <|
+        group_builder.specify "should convert to time" <|
             datetime = create_new_time 1 0 0 . to_date_time (Date.new 2000 12 21) Time_Zone.utc
             datetime . year . should_equal 2000
             datetime . month . should_equal 12
@@ -108,34 +108,34 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             datetime . nanosecond . should_equal 0
             datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "date-time conversion should work with interop values" <|
+        group_builder.specify "date-time conversion should work with interop values" <|
             date = Date.new 2000 12 21
             time = create_new_time 12 30 45
             datetime = date.to_date_time time
             datetime.date . should_equal date
             datetime.time_of_day . should_equal time
 
-        Test.specify "should add time-based interval" <|
+        group_builder.specify "should add time-based interval" <|
             time = create_new_time 0 + (Duration.new minutes=1)
             time . to_seconds . should_equal 60
 
-        Test.specify "should subtract time-based interval" <|
+        group_builder.specify "should subtract time-based interval" <|
             time = create_new_time 0 - (Duration.new minutes=1)
             time . to_seconds . should_equal 86340
 
-        Test.specify "should support mixed interval operators" <|
+        group_builder.specify "should support mixed interval operators" <|
             time = create_new_time 0 + (Duration.new hours=1) - (Duration.new seconds=1)
             time . to_seconds . should_equal 3599
 
-        Test.specify "should throw error when adding date-based interval" <|
+        group_builder.specify "should throw error when adding date-based interval" <|
             Test.expect_panic_with matcher=Type_Error <|
                 create_new_time 0 + (Period.new days=1)
 
-        Test.specify "should throw error when subtracting date-based interval" <|
+        group_builder.specify "should throw error when subtracting date-based interval" <|
             Test.expect_panic_with matcher=Type_Error <|
                 create_new_time 0 - (Period.new days=1)
 
-        Test.specify "should support addition of Time_Period" <|
+        group_builder.specify "should support addition of Time_Period" <|
             time = create_new_time 0
             time+Time_Period.Day . should_equal <| create_new_time 0
             time+Time_Period.Hour . should_equal <| create_new_time 1
@@ -146,7 +146,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
                 time+Time_Period.Microsecond . should_equal <| create_new_time 0 0 0 10^3
                 time+Time_Period.Nanosecond . should_equal <| create_new_time 0 0 0 1
 
-        Test.specify "should support subtraction of Time_Period" <|
+        group_builder.specify "should support subtraction of Time_Period" <|
             time = create_new_time 12
             time-Time_Period.Day . should_equal <| create_new_time 12
             time-Time_Period.Hour . should_equal <| create_new_time 11
@@ -158,12 +158,12 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
                 time-Time_Period.Microsecond . should_equal <| create_new_time 11 59 59 (second_in_nanos - 10^3)
                 time-Time_Period.Nanosecond . should_equal <| create_new_time 11 59 59 (second_in_nanos - 1)
 
-        Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
+        group_builder.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
             time = create_new_time 0
             time+Time_Period.Hour-Time_Period.Minute . should_equal <| create_new_time 0 59
             time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_time 0 1
 
-        Test.specify "should be comparable" <|
+        group_builder.specify "should be comparable" <|
             time_1 = parse_time "12:30:12.7102"
             time_2 = parse_time "04:00:10.0"
             (time_1 == time_2) . should_be_false
@@ -173,7 +173,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             time_1<time_2 . should_be_false
             time_2<(Date_Time.new 1999 1 1 4 0 10) . should_fail_with Incomparable_Values
 
-        Test.specify "should correctly determine the type of timeofday" <|
+        group_builder.specify "should correctly determine the type of timeofday" <|
             new_timeofday = create_new_time 15 37 58
             parsed_timeofday =  parse_time "10:00:00"
 
@@ -181,7 +181,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             Meta.type_of parsed_timeofday . should_equal_type Time_Of_Day
 
         max_nanos = 999999999
-        Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|
+        group_builder.specify "should allow to find start/end of a Time_Period containing the current time of day" <|
             d1 = create_new_time 15 37 58 123456789
             d1.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
             d1.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
@@ -220,7 +220,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             d3.start_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 0)
             d3.end_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
 
-        Test.specify "should allow extracting a date_part" <|
+        group_builder.specify "should allow extracting a date_part" <|
             d1 = create_new_time 15 37 58 123456789
             d1.date_part Time_Period.Hour . should_equal 15
             d1.date_part Time_Period.Minute . should_equal 37
@@ -233,7 +233,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             d1.date_part Time_Period.Day . should_fail_with Illegal_Argument
             Test.expect_panic_with (d1.date_part Date_Period.Day) Type_Error
 
-        Test.specify "should allow computing a date_diff" <|
+        group_builder.specify "should allow computing a date_diff" <|
             t1 = create_new_time 10 15 0
             t2 = create_new_time 12 30 20
 
@@ -260,7 +260,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
                 t1.date_diff t2 Time_Period.Nanosecond . should_equal 8120*1000*1000*1000
                 t1.date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_equal 12034056078
 
-        Test.specify "should allow shifting with date_add" <|
+        group_builder.specify "should allow shifting with date_add" <|
             t1 = create_new_time 23 45 0
 
             t1.date_add -1 Time_Period.Hour . should_equal (Time_Of_Day.new 22 45 0)
@@ -305,7 +305,11 @@ python_parse time_text pattern=Date_Time_Formatter.iso_time =
     t = Time_Of_Day.parse time_text pattern
     python_time t.hour t.minute t.second t.nanosecond
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 foreign python python_time_impl hour minute second nanoOfSecond = """
     import datetime

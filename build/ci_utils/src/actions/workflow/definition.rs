@@ -138,7 +138,11 @@ pub struct JobId(String);
 #[serde(rename_all = "kebab-case", untagged)]
 pub enum Concurrency {
     Plain(String),
-    Map { group: String, cancel_in_progress: bool },
+    #[serde(rename_all = "kebab-case")]
+    Map {
+        group:              String,
+        cancel_in_progress: String,
+    },
 }
 
 impl Concurrency {
@@ -1053,6 +1057,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     vec![submodules_workaround_win, submodules_workaround_linux, actual_checkout]
 }
 
+/// See [`checkout_repo_step_customized`].
 pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
     checkout_repo_step_customized(identity)
 }

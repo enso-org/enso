@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Semantic.Default_Args_Spec.Box import all
 
@@ -21,15 +21,15 @@ type G a=4 b=Bar
 local_fun a b=1 c=local_const = a + b + c
 local_const = 42
 
-spec =
-    Test.group "Atom Constructors" <|
-        Test.specify "should be allowed to use primitive default arguments" <|
+add_specs suite_builder =
+    suite_builder.group "Atom Constructors" group_builder->
+        group_builder.specify "should be allowed to use primitive default arguments" <|
             x = A 1
             x.b.should_equal 1
             y = A 1
             y.b.should_equal 1
 
-        Test.specify "should be allowed to use non-primitive default arguments" <|
+        group_builder.specify "should be allowed to use non-primitive default arguments" <|
             a = B 1 (Foo False)
             a.b.should_equal (Foo False)
             b = B 1
@@ -40,18 +40,22 @@ spec =
             d.b.b.should_equal (Foo False)
             d.b.c.should_equal False
 
-        Test.specify "should be allowed to use default arguments that refer to previous parameters" <|
+        group_builder.specify "should be allowed to use default arguments that refer to previous parameters" <|
             e = E 1
             e.b.should_equal 1
             e.c.should_equal 2
             f = F 1
             f.c.should_equal False
 
-        Test.specify "apply defaulted arguments that are themselves fully defaulted" <|
+        group_builder.specify "apply defaulted arguments that are themselves fully defaulted" <|
             G.should_equal (G 4 (Bar 1 (Foo False) False))
 
-    Test.group "Functions" <|
-        Test.specify "should apply default arguments that involve local functions" <|
+    suite_builder.group "Functions" group_builder->
+        group_builder.specify "should apply default arguments that involve local functions" <|
             local_fun 0 . should_equal 43
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

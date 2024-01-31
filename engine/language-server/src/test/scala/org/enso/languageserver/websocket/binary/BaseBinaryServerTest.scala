@@ -35,7 +35,7 @@ import org.enso.languageserver.websocket.binary.factory.{
 
 import scala.concurrent.duration._
 
-class BaseBinaryServerTest extends BinaryServerTestKit {
+abstract class BaseBinaryServerTest extends BinaryServerTestKit {
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(

@@ -10,16 +10,18 @@ import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
-import * as animations from '#/utilities/animations'
+
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
+import Twemoji from '#/components/Twemoji'
+
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
-
-import Twemoji from '#/components/Twemoji'
 
 // ================
 // === Newtypes ===
@@ -38,8 +40,6 @@ const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 // to switch projects, and undo history may be lost.
 
 export const HELP_CHAT_ID = 'enso-chat'
-export const ANIMATION_DURATION_MS = 200
-export const WIDTH_PX = 336
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -398,13 +398,7 @@ export default function Chat(props: ChatProps) {
   const [isAtBottom, setIsAtBottom] = React.useState(true)
   const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
     React.useState<number | null>(null)
-  // TODO: proper URL
-  const [websocket] = React.useState(() => new WebSocket(config.ACTIVE_CONFIG.chatUrl))
-  const [right, setTargetRight] = animations.useInterpolateOverTime(
-    animations.interpolationFunctionEaseInOut,
-    ANIMATION_DURATION_MS,
-    -WIDTH_PX
-  )
+  const [webSocket, setWebsocket] = React.useState<WebSocket | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const messageInputRef = React.useRef<HTMLTextAreaElement>(null!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -415,10 +409,22 @@ export default function Chat(props: ChatProps) {
   }, [])
 
   React.useEffect(() => {
-    return () => {
-      websocket.close()
+    if (isOpen) {
+      const newWebSocket = new WebSocket(config.ACTIVE_CONFIG.chatUrl)
+      setWebsocket(newWebSocket)
+      return () => {
+        if (newWebSocket.readyState === WebSocket.OPEN) {
+          newWebSocket.close()
+        } else {
+          newWebSocket.addEventListener('open', () => {
+            newWebSocket.close()
+          })
+        }
+      }
+    } else {
+      return
     }
-  }, [websocket])
+  }, [isOpen])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
@@ -434,9 +440,9 @@ export default function Chat(props: ChatProps) {
 
   const sendMessage = React.useCallback(
     (message: chat.ChatClientMessageData) => {
-      websocket.send(JSON.stringify(message))
+      webSocket?.send(JSON.stringify(message))
     },
-    [/* should never change */ websocket]
+    [webSocket]
   )
 
   React.useEffect(() => {
@@ -561,43 +567,15 @@ export default function Chat(props: ChatProps) {
         accessToken,
       })
     }
-    websocket.addEventListener('message', onMessage)
-    websocket.addEventListener('open', onOpen)
+    webSocket?.addEventListener('message', onMessage)
+    webSocket?.addEventListener('open', onOpen)
     return () => {
-      websocket.removeEventListener('message', onMessage)
-      websocket.removeEventListener('open', onOpen)
+      webSocket?.removeEventListener('message', onMessage)
+      webSocket?.removeEventListener('open', onOpen)
     }
-  }, [
-    websocket,
-    shouldIgnoreMessageLimit,
-    logger,
-    threads,
-    messages,
-    accessToken,
-    /* should never change */ sendMessage,
-  ])
+  }, [webSocket, shouldIgnoreMessageLimit, logger, threads, messages, accessToken, sendMessage])
 
   const container = document.getElementById(HELP_CHAT_ID)
-
-  React.useEffect(() => {
-    // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    let handle: number | undefined
-    if (container != null) {
-      if (isOpen) {
-        container.style.display = ''
-        setTargetRight(0)
-      } else {
-        setTargetRight(-WIDTH_PX)
-        handle = window.setTimeout(() => {
-          container.style.display = 'none'
-        }, ANIMATION_DURATION_MS)
-      }
-    }
-    return () => {
-      clearTimeout(handle)
-    }
-  }, [isOpen, container, setTargetRight])
 
   const switchThread = React.useCallback(
     (newThreadId: chat.ThreadId) => {
@@ -682,10 +660,9 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        style={{ right }}
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
+        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 transition-transform ${
           page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
-        }`}
+        } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
           threads={threads}
