@@ -23,6 +23,7 @@ import org.openide.util.lookup.ServiceProvider;
 
 import org.netbeans.api.extexecution.base.ProcessBuilder;
 import org.netbeans.api.java.classpath.ClassPath;
+import org.netbeans.api.java.platform.JavaPlatform;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.NbBundle;
@@ -74,6 +75,18 @@ public final class EnsoActionProvider implements ActionProvider {
                 b.setArguments(Arrays.asList("--run", script.getPath()));
                 b.setWorkingDirectory(script.getParent());
                 b.setRedirectErrorStream(true);
+
+                var env = b.getEnvironment();
+                var path = env.getVariable("PATH");
+                var java = JavaPlatform.getDefault().findTool("java");
+                if (path != null && java != null) {
+                    var javaBinDir = FileUtil.toFile(java.getParent());
+                    if (javaBinDir != null) {
+                        var newPath = path + File.pathSeparator + javaBinDir;
+                        env.setVariable("PATH", newPath);
+                    }
+                }
+
                 return b;
             }
             var msg = Bundle.MSG_CannotExecute(file.getPath());
