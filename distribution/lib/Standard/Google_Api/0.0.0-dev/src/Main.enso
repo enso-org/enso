@@ -76,7 +76,7 @@ initialize secret_file =
    - start_date
    - end_date
 run_google_report : Text -> Date -> Date -> Table
-run_google_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today =
+run_google_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today -> Table =
     analytics_data = BetaAnalyticsDataClient.create
     request = RunReportRequest.newBuilder
         . setProperty ("properties/"+property_id)
