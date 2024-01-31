@@ -75,6 +75,10 @@ declare global {
             readonly [key: string]: never
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
+            // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
+            // about this property conflicting with the index signature above.
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            TZ?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             APPLEID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
