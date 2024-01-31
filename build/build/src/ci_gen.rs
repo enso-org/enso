@@ -110,6 +110,11 @@ pub mod secret {
     pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+/// Return an expression piece that evaluates to `true` if the current branch is not the default.
+pub fn not_default_branch() -> String {
+    format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
+}
+
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
 }
@@ -276,17 +281,6 @@ pub fn runs_on(os: OS) -> Vec<RunnerLabel> {
         OS::Linux => vec![RunnerLabel::SelfHosted, RunnerLabel::Linux, RunnerLabel::Engine],
         OS::MacOS => vec![RunnerLabel::MacOSLatest],
         _ => todo!("Not supported"),
-    }
-}
-
-/// Concurrency configuration that allows only one workflow run for a given branch (ref) at a time.
-/// Previous runs are canceled. The default branch is excluded from this rule.
-pub fn cancel_previous_concurrency() -> Concurrency {
-    let group = "${{ github.workflow }}-${{ github.ref }}";
-    let cancel_in_progress = format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'");
-    Concurrency::Map {
-        cancel_in_progress: wrap_expression(cancel_in_progress),
-        group:              group.into(),
     }
 }
 
@@ -569,8 +563,8 @@ pub fn typical_check_triggers() -> Event {
 
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let concurrency = Some(cancel_previous_concurrency());
-    let mut workflow = Workflow { name: "GUI CI".into(), concurrency, on, ..default() };
+    let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
+    workflow.add(PRIMARY_OS, job::CancelWorkflow);
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
@@ -594,8 +588,8 @@ pub fn gui() -> Result<Workflow> {
 
 pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let concurrency = Some(cancel_previous_concurrency());
-    let mut workflow = Workflow { name: "Engine CI".into(), on, concurrency, ..default() };
+    let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
+    workflow.add(PRIMARY_OS, job::CancelWorkflow);
     for os in TARGETED_SYSTEMS {
         workflow.add(os, job::CiCheckBackend);
     }

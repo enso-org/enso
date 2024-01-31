@@ -1,10 +1,12 @@
 use crate::prelude::*;
 
+use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
 use crate::ci_gen::RunStepsBuilder;
 
+use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -93,6 +95,27 @@ pub fn plain_job(
     command_line: impl Into<String>,
 ) -> Job {
     RunStepsBuilder::new(command_line).build_job(name, runs_on)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct CancelWorkflow;
+impl JobArchetype for CancelWorkflow {
+    fn job(&self, _os: OS) -> Job {
+        Job {
+            name: "Cancel Previous Runs".into(),
+            // It is important that this particular job runs pretty much everywhere (we use x64,
+            // as all currently available GH runners have this label). If we limited it only to
+            // our self-hosted machines (as we usually do), it'd be enqueued after other jobs
+            // and wouldn't be able to cancel them.
+            runs_on: vec![RunnerLabel::LinuxLatest],
+            steps: vec![cancel_workflow_action()],
+            r#if: Some(not_default_branch()),
+            ..default()
+        }
+        // Necessary permission to cancel a run, as per:
+        // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#cancel-a-workflow-run
+        .with_permission(Permission::Actions, Access::Write)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -9,6 +9,18 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
+  enso-build-ci-gen-job-cancel-workflow-linux:
+    name: Cancel Previous Runs
+    if: github.ref != 'refs/heads/develop'
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.0
+        with:
+          access_token: ${{ github.token }}
+    permissions:
+      actions: write
   enso-build-ci-gen-job-ci-check-backend-linux:
     name: Engine (linux)
     runs-on:
@@ -252,6 +264,3 @@ jobs:
       checks: write
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}

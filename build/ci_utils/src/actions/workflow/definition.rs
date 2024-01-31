@@ -119,6 +119,18 @@ pub fn run(run_args: impl AsRef<str>) -> Step {
     shell(format!("./run {}", run_args.as_ref()))
 }
 
+pub fn cancel_workflow_action() -> Step {
+    Step {
+        name: Some("Cancel Previous Runs".into()),
+        uses: Some("styfle/cancel-workflow-action@0.12.0".into()),
+        with: Some(step::Argument::Other(BTreeMap::from_iter([(
+            "access_token".into(),
+            "${{ github.token }}".into(),
+        )]))),
+        ..default()
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JobId(String);
 
