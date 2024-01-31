@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.util
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
+import org.enso.interpreter.runtime.EnsoContext
 
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
@@ -144,17 +145,18 @@ class DiagnosticFormatter(
       // Non-interactive output is always without color support
       return false
     }
-    if (System.getenv("NO_COLOR") != null) {
-      return false
-    }
     if (isOutputRedirected) {
       return false
     }
-    if (System.getenv("COLORTERM") != null) {
+    val ensoCtx = EnsoContext.get(null)
+    if (ensoCtx.getEnvironmentVariable("NO_COLOR") != null) {
+      return false
+    }
+    if (ensoCtx.getEnvironmentVariable("COLORTERM") != null) {
       return true
     }
-    if (System.getenv("TERM") != null) {
-      val termEnv = System.getenv("TERM").toLowerCase
+    if (ensoCtx.getEnvironmentVariable("TERM") != null) {
+      val termEnv = ensoCtx.getEnvironmentVariable("TERM").toLowerCase
       return termEnv.split("-").contains("color") || termEnv
         .split("-")
         .contains("256color")

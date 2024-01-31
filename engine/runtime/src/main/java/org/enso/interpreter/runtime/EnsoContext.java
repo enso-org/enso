@@ -485,6 +485,17 @@ public final class EnsoContext {
   }
 
   /**
+   * Returns the value of environment variable as configured in this context. See {@link
+   * Env#getEnvironment()}.
+   *
+   * @param name Name of the env var to return
+   * @return Value of the env var, or {@code null} if the var is not defined.
+   */
+  public String getEnvironmentVariable(String name) {
+    return environment.getEnvironment().get(name);
+  }
+
+  /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
