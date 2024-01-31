@@ -1959,6 +1959,13 @@ type Table
                 java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
                 Table.Value java_table
 
+    replace : Table -> (Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:Table column_to_modify:(Text | Integer | Regex) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        new_self = Table.new [self.at 0, self.at 0 . rename 'xx', self.at 1]
+        new_lookup_table = Table.new [lookup_table.at 0, lookup_table.at 1 . rename 'xx']
+        merged = new_self.merge new_lookup_table ['x'] add_new_columns=True allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+        Table.new [merged.at 1 . rename 'x', merged.at 2]
+
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        ICON dataframes_join
