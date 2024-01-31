@@ -183,6 +183,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
+    if: github.ref != 'refs/heads/develop'
     runs-on:
       - ubuntu-latest
     steps:

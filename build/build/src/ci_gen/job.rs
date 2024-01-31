@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
@@ -108,6 +109,7 @@ impl JobArchetype for CancelWorkflow {
             // and wouldn't be able to cancel them.
             runs_on: vec![RunnerLabel::LinuxLatest],
             steps: vec![cancel_workflow_action()],
+            r#if: Some(not_default_branch()),
             ..default()
         }
         // Necessary permission to cancel a run, as per:
