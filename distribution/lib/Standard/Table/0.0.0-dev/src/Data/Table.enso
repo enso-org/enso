@@ -2005,6 +2005,33 @@ type Table
            setting:
            - If any of the `columns` is a floating-point type,
              a `Floating_Point_Equality`.
+
+       > Example
+         Replace values in column 'x' using a lookup table.
+
+             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
+             #      | x | y | z
+             #   ---+---+---+---
+             #    0 | 1 | a | e
+             #    1 | 2 | b | f
+             #    2 | 3 | c | g
+             #    3 | 4 | d | h
+
+             lookup_table = table_builder [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
+             #      | old_x | new_x
+             #   ---+-------+-------
+             #    0 | 1     | 10
+             #    1 | 2     | 20
+             #    2 | 3     | 30
+             #    3 | 4     | 40
+
+             result = table.replace lookup_table replace_column='x'
+             #      | x  | y | z
+             #   ---+----+---+---
+             #    0 | 10 | a | e
+             #    1 | 20 | b | f
+             #    2 | 30 | c | g
+             #    3 | 40 | d | h
     replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:Table from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 replace_column:(Text | Integer) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         self.select_columns replace_column . column_names . catch No_Output_Columns _->
@@ -2030,6 +2057,13 @@ type Table
 
         merged = self_with_duplicate.merge lookup_table_renamed [duplicate_key_column_name] add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
         result = merged.remove_columns [duplicate_key_column_name]
+        IO.println 'AAA'
+        IO.println self.display
+        IO.println lookup_table.display
+        IO.println self_with_duplicate.display
+        IO.println lookup_table_renamed.display
+        IO.println merged.display
+        IO.println result.display
         result
 
     ## ALIAS join by row position
