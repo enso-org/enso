@@ -2035,17 +2035,6 @@ type Table
     replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:Table replace_column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         self.select_columns replace_column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
-            IO.println 'BBB'
-            IO.println (self.select_columns replace_column)
-            IO.println (self.select_columns replace_column . if_not_error 12)
-            ##
-                self.select_columns replace_column . column_names . catch No_Output_Columns _->
-                    Error.throw (Illegal_Argument.Error "No such column in base table: "+(replace_column.name))
-                lookup_table.select_columns from_column . column_names . catch No_Output_Columns _->
-                    Error.throw (Illegal_Argument.Error "No such column in lookup table: "+(from_column.name))
-                lookup_table.select_columns to_column . column_names . catch No_Output_Columns _->
-                    Error.throw (Illegal_Argument.Error "No such column in lookup table: "+(to_column.name))
-
             unique = self.column_naming_helper.create_unique_name_strategy
             unique.mark_used (self.column_names)
             unique.mark_used (lookup_table.column_names)
