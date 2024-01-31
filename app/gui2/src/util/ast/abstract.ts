@@ -53,9 +53,9 @@ export class ReactiveModule implements Module {
   constructor(base: MutableModule) {
     this.ymodule = base
     base.observe((update) => {
-      for (const id of update.addNodes) this.nodes.set(id, new Map() as any)
-      for (const id of update.deleteNodes) this.nodes.delete(id)
-      for (const { id, fields } of update.updateNodes) {
+      for (const id of update.nodesAdded) this.nodes.set(id, new Map() as any)
+      for (const id of update.nodesDeleted) this.nodes.delete(id)
+      for (const { id, fields } of update.fieldsUpdated) {
         const node = this.nodes.get(id)
         assertDefined(node)
         for (const [key, value] of fields) {
@@ -63,7 +63,7 @@ export class ReactiveModule implements Module {
           node_.set(key, value)
         }
       }
-      for (const { id, changes } of update.updateMetadata) {
+      for (const { id, changes } of update.metadataUpdated) {
         const node = this.nodes.get(id)
         assertDefined(node)
         if (!node.has('metadata'))
@@ -77,10 +77,10 @@ export class ReactiveModule implements Module {
           }
         }
       }
-      this.rebuildSpans(update.deleteNodes)
+      this.rebuildSpans(update.nodesDeleted)
       const dirtyNodes = new Set<AstId>()
-      for (const { id } of update.updateNodes) dirtyNodes.add(id)
-      for (const hook of this.updateHooks) hook(dirtyNodes, update.updateMetadata)
+      for (const { id } of update.fieldsUpdated) dirtyNodes.add(id)
+      for (const hook of this.updateHooks) hook(dirtyNodes, update.metadataUpdated)
     })
   }
 

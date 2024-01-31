@@ -31,10 +31,10 @@ export function applyDocumentUpdates(
 ): AppliedUpdates {
   const synced = splitFileContents(syncedContent)
 
-  const codeChanged = update.updateNodes.length !== 0
+  const codeChanged = update.fieldsUpdated.length !== 0
   let idsChanged = false
   let metadataChanged = false
-  for (const { changes } of update.updateMetadata) {
+  for (const { changes } of update.metadataUpdated) {
     for (const [key] of changes) {
       if (key === 'externalId') {
         idsChanged = true

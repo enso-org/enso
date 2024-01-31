@@ -34,10 +34,10 @@ export interface Module {
 }
 
 export interface ModuleUpdate {
-  addNodes: AstId[]
-  deleteNodes: AstId[]
-  updateNodes: { id: AstId; fields: (readonly [string, unknown])[] }[]
-  updateMetadata: { id: AstId; changes: Map<string, unknown> }[]
+  nodesAdded: AstId[]
+  nodesDeleted: AstId[]
+  fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[]
+  metadataUpdated: { id: AstId; changes: Map<string, unknown> }[]
 }
 
 type YNode = FixedMap<AstFields>
@@ -134,6 +134,12 @@ export class MutableModule implements Module {
     this.nodes.observeDeep((events) => observer(this.observeEvents(events)))
   }
 
+  getStateAsUpdate(): ModuleUpdate {
+    const updateBuilder = new UpdateBuilder(this.nodes)
+    for (const id of this.nodes.keys()) updateBuilder.addNode(id as AstId)
+    return updateBuilder
+  }
+
   applyUpdate(update: Uint8Array, origin?: string): ModuleUpdate | undefined {
     let summary: ModuleUpdate | undefined
     const observer = (events: Y.YEvent<any>[]) => {
@@ -146,25 +152,7 @@ export class MutableModule implements Module {
   }
 
   private observeEvents(events: Y.YEvent<any>[]): ModuleUpdate {
-    const addNodes = []
-    const deleteNodes = []
-    const updateNodes = []
-    const updateMetadata = []
-    const collectChanges = (entries: Iterable<readonly [string, unknown]>) => {
-      const fields = new Array<readonly [string, unknown]>()
-      let metadataChanges = undefined
-      for (const entry of entries) {
-        const [key, value] = entry
-        if (key === 'metadata') {
-          assert(value instanceof Y.Map)
-          metadataChanges = new Map<string, unknown>(value.entries())
-        } else {
-          assert(!(value instanceof Y.AbstractType))
-          fields.push(entry)
-        }
-      }
-      return { fields, metadataChanges }
-    }
+    const updateBuilder = new UpdateBuilder(this.nodes)
     for (const event of events) {
       if (event.target === this.nodes) {
         // Updates to the node map.
@@ -172,15 +160,13 @@ export class MutableModule implements Module {
           const id = key as AstId
           switch (change.action) {
             case 'add':
-            case 'update': {
-              if (change.action === 'add') addNodes.push(id)
-              const { fields, metadataChanges } = collectChanges(this.nodes.get(id)!.entries())
-              if (fields.length !== 0) updateNodes.push({ id, fields })
-              if (metadataChanges) updateMetadata.push({ id, changes: metadataChanges })
+              updateBuilder.addNode(id)
               break
-            }
+            case 'update':
+              updateBuilder.updateAllFields(id)
+              break
             case 'delete':
-              deleteNodes.push(id)
+              updateBuilder.deleteNode(id)
               break
           }
         }
@@ -190,11 +176,11 @@ export class MutableModule implements Module {
         const id = event.target.get('id') as AstId
         const node = this.nodes.get(id)
         assertDefined(node)
-        const { fields, metadataChanges } = collectChanges(
-          Array.from(event.changes.keys, ([key]) => [key, node.get(key as any)]),
-        )
-        if (fields.length !== 0) updateNodes.push({ id, fields })
-        if (metadataChanges) updateMetadata.push({ id, changes: metadataChanges })
+        const changes: (readonly [string, unknown])[] = Array.from(event.changes.keys, ([key]) => [
+          key,
+          node.get(key as any),
+        ])
+        updateBuilder.updateFields(id, changes)
       } else {
         // Updates to fields of a metadata object within a node.
         assert(event.target.parent.parent === this.nodes)
@@ -202,12 +188,14 @@ export class MutableModule implements Module {
         const node = this.nodes.get(id)
         assertDefined(node)
         const metadata = node.get('metadata') as unknown as Map<string, unknown>
-        const changes = new Map<string, unknown>()
-        for (const [key] of event.changes.keys) changes.set(key, metadata.get(key))
-        updateMetadata.push({ id, changes })
+        const changes: (readonly [string, unknown])[] = Array.from(event.changes.keys, ([key]) => [
+          key,
+          metadata.get(key as any),
+        ])
+        updateBuilder.updateMetadata(id, changes)
       }
     }
-    return { addNodes, deleteNodes, updateNodes, updateMetadata }
+    return updateBuilder
   }
 
   clear() {
@@ -327,3 +315,52 @@ export function isAstId(value: string): value is AstId {
   return /ast:[A-Za-z]*#[0-9]*/.test(value)
 }
 export const ROOT_ID = `Root` as AstId
+
+class UpdateBuilder implements ModuleUpdate {
+  readonly nodesAdded: AstId[] = []
+  readonly nodesDeleted: AstId[] = []
+  readonly fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[] = []
+  readonly metadataUpdated: { id: AstId; changes: Map<string, unknown> }[] = []
+
+  private readonly nodes: YNodes
+
+  constructor(nodes: YNodes) {
+    this.nodes = nodes
+  }
+
+  addNode(id: AstId) {
+    this.nodesAdded.push(id)
+    this.updateAllFields(id)
+  }
+
+  updateAllFields(id: AstId) {
+    this.updateFields(id, this.nodes.get(id)!.entries())
+  }
+
+  updateFields(id: AstId, changes: Iterable<readonly [string, unknown]>) {
+    const fields = new Array<readonly [string, unknown]>()
+    let metadataChanges = undefined
+    for (const entry of changes) {
+      const [key, value] = entry
+      if (key === 'metadata') {
+        assert(value instanceof Y.Map)
+        metadataChanges = new Map<string, unknown>(value.entries())
+      } else {
+        assert(!(value instanceof Y.AbstractType))
+        fields.push(entry)
+      }
+    }
+    if (fields.length !== 0) this.fieldsUpdated.push({ id, fields })
+    if (metadataChanges) this.metadataUpdated.push({ id, changes: metadataChanges })
+  }
+
+  updateMetadata(id: AstId, changes: Iterable<readonly [string, unknown]>) {
+    const changeMap = new Map<string, unknown>()
+    for (const [key, value] of changes) changeMap.set(key, value)
+    this.metadataUpdated.push({ id, changes: changeMap })
+  }
+
+  deleteNode(id: AstId) {
+    this.nodesDeleted.push(id)
+  }
+}
