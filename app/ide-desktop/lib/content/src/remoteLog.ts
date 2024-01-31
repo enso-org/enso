@@ -10,7 +10,10 @@ const logger = app.log.logger
 // =================
 
 /** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = new URL(`${process.env.ENSO_CLOUD_API_URL}/logs`)
+const REMOTE_LOG_URL =
+    process.env.ENSO_CLOUD_API_URL == null
+        ? null
+        : new URL(`${process.env.ENSO_CLOUD_API_URL}/logs`)
 
 // ====================
 // === RemoteLogger ===
@@ -48,24 +51,26 @@ export async function remoteLog(
     message: string,
     metadata: unknown
 ): Promise<void> {
-    try {
-        const headers: HeadersInit = [
-            ['Content-Type', 'application/json'],
-            ['Authorization', `Bearer ${accessToken}`],
-        ]
-        const body = JSON.stringify({ message, metadata })
-        const response = await fetch(REMOTE_LOG_URL, { method: 'POST', headers, body })
-        if (!response.ok) {
-            const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
-            try {
-                const text = await response.text()
-                throw new Error(`${errorMessage} Response: ${text}.`)
-            } catch (error) {
-                throw new Error(`${errorMessage} Failed to read response: ${String(error)}.`)
+    if (REMOTE_LOG_URL != null) {
+        try {
+            const headers: HeadersInit = [
+                ['Content-Type', 'application/json'],
+                ['Authorization', `Bearer ${accessToken}`],
+            ]
+            const body = JSON.stringify({ message, metadata })
+            const response = await fetch(REMOTE_LOG_URL, { method: 'POST', headers, body })
+            if (!response.ok) {
+                const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
+                try {
+                    const text = await response.text()
+                    throw new Error(`${errorMessage} Response: ${text}.`)
+                } catch (error) {
+                    throw new Error(`${errorMessage} Failed to read response: ${String(error)}.`)
+                }
             }
+        } catch (error) {
+            logger.error(error)
+            throw error
         }
-    } catch (error) {
-        logger.error(error)
-        throw error
     }
 }
