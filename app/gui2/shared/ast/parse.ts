@@ -382,24 +382,24 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
   return { root, idMap: idMapOut, getSpan, toRaw, idMapUpdates }
 }
 
-export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap) {
+export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) {
   let astsMatched = 0
   let idsUnmatched = 0
   let asts = 0
-  module.root()?.visitRecursiveAst((_ast) => (asts += 1))
+  edit.root()?.visitRecursiveAst((_ast) => (asts += 1))
   for (const [key, externalId] of ids.entries()) {
     const asts = spans.nodes.get(key as NodeKey)
     if (asts) {
       for (const ast of asts) {
         astsMatched += 1
-        const ast_ = module.getVersion(ast)
-        if (ast_.externalId !== externalId) ast_.setExternalId(externalId)
+        const editAst = edit.getVersion(ast)
+        if (editAst.externalId !== externalId) editAst.setExternalId(externalId)
       }
     } else {
       idsUnmatched += 1
     }
   }
-  return module.root() ? asts - astsMatched : 0
+  return edit.root() ? asts - astsMatched : 0
 }
 
 function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: string) {
