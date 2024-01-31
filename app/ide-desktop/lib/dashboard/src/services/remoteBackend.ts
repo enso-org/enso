@@ -47,26 +47,30 @@ const CHECK_STATUS_INTERVAL_MS = 5000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
-  backend: RemoteBackend,
+  backend: backendModule.Backend,
   id: backendModule.ProjectId,
   title: string,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(id, title)
-  if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
-    await backend.openProject(id, null, title)
-  }
-  let nextCheckTimestamp = 0
-  while (
-    !abortController.signal.aborted &&
-    project.state.type !== backendModule.ProjectState.opened
-  ) {
-    await new Promise<void>(resolve => {
-      const delayMs = nextCheckTimestamp - Number(new Date())
-      setTimeout(resolve, Math.max(0, delayMs))
-    })
-    nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(id, title)
+  if (!(backend instanceof RemoteBackend)) {
+    // Ignored.
+  } else {
+    let project = await backend.getProjectDetails(id, title)
+    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
+      await backend.openProject(id, null, title)
+    }
+    let nextCheckTimestamp = 0
+    while (
+      !abortController.signal.aborted &&
+      project.state.type !== backendModule.ProjectState.opened
+    ) {
+      await new Promise<void>(resolve => {
+        const delayMs = nextCheckTimestamp - Number(new Date())
+        setTimeout(resolve, Math.max(0, delayMs))
+      })
+      nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
+      project = await backend.getProjectDetails(id, title)
+    }
   }
 }
 

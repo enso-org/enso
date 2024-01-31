@@ -264,7 +264,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               setModal(
                 <ManagePermissionsModal
-                  item={asset}
+                  item={smartAsset}
                   setItem={setAsset}
                   self={self}
                   eventTarget={eventTarget}

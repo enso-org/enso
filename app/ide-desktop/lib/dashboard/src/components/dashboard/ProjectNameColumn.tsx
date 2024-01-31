@@ -38,7 +38,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
   const { numberOfSelectedItems, assetEvents, dispatchAssetEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor: doOpenIde, doCloseEditor: doCloseIde } = state
+  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
@@ -48,18 +48,28 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display project assets.')
   }
-  const asset = smartAsset.value
+  const smartAssetWithProjectState = React.useMemo(() => {
+    // This is a workaround for a temporary bad state in the backend causing the
+    // `projectState` key to be absent.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (smartAsset.value.projectState != null) {
+      return smartAsset
+    } else {
+      return smartAsset.withValue(
+        object.merge(smartAsset.value, {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          projectState: { type: backendModule.ProjectState.closed, volume_id: '' },
+        })
+      )
+    }
+  }, [smartAsset])
+  const asset = smartAssetWithProjectState.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(
       permission => permission.user.user_email === organization?.value.email
     ) ?? null
-  // This is a workaround for a temporary bad state in the backend causing the `projectState` key
-  // to be absent.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const projectState = asset.projectState ?? {
-    type: backendModule.ProjectState.closed,
-  }
+  const projectState = asset.projectState
   const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
   const canExecute =
     backend.type === backendModule.BackendType.local ||
@@ -205,18 +215,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-1" />
       ) : (
         <ProjectIcon
-          // This is a workaround for a temporary bad state in the backend causing the
-          // `projectState` key to be absent.
-          item={object.merge(asset, { projectState })}
+          smartAsset={smartAsset}
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          openIde={switchPage => {
-            doOpenIde(asset, setAsset, switchPage)
+          openEditor={switchPage => {
+            doOpenEditor(smartAsset, setAsset, switchPage)
           }}
           onClose={() => {
-            doCloseIde(asset)
+            doCloseEditor(asset)
           }}
+          state={state}
         />
       )}
       <EditableSpan

@@ -8,7 +8,6 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -38,6 +37,7 @@ const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
   hidden?: boolean
+  isCloud: boolean
   category: Category
   pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
   selectedKeys: Set<backendModule.AssetId>
@@ -56,14 +56,12 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { category, pasteData, selectedKeys, setSelectedKeys, nodeMapRef, event } = props
+  const { isCloud, category, pasteData, selectedKeys, setSelectedKeys, nodeMapRef, event } = props
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
-  const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   const pluralized = pluralize(selectedKeys.size)
   // This works because all items are mutated, ensuring their value stays

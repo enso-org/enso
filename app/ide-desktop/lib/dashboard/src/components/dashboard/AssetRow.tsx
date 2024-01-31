@@ -261,10 +261,10 @@ export default function AssetRow(props: AssetRowProps) {
           smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
           smartAsset.value.projectState.type !== backendModule.ProjectState.closed
         ) {
-          await backend.openProject(smartAsset.value.id, null, smartAsset.value.title)
+          await smartAsset.open()
         }
         try {
-          await backend.closeProject(smartAsset.value.id, smartAsset.value.title)
+          await smartAsset.close()
         } catch {
           // Ignored. The project was already closed.
         }
@@ -355,11 +355,11 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.download: {
         if (event.ids.has(item.key)) {
           if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
+            if (smartAsset.type !== backendModule.AssetType.file) {
               toastAndLog('Cannot download assets that are not files')
             } else {
               try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
+                const details = await smartAsset.getDetails()
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
@@ -403,15 +403,8 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.id === asset.id && user != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
-            await backend.createPermission({
-              action: null,
-              resourceId: asset.id,
-              userSubjects: [user.id],
-            })
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            await smartAsset.setPermissions({ action: null, userSubjects: [user.id] })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
             toastAndLog(null, error)

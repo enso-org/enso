@@ -5,7 +5,6 @@ import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -31,10 +30,8 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
-  const { numberOfSelectedItems, nodeMap } = state
-  const { doToggleDirectoryExpansion } = state
+  const { isCloud, numberOfSelectedItems, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.directory) {
@@ -43,7 +40,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = smartAsset.value
   const setAsset = assetTreeNode.useSetAsset(asset, setItem)
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
@@ -53,7 +49,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
+        await smartAsset.update({ title: newTitle })
       } catch (error) {
         toastAndLog('Could not rename folder', error)
         setAsset(object.merger({ title: oldTitle }))

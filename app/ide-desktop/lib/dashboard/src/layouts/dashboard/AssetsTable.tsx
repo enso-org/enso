@@ -222,6 +222,7 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+  isCloud: boolean
   numberOfSelectedItems: number
   visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   category: Category
@@ -1450,6 +1451,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => (
       <AssetsTableContextMenu
         hidden
+        isCloud={isCloud}
         category={category}
         pasteData={pasteData}
         selectedKeys={selectedKeys}
@@ -1464,6 +1466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       />
     ),
     [
+      isCloud,
       category,
       pasteData,
       selectedKeys,
@@ -1486,6 +1489,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const state = React.useMemo(
     // The type MUST be here to trigger excess property errors at typecheck time.
     (): AssetsTableState => ({
+      isCloud,
       visibilities,
       numberOfSelectedItems: selectedKeys.size,
       category,
@@ -1514,6 +1518,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doPaste,
     }),
     [
+      isCloud,
       visibilities,
       selectedKeys.size,
       category,
@@ -1854,6 +1859,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         event.stopPropagation()
         setModal(
           <AssetsTableContextMenu
+            isCloud={isCloud}
             category={category}
             pasteData={pasteData}
             selectedKeys={selectedKeys}
