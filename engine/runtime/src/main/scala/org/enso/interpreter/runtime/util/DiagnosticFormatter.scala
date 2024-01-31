@@ -62,27 +62,24 @@ class DiagnosticFormatter(
           } else {
             source.getName
           }
+        var str = fansi.Str()
         if (isOneLine) {
-          val lineNumber  = section.getStartLine
-          val startColumn = section.getStartColumn
-          val endColumn   = section.getEndColumn
-          var str         = fansi.Str()
+          val lineNumber      = section.getStartLine
+          val startColumn     = section.getStartColumn
+          val endColumn       = section.getEndColumn
+          val isLocationEmpty = startColumn == endColumn
           str ++= fansi
             .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
             .overlay(fansi.Bold.On)
           str ++= fansi.Str(subject).overlay(textAttrs)
           str ++= diagnostic.formattedMessage(fileLocationFromSection)
-          str ++= "\n"
-          str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
-          str ++= "\n"
-          str ++= underline(startColumn, endColumn)
-          if (outSupportsAnsiColors) {
-            str.render.stripLineEnd
-          } else {
-            str.plainText.stripLineEnd
+          if (!isLocationEmpty) {
+            str ++= "\n"
+            str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
+            str ++= "\n"
+            str ++= underline(startColumn, endColumn)
           }
         } else {
-          var str = fansi.Str()
           str ++= fansi
             .Str(
               srcPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
@@ -106,11 +103,11 @@ class DiagnosticFormatter(
             str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
             str ++= "\n"
           }
-          if (outSupportsAnsiColors) {
-            str.render.stripLineEnd
-          } else {
-            str.plainText.stripLineEnd
-          }
+        }
+        if (outSupportsAnsiColors) {
+          str.render.stripLineEnd
+        } else {
+          str.plainText.stripLineEnd
         }
       case None =>
         // There is no source section associated with the diagnostics
