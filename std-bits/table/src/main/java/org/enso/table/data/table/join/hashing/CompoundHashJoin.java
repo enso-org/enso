@@ -1,7 +1,6 @@
 package org.enso.table.data.table.join.hashing;
 
 import java.util.List;
-
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.join.JoinKind;
@@ -16,75 +15,74 @@ import org.graalvm.polyglot.Context;
 /**
  * A strategy that uses a hash-map to perform join on the equality conditions.
  *
- * <p>
- * It then delegates to {@code sortJoin} to perform the remaining conditions on
- * the matching pairs of row subsets.
+ * <p>It then delegates to {@code sortJoin} to perform the remaining conditions on the matching
+ * pairs of row subsets.
  */
 public class CompoundHashJoin implements JoinStrategy {
 
-    public CompoundHashJoin(
-            List<HashableCondition> hashableConditions,
-            List<Between> betweenConditions,
-            JoinKind joinKind) {
-        this.hashJoinConfig = new HashJoinConfig(hashableConditions);
-        this.sortJoin = new SortJoin(betweenConditions, joinKind);
-        this.joinKind = joinKind;
-    }
+  public CompoundHashJoin(
+      List<HashableCondition> hashableConditions,
+      List<Between> betweenConditions,
+      JoinKind joinKind) {
+    this.hashJoinConfig = new HashJoinConfig(hashableConditions);
+    this.sortJoin = new SortJoin(betweenConditions, joinKind);
+    this.joinKind = joinKind;
+  }
 
-    private final HashJoinConfig hashJoinConfig;
-    private final SortJoin sortJoin;
-    private final JoinKind joinKind;
+  private final HashJoinConfig hashJoinConfig;
+  private final SortJoin sortJoin;
+  private final JoinKind joinKind;
 
-    @Override
-    public JoinResult join(ProblemAggregator problemAggregator) {
-        Context context = Context.getCurrent();
+  @Override
+  public JoinResult join(ProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
 
-        var rightEquals = hashJoinConfig.getRightEquals();
-        var leftEquals = hashJoinConfig.getLeftEquals();
-        var textFoldingStrategies = hashJoinConfig.getTextFoldingStrategies();
+    var rightEquals = hashJoinConfig.getRightEquals();
+    var leftEquals = hashJoinConfig.getLeftEquals();
+    var textFoldingStrategies = hashJoinConfig.getTextFoldingStrategies();
 
-        var leftIndex
-                = MultiValueIndex.makeUnorderedIndex(
-                        leftEquals, leftEquals[0].getSize(), textFoldingStrategies, problemAggregator);
-        var rightIndex
-                = MultiValueIndex.makeUnorderedIndex(
-                        rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
+    var leftIndex =
+        MultiValueIndex.makeUnorderedIndex(
+            leftEquals, leftEquals[0].getSize(), textFoldingStrategies, problemAggregator);
+    var rightIndex =
+        MultiValueIndex.makeUnorderedIndex(
+            rightEquals, rightEquals[0].getSize(), textFoldingStrategies, problemAggregator);
 
-        JoinResult.Builder resultBuilder = new JoinResult.Builder();
-        for (var leftEntry : leftIndex.mapping().entrySet()) {
-            UnorderedMultiValueKey leftKey = leftEntry.getKey();
-            List<Integer> leftRows = leftEntry.getValue();
-            // If any field of the key is null, it cannot match anything.
-            List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    for (var leftEntry : leftIndex.mapping().entrySet()) {
+      UnorderedMultiValueKey leftKey = leftEntry.getKey();
+      List<Integer> leftRows = leftEntry.getValue();
+      // If any field of the key is null, it cannot match anything.
+      List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
 
-            if (rightRows != null) {
-                sortJoin.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
-            } else {
-                if (joinKind.wantsLeftUnmatched) {
-                    for (int leftRow : leftRows) {
-                        resultBuilder.addUnmatchedLeftRow(leftRow);
-                        context.safepoint();
-                    }
-                }
-            }
-
+      if (rightRows != null) {
+        sortJoin.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
+      } else {
+        if (joinKind.wantsLeftUnmatched) {
+          for (int leftRow : leftRows) {
+            resultBuilder.addUnmatchedLeftRow(leftRow);
             context.safepoint();
+          }
         }
+      }
 
-        if (joinKind.wantsRightUnmatched) {
-            for (var rightEntry : rightIndex.mapping().entrySet()) {
-                UnorderedMultiValueKey rightKey = rightEntry.getKey();
-                // If any field of the key is null, it cannot match anything.
-                boolean wasCompletelyUnmatched
-                        = rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
-                if (wasCompletelyUnmatched) {
-                    for (int rightRow : rightEntry.getValue()) {
-                        resultBuilder.addUnmatchedRightRow(rightRow);
-                    }
-                }
-            }
-        }
-
-        return resultBuilder.buildAndInvalidate();
+      context.safepoint();
     }
+
+    if (joinKind.wantsRightUnmatched) {
+      for (var rightEntry : rightIndex.mapping().entrySet()) {
+        UnorderedMultiValueKey rightKey = rightEntry.getKey();
+        // If any field of the key is null, it cannot match anything.
+        boolean wasCompletelyUnmatched =
+            rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
+        if (wasCompletelyUnmatched) {
+          for (int rightRow : rightEntry.getValue()) {
+            resultBuilder.addUnmatchedRightRow(rightRow);
+          }
+        }
+      }
+    }
+
+    return resultBuilder.buildAndInvalidate();
+  }
 }
