@@ -77,12 +77,12 @@ add_specs suite_builder =
 
     suite_builder.group "from_objects with JSON (single values)" group_builder->
         group_builder.specify "Generates a single-row table from a JSON object" <|
-            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23]]
+            expected = Table.new [["Key", ["first", "last", "age"]], ["Value", ["Mary", "Smith", 23]]]
             Table.from_objects (data.uniform_json.at 0) . should_equal expected
 
         group_builder.specify "works fine even if requested fields are duplicated" <|
-            expected = Table.from_rows ["first", "last"] [["Mary", "Smith"]]
-            Table.from_objects (data.uniform_json.at 0) ["first", "last", "first", "first"] . should_equal expected
+            expected = Table.new [["Key", ["first", "last", "age"]], ["Value", ["Mary", "Smith", 23]]]
+            Table.from_objects (data.uniform_json.at 0) ["Key", "Value", "Key", "Key"] . should_equal expected
 
     suite_builder.group "from_objects with uniform JSON vector" group_builder->
         group_builder.specify "Generates a table from a vector of JSON objects" <|
@@ -167,6 +167,11 @@ add_specs suite_builder =
             expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column 1 . should_equal expected
 
+        group_builder.specify "Expands a column of single values by index" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_column 1 . should_equal expected
+
         group_builder.specify "Expands a uniform column of JSON objects" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", "Joe"]], ["bbb last", ["Smith", "Burton"]], ["bbb age", [23, 34]], ["ccc", [5, 6]]]
@@ -187,9 +192,19 @@ add_specs suite_builder =
             expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] . should_equal expected
 
-        group_builder.specify "accept vectors/arrays within a column" <|
+        group_builder.specify "Expands vectors/arrays within a column" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6].to_array]]]
-            expected = Table.new [["aaa", [1, 2]], ["bbb Value", [[1, 2, 3], [4, 5, 6].to_array]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb 0", [1, 4]], ["bbb 1", [2, 5]], ["bbb 2", [3, 6]]]
+            table.expand_column "bbb" . should_equal expected
+
+        group_builder.specify "Expands ranges within a column" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [0.up_to 2, 3.up_to 5]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb 0", [0, 3]], ["bbb 1", [1, 4]]]
+            table.expand_column "bbb" . should_equal expected
+
+        group_builder.specify "Expands date ranges within a column" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [Date.new 2020 12 1 . up_to (Date.new 2020 12 3), Date.new 2022 12 1 . up_to (Date.new 2022 12 2)]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb 0", [Date.new 2020 12 1, Date.new 2022 12 1]], ["bbb 1", [Date.new 2020 12 2, Nothing]]]
             table.expand_column "bbb" . should_equal expected
 
         group_builder.specify "will work even if keys are not Text" <|
@@ -219,7 +234,7 @@ add_specs suite_builder =
             table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
             r = table.expand_column "bbb"
             r.should_fail_with Illegal_Argument
-            r.catch.message.should_contain "all input objects had no fields"
+            r.catch.message.should_contain "as all inputs had no fields"
 
         group_builder.specify "will error when fields=[]" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
