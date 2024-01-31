@@ -7,6 +7,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 from Standard.Base.System.File import find_extension_from_name
@@ -14,6 +15,7 @@ from Standard.Base.System.File import find_extension_from_name
 import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
 import project.Internal.Request_Body
+import project.Internal.S3_File_Write_Strategy
 import project.S3.S3
 
 ## Represents an S3 file or folder
@@ -305,7 +307,11 @@ type S3_File
                 sub_folders + files
 
 ## PRIVATE
-File_Format_Metadata.from (that:S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)
+File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)
 
 ## PRIVATE
-File_Like.from (that:S3_File) = File_Like.Value that
+File_Like.from (that : S3_File) = File_Like.Value that
+
+## PRIVATE
+Writable_File.from (that : S3_File) =
+    Writable_File.Value that S3_File_Write_Strategy.instance
