@@ -1,11 +1,11 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import Standard.Base.Errors.Common.Type_Error
 
-spec = Test.group "Function Ascribed Parameters" <|
+add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" group_builder->
     t1 (f1 : Function) =
         f1 "x"
 
@@ -24,41 +24,45 @@ spec = Test.group "Function Ascribed Parameters" <|
 
     with_type_error ~action = Panic.catch Type_Error action panic->panic.convert_to_dataflow_error
 
-    Test.specify "t1 with surround type check" <|
+    group_builder.specify "t1 with surround type check" <|
         (t1 surround) . should_equal "|x|"
 
-    Test.specify "t2 with surround type check" <|
+    group_builder.specify "t2 with surround type check" <|
         (t2 surround) . should_equal "|x|"
 
-    Test.specify "t3 with surround type check" <|
+    group_builder.specify "t3 with surround type check" <|
         (t3 surround) . should_equal "|x|"
 
-    Test.specify "t4 with surround type check" <|
+    group_builder.specify "t4 with surround type check" <|
         (t4 surround) . should_equal "|x|"
 
-    Test.specify "t1 with 42 type check" <|
+    group_builder.specify "t1 with 42 type check" <|
         with_type_error (t1 6) . should_fail_with Type_Error
 
-    Test.specify "t2 with 42 type check" <|
+    group_builder.specify "t2 with 42 type check" <|
         with_type_error (t2 6) . should_fail_with Type_Error
 
-    Test.specify "t3 with 42 type check" <|
+    group_builder.specify "t3 with 42 type check" <|
         (t3 6) . should_equal 42
 
-    Test.specify "t4 with 42 type check" <|
+    group_builder.specify "t4 with 42 type check" <|
         (t4 6) . should_equal 42
 
-    Test.specify "t1 with text type check" <|
+    group_builder.specify "t1 with text type check" <|
         with_type_error (t1 "hi") . should_fail_with Type_Error
 
-    Test.specify "t2 with text type check" <|
+    group_builder.specify "t2 with text type check" <|
         with_type_error (t2 "hi") . should_fail_with Type_Error
 
-    Test.specify "t3 with text type check" <|
+    group_builder.specify "t3 with text type check" <|
         with_type_error (t3 "hi") . should_fail_with Type_Error
 
-    Test.specify "t4 with text type check" <|
+    group_builder.specify "t4 with text type check" <|
         with_type_error (t4 "hi") . should_fail_with Type_Error
 
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -4,13 +4,12 @@ import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request
 
-from Standard.Test import Problems, Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
-spec =
+add_specs suite_builder =
     ## To run this test locally:
        $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
@@ -20,8 +19,8 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
-    Test.group "URI" <|
-        Test.specify "should parse URI from string" <|
+    suite_builder.group "URI" group_builder->
+        group_builder.specify "should parse URI from string" <|
             addr = URI.parse "http://user:pass@example.com/foo/bar?key=val"
             addr.scheme.should_equal "http"
             addr.user_info.should_equal "user:pass"
@@ -32,7 +31,7 @@ spec =
             addr.query.should_equal "key=val"
             addr.fragment.should_equal Nothing
 
-        Test.specify "should allow to convert a text to URI" <|
+        group_builder.specify "should allow to convert a text to URI" <|
             addr2 = URI.from "https://example.org:1234/?a=b&c=d+e#line=10,20"
             addr2.should_be_a URI
             addr2.scheme.should_equal "https"
@@ -55,7 +54,7 @@ spec =
             addr3.query.should_equal Nothing
             addr3.fragment.should_equal Nothing
 
-        Test.specify "should escape URI" <|
+        group_builder.specify "should escape URI" <|
             addr = URI.parse "https://%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux?%D0%9A%D0%BE%D0%B4"
             addr.user_info.should_equal "Линус:pass"
             addr.authority.should_equal "Линус:pass@ru.wikipedia.org"
@@ -68,13 +67,13 @@ spec =
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
 
-        Test.specify "should return Syntax_Error when parsing invalid URI" <|
+        group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
             r = URI.parse "a b c"
             r.should_fail_with Syntax_Error
             r.catch.to_display_text . should_contain "a b c"
             URI.from "a b c" . should_fail_with Syntax_Error
 
-        Test.specify "should allow a URI without scheme or authority" <|
+        group_builder.specify "should allow a URI without scheme or authority" <|
             uri = URI.parse "//a/b/c"
             uri.scheme.should_equal Nothing
             uri.authority.should_equal "a"
@@ -86,11 +85,11 @@ spec =
             uri2.authority.should_equal Nothing
             uri2.path.should_equal "/a/b/c"
 
-        Test.specify "should compare two URIs for equality" <|
+        group_builder.specify "should compare two URIs for equality" <|
             (URI.parse "http://google.com").should_equal (URI.parse "http://google.com")
             (URI.parse "http://google.com").should_not_equal (URI.parse "http://amazon.com")
 
-        Test.specify "allows adding query arguments" <|
+        group_builder.specify "allows adding query arguments" <|
             base_uri = URI.parse "http://a_user@example.com"
             uri = base_uri . add_query_argument "foo" "bar"
 
@@ -105,7 +104,7 @@ spec =
             uri.fragment.should_equal Nothing
             uri.to_text . should_equal "http://a_user@example.com/?foo=bar"
 
-        Test.specify "should be able to add multiple query arguments" <|
+        group_builder.specify "should be able to add multiple query arguments" <|
             base_uri = URI.parse "https://example.com/path?a=b"
             uri = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
 
@@ -120,7 +119,7 @@ spec =
             uri.fragment.should_equal Nothing
 
         # We rely on the http-test-helper for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
-        Test.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
+        group_builder.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
             base_uri = URI.parse base_url+"get"
 
             uri1 = base_uri . add_query_argument "a" "b"
@@ -158,14 +157,14 @@ spec =
             r4 = uri4.fetch
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
 
-        Test.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
+        group_builder.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
             uri = URI.parse base_url+"get"
                 . add_query_argument "a" "b"
                 . add_query_argument "a" "c"
                 . add_query_argument "a" "d"
             decode_query_params uri.fetch . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
-        Test.specify "should allow to get properties of a URI with added query arguments and user info" <|
+        group_builder.specify "should allow to get properties of a URI with added query arguments and user info" <|
             base_uri = URI.parse "https://example.com/path?a=b#FRAG"
             uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
 
@@ -178,7 +177,7 @@ spec =
             uri1.fragment.should_equal "FRAG"
             uri1.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f#FRAG")
 
-        Test.specify "should allow the / syntax for extending the path on an URI" <|
+        group_builder.specify "should allow the / syntax for extending the path on an URI" <|
             uri0 = URI.parse "https://example.com"
             uri1 = uri0 / "path"
             uri1.path . should_equal "/path"
@@ -196,7 +195,7 @@ spec =
             uri4.path . should_equal "/path/2"
             uri4.to_text . should_equal "https://example.com/path/2"
 
-        Test.specify "should work fine with / characters and empty segments" <|
+        group_builder.specify "should work fine with / characters and empty segments" <|
             uri0 = URI.parse "http://example.com/get/"
 
             uri1 = uri0 / "///0" / "a///b" / "c///"
@@ -212,7 +211,7 @@ spec =
             uri5 = uri4 / "b"
             uri5.path . should_equal "/get/a//b"
 
-        Test.specify "should allow various characters in the path" pending=pending_has_url <|
+        group_builder.specify "should allow various characters in the path" pending=pending_has_url <|
             uri0 = URI.parse base_url+"get"
             uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
 
@@ -230,13 +229,13 @@ spec =
             r2 = uri3.fetch
             r2.at "path" . should_equal "/get/"+ext
 
-        Test.specify "should allow slashes within path" <|
+        group_builder.specify "should allow slashes within path" <|
             uri0 = URI.parse "https://example.com/"
             uri1 = uri0 / "a" / "b" / "c/d/e" / "f////g"
             uri1.path . should_equal "/a/b/c/d/e/f////g"
             uri1.to_text . should_equal "https://example.com/a/b/c/d/e/f////g"
 
-        Test.specify "will warn about ? or # being encoded in path" <|
+        group_builder.specify "will warn about ? or # being encoded in path" <|
             uri0 = URI.parse "https://example.com/a/b/c"
 
             uri1 = uri0 / "x?y"
@@ -261,7 +260,7 @@ spec =
             uri4.fragment . should_equal "d"
             uri4.to_text . should_equal "https://example.com/a/x%3Fy/z%23w?b=c#d"
 
-        Test.specify "should keep existing query arguments intact when extending the path" <|
+        group_builder.specify "should keep existing query arguments intact when extending the path" <|
             uri0 = URI.parse "https://example.com/path?a=b&c=d"
             uri1 = uri0 / "x" / "y"
             uri2 = uri1 . add_query_argument "e" "f"
@@ -271,7 +270,7 @@ spec =
             uri3.query . should_equal "a=b&c=d&e=f"
             uri3.to_text . should_equal "https://example.com/path/x/y/z?a=b&c=d&e=f"
 
-        Test.specify "should allow to reset query arguments" <|
+        group_builder.specify "should allow to reset query arguments" <|
             uri0 = URI.parse "https://example.com/path?a=b&c=d#FRAG"
             uri1 = uri0 . add_query_argument "e" "f"
 
@@ -282,8 +281,9 @@ spec =
             uri2.to_text . should_equal "https://example.com/path#FRAG"
 
         cloud_setup = Cloud_Tests_Setup.prepare
-        cloud_setup.with_prepared_environment <|
-            Test.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+
+        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-1" "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
@@ -295,7 +295,8 @@ spec =
                     uri.to_java_uri . should_fail_with Enso_Secret_Error
                     uri.raw_query . should_fail_with Enso_Secret_Error
 
-            Test.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-4" "My Very Secret Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
@@ -315,7 +316,8 @@ spec =
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
-            Test.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+            cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
@@ -328,7 +330,11 @@ spec =
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 decode_query_params : Json -> Vector (Pair Text Text)
 decode_query_params json_response =

@@ -10,75 +10,92 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Text.Regex.Internal.Replacer import get_lru_size, replacer_cache_lookup
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "Compile" <|
-        Test.specify "should be able to be compiled" <|
+type Data
+    Value ~data
+
+    pattern self = self.data.at 0
+    match self = self.data.at 1
+    input self = self.data.at 2
+
+    setup = Data.Value <|
+        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input
+        match . should_be_a Match
+        [pattern, match, input]
+
+
+
+add_specs suite_builder =
+    suite_builder.group "Compile" group_builder->
+        group_builder.specify "should be able to be compiled" <|
             pattern = Regex.compile "(?<dots>..)" case_insensitive=True
             pattern . should_be_a Regex
 
-        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
+        group_builder.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error
 
-        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (space in capture group name)" <|
+        group_builder.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (space in capture group name)" <|
             Regex.compile "(?<dot s>..)" . should_fail_with Regex_Syntax_Error
 
-        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (duplicate name)" <|
+        group_builder.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (duplicate name)" <|
             Regex.compile "(?<foo>.)(?<foo>.)" . should_fail_with Regex_Syntax_Error
 
-        Test.specify "should disallow empty patterns in `compile`" <|
+        group_builder.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
 
-        Test.specify "passing a non-string should fail with a type error" <|
+        group_builder.specify "passing a non-string should fail with a type error" <|
             Test.expect_panic_with (Regex.compile 12) Type_Error
             p = Regex.compile "[a-z]"
             Test.expect_panic_with (Regex.compile p) Type_Error
 
-    Test.group "Escape" <|
-        Test.specify "should escape an expression for use as a literal" <|
+    suite_builder.group "Escape" group_builder->
+        group_builder.specify "should escape an expression for use as a literal" <|
             Regex.escape "[a-z\d]+" . should_equal '\\[a-z\\d\\]\\+'
 
-    Test.group "Pattern.matches" <|
-        Test.specify "should return True when the pattern matches against the input" <|
+
+    suite_builder.group "Pattern.matches" group_builder->
+        group_builder.specify "should return True when the pattern matches against the input" <|
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             pattern.matches input . should_be_true
 
-        Test.specify "should return False when the pattern doesn't match against the input" <|
+        group_builder.specify "should return False when the pattern doesn't match against the input" <|
             pattern = Regex.compile "aaz"
             input = "aa ab abc a bc bcd"
             pattern.matches input . should_be_false
 
-        Test.specify "should check for full matches" <|
+        group_builder.specify "should check for full matches" <|
             pattern = Regex.compile "f.o"
             pattern.matches "foo" . should_be_true
             pattern.matches "foobar" . should_be_false
 
-        Test.specify "`matches` with an empty pattern should be an error" <|
+        group_builder.specify "`matches` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.matches "ABC" . should_fail_with Illegal_Argument
 
-         Test.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
+         group_builder.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
              pattern = Regex.compile "abc"
              pattern.matches 1 . should_fail_with Type_Error
 
-    Test.group "Pattern.match and .match_all" <|
-        Test.specify "should be able to `match` the first instance of the pattern in the input" <|
+
+    suite_builder.group "Pattern.match and .match_all" group_builder->
+        group_builder.specify "should be able to `match` the first instance of the pattern in the input" <|
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             match = pattern.match input
             match . should_be_a Match
             match.text 0 . should_equal input
 
-        Test.specify "should return `Nothing` if there are no matches in first mode" <|
+        group_builder.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "abc"
             match = pattern.match input
             match . should_equal Nothing
 
-        Test.specify "should be able to `match` the all instances of the pattern in the input" <|
+        group_builder.specify "should be able to `match` the all instances of the pattern in the input" <|
             pattern = Regex.compile "(..)"
             input = "abcdefghij"
             matches = pattern.match_all input
@@ -89,43 +106,44 @@ spec =
             matches.at 3 . text 0 . should_equal "gh"
             matches.at 4 . text 0 . should_equal "ij"
 
-        Test.specify "should return `[]` when an all match match fails" <|
+        group_builder.specify "should return `[]` when an all match match fails" <|
             pattern = Regex.compile "(aa)"
             input = "abcdefghij"
             match = pattern.match_all input
             match . should_equal []
 
-        Test.specify "`match` with an empty pattern should be an error" <|
+        group_builder.specify "`match` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.match "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`match_all` with an empty pattern should be an error" <|
+        group_builder.specify "`match_all` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.match_all "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`match` against a non-Text should fail with Illegal_Argument" <|
+        group_builder.specify "`match` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
             pattern.match 1 . should_fail_with Type_Error
 
-        Test.specify "`match_all` against a non-Text should fail with Illegal_Argument" <|
+        group_builder.specify "`match_all` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
             pattern.match_all 1 . should_fail_with Type_Error
 
-    Test.group "Pattern.find and .find_all" <|
-        Test.specify "should be able to `find` the first instance of the pattern in the input" <|
+
+    suite_builder.group "Pattern.find and .find_all" group_builder->
+        group_builder.specify "should be able to `find` the first instance of the pattern in the input" <|
             pattern = Regex.compile "(..)"
             input = "abcdefghij"
             match = pattern.find input
             match . should_be_a Text
             match . should_equal "ab"
 
-        Test.specify "should return `Nothing` if there are no matches in first mode" <|
+        group_builder.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = Regex.compile "(aa)"
             input = "abcdefghij"
             match = pattern.find input
             match . should_equal Nothing
 
-        Test.specify "should be able to `find` the all instances of the pattern in the input" <|
+        group_builder.specify "should be able to `find` the all instances of the pattern in the input" <|
             pattern = Regex.compile "(..)"
             input = "abcdefghij"
             match = pattern.find_all input
@@ -136,13 +154,13 @@ spec =
             match.at 3 . should_equal "gh"
             match.at 4 . should_equal "ij"
 
-        Test.specify "should return `[]` when an all match match fails" <|
+        group_builder.specify "should return `[]` when an all match match fails" <|
             pattern = Regex.compile "(aa)"
             input = "abcdefghij"
             match = pattern.find_all input
             match . should_equal []
 
-        Test.specify "should handle matching empty matches" <|
+        group_builder.specify "should handle matching empty matches" <|
             pattern = Regex.compile ".*"
             pattern.find_all "Hello World" . should_equal ["Hello World", ""]
             pattern.find_all "" . should_equal [""]
@@ -151,39 +169,40 @@ spec =
             pattern_2.find_all "Hello World" . should_equal ["Hello Worl", ""]
             pattern_2.find_all "" . should_equal []
 
-        Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
+        group_builder.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
             Regex.compile "(a+|1+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
             Regex.compile "([a]+|[1]+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
             Regex.compile "([0-9]+|[^0-9]+)" . find_all "a1b2" . should_equal ["a", "1", "b", "2"]
 
-        Test.specify "`find` with an empty pattern should be an error" <|
+        group_builder.specify "`find` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.find "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`find_all` with an empty pattern should be an error" <|
+        group_builder.specify "`find_all` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.find_all "ABC" . should_fail_with Illegal_Argument
 
-    Test.group "Pattern.split" <|
-        Test.specify "should be able to `split` on the first instance of the pattern" <|
+
+    suite_builder.group "Pattern.split" group_builder->
+        group_builder.specify "should be able to `split` on the first instance of the pattern" <|
             pattern = Regex.compile "cd"
             input = "abcdefcdghij"
             texts = pattern.split input only_first=True
             texts . should_equal ["ab", "efcdghij"]
 
-        Test.specify "should return the original text if there are no matches in first mode" <|
+        group_builder.specify "should return the original text if there are no matches in first mode" <|
             pattern = Regex.compile "aa"
             input = "abcdefghij"
             texts = pattern.split input only_first=True
             texts . should_equal ["abcdefghij"]
 
-        Test.specify "should return the original text if there are no matches in all mode" <|
+        group_builder.specify "should return the original text if there are no matches in all mode" <|
             pattern = Regex.compile "aa"
             input = "abcdefghij"
             texts = pattern.split input
             texts . should_equal ["abcdefghij"]
 
-        Test.specify "should be able to `split` on the all instances of the pattern in the input" <|
+        group_builder.specify "should be able to `split` on the all instances of the pattern in the input" <|
             pattern = Regex.compile "a"
             pattern.split "bacadaeaf" . should_equal ["b", "c", "d", "e", "f"]
             pattern.split "baab" . should_equal ["b", "", "b"]
@@ -192,92 +211,93 @@ spec =
             pattern.split "a" . should_equal ["", ""]
             pattern.split "abaca" . should_equal ["", "b", "c", ""]
 
-        Test.specify "should split without normalization" <|
+        group_builder.specify "should split without normalization" <|
             pattern = Regex.compile "s"
             pattern.split 'aśsśs\u{301}śb' . should_equal ['aś', 'ś', '\u{301}śb']
 
-        Test.specify "`split` against a non-Text should fail with Illegal_Argument" <|
+        group_builder.specify "`split` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
             pattern.split 1 . should_fail_with Type_Error
 
-    Test.group "Pattern.tokenize" <|
-        Test.specify "can tokenize with simple regexes without capturing groups"
+
+    suite_builder.group "Pattern.tokenize" group_builder->
+        group_builder.specify "can tokenize with simple regexes without capturing groups"
             Regex.compile "[a-z]+" . tokenize "1-800-regex-yes" . should_equal ["regex", "yes"]
             Regex.compile "[a-z]+" case_insensitive=True . tokenize "1-800-REGEX-YES" . should_equal ["REGEX", "YES"]
             Regex.compile "\d\d" . tokenize "12 hi345 67r890r" . should_equal ["12", "34", "67", "89"]
 
-        Test.specify "can tokenize with regexes with capturing groups"
+        group_builder.specify "can tokenize with regexes with capturing groups"
             Regex.compile "(\d\d)\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "[a-z]+(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex.compile "[a-z]+(\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["", "182", "20", ""]
 
-        Test.specify "ignores non-capturing groups"
+        group_builder.specify "ignores non-capturing groups"
             Regex.compile "(?:(\d\d)\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(?<foo>\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(?:[a-z]+)(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
 
-        Test.specify "ignores nested groups"
+        group_builder.specify "ignores nested groups"
             Regex.compile "(\d(\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(?<foo>\d(?<bar>\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "[a-z]+((\d)\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex.compile "\d(\d(\d\d)\d)\d" . tokenize "012345678901" . should_equal ["1234", "7890"]
 
-        Test.specify "non-participating groups are rendered as the empty string"
+        group_builder.specify "non-participating groups are rendered as the empty string"
             Regex.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_4_0" . should_equal ['340']
             Regex.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_q_0" . should_equal ['3q0']
 
-        Test.specify "handles unicode" <|
+        group_builder.specify "handles unicode" <|
             Regex.compile "[áê]+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
             # `+` only applies to the accent `\u{301}`, not to the entire grapheme.
             Regex.compile 'a\u{301}+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
             Regex.compile '(?:a\u{301})+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}a\u{301}']
             Regex.compile "x([áê]+)y" . tokenize "xáy xêy" . should_equal ["á", "ê"]
 
-        Test.specify "examples are correct" <|
+        group_builder.specify "examples are correct" <|
             Regex.compile "..." . tokenize "ABCDEF" . should_equal ["ABC","DEF"]
             Regex.compile "(.).(.)" . tokenize "ABCDEF" . should_equal ["AC","DF"]
             Regex.compile "(\S+)(?:\s+|$)" . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!' . should_equal ["Hello","Big","Wide","World","Goodbye!"]
 
-    Test.group "Pattern.replace" <|
-        Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
+    suite_builder.group "Pattern.replace" group_builder->
+        group_builder.specify "should be able to `replace` the first instance of the pattern in the input" <|
             pattern = Regex.compile "abc"
             input = "aa ab abc a bc abc"
             match = pattern.replace input "REPLACED" only_first=True
             match . should_be_a Text
             match . should_equal "aa ab REPLACED a bc abc"
 
-        Test.specify "should return the string unchanged if there are no matches to replace in only_first mode" <|
+        group_builder.specify "should return the string unchanged if there are no matches to replace in only_first mode" <|
             pattern = Regex.compile "xyz"
             input = "aa ab ac ad"
             match = pattern.replace input "REPLACED" only_first=True
             match . should_equal input
 
-        Test.specify "should be able to replace the all instances of the pattern in the input" <|
+        group_builder.specify "should be able to replace the all instances of the pattern in the input" <|
             pattern = Regex.compile "aa"
             input = "aa ab aa ac ad aa aa ax"
             match = pattern.replace input "REPLACED"
             match . should_equal "REPLACED ab REPLACED ac ad REPLACED REPLACED ax"
 
-        Test.specify "should return the input when an all replace fails" <|
+        group_builder.specify "should return the input when an all replace fails" <|
             pattern = Regex.compile "aa"
             input = "abcdefghij"
             match = pattern.replace input "REPLACED"
             match . should_equal input
 
-        Test.specify "should be able to replace the entire input only if it matches" <|
+        group_builder.specify "should be able to replace the entire input only if it matches" <|
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             match = pattern.replace input "REPLACED"
             match . should_equal "REPLACED"
 
-        Test.specify "should not perform overlapping replacements in all mode" <|
+        group_builder.specify "should not perform overlapping replacements in all mode" <|
             pattern = Regex.compile "(..)"
             input = "aa ab"
             match = pattern.replace input "REPLACED"
             match . should_equal "REPLACEDREPLACEDb"
 
-        Test.specify "should handle capture groups in replacement" <|
+        group_builder.specify "should handle capture groups in replacement" <|
             pattern = Regex.compile "(?<capture>[a-z]+)"
             pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$1]" only_first=True . should_equal "[foo] bar, baz"
@@ -290,240 +310,221 @@ spec =
             pattern.replace "foo bar, baz" "[$&]" . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$&]" only_first=True . should_equal "[foo] bar, baz"
 
-        Test.specify "should handle unicode in capture group names" <|
+        group_builder.specify "should handle unicode in capture group names" <|
             pattern = Regex.compile "(?<건반>[a-z]+)"
             pattern.replace "foo bar, baz" "[$<건반>]" . should_equal "[foo] [bar], [baz]"
 
-        Test.group "should correctly evaluate documentation examples" <|
-           Test.specify "example 1" <|
-               pattern = Regex.compile 'aa'
-               pattern.replace 'aaa' 'b' . should_equal 'ba'
 
-           Test.specify "example 2" <|
-               pattern = Regex.compile '[lo]'
-               pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
+    suite_builder.group "should correctly evaluate documentation examples" group_builder->
+       group_builder.specify "example 1" <|
+           pattern = Regex.compile 'aa'
+           pattern.replace 'aaa' 'b' . should_equal 'ba'
 
-           Test.specify "example 3" <|
-               pattern = Regex.compile 'l'
-               pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
+       group_builder.specify "example 2" <|
+           pattern = Regex.compile '[lo]'
+           pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
 
-           Test.specify "example 4" <|
-               pattern = Regex.compile '"(.*?)"'
-               pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
+       group_builder.specify "example 3" <|
+           pattern = Regex.compile 'l'
+           pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
 
-           Test.specify "example 5" <|
-               pattern = Regex.compile "aa"
-               input = "aa ab aa ac ad aa aa ax"
-               match = pattern.replace input "xyz"
-               match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+       group_builder.specify "example 4" <|
+           pattern = Regex.compile '"(.*?)"'
+           pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
 
-           Test.specify "example 6" <|
-               pattern = Regex.compile "([a-z]+)"
-               pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+       group_builder.specify "example 5" <|
+           pattern = Regex.compile "aa"
+           input = "aa ab aa ac ad aa aa ax"
+           match = pattern.replace input "xyz"
+           match . should_equal "xyz ab xyz ac ad xyz xyz ax"
 
-        Test.specify "`replace` with an empty pattern should be an error" <|
+       group_builder.specify "example 6" <|
+           pattern = Regex.compile "([a-z]+)"
+           pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+
+        group_builder.specify "`replace` with an empty pattern should be an error" <|
             pattern = Regex.compile ""
             pattern.replace "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
+        group_builder.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
             pattern.replace 1 "abc" . should_fail_with Type_Error
 
-    Test.group "Match.text" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
 
-        Test.specify "should return the full match with index 0" <|
-            match.text 0 . should_equal "aa ab abc a bc bcd"
+    suite_builder.group "Match.text" group_builder->
+        data = Data.setup
 
-        Test.specify "should return the group contents if it matches by index" <|
-            match.text 1 . should_equal "aa ab "
+        group_builder.specify "should return the full match with index 0" <|
+            data.match.text 0 . should_equal "aa ab abc a bc bcd"
 
-        Test.specify "should return the group contents if it matches by name" <|
-            match.text "letters" . should_equal "abc a bc bcd"
+        group_builder.specify "should return the group contents if it matches by index" <|
+            data.match.text 1 . should_equal "aa ab "
 
-        Test.specify "should return Nothing if the group did not match" <|
-            match.text 3 . should_equal Nothing
+        group_builder.specify "should return the group contents if it matches by name" <|
+            data.match.text "letters" . should_equal "abc a bc bcd"
 
-        Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
-            match.text "fail" . should_fail_with No_Such_Group
-            match.text 5 . should_fail_with No_Such_Group
+        group_builder.specify "should return Nothing if the group did not match" <|
+            data.match.text 3 . should_equal Nothing
 
-        Test.specify "should make named groups accessible by index" <|
-            match.text 2 . should_equal (match.text "letters")
+        group_builder.specify "should fail with No_Such_Group_Error if the group did not exist" <|
+            data.match.text "fail" . should_fail_with No_Such_Group
+            data.match.text 5 . should_fail_with No_Such_Group
 
-    Test.group "Match.groups" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
+        group_builder.specify "should make named groups accessible by index" <|
+            data.match.text 2 . should_equal (data.match.text "letters")
 
-        Test.specify "should return the results of all groups" <|
-            groups = match.groups
+
+    suite_builder.group "Match.groups" group_builder->
+        data = Data.setup
+
+        group_builder.specify "should return the results of all groups" <|
+            groups = data.match.groups
             groups.length . should_equal 5
             groups.should_equal ["aa ab abc a bc bcd", "aa ab ", "abc a bc bcd", Nothing, Nothing]
 
-        Test.specify "should replace unmatched groups by a user-specified value" <|
-            groups = match.groups "UNMATCHED"
+        group_builder.specify "should replace unmatched groups by a user-specified value" <|
+            groups = data.match.groups "UNMATCHED"
             groups.length . should_equal 5
             groups.should_equal ["aa ab abc a bc bcd", "aa ab ", "abc a bc bcd", "UNMATCHED", "UNMATCHED"]
 
-    Test.group "Match.named_groups" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match.Value
 
-        Test.specify "should provide access to info about group names" <|
-            pattern.named_groups.sort . should_equal ["empty", "letters"]
-            pattern.group_nums_to_names . should_equal <| Map.from_vector [[2, "letters"],[4, "empty"]]
+    suite_builder.group "Match.named_groups" group_builder->
+        data = Data.setup
 
-        Test.specify "should return the results of all named groups" <|
-            groups = match.named_groups
+        group_builder.specify "should provide access to info about group names" <|
+            data.pattern.named_groups.sort . should_equal ["empty", "letters"]
+            data.pattern.group_nums_to_names . should_equal <| Map.from_vector [[2, "letters"],[4, "empty"]]
+
+        group_builder.specify "should return the results of all named groups" <|
+            groups = data.match.named_groups
             groups.keys.sort . should_equal ["empty", "letters"]
             groups.size . should_equal 2
             groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal Nothing
 
-        Test.specify "should replace unmatched groups by a user-specified value" <|
-            groups = match.named_groups "UNMATCHED"
+        group_builder.specify "should replace unmatched groups by a user-specified value" <|
+            groups = data.match.named_groups "UNMATCHED"
             groups.size . should_equal 2
             groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal "UNMATCHED"
 
-    Test.group "Match.start" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
+    suite_builder.group "Match.start" group_builder->
+        data = Data.setup
 
-        Test.specify "should return the start of a group by index" <|
-            match.start 1 . should_equal 0
+        group_builder.specify "should return the start of a group by index" <|
+            data.match.start 1 . should_equal 0
 
-        Test.specify "should return the start of a group by name" <|
-            match.start "letters" . should_equal 6
+        group_builder.specify "should return the start of a group by name" <|
+            data.match.start "letters" . should_equal 6
 
-        Test.specify "should return Nothing if the group didn't match" <|
-            match.start 3 . should_equal Nothing
-            match.start "empty" . should_equal Nothing
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.start 3 . should_equal Nothing
+            data.match.start "empty" . should_equal Nothing
 
-        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.start 5 . should_fail_with No_Such_Group
-            match.start "nonexistent" . should_fail_with No_Such_Group
+        group_builder.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            data.match.start 5 . should_fail_with No_Such_Group
+            data.match.start "nonexistent" . should_fail_with No_Such_Group
 
-    Test.group "Match.end" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
 
-        Test.specify "should return the end of a group by index" <|
-            match.end 1 . should_equal 6
+    suite_builder.group "Match.end" group_builder->
+        data = Data.setup
 
-        Test.specify "should return the end of a group by name" <|
-            match.end "letters" . should_equal 18
+        group_builder.specify "should return the end of a group by index" <|
+            data.match.end 1 . should_equal 6
 
-        Test.specify "should return Nothing if the group didn't match" <|
-            match.end 3 . should_equal Nothing
-            match.end "empty" . should_equal Nothing
+        group_builder.specify "should return the end of a group by name" <|
+            data.match.end "letters" . should_equal 18
 
-        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.end 5 . should_fail_with No_Such_Group
-            match.end "nonexistent" . should_fail_with No_Such_Group
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.end 3 . should_equal Nothing
+            data.match.end "empty" . should_equal Nothing
 
-    Test.group "Match.utf_16_start" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
+        group_builder.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            data.match.end 5 . should_fail_with No_Such_Group
+            data.match.end "nonexistent" . should_fail_with No_Such_Group
 
-        Test.specify "should return the start of a group by index" <|
-            match.utf_16_start 1 . should_equal 0
 
-        Test.specify "should return the start of a group by name" <|
-            match.utf_16_start "letters" . should_equal 6
+    suite_builder.group "Match.utf_16_start" group_builder->
+        data = Data.setup
 
-        Test.specify "should return Nothing if the group didn't match" <|
-            match.utf_16_start 3 . should_equal Nothing
-            match.utf_16_start "empty" . should_equal Nothing
+        group_builder.specify "should return the start of a group by index" <|
+            data.match.utf_16_start 1 . should_equal 0
 
-        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.utf_16_start 5 . should_fail_with No_Such_Group
-            match.utf_16_start "nonexistent" . should_fail_with No_Such_Group
+        group_builder.specify "should return the start of a group by name" <|
+            data.match.utf_16_start "letters" . should_equal 6
 
-        Test.group "Match.utf_16_end" <|
-            pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-            input = "aa ab abc a bc bcd"
-            match = pattern.match input
-            match . should_be_a Match
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.utf_16_start 3 . should_equal Nothing
+            data.match.utf_16_start "empty" . should_equal Nothing
 
-            Test.specify "should return the end of a group by index" <|
-                match.utf_16_end 1 . should_equal 6
+        group_builder.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            data.match.utf_16_start 5 . should_fail_with No_Such_Group
+            data.match.utf_16_start "nonexistent" . should_fail_with No_Such_Group
 
-            Test.specify "should return the end of a group by name" <|
-                match.utf_16_end "letters" . should_equal 18
 
-            Test.specify "should return Nothing if the group didn't match" <|
-                match.utf_16_end 3 . should_equal Nothing
-                match.utf_16_end "empty" . should_equal Nothing
+    suite_builder.group "Match.utf_16_end" group_builder->
+        data = Data.setup
 
-            Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-                match.utf_16_end 5 . should_fail_with No_Such_Group
-                match.utf_16_end "nonexistent" . should_fail_with No_Such_Group
+        group_builder.specify "should return the end of a group by index" <|
+            data.match.utf_16_end 1 . should_equal 6
 
-    Test.group "Match.span" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
+        group_builder.specify "should return the end of a group by name" <|
+            data.match.utf_16_end "letters" . should_equal 18
 
-        Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Span.Value (0.up_to 6) input)
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.utf_16_end 3 . should_equal Nothing
+            data.match.utf_16_end "empty" . should_equal Nothing
 
-        Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Span.Value (6.up_to 18) input)
+        group_builder.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            data.match.utf_16_end 5 . should_fail_with No_Such_Group
+            data.match.utf_16_end "nonexistent" . should_fail_with No_Such_Group
 
-        Test.specify "should return Nothing if the group didn't match" <|
-            match.span 3 . should_equal Nothing
-            match.span "empty" . should_equal Nothing
 
-        Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-            match.span 5 . should_fail_with No_Such_Group
-            match.span "nonexistent" . should_fail_with No_Such_Group
+    suite_builder.group "Match.span" group_builder->
+        data = Data.setup
 
-    Test.group "Match.utf_16_span" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
-        match = pattern.match input
-        match . should_be_a Match
+        group_builder.specify "should get the span of a group by index" <|
+            data.match.span 1 . should_equal (Span.Value (0.up_to 6) data.input)
 
-        Test.specify "should get the UTF16 span of a group by index" <|
-            match.utf_16_span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) input)
+        group_builder.specify "should get the span of a group by name" <|
+            data.match.span "letters" . should_equal (Span.Value (6.up_to 18) data.input)
 
-        Test.specify "should get the UTF16 span of a group by name" <|
-            match.utf_16_span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) input)
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.span 3 . should_equal Nothing
+            data.match.span "empty" . should_equal Nothing
 
-        Test.specify "should return Nothing if the group didn't match" <|
-            match.utf_16_span 3 . should_equal Nothing
-            match.utf_16_span "empty" . should_equal Nothing
+        group_builder.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
+            data.match.span 5 . should_fail_with No_Such_Group
+            data.match.span "nonexistent" . should_fail_with No_Such_Group
 
-        Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-            match.utf_16_span 5 . should_fail_with No_Such_Group
-            match.utf_16_span "nonexistent" . should_fail_with No_Such_Group
 
-    Test.group "Match.to_display_text" <|
-        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-        input = "aa ab abc a bc bcd"
+    suite_builder.group "Match.utf_16_span" group_builder->
+        data = Data.setup
 
-        Test.specify "should not error" <|
-            match = pattern.match input
+        group_builder.specify "should get the UTF16 span of a group by index" <|
+            data.match.utf_16_span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) data.input)
+
+        group_builder.specify "should get the UTF16 span of a group by name" <|
+            data.match.utf_16_span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) data.input)
+
+        group_builder.specify "should return Nothing if the group didn't match" <|
+            data.match.utf_16_span 3 . should_equal Nothing
+            data.match.utf_16_span "empty" . should_equal Nothing
+
+        group_builder.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
+            data.match.utf_16_span 5 . should_fail_with No_Such_Group
+            data.match.utf_16_span "nonexistent" . should_fail_with No_Such_Group
+
+    suite_builder.group "Match.to_display_text" group_builder->
+        data = Data.setup
+
+        group_builder.specify "should not error" <|
+            match = data.pattern.match data.input
             match . should_be_a Match
             match.to_display_text . should_equal "Match {aa ab abc a bc bcd}"
 
-    Test.group "caching" <|
-        Test.specify "Replacer cache drops old values" <|
+    suite_builder.group "caching" group_builder->
+        group_builder.specify "Replacer cache drops old values" <|
             pattern = Regex.compile('([a-c])')
 
             # Add enough values to flush out the first values.
@@ -533,4 +534,8 @@ spec =
             replacer_cache_lookup "$1$1x0" . should_equal Nothing
             replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

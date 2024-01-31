@@ -11,11 +11,11 @@ polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
 polyglot java import java.util.List as Java_List
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Pattern Matches" <|
-    Test.specify "should be able to match on the Boolean type" <|
+
+add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
+    group_builder.specify "should be able to match on the Boolean type" <|
         case Boolean of
             Boolean -> Nothing
             _ -> Test.fail "Expected the Boolean constructor to match."
@@ -27,7 +27,7 @@ spec = Test.group "Pattern Matches" <|
             Boolean -> Test.fail "Expected False to match on a Boolean type check."
             _ : Boolean -> Nothing
             _ -> Test.fail "Expected False to match on a Boolean type check."
-    Test.specify "should be able to match on the Integer type" <|
+    group_builder.specify "should be able to match on the Integer type" <|
         case 1 of
             Integer -> Test.fail "Expected an integer to match."
             _ : Integer -> Nothing
@@ -39,7 +39,7 @@ spec = Test.group "Pattern Matches" <|
         case Integer of
             Integer -> Nothing
             _ -> Test.fail "Expected the Integer constructor to match."
-    Test.specify "should be able to match on the Float type" <|
+    group_builder.specify "should be able to match on the Float type" <|
         case 1.7 of
             _ : Integer -> Test.fail "Expected a decimal to match."
             Float -> Test.fail "Expected a decimal to match."
@@ -48,7 +48,7 @@ spec = Test.group "Pattern Matches" <|
         case Float of
             Float -> Nothing
             _ -> Test.fail "Expected the Float constructor to match."
-    Test.specify "match on the Number literal" <|
+    group_builder.specify "match on the Number literal" <|
         foo x = case x of
             1 -> "ONE"
             1.0 -> "one"
@@ -69,7 +69,7 @@ spec = Test.group "Pattern Matches" <|
         foo 9999 . should_equal "NINE THOUSAND NINE HUNDRED NINETY NINE"
         foo 12345678901234567890123456789*10 . should_equal "a lot"
 
-    Test.specify "should be able to match on the Number type" <|
+    group_builder.specify "should be able to match on the Number type" <|
         case 1 of
             _ : Number -> Nothing
             _ -> Test.fail "Expected a number to match."
@@ -91,7 +91,7 @@ spec = Test.group "Pattern Matches" <|
         case Float of
             _ : Number -> Test.fail "Float type isn't instance of Number type"
             _ -> Nothing
-    Test.specify "should be able to match on the Text type" <|
+    group_builder.specify "should be able to match on the Text type" <|
         case "foo" of
             Text -> Test.fail "Expected a text type to match."
             _ : Text -> Nothing
@@ -106,7 +106,7 @@ spec = Test.group "Pattern Matches" <|
             Text -> Test.fail "Expected the Text module to match4."
             Text_Module -> Nothing
             _ -> Test.fail "Expected the Text module to matc5h."
-    Test.specify "should be able to match on the Array type" <|
+    group_builder.specify "should be able to match on the Array type" <|
         case [1].to_array of
             Array -> Test.fail "Expected an array type to match."
             _ : Array -> Nothing
@@ -129,7 +129,7 @@ spec = Test.group "Pattern Matches" <|
             Array -> Test.fail "Expected the Array module to match."
             Array_Module -> Nothing
             _ -> Test.fail "Expected the Array module to match."
-    Test.specify "should be able to match on the Polyglot type" <|
+    group_builder.specify "should be able to match on the Polyglot type" <|
         random_gen = Java_Random.new
         case random_gen of
             Polyglot -> Nothing
@@ -137,7 +137,7 @@ spec = Test.group "Pattern Matches" <|
         case Polyglot of
             Polyglot -> Nothing
             _ -> Test.fail "Expected the Polyglot constructor to match."
-    Test.specify "should be able to match on the Any type" <|
+    group_builder.specify "should be able to match on the Any type" <|
         value_1 = 1.23143
         value_2 = "foo bar"
         case value_1 of
@@ -155,7 +155,7 @@ spec = Test.group "Pattern Matches" <|
         case Any of
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
-    Test.specify "should be able to match on date/time values" <|
+    group_builder.specify "should be able to match on date/time values" <|
         new_date = Date.new 2020 6 1
         new_date_time = Date_Time.new 2020 6 1
         new_time = Time_Of_Day.new 11 11
@@ -206,7 +206,7 @@ spec = Test.group "Pattern Matches" <|
             _ : Time_Zone -> Nothing
             _ -> Test.fail "Expected timezone value to match Time_Zone type."
 
-    Test.specify "should be able to match on literal values" <|
+    group_builder.specify "should be able to match on literal values" <|
         value_1 = 42
         value_2 = "foo"
         value_3 = 's\u0301'
@@ -230,7 +230,7 @@ spec = Test.group "Pattern Matches" <|
             "ę"   -> Test.fail "Expected value to match constant."
             '\u0065\u{301}' -> Nothing
             _     -> Test.fail "Expected value to match constant."
-    Test.specify "should be able to match on literal values nested in constructors" <|
+    group_builder.specify "should be able to match on literal values nested in constructors" <|
         value_1 = List.Cons 42 List.Nil
         value_2 = List.Cons (List.Cons 42 List.Nil) List.Nil
         case value_1 of
@@ -247,21 +247,21 @@ spec = Test.group "Pattern Matches" <|
             List.Cons _ List.Nil                      -> Test.fail "Expected value to match constant."
             _                                         -> Test.fail "Expected value to match constant."
 
-    Test.specify "should be able to match on module rather than a type" <|
+    group_builder.specify "should be able to match on module rather than a type" <|
         case Vector_Module of
             _ : Vector        -> Test.fail "Expected to match on module."
             Vector            -> Test.fail "Expected to match on module."
             Vector_Module     -> Nothing
             _                 -> Test.fail "Expected to match on module."
 
-    Test.specify "should be able to match on a type of a value rather tha module" <|
+    group_builder.specify "should be able to match on a type of a value rather tha module" <|
         case [1,2,3] of
             Vector_Module -> Test.fail "Expected to match on a type."
             Vector        -> Test.fail "Expected to match on a type."
             _ : Vector    -> Nothing
             _             -> Test.fail "Expected to match on a type."
 
-    Test.specify "should correctly pattern match on array-like polyglot values" <|
+    group_builder.specify "should correctly pattern match on array-like polyglot values" <|
         list = ArrayList.new
         list.add 1
         list.add 2
@@ -301,7 +301,7 @@ spec = Test.group "Pattern Matches" <|
         u = v.map foo
         u.should_equal ["text", "array", "array"]
 
-    Test.specify "should correctly pattern match on supertype" <|
+    group_builder.specify "should correctly pattern match on supertype" <|
         case 1 of
             _ : Any -> Nothing
             _ -> Test.fail "Expected to match on Any type."
@@ -322,9 +322,13 @@ spec = Test.group "Pattern Matches" <|
             _ : Any -> Nothing
             _ -> Test.fail "Expected to match on Any."
 
-    Test.specify "should allow for pattern matching on unresolved symbol" <|
+    group_builder.specify "should allow for pattern matching on unresolved symbol" <|
         case (.name) of
             _ : Function -> Nothing
             _ -> Test.fail "Expected to match on Function type."
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

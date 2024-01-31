@@ -11,8 +11,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type Auto
     Value a
@@ -58,11 +58,11 @@ type Manual
        from the back.
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
-spec =
+add_specs suite_builder =
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
-    Test.group "Text" <|
+    suite_builder.group "Text" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
@@ -73,17 +73,17 @@ spec =
             건반(Korean).
         sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
 
-        Test.specify "should allow naive length computation over grapheme clusters" <|
+        group_builder.specify "should allow naive length computation over grapheme clusters" <|
             kshi.length . should_equal 1
             facepalm.length . should_equal 1
 
-        Test.specify "should be able to tell if Text is normalized" <|
+        group_builder.specify "should be able to tell if Text is normalized" <|
             'a'.is_normalized . should_be_true
             "14.95€".is_normalized . should_be_true
             'é'.is_normalized . should_be_false
             'e\u{301}'.is_normalized . should_be_true
 
-        Test.specify "should compare strings using utf normalization" <|
+        group_builder.specify "should compare strings using utf normalization" <|
             "abc"=="def" . should_be_false
             'a'=='b' . should_be_false
             'a'=='a' . should_be_true
@@ -134,13 +134,13 @@ spec =
             Ordering.compare common_prefix+complex_letter_3+later_suffix  common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
             Ordering.compare common_prefix+complex_letter_1+later_suffix  common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
-        Test.specify "normalizes correctly" <|
+        group_builder.specify "normalizes correctly" <|
             'aśb'.codepoints . should_equal [97, 347, 98]
             'as\u0301b'.codepoints . should_equal [97, 115, 769, 98]
             'aśb'.normalize.codepoints . should_equal [97, 115, 769, 98]
             'as\u0301b'.normalize.codepoints . should_equal [97, 115, 769, 98]
 
-        Test.specify "normalizes correctly using different standard Unicode normalization modes" <|
+        group_builder.specify "normalizes correctly using different standard Unicode normalization modes" <|
             ## GREEK UPSILON WITH ACUTE AND HOOK SYMBOL behaves differently with each mode.
                See https://unicode.org/faq/normalization.html
             s = 'ϓ'
@@ -151,7 +151,7 @@ spec =
             s.normalize Normalization.NFKD . codepoints . should_equal [933, 769]
             s.normalize Normalization.NFKCCasefold . codepoints . should_equal [973]
 
-        Test.specify "should correctly handle case-insensitive equality" <|
+        group_builder.specify "should correctly handle case-insensitive equality" <|
             "aBc" . equals_ignore_case "Abc" . should_be_true
             "abc" . equals_ignore_case "abd" . should_be_false
             "" . equals_ignore_case "" . should_be_true
@@ -172,11 +172,11 @@ spec =
             "Kongressstraße"=="Kongressstrasse" . should_be_false
             "Kongressstraße" . equals_ignore_case "Kongressstrasse" . should_be_true
 
-        Test.specify "should split the text into grapheme clusters" <|
+        group_builder.specify "should split the text into grapheme clusters" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
 
-        Test.specify "should allow access by index to a grapheme cluster" <|
+        group_builder.specify "should allow access by index to a grapheme cluster" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.at 0 . should_equal kshi
             str.at 1 . should_equal facepalm
@@ -190,7 +190,7 @@ spec =
             str.second . should_equal facepalm
             str.last . should_equal accent_2
 
-        Test.specify "should allow access by negative index to a grapheme cluster" <|
+        group_builder.specify "should allow access by negative index to a grapheme cluster" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.at -4 . should_equal kshi
             str.at -3 . should_equal facepalm
@@ -201,7 +201,7 @@ spec =
             str.get -2 . should_equal accent_1
             str.get -1 . should_equal accent_2
 
-        Test.specify "should return a dataflow error when accessing characters out of bounds" <|
+        group_builder.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.at -5 . should_fail_with Index_Out_Of_Bounds
             str.at -5 . catch . should_equal (Index_Out_Of_Bounds.Error -5 4)
@@ -214,14 +214,14 @@ spec =
             "".second.should_fail_with Index_Out_Of_Bounds
             "".last.should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to split the text into words" <|
+        group_builder.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
             "แมวมีสี่ขา".words . should_equal ['แมว', 'มี', 'สี่', 'ขา']
             sentences.words . should_equal sentence_words
             "I ❤️ Unicode! 🙂🙂".words . should_equal ['I', '❤️', 'Unicode', '!', '🙂', '🙂']
             '"แมวมีสี่ขา" means that a cat has four legs.'.words . should_equal ['"', 'แมว', 'มี', 'สี่', 'ขา', '"', 'means', 'that', 'a', 'cat', 'has', 'four', 'legs', '.']
 
-        Test.specify "should be able to split the text into lines" <|
+        group_builder.specify "should be able to split the text into lines" <|
             utf_8_vertical = 'foo\n   bar \r\n baz \r quux'
             utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
             utf_8_vertical.lines . should_equal utf_8_vertical_split
@@ -247,7 +247,7 @@ spec =
             multiline.lines . should_equal ['Hello', 'world']
             '🚀🚧\n\u{301}a\u{301}\r건반'.lines . should_equal ['🚀🚧', '\u{301}a\u{301}', '건반']
 
-        Test.specify "should be able to split the text on arbitrary text sequence" <|
+        group_builder.specify "should be able to split the text on arbitrary text sequence" <|
             "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
             text = "Namespace::package::package::Type"
             text.split "::" . should_equal ["Namespace", "package", "package", "Type"]
@@ -260,7 +260,7 @@ spec =
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
             'abc'.split '' . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
+        group_builder.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
             "AbCdABCDabDCba" . split "ab" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "Cd", "CD", "DCba"]
             "abc".split "d" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["abc"]
             "AAA".split "a" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "", "", ""]
@@ -269,7 +269,7 @@ spec =
             'aŚbS\u{301}c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'abc'.split '' case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to split the text on Regex patterns" <|
+        group_builder.specify "should be able to split the text on Regex patterns" <|
             "cababdabe" . split "ab" use_regex=True . should_equal ["c", "", "d", "e"]
             "cababdabe" . split "(ab)+" use_regex=True . should_equal ["c", "d", "e"]
             "abc" . split "[a-z]" use_regex=True . should_equal ["", "", "", ""]
@@ -280,63 +280,63 @@ spec =
             "".split "a" use_regex=True . should_equal [""]
             'abc'.split '' use_regex=True . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to split the text on Regex patterns, case-insensitively" <|
+        group_builder.specify "should be able to split the text on Regex patterns, case-insensitively" <|
             "CAbaBDaBe" . split "ab" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["C", "", "D", "e"]
             "caBAbdAbe" . split "(ab)+" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["c", "d", "e"]
             "ABc" . split "[a-z]" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "", "", ""]
 
-        Test.specify "regex and non-regex `split` handle accented grapheme splitting differently" <|
+        group_builder.specify "regex and non-regex `split` handle accented grapheme splitting differently" <|
             'aśbs\u{301}c'.split 'ś' use_regex=True . should_equal ['a', 'bs\u{301}c']
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
 
-        Test.specify "should be able to split the text on UTF-8 whitespace" <|
+        group_builder.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split "\s+" use_regex=True . should_equal utf_8_whitespace_split
             'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
 
-        Test.specify 'should be able to split with a vector of strings' <|
+        group_builder.specify 'should be able to split with a vector of strings' <|
             'azbzczdzezfzg'.split ['b', 'zez'] . should_equal ['az', 'zczd', 'fzg']
             'a1b2c3d4e5f6g7h8'.split ['c', '5'] . should_equal ['a1b2', '3d4e', 'f6g7h8']
 
-        Test.specify 'should handle overlapping delimiters correctly' <|
+        group_builder.specify 'should handle overlapping delimiters correctly' <|
             'blah x 123'.split [' ', ' x ' , 'x'] . should_equal ['blah', '', '', '123']
             'abcdef'.split ['bc', 'cd'] . should_equal ['a', 'def']
             'abcdef'.split ['cd', 'bc'] . should_equal ['a', 'def']
             'abcdef'.split ['bc', 'bcd'] . should_equal ['a', 'def']
             'abcdef'.split ['bcd', 'bc'] . should_equal ['a', 'ef']
 
-        Test.specify 'should be able to split with a vector of strings, case insensitively' <|
+        group_builder.specify 'should be able to split with a vector of strings, case insensitively' <|
             'azBZczDZEZFzg'.split ['B', 'zez'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['az', 'ZczD', 'Fzg']
             'blah X 123'.split [' ', ' x ' , 'x'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['blah', '', '', '123']
             'A1B2C3D4E5F6G7H8'.split ['c', '5'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['A1B2', '3D4E', 'F6G7H8']
 
-        Test.specify 'should be able to split with a vector of strings, using regexes' <|
+        group_builder.specify 'should be able to split with a vector of strings, using regexes' <|
             'a1b2c3d4e5f6g7h8'.split ['[cde]', '[456]'] use_regex=True . should_equal ['a1b2', '3', '', '', '', 'f', 'g7h8']
             'abcde1fghij2klmnop'.split ["\d", '[hm]'] use_regex=True . should_equal ['abcde', 'fg', 'ij', 'kl', 'nop']
 
-        Test.specify "should handle unicode normalization the same for single and multiple delimiters" <|
+        group_builder.specify "should handle unicode normalization the same for single and multiple delimiters" <|
             'aśbs\u0301c'.split 'ś' . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split ['ś'] . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split 's\u0301' . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
             'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
 
-        Test.specify "should handle unicode normalization the same for single and multiple delimiters, case-insensitively" <|
+        group_builder.specify "should handle unicode normalization the same for single and multiple delimiters, case-insensitively" <|
             'aśbS\u0301c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbS\u0301c'.split ['ś'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aŚbS\u0301c'.split 's\u0301' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbS\u0301c'.split ['s\u0301'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aŚbS\u0301cdef'.split ['ś', 'de'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c', 'f']
 
-        Test.specify "should handle splitting the same for the special case of a 1-element vector" <|
+        group_builder.specify "should handle splitting the same for the special case of a 1-element vector" <|
             'abcdefgh'.split 'c' . should_equal ['ab', 'defgh']
             'abcdefgh'.split ['c'] . should_equal ['ab', 'defgh']
             'abcdefgh'.split ['c', 'q'] . should_equal ['ab', 'defgh']
 
-        Test.specify "should split on the leftmost delimiter in the case of a tie" <|
+        group_builder.specify "should split on the leftmost delimiter in the case of a tie" <|
             'abcdefgh'.split ['c', 'cd'] . should_equal ['ab', 'defgh']
             'abcdefgh'.split ['cd', 'c'] . should_equal ['ab', 'efgh']
 
-        Test.specify "should throw Illegal_Argument for a bad or empty delimiter" <|
+        group_builder.specify "should throw Illegal_Argument for a bad or empty delimiter" <|
             'abc'.split '' . should_fail_with Illegal_Argument
             'abc'.split [] . should_fail_with Illegal_Argument
             'abc'.split ['a', ''] . should_fail_with Illegal_Argument
@@ -347,16 +347,16 @@ spec =
             'abc'.split ['a', ''] case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
             'abc'.split 3 case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
 
-        Test.specify "examples should be correct" <|
+        group_builder.specify "examples should be correct" <|
             "Namespace::package::package::Type".split "::" . should_equal ["Namespace", "package", "package", "Type"]
             "abc--def==>ghi".split "[-=>]+" use_regex=True . should_equal ["abc", "def", "ghi"]
             'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
 
-        Test.specify "should convert any type to text automatically and using provided methods" <|
+        group_builder.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto.Value (Manual.Value 123) . to_text
             t.should_equal "(Auto.Value [[[MyREP 123]]])"
 
-        Test.specify "should escape special characters when debug-printing text" <|
+        group_builder.specify "should escape special characters when debug-printing text" <|
             text_1 = '''
                 foo
                 bar\r\tbaz
@@ -364,7 +364,7 @@ spec =
             text_2 = '\n\0\t\a\b\f\r\v\e\'\\'
             text_2.pretty.should_equal "'\n\0\t\a\b\f\r\v\e\'\\'"
 
-        Test.specify "should return text as is when converting to text" <|
+        group_builder.specify "should return text as is when converting to text" <|
             text_1 = '''
                 foo
                 bar\r\tbaz
@@ -372,7 +372,7 @@ spec =
             text_2 = '\n\t\a\b\f\r\v\e\''
             text_2.to_text.should_equal text_2
 
-        Test.specify "should allow taking or dropping every other character" <|
+        group_builder.specify "should allow taking or dropping every other character" <|
             "ABCDE".take (Every 1) . should_equal "ABCDE"
             "ABCDE".take (Every 2) . should_equal "ACE"
             "ABCD".take (Every 2) . should_equal "AC"
@@ -395,7 +395,7 @@ spec =
             "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
             "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
 
-        Test.specify "should allow taking or dropping a random sample of a substring" <|
+        group_builder.specify "should allow taking or dropping a random sample of a substring" <|
             "AAAAA".take (Sample 3) . should_equal "AAA"
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
@@ -423,7 +423,7 @@ spec =
                 "ABCD".drop (Sample 2 seed)
             samples_2.should_contain_the_same_elements_as ["AB", "AC", "AD", "BC", "CD", "BD"]
 
-        Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
+        group_builder.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
             "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "23"*100
@@ -450,7 +450,7 @@ spec =
             "0123456789".drop (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "6789"
             "0123456789".drop (By_Index [2.up_to 5, 0.up_to 3, 0, 0]) . should_equal "56789"
 
-        Test.specify "should allow selecting substrings by characters" <|
+        group_builder.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
             txt.take (First 2) . should_equal (kshi + facepalm)
             txt.drop (First 2) . should_equal (accent_1 + accent_2)
@@ -479,7 +479,7 @@ spec =
             txt.take (By_Index [0, 0, 0.up_to 2]) . should_equal (kshi + kshi + kshi + facepalm)
             txt.drop (By_Index [2.up_to 4, 0.up_to 2]) . should_equal ""
 
-        Test.specify "take should work as in the examples" <|
+        group_builder.specify "take should work as in the examples" <|
             "Hello World!".take First . should_equal "H"
             "Hello World!".take (First 5) . should_equal "Hello"
             "Hello World!".take (First 100) . should_equal "Hello World!"
@@ -512,7 +512,7 @@ spec =
             "Hello World!".take (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "HelWWrd"
             "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
-        Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
+        group_builder.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
             txt.take (0.up_to 14) . should_equal txt
             txt.take (6.up_to 100) . should_equal "World!"
@@ -543,7 +543,7 @@ spec =
             txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "take should work on grapheme clusters" <|
+        group_builder.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
             txt_1.take (Every 2) . should_equal 'Hlo\u0308Wrd'
@@ -572,7 +572,7 @@ spec =
             txt_2.take (3.up_to 5) . should_equal 'lo\u{308}'
             txt_2.take (5.up_to 12) . should_equal ' Wo\u{308}rld!'
 
-        Test.specify "take should work on emojis" <|
+        group_builder.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
             '✨🚀🚧😍😃😎😙😉☺'.take . should_equal '✨'
@@ -587,7 +587,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (3.up_to 6) . should_equal '😍😃😍'
 
-        Test.specify "take should correctly handle edge cases" <|
+        group_builder.specify "take should correctly handle edge cases" <|
             "ABC".take . should_equal "A"
 
             "".take First . should_equal ""
@@ -624,7 +624,7 @@ spec =
             "".take (Sample 0) . should_equal ""
             "".take (Sample 100) . should_equal ""
 
-        Test.specify "drop should work as in the examples" <|
+        group_builder.specify "drop should work as in the examples" <|
             "Hello World!".drop First . should_equal "ello World!"
             "Hello World!".drop (First 5) . should_equal " World!"
             "Hello World!".drop (First 100) . should_equal ""
@@ -656,7 +656,7 @@ spec =
             "Hello World!".drop (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "lo ol!"
             "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
-        Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
+        group_builder.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
             txt.drop (0.up_to 14) . should_equal ""
             txt.drop (First 100) . should_equal ""
@@ -678,7 +678,7 @@ spec =
             txt.drop (5.up_to 100 . with_step 2) . should_equal "HelloWrd"
             txt.drop (By_Index [0, 1, 0, 5.up_to 100 . with_step 2]) . should_equal "lloWrd"
 
-        Test.specify "drop should work on grapheme clusters" <|
+        group_builder.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
             txt_1.drop (Every 2) . should_equal 'e\u0302l o\u0301l!'
@@ -707,7 +707,7 @@ spec =
             txt_2.drop (3.up_to 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
             txt_2.drop (5.up_to 12) . should_equal 'He\u{302}llo\u{308}'
 
-        Test.specify "drop should work on emojis" <|
+        group_builder.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop . should_equal '🚀🚧😍😃😎😙😉☺'
@@ -721,7 +721,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (3.up_to 6) . should_equal '✨🚀🚧😎😙😉☺'
 
-        Test.specify "drop should correctly handle edge cases" <|
+        group_builder.specify "drop should correctly handle edge cases" <|
             "ABC".drop . should_equal "BC"
 
             "".drop First . should_equal ""
@@ -757,7 +757,7 @@ spec =
             "".drop (Sample 0) . should_equal ""
             "".drop (Sample 100) . should_equal ""
 
-        Test.specify "take and drop should gracefully handle missing constructor arguments" <|
+        group_builder.specify "take and drop should gracefully handle missing constructor arguments" <|
             "".take "FOO" . should_fail_with Type_Error
             "".drop "FOO" . should_fail_with Type_Error
 
@@ -776,7 +776,7 @@ spec =
             # Double-check that constructors of _unexpected_ types are still yielding a type error.
             "".take (Case_Sensitivity.Insensitive ...) . should_fail_with Type_Error
 
-        Test.specify "should correctly convert character case" <|
+        group_builder.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
             "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"
 
@@ -806,15 +806,15 @@ spec =
             "123".to_case Case.Upper . should_equal "123"
             "abc123".to_case Case.Upper . should_equal "ABC123"
 
-        Test.specify "should dump characters to a vector" <|
+        group_builder.specify "should dump characters to a vector" <|
             kshi_chars = kshi.char_vector
             kshi_chars . should_equal [2325, 2381, 2359, 2367]
 
-        Test.specify "should convert a vector of characters to text" <|
+        group_builder.specify "should convert a vector of characters to text" <|
             kshi_chars = [2325, 2381, 2359, 2367]
             Text.from_char_vector kshi_chars . should_equal kshi
 
-        Test.specify "should insert text at a non-negative index position" <|
+        group_builder.specify "should insert text at a non-negative index position" <|
             "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
             "Hello World!".insert 5 " Cruel" . should_equal "Hello Cruel World!"
             "Hello World!".insert ("Hello World!".length - 1) " Cruel" . should_equal "Hello World Cruel!"
@@ -825,11 +825,11 @@ spec =
             txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
             txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
 
-        Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid non-negative index position" <|
+        group_builder.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid non-negative index position" <|
             "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds
             (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should insert text at a negative index position" <|
+        group_builder.specify "should insert text at a negative index position" <|
             "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
             "Hello World!".insert -5 " Cruel" . should_equal "Hello Wo Cruelrld!"
             "Hello World!".insert -("Hello World!".length) " Cruel" . should_equal "H Cruelello World!"
@@ -838,12 +838,12 @@ spec =
             txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
             txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
 
-        Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid negative index position" <|
+        group_builder.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid negative index position" <|
             "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds
             txt = kshi + facepalm + accent_1
             txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to check by index if is a digit" <|
+        group_builder.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
             str.is_digit . should_be_false
             str.is_digit 1 . should_be_false
@@ -852,7 +852,7 @@ spec =
             str.is_digit 4 . should_be_false
             str.is_digit 5 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to check by negative index if is a digit" <|
+        group_builder.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
             str.is_digit -1 . should_be_false
             str.is_digit -2 . should_be_true
@@ -861,7 +861,7 @@ spec =
             str.is_digit -5 . should_be_false
             str.is_digit -100 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to check if a text consists only of whitespace" <|
+        group_builder.specify "should be able to check if a text consists only of whitespace" <|
             '  \t\n'.is_whitespace . should_be_true
             'AB'.is_whitespace . should_be_false
             '  A   '.is_whitespace . should_be_false
@@ -870,12 +870,12 @@ spec =
             # The Unicode Zero Width Space is not considered whitespace
             '\u{200b}'.is_whitespace . should_be_false
 
-        Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
+        group_builder.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
             str.at -6 . should_fail_with Index_Out_Of_Bounds
             str.at 5 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to reverse characters" <|
+        group_builder.specify "should be able to reverse characters" <|
             "Hello World!".reverse . should_equal "!dlroW olleH"
 
             "".reverse . should_equal ""
@@ -886,7 +886,7 @@ spec =
             'ほげほげ'.reverse . should_equal 'げほげほ'
             '\u{10000}'.reverse . should_equal '\u{10000}'
 
-        Test.specify "should allow to iterate over characters" <|
+        group_builder.specify "should allow to iterate over characters" <|
             str = kshi + accent_1 + accent_2 + 'abc'
             builder = Vector.new_builder
             str.each builder.append
@@ -896,7 +896,7 @@ spec =
             'a'.each builder2.append
             builder2.to_vector . should_equal ['a']
 
-        Test.specify "should check for contains using Unicode normalization" <|
+        group_builder.specify "should check for contains using Unicode normalization" <|
             "Hello".contains "ell" . should_be_true
             "Hello".contains "eLl" . should_be_false
             "Hello".contains "ell" Case_Sensitivity.Default . should_be_true
@@ -934,7 +934,7 @@ spec =
             's\u{301}' . contains 'ś' . should_be_true
             'ś' . contains 's\u{301}' . should_be_true
 
-        Test.specify "should allow for case-insensitive contains checks" <|
+        group_builder.specify "should allow for case-insensitive contains checks" <|
             "Hello!".contains 'LO' Case_Sensitivity.Insensitive . should_be_true
             "FoObar" . contains "foo" Case_Sensitivity.Insensitive . should_be_true
             "aaaIAAA" . contains "i" Case_Sensitivity.Insensitive . should_be_true
@@ -947,7 +947,7 @@ spec =
             "Straße" . contains "ss" Case_Sensitivity.Insensitive . should_be_true
             "Strasse" . contains "ß" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should check for starts_with using Unicode normalization" <|
+        group_builder.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
             "Hello".starts_with "he" . should_be_false
             "Hello".starts_with "He" Case_Sensitivity.Default . should_be_true
@@ -971,12 +971,12 @@ spec =
 
             "Hello!".starts_with "he" . should_be_false
 
-        Test.specify "starts_with should work as shown in the examples" <|
+        group_builder.specify "starts_with should work as shown in the examples" <|
             "Hello!".starts_with "Hello" . should_be_true
             "Hello!".starts_with "hello" . should_be_false
             "Hello!".starts_with "hello" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should allow for case-insensitive starts_with checks" <|
+        group_builder.specify "should allow for case-insensitive starts_with checks" <|
             "Hello".starts_with "he" Case_Sensitivity.Insensitive . should_be_true
 
             "Ściana".starts_with 's\u{301}' Case_Sensitivity.Insensitive . should_be_true
@@ -995,7 +995,7 @@ spec =
 
             "Hello!".starts_with "he" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should check for ends_with using Unicode normalization" <|
+        group_builder.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
             "Hello".ends_with "LO" . should_be_false
             "Hello".ends_with "lo" Case_Sensitivity.Default . should_be_true
@@ -1015,12 +1015,12 @@ spec =
             "" . ends_with "" . should_be_true
             "foo foo foo" . ends_with "foo" . should_be_true
 
-        Test.specify "ends_with should work as shown in the examples" <|
+        group_builder.specify "ends_with should work as shown in the examples" <|
             "Hello World".ends_with "World" . should_be_true
             "Hello World".ends_with "world" . should_be_false
             "Hello World".ends_with "world" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should allow for case-insensitive ends_with checks" <|
+        group_builder.specify "should allow for case-insensitive ends_with checks" <|
             "Hello".ends_with "LO" Case_Sensitivity.Insensitive . should_be_true
 
             "rzeczywistość".ends_with 'C\u{301}' Case_Sensitivity.Insensitive . should_be_true
@@ -1037,7 +1037,7 @@ spec =
             "" . ends_with "" Case_Sensitivity.Insensitive . should_be_true
             "fOo FOO fOo" . ends_with "FoO" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should allow to pad a text" <|
+        group_builder.specify "should allow to pad a text" <|
             "Hello World!".pad 15 . should_equal "Hello World!   "
             "HELLO".pad 9 "AB" . should_equal "HELLOABAB"
             "HELLO".pad 8 "AB" . should_equal "HELLOABA"
@@ -1067,7 +1067,7 @@ spec =
                cluster.
             'e'.pad 7 '\u{301}' . length . should_equal 1
 
-        Test.specify "should allow to trim a text" <|
+        group_builder.specify "should allow to trim a text" <|
             " Hello! ".trim . should_equal  "Hello!"
             " Hello! ".trim Location.Start . should_equal  "Hello! "
             " Hello! ".trim Location.End . should_equal  " Hello!"
@@ -1105,12 +1105,12 @@ spec =
             '      \u{301}   '.trim . should_equal ' \u{301}'
             ' \u{301}'.trim . should_equal ' \u{301}'
 
-        Test.specify "should allow repeating as in the examples" <|
+        group_builder.specify "should allow repeating as in the examples" <|
             "ABBA".repeat 5 . should_equal "ABBAABBAABBAABBAABBA"
             "A".repeat 5 . should_equal "AAAAA"
             "Hello ".repeat 2 . should_equal "Hello Hello "
 
-        Test.specify "should allow more general repeating" <|
+        group_builder.specify "should allow more general repeating" <|
             'He\u{302}llo\u{308}'.repeat 1 . should_equal 'He\u{302}llo\u{308}'
             'He\u{302}llo\u{308}'.repeat 3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
             'He\u{302}llo\u{308}'.repeat 0 . should_equal ''
@@ -1120,12 +1120,12 @@ spec =
 
             '✨🚀🚧'.repeat 2 . should_equal '✨🚀🚧✨🚀🚧'
 
-        Test.specify "should allow repeating using * as in the examples" <|
+        group_builder.specify "should allow repeating using * as in the examples" <|
             "ABBA"*5 . should_equal "ABBAABBAABBAABBAABBA"
             "A"*5 . should_equal "AAAAA"
             "Hello "*2 . should_equal "Hello Hello "
 
-        Test.specify "should allow more general repeating using *" <|
+        group_builder.specify "should allow more general repeating using *" <|
             'He\u{302}llo\u{308}'*1 . should_equal 'He\u{302}llo\u{308}'
             'He\u{302}llo\u{308}'*3 . should_equal 'He\u{302}llo\u{308}He\u{302}llo\u{308}He\u{302}llo\u{308}'
             'He\u{302}llo\u{308}'*0 . should_equal ''
@@ -1135,7 +1135,7 @@ spec =
 
             '✨🚀🚧'*2 . should_equal '✨🚀🚧✨🚀🚧'
 
-        Test.specify "locate should work as shown in examples" <|
+        group_builder.specify "locate should work as shown in examples" <|
             example_1 =
                 "Hello World!".locate "J" . should_equal Nothing
                 "Hello World!".locate "o" . should_equal (Span.Value (4.up_to 5) "Hello World!")
@@ -1196,7 +1196,7 @@ spec =
             example_6
             example_7
 
-        Test.specify "should allow to locate occurrences within a text" <|
+        group_builder.specify "should allow to locate occurrences within a text" <|
             "Hello World!".locate_all "J" . should_equal []
             "Hello World!".locate_all "o" . map .start . should_equal [4, 7]
 
@@ -1215,7 +1215,7 @@ spec =
             abc.locate "" mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
             abc.locate_all "" . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
 
-        Test.specify "should allow to get indexes of values within a text" <|
+        group_builder.specify "should allow to get indexes of values within a text" <|
             "Hello World!".index_of "o" . should_equal 4
             "Hello World!".index_of "o" start=5 . should_equal 7
             "Hello World!".index_of "o" start=-5 . should_equal 7
@@ -1233,7 +1233,7 @@ spec =
             abc.index_of "" start=3 . should_equal 3
             abc.last_index_of "" . should_equal 3
 
-        Test.specify "should allow case-insensitive matching in locate" <|
+        group_builder.specify "should allow case-insensitive matching in locate" <|
             hello = "Hello WORLD!"
             case_insensitive = Case_Sensitivity.Insensitive
             hello.locate "world" . should_equal Nothing
@@ -1284,7 +1284,7 @@ spec =
             abc.locate "" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
             abc.locate_all "" case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
 
-        Test.specify "find should match regexes" <|
+        group_builder.specify "find should match regexes" <|
             hello = "Hello World!"
 
             hello.find ".o" Case_Sensitivity.Insensitive . text 0 . should_equal "lo"
@@ -1295,18 +1295,18 @@ spec =
             ## Regex matching does not do case folding
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
-        Test.specify "find should produce correct spans" <|
+        group_builder.specify "find should produce correct spans" <|
             "Hello World!".find ".o" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 5) "Hello World!")
             "Hello World!".find_all ".o" . map (match-> match.span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
             "foobar".find "BAR" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
 
-        Test.specify "find_all should handle 0 length matches" <|
+        group_builder.specify "find_all should handle 0 length matches" <|
             "Hello World".find_all ".*" . map (_.text) . should_equal ["Hello World", ""]
             "".find_all ".*" . map (_.text) . should_equal [""]
             "Hello World".find_all ".*(?=.)" . map (_.text) . should_equal ["Hello Worl", ""]
             "".find_all ".*(?=.)" . map (_.text) . should_equal []
 
-        Test.specify "should handle accents and other multi-point graphemes" <|
+        group_builder.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
 
             accents.find 'h' . text 0 . should_equal 'h'
@@ -1324,16 +1324,16 @@ spec =
             accents.find 'h' . text 0 . should_equal 'h'
             accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
-        Test.specify "should correctly handle regex edge cases in `find`" <|
+        group_builder.specify "should correctly handle regex edge cases in `find`" <|
             "".find "foo" . should_equal Nothing
             "".find_all "foo" . should_equal []
 
-        Test.specify "should handle overlapping matches as shown in the examples" <|
+        group_builder.specify "should handle overlapping matches as shown in the examples" <|
             "aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (1.up_to 3) "aaa")
 
             "aaa aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (5.up_to 7) "aaa aaa")
 
-        Test.specify "should default to exact matching for locate but regex for match" <|
+        group_builder.specify "should default to exact matching for locate but regex for match" <|
             txt = "aba[bc]adacae"
             "ab".locate "ab" . should_equal (Span.Value (0.up_to 2) "ab")
             "ab".locate "a[bc]" . should_equal Nothing
@@ -1349,41 +1349,41 @@ spec =
             txt.find "a[bc]" . text 0 . should_equal "ab"
             txt.find_all "a[bc]" . map (match-> match.text 0) . should_equal ["ab", "ac"]
 
-    Test.group "Regex: find and find_all" <|
-        Test.specify "should be possible on text" <|
+    suite_builder.group "Regex: find and find_all" group_builder->
+        group_builder.specify "should be possible on text" <|
             "My Text: Goes Here".find "^My Text: (.+)$" . text 0 . should_equal "My Text: Goes Here"
 
-        Test.specify "should be possible on unicode text" <|
+        group_builder.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
             txt.find "^a..z$" . should_equal Nothing
             txt.find "^m..a..z.a$" . text 0 . should_equal "maza건반zaa"
             txt.find "a..z" . text 0 . should_equal "a건반z"
 
-        Test.specify "`find` with an empty pattern should be an error" <|
+        group_builder.specify "`find` with an empty pattern should be an error" <|
             'b'.find '' . should_fail_with Illegal_Argument
 
-        Test.specify "`find_all` with an empty pattern should be an error" <|
+        group_builder.specify "`find_all` with an empty pattern should be an error" <|
             'b'.find_all '' . should_fail_with Illegal_Argument
 
-        Test.specify "should be possible in case-insensitive mode" <|
+        group_builder.specify "should be possible in case-insensitive mode" <|
             "MY".find "my" Case_Sensitivity.Insensitive . text 0 . should_equal "MY"
 
-        Test.specify "should allow access to the entire match text" <|
+        group_builder.specify "should allow access to the entire match text" <|
             "abcddd".find "ab(c(d+))" . text . should_equal "abcddd"
 
-        Test.specify "should allow access to groups via .get" <|
+        group_builder.specify "should allow access to groups via .get" <|
             "abcddd".find "ab(c(d+))" . get 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . get 1 . should_equal "cddd"
             "abcddd".find "ab(c(d+))" . get 2 . should_equal "ddd"
             "abcddd".find "ab(c(d+))" . get 3 if_missing="MISSING" . should_equal "MISSING"
 
-        Test.specify "should allow access to groups via .at" <|
+        group_builder.specify "should allow access to groups via .at" <|
             "abcddd".find "ab(c(d+))" . at 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . at 1 . should_equal "cddd"
             "abcddd".find "ab(c(d+))" . at 2 . should_equal "ddd"
             "abcddd".find "ab(c(d+))" . at 3 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
+        group_builder.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
             ## This test passed for the builtin Java regex library, using
                Pattern.CANON_EQ, but since that option is buggy and rarely use,
                we won't attempt to recreate it with Truffle regex. Instead,
@@ -1392,42 +1392,42 @@ spec =
             accents = 'a\u{301}e\u{301}o\u{301}'
             accents.find accent_1 . span 0 . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
-        Test.specify "can return a vector of all match groups" <|
+        group_builder.specify "can return a vector of all match groups" <|
             "abc".find "ab((c)|(d))" . groups . should_equal ['abc', 'c', 'c', Nothing]
 
-        Test.specify "should default to group 0 in .span and .span" <|
+        group_builder.specify "should default to group 0 in .span and .span" <|
             "abacadae".find "a[bc]" . utf_16_span . should_equal (Utf_16_Span.Value (0.up_to 2) "abacadae")
             'a\u{301}e\u{301}o\u{301}'.find 'e\u{301}' . span . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
-        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
+        group_builder.specify "should allow to match one or more occurrences of a pattern in the text" <|
             "abacadae".find_all "a[bc]" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
             "abacadae".find_all "a." . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
             "abacadae".find_all "a.*" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 8) "abacadae"]
             "abacadae".find_all "a.+?" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
-        Test.specify "should allow access to match groups by number" <|
+        group_builder.specify "should allow access to match groups by number" <|
             "abcddd".find "ab(c(d+))" . text 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . text 1 . should_equal "cddd"
             "abcddd".find "ab(c(d+))" . text 2 . should_equal "ddd"
 
-        Test.specify "should allow access to match groups by name" <|
+        group_builder.specify "should allow access to match groups by name" <|
             "abcddd".find "ab(?<cee>c(d+))" . text "cee" . should_equal "cddd"
 
-        Test.specify "should throw No_Such_Group for an out-of-range group number" <|
+        group_builder.specify "should throw No_Such_Group for an out-of-range group number" <|
             "abcddd".find "ab(c(d+))" . text 3 . should_fail_with No_Such_Group
             "abcddd".find "ab(c(d+))" . text 12 . should_fail_with No_Such_Group
             "abcddd".find "ab(c(d+))" . text (-1) . should_fail_with No_Such_Group
 
-        Test.specify "should throw No_Such_Group for an invalid group name" <|
+        group_builder.specify "should throw No_Such_Group for an invalid group name" <|
             "abcddd".find "ab(?<cee>c(d+))" . text "dee" . should_fail_with No_Such_Group
 
-        Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
+        group_builder.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
             "abcddd".find "ab(c(d+))" . text "dee" . should_fail_with No_Such_Group
 
-        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
+        group_builder.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             "abcddd".find "ab(c(((((((" . text 0 . should_fail_with Regex_Syntax_Error
 
-        Test.specify ".text should return Nothing if the group did not participate in the match" <|
+        group_builder.specify ".text should return Nothing if the group did not participate in the match" <|
             match_c = "abc".find "ab((c)|(d))"
             match_c.text 1 . should_equal "c"
             match_c.text 2 . should_equal "c"
@@ -1437,85 +1437,85 @@ spec =
             match_d.text 2 . should_equal Nothing
             match_d.text 3 . should_equal "d"
 
-        Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
+        group_builder.specify "should expand a partial-grapheme match to the whole grapheme" <|
             'e\u{301}'.find '\u{301}' . text 0 . should_equal 'e\u{301}'
 
-        Test.specify "should not allow non-default locale" <|
+        group_builder.specify "should not allow non-default locale" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.find 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
             'a'.find_all 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-    Test.group "Text.match" <|
-        Test.specify "should work correctly" <|
+    suite_builder.group "Text.match" group_builder->
+        group_builder.specify "should work correctly" <|
             "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
             "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
             "Hello".match "^[a-z]+$" . should_be_false
             "Hello".match "^[a-z]+$" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should only match whole input" <|
+        group_builder.specify "should only match whole input" <|
             "Hello".match "[a-z]" . should_be_false
             "abcd".match "bcd" . should_be_false
             "abcd".match "abc" . should_be_false
             "x".match "[a-z]" . should_be_true
 
-        Test.specify "`match` with an empty pattern should be an error" <|
+        group_builder.specify "`match` with an empty pattern should be an error" <|
                 'b'.match '' . should_fail_with Illegal_Argument
 
-        Test.specify "should be possible on unicode text" <|
+        group_builder.specify "should be possible on unicode text" <|
             "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
-        Test.specify "should be possible in case-insensitive mode" <|
+        group_builder.specify "should be possible in case-insensitive mode" <|
             "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should not allow non-default locale" <|
+        group_builder.specify "should not allow non-default locale" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.match 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-    Test.group "Regex splitting" <|
-        Test.specify "should be possible on text" <|
+    suite_builder.group "Regex splitting" group_builder->
+        group_builder.specify "should be possible on text" <|
             splits = "abcde".split "[bd]" use_regex=True
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
-        Test.specify "should be possible on unicode text" <|
+        group_builder.specify "should be possible on unicode text" <|
             match = "Korean: 건반 (hangul)".split " " use_regex=True
             match.length . should_equal 3
             match.at 0 . should_equal "Korean:"
             match.at 1 . should_equal "건반"
             match.at 2 . should_equal "(hangul)"
 
-        Test.specify "should be possible in case-insensitive mode" <|
+        group_builder.specify "should be possible in case-insensitive mode" <|
             splits = "abaBa".split "b" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
-    Test.group "Regex tokenizing" <|
-        Test.specify "can tokenize with simple regexes without capturing groups"
+    suite_builder.group "Regex tokenizing" group_builder->
+        group_builder.specify "can tokenize with simple regexes without capturing groups"
             "1-800-regex-yes" . tokenize "[a-z]+" . should_equal ["regex", "yes"]
             "1-800-REGEX-YES" . tokenize "[a-z]+" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["REGEX", "YES"]
             "12 hi345 67r890r" . tokenize "\d\d" . should_equal ["12", "34", "67", "89"]
 
-        Test.specify "examples are correct" <|
+        group_builder.specify "examples are correct" <|
             "ABCDEF" . tokenize  "..." . should_equal ["ABC","DEF"]
             "ABCDEF" . tokenize "(.).(.)" . should_equal ["AC","DF"]
             'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)" . should_equal ["Hello","Big","Wide","World","Goodbye!"]
 
-    Test.group "Text.replace" <|
-        Test.specify "should work as in examples" <|
+    suite_builder.group "Text.replace" group_builder->
+        group_builder.specify "should work as in examples" <|
             'aaa'.replace 'aa' 'b' . should_equal 'ba'
             "Hello World!".replace "[lo]".to_regex "#" . should_equal "He### W#r#d!"
             "Hello World!".replace "l" "#" only_first=True . should_equal "He#lo World!"
             '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' . should_equal '(abc) foo (bar) baz'
 
-        Test.specify "works when mapped over a vector of inputs" <|
+        group_builder.specify "works when mapped over a vector of inputs" <|
             inputs = ["axyz", "bxyz", "xabcz", "zazaz"]
             inputs.map (s-> s.replace "[abc]".to_regex "q") . should_equal ["qxyz", "qxyz", "xqqqz", "zqzqz"]
 
-        Test.specify "should correctly handle empty-string edge cases" <|
+        group_builder.specify "should correctly handle empty-string edge cases" <|
             [True, False] . each only_first->
                 'aaa'.replace '' 'foo' only_first=only_first . should_equal 'aaa'
                 'a'.replace 'a' '' only_first=only_first . should_equal ''
@@ -1525,14 +1525,14 @@ spec =
             'aba' . replace 'a' '' . should_equal 'b'
             'aba' . replace 'c' '' . should_equal 'aba'
 
-        Test.specify "should correctly handle first, all and last matching with overlapping occurrences" <|
+        group_builder.specify "should correctly handle first, all and last matching with overlapping occurrences" <|
             "aaa aaa".replace "aa" "c" . should_equal "ca ca"
             "aaa aaa".replace "aa" "c" only_first=True . should_equal "ca aaa"
 
-        Test.specify "Regex `replace` with an empty pattern should be an error" <|
+        group_builder.specify "Regex `replace` with an empty pattern should be an error" <|
                 'b'.replace ''.to_regex 'c' . should_fail_with Illegal_Argument
 
-        Test.specify "should correctly handle case-insensitive matches" <|
+        group_builder.specify "should correctly handle case-insensitive matches" <|
             'AaąĄ' . replace "A" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal '--ąĄ'
             'AaąĄ' . replace "A" "-" . should_equal '-aąĄ'
             'HeLlO wOrLd' . replace 'hElLo' 'Hey,' case_sensitivity=Case_Sensitivity.Sensitive . should_equal 'HeLlO wOrLd'
@@ -1548,7 +1548,7 @@ spec =
             "Iiİı" . replace "İ" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "Ii-ı"
             "Iiİı" . replace "ı" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "Iiİ-"
 
-        Test.specify "should correctly handle Unicode" <|
+        group_builder.specify "should correctly handle Unicode" <|
             'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
             'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
             'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
@@ -1580,15 +1580,15 @@ spec =
 
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
 
-        Test.specify "Text.to_regex" <|
+        group_builder.specify "Text.to_regex" <|
             "^\d{3}-\d{3}-\d{4}$".to_regex . matches "555-801-1923" . should_be_true
             "aa".to_regex case_insensitive=True . matches "Aa" . should_be_true
 
-        Test.specify "regex and non-regex `replace` handle accented grapheme splitting differently" <|
+        group_builder.specify "regex and non-regex `replace` handle accented grapheme splitting differently" <|
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
             'sśs\u{301}' . replace 's'.to_regex 'O' . should_equal 'OśO\u{301}'
 
-        Test.specify "should perform simple replacement in Regex mode" <|
+        group_builder.specify "should perform simple replacement in Regex mode" <|
             "ababab".replace "b".to_regex "a" . should_equal "aaaaaa"
             "ababab".replace "b".to_regex "a" only_first=True . should_equal "aaabab"
 
@@ -1603,30 +1603,30 @@ spec =
             "aaa aaa".replace "aa".to_regex "c" . should_equal "ca ca"
             "aaa aaa".replace "aa".to_regex "c" only_first=True . should_equal "ca aaa"
 
-        Test.specify "in Regex mode should work with Unicode" <|
+        group_builder.specify "in Regex mode should work with Unicode" <|
             "Korean: 건반".replace "건반".to_regex "keyboard" . should_equal "Korean: keyboard"
             'sśs\u{301}'.replace 'ś'.to_regex '-' . should_equal 's-s\u{301}'
             'sśs\u{301}'.replace 's\u{301}'.to_regex '-' . should_equal 'sś-'
 
-        Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
+        group_builder.specify "in Regex mode should allow referring to capture groups in substitutions" <|
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1' . should_equal 'content is at url'
             '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>'.to_regex '$<text> is at $<address>' . should_equal 'content is at url'
 
-        Test.specify "should not allow non-default locale in regex replace" <|
+        group_builder.specify "should not allow non-default locale in regex replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.replace 'a'.to_regex 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-        Test.specify "should allow non-default locale in text replace" <|
+        group_builder.specify "should allow non-default locale in text replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.replace 'a' 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_equal 'b'
 
-        Test.specify "should work with a regex param" <|
+        group_builder.specify "should work with a regex param" <|
             'aaa'.replace 'aa'.to_regex 'b' . should_equal 'ba'
             "Hello World!".replace "[lo]".to_regex "#" . should_equal "He### W#r#d!"
             "Hello World!".replace "l".to_regex "#" only_first=True . should_equal "He#lo World!"
             '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' . should_equal '(abc) foo (bar) baz'
 
-        Test.specify "should respect the regex's case sensitivity setting, and override the regex's case sensitivity setting with an explicit case_sensitivity param" <|
+        group_builder.specify "should respect the regex's case sensitivity setting, and override the regex's case sensitivity setting with an explicit case_sensitivity param" <|
             r_cs = "aa".to_regex
             r_ci = "aa".to_regex True
 
@@ -1647,19 +1647,23 @@ spec =
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
             "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
-    Test.group "Text.substring" <|
-        Test.specify "should work with all examples" <|
+    suite_builder.group "Text.substring" group_builder->
+        group_builder.specify "should work with all examples" <|
             "Hello World!".substring 3 2 . should_equal "lo"
             "Hello World!".substring 5 . should_equal " World!"
             "Hello World!".substring 5 7 . should_equal " World!"
             "Hello World!".substring -7 3 . should_equal " Wo"
 
-        Test.specify "should error on length less than 0" <|
+        group_builder.specify "should error on length less than 0" <|
             "Hello World!".substring 5 -2 . should_fail_with Illegal_Argument
 
-        Test.specify "should error if negative start index is too large"
+        group_builder.specify "should error if negative start index is too large"
             "Hello World!".substring -20 5 . should_fail_with Index_Out_Of_Bounds
-        Test.specify "should error if start index is larger than string"
+        group_builder.specify "should error if start index is larger than string"
             "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

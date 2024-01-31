@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 foreign js my_method a b = """
     return a + b;
@@ -79,24 +79,24 @@ foreign js test_array_properties = """
     my_array.index = 0
     return my_array
 
-spec = Test.group "Polyglot JS" <|
+add_specs suite_builder = suite_builder.group "Polyglot JS" group_builder->
 
-    Test.specify "should allow declaring module-level methods in JS" <|
+    group_builder.specify "should allow declaring module-level methods in JS" <|
         my_method 1 2 . should_equal 3
         m = my_method 1
         m 2 . should_equal 3
 
-    Test.specify "should allow mutual calling of instance-level methods" <|
+    group_builder.specify "should allow mutual calling of instance-level methods" <|
         My_Type.Value 3 4 . my_method_3 5 . should_equal 36
 
-    Test.specify "should expose methods and fields of JS objects" <|
+    group_builder.specify "should expose methods and fields of JS objects" <|
         obj = make_object
         obj.x . should_equal 10
         obj.y . should_be_false
         obj.compare 5 . should_be_false
         obj.compare 11 . should_be_true
 
-    Test.specify "should expose array interfaces for JS arrays" <|
+    group_builder.specify "should expose array interfaces for JS arrays" <|
         vec = Vector.from_polyglot_array make_array
         vec.map .x . should_equal [10, 20, 30]
         vec2 = Vector.from_polyglot_array make_simple_array
@@ -111,11 +111,11 @@ spec = Test.group "Polyglot JS" <|
         arr_2 . should_equal [30, 10, 20]
         sorted_2 . should_equal [10, 20, 30]
 
-    Test.specify "should correctly marshall strings" <|
+    group_builder.specify "should correctly marshall strings" <|
         str = make_str "x" + " baz"
         str.should_equal "foo x bar baz"
 
-    Test.specify "should make JS strings type pattern-matchable" <|
+    group_builder.specify "should make JS strings type pattern-matchable" <|
         str = make_str "x"
         t = case str of
             Text -> False
@@ -123,7 +123,7 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         t.should_be_true
 
-    Test.specify "should make JS booleans type pattern-matchable" <|
+    group_builder.specify "should make JS booleans type pattern-matchable" <|
         bool = make_true
         t = case bool of
             True -> True
@@ -143,7 +143,7 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         c_2.should_be_true
 
-    Test.specify "should make JS arrays type pattern-matchable as arrays" <|
+    group_builder.specify "should make JS arrays type pattern-matchable as arrays" <|
         arr = make_array
         r = case arr of
             Array -> False
@@ -151,11 +151,11 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         r.should_be_true
 
-    Test.specify "should make JS null values equal to Nothing" <|
+    group_builder.specify "should make JS null values equal to Nothing" <|
         js_null = make_null
         js_null . should_equal Nothing
 
-    Test.specify "should make JS numbers type pattern-matchable" <|
+    group_builder.specify "should make JS numbers type pattern-matchable" <|
         int_match = case make_int of
             _ : Integer -> True
             _ -> False
@@ -173,46 +173,50 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         num_double_match.should_be_true
 
-    Test.specify "should allow Enso to catch JS exceptions" <|
+    group_builder.specify "should allow Enso to catch JS exceptions" <|
         value = My_Type.Value 1 2
         result = Panic.recover Any <| value.my_throw
         err = result.catch
         err.message . should_equal "JS Exc"
         err.name . should_equal "Error"
 
-    Test.specify "should allow JS to catch Enso exceptions" <|
+    group_builder.specify "should allow JS to catch Enso exceptions" <|
         value = My_Type.Value 7 2
         result = value.do_catch
         result . should_equal 7
 
-    Test.specify "should properly handle parse errors" <|
+    group_builder.specify "should properly handle parse errors" <|
         err = Panic.recover Any does_not_parse . catch
         err.message.should_contain "Expected }"
 
-    Test.specify "allow access to properties of nested objects" <|
+    group_builder.specify "allow access to properties of nested objects" <|
         value = test_multilevel
         value.b.x . should_equal 1
 
-    Test.specify "allow access to properties of array objects in JS" <|
+    group_builder.specify "allow access to properties of array objects in JS" <|
         array = test_array_properties
         array.groups.a . should_equal 1
         array.index . should_equal 0
 
-    Test.specify "allow access to the length property of a JS array in Enso" <|
+    group_builder.specify "allow access to the length property of a JS array in Enso" <|
         array = make_array
         array.length . should_equal 3
 
-    Test.specify "should perform maths with mixed numbers" <|
+    group_builder.specify "should perform maths with mixed numbers" <|
         js_num = make_int
         enso_num = 10
         (enso_num + js_num) . should_equal 20
         (js_num - enso_num) . should_equal 0
 
-    Test.specify "should propagate dataflow errors" <|
+    group_builder.specify "should propagate dataflow errors" <|
         error = Error.throw 42
         my_method error 0 . should_fail_with Integer
 
-    Test.specify "allow use of JavaScript debugger statement" <|
+    group_builder.specify "allow use of JavaScript debugger statement" <|
         debug
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
