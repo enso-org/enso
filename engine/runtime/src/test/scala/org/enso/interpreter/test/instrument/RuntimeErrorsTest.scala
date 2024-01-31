@@ -788,9 +788,9 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(60, 19)
-    val yId        = metadata.addItem(88, 5)
-    val mainResId  = metadata.addItem(98, 12)
+    val xId        = metadata.addItem(60, 19, "aaaa")
+    val yId        = metadata.addItem(88, 5, "bbbb")
+    val mainResId  = metadata.addItem(98, 12, "ffff")
 
     val code =
       """from Standard.Base import all
@@ -892,7 +892,18 @@ class RuntimeErrorsTest
           )
         )
       ),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        yId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "-"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1234567890123456788")
@@ -919,11 +930,25 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "div"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "-"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
@@ -951,8 +976,30 @@ class RuntimeErrorsTest
       3,
       updatesOnlyFor = Set(xId, yId)
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        xId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "div"
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        yId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "-"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("499999999999")
@@ -1402,7 +1449,18 @@ class RuntimeErrorsTest
       4
     ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        yId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "-"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -1520,8 +1578,30 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        xId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        yId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "-"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -1790,7 +1870,20 @@ class RuntimeErrorsTest
         typeChanged = true
       ),
       TestMessages
-        .update(contextId, yId, ConstantsGen.INTEGER, typeChanged = true),
+        .update(
+          contextId,
+          yId,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          ),
+          false,
+          typeChanged = true
+        ),
       TestMessages
         .update(contextId, mainResId, ConstantsGen.NOTHING, typeChanged = true),
       context.executionComplete(contextId)
@@ -1975,7 +2068,20 @@ class RuntimeErrorsTest
         typeChanged = true
       ),
       TestMessages
-        .update(contextId, yId, ConstantsGen.INTEGER, typeChanged = true),
+        .update(
+          contextId,
+          yId,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          ),
+          false,
+          typeChanged = true
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")

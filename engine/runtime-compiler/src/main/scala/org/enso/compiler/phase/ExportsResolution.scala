@@ -8,6 +8,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule,
   SymbolRestriction
 }
+import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 
 import scala.collection.mutable
@@ -20,7 +21,7 @@ case class ExportCycleException(modules: List[Module])
       "Compilation aborted due to a cycle in export statements."
     )
 
-class ExportsResolution {
+class ExportsResolution(private val context: CompilerContext) {
 
   private case class Edge(
     exporter: Node,
@@ -44,8 +45,21 @@ class ExportsResolution {
       moduleTargets.map(mod => (mod, Node(mod))): _*
     )
     moduleTargets.foreach { module =>
-      val exports =
-        getBindings(module.module.unsafeAsModule()).getDirectlyExportedModules
+      val compilerModule: Module = module.module.unsafeAsModule()
+      val bindings               = getBindings(compilerModule)
+      val exports = if (bindings != null) {
+        bindings.getDirectlyExportedModules
+      } else {
+        context.updateModule(
+          compilerModule,
+          u => {
+            u.bindingsMap(null)
+            u.invalidateCache()
+            u.loadedFromCache(false)
+          }
+        )
+        Nil
+      }
       val node = nodes(module)
       node.exports = exports.map {
         case ExportedModule(mod, rename, restriction) =>

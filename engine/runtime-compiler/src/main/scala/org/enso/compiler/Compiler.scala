@@ -284,6 +284,13 @@ class Compiler(
         )
         context.updateModule(module, _.invalidateCache())
         parseModule(module)
+        importedModules
+          .filter(isLoadedFromSource)
+          .map(m => {
+            if (m.getBindingsMap() == null) {
+              parseModule(m)
+            }
+          })
         runImportsAndExportsResolution(module, generateCode)
       } else {
         importedModules
@@ -443,7 +450,7 @@ class Compiler(
       }
 
     val requiredModules =
-      try { new ExportsResolution().run(importedModules) }
+      try { new ExportsResolution(context).run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
     val parsingTasks: List[CompletableFuture[Unit]] =
@@ -465,7 +472,7 @@ class Compiler(
     // has not yet registered the method in its scope. This will result in No_Such_Method method during runtime;
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
-      new ExportsResolution().runSort(modulesImportedWithCachedBindings)
+      new ExportsResolution(context).runSort(modulesImportedWithCachedBindings)
     sortedCachedModules ++ requiredModules
   }
 

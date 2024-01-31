@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Runtime import assert
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
@@ -12,8 +14,7 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
@@ -22,25 +23,51 @@ import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-sqlite_specific_spec prefix connection setup =
-    table_builder = setup.table_builder
+type Test_Data
+    Value ~connection
 
-    Test.group prefix+"Schemas and Databases" <|
-        Test.specify "should be able to get current database and list databases" <|
-            connection.database . should_equal Nothing
-            connection.databases . should_equal [Nothing]
-            Meta.is_same_object connection (connection.set_database Nothing) . should_be_true
+    setup create_connection_func =
+        connection = create_connection_func Nothing
+        Test_Data.Value connection
 
-        Test.specify "should be able to get current schema and list schemas" <|
-            connection.schema . should_equal Nothing
-            connection.schemas . should_equal [Nothing]
-            Meta.is_same_object connection (connection.set_schema Nothing) . should_be_true
+    teardown self =
+        self.connection.close
 
-        Test.specify "does not allow changing schema or database" <|
-            connection.set_schema "foo" . should_fail_with SQL_Error
-            connection.set_database "foo" . should_fail_with SQL_Error
 
-    Test.group prefix+"Tables and Table Types" <|
+type Metadata_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    tinfo self = self.data.at 1
+    t self = self.data.at 2
+
+    setup create_connection_func =
+        connection = create_connection_func Nothing
+        tinfo = Name_Generator.random_name "Tinfo"
+        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        t = connection.query (SQL_Query.Table_Name tinfo)
+        row1 = ["a", Nothing, False, 1.2]
+        row2 = ["abc", Nothing, Nothing, 1.3]
+        row3 = ["def", 42, True, 1.4]
+        Panic.rethrow <|
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
+        Metadata_Data.Value [connection, tinfo, t]
+
+    teardown self =
+        self.connection.drop_table self.t.name
+        self.connection.close
+
+
+type Tables_And_Table_Types_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    tinfo self = self.data.at 1
+    vinfo self = self.data.at 2
+    temporary_table self = self.data.at 3
+
+    setup create_connection_func = Tables_And_Table_Types_Data.Value <|
+        connection = create_connection_func Nothing
         tinfo = Name_Generator.random_name "TestTable"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("A" VARCHAR)'
 
@@ -50,114 +77,160 @@ sqlite_specific_spec prefix connection setup =
         temporary_table = Name_Generator.random_name "TemporaryTable"
         (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection temporary_table temporary=True
 
-        Test.specify "should be able to list table types" <|
-            table_types = connection.table_types
+        [connection, tinfo, vinfo, temporary_table]
+
+    teardown self =
+        self.connection.close
+
+
+sqlite_specific_spec suite_builder prefix create_connection_func setup =
+    table_builder = setup.table_builder
+
+    suite_builder.group prefix+"Schemas and Databases" group_builder->
+        data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to get current database and list databases" <|
+            data.connection.database . should_equal Nothing
+            data.connection.databases . should_equal [Nothing]
+            Meta.is_same_object data.connection (data.connection.set_database Nothing) . should_be_true
+
+        group_builder.specify "should be able to get current schema and list schemas" <|
+            data.connection.schema . should_equal Nothing
+            data.connection.schemas . should_equal [Nothing]
+            Meta.is_same_object data.connection (data.connection.set_schema Nothing) . should_be_true
+
+        group_builder.specify "does not allow changing schema or database" <|
+            data.connection.set_schema "foo" . should_fail_with SQL_Error
+            data.connection.set_database "foo" . should_fail_with SQL_Error
+
+    suite_builder.group prefix+"Tables and Table Types" group_builder->
+        data = Tables_And_Table_Types_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to list table types" <|
+            table_types = data.connection.table_types
             table_types.length . should_not_equal 0
             table_types.contains "TABLE" . should_be_true
             table_types.contains "VIEW" . should_be_true
 
-        Test.specify "should be able to list tables" <|
-            tables = connection.tables
+        group_builder.specify "should be able to list tables" <|
+            tables = data.connection.tables
             tables.row_count . should_not_equal 0
             tables.columns.map .name . should_equal ["Database", "Schema", "Name", "Type", "Description"]
 
             table_names = tables.at "Name" . to_vector
-            table_names.should_contain tinfo
-            table_names.should_contain vinfo
-            table_names.should_contain temporary_table
+            table_names.should_contain data.tinfo
+            table_names.should_contain data.vinfo
+            table_names.should_contain data.temporary_table
 
-        Test.specify "should be able to filter tables by name" <|
-            tables = connection.tables tinfo
+        group_builder.specify "should be able to filter tables by name" <|
+            tables = data.connection.tables data.tinfo
             tables.row_count . should_equal 1
             tables.at "Database" . to_vector . at 0 . should_equal Nothing
             tables.at "Schema" . to_vector . at 0 . should_equal Nothing
-            tables.at "Name" . to_vector . at 0 . should_equal tinfo
+            tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
-            connection.tables "TestT_ble%" . row_count . should_equal 1
-            connection.tables "Temporary%ble%" . row_count . should_equal 1
-            connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["GLOBAL TEMPORARY"]
-            connection.tables "N_nexistent%" . row_count . should_equal 0
+            data.connection.tables "TestT_ble%" . row_count . should_equal 1
+            data.connection.tables "Temporary%ble%" . row_count . should_equal 1
+            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["GLOBAL TEMPORARY"]
+            data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
-        Test.specify "should be able to filter tables by type" <|
-            tables = connection.tables types=["VIEW"]
+        group_builder.specify "should be able to filter tables by type" <|
+            tables = data.connection.tables types=["VIEW"]
             tables.row_count . should_not_equal 0
-            tables.at "Name" . to_vector . contains tinfo . should_be_false
-            tables.at "Name" . to_vector . contains vinfo . should_be_true
+            tables.at "Name" . to_vector . contains data.tinfo . should_be_false
+            tables.at "Name" . to_vector . contains data.vinfo . should_be_true
 
-    Test.group prefix+"Error Handling" <|
-        Test.specify "should wrap errors" <|
-            connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error
-            connection.execute_update "foobar" . should_fail_with SQL_Error
+    suite_builder.group prefix+"Error Handling" group_builder->
+        data = Test_Data.setup create_connection_func
 
-            action = connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should wrap errors" <|
+            data.connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error
+            data.connection.execute_update "foobar" . should_fail_with SQL_Error
+
+            action = data.connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
             action . should_fail_with SQL_Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
-        Test.specify "is capable of handling weird tables" <|
+        group_builder.specify "is capable of handling weird tables" <|
             Problems.assume_no_problems <|
-                connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)'
-            t1 = connection.query (SQL_Query.Table_Name "empty-column-name")
+                data.connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)'
+            t1 = data.connection.query (SQL_Query.Table_Name "empty-column-name")
             Problems.expect_only_warning Invalid_Column_Names t1
             t1.column_names . should_equal ["Column 1"]
             m1 = t1.read
             m1.at "Column 1" . to_vector . should_equal []
 
             Problems.assume_no_problems <|
-                connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
+                data.connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
             Problems.assume_no_problems <|
-                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
-            t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
+                data.connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
+            t2 = data.connection.query (SQL_Query.Table_Name "clashing-unicode-names")
             Problems.expect_only_warning Duplicate_Output_Column_Names t2
             t2.column_names . should_equal ["ś", "ś 1"]
             m2 = t2.read
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = data.connection.query 'SELECT 1 AS "A", 2 AS "A"'
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = connection.query 'SELECT 1 AS ""'
+            r4 = data.connection.query 'SELECT 1 AS ""'
             r4.should_fail_with Illegal_Argument
             r4.catch.cause . should_be_a Invalid_Column_Names
 
-    tinfo = Name_Generator.random_name "Tinfo"
-    connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-    Test.group prefix+"Metadata" <|
-        t = connection.query (SQL_Query.Table_Name tinfo)
-        row1 = ["a", Nothing, False, 1.2]
-        row2 = ["abc", Nothing, Nothing, 1.3]
-        row3 = ["def", 42, True, 1.4]
-        Panic.rethrow <|
-            t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
+    suite_builder.group prefix+"Metadata" group_builder->
+        data = Metadata_Data.setup create_connection_func
 
-        Test.specify "should return Table information" <|
-            i = t.info
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should return Table information" <|
+            i = data.t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
-        Test.specify "should infer standard types correctly" <|
-            t.at "strs" . value_type . is_text . should_be_true
-            t.at "ints" . value_type . is_integer . should_be_true
-            t.at "bools" . value_type . is_boolean . should_be_true
-            t.at "reals" . value_type . is_floating_point . should_be_true
+        group_builder.specify "should infer standard types correctly" <|
+            data.t.at "strs" . value_type . is_text . should_be_true
+            data.t.at "ints" . value_type . is_integer . should_be_true
+            data.t.at "bools" . value_type . is_boolean . should_be_true
+            data.t.at "reals" . value_type . is_floating_point . should_be_true
 
-            t.at "ints" . value_type . is_text . should_be_false
-            t.at "strs" . value_type . is_integer . should_be_false
-            t.at "reals" . value_type . is_boolean . should_be_false
-            t.at "bools" . value_type . is_floating_point . should_be_false
+            data.t.at "ints" . value_type . is_text . should_be_false
+            data.t.at "strs" . value_type . is_integer . should_be_false
+            data.t.at "reals" . value_type . is_boolean . should_be_false
+            data.t.at "bools" . value_type . is_floating_point . should_be_false
 
-    Test.group prefix+"Dialect-specific codegen" <|
-        Test.specify "should generate queries for the Distinct operation" <|
-            t = connection.query (SQL_Query.Table_Name tinfo)
+    suite_builder.group prefix+"Dialect-specific codegen" group_builder->
+        data = Metadata_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should generate queries for the Distinct operation" <|
+            t = data.connection.query (SQL_Query.Table_Name data.tinfo)
             code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM (SELECT "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner" GROUP BY "{Tinfo}_inner"."strs") AS "{Tinfo}"'
-            expected_code = code_template.replace "{Tinfo}" tinfo
+            expected_code = code_template.replace "{Tinfo}" data.tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
-    Test.group prefix+"math functions" <|
-        Test.specify "round, trunc, ceil, floor" <|
-            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+    suite_builder.group prefix+"math functions" group_builder->
+        data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "round, trunc, ceil, floor" <|
+            col = (table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] connection=data.connection) . at "x"
 
             col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
@@ -183,53 +256,63 @@ sqlite_specific_spec prefix connection setup =
             col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Integer
             col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Float
 
-        do_op n op =
-            table = table_builder [["x", [n]]]
+        do_op data n op =
+            table = table_builder [["x", [n]]] connection=data.connection
             result = table.at "x" |> op
             result.to_vector.at 0
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
-        Test.specify "Can round correctly near the precision limit" <|
+        do_round data n dp=0 use_bankers=False = do_op data n (_.round dp use_bankers)
+
+        group_builder.specify "Can round correctly near the precision limit" <|
             # This value varies depending on the version of SQLite.
-            do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
-            do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
-            do_round 1.2222222222222235 15 . should_equal 1.222222222222223
-            do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+            do_round data 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
+            do_round data -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
+            do_round data 1.2222222222222235 15 . should_equal 1.222222222222223
+            do_round data -1.2222222222222235 15 . should_equal -1.222222222222223
 
-        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+        group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round data 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round data -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round data 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
 
-        Test.specify "Can handle NaN/Infinity" <|
+        group_builder.specify "Can handle NaN/Infinity" <|
             nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
             ops = [.round, .truncate, .ceil, .floor]
             ops.each op->
-                do_op Number.nan op . should_equal nan_result
-                do_op Number.positive_infinity op . should_equal Number.positive_infinity
-                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+                do_op data Number.nan op . should_equal nan_result
+                do_op data Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op data Number.negative_infinity op . should_equal Number.negative_infinity
 
-        Test.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Float
-            do_round 231.2 0 . should_be_a Float
-            do_round 231.2 . should_be_a Float
-            do_round 231.2 -1 . should_be_a Float
+        group_builder.specify "round returns the correct type" <|
+            do_round data 231.2 1 . should_be_a Float
+            do_round data 231.2 0 . should_be_a Float
+            do_round data 231.2 . should_be_a Float
+            do_round data 231.2 -1 . should_be_a Float
 
-        Test.specify "round returns the correct type" <|
-            do_round 231 1 . should_be_a Float
-            do_round 231 0 . should_be_a Float
-            do_round 231 . should_be_a Float
-            do_round 231 -1 . should_be_a Float
+        group_builder.specify "round returns the correct type" <|
+            do_round data 231 1 . should_be_a Float
+            do_round data 231 0 . should_be_a Float
+            do_round data 231 . should_be_a Float
+            do_round data 231 -1 . should_be_a Float
 
-    Test.group prefix+"Column.const" <|
-        Test.specify "Does not support making a constant column from a Date" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+    suite_builder.group prefix+"Column.const" group_builder->
+        data = Test_Data.setup create_connection_func
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "Does not support making a constant column from a Date" <|
+            t = table_builder [["x", ["1", "2", "3"]]] connection=data.connection
             t.at "x" . const (Date.new 12 4 12) . should_fail_with Unsupported_Database_Operation
 
-sqlite_spec connection prefix =
+
+sqlite_spec suite_builder prefix create_connection_func =
     name_counter = Ref.new 0
-    table_builder columns =
+    # The default `connection` parameter always create a new connection.
+    # In some tests, for example, where we are joining tables, we have to specify
+    # exactly the same connection.
+    table_builder columns connection=(create_connection_func Nothing) =
         ix = name_counter.get
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
@@ -238,7 +321,7 @@ sqlite_spec connection prefix =
         in_mem_table.select_into_database_table connection name primary_key=Nothing
     materialize = .read
 
-    Common_Spec.spec prefix connection
+    Common_Spec.add_specs suite_builder prefix create_connection_func
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False
 
@@ -252,14 +335,19 @@ sqlite_spec connection prefix =
          the missing statistics.
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
-    empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
-    sqlite_specific_spec prefix connection setup
-    Common_Table_Operations.Main.spec setup
+    agg_table_fn = _ ->
+        connection = create_connection_func Nothing
+        agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
 
-    connection.close
+    empty_agg_table_fn = _ ->
+        connection = create_connection_func Nothing
+        (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func
+    sqlite_specific_spec suite_builder prefix create_connection_func setup
+    Common_Table_Operations.Main.add_specs suite_builder setup
+
 
 ## PRIVATE
 supported_replace_params : Set Replace_Params
@@ -267,38 +355,66 @@ supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     Set.from_vector e
 
-spec =
-    enso_project.data.create_directory
-    file = enso_project.data / "transient" / "sqlite_test.db"
-    file.delete_if_exists
+backing_file =
+    transient_dir = enso_project.data / "transient"
+    assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
+    transient_dir / "sqlite_test.db"
+
+
+create_inmem_connection =
+    Database.connect (SQLite In_Memory)
+
+
+create_file_connection file =
+    connection = Database.connect (SQLite file)
+    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+    connection
+
+
+type File_Connection
+    Value ~file
+
+    setup = File_Connection.Value <|
+        tmp_file = backing_file
+        con = create_file_connection backing_file
+        con.close
+        assert tmp_file.exists
+        tmp_file
+
+
+    teardown self =
+        assert self.file.exists
+        self.file.delete
+
+
+add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
-    sqlite_spec (Database.connect (SQLite file)) in_file_prefix
-    Transaction_Spec.spec (Database.connect (SQLite file)) in_file_prefix
-    Upload_Spec.spec (_ -> Database.connect (SQLite file)) in_file_prefix
-    file.delete
+
+    sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection backing_file)
+    Transaction_Spec.add_specs suite_builder (_ -> create_file_connection backing_file) in_file_prefix
+    Upload_Spec.add_specs suite_builder (_ -> create_file_connection backing_file) in_file_prefix
 
     in_memory_prefix = "[SQLite In-Memory] "
-    sqlite_spec (Database.connect (SQLite In_Memory)) in_memory_prefix
-    Transaction_Spec.spec (Database.connect (SQLite In_Memory)) in_memory_prefix
-    Upload_Spec.spec (_ -> Database.connect (SQLite In_Memory)) in_memory_prefix persistent_connector=False
+    sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
+    Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
+    Upload_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix persistent_connector=False
 
-    SQLite_Type_Mapping_Spec.spec
+    SQLite_Type_Mapping_Spec.add_specs suite_builder
 
-    Test.group "SQLite_Format should allow connecting to SQLite files" <|
-        file.delete_if_exists
+    suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
+        data = File_Connection.setup
 
-        connection = Database.connect (SQLite file)
-        connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        connection.close
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "should recognise a SQLite database file" <|
-            Auto_Detect.get_reading_format file . should_be_a SQLite_Format
+        group_builder.specify "should recognise a SQLite database file" <|
+            Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
 
-        Test.specify "should recognise a sqlite file by extension for writing" <|
+        group_builder.specify "should recognise a sqlite file by extension for writing" <|
             Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
             Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
 
-        Test.specify "should not recognise nonexistent or empty files for reading" <|
+        group_builder.specify "should not recognise nonexistent or empty files for reading" <|
             r1 = Data.read (enso_project.data / "nonexistent-data.db")
             r1.should_fail_with File_Error
             r1.catch . should_be_a File_Error.Not_Found
@@ -317,19 +433,20 @@ spec =
             r3.catch . should_be_a File_Error.Unsupported_Type
             broken.delete_if_exists
 
-        Test.specify "should connect to a db file" <|
-            connection = Data.read file
+        group_builder.specify "should connect to a db file" <|
+            connection = Data.read data.file
             tables = connection.tables
             tables.row_count . should_not_equal 0
             connection.close
 
-        file.delete_if_exists
-
-        Test.specify 'should not duplicate warnings' <|
+        group_builder.specify 'should not duplicate warnings' <|
             c = Database.connect (SQLite In_Memory)
             t0 = Table.new [["X", ["a", "bc", "def"]]]
             t1 = t0.select_into_database_table c "Tabela"
             t2 = t1.cast "X" (Value_Type.Char size=1)
             Warning.get_all t2 . length . should_equal 1
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

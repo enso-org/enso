@@ -46,20 +46,19 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
     'func2',
   ])
 
-  // TODO: This actually fails on develop. https://github.com/enso-org/enso/issues/8756
-  //
-  // await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
-  // await isInsideFunc2(page)
-  //
-  // await locate.navBreadcrumb(page).filter({ hasText: 'main' }).click()
-  // await isInsideMain(page)
-  //
-  // await locate.navBreadcrumb(page).filter({ hasText: 'func1' }).click()
-  // await isInsideFunc1(page)
+  await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
+  await expectInsideFunc2(page)
+
+  await locate.navBreadcrumb(page).filter({ hasText: 'main' }).click()
+  await expectInsideMain(page)
+
+  await locate.navBreadcrumb(page).filter({ hasText: 'func1' }).click()
+  await expectInsideFunc1(page)
 })
 
 test('Collapsing nodes', async ({ page }) => {
   await actions.goToGraph(page)
+  const initialNodesCount = await locate.graphNode(page).count()
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
 
   await locate.graphNodeByBinding(page, 'ten').click({ modifiers: ['Shift'] })
@@ -67,7 +66,7 @@ test('Collapsing nodes', async ({ page }) => {
   await locate.graphNodeByBinding(page, 'prod').click({ modifiers: ['Shift'] })
 
   await page.keyboard.press(COLLAPSE_SHORTCUT)
-  await expect(locate.graphNode(page)).toHaveCount(3)
+  await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
   const collapsedNode = locate.graphNodeByBinding(page, 'prod')
   await expect(collapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed', 'five'])
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
@@ -93,12 +92,16 @@ test('Collapsing nodes', async ({ page }) => {
 })
 
 async function expectInsideMain(page: Page) {
-  await expect(locate.graphNode(page)).toHaveCount(5)
+  await expect(locate.graphNode(page)).toHaveCount(9)
   await customExpect.toExist(locate.graphNodeByBinding(page, 'five'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'prod'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'final'))
+  await customExpect.toExist(locate.graphNodeByBinding(page, 'list'))
+  await customExpect.toExist(locate.graphNodeByBinding(page, 'data'))
+  await customExpect.toExist(locate.graphNodeByBinding(page, 'aggregated'))
+  await customExpect.toExist(locate.graphNodeByBinding(page, 'filtered'))
 }
 
 async function expectInsideFunc1(page: Page) {

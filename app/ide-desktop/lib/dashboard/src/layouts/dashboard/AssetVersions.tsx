@@ -2,10 +2,14 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetVersion from '#/layouts/dashboard/AssetVersion'
+
 import * as backendProvider from '#/providers/BackendProvider'
-import type * as backend from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
+
+import AssetVersion from '#/layouts/dashboard/AssetVersion'
+
+import type * as backend from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 // =====================
 // === AssetVersions ===
@@ -14,7 +18,7 @@ import type * as assetTreeNode from '#/utilities/assetTreeNode'
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
   hidden: boolean
-  item: assetTreeNode.AssetTreeNode
+  item: AssetTreeNode
 }
 
 /** A list of previous versions of an asset. */

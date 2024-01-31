@@ -3,17 +3,21 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
+
+import type * as assetEvent from '#/events/assetEvent'
+
+import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 
 // =======================
 // === AssetProperties ===
@@ -21,8 +25,8 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
-  item: assetTreeNode.AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  item: AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   category: Category
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -39,7 +43,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
+    (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
       innerSetItem(valueOrUpdater)
       rawSetItem(valueOrUpdater)
     },
@@ -91,7 +95,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             />
           )}
         </span>
-        <div className="py-1 self-stretch">
+        <div data-testid="asset-panel-description" className="py-1 self-stretch">
           {!isEditingDescription ? (
             <span className="leading-170 py-px">{item.item.description}</span>
           ) : (
@@ -136,7 +140,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
         <table>
           <tbody>
-            <tr>
+            <tr data-testid="asset-panel-permissions">
               <td className="min-w-32 px-0 py-1">
                 <span className="inline-block leading-170 h-6 py-px">Shared with</span>
               </td>

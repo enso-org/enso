@@ -3,7 +3,10 @@
 import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as backendModule from '#/services/backend'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 
@@ -29,9 +32,9 @@ LocalStorage.registerKey('backendType', {
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-  backend: backendModule.Backend
-  setBackend: (backend: backendModule.Backend) => void
-  setBackendWithoutSavingType: (backend: backendModule.Backend) => void
+  backend: Backend
+  setBackend: (backend: Backend) => void
+  setBackendWithoutSavingType: (backend: Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -40,7 +43,7 @@ const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends React.PropsWithChildren<object> {
-  initialBackend: backendModule.Backend
+  initialBackend: Backend
 }
 
 // =======================
@@ -51,10 +54,9 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 export default function BackendProvider(props: BackendProviderProps) {
   const { initialBackend, children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [backend, setBackendWithoutSavingType] =
-    React.useState<backendModule.Backend>(initialBackend)
+  const [backend, setBackendWithoutSavingType] = React.useState<Backend>(initialBackend)
   const setBackend = React.useCallback(
-    (newBackend: backendModule.Backend) => {
+    (newBackend: Backend) => {
       setBackendWithoutSavingType(newBackend)
       localStorage.set('backendType', newBackend.type)
     },

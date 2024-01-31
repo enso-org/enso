@@ -87,6 +87,8 @@ spec =
 
         Test.specify "should throw Incomparable_Values when comparing different types" <|
             Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Incomparable_Values
+
+        Test.specify "should throw Incomparable_Values when comparing Number with Nothing" <|
             Ordering.compare 1 Nothing . should_fail_with Incomparable_Values
 
     Test.group "Ordering" <|

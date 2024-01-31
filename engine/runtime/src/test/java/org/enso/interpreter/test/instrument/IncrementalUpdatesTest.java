@@ -201,7 +201,7 @@ public class IncrementalUpdatesTest {
       java.util.function.BiFunction<String, String, List<Runtime$Api$Response>> sendEdit) {
     var contextId = UUID.randomUUID();
     var requestId = UUID.randomUUID();
-    var metadata = new Metadata();
+    var metadata = new Metadata("");
 
     var pos = new HashMap<Character, int[]>();
     var code =

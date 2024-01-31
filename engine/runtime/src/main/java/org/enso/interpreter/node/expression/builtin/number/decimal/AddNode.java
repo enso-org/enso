@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Float", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends FloatNode {
-  abstract double execute(double self, Object that);
+  abstract double execute(double own, Object that);
 
   static AddNode build() {
     return AddNodeGen.create();

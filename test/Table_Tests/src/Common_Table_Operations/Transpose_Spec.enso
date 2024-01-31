@@ -2,19 +2,36 @@ from Standard.Base import all
 
 from Standard.Table.Errors import all
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        create_connection_fn Nothing
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.transpose is not implemented yet in Database."
-    Test.group prefix+"Table.transpose" pending=db_todo <|
-        Test.specify "should transpose all columns by default" <|
+    suite_builder.group prefix+"Table.transpose" pending=db_todo group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should transpose all columns by default" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose
             t1.row_count . should_equal 12
@@ -22,7 +39,7 @@ spec setup =
             t1.at "Name" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
             t1.at "Value" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
 
-        Test.specify "should allow custom names" <|
+        group_builder.specify "should allow custom names" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose attribute_column_name="Key" value_column_name="Object"
             t1.row_count . should_equal 12
@@ -30,7 +47,7 @@ spec setup =
             t1.at "Key" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
             t1.at "Object" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
 
-        Test.specify "should allow id fields" <|
+        group_builder.specify "should allow id fields" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose ["Key"]
             t1.row_count . should_equal 9
@@ -39,7 +56,7 @@ spec setup =
             t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
             t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
 
-        Test.specify "should allow single id field" <|
+        group_builder.specify "should allow single id field" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose "Key"
             t1.row_count . should_equal 9
@@ -48,7 +65,7 @@ spec setup =
             t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
             t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
 
-        Test.specify "should allow fields selected by index" <|
+        group_builder.specify "should allow fields selected by index" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose [0, -1]
             t1.column_names . should_equal ["Key", "Yet Another", "Name", "Value"]
@@ -58,7 +75,7 @@ spec setup =
             t1.at "Name" . to_vector . should_equal ["Value", "Another", "Value", "Another", "Value", "Another"]
             t1.at "Value" . to_vector . should_equal [1, 10, 2, Nothing, 3, 20]
 
-        Test.specify "should allow all current columns to become id fields, without warning" <|
+        group_builder.specify "should allow all current columns to become id fields, without warning" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Foo", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose t.column_names
             t1.row_count . should_equal 3
@@ -70,7 +87,7 @@ spec setup =
             Problems.assume_no_problems t1
 
         # ToDo: Verify the warnings and error handling within transpose.
-        Test.specify "should handle missing columns" <|
+        group_builder.specify "should handle missing columns" <|
             t1 = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]]]
 
             err1 = t1.transpose ["Key", "Missing", "Missing 2"]
@@ -93,7 +110,7 @@ spec setup =
             problems2 = [Missing_Input_Columns.Error [42, -100]]
             Problems.test_problem_handling action2 problems2 tester2
 
-        Test.specify "should warn on column name clashes" <|
+        group_builder.specify "should warn on column name clashes" <|
             t1 = table_builder [["X", ["x", "y", "z"]], ["Y", [1, 2, 3]], ["Z", [10, Nothing, 20]]]
 
             action1 = t1.transpose ["X", "Y", "Z"] attribute_column_name="Y" value_column_name="Z" on_problems=_

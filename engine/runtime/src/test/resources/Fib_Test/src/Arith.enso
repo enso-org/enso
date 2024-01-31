@@ -1,4 +1,4 @@
 
-plus a b = a + b
+plus a b = @Builtin_Method "Integer.+"
 
-mul a b = a * b
+mul a b = @Builtin_Method "Integer.*"

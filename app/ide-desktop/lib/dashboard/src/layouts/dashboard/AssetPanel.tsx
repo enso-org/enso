@@ -1,19 +1,23 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
+
 import AssetProperties from '#/layouts/dashboard/AssetProperties'
 import AssetVersions from '#/layouts/dashboard/AssetVersions'
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as backend from '#/services/backend'
-import * as array from '#/utilities/array'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import LocalStorage from '#/utilities/LocalStorage'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
+
+import * as backend from '#/services/Backend'
+
+import * as array from '#/utilities/array'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import LocalStorage from '#/utilities/LocalStorage'
 
 // =====================
 // === AssetPanelTab ===
@@ -47,8 +51,8 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  item: assetTreeNode.AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  item: AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -104,6 +108,7 @@ export default function AssetPanel(props: AssetPanelProps) {
 
   return (
     <div
+      data-testid="asset-panel"
       className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
       onClick={event => {
         event.stopPropagation()

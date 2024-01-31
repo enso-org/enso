@@ -793,3 +793,14 @@ type Not_All_Rows_Downloaded
     to_display_text : Text
     to_display_text self =
         "The query has returned more than the maximum of "+self.max_rows.to_text+" rows, so some rows have been dropped from the result. If you want to get the full result, change the row limit."
+
+type Nothing_Value_In_Filter_Condition
+    ## PRIVATE
+       Indicates that a Nothing/NULL value was used as a parameter to a
+       `Filter_Condition` comparison or `is_in` operation.
+    Error (filter_condition:Filter_Condition)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "Using `Nothing` as an argument to a `"+self.filter_condition.to_text+"` cannot match anything."

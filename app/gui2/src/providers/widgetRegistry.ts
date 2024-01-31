@@ -52,10 +52,11 @@ export namespace WidgetInput {
 
   export function isFunctionCall(
     input: WidgetInput,
-  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.OprApp } {
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } {
     return (
       input.value instanceof Ast.App ||
       input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.PropertyAccess ||
       input.value instanceof Ast.OprApp
     )
   }
@@ -263,7 +264,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
   if (typeof definition.score === 'function') {
     score = definition.score
   } else {
-    const staticScore = definition.score ?? Score.Perfect
+    const staticScore = definition.score ?? Score.Good
     score = () => staticScore
   }
 

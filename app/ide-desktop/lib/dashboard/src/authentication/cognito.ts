@@ -35,8 +35,9 @@ import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as config from '#/authentication/config'
 import type * as loggerProvider from '#/providers/LoggerProvider'
+
+import * as config from '#/authentication/config'
 
 // =================
 // === Constants ===
@@ -47,19 +48,6 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
  * This provider alone requires a string because it is not a standard provider, and thus has no
  * constant defined in the AWS Amplify library. */
 const GITHUB_PROVIDER = 'Github'
-
-const MESSAGES = {
-  signInWithPassword: {
-    userNotFound: 'User not found. Please sign up first.',
-    userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
-    incorrectUsernameOrPassword: 'Incorrect username or password.',
-  },
-  forgotPassword: {
-    userNotFound: 'Cannot reset password as user not found.',
-    userNotConfirmed: `Cannot reset password for user with an unverified email. \
-Please verify your email first.`,
-  },
-}
 
 // ================
 // === UserInfo ===
@@ -151,10 +139,24 @@ function isAuthError(error: unknown): error is AuthError {
 // === CognitoError ===
 // ====================
 
+/** Internal IDs of Cognito errors that may occur when requesting a password reset. */
+export enum CognitoErrorType {
+  userAlreadyConfirmed = 'UserAlreadyConfirmed',
+  usernameExists = 'UsernameExists',
+  invalidParameter = 'InvalidParameter',
+  invalidPassword = 'InvalidPassword',
+  notAuthorized = 'NotAuthorized',
+  userNotConfirmed = 'UserNotConfirmed',
+  userNotFound = 'UserNotFound',
+  amplifyError = 'AmplifyError',
+  authError = 'AuthError',
+  noCurrentUser = 'NoCurrentUser',
+}
+
 /** Base interface for all errors output from this module.
  * Every user-facing error MUST extend this interface. */
 interface CognitoError {
-  kind: string
+  type: CognitoErrorType
   message: string
 }
 
@@ -190,7 +192,7 @@ export class Cognito {
    * Will refresh the {@link UserSession} if it has expired. */
   async userSession() {
     const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
-    const amplifySession = currentSession.mapErr(intoCurrentSessionErrorKind)
+    const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
     return amplifySession.map(parseUserSession).unwrapOr(null)
   }
 
@@ -380,24 +382,12 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
   }
 }
 
-/** Internal IDs of errors that may occur when getting the current session. */
-export enum CurrentSessionErrorKind {
-  noCurrentUser = 'NoCurrentUser',
-}
-
-export const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
-  internalMessage: 'No current user',
-  kind: CurrentSessionErrorKind.noCurrentUser,
-}
-
-/**
- * Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
+/** Convert an {@link AmplifyError} into a {@link CognitoErrorType} if it is a known error,
  * else re-throws the error.
- * @throws {Error} If the error is not recognized.
- */
-export function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
-  if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
-    return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
+ * @throws {Error} If the error is not recognized. */
+export function intoCurrentSessionErrorType(error: unknown): CognitoErrorType.noCurrentUser {
+  if (error === 'No current user') {
+    return CognitoErrorType.noCurrentUser
   } else {
     throw error
   }
@@ -436,31 +426,12 @@ function intoSignUpParams(
   }
 }
 
-/** Internal IDs of errors that may occur when signing up. */
-export enum SignUpErrorKind {
-  usernameExists = 'UsernameExists',
-  invalidParameter = 'InvalidParameter',
-  invalidPassword = 'InvalidPassword',
-}
-
-const SIGN_UP_USERNAME_EXISTS_ERROR = {
-  internalCode: 'UsernameExistsException',
-  kind: SignUpErrorKind.usernameExists,
-}
-
-const SIGN_UP_INVALID_PARAMETER_ERROR = {
-  internalCode: 'InvalidParameterException',
-  kind: SignUpErrorKind.invalidParameter,
-}
-
-const SIGN_UP_INVALID_PASSWORD_ERROR = {
-  internalCode: 'InvalidPasswordException',
-  kind: SignUpErrorKind.invalidPassword,
-}
-
 /** An error that may occur when signing up. */
 export interface SignUpError extends CognitoError {
-  kind: SignUpErrorKind
+  type:
+    | CognitoErrorType.invalidParameter
+    | CognitoErrorType.invalidPassword
+    | CognitoErrorType.usernameExists
   message: string
 }
 
@@ -470,19 +441,19 @@ export interface SignUpError extends CognitoError {
  * @throws {Error} If the error is not recognized.
  */
 export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
-  if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
+  if (error.code === 'UsernameExistsException') {
     return {
-      kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
+      type: CognitoErrorType.usernameExists,
       message: error.message,
     }
-  } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
+  } else if (error.code === 'InvalidParameterException') {
     return {
-      kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
+      type: CognitoErrorType.invalidParameter,
       message: error.message,
     }
-  } else if (error.code === SIGN_UP_INVALID_PASSWORD_ERROR.internalCode) {
+  } else if (error.code === 'InvalidPasswordException') {
     return {
-      kind: SIGN_UP_INVALID_PASSWORD_ERROR.kind,
+      type: CognitoErrorType.invalidPassword,
       message: error.message,
     }
   } else {
@@ -494,28 +465,9 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // === ConfirmSignUp ===
 // =====================
 
-/** Internal IDs of errors that may occur when confirming registration. */
-export enum ConfirmSignUpErrorKind {
-  userAlreadyConfirmed = 'UserAlreadyConfirmed',
-  userNotFound = 'UserNotFound',
-}
-
-const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
-  internalCode: 'NotAuthorizedException',
-  internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
-  kind: ConfirmSignUpErrorKind.userAlreadyConfirmed,
-}
-
-const CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR = {
-  internalCode: 'UserNotFoundException',
-  internalMessage: 'Username/client id combination not found.',
-  kind: ConfirmSignUpErrorKind.userNotFound,
-  message: 'Incorrect email or confirmation code.',
-}
-
 /** An error that may occur when confirming registration. */
 export interface ConfirmSignUpError extends CognitoError {
-  kind: ConfirmSignUpErrorKind
+  type: CognitoErrorType.userAlreadyConfirmed | CognitoErrorType.userNotFound
   message: string
 }
 
@@ -524,26 +476,26 @@ export interface ConfirmSignUpError extends CognitoError {
  * @throws {Error} If the error is not recognized. */
 export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
   if (
-    error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
-    error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
+    error.code === 'NotAuthorizedException' &&
+    error.message === 'User cannot be confirmed. Current status is CONFIRMED'
   ) {
     return {
       /** Don't re-use the original `error.code` here because Amplify overloads the same code
        * for multiple kinds of errors. We replace it with a custom code that has no
        * ambiguity. */
-      kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
+      type: CognitoErrorType.userAlreadyConfirmed,
       message: error.message,
     }
   } else if (
-    error.code === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalCode &&
-    error.message === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalMessage
+    error.code === 'UserNotFoundException' &&
+    error.message === 'Username/client id combination not found.'
   ) {
     return {
       /** Don't re-use the original `error.code` here because Amplify overloads the same code
        * for multiple kinds of errors. We replace it with a custom code that has no
        * ambiguity. */
-      kind: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.kind,
-      message: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.message,
+      type: CognitoErrorType.userNotFound,
+      message: 'Incorrect email or confirmation code.',
     }
   } else {
     throw error
@@ -554,16 +506,12 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
 // === SignInWithPassword ===
 // ==========================
 
-/** Internal IDs of errors that may occur when signing in with a password. */
-export enum SignInWithPasswordErrorKind {
-  notAuthorized = 'NotAuthorized',
-  userNotConfirmed = 'UserNotConfirmed',
-  userNotFound = 'UserNotFound',
-}
-
 /** An error that may occur when signing in with a password. */
 export interface SignInWithPasswordError extends CognitoError {
-  kind: SignInWithPasswordErrorKind
+  type:
+    | CognitoErrorType.notAuthorized
+    | CognitoErrorType.userNotConfirmed
+    | CognitoErrorType.userNotFound
   message: string
 }
 
@@ -574,18 +522,18 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
   switch (error.code) {
     case 'UserNotFoundException':
       return {
-        kind: SignInWithPasswordErrorKind.userNotFound,
-        message: MESSAGES.signInWithPassword.userNotFound,
+        type: CognitoErrorType.userNotFound,
+        message: 'User not found. Please sign up first.',
       }
     case 'UserNotConfirmedException':
       return {
-        kind: SignInWithPasswordErrorKind.userNotConfirmed,
-        message: MESSAGES.signInWithPassword.userNotConfirmed,
+        type: CognitoErrorType.userNotConfirmed,
+        message: 'User not confirmed. Please check your email for a confirmation link.',
       }
     case 'NotAuthorizedException':
       return {
-        kind: SignInWithPasswordErrorKind.notAuthorized,
-        message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
+        type: CognitoErrorType.notAuthorized,
+        message: 'Incorrect username or password.',
       }
     default:
       throw error
@@ -596,27 +544,9 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
 // === ForgotPassword ===
 // ======================
 
-/** Internal IDs of errors that may occur when requesting a password reset. */
-export enum ForgotPasswordErrorKind {
-  userNotConfirmed = 'UserNotConfirmed',
-  userNotFound = 'UserNotFound',
-}
-
-const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
-  internalCode: 'InvalidParameterException',
-  kind: ForgotPasswordErrorKind.userNotConfirmed,
-  message: `Cannot reset password for the user as there is no registered/verified email or \
-phone_number`,
-}
-
-const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
-  internalCode: 'UserNotFoundException',
-  kind: ForgotPasswordErrorKind.userNotFound,
-}
-
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
-  kind: ForgotPasswordErrorKind
+  type: CognitoErrorType.userNotConfirmed | CognitoErrorType.userNotFound
   message: string
 }
 
@@ -624,18 +554,22 @@ export interface ForgotPasswordError extends CognitoError {
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
 export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
-  if (error.code === FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.internalCode) {
+  if (error.code === 'UserNotFoundException') {
     return {
-      kind: FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.kind,
-      message: MESSAGES.forgotPassword.userNotFound,
+      type: CognitoErrorType.userNotFound,
+      message: 'Cannot reset password as user not found.',
     }
   } else if (
-    error.code === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.internalCode &&
-    error.message === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.message
+    error.code === 'InvalidParameterException' &&
+    error.message ===
+      'Cannot reset password for the user as there is no registered/verified email or ' +
+        'phone_number'
   ) {
     return {
-      kind: FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.kind,
-      message: MESSAGES.forgotPassword.userNotConfirmed,
+      type: CognitoErrorType.userNotConfirmed,
+      message:
+        'Cannot reset password for user with an unverified email. ' +
+        'Please verify your email first.',
     }
   } else {
     throw error
@@ -646,15 +580,9 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
 // === ForgotPasswordSubmit ===
 // ============================
 
-/** Internal IDs of errors that may occur when resetting a password. */
-export enum ForgotPasswordSubmitErrorKind {
-  amplifyError = 'AmplifyError',
-  authError = 'AuthError',
-}
-
 /** An error that may occur when resetting a password. */
 export interface ForgotPasswordSubmitError extends CognitoError {
-  kind: ForgotPasswordSubmitErrorKind
+  type: CognitoErrorType.amplifyError | CognitoErrorType.authError
   message: string
 }
 
@@ -664,12 +592,12 @@ export interface ForgotPasswordSubmitError extends CognitoError {
 export function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
   if (isAuthError(error)) {
     return {
-      kind: ForgotPasswordSubmitErrorKind.authError,
+      type: CognitoErrorType.authError,
       message: error.log,
     }
   } else if (isAmplifyError(error)) {
     return {
-      kind: ForgotPasswordSubmitErrorKind.amplifyError,
+      type: CognitoErrorType.amplifyError,
       message: error.message,
     }
   } else {

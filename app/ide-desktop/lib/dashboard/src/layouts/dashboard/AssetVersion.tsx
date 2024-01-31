@@ -1,7 +1,8 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
+
 import * as dateTime from '#/utilities/dateTime'
 
 // ====================
