@@ -26,6 +26,7 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
+    materialize = setup.materialize
     suite_builder.group prefix+"Table.replace" group_builder->
         data = Data.setup create_connection_fn
 
@@ -35,9 +36,23 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
-        group_builder.specify "should be able to replace values via a lookup table" <|
+        group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [1, 2, 3, 4]], ['z', [10, 20, 30, 40]]]
-            result = table.replace lookup_table replace_column='x'
-            expected = table_builder [['x', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
+            expected = table_builder [['x', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]] |> materialize
+            result = table.replace lookup_table 'x' |> materialize
             result . should_equal expected
+
+        group_builder.specify "should be able to replace values via a lookup table, specifying from/to columns" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [1, 2, 3, 4]], ['z', [10, 20, 30, 40]]]
+            expected = table_builder [['x', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]] |> materialize
+            result = table.replace lookup_table 'x' 'x' 'z' |> materialize
+            result . should_equal expected
+
+        group_builder.specify "should fail with Illegal_Argument if the specified columns do not exist" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [1, 2, 3, 4]], ['z', [10, 20, 30, 40]]]
+            table.replace lookup_table 'q' 'x' 'z' . should_fail_with Missing_Input_Columns
+            table.replace lookup_table 'x' 'q' 'z' . should_fail_with Missing_Input_Columns
+            table.replace lookup_table 'x' 'x' 'q' . should_fail_with Missing_Input_Columns
