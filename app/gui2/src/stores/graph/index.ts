@@ -89,10 +89,8 @@ export const useGraphStore = defineStore('graph', () => {
     dirtyNodes: Iterable<AstId>,
     metadataUpdates: { id: AstId; changes: Map<string, unknown> }[],
   ) {
-    if (astModule.value !== reactive(module)) {
-      assert(astModule.value instanceof Ast.EmptyModule)
-      astModule.value = module
-    }
+    const moduleChanged = astModule.value !== reactive(module)
+    if (moduleChanged) astModule.value = module
     const root = module.root()
     if (!root) return
     moduleRoot.value = root
@@ -100,7 +98,7 @@ export const useGraphStore = defineStore('graph', () => {
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
     const nodeMetadataUpdates = metadataUpdates as any as { id: AstId; changes: NodeMetadata }[]
     const dirtyNodeSet = new Set(dirtyNodes)
-    if (dirtyNodeSet.size !== 0) {
+    if (moduleChanged || dirtyNodeSet.size !== 0) {
       const { code, info } = Ast.print(root)
       moduleCode.value = code
       db.updateExternalIds(root)
