@@ -270,14 +270,14 @@ export class MutableModule implements Module {
     const map_ = map as unknown as FixedMap<{}>
     const id = overrideId ?? newAstId(type)
     const metadata = new Y.Map<unknown>() as unknown as FixedMap<{}>
-    setAll(metadata, {
+    const metadataFields = setAll(metadata, {
       externalId: externalId ?? newExternalId(),
     })
     const fields = setAll(map_, {
       id,
       type: type,
       parent: undefined,
-      metadata,
+      metadata: metadataFields,
     })
     this.nodes.set(id, fields)
     return fields
@@ -317,7 +317,7 @@ export class MutableModule implements Module {
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
 /** @internal */
-export type RootPointer = Invalid
+export interface RootPointer extends Invalid {}
 
 function newAstId(type: string): AstId {
   return `ast:${type}#${random.uint53()}` as AstId

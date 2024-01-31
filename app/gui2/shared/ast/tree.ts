@@ -35,10 +35,10 @@ declare const brandAstId: unique symbol
 export type AstId = string & { [brandAstId]: never }
 
 /** @internal */
-export type MetadataFields = {
+export interface MetadataFields {
   externalId: ExternalId
 }
-export type NodeMetadataFields = {
+export interface NodeMetadataFields {
   position?: { x: number; y: number } | undefined
   visualization?: VisualizationMetadata | undefined
 }
@@ -48,7 +48,7 @@ export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
   return map as unknown as NodeMetadata
 }
 /** @internal */
-export type AstFields = {
+export interface AstFields {
   id: AstId
   type: string
   parent: AstId | undefined
@@ -363,7 +363,7 @@ function applyMixins(derivedCtor: any, constructors: any[]) {
   })
 }
 
-type AppFields = {
+interface AppFields {
   function: NodeChild<AstId>
   parens: { open: NodeChild<SyncTokenId>; close: NodeChild<SyncTokenId> } | undefined
   nameSpecification: { name: NodeChild<SyncTokenId>; equals: NodeChild<SyncTokenId> } | undefined
@@ -493,7 +493,7 @@ export interface MutableApp extends App, MutableAst {
 }
 applyMixins(MutableApp, [MutableAst])
 
-type UnaryOprAppFields = {
+interface UnaryOprAppFields {
   operator: NodeChild<SyncTokenId>
   argument: NodeChild<AstId> | undefined
 }
@@ -556,7 +556,7 @@ export interface MutableUnaryOprApp extends UnaryOprApp, MutableAst {
 }
 applyMixins(MutableUnaryOprApp, [MutableAst])
 
-type NegationAppFields = {
+interface NegationAppFields {
   operator: NodeChild<SyncTokenId>
   argument: NodeChild<AstId>
 }
@@ -612,7 +612,7 @@ export interface MutableNegationApp extends NegationApp, MutableAst {
 }
 applyMixins(MutableNegationApp, [MutableAst])
 
-type OprAppFields = {
+interface OprAppFields {
   lhs: NodeChild<AstId> | undefined
   operators: NodeChild<SyncTokenId>[]
   rhs: NodeChild<AstId> | undefined
@@ -699,7 +699,7 @@ export interface MutableOprApp extends OprApp, MutableAst {
 }
 applyMixins(MutableOprApp, [MutableAst])
 
-type PropertyAccessFields = {
+interface PropertyAccessFields {
   lhs: NodeChild<AstId> | undefined
   operator: NodeChild<SyncTokenId>
   rhs: NodeChild<AstId>
@@ -808,7 +808,7 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
 
-type GenericFields = {
+interface GenericFields {
   children: NodeChild[]
 }
 export class Generic extends Ast {
@@ -845,11 +845,11 @@ export class MutableGeneric extends Generic implements MutableAst {
 export interface MutableGeneric extends Generic, MutableAst {}
 applyMixins(MutableGeneric, [MutableAst])
 
-type RawMultiSegmentAppSegment = {
+interface RawMultiSegmentAppSegment {
   header: NodeChild<Token>
   body: NodeChild<AstId> | undefined
 }
-type OwnedMultiSegmentAppSegment = {
+interface OwnedMultiSegmentAppSegment {
   header: NodeChild<Token>
   body: NodeChild<Owned> | undefined
 }
@@ -897,7 +897,7 @@ function multiSegmentAppSegmentToRaw(
     body: concreteChild(module, msas.body, parent),
   }
 }
-type ImportFields = {
+interface ImportFields {
   polyglot: RawMultiSegmentAppSegment | undefined
   from: RawMultiSegmentAppSegment | undefined
   import: RawMultiSegmentAppSegment
@@ -1079,7 +1079,7 @@ function escape(string: string) {
   return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
 }
 
-type TextLiteralFields = {
+interface TextLiteralFields {
   open: NodeChild<SyncTokenId> | undefined
   newline: NodeChild<SyncTokenId> | undefined
   elements: NodeChild[]
@@ -1139,7 +1139,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
 
-type DocumentedFields = {
+interface DocumentedFields {
   open: NodeChild<SyncTokenId> | undefined
   elements: NodeChild[]
   newlines: NodeChild<SyncTokenId>[]
@@ -1206,7 +1206,9 @@ export interface MutableDocumented extends Documented, MutableAst {
 }
 applyMixins(MutableDocumented, [MutableAst])
 
-type InvalidFields = { expression: NodeChild<AstId> }
+interface InvalidFields {
+  expression: NodeChild<AstId>
+}
 export class Invalid extends Ast {
   declare fields: FixedMapView<AstFields & InvalidFields>
   constructor(module: Module, fields: FixedMapView<AstFields & InvalidFields>) {
@@ -1263,7 +1265,7 @@ export interface MutableInvalid extends Invalid, MutableAst {
 }
 applyMixins(MutableInvalid, [MutableAst])
 
-type GroupFields = {
+interface GroupFields {
   open: NodeChild<SyncTokenId> | undefined
   expression: NodeChild<AstId> | undefined
   close: NodeChild<SyncTokenId> | undefined
@@ -1321,7 +1323,7 @@ export interface MutableGroup extends Group, MutableAst {
 }
 applyMixins(MutableGroup, [MutableAst])
 
-type NumericLiteralFields = {
+interface NumericLiteralFields {
   tokens: NodeChild<SyncTokenId>[]
 }
 export class NumericLiteral extends Ast {
@@ -1368,7 +1370,7 @@ function argumentDefinitionsToRaw(
   )
 }
 
-type FunctionFields = {
+interface FunctionFields {
   name: NodeChild<AstId>
   argumentDefinitions: RawArgumentDefinition[]
   equals: NodeChild<SyncTokenId>
@@ -1513,7 +1515,7 @@ export interface MutableFunction extends Function, MutableAst {
 }
 applyMixins(MutableFunction, [MutableAst])
 
-type AssignmentFields = {
+interface AssignmentFields {
   pattern: NodeChild<AstId>
   equals: NodeChild<SyncTokenId>
   expression: NodeChild<AstId>
@@ -1589,7 +1591,7 @@ export interface MutableAssignment extends Assignment, MutableAst {
 }
 applyMixins(MutableAssignment, [MutableAst])
 
-type BodyBlockFields = {
+interface BodyBlockFields {
   lines: RawBlockLine[]
 }
 export class BodyBlock extends Ast {
@@ -1728,11 +1730,11 @@ export interface MutableBodyBlock extends BodyBlock, MutableAst {
 }
 applyMixins(MutableBodyBlock, [MutableAst])
 
-type RawLine<T> = {
+interface RawLine<T> {
   newline: NodeChild<SyncTokenId>
   expression: NodeChild<T> | undefined
 }
-type Line<T> = {
+interface Line<T> {
   newline?: NodeChild<Token> | undefined
   expression: NodeChild<T> | undefined
 }
@@ -1781,7 +1783,7 @@ function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): R
   }
 }
 
-type IdentFields = {
+interface IdentFields {
   token: NodeChild<SyncTokenId>
 }
 export class Ident extends Ast {
@@ -1834,7 +1836,7 @@ export class MutableIdent extends Ident implements MutableAst {
 export interface MutableIdent extends Ident, MutableAst {}
 applyMixins(MutableIdent, [MutableAst])
 
-type WildcardFields = {
+interface WildcardFields {
   token: NodeChild<SyncTokenId>
 }
 export class Wildcard extends Ast {
@@ -1910,41 +1912,42 @@ export type Mutable<T extends Ast = Ast> = T extends App
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
+  const fieldsForType = fields as FixedMap<any>
   switch (type) {
     case 'App':
-      return new MutableApp(module, fields)
+      return new MutableApp(module, fieldsForType)
     case 'UnaryOprApp':
-      return new MutableUnaryOprApp(module, fields)
+      return new MutableUnaryOprApp(module, fieldsForType)
     case 'NegationApp':
-      return new MutableNegationApp(module, fields)
+      return new MutableNegationApp(module, fieldsForType)
     case 'OprApp':
-      return new MutableOprApp(module, fields)
+      return new MutableOprApp(module, fieldsForType)
     case 'PropertyAccess':
-      return new MutablePropertyAccess(module, fields)
+      return new MutablePropertyAccess(module, fieldsForType)
     case 'Generic':
-      return new MutableGeneric(module, fields)
+      return new MutableGeneric(module, fieldsForType)
     case 'Import':
-      return new MutableImport(module, fields)
+      return new MutableImport(module, fieldsForType)
     case 'TextLiteral':
-      return new MutableTextLiteral(module, fields)
+      return new MutableTextLiteral(module, fieldsForType)
     case 'Documented':
-      return new MutableDocumented(module, fields)
+      return new MutableDocumented(module, fieldsForType)
     case 'Invalid':
-      return new MutableInvalid(module, fields)
+      return new MutableInvalid(module, fieldsForType)
     case 'Group':
-      return new MutableGroup(module, fields)
+      return new MutableGroup(module, fieldsForType)
     case 'NumericLiteral':
-      return new MutableNumericLiteral(module, fields)
+      return new MutableNumericLiteral(module, fieldsForType)
     case 'Function':
-      return new MutableFunction(module, fields)
+      return new MutableFunction(module, fieldsForType)
     case 'Assignment':
-      return new MutableAssignment(module, fields)
+      return new MutableAssignment(module, fieldsForType)
     case 'BodyBlock':
-      return new MutableBodyBlock(module, fields)
+      return new MutableBodyBlock(module, fieldsForType)
     case 'Ident':
-      return new MutableIdent(module, fields)
+      return new MutableIdent(module, fieldsForType)
     case 'Wildcard':
-      return new MutableWildcard(module, fields)
+      return new MutableWildcard(module, fieldsForType)
   }
   bail(`Invalid type: ${type}`)
 }
@@ -1991,14 +1994,14 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
   bail(`Invalid type: ${type}`)
 }
 
-export type FixedMapView<Fields> = {
+export interface FixedMapView<Fields> {
   get<Key extends string & keyof Fields>(key: Key): Fields[Key]
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
 }
 
-export type FixedMap<Fields> = FixedMapView<Fields> & {
+export interface FixedMap<Fields> extends FixedMapView<Fields> {
   set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
 }
 
@@ -2136,7 +2139,7 @@ function autospaced<T extends object | string>(node: T | undefined): NodeChild<T
   return { node }
 }
 
-export type Removed<T extends MutableAst> = {
+export interface Removed<T extends MutableAst> {
   node: Owned<T>
   placeholder: MutableWildcard | undefined
 }
