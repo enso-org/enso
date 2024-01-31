@@ -9,8 +9,6 @@ import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 
-const DEBUG = false
-
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
@@ -55,11 +53,7 @@ const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
-    if (targetRectRelative == null) {
-      // This seems to happen for some `Ast.Ident` ports while processing updates, but is quickly fixed.
-      if (DEBUG) console.warn(`No relative rect found for ${expr}.`)
-      return
-    }
+    if (targetRectRelative == null) return
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)

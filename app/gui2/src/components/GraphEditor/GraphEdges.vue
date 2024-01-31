@@ -10,8 +10,6 @@ import { isAstId, type AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
 
-const DEBUG = false
-
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
@@ -37,7 +35,6 @@ const editingEdge: Interaction = {
     }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
-    if (DEBUG) console.info(`edge click`, source, target, targetNode)
     graph.transact(() => {
       if (source != null && sourceNode != targetNode) {
         if (target == null) {
@@ -79,7 +76,6 @@ function createEdge(source: AstId, target: PortId) {
   const sourceNode = graph.db.getPatternExpressionNodeId(source)
   const targetNode = graph.getPortNodeId(target)
   if (sourceNode == null || targetNode == null) {
-    if (DEBUG) console.log(`createEdge`, sourceNode, targetNode, source, target)
     return console.error(`Failed to connect edge, source or target node not found.`)
   }
 

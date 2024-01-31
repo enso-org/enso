@@ -16,8 +16,6 @@ import {
   setAll,
 } from './tree'
 
-const DEBUG = false
-
 export interface Module {
   edit(): MutableModule
   root(): Ast | undefined
@@ -209,8 +207,6 @@ export class MutableModule implements Module {
         updateMetadata.push({ id, changes })
       }
     }
-    if (DEBUG)
-      console.info(`observeEvents`, events, { addNodes, deleteNodes, updateNodes, updateMetadata })
     return { addNodes, deleteNodes, updateNodes, updateMetadata }
   }
 

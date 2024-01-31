@@ -30,7 +30,6 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG = false
 const DEBUG_LOG_SYNC = false
 
 function createOpenRPCClient(url: string) {
@@ -477,11 +476,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = Object.entries(metadata.ide.node)
 
-      if (DEBUG) console.info(`syncFileContents`)
       let parsedSpans
       const syncModule = new MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
-        if (DEBUG) console.info(`- code changed`)
         const { root, spans } = parseBlockWithSpans(code, syncModule)
         syncModule.syncRoot(root)
         parsedSpans = spans
@@ -489,7 +486,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
-        if (DEBUG) console.info(`- applying id map`)
         const idMap = deserializeIdMap(idMapJson)
         const spans = parsedSpans ?? print(astRoot).info
         setExternalIds(syncModule, spans, idMap)
@@ -500,7 +496,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           metadataJson !== this.syncedMetaJson) &&
         nodeMeta.length !== 0
       ) {
-        if (DEBUG) console.info(`- applying metadata (${nodeMeta.length} entries)`)
         const externalIdToAst = new Map<ExternalId, Ast>()
         astRoot.visitRecursiveAst((ast) => {
           if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
@@ -521,8 +516,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const newVis = meta.visualization && translateVisualizationFromFile(meta.visualization)
           if (!visMetadataEquals(newVis, oldVis)) metadata.set('visualization', newVis)
         }
-        if (DEBUG && missing.size !== 0)
-          console.warn(`${missing.size} nodes not found when applying metadata`)
       }
 
       this.syncedCode = code

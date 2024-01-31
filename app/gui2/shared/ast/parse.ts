@@ -31,8 +31,6 @@ import {
   Wildcard,
 } from './tree'
 
-const DEBUG = false
-
 export function parseEnso(code: string): RawAst.Tree {
   const blob = parse_tree(code)
   return RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
@@ -401,10 +399,6 @@ export function setExternalIds(module: MutableModule, spans: SpanMap, ids: IdMap
       idsUnmatched += 1
     }
   }
-  if (DEBUG)
-    console.info(
-      `asts=${asts}, astsMatched=${astsMatched}, idsUnmatched=${idsUnmatched}, haveRoot=${!!module.root()}`,
-    )
   return module.root() ? asts - astsMatched : 0
 }
 

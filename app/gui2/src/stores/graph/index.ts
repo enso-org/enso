@@ -34,8 +34,6 @@ import * as Y from 'yjs'
 
 export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
 
-const DEBUG = false
-
 export interface NodeEditInfo {
   id: NodeId
   initialCursorPos: number
@@ -103,10 +101,6 @@ export const useGraphStore = defineStore('graph', () => {
     metadataUpdates.push(...(newMetadataUpdates as any))
     const root = astModule.root()
     if (!root) return
-    if (DEBUG)
-      console.info(
-        `handleModuleUpdate (${dirtyNodes.size} dirty nodes, ${metadataUpdates.length} metadata updates)`,
-      )
     moduleRoot.value = root
     if (root instanceof Ast.BodyBlock) topLevel.value = root
     if (dirtyNodes.size !== 0) {
@@ -276,10 +270,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
     const nodeAst = astModule.value?.get(nodeId)
-    if (!nodeAst) {
-      if (DEBUG) console.warn(`setNodePosition: Node not found.`)
-      return
-    }
+    if (!nodeAst) return
     const oldPos = nodeAst.nodeMetadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
       commitDirect((edit) => {
@@ -302,10 +293,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
     const nodeAst = astModule.value?.get(nodeId)
-    if (!nodeAst) {
-      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
-      return
-    }
+    if (!nodeAst) return
     commitDirect((edit) => {
       const metadata = edit.getVersion(nodeAst).mutableNodeMetadata()
       metadata.set(
@@ -317,10 +305,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
     const nodeAst = astModule.value?.get(nodeId)
-    if (!nodeAst) {
-      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
-      return
-    }
+    if (!nodeAst) return
     commitDirect((edit) => {
       const metadata = edit.getVersion(nodeAst).mutableNodeMetadata()
       metadata.set(
@@ -332,10 +317,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
     const nodeAst = astModule.value?.get(nodeId)
-    if (!nodeAst) {
-      if (DEBUG) console.warn(`updateNodeRect: Node not found.`)
-      return
-    }
+    if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
