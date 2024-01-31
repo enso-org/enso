@@ -371,7 +371,7 @@ add_specs suite_builder =
             t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
             t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
             t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
-            t.at "Children Value" . to_vector . map trim_if_text . should_equal ["Hello", "My Book", "World", "Your Book", "Cheap Cars For You"]
+            t.at "Children" . to_vector . map trim_if_text . should_equal ["Hello", "My Book", "World", "Your Book", "Cheap Cars For You"]
             t.at "Children Name" . to_vector . map trim_if_text . should_equal [Nothing, "Book", Nothing, "Book", "Magazine"]
             t.at "Children @author" . to_vector . map trim_if_text . should_equal [Nothing, "An Author", Nothing, "Another Author", Nothing]
             t.at "Children @month" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'August-2023']
