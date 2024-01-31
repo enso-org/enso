@@ -98,13 +98,6 @@ export interface UserOrOrganization {
   rootDirectoryId: DirectoryId
 }
 
-/** A `Directory` returned by `createDirectory`. */
-export interface CreatedDirectory {
-  id: DirectoryId
-  parentId: DirectoryId
-  title: string
-}
-
 /** Possible states that a project can be in. */
 export enum ProjectState {
   created = 'Created',
@@ -148,28 +141,23 @@ export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean
   [ProjectState.closing]: false,
 }
 
-/** Common `Project` fields returned by all `Project`-related endpoints. */
-export interface BaseProject {
+/** A `Project` returned by `updateProject`. */
+export interface UpdatedProject {
   organizationId: string
   projectId: ProjectId
   name: string
-}
-
-/** A `Project` returned by `createProject`. */
-export interface CreatedProject extends BaseProject {
-  state: ProjectStateType
-  packageName: string
-}
-
-/** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
   ami: Ami | null
   ideVersion: VersionNumber | null
   engineVersion: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends CreatedProject {
+export interface ProjectRaw {
+  organizationId: string
+  projectId: ProjectId
+  name: string
+  state: ProjectStateType
+  packageName: string
   address?: Address
   // eslint-disable-next-line @typescript-eslint/naming-convention
   ide_version: VersionNumber | null
@@ -178,7 +166,12 @@ export interface ProjectRaw extends CreatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface Project extends CreatedProject {
+export interface Project {
+  organizationId: string
+  projectId: ProjectId
+  name: string
+  state: ProjectStateType
+  packageName: string
   binaryAddress: Address | null
   jsonAddress: Address | null
   ideVersion: VersionNumber | null
@@ -207,15 +200,6 @@ export interface File {
   fileId: FileId
   fileName: string | null
   path: S3FilePath
-}
-
-/** Metadata uniquely identifying an uploaded file. */
-export interface FileInfo {
-  /* TODO: Should potentially be S3FilePath,
-   * but it's just string on the backend. */
-  path: string
-  id: FileId
-  project: CreatedProject | null
 }
 
 /** All metadata related to a file. */
@@ -519,83 +503,6 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
   }
 }
 
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: UserPermission[]
-): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(uniqueString.uniqueString()),
-    title,
-    parentId,
-    permissions: assetPermissions,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: UserPermission[],
-  organization: UserOrOrganization | null
-): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(uniqueString.uniqueString()),
-    title,
-    parentId,
-    permissions: assetPermissions,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      volume_id: '',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      ...(organization != null ? { opened_by: organization.email } : {}),
-    },
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
   | DirectoryAsset
@@ -608,6 +515,17 @@ export type AnyAsset =
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
   return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
+}
+
+/** An asset with a specific type. */
+interface HasType<Type extends AssetType> {
+  type: Type
+}
+
+/** A type guard that returns whether an {@link SmartAsset} is a specific type of asset. */
+export function smartAssetIsType<Type extends AssetType>(type: Type) {
+  return (asset: AnySmartAsset): asset is Extract<AnySmartAsset, HasType<Type>> =>
+    asset.type === type
 }
 
 /** Creates a new placeholder asset id for the given asset type. */
@@ -660,6 +578,14 @@ export const assetIsDirectory = assetIsType(AssetType.directory)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartProject}. */
+export const smartAssetIsProject = smartAssetIsType(AssetType.project)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartDirectory}. */
+export const smartAssetIsDirectory = smartAssetIsType(AssetType.directory)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartSecret}. */
+export const smartAssetIsSecret = smartAssetIsType(AssetType.secret)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartFile}. */
+export const smartAssetIsFile = smartAssetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
 // ==============================
@@ -724,12 +650,6 @@ export interface CreatePermissionRequestBody {
   action: permissions.PermissionAction | null
 }
 
-/** HTTP request body for the "create directory" endpoint. */
-export interface CreateDirectoryRequestBody {
-  title: string
-  parentId: DirectoryId | null
-}
-
 /** HTTP request body for the "update directory" endpoint. */
 export interface UpdateDirectoryRequestBody {
   title: string
@@ -739,13 +659,6 @@ export interface UpdateDirectoryRequestBody {
 export interface UpdateAssetRequestBody {
   parentDirectoryId?: DirectoryId | null
   description?: string | null
-}
-
-/** HTTP request body for the "create project" endpoint. */
-export interface CreateProjectRequestBody {
-  projectName: string
-  projectTemplateName: string | null
-  parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -760,13 +673,6 @@ export interface UpdateProjectRequestBody {
 export interface OpenProjectRequestBody {
   forceCreate: boolean
   executeAsync: boolean
-}
-
-/** HTTP request body for the "create secret" endpoint. */
-export interface CreateSecretRequestBody {
-  name: string
-  value: string
-  parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "update secret" endpoint. */
@@ -795,14 +701,6 @@ export interface ListDirectoryRequestParams {
   filterBy: FilterBy | null
   labels: LabelName[] | null
   recentProjects: boolean
-}
-
-/** URL query string parameters for the "upload file" endpoint. */
-export interface UploadFileRequestParams {
-  fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
-  fileName: string
-  parentDirectoryId: DirectoryId | null
 }
 
 /** URL query string parameters for the "upload user profile picture" endpoint. */
@@ -925,6 +823,9 @@ export interface SmartUser extends SmartObject<UserOrOrganization> {
 export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T> {
   /** This is required to exist so that {@link AnySmartAsset} is a discriminated union. */
   readonly type: T['type']
+  /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
+   * the backend. Otherwise, return `this`. */
+  readonly materialize: () => Promise<this>
   /** Change the parent directory of an asset. */
   readonly update: (body: UpdateAssetRequestBody) => Promise<unknown>
   /** Move an arbitrary asset to the trash. */
@@ -944,6 +845,33 @@ export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
   readonly list: (query: ListDirectoryRequestParams) => Promise<AnySmartAsset[]>
   /** Change the name or description of a directory. */
   readonly update: (body: UpdateAssetOrDirectoryRequestBody) => Promise<UpdatedDirectory>
+  /** Create a {@link SpecialLoadingAsset}. */
+  readonly createSpecialLoadingAsset: () => SmartSpecialLoadingAsset
+  /** Create a {@link SpecialEmptyAsset}. */
+  readonly createSpecialEmptyAsset: () => SmartSpecialEmptyAsset
+  /** Create a {@link SmartDirectory} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderDirectory: (
+    title: string,
+    permissions: UserPermission[]
+  ) => SmartDirectory
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderProject: (
+    title: string,
+    fileOrTemplateName: globalThis.File | string | null,
+    permissions: UserPermission[]
+  ) => SmartProject
+  /** Create a {@link SmartFile} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderFile: (
+    title: string,
+    file: globalThis.File,
+    permissions: UserPermission[]
+  ) => SmartFile
+  /** Create a {@link SmartSecret} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderSecret: (
+    title: string,
+    value: string,
+    permissions: UserPermission[]
+  ) => SmartSecret
 }
 
 // FIXME: fill in endpoints
@@ -995,16 +923,12 @@ export abstract class Backend {
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Adds a permission for a specific user on a specific asset. */
   abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
-  /** Create a directory. */
-  abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,
     body: UpdateDirectoryRequestBody,
     title: string | null
   ): Promise<UpdatedDirectory>
-  /** Create a project for the current user. */
-  abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
   /** Return project details. */
@@ -1023,12 +947,8 @@ export abstract class Backend {
   ): Promise<UpdatedProject>
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
-  /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
-  /** Create a secret environment variable. */
-  abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */

@@ -6,11 +6,7 @@
 
 /** Possible types of asset state change. */
 enum AssetEventType {
-  newProject = 'new-project',
-  newFolder = 'new-folder',
-  uploadFiles = 'upload-files',
   updateFiles = 'update-files',
-  newSecret = 'new-secret',
   openProject = 'open-project',
   closeProject = 'close-project',
   cancelOpeningAllProjects = 'cancel-opening-all-projects',

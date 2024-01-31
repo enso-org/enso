@@ -9,9 +9,11 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as config from '#/utilities/config'
+import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import type * as http from '#/utilities/http'
 import * as object from '#/utilities/object'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -76,6 +78,14 @@ export async function waitUntilProjectIsReady(
 // =============
 // === Types ===
 // =============
+
+/** URL query string parameters for the "upload file" endpoint. */
+export interface UploadFileRequestParams {
+  fileId: backendModule.AssetId | null
+  // Marked as optional in the data type, however it is required by the actual route handler.
+  fileName: string
+  parentDirectoryId: backendModule.DirectoryId | null
+}
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
@@ -215,6 +225,12 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   /** The type of the wrapped value. */
   get type(): T['type'] {
     return this.value.type
+  }
+
+  /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
+   * the backend. Otherwise, return `this`. */
+  materialize(): Promise<this> {
+    return Promise.resolve(this)
   }
 
   /** Change the parent directory of an asset. */
@@ -374,7 +390,289 @@ class SmartDirectory
       return { id: this.value.id, parentId: this.value.parentId, title: this.value.title }
     }
   }
+
+  /** Create a {@link backendModule.SpecialLoadingAsset}. */
+  createSpecialLoadingAsset(): backendModule.SmartSpecialLoadingAsset {
+    return new SmartAsset<backendModule.SpecialLoadingAsset>(this.client, this.logger, {
+      type: backendModule.AssetType.specialLoading,
+      title: '',
+      id: backendModule.LoadingAssetId(
+        `${backendModule.AssetType.specialLoading}-${uniqueString.uniqueString()}`
+      ),
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions: [],
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+  }
+
+  /** Create a {@link backendModule.SpecialEmptyAsset}. */
+  createSpecialEmptyAsset(): backendModule.SmartSpecialEmptyAsset {
+    return new SmartAsset<backendModule.SpecialEmptyAsset>(this.client, this.logger, {
+      type: backendModule.AssetType.specialEmpty,
+      title: '',
+      id: backendModule.EmptyAssetId(
+        `${backendModule.AssetType.specialEmpty}-${uniqueString.uniqueString()}`
+      ),
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions: [],
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+  }
+
+  /** Create a {@link SmartDirectory} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderDirectory(
+    title: string,
+    permissions: backendModule.UserPermission[]
+  ): backendModule.SmartDirectory {
+    const result = new SmartDirectory(this.client, this.logger, {
+      type: backendModule.AssetType.directory,
+      id: backendModule.DirectoryId(
+        `${backendModule.AssetType.directory}-${uniqueString.uniqueString()}`
+      ),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = async (): Promise<SmartDirectory> => {
+      /** HTTP request body for this endpoint. */
+      interface Body {
+        title: string
+        parentId: backendModule.DirectoryId | null
+      }
+      /** HTTP response body for this endpoint. */
+      interface ResponseBody {
+        id: backendModule.DirectoryId
+        parentId: backendModule.DirectoryId
+        title: string
+      }
+      const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
+      const body: Body = { title, parentId: this.value.id }
+      const response = await this.httpPost<ResponseBody>(path, body)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(`Could not create folder with name '${body.title}'.`)
+      } else {
+        const reponseBody = await response.json()
+        return result.withValue(object.merge(this.value, reponseBody))
+      }
+    }
+    return result
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderProject(
+    title: string,
+    fileOrTemplateName: File | string | null,
+    permissions: backendModule.UserPermission[]
+  ): backendModule.SmartProject {
+    const result = new SmartProject(this.client, this.logger, {
+      type: backendModule.AssetType.project,
+      id: backendModule.ProjectId(
+        `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+      ),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: {
+        type: backendModule.ProjectState.placeholder,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        volume_id: '',
+      },
+      labels: [],
+      description: null,
+    })
+    /** A project returned by the endpoints. */
+    interface CreatedProject {
+      organizationId: string
+      projectId: backendModule.ProjectId
+      name: string
+      state: backendModule.ProjectStateType
+      packageName: string
+    }
+    if (fileOrTemplateName instanceof File) {
+      result.materialize = async () => {
+        /** HTTP response body for this endpoint. */
+        interface ResponseBody {
+          path: string
+          id: backendModule.FileId
+          project: CreatedProject | null
+        }
+        const paramsString = new URLSearchParams({
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          file_name: title,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          parent_directory_id: this.value.id,
+        }).toString()
+        const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+        const response = await this.httpPostBinary<ResponseBody>(path, fileOrTemplateName)
+        if (!responseIsSuccessful(response)) {
+          let suffix = '.'
+          try {
+            const error = errorModule.tryGetError<unknown>(await response.json())
+            if (error != null) {
+              suffix = `: ${error}`
+            }
+          } catch {
+            // Ignored.
+          }
+          return this.throw(`Could not upload project${suffix}`)
+        } else {
+          const responseBody = await response.json()
+          if (responseBody.project == null) {
+            return this.throw('Uploaded project but did not receive project details.')
+          } else {
+            return result.withValue(
+              object.merge(result.value, {
+                id: responseBody.project.projectId,
+                title: responseBody.project.name,
+                projectState: responseBody.project.state,
+              })
+            )
+          }
+        }
+      }
+    } else {
+      result.materialize = async () => {
+        /** HTTP request body for this endpoint. */
+        interface Body {
+          projectName: string
+          projectTemplateName: string | null
+          parentDirectoryId: backendModule.DirectoryId | null
+        }
+        /** HTTP response body for this endpoint. */
+        interface ResponseBody extends CreatedProject {}
+        const path = remoteBackendPaths.CREATE_PROJECT_PATH
+        const body: Body = {
+          projectName: title,
+          projectTemplateName: fileOrTemplateName,
+          parentDirectoryId: this.value.id,
+        }
+        const response = await this.httpPost<ResponseBody>(path, body)
+        if (!responseIsSuccessful(response)) {
+          return this.throw(`Could not create project with name '${body.projectName}'.`)
+        } else {
+          const responseBody = await response.json()
+          return result.withValue(
+            object.merge(result.value, {
+              id: responseBody.projectId,
+              title: responseBody.name,
+              projectState: responseBody.state,
+            })
+          )
+        }
+      }
+    }
+    return result
+  }
+
+  /** Create a {@link SmartFile} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderFile(
+    title: string,
+    file: File,
+    permissions: backendModule.UserPermission[]
+  ): backendModule.SmartFile {
+    const result = new SmartFile(this.client, this.logger, {
+      type: backendModule.AssetType.file,
+      id: backendModule.FileId(`${backendModule.AssetType.file}-${uniqueString.uniqueString()}`),
+      title,
+      parentId: this.value.id,
+      permissions,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = async () => {
+      /** HTTP response body for this endpoint. */
+      interface ResponseBody {
+        path: string
+        id: backendModule.FileId
+        project: NonNullable<unknown> | null
+      }
+      const paramsString = new URLSearchParams({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        file_name: title,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        parent_directory_id: this.value.id,
+      }).toString()
+      const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+      const response = await this.httpPostBinary<ResponseBody>(path, file)
+      if (!responseIsSuccessful(response)) {
+        let suffix = '.'
+        try {
+          const error = errorModule.tryGetError<unknown>(await response.json())
+          if (error != null) {
+            suffix = `: ${error}`
+          }
+        } catch {
+          // Ignored.
+        }
+        return this.throw(`Could not upload file${suffix}`)
+      } else {
+        const responseBody = await response.json()
+        return result.withValue(object.merge(result.value, { id: responseBody.id }))
+      }
+    }
+    return result
+  }
+
+  /** Create a {@link SmartSecret} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderSecret(
+    title: string,
+    value: string,
+    permissions: backendModule.UserPermission[]
+  ): backendModule.SmartSecret {
+    const result = new SmartSecret(this.client, this.logger, {
+      type: backendModule.AssetType.secret,
+      id: backendModule.SecretId(
+        `${backendModule.AssetType.secret}-${uniqueString.uniqueString()}`
+      ),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = async () => {
+      /** HTTP request body for this endpoint. */
+      interface Body {
+        name: string
+        value: string
+        parentDirectoryId: backendModule.DirectoryId | null
+      }
+      const path = remoteBackendPaths.CREATE_SECRET_PATH
+      const body: Body = { parentDirectoryId: this.value.id, name: title, value }
+      const response = await this.httpPost<backendModule.SecretId>(path, body)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(`Could not create secret with name '${body.name}'.`)
+      } else {
+        const id = await response.json()
+        return result.withValue(object.merge(result.value, { id }))
+      }
+    }
+    return result
+  }
 }
+
+/** A smart wrapper around a {@link backendModule.ProjectAsset}. */
+class SmartProject
+  extends SmartAsset<backendModule.ProjectAsset>
+  implements backendModule.SmartProject {}
+
+/** A smart wrapper around a {@link backendModule.FileAsset}. */
+class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendModule.SmartFile {}
 
 /** A smart wrapper around a {@link backendModule.SecretAsset}. */
 class SmartSecret
@@ -516,20 +814,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Create a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createDirectory(
-    body: backendModule.CreateDirectoryRequestBody
-  ): Promise<backendModule.CreatedDirectory> {
-    const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
-    const response = await this.post<backendModule.CreatedDirectory>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create folder with name '${body.title}'.`)
-    } else {
-      return await response.json()
-    }
-  }
-
   /** Change the name of a directory.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateDirectory(
@@ -542,20 +826,6 @@ export class RemoteBackend extends backendModule.Backend {
     if (!responseIsSuccessful(response)) {
       const name = title != null ? `'${title}'` : `with ID '${directoryId}'`
       return this.throw(`Could not update folder ${name}.`)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Create a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createProject(
-    body: backendModule.CreateProjectRequestBody
-  ): Promise<backendModule.CreatedProject> {
-    const path = remoteBackendPaths.CREATE_PROJECT_PATH
-    const response = await this.post<backendModule.CreatedProject>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create project with name '${body.projectName}'.`)
     } else {
       return await response.json()
     }
@@ -663,41 +933,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Upload a file.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async uploadFile(
-    params: backendModule.UploadFileRequestParams,
-    file: Blob
-  ): Promise<backendModule.FileInfo> {
-    const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention */
-      file_name: params.fileName,
-      ...(params.fileId != null ? { file_id: params.fileId } : {}),
-      ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention */
-    }).toString()
-    const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.FileInfo>(path, file)
-    if (!responseIsSuccessful(response)) {
-      let suffix = '.'
-      try {
-        const error = errorModule.tryGetError<unknown>(await response.json())
-        if (error != null) {
-          suffix = `: ${error}`
-        }
-      } catch {
-        // Ignored.
-      }
-      if (params.fileId != null) {
-        return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
-      } else {
-        return this.throw(`Could not upload file${suffix}`)
-      }
-    } else {
-      return await response.json()
-    }
-  }
-
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getFileDetails(
@@ -710,20 +945,6 @@ export class RemoteBackend extends backendModule.Backend {
       return this.throw(
         `Could not get details of project ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
       )
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Create a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createSecret(
-    body: backendModule.CreateSecretRequestBody
-  ): Promise<backendModule.SecretId> {
-    const path = remoteBackendPaths.CREATE_SECRET_PATH
-    const response = await this.post<backendModule.SecretId>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create secret with name '${body.name}'.`)
     } else {
       return await response.json()
     }
@@ -785,13 +1006,47 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
+  /** Upload a file.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  async uploadFile(params: UploadFileRequestParams, file: Blob): Promise<void> {
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      file_name: params.fileName,
+      ...(params.fileId != null ? { file_id: params.fileId } : {}),
+      ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+    // This endpoint does not return a nullish value. However, to prevent this from being used
+    // incorrectly, the return value is not exposed.
+    const response = await this.postBinary<unknown>(path, file)
+    if (!responseIsSuccessful(response)) {
+      let suffix = '.'
+      try {
+        const error = errorModule.tryGetError(await response.json())
+        if (error != null) {
+          suffix = `: ${error}`
+        }
+      } catch {
+        // Ignored.
+      }
+      if (params.fileId != null) {
+        return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
+      } else {
+        return this.throw(`Could not upload file${suffix}`)
+      }
+    } else {
+      return
+    }
+  }
+
   /** Return a list of backend or IDE versions.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   protected async listVersions(
     params: backendModule.ListVersionsRequestParams
   ): Promise<backendModule.Version[]> {
     /** HTTP response body for this endpoint. */
-    interface Body {
+    interface ResponseBody {
       versions: [backendModule.Version, ...backendModule.Version[]]
     }
     const paramsString = new URLSearchParams({
@@ -800,7 +1055,7 @@ export class RemoteBackend extends backendModule.Backend {
       default: String(params.default),
     }).toString()
     const path = remoteBackendPaths.LIST_VERSIONS_PATH + '?' + paramsString
-    const response = await this.get<Body>(path)
+    const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not list versions of type '${params.versionType}'.`)
     } else {

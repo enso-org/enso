@@ -22,7 +22,6 @@ import * as backendModule from '#/services/backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/assetQuery'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as localStorageModule from '#/utilities/localStorage'
@@ -33,7 +32,6 @@ import * as set from '#/utilities/set'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
-import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
@@ -1047,9 +1045,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               : item.with({
                   children: [
                     assetTreeNode.AssetTreeNode.fromSmartAsset(
-                      backendModule.createSpecialLoadingAsset(directoryId),
+                      directory.createSpecialLoadingAsset(),
                       key,
-                      directory.value.id,
+                      directory,
                       item.depth + 1
                     ),
                   ],
@@ -1089,18 +1087,18 @@ export default function AssetsTable(props: AssetsTableProps) {
                       item.depth + 1
                     )
                   )
-                  const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
+                  const specialEmptyAsset =
                     (initialChildren != null && initialChildren.length !== 0) ||
                     childAssetNodes.length !== 0
                       ? null
-                      : backendModule.createSpecialEmptyAsset(directory.value.id)
+                      : directory.createSpecialEmptyAsset()
                   const children =
                     specialEmptyAsset != null
                       ? [
                           assetTreeNode.AssetTreeNode.fromSmartAsset(
                             specialEmptyAsset,
                             key,
-                            directory.value.id,
+                            directory,
                             item.depth + 1
                           ),
                         ]
@@ -1118,24 +1116,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     },
     [category]
-  )
-
-  const getNewProjectName = React.useCallback(
-    (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
-      const prefix = `${templateName ?? 'New Project'} `
-      const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-      const siblings =
-        parentKey == null
-          ? assetTree.children ?? []
-          : nodeMapRef.current.get(parentKey)?.children ?? []
-      const projectIndices = siblings
-        .map(node => node.item.value)
-        .filter(backendModule.assetIsProject)
-        .map(item => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
-        .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-      return `${prefix}${Math.max(0, ...projectIndices) + 1}`
-    },
-    [assetTree, nodeMapRef]
   )
 
   const deleteAsset = React.useCallback((key: backendModule.AssetId) => {
@@ -1203,119 +1183,67 @@ export default function AssetsTable(props: AssetsTableProps) {
           .map(match => match?.groups?.directoryIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-        const placeholderItem: backendModule.DirectoryAsset = {
-          type: backendModule.AssetType.directory,
-          id: backendModule.DirectoryId(uniqueString.uniqueString()),
-          title,
-          modifiedAt: dateTime.toRfc3339(new Date()),
-          parentId: event.parent.value.id,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
+        const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const placeholderItem = event.parent.createPlaceholderDirectory(title, permission)
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentKey, event.parent.value.id)
-        dispatchAssetEvent({
-          type: AssetEventType.newFolder,
-          placeholderId: placeholderItem.id,
-        })
+        insertAssets([placeholderItem], event.parentKey, event.parent)
         break
       }
       case AssetListEventType.newProject: {
-        const projectName = getNewProjectName(event.templateName, event.parent.value.id)
-        const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
-        const placeholderItem: backendModule.ProjectAsset = {
-          type: backendModule.AssetType.project,
-          id: dummyId,
-          title: projectName,
-          modifiedAt: dateTime.toRfc3339(new Date()),
-          parentId: event.parent.value.id,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-          projectState: {
-            type: backendModule.ProjectState.placeholder,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(organization != null ? { opened_by: organization.value.email } : {}),
-          },
-          labels: [],
-          description: null,
-        }
+        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const projectIndices = siblings
+          .map(node => node.item.value)
+          .filter(backendModule.assetIsProject)
+          .map(item => /^New Project (?<projectIndex>\\d+)$/.exec(item.title))
+          .map(match => match?.groups?.directoryIndex)
+          .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        const projectName = `New Project ${Math.max(0, ...projectIndices) + 1}`
+        const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const placeholderItem = event.parent.createPlaceholderProject(
+          projectName,
+          event.templateId,
+          permission
+        )
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentKey, event.parent.value.id)
-        dispatchAssetEvent({
-          type: AssetEventType.newProject,
-          placeholderId: dummyId,
-          templateId: event.templateId,
-          onSpinnerStateChange: event.onSpinnerStateChange,
-        })
+        insertAssets([placeholderItem], event.parentKey, event.parent)
         break
       }
       case AssetListEventType.uploadFiles: {
         const reversedFiles = Array.from(event.files).reverse()
         const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
-        const siblings = siblingNodes.map(node => node.item.value)
-        const siblingFiles = siblings.filter(backendModule.assetIsFile)
-        const siblingProjects = siblings.filter(backendModule.assetIsProject)
-        const siblingFileTitles = new Set(siblingFiles.map(asset => asset.title))
-        const siblingProjectTitles = new Set(siblingProjects.map(asset => asset.title))
+        const siblings = siblingNodes.map(node => node.item)
+        const siblingFiles = siblings.filter(backendModule.smartAssetIsFile)
+        const siblingProjects = siblings.filter(backendModule.smartAssetIsProject)
+        const siblingFileTitles = new Set(siblingFiles.map(asset => asset.value.title))
+        const siblingProjectTitles = new Set(siblingProjects.map(asset => asset.value.title))
         const files = reversedFiles.filter(backendModule.fileIsNotProject)
         const projects = reversedFiles.filter(backendModule.fileIsProject)
         const duplicateFiles = files.filter(file => siblingFileTitles.has(file.name))
         const duplicateProjects = projects.filter(project =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
           const placeholderFiles = files.map(file =>
-            backendModule.createPlaceholderFileAsset(
-              file.name,
-              event.parent.value.id,
-              ownerPermission
-            )
+            event.parent.createPlaceholderFile(file.name, file, permission)
           )
-          const placeholderProjects =
-            organization == null
-              ? []
-              : projects.map(project =>
-                  backendModule.createPlaceholderProjectAsset(
-                    project.name,
-                    event.parent.value.id,
-                    ownerPermission,
-                    organization.value
-                  )
-                )
+          const placeholderProjects = projects.map(project =>
+            event.parent.createPlaceholderProject(project.name, project, permission)
+          )
           doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-          insertAssets(placeholderFiles, event.parentKey, event.parent.value.id)
-          insertAssets(placeholderProjects, event.parentKey, event.parent.value.id)
-          dispatchAssetEvent({
-            type: AssetEventType.uploadFiles,
-            files: new Map(
-              [...placeholderFiles, ...placeholderProjects].map((placeholderItem, i) => [
-                placeholderItem.id,
-                // This is SAFE, as `placeholderItems` is created using a map on
-                // `event.files`.
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                event.files[i]!,
-              ])
-            ),
-          })
+          insertAssets(placeholderFiles, event.parentKey, event.parent)
+          insertAssets(placeholderProjects, event.parentKey, event.parent)
         } else {
-          const siblingFilesByName = new Map(siblingFiles.map(file => [file.title, file]))
+          const siblingFilesByName = new Map(siblingFiles.map(file => [file.value.title, file]))
           const siblingProjectsByName = new Map(
-            siblingProjects.map(project => [project.title, project])
+            siblingProjects.map(project => [project.value.title, project])
           )
           const conflictingFiles = duplicateFiles.map(file => ({
             // This is SAFE, as `duplicateFiles` only contains files that have siblings
             // with the same name.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             current: siblingFilesByName.get(file.name)!,
-            new: backendModule.createPlaceholderFileAsset(
-              file.name,
-              event.parent.value.id,
-              ownerPermission
-            ),
+            new: event.parent.createPlaceholderFile(file.name, file, permission),
             file,
           }))
           const conflictingProjects = duplicateProjects.map(project => {
@@ -1325,12 +1253,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               // siblings with the same name.
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               current: siblingProjectsByName.get(basename)!,
-              new: backendModule.createPlaceholderProjectAsset(
-                basename,
-                event.parent.value.id,
-                ownerPermission,
-                organization?.value ?? null
-              ),
+              new: event.parent.createPlaceholderProject(basename, project, permission),
               file: project,
             }
           })
@@ -1352,39 +1275,23 @@ export default function AssetsTable(props: AssetsTableProps) {
               }
               doUploadNonConflicting={() => {
                 doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-                const fileMap = new Map<backendModule.AssetId, File>()
                 const newFiles = files
                   .filter(file => !siblingFileTitles.has(file.name))
-                  .map(file => {
-                    const asset = backendModule.createPlaceholderFileAsset(
-                      file.name,
-                      event.parent.value.id,
-                      ownerPermission
-                    )
-                    fileMap.set(asset.id, file)
-                    return asset
-                  })
+                  .map(file => event.parent.createPlaceholderFile(file.name, file, permission))
                 const newProjects = projects
                   .filter(
                     project =>
                       !siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
                   )
-                  .map(project => {
-                    const asset = backendModule.createPlaceholderProjectAsset(
+                  .map(project =>
+                    event.parent.createPlaceholderProject(
                       backendModule.stripProjectExtension(project.name),
-                      event.parent.value.id,
-                      ownerPermission,
-                      organization?.value ?? null
+                      project,
+                      permission
                     )
-                    fileMap.set(asset.id, project)
-                    return asset
-                  })
-                insertAssets(newFiles, event.parentKey, event.parent.value.id)
-                insertAssets(newProjects, event.parentKey, event.parent.value.id)
-                dispatchAssetEvent({
-                  type: AssetEventType.uploadFiles,
-                  files: fileMap,
-                })
+                  )
+                insertAssets(newFiles, event.parentKey, event.parent)
+                insertAssets(newProjects, event.parentKey, event.parent)
               }}
             />
           )
@@ -1392,24 +1299,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newSecret: {
-        const placeholderItem: backendModule.SecretAsset = {
-          type: backendModule.AssetType.secret,
-          id: backendModule.SecretId(uniqueString.uniqueString()),
-          title: event.name,
-          modifiedAt: dateTime.toRfc3339(new Date()),
-          parentId: event.parent.value.id,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentKey, event.parent.value.id)
-        dispatchAssetEvent({
-          type: AssetEventType.newSecret,
-          placeholderId: placeholderItem.id,
-          value: event.value,
-        })
+        const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const placeholderItem = event.parent.createPlaceholderSecret(
+          event.name,
+          event.value,
+          permission
+        )
+        insertAssets([placeholderItem], event.parentKey, event.parent)
         break
       }
       case AssetListEventType.insertAssets: {
@@ -1533,7 +1430,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else if (newParentNode == null) {
           toastAndLog('New parent folder was not found')
         } else if (newParentNode.item.type !== backendModule.AssetType.directory) {
-          toastAndLog('New parent is not a foler')
+          toastAndLog('New parent is not a folder')
         } else {
           const newParent = newParentNode.item
           doToggleDirectoryExpansion(newParentNode.item, newParentKey, true)

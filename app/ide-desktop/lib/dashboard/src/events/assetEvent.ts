@@ -2,8 +2,6 @@
 import type AssetEventType from '#/events/AssetEventType'
 import type * as backendModule from '#/services/backend'
 
-import type * as spinner from '#/components/Spinner'
-
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
 declare module '#/hooks/eventHooks' {
@@ -24,11 +22,7 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 
 /** All possible events. */
 interface AssetEvents {
-  newProject: AssetNewProjectEvent
-  newFolder: AssetNewFolderEvent
-  uploadFiles: AssetUploadFilesEvent
   updateFiles: AssetUpdateFilesEvent
-  newSecret: AssetNewSecretEvent
   openProject: AssetOpenProjectEvent
   closeProject: AssetCloseProjectEvent
   cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
@@ -57,32 +51,9 @@ type SanityCheck<
   } = AssetEvents,
 > = [T]
 
-/** A signal to create a project. */
-export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
-  placeholderId: backendModule.ProjectId
-  templateId: string | null
-  onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
-}
-
-/** A signal to create a directory. */
-export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFolder> {
-  placeholderId: backendModule.DirectoryId
-}
-
-/** A signal to upload files. */
-export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-  files: Map<backendModule.AssetId, File>
-}
-
 /** A signal to update files with new versions. */
 export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
   files: Map<backendModule.AssetId, File>
-}
-
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
-  placeholderId: backendModule.SecretId
-  value: string
 }
 
 /** A signal to open the specified project. */

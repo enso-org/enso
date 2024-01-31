@@ -37,9 +37,9 @@ const pluralizeProjectUppercase = string.makePluralize('Project', 'Projects')
 /** An object containing the current asset, and the asset that is about to be uploaded,
  * that will conflict with the existing asset. */
 export interface ConflictingAsset<
-  Asset extends backendModule.FileAsset | backendModule.ProjectAsset =
-    | backendModule.FileAsset
-    | backendModule.ProjectAsset,
+  Asset extends backendModule.SmartFile | backendModule.SmartProject =
+    | backendModule.SmartFile
+    | backendModule.SmartProject,
 > {
   readonly current: backendModule.AnySmartAsset
   readonly new: Asset
@@ -54,8 +54,8 @@ export interface ConflictingAsset<
 export interface DuplicateAssetsModalProps {
   readonly parentKey: backendModule.DirectoryId
   readonly parent: backendModule.SmartDirectory
-  readonly conflictingFiles: readonly ConflictingAsset<backendModule.FileAsset>[]
-  readonly conflictingProjects: readonly ConflictingAsset<backendModule.ProjectAsset>[]
+  readonly conflictingFiles: readonly ConflictingAsset<backendModule.SmartFile>[]
+  readonly conflictingProjects: readonly ConflictingAsset<backendModule.SmartProject>[]
   readonly dispatchAssetEvent: (assetEvent: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
   readonly siblingFileNames: Iterable<string>
@@ -170,17 +170,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const doRename = (toRename: ConflictingAsset[]) => {
     const clonedConflicts = structuredClone(toRename)
     for (const conflict of clonedConflicts) {
-      conflict.new.title = findNewName(conflict)
+      conflict.new.value.title = findNewName(conflict)
     }
     dispatchAssetListEvent({
       type: AssetListEventType.insertAssets,
       parentKey,
       parent,
       assets: clonedConflicts.map(conflict => conflict.new),
-    })
-    dispatchAssetEvent({
-      type: AssetEventType.uploadFiles,
-      files: new Map(clonedConflicts.map(conflict => [conflict.new.id, conflict.file])),
     })
   }
 
@@ -236,7 +232,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <AssetSummary
                 new
                 newName={backendModule.stripProjectExtension(findNewName(firstConflict, false))}
-                asset={firstConflict.new}
+                asset={firstConflict.new.value}
                 className="relative"
               />
             </div>

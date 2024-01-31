@@ -314,13 +314,17 @@ export async function mockApi(page: test.Page) {
     })
     await page.route(BASE_URL + remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', async route => {
       if (route.request().method() === 'POST') {
+        /** HTTP request body for this endpoint. */
+        interface Body {
+          title: string
+          parentId: backend.DirectoryId | null
+        }
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const body: backend.CreateDirectoryRequestBody = route.request().postDataJSON()
+        const body: Body = route.request().postDataJSON()
         const title = body.title
         const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
         const parentId =
           body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
-        const json: backend.CreatedDirectory = { title, id, parentId }
         addAsset({
           type: backend.AssetType.directory,
           description: null,
@@ -332,7 +336,7 @@ export async function mockApi(page: test.Page) {
           projectState: null,
           title,
         })
-        await route.fulfill({ json })
+        await route.fulfill({ json: { title, id, parentId } })
       } else {
         await route.fallback()
       }

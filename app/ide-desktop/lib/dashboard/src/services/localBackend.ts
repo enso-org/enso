@@ -41,29 +41,6 @@ export class LocalBackend extends backend.Backend {
     }
   }
 
-  /** Create a project.
-   * @throws An error if the JSON-RPC call fails. */
-  override async createProject(
-    body: backend.CreateProjectRequestBody
-  ): Promise<backend.CreatedProject> {
-    const project = await this.projectManager.createProject({
-      name: projectManager.ProjectName(body.projectName),
-      ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
-      missingComponentAction: projectManager.MissingComponentAction.install,
-    })
-    return {
-      name: body.projectName,
-      organizationId: '',
-      projectId: project.projectId,
-      packageName: body.projectName,
-      state: {
-        type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
-    }
-  }
-
   /** Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
@@ -249,14 +226,9 @@ export class LocalBackend extends backend.Backend {
     return Promise.resolve()
   }
 
-  /** FIXME:. */
+  /** FIXME: This is required to get (and by extension, list) the root directory. */
   override self() {
     return Promise.resolve(null)
-  }
-
-  /** Invalid operation. */
-  override createDirectory() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */
@@ -269,19 +241,8 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. While project bundles can be uploaded to the Project Manager,
-   * they are not uploaded as file assets, and hence do not return a {@link backend.FileInfo}. */
-  override uploadFile() {
-    return this.invalidOperation()
-  }
-
   /** Invalid operation. */
   override getFileDetails() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override createSecret() {
     return this.invalidOperation()
   }
 
