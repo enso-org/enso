@@ -175,18 +175,17 @@ export class MutableModule implements Module {
         assert(event.target instanceof Y.Map)
         const id = event.target.get('id') as AstId
         const node = this.nodes.get(id)
-        assertDefined(node)
+        if (!node) continue
         const changes: (readonly [string, unknown])[] = Array.from(event.changes.keys, ([key]) => [
           key,
           node.get(key as any),
         ])
         updateBuilder.updateFields(id, changes)
-      } else {
+      } else if (event.target.parent.parent === this.nodes) {
         // Updates to fields of a metadata object within a node.
-        assert(event.target.parent.parent === this.nodes)
         const id = event.target.parent.get('id') as AstId
         const node = this.nodes.get(id)
-        assertDefined(node)
+        if (!node) continue
         const metadata = node.get('metadata') as unknown as Map<string, unknown>
         const changes: (readonly [string, unknown])[] = Array.from(event.changes.keys, ([key]) => [
           key,

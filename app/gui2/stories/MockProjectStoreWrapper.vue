@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
-import { ref, watch, watchEffect } from 'vue'
+import { shallowRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
@@ -10,7 +10,7 @@ const projectStore = useProjectStore()
 const mod = projectStore.projectModel.createNewModule('Main.enso')
 projectStore.setObservedFileName('Main.enso')
 mod.doc.ydoc.emit('load', [])
-const syncModule = ref<Ast.MutableModule>()
+const syncModule = shallowRef<Ast.MutableModule>()
 watch(
   () => projectStore.module,
   (mod) => {

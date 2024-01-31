@@ -10,7 +10,7 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, assertDefined, bail } from '@/util/assert'
+import { assert, bail } from '@/util/assert'
 import { Ast, RawAst, visitRecursive } from '@/util/ast'
 import type { AstId, Module, NodeMetadata, NodeMetadataFields } from '@/util/ast/abstract'
 import { MutableModule, ReactiveModule, isIdentifier } from '@/util/ast/abstract'
@@ -81,17 +81,20 @@ export const useGraphStore = defineStore('graph', () => {
 
   watch(syncModule, (syncModule) => {
     if (!syncModule) return
-    assert(astModule.value instanceof Ast.EmptyModule)
-    astModule.value = new ReactiveModule(syncModule, [handleModuleUpdate])
+    const _astModule = new ReactiveModule(syncModule, [handleModuleUpdate])
   })
 
   function handleModuleUpdate(
-    astModule: Module,
+    module: Module,
     dirtyNodes: Iterable<AstId>,
     metadataUpdates: { id: AstId; changes: Map<string, unknown> }[],
   ) {
-    const root = astModule.root()
-    assertDefined(root)
+    if (astModule.value !== reactive(module)) {
+      assert(astModule.value instanceof Ast.EmptyModule)
+      astModule.value = module
+    }
+    const root = module.root()
+    if (!root) return
     moduleRoot.value = root
     if (root instanceof Ast.BodyBlock) topLevel.value = root
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
@@ -146,6 +149,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function methodAstInModule(mod: Module) {
     const topLevel = mod.root()
+    if (!topLevel) return
     assert(topLevel instanceof Ast.BodyBlock)
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
@@ -422,11 +426,13 @@ export const useGraphStore = defineStore('graph', () => {
   function commitDirect(f: (edit: MutableModule) => void, skipTreeRepair?: boolean) {
     const edit = syncModule.value
     assert(edit != null)
-    const root = edit?.root()
-    assert(root instanceof Ast.BodyBlock)
     edit.ydoc.transact(() => {
       f(edit)
-      if (!skipTreeRepair) Ast.repair(root, edit)
+      if (!skipTreeRepair) {
+        const root = edit.root()
+        assert(root instanceof Ast.BodyBlock)
+        Ast.repair(root, edit)
+      }
     })
   }
 

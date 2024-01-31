@@ -18,6 +18,7 @@ import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/lan
 import {
   isUuid,
   sourceRangeKey,
+  visMetadataEquals,
   type ExternalId,
   type SourceRange,
   type VisualizationMetadata,
@@ -344,7 +345,6 @@ export class GraphDb {
       }
     }
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
-    const hadPreviousFunction = this.currentFunction != null
     this.currentFunction = functionAst_.id
     const currentNodeIds = new Set<NodeId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
@@ -356,7 +356,7 @@ export class GraphDb {
       if (node == null) {
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
-        if (functionChanged && hadPreviousFunction) {
+        if (functionChanged) {
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
           newNode.position = new Vec2(pos.x, pos.y)
           newNode.vis = nodeMeta.get('visualization')
@@ -398,9 +398,12 @@ export class GraphDb {
     const node = this.nodeIdToNode.get(id as NodeId)
     if (!node) return
     const newPos = changes.get('position')
-    if (newPos) node.position = new Vec2(newPos.x, newPos.y)
-    const visChanged = changes.has('visualization')
-    if (visChanged) node.vis = changes.get('visualization')
+    const newPosVec = newPos && new Vec2(newPos.x, newPos.y)
+    if (newPosVec && !newPosVec.equals(node.position)) node.position = newPosVec
+    if (changes.has('visualization')) {
+      const newVis = changes.get('visualization')
+      if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
+    }
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
