@@ -42,6 +42,14 @@ public class HashJoinConfig {
     return rightEquals;
   }
 
+  public int getLeftNumRows() {
+    return leftEquals[0].getSize();
+  }
+
+  public int getRightNumRows() {
+    return rightEquals[0].getSize();
+  }
+
   public List<TextFoldingStrategy> getTextFoldingStrategies() {
     return textFoldingStrategies;
   }

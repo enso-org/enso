@@ -16,21 +16,15 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-/**
- * A strategy that uses a hash-map to perform join on the equality conditions.
- *
- * <p>It then delegates to {@code remainingMatcher} to perform the remaining conditions on the
- * matching pairs of row subsets.
- */
+/** A strategy that uses a hash-map to perform join on the equality conditions. */
 public class SimpleHashJoin implements JoinStrategy {
 
   public SimpleHashJoin(List<HashableCondition> conditions, JoinKind joinKind) {
     var tempHashJoinConfig = new HashJoinConfig(conditions);
 
-    // alogirthm assumes that left table is the big table. If not we will flip the tables round to
-    // do the join
-    if (tempHashJoinConfig.getLeftEquals()[0].getSize()
-        >= tempHashJoinConfig.getRightEquals()[0].getSize()) {
+    // alogirthm assumes that left table is the big table.
+    // If not we will flip the left and right tables over to do the join
+    if (tempHashJoinConfig.getLeftNumRows() >= tempHashJoinConfig.getRightNumRows()) {
       this.hashJoinConfig = tempHashJoinConfig;
       this.joinKind = joinKind;
       this.resultBuilder = new SimpleHashJoinResultBuilder(false);
@@ -52,24 +46,27 @@ public class SimpleHashJoin implements JoinStrategy {
 
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
-    // alogirthm assumes that left table is the big table. If not we have flipped the tables round
-    // to do the join
-    // so if you are debugging your left table might not be your left table here
-    // the result builder flips the indexes back as you add them
-    assert (hashJoinConfig.getLeftEquals()[0].getSize()
-        >= hashJoinConfig.getRightEquals()[0].getSize());
+    // alogirthm assumes that left table is the big table.
+    // If not we have flipped the tables round to do the join.
+    // If you are debugging your left table might not be your left table here.
+    // The result builder flips the indexes back as you add them
+    assert (hashJoinConfig.getLeftNumRows() >= hashJoinConfig.getRightNumRows());
 
     var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
-
-    var rightIndex = makeRightIndex(problemAggregator);
-
-    var leftEquals = hashJoinConfig.getLeftEquals();
-    var storage = Arrays.stream(leftEquals).map(Column::getStorage).toArray(Storage[]::new);
-
+    var rightIndex =
+        MultiValueIndex.makeUnorderedIndex(
+            hashJoinConfig.getRightEquals(),
+            hashJoinConfig.getRightNumRows(),
+            hashJoinConfig.getTextFoldingStrategies(),
+            problemAggregator);
+    var storage =
+        Arrays.stream(hashJoinConfig.getLeftEquals())
+            .map(Column::getStorage)
+            .toArray(Storage[]::new);
     Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
 
     Context context = Context.getCurrent();
-    for (int leftRow = 0; leftRow < leftEquals[0].getSize(); leftRow++) {
+    for (int leftRow = 0; leftRow < hashJoinConfig.getLeftNumRows(); leftRow++) {
       var leftKey = makeLeftKey(storage, leftRow, groupingProblemAggregator);
       // If any field of the key is null, it cannot match anything.
       List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
@@ -88,29 +85,27 @@ public class SimpleHashJoin implements JoinStrategy {
     }
 
     if (joinKind.wantsRightUnmatched) {
-      for (var rightEntry : rightIndex.mapping().entrySet()) {
-        UnorderedMultiValueKey rightKey = rightEntry.getKey();
-        boolean wasCompletelyUnmatched = !matchedRightKeys.contains(rightKey);
-        if (wasCompletelyUnmatched) {
-          for (int rightRow : rightEntry.getValue()) {
-            resultBuilder.addUnmatchedRightRow(rightRow);
-            context.safepoint();
-          }
-        }
-      }
+      addUnmatchedRightRows(rightIndex, matchedRightKeys);
     }
 
     return resultBuilder.buildAndInvalidate();
   }
 
-  private MultiValueIndex<UnorderedMultiValueKey> makeRightIndex(
-      ProblemAggregator problemAggregator) {
-    var rightEquals = hashJoinConfig.getRightEquals();
-    return MultiValueIndex.makeUnorderedIndex(
-        rightEquals,
-        rightEquals[0].getSize(),
-        hashJoinConfig.getTextFoldingStrategies(),
-        problemAggregator);
+  private void addUnmatchedRightRows(
+      MultiValueIndex<UnorderedMultiValueKey> rightIndex,
+      Set<UnorderedMultiValueKey> matchedRightKeys) {
+    Context context = Context.getCurrent();
+    for (var rightEntry : rightIndex.mapping().entrySet()) {
+      UnorderedMultiValueKey rightKey = rightEntry.getKey();
+      boolean wasCompletelyUnmatched = !matchedRightKeys.contains(rightKey);
+      if (wasCompletelyUnmatched) {
+        for (int rightRow : rightEntry.getValue()) {
+          resultBuilder.addUnmatchedRightRow(rightRow);
+          context.safepoint();
+        }
+      }
+      context.safepoint();
+    }
   }
 
   public UnorderedMultiValueKey makeLeftKey(
