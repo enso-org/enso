@@ -10,7 +10,7 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, bail } from '@/util/assert'
+import { assert, assertDefined, bail } from '@/util/assert'
 import { Ast, RawAst, visitRecursive } from '@/util/ast'
 import type { AstId, Module, NodeMetadata, NodeMetadataFields } from '@/util/ast/abstract'
 import { MutableModule, ReactiveModule, isIdentifier } from '@/util/ast/abstract'
@@ -83,27 +83,25 @@ export const useGraphStore = defineStore('graph', () => {
     if (!syncModule) return
     assert(astModule.value instanceof Ast.EmptyModule)
     const newAstModule = new ReactiveModule(syncModule)
-    newAstModule.onUpdate((dirtyNodes, newMetadataUpdates) =>
-      handleModuleUpdate(newAstModule, dirtyNodes, newMetadataUpdates),
+    newAstModule.onUpdate((dirtyNodes, metadataUpdates) =>
+      handleModuleUpdate(newAstModule, dirtyNodes, metadataUpdates),
     )
     astModule.value = newAstModule
   })
 
-  const dirtyNodes = new Set<AstId>()
-  let metadataUpdates = new Array<{ id: AstId; changes: NodeMetadata }>()
   function handleModuleUpdate(
     astModule: Module,
-    newDirtyNodes: Iterable<AstId>,
-    newMetadataUpdates: Iterable<{ id: AstId; changes: Map<string, unknown> }>,
+    dirtyNodes: Iterable<AstId>,
+    metadataUpdates: { id: AstId; changes: Map<string, unknown> }[],
   ) {
-    for (const id of newDirtyNodes) dirtyNodes.add(id)
-    // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-    metadataUpdates.push(...(newMetadataUpdates as any))
     const root = astModule.root()
-    if (!root) return
+    assertDefined(root)
     moduleRoot.value = root
     if (root instanceof Ast.BodyBlock) topLevel.value = root
-    if (dirtyNodes.size !== 0) {
+    // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+    const nodeMetadataUpdates = metadataUpdates as any as { id: AstId; changes: NodeMetadata }[]
+    const dirtyNodeSet = new Set(dirtyNodes)
+    if (dirtyNodeSet.size !== 0) {
       const { code, info } = Ast.print(root)
       moduleCode.value = code
       db.updateExternalIds(root)
@@ -123,12 +121,10 @@ export const useGraphStore = defineStore('graph', () => {
         return toRawMap.get(sourceRangeKey(span))
       }
       moduleData.value = { toRaw, getSpan }
-      updateState(dirtyNodes)
-      dirtyNodes.clear()
+      updateState(dirtyNodeSet)
     }
-    if (metadataUpdates.length !== 0) {
-      for (const { id, changes } of metadataUpdates) db.updateMetadata(id, changes)
-      metadataUpdates = []
+    if (nodeMetadataUpdates.length !== 0) {
+      for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
     }
   }
 
