@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Nothing.Nothing
 import project.Panic.Caught_Panic
@@ -126,9 +127,11 @@ catch_already_exists handler =
     Panic.catch File_Error handler=panic_handler
 
 ## PRIVATE
-recover_io_and_not_found =
+recover_io_and_not_found ~action =
     panic_handler caught_panic = case caught_panic.payload of
         File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error
         File_Error.Not_Found _ -> caught_panic.convert_to_dataflow_error
         _ -> Panic.throw caught_panic
-    Panic.catch File_Error handler=panic_handler
+    Panic.catch File_Error handler=panic_handler <|
+        Panic.catch Forbidden_Operation handler=(.convert_to_dataflow_error) <|
+            action

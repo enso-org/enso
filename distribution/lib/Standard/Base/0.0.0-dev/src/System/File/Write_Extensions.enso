@@ -99,7 +99,7 @@ Vector.write_bytes self (path : Writable_File) (on_existing_file:Existing_File_B
         byte_array = Array_Utils.ensureByteArray self
 
         # write_bytes does not allow dry run
-        r = path.write_handling_dry_run on_existing_file stream->
+        r = path.write on_existing_file stream->
             # If the write succeeded, we return the file that was written to (original file or a dry run file).
             stream.write_bytes (Vector.from_polyglot_array byte_array)
         r.if_not_error path.file

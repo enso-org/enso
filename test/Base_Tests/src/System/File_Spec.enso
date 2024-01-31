@@ -673,7 +673,7 @@ add_specs suite_builder =
             f.delete
 
             "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
-            result3 = Existing_File_Behavior.Backup.write f output_stream->
+            result3 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result3.should_fail_with Illegal_State
@@ -685,7 +685,7 @@ add_specs suite_builder =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-            result4 = Existing_File_Behavior.Backup.write f output_stream->
+            result4 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result4.should_fail_with Illegal_State
