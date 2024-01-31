@@ -53,11 +53,15 @@ export class ReactiveModule implements Module {
 
   constructor(base: MutableModule, updateHooks?: UpdateHandler[]) {
     this.ymodule = base
-    this.updateHooks = updateHooks ?? []
+    this.updateHooks = [...(updateHooks ?? [])]
     // Attach the observer first, so that if an update hook causes changes in `base` in reaction to the initial state
     // update, we won't miss them.
     base.observe(this.handleUpdate.bind(this))
     this.handleUpdate(base.getStateAsUpdate())
+  }
+
+  disconnect() {
+    this.updateHooks.length = 0
   }
 
   private handleUpdate(update: ModuleUpdate) {

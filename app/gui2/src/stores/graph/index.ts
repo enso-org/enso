@@ -90,7 +90,10 @@ export const useGraphStore = defineStore('graph', () => {
     metadataUpdates: { id: AstId; changes: Map<string, unknown> }[],
   ) {
     const moduleChanged = astModule.value !== reactive(module)
-    if (moduleChanged) astModule.value = module
+    if (moduleChanged) {
+      if (astModule.value instanceof ReactiveModule) astModule.value.disconnect()
+      astModule.value = module
+    }
     const root = module.root()
     if (!root) return
     moduleRoot.value = root
