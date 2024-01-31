@@ -59,9 +59,8 @@ export class MutableModule implements Module {
   }
 
   edit(): MutableModule {
-    const state = Y.encodeStateAsUpdateV2(this.ydoc)
     const doc = new Y.Doc()
-    Y.applyUpdateV2(doc, state)
+    Y.applyUpdateV2(doc, Y.encodeStateAsUpdateV2(this.ydoc))
     return new MutableModule(doc)
   }
 

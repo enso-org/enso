@@ -139,6 +139,7 @@ export class ReactiveModule implements Module {
 }
 
 export interface SetView<Key> {
+  readonly size: number
   has(key: Key): boolean
   [Symbol.iterator](): IterableIterator<Key>
 }
