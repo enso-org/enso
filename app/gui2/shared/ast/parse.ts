@@ -376,7 +376,7 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
     root.module.replaceRoot(root)
     const idMapUpdates = idMap ? setExternalIds(root.module, spans, idMap) : 0
     return { root, spans, toRaw, idMapUpdates }
-  }, 'local:parseExtended')
+  }, 'local')
   const getSpan = spanMapToSpanGetter(spans)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan, toRaw, idMapUpdates }

@@ -412,7 +412,7 @@ export const useGraphStore = defineStore('graph', () => {
     const module_ = proj.module
     if (!module_) return
     if (!skipTreeRepair) Ast.repair(root, edit)
-    Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local:commitEdit')
+    Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
   }
 
   /** Run the given callback with direct access to the document module. Any edits to the module will be committed
@@ -431,7 +431,7 @@ export const useGraphStore = defineStore('graph', () => {
         assert(root instanceof Ast.BodyBlock)
         Ast.repair(root, edit)
       }
-    }, 'local:commitDirect')
+    }, 'local')
   }
 
   function mockExpressionUpdate(
