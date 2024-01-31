@@ -1747,9 +1747,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
       "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
-    Test / compile := (Test / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value
+    Test / compile := {
+      (LocalProject("runtime-instrument-common") / Test / compile).value
+      (Test / compile).value
+    }
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1898,13 +1899,18 @@ lazy val `runtime-instrument-common` =
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
     .dependsOn(`refactoring-utils`)
     .dependsOn(
       LocalProject(
         "runtime"
-      ) % "compile->compile;test->test;runtime->runtime;bench->bench"
+      ) % "compile->compile;runtime->runtime;bench->bench"
     )
 
 lazy val `runtime-instrument-id-execution` =

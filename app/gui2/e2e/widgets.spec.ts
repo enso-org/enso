@@ -80,7 +80,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(page.locator('.dropdownContainer')).toBeVisible()
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 2')
-  await expect(pathArg.locator('.WidgetToken')).toHaveText(['"', 'File 2', '"'])
+  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 2"')
 
   // Change value on `path` (dynamic config)
   await mockMethodCallInfo(page, 'data', {
@@ -91,10 +91,10 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     },
     notAppliedArguments: [1],
   })
-  await page.getByText('File 2').click()
+  await page.getByText('path').click()
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 1')
-  await expect(pathArg.locator('.WidgetToken')).toHaveText(['"', 'File 1', '"'])
+  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 1"')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
@@ -169,10 +169,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     'Aggregate_Column',
     '.',
     'Count_Distinct',
-    '"',
-    'column 1',
-    '"',
   ])
+  await expect(columnsArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 1"')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
@@ -180,9 +178,6 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     'Aggregate_Column',
     '.',
     'Count_Distinct',
-    '"',
-    'column 1',
-    '"',
     'Aggregate_Column',
     '.',
     'Group_By',
@@ -209,14 +204,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await secondColumnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
   await dropDown.clickOption(page, 'column 2')
-  await expect(secondItem.locator('.WidgetToken')).toHaveText([
-    'Aggregate_Column',
-    '.',
-    'Group_By',
-    '"',
-    'column 2',
-    '"',
-  ])
+  await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
+  await expect(secondItem.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 2"')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).

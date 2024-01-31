@@ -5,9 +5,10 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
-import Standard.Test.Test_Result.Test_Result
+from Standard.Test_New import all
+import Standard.Test_New.Spec_Result.Spec_Result
+
+
 
 type Author
     Value name year_of_birth
@@ -17,17 +18,17 @@ type Book
 
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
-        _ -> Test_Result.Failure "Expected a parse error, but no error reported."
+        _ -> Spec_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
         Invalid_JSON.Error msg ->
-            if msg.contains expected then Test_Result.Success else
+            if msg.contains expected then Spec_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
-                Test_Result.Failure fail_msg
+                Spec_Result.Failure fail_msg
         _ ->
             fail_msg = "Expected a parser error, but " + e.to_text + " was thrown."
-            Test_Result.Failure fail_msg
+            Spec_Result.Failure fail_msg
     case result of
-        Test_Result.Success -> Test_Result.Success
+        Spec_Result.Success -> Spec_Result.Success
         _ -> Panic.throw result
 
 Text.should_parse_as self expected =
@@ -36,9 +37,9 @@ Text.should_parse_as self expected =
 Text.should_render_itself self =
     Json.parse self . to_json . should_equal self
 
-spec =
-    Test.group "JSON Deserialization" <|
-        Test.specify "should parse JSON structures" <|
+add_specs suite_builder =
+    suite_builder.group "JSON Deserialization" group_builder->
+        group_builder.specify "should parse JSON structures" <|
             "0    ".should_parse_as 0
             " 123    ".should_parse_as 123
             "15.0643".should_parse_as 15.0643
@@ -59,7 +60,7 @@ spec =
                 y_v = JS_Object.from_pairs [["z", Nothing], ["w", Nothing]]
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
-        Test.specify "should report meaningful parsing errors" <|
+        group_builder.specify "should report meaningful parsing errors" <|
             "foo".should_fail_parsing_with "Unexpected token f in JSON at position 0"
             "[,]".should_fail_parsing_with "Unexpected token , in JSON at position 1"
             "{,}".should_fail_parsing_with "Unexpected token , in JSON at position 1"
@@ -67,20 +68,20 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
-        Test.specify "should be able to deserialize using into via conversion" <|
+        group_builder.specify "should be able to deserialize using into via conversion" <|
             Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
             Json.parse '{}' . into Time_Zone . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to deserialize using into for single constructor" <|
+        group_builder.specify "should be able to deserialize using into for single constructor" <|
             Json.parse '{"first": 1, "second": 2}' . into Pair . should_equal (Pair.Value 1 2)
             Json.parse '{"start": 15, "end": 20, "step": 3}' . into Range . should_equal (Range.Between 15 20 3)
 
-        Test.specify "should be able to deserialize using into for multiple constructors" <|
+        group_builder.specify "should be able to deserialize using into for multiple constructors" <|
             Json.parse '{"than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
             Json.parse '{"constructor": "Less", "than": 2}' . into Filter_Condition . should_equal (Filter_Condition.Less 2)
             Json.parse '{"constructor": "NotARealOne", "than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to convert a JS_Object into a Map using into" <|
+        group_builder.specify "should be able to convert a JS_Object into a Map using into" <|
             Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Map . should_equal (Map.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
             Json.parse '{}' . into Map . should_equal Map.empty
 
@@ -88,13 +89,13 @@ spec =
             Test.expect_panic No_Such_Method <|
                 Json.parse '[]' . into Map
 
-        Test.specify "should be able to deserialize Date" <|
+        group_builder.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
             '{"type": "Date", "year": 2025, "month": 5, "day": 12}'.should_parse_as (Date.new 2025 5 12)
             '{"type": "Date", "month": 5, "day": 12}' . should_parse_as (JS_Object.from_pairs [["type", "Date"], ["month", 5], ["day", 12]])
             '{"type": "Date", "year": 2019, "day": 12}' . should_parse_as (JS_Object.from_pairs [["type", "Date"], ["year", 2019], ["day", 12]])
 
-        Test.specify "should be able to deserialize Time_Of_Day" <|
+        group_builder.specify "should be able to deserialize Time_Of_Day" <|
             '{"type": "Time_Of_Day", "constructor": "new", "hour": 22, "minute": 14, "second": 47}'.should_parse_as (Time_Of_Day.new 22 14 47)
             '{"type": "Time_Of_Day", "hour": 12, "minute": 30}'.should_parse_as (Time_Of_Day.new 12 30 0)
             '{"type": "Time_Of_Day", "hour": 18, "minute": 6, "second": 13, "nanosecond": 1234568}'.should_parse_as (Time_Of_Day.new 18 6 13 nanosecond=1234568)
@@ -102,7 +103,7 @@ spec =
             '{"type": "Time_Of_Day", "hour": 14, "second": 47}' . should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 14], ["second", 47]])
             '{"type": "Time_Of_Day", "hour": 18, "minute": 6, "nanosecond": 1234568}'.should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 18], ["minute", 6], ["nanosecond", 1234568]])
 
-        Test.specify "should be able to deserialize Date_Time" <|
+        group_builder.specify "should be able to deserialize Date_Time" <|
             tz = Time_Zone.parse "Europe/Moscow"
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300 zone=tz)
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 zone=tz)
@@ -112,8 +113,8 @@ spec =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
 
-    Test.group "JSON Serialization" <|
-        Test.specify "should print JSON structures to valid json" <|
+    suite_builder.group "JSON Serialization" group_builder->
+        group_builder.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
             "123".should_render_itself
             "15.0643".should_render_itself
@@ -129,28 +130,28 @@ spec =
             object_json = '{"baz":["foo","x",false],"foo":"bar","y":{"w":null,"z":null}}'
             object_json.should_render_itself
 
-        Test.specify "should convert arbitrary types to JSON" <|
+        group_builder.specify "should convert arbitrary types to JSON" <|
             1.to_json.should_equal "1"
             1.54.to_json.should_equal "1.54"
             ["foo", "bar", "baz"].to_json.should_equal '["foo","bar","baz"]'
             Author.Value "Tolkien" 1892 . to_json . should_equal <|
                 '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
 
-        Test.specify "should render NaN and Infinity to null" <|
+        group_builder.specify "should render NaN and Infinity to null" <|
             Number.nan.to_json . should_equal "null"
             Number.positive_infinity.to_json . should_equal "null"
             Number.negative_infinity.to_json . should_equal "null"
 
-    Test.group "JS_Object" <|
-        Test.specify "should be buildable from pairs" <|
+    suite_builder.group "JS_Object" group_builder->
+        group_builder.specify "should be buildable from pairs" <|
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
-        Test.specify "should be buildable from pairs" <|
+        group_builder.specify "should be buildable from pairs" <|
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
-        Test.specify "should be handle equality on a key level" <|
+        group_builder.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
             JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["a", 43]]
             JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["b", 42]]
@@ -164,22 +165,22 @@ spec =
             obj1 . should_not_equal <| JS_Object.from_pairs [["a", 43], ["b", 123]]
             obj1 . should_not_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",3]]]]
 
-        Test.specify "should be able to set values" <|
+        group_builder.specify "should be able to set values" <|
             obj = JS_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
             obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
             obj.set_value "foo" "asdf" . to_json . should_equal '{"foo":"asdf","baz":"quux"}'
             obj.set_value "baz" "zxcv" . to_json . should_equal '{"foo":"bar","baz":"zxcv"}'
             obj.set_value "abc" "def" . to_json . should_equal '{"foo":"bar","baz":"quux","abc":"def"}'
 
-        Test.specify "set_value does not modify the original object" <|
+        group_builder.specify "set_value does not modify the original object" <|
             obj = JS_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
             obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
             modified = obj.set_value "foo" "asdf"
             modified.to_json . should_equal '{"foo":"asdf","baz":"quux"}'
             obj.to_json . should_equal '{"foo":"bar","baz":"quux"}'
 
-    Test.group "JSON" <|
-        Test.specify "should allow getting object fields" <|
+    suite_builder.group "JSON" group_builder->
+        group_builder.specify "should allow getting object fields" <|
             object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
             object.get "foo" . should_equal "bar"
             object.get "bar" . should_equal Nothing
@@ -189,16 +190,16 @@ spec =
             Json.parse "null" . get "foo" . should_equal Nothing
             Json.parse "null" . get "foo" 1 . should_equal 1
 
-        Test.specify "should allow checking for fields" <|
+        group_builder.specify "should allow checking for fields" <|
             object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
             object.contains_key "foo" . should_equal True
             object.contains_key "bar" . should_equal False
 
-        Test.specify "should be able to get field_names" <|
+        group_builder.specify "should be able to get field_names" <|
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
             Json.parse '{}' . field_names . should_equal []
 
-        Test.specify "should be able to get a value by index" <|
+        group_builder.specify "should be able to get a value by index" <|
             Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal 3
             Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal 4
             Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds
@@ -207,7 +208,7 @@ spec =
             Json.parse "[1, 2, 3, 4, 5]" . get 5 . should_equal Nothing
             Json.parse "[1, 2, 3, 4, 5]" . get 5 "?" . should_equal "?"
 
-        Test.specify "should be able to get length" <|
+        group_builder.specify "should be able to get length" <|
             Json.parse "{}" . length . should_equal 0
             Json.parse "[]" . length . should_equal 0
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . length . should_equal 2
@@ -215,4 +216,8 @@ spec =
             Json.parse '"foo"' . length . should_equal 3
             Json.parse '""' . length . should_equal 0
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
