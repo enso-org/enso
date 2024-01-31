@@ -3,12 +3,11 @@ from Standard.Base.Runtime import assert
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.AWS import S3, S3_File, AWS_Credential
-from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found
+from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found, S3_Key_Not_Found
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -131,8 +130,8 @@ spec =
     Test.group "S3.head (object)" pending=pending_object <|
         Test.specify "should be able to head an object" <|
             S3.head bucket_name object_name . should_succeed
-            S3.head not_a_bucket_name object_name . should_fail_with No_Such_Key
-            S3.head bucket_name "not_an_object" . should_fail_with No_Such_Key
+            S3.head not_a_bucket_name object_name . should_fail_with S3_Key_Not_Found
+            S3.head bucket_name "not_an_object" . should_fail_with S3_Key_Not_Found
 
         Test.specify "should handle auth issues" <|
             S3.list_objects bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
@@ -144,7 +143,7 @@ spec =
             response.decode_as_json.should_succeed
 
             S3.get_object not_a_bucket_name object_name . should_fail_with S3_Bucket_Not_Found
-            S3.get_object bucket_name "not_an_object" . should_fail_with No_Such_Key
+            S3.get_object bucket_name "not_an_object" . should_fail_with S3_Key_Not_Found
 
         Test.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
@@ -248,7 +247,9 @@ spec =
 
         Test.specify "should support .bak logic" <|
             my_file = my_writable_dir / "bak-test/my_file.txt"
-            bak_file = my_writable_dir / "bak-test/my_file.txt"
+            bak_file = my_writable_dir / "bak-test/my_file.txt.bak"
+            my_file.exists.should_be_false
+            bak_file.exists.should_be_false
 
             "version1".write my_file . should_succeed
             delete_afterwards my_file <|

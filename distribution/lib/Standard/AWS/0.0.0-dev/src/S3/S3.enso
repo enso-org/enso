@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -9,6 +8,7 @@ import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
+import project.Errors.S3_Key_Not_Found
 import project.Errors.S3_Error
 
 polyglot java import java.io.IOException
@@ -110,7 +110,7 @@ raw_head bucket key credentials =
             handle_s3_errors bucket=bucket <| client.headBucket request
         False ->
             request = HeadObjectRequest.builder.bucket bucket . key key . build
-            handle_s3_errors bucket=bucket key=key <| client.headObject request
+            handle_s3_errors bucket=bucket key=key credentials=credentials <| client.headObject request
 
 ## ADVANCED
    Gets an object from an S3 bucket.
@@ -122,7 +122,7 @@ raw_head bucket key credentials =
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
 get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
-get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key credentials=credentials <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
     client = make_client credentials
@@ -139,14 +139,14 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
-put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
+put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key credentials=credentials <|
     client = make_client credentials
     request = PutObjectRequest.builder.bucket bucket . key key . build
     client.putObject request request_body
     Nothing
 
 ## PRIVATE
-delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key credentials=credentials <|
     client = make_client credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build
     client.deleteObject request
@@ -178,10 +178,10 @@ parse_uri uri =
 
 ## PRIVATE
 handle_s3_errors : Text -> Text -> Function -> Any ! S3_Error | AWS_SDK_Error
-handle_s3_errors ~action bucket="" key="" =
+handle_s3_errors ~action bucket="" key="" credentials=Nothing =
     s3_inner_handler caught_panic =
         error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
-            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then No_Such_Key.Error bucket key else
+            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then S3_Key_Not_Found.Error bucket key credentials else
                 aws_error = caught_panic.payload.awsErrorDetails
                 S3_Error.Error aws_error.errorMessage aws_error.errorCode
         Error.throw error
