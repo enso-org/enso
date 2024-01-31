@@ -86,3 +86,8 @@ add_specs suite_builder setup =
             expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]] |> materialize
             result = table.replace table 'x' |> materialize
             result . should_equal expected
+
+        group_builder.specify "fail on incompatible types" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder [['x', [2, 1]], ['z', ['abc', 'def']]]
+            table.replace lookup_table 'x' . should_fail_with No_Common_Type

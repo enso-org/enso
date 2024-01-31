@@ -1969,7 +1969,7 @@ type Table
        - lookup_table: the table to use as a mapping from old to new values.
        - from_column: the column within `lookup_table` to match against
          `replace_column` in the base table.
-       - to_column: the co.umn within `lookup_table` to get new values from.
+       - to_column: the column within `lookup_table` to get new values from.
        - replace_column: the column within the base table to perform the replace
          on.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
@@ -1989,7 +1989,7 @@ type Table
        ? Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
-           specified in `from_column`, `to_column`, or `replace_column`, a
+           specified by `from_column`, `to_column`, or `replace_column`, a
            `Missing_Input_Columns` error is raised.
          - If a single row is matched by multiple entries in the lookup table,
            a `Non_Unique_Key` error is raised.
