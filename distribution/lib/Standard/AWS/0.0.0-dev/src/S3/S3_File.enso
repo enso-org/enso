@@ -236,8 +236,15 @@ type S3_File
     parent : S3_File | Nothing
     parent self =
         if self.prefix == "" then Nothing else
-            last_index = self.prefix.last_index_of "/"
-            new_prefix = if last_index == Nothing then "" else self.prefix.take last_index
+            is_directory = self.prefix.ends_with "/"
+            last_index = case is_directory of
+                # For directories we drop the trailing slash and find the one before it:
+                True -> (self.prefix.drop (Last 1)).last_index_of "/"
+                False -> self.prefix.last_index_of "/"
+            ## We include the trailing slash in the path, as the parent is
+               always a directory and in S3 directories are distinguished only
+               by the presence of this slash.
+            new_prefix = if last_index == Nothing then "" else self.prefix.take last_index+1
             S3_File.Value self.bucket new_prefix self.credentials
 
     ## GROUP Standard.Base.Metadata

@@ -183,7 +183,7 @@ spec =
             (root / "foo" / "bar") . should_fail_with S3_Error
 
             hello_txt.parent.parent.parent . should_equal root
-            hello_txt.parent . should_equal (root / "examples" / "folder 2")
+            hello_txt.parent . should_equal (root / "examples/" / "folder 2/")
             hello_txt.parent.is_directory . should_be_true
 
             hello_txt.is_descendant_of root . should_be_true
