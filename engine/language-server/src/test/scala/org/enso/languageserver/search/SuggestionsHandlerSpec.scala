@@ -46,7 +46,8 @@ class SuggestionsHandlerSpec
   val Timeout: FiniteDuration = 10.seconds
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   "SuggestionsHandler" should {
