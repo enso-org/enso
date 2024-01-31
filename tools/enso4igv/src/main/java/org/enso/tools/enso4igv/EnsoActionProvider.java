@@ -2,7 +2,9 @@ package org.enso.tools.enso4igv;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.netbeans.api.extexecution.ExecutionDescriptor;
 import org.netbeans.api.extexecution.ExecutionService;
 import org.netbeans.spi.project.ActionProvider;
@@ -20,7 +22,8 @@ import org.openide.util.NbPreferences;
 import org.openide.windows.IOProvider;
 
 @NbBundle.Messages({
-    "CTL_EnsoExecutable=Enso Executable",
+    "CTL_EnsoWhere=Enso Executable Location",
+    "CTL_EnsoExecutable=enso/enso.bat",
     "# {0} - executable file",
     "MSG_CannotExecute=Cannot execute {0}",
     "# {0} - executable file",
@@ -48,7 +51,8 @@ public final class EnsoActionProvider implements ActionProvider {
         var exeKey = "enso.executable";
 
         var exe = prefs.get(exeKey, "");
-        var nd = new NotifyDescriptor.InputLine(exe, Bundle.CTL_EnsoExecutable());
+        var nd = new NotifyDescriptor.InputLine(Bundle.CTL_EnsoExecutable(), Bundle.CTL_EnsoWhere());
+        nd.setInputText(exe);
 
         var builderFuture = dd.notifyFuture(nd).thenApply(exec -> {
             var file = new File(exec.getInputText());
@@ -85,8 +89,11 @@ public final class EnsoActionProvider implements ActionProvider {
             }
             process.finished(exitCode == 0);
         }).exceptionally((ex) -> {
-            dd.notifyLater(new NotifyDescriptor.Message(ex.getMessage(), NotifyDescriptor.ERROR_MESSAGE));
             process.finished(false);
+            if (ex instanceof CompletionException && ex.getCause() instanceof CancellationException) {
+                return null;
+            }
+            dd.notifyLater(new NotifyDescriptor.Message(ex.getMessage(), NotifyDescriptor.ERROR_MESSAGE));
             return null;
         });
     }
