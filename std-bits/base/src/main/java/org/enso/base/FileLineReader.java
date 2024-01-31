@@ -59,7 +59,7 @@ public class FileLineReader {
     /** Checks if the stream contains the given byte array. */
     public boolean contains(byte[] bytes, int[] longestPrefix) {
       // ToDo: Needs to deal with the Unicode scenario where the next character is a combining
-      // character.
+      // character. #8900
       if (bytes.length > count) {
         return false;
       }
