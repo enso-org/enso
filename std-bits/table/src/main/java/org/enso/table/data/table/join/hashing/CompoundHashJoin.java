@@ -15,7 +15,7 @@ import org.graalvm.polyglot.Context;
 /**
  * A strategy that uses a hash-map to perform join on the equality conditions.
  *
- * <p>It then delegates to {@code sortJoin} to perform the remaining conditions on the matching
+ * <p>It then delegates to {@code SortJoin} to perform the remaining conditions on the matching
  * pairs of row subsets.
  */
 public class CompoundHashJoin implements JoinStrategy {
