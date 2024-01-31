@@ -1,7 +1,6 @@
 import { assertDefined, bail } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { swapKeysAndValues, unsafeEntries } from '@/util/record'
-import { reactive } from 'vue'
 import type {
   AstFields,
   AstId,
@@ -14,7 +13,7 @@ import type {
   SyncTokenId,
   TokenId,
   TokenKey,
-} from '../../../shared/ast'
+} from 'shared/ast'
 import {
   Ast,
   BodyBlock,
@@ -27,9 +26,10 @@ import {
   isTokenId,
   materialize,
   print,
-} from '../../../shared/ast'
-import { sourceRangeFromKey, type SourceRange } from '../../../shared/yjsModel'
-export * from '../../../shared/ast'
+} from 'shared/ast'
+import { sourceRangeFromKey, type SourceRange } from 'shared/yjsModel'
+import { reactive } from 'vue'
+export * from 'shared/ast'
 
 export class ReactiveModule implements Module {
   edit(): MutableModule {

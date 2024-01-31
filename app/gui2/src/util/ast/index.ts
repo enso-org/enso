@@ -5,8 +5,8 @@ import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import { isResult, mapOk } from '@/util/data/result'
 import * as map from 'lib0/map'
 import * as RawAst from 'shared/ast/generated/ast'
+import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
 import type { SourceRange } from 'shared/yjsModel'
-import { LazyObject, LazySequence } from '../../../shared/ast/parserSupport.ts'
 
 export { Ast, RawAst, RawAstExtended, parseEnso }
 
