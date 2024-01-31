@@ -64,7 +64,7 @@ export function applyDocumentUpdates(
   if (codeChanged || idsChanged || metadataChanged) {
     // Update the metadata object.
     // Depth-first key order keeps diffs small.
-    let newNodeMetadata: typeof syncedMeta.ide.node = {}
+    const newNodeMetadata: typeof syncedMeta.ide.node = {}
     root.visitRecursiveAst((ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')

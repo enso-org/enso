@@ -332,7 +332,7 @@ export class GraphDb {
     dirtyNodes: Set<AstId>,
   ) {
     let knownDirtySubtrees: Set<AstId> | null = null
-    let functionChanged = functionAst_.id !== this.currentFunction
+    const functionChanged = functionAst_.id !== this.currentFunction
     if (!functionChanged) {
       knownDirtySubtrees = new Set()
       const module = functionAst_.module

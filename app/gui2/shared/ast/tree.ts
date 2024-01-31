@@ -14,7 +14,7 @@ import type {
   Owned,
   SpanMap,
   SyncTokenId,
-} from './index.ts'
+} from '.'
 import {
   MutableModule,
   Token,
@@ -29,7 +29,7 @@ import {
   parseBlock,
   print,
   tokenKey,
-} from './index.ts'
+} from '.'
 
 declare const brandAstId: unique symbol
 export type AstId = string & { [brandAstId]: never }
