@@ -215,23 +215,6 @@ export abstract class MutableAst extends Ast {
       if (value !== undefined) metadata.set(key, value)
   }
 
-  /*
-  getOrInitNodeMetadata(init: () => NodeMetadataFields): FixedMap<NodeMetadataFields> {
-    const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
-    if (!metadata.has('position')) {
-      const nodeMeta = init()
-      for (const [key, value] of Object.entries(nodeMeta)) metadata.set(key, value)
-    }
-    return metadata as unknown as FixedMap<NodeMetadataFields>
-  }
-
-  getNodeMetadataOrSetDefault(): FixedMap<NodeMetadataFields> {
-    const metadata = this.fields.get('metadata') as FixedMap<NodeMetadataFields>
-    if (!(metadata as unknown as Map<string, unknown>).has('position')) metadata.set('position', { x: 0, y: 0})
-    return metadata
-  }
-   */
-
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
   replace<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
     const parentId = this.fields.get('parent')
