@@ -376,7 +376,10 @@ final class TreeToIr {
         yield join(ir, appendTo);
       }
 
-      case Tree.ArgumentBlockApplication app -> appendTo;
+      case Tree.ArgumentBlockApplication app -> {
+        var ir = translateSyntaxError(app, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        yield join(ir, appendTo);
+      }
 
       case Tree.TypeSignature sig -> {
         var isMethod = false;

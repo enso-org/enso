@@ -1,18 +1,21 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as fileInfo from '#/utilities/fileInfo'
-import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
 
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
+
+import * as fileInfo from '#/utilities/fileInfo'
+import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =================
 // === Constants ===

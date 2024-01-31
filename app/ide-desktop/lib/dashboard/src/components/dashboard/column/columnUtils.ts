@@ -6,17 +6,18 @@ import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 
-import * as backend from '#/services/backend'
-import * as sorting from '#/utilities/sorting'
+import * as backend from '#/services/Backend'
+
+import SortDirection from '#/utilities/SortDirection'
 
 // =================
 // === Constants ===
 // =================
 
-/** The corresponding icon URL for each {@link sorting.SortDirection}. */
-export const SORT_ICON: Readonly<Record<sorting.SortDirection, string>> = {
-  [sorting.SortDirection.ascending]: SortAscendingIcon,
-  [sorting.SortDirection.descending]: SortDescendingIcon,
+/** The corresponding icon URL for each {@link SortDirection}. */
+export const SORT_ICON: Readonly<Record<SortDirection, string>> = {
+  [SortDirection.ascending]: SortAscendingIcon,
+  [SortDirection.descending]: SortDescendingIcon,
 }
 
 // =============

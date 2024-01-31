@@ -7,11 +7,14 @@ import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
+
+import type * as loggerProvider from '#/providers/LoggerProvider'
+
+import * as config from '#/utilities/config'
+
 import * as cognito from '#/authentication/cognito'
 import * as auth from '#/authentication/config'
 import * as listen from '#/authentication/listen'
-import type * as loggerProvider from '#/providers/LoggerProvider'
-import * as config from '#/utilities/config'
 
 // =============
 // === Types ===

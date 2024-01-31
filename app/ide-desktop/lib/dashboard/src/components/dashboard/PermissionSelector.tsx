@@ -1,12 +1,13 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import type * as backend from '#/services/backend'
-import type * as permissions from '#/utilities/permissions'
-import * as permissionsModule from '#/utilities/permissions'
-
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
+
+import type * as backend from '#/services/Backend'
+
+import type * as permissions from '#/utilities/permissions'
+import * as permissionsModule from '#/utilities/permissions'
 
 // =================
 // === Constants ===

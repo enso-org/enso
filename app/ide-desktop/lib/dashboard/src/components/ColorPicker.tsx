@@ -1,7 +1,7 @@
 /** @file A color picker to select from a predetermined list of colors. */
 import * as React from 'react'
 
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
 
 /** Props for a {@link ColorPicker}. */
 export interface ColorPickerProps {

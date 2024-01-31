@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "include": ["../types", ".", "../../utils.ts", ".prettierrc.cjs"],
+  "exclude": ["./dist"],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,

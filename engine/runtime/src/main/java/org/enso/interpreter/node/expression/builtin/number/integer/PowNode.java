@@ -18,7 +18,7 @@ public abstract class PowNode extends IntegerNode {
 
   private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static PowNode build() {
     return PowNodeGen.create();

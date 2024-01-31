@@ -1,7 +1,5 @@
 /** @file Column types and column display modes. */
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import type * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import DocsColumn from '#/components/dashboard/column/DocsColumn'
@@ -11,6 +9,10 @@ import NameColumn from '#/components/dashboard/column/NameColumn'
 import PlaceholderColumn from '#/components/dashboard/column/PlaceholderColumn'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
+import type * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+
 // ===================
 // === AssetColumn ===
 // ===================
@@ -18,8 +20,8 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
   readonly keyProp: backendModule.AssetId
-  readonly item: assetTreeNode.AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
   readonly isSoleSelectedItem: boolean

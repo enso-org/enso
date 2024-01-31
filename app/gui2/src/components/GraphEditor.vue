@@ -36,7 +36,7 @@ import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -274,21 +274,21 @@ const graphBindingsHandler = graphBindings.handler({
       const edit = module.edit()
       const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
         info,
-        edit,
-        topLevel,
+        edit.getVersion(topLevel),
         graphStore.db,
         currentMethodName,
       )
       const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      graphStore.commitEdit(edit)
+      const meta = new Map<AstId, Partial<NodeMetadata>>()
       const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      graphStore.setNodePosition(refactoredNodeId, position)
+      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        graphStore.setNodePosition(outputNodeId, position)
+        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
       }
+      graphStore.commitEdit(edit, meta)
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -311,6 +311,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
+    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
 ).handleClick
@@ -330,7 +331,7 @@ function onPlayButtonPress() {
     if (modeValue == undefined) {
       return
     }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', 'Live')
   })
 }
 

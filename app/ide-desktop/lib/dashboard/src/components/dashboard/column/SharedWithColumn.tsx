@@ -3,18 +3,22 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+import AssetEventType from '#/events/AssetEventType'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+
+import type * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ========================
 // === SharedWithColumn ===

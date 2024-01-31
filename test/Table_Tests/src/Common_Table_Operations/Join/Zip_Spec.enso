@@ -8,22 +8,36 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
 
-main = run_default_backend spec
+type Data
+    Value ~connection
 
-spec setup =
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self = self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
     materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.zip is still WIP for the DB backend."
-    Test.group prefix+"Table.zip" pending=db_todo <|
+    suite_builder.group prefix+"Table.zip" pending=db_todo group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
         if setup.is_database.not then
-            Test.specify "should allow to zip two tables, preserving memory layout order" <|
+            group_builder.specify "should allow to zip two tables, preserving memory layout order" <|
                 t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'y', 'z']]]
 
@@ -38,7 +52,7 @@ spec setup =
                 expected_rows = [r0, r1, r2]
                 r.should_equal expected_rows
 
-        Test.specify "should allow to zip two tables, preserving the order defined by `order_by`" <|
+        group_builder.specify "should allow to zip two tables, preserving the order defined by `order_by`" <|
             t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['x', 'd']]]
 
@@ -56,7 +70,7 @@ spec setup =
             expected_rows = [r0, r1]
             r.should_equal expected_rows
 
-        Test.specify "should report unmatched rows if the row counts do not match and pad them with nulls" <|
+        group_builder.specify "should report unmatched rows if the row counts do not match and pad them with nulls" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['x', 'd']]]
 
@@ -80,7 +94,7 @@ spec setup =
             problems_2 = [Row_Count_Mismatch.Error 2 3]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
-        Test.specify "should allow to keep the unmatched rows padded with nulls without reporting problems" <|
+        group_builder.specify "should allow to keep the unmatched rows padded with nulls without reporting problems" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             t2 = table_builder [["Z", ['a']], ["W", ['x']]]
 
@@ -92,7 +106,7 @@ spec setup =
             t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
             t3.at "W" . to_vector . should_equal ['x', Nothing, Nothing]
 
-        Test.specify "should allow to drop the unmatched rows" <|
+        group_builder.specify "should allow to drop the unmatched rows" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             t2 = table_builder [["Z", ['a']], ["W", ['x']]]
 
@@ -104,7 +118,7 @@ spec setup =
             t3.at "Z" . to_vector . should_equal ['a']
             t3.at "W" . to_vector . should_equal ['x']
 
-        Test.specify "should work when zipping with an empty table" <|
+        group_builder.specify "should work when zipping with an empty table" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a']], ["W", ['c']]]
             # Workaround to easily create empty table until table builder allows that directly.
@@ -137,7 +151,7 @@ spec setup =
             t6.row_count . should_equal 0
             t6.at "X" . to_vector . should_equal []
 
-        Test.specify "should not report unmatched rows for rows that simply are all null" <|
+        group_builder.specify "should not report unmatched rows for rows that simply are all null" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             t2 = table_builder [["Z", ['a', Nothing, Nothing]], ["W", ['b', Nothing, Nothing]]]
             t3 = t1.zip t2 on_problems=Problem_Behavior.Report_Error
@@ -148,7 +162,7 @@ spec setup =
             t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
             t3.at "W" . to_vector . should_equal ['b', Nothing, Nothing]
 
-        Test.specify "should rename columns of the right table to avoid duplicates" <|
+        group_builder.specify "should rename columns of the right table to avoid duplicates" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]], ["Right Y", [7, 8]]]
             t2 = table_builder [["X", ['a']], ["Y", ['d']]]
 
@@ -170,7 +184,7 @@ spec setup =
             expect_column_names ["X", "Y", "Right Y", "Right X 1", "Right X"] (t1.zip t4)
             expect_column_names ["X", "Right X", "Right X 1", "Y", "Right Y"] (t4.zip t1)
 
-        Test.specify "should report both row count mismatch and duplicate column warnings at the same time" <|
+        group_builder.specify "should report both row count mismatch and duplicate column warnings at the same time" <|
             t1 = table_builder [["X", [1, 2]], ["Right X", [5, 6]]]
             t2 = table_builder [["X", ['a']], ["Z", ['d']]]
 
@@ -178,7 +192,7 @@ spec setup =
             expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["Right X"]]
             Problems.get_attached_warnings t3 . should_contain_the_same_elements_as expected_problems
 
-        Test.specify "should allow to zip the table with itself" <|
+        group_builder.specify "should allow to zip the table with itself" <|
             ## Even though this does not seem very useful, we should verify that
                this edge case works correctly. It may especially be fragile in
                the Database backend.
@@ -192,7 +206,7 @@ spec setup =
             t2.at "Right Y" . to_vector . should_equal [4, 5]
 
         if setup.is_database.not then
-            Test.specify "should correctly pad/truncate all kinds of column types" <|
+            group_builder.specify "should correctly pad/truncate all kinds of column types" <|
                 primitives = [["ints", [1, 2, 3]], ["strs", ['a', 'b', 'c']], ["bools", [True, Nothing, False]]]
                 times = [["dates", [Date.new 1999 1 1, Date.new 2000 4 1, Date.new 2001 1 2]], ["times", [Time_Of_Day.new 23 59, Time_Of_Day.new 0 0, Time_Of_Day.new 12 34]], ["datetimes", [Date_Time.new 1999 1 1 23 59, Date_Time.new 2000 4 1 0 0, Date_Time.new 2001 1 2 12 34]]]
                 t = table_builder <|
@@ -239,7 +253,7 @@ spec setup =
                 padded.at "datetimes" . value_type . should_equal Value_Type.Date_Time
                 padded.at "mixed" . value_type . should_equal Value_Type.Mixed
 
-        Test.specify "should gracefully handle tables from different backends" <|
+        group_builder.specify "should gracefully handle tables from different backends" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
 
             alternative_connection = Database.connect (SQLite In_Memory)

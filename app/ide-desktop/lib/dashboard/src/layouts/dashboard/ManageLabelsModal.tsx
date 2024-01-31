@@ -2,16 +2,19 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
 
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =========================
 // === ManageLabelsModal ===

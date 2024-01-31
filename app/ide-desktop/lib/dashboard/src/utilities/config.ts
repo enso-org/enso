@@ -1,6 +1,7 @@
 /** @file Configuration definition for the Dashboard. */
-import * as auth from '#/authentication/config'
 import * as newtype from '#/utilities/newtype'
+
+import * as auth from '#/authentication/config'
 
 // =============
 // === Types ===

@@ -82,12 +82,13 @@ public class InsightForEnsoTest {
         Source.newBuilder(
                 "enso",
                 """
-      fac n =
-          acc n v = if n <= 1 then v else
-            @Tail_Call acc n-1 n*v
+                import Standard.Base.Data.Numbers
+                fac n =
+                    acc n v = if n <= 1 then v else
+                        @Tail_Call acc n-1 n*v
 
-          acc n 1
-      """,
+                    acc n 1
+                """,
                 "factorial.enso")
             .build();
 

@@ -4,9 +4,11 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+
 import * as object from '#/utilities/object'
 
 import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'

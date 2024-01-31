@@ -2,11 +2,13 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backend from '#/services/backend'
 
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
+
+import * as backend from '#/services/Backend'
 
 // =====================
 // === NewLabelModal ===

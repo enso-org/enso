@@ -203,19 +203,19 @@ public final class BoolStorage extends Storage<Boolean> {
   @Override
   public BoolStorage applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
-    int[] positions = mask.getPositions();
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      if (position == Index.NOT_FOUND || isMissing.get(position)) {
         newNa.set(i);
-      } else if (values.get(positions[i])) {
+      } else if (values.get(position)) {
         newVals.set(i);
       }
 
       context.safepoint();
     }
-    return new BoolStorage(newVals, newNa, positions.length, negated);
+    return new BoolStorage(newVals, newNa, mask.length(), negated);
   }
 
   @Override
