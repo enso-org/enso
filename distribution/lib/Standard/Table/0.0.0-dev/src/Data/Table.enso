@@ -1931,7 +1931,7 @@ type Table
 
         java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
 
-        keys = [Lookup_Column.Replace_Column (self.at "x") (lookup_table.at "x") Value_Type.Integer] # lookup_columns.filter .is_key
+        keys = lookup_columns.filter .is_key
         java_keys = keys.map on_problems=No_Wrap key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 

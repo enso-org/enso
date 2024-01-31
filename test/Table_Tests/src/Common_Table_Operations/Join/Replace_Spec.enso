@@ -19,7 +19,7 @@ type Data
 
     setup create_connection_fn =
         Data.Value (create_connection_fn Nothing)
-    
+
     teardown self = self.connection.close
 
 
