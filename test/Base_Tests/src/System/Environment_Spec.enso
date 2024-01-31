@@ -1,11 +1,12 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
-import Standard.Test.Test_Environment
+from Standard.Test_New import all
+import Standard.Test_New.Test_Environment
 
-spec = Test.group "Environment" <|
-    Test.specify "should allow to internally override environment variables for testing purposes" <|
+
+
+add_specs suite_builder = suite_builder.group "Environment" group_builder->
+    group_builder.specify "should allow to internally override environment variables for testing purposes" <|
         old = Environment.get "foobar"
 
         result_0 = Test_Environment.unsafe_with_environment_override "foobar" "value1" 23
@@ -32,4 +33,8 @@ spec = Test.group "Environment" <|
             x
         result_3 . should_equal ["2", "3", "4"]
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

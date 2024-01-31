@@ -1,31 +1,31 @@
 from Standard.Base import all
 
-from Standard.Test import Test
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec name create_new_date =
-    Test.group (name + " date part tests")  <|
-        Test.specify "should return if a leap year" <|
+
+add_specs suite_builder name create_new_date =
+    suite_builder.group (name + " date part tests")  group_builder->
+        group_builder.specify "should return if a leap year" <|
             create_new_date 2022 8 25 . is_leap_year . should_equal False
             create_new_date 1999 12 31 . is_leap_year . should_equal False
             create_new_date 1996 6 19 . is_leap_year . should_equal True
             create_new_date 2000 1 1 . is_leap_year . should_equal True
             create_new_date 1900 1 1 . is_leap_year . should_equal False
 
-        Test.specify "should return the number of days in the year" <|
+        group_builder.specify "should return the number of days in the year" <|
             create_new_date 2022 8 25 . length_of_year . should_equal 365
             create_new_date 1999 12 31 . length_of_year . should_equal 365
             create_new_date 1996 6 19 . length_of_year . should_equal 366
             create_new_date 2000 1 1 . length_of_year . should_equal 366
             create_new_date 1900 1 1 . length_of_year . should_equal 365
 
-        Test.specify "should return the century" <|
+        group_builder.specify "should return the century" <|
             create_new_date 2022 8 25 . century . should_equal 21
             create_new_date 1999 12 31 . century . should_equal 20
             create_new_date 2000 1 1 . century . should_equal 20
             create_new_date 2001 1 1 . century . should_equal 21
 
-        Test.specify "should return the quarter" <|
+        group_builder.specify "should return the quarter" <|
             create_new_date 2022 2 1 . quarter . should_equal 1
             create_new_date 1987 1 1 . quarter . should_equal 1
             create_new_date 1996 2 29 . quarter . should_equal 1
@@ -37,7 +37,7 @@ spec name create_new_date =
             create_new_date 2019 10 1 . quarter . should_equal 4
             create_new_date 2019 12 31 . quarter . should_equal 4
 
-        Test.specify "should return the number of days in the year" <|
+        group_builder.specify "should return the number of days in the year" <|
             create_new_date 1987 1 1 . length_of_month . should_equal 31
             create_new_date 2022 2 1 . length_of_month . should_equal 28
             create_new_date 1996 2 2 . length_of_month . should_equal 29
@@ -52,7 +52,7 @@ spec name create_new_date =
             create_new_date 2019 11 7 . length_of_month . should_equal 30
             create_new_date 2019 12 31 . length_of_month . should_equal 31
 
-        Test.specify "should return the day_of_year" <|
+        group_builder.specify "should return the day_of_year" <|
             create_new_date 1990 9 18 . day_of_year . should_equal 261
             create_new_date 1990 10 13 . day_of_year . should_equal 286
             create_new_date 1992 9 28 . day_of_year . should_equal 272
@@ -66,7 +66,7 @@ spec name create_new_date =
             create_new_date 2023 3 21 . day_of_year . should_equal 80
             create_new_date 2024 1 13 . day_of_year . should_equal 13
 
-        Test.specify "should return the day_of_week" <|
+        group_builder.specify "should return the day_of_week" <|
             create_new_date 1990 9 18 . day_of_week . should_equal Day_Of_Week.Tuesday
             create_new_date 1990 10 13 . day_of_week . should_equal Day_Of_Week.Saturday
             create_new_date 1992 9 28 . day_of_week . should_equal Day_Of_Week.Monday
@@ -80,7 +80,7 @@ spec name create_new_date =
             create_new_date 2023 3 21 . day_of_week . should_equal Day_Of_Week.Tuesday
             create_new_date 2024 1 13 . day_of_week . should_equal Day_Of_Week.Saturday
 
-        Test.specify "should return the correct week of year" <|
+        group_builder.specify "should return the correct week of year" <|
             create_new_date 2021 8 1 . week_of_year Locale.mexico . should_equal 32
             create_new_date 2021 1 1 . week_of_year Locale.us . should_equal 1
             create_new_date 2021 1 1 . week_of_year Locale.uk . should_equal 0
