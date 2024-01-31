@@ -4,33 +4,25 @@
  */
 
 import diff from 'fast-diff'
-import * as json from 'lib0/json'
 import type { ModuleUpdate } from '../shared/ast'
 import { MutableModule, print, spanMapToIdMap } from '../shared/ast'
-import { combineFileParts, splitFileContents } from '../shared/ensoFile'
+import { EnsoFileParts } from '../shared/ensoFile'
 import { TextEdit } from '../shared/languageServerTypes'
 import { assert } from '../shared/util/assert'
-import { ModuleDoc, type VisualizationMetadata } from '../shared/yjsModel'
+import { IdMap, ModuleDoc, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
-import { serializeIdMap } from './serialization'
 
 interface AppliedUpdates {
-  edits: TextEdit[]
-  newContent: string
-  newMetadata: fileFormat.Metadata
   newCode: string | undefined
-  newIdMap: string | undefined
-  newMetaJson: string | undefined
+  newIdMap: IdMap | undefined
+  newMetadata: fileFormat.IdeMetadata['node'] | undefined
 }
 
 export function applyDocumentUpdates(
   doc: ModuleDoc,
-  syncedMeta: fileFormat.Metadata,
-  syncedContent: string,
+  synced: EnsoFileParts,
   update: ModuleUpdate,
 ): AppliedUpdates {
-  const synced = splitFileContents(syncedContent)
-
   const codeChanged = update.fieldsUpdated.length !== 0
   let idsChanged = false
   let metadataChanged = false
@@ -48,65 +40,33 @@ export function applyDocumentUpdates(
   let newIdMap = undefined
   let newCode = undefined
   let newMetadata = undefined
-  const edits: TextEdit[] = []
 
   const syncModule = new MutableModule(doc.ydoc)
   const root = syncModule.root()
   assert(root != null)
   if (codeChanged || idsChanged || synced.idMapJson == null) {
     const { code, info } = print(root)
-    if (codeChanged) {
-      newCode = code
-      edits.push(...applyDiffAsTextEdits(0, synced.code, code))
-    }
+    if (codeChanged) newCode = code
     newIdMap = spanMapToIdMap(info)
   }
   if (codeChanged || idsChanged || metadataChanged) {
     // Update the metadata object.
     // Depth-first key order keeps diffs small.
-    const newNodeMetadata: typeof syncedMeta.ide.node = {}
+    newMetadata = {} satisfies fileFormat.IdeMetadata['node']
     root.visitRecursiveAst((ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
       if (vis && !pos) pos = { x: 0, y: 0 }
       if (pos) {
-        newNodeMetadata![ast.externalId] = {
+        newMetadata![ast.externalId] = {
           position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
           visualization: vis && translateVisualizationToFile(vis),
         }
       }
     })
-    newMetadata = { ...syncedMeta }
-    newMetadata.ide = { ...syncedMeta.ide }
-    newMetadata.ide.node = newNodeMetadata
   }
 
-  const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
-  const newMetaJson = newMetadata && json.stringify(newMetadata)
-
-  const code = newCode ?? synced.code
-  const idMapJson = newIdMapJson ?? synced.idMapJson
-  const metadataJson = newMetaJson ?? synced.metadataJson ?? '{}'
-
-  const newContent = combineFileParts({
-    code,
-    idMapJson,
-    metadataJson,
-  })
-
-  const oldMetaContent = syncedContent.slice(synced.code.length)
-  const metaContent = newContent.slice(code.length)
-  const metaStartLine = (code.match(/\n/g) ?? []).length
-  edits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
-
-  return {
-    edits,
-    newContent,
-    newMetadata: newMetadata ?? syncedMeta,
-    newCode,
-    newIdMap: newIdMapJson,
-    newMetaJson,
-  }
+  return { newCode, newIdMap, newMetadata }
 }
 
 function translateVisualizationToFile(

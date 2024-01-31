@@ -1,4 +1,5 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
@@ -11,20 +12,26 @@ import {
   setExternalIds,
 } from '../shared/ast'
 import { print } from '../shared/ast/parse'
-import { splitFileContents } from '../shared/ensoFile'
+import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
+import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
 import {
   DistributedProject,
   ExternalId,
+  IdMap,
   ModuleDoc,
   visMetadataEquals,
   type Uuid,
 } from '../shared/yjsModel'
-import { applyDocumentUpdates, prettyPrintDiff, translateVisualizationFromFile } from './edits'
+import {
+  applyDiffAsTextEdits,
+  applyDocumentUpdates,
+  prettyPrintDiff,
+  translateVisualizationFromFile,
+} from './edits'
 import * as fileFormat from './fileFormat'
-import { deserializeIdMap } from './serialization'
+import { deserializeIdMap, serializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
@@ -411,25 +418,50 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const syncModule = new MutableModule(this.doc.ydoc)
     const moduleUpdate = syncModule.applyUpdate(update, 'remote')
-    if (moduleUpdate) this.writeSyncedEvents(moduleUpdate)
+    if (moduleUpdate && this.syncedContent) {
+      const synced = splitFileContents(this.syncedContent)
+      const { newCode, newIdMap, newMetadata } = applyDocumentUpdates(
+        this.doc,
+        synced,
+        moduleUpdate,
+      )
+      this.sendLsUpdate(synced, newCode, newIdMap, newMetadata)
+    }
   }
 
-  private writeSyncedEvents(update: ModuleUpdate) {
+  private sendLsUpdate(
+    synced: EnsoFileParts,
+    newCode: string | undefined,
+    newIdMap: IdMap | undefined,
+    newMetadata: fileFormat.IdeMetadata['node'] | undefined,
+  ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
-    const { edits, newContent, newMetadata, newCode, newIdMap, newMetaJson } = applyDocumentUpdates(
-      this.doc,
-      this.syncedMeta,
-      this.syncedContent,
-      update,
-    )
+    const code = newCode ?? synced.code
+    const newMetadataJson =
+      newMetadata &&
+      json.stringify({ ...this.syncedMeta, ide: { ...this.syncedMeta.ide, node: newMetadata } })
+    const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
+    const newContent = combineFileParts({
+      code,
+      idMapJson: newIdMapJson ?? synced.idMapJson ?? '[]',
+      metadataJson: newMetadataJson ?? synced.metadataJson ?? '{}',
+    })
+
+    const edits: TextEdit[] = []
+    if (newCode) edits.push(...applyDiffAsTextEdits(0, synced.code, newCode))
+    if (newIdMap || newMetadata) {
+      const oldMetaContent = this.syncedContent.slice(synced.code.length)
+      const metaContent = newContent.slice(code.length)
+      const metaStartLine = (code.match(/\n/g) ?? []).length
+      edits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
+    }
 
     const newVersion = computeTextChecksum(newContent)
 
     if (DEBUG_LOG_SYNC) {
       console.debug(' === changes === ')
       console.debug('number of edits:', edits.length)
-      console.debug('module update:', update)
       if (edits.length > 0) {
         console.debug('version:', this.syncedVersion, '->', newVersion)
         console.debug('Content diff:')
@@ -447,10 +479,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       () => {
         this.syncedContent = newContent
         this.syncedVersion = newVersion
-        this.syncedMeta = newMetadata
-        this.syncedCode = newCode ?? this.syncedCode
-        this.syncedIdMap = newIdMap ?? this.syncedIdMap
-        this.syncedMetaJson = newMetaJson ?? this.syncedMetaJson
+        if (newMetadata) this.syncedMeta.ide.node = newMetadata
+        if (newCode) this.syncedCode = newCode
+        if (newIdMapJson) this.syncedIdMap = newIdMapJson
+        if (newMetadataJson) this.syncedMetaJson = newMetadataJson
         this.setState(LsSyncState.Synchronized)
       },
       (error) => {
