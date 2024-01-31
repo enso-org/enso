@@ -34,7 +34,7 @@ let stripePromise: Promise<stripe.Stripe | null> | null = null
  * 4. Session complete (e.g., plan = 'solo', clientSecret = 'cs_foo',
  *    sessionStatus.status = { status: 'complete',
  *    paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }). */
-export default function Subscribe(props: SubscribeProps) {
+export default function Subscribe() {
     const stripeKey = config.ACTIVE_CONFIG.stripeKey
     // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
     const [plan, setPlan] = React.useState(() => {
@@ -48,14 +48,11 @@ export default function Subscribe(props: SubscribeProps) {
     // The ID of a Checkout Session on the Stripe API. This is the same as the client secret, minus
     // the secret part. Without the secret part, the session ID can be safely stored in the URL
     // query.
-    const [sessionId, setSessionId] = React.useState(() => {
-        const initialSessionId = new URLSearchParams(location.search).get('session_id')
-        return initialSessionId !== undefined ? initialSessionId : null
-    })
+    const [sessionId, setSessionId] = React.useState<backendModule.CheckoutSessionId | null>(null)
     // The status of a Checkout Session on the Stripe API. This stores whether or not the Checkout
     // Session is complete (i.e., the user has provided payment information), and if so, whether
     // payment has been confirmed.
-    const [sessionStatus, setSessionStatus] = React.useState(null)
+    const [sessionStatus, setSessionStatus] = React.useState<backendModule.CheckoutSessionStatus | null>(null)
     const { backend } = backendProvider.useBackend()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
 
@@ -127,7 +124,7 @@ export default function Subscribe(props: SubscribeProps) {
                             </button>
                         ))}
                     </div>
-                    {clientSecret && (
+                    {sessionId && clientSecret && (
                         <stripeReact.EmbeddedCheckoutProvider
                             stripe={stripePromise}
                             options={{
@@ -161,6 +158,6 @@ export default function Subscribe(props: SubscribeProps) {
     )
 }
 
-function capitalize(string) {
+function capitalize(string: string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }

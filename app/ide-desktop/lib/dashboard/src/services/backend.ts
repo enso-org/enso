@@ -46,6 +46,10 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
+/** Unique identifier for a payment checkout session. */
+export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
+export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
+
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()
@@ -308,7 +312,7 @@ export interface CheckoutSession {
     /** ID of the checkout session, suffixed with a secret value. */
     clientSecret: string,
     /** ID of the checkout session. */
-    id: string,
+    id: CheckoutSessionId,
 }
 
 /** Metadata describing the status of a payment checkout session. */
@@ -975,5 +979,5 @@ export abstract class Backend {
     /** Create a payment checkout session. */
     abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
     /** Get the status of a payment checkout session. */
-    abstract getCheckoutSession(sessionId: string): Promise<CheckoutSessionStatus>
+    abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
 }

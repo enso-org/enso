@@ -29,7 +29,7 @@ export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 
 /** The current environment that we're running in. */
 // FIXME [NP]: swap this back
-export const ENVIRONMENT: Environment = 'npekin2'
+export const ENVIRONMENT: Environment = 'npekin'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
@@ -46,7 +46,7 @@ const CLOUD_REDIRECTS = {
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
     pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-    npekin: ApiUrl('https://lkxuay3ha1.execute-api.eu-west-1.amazonaws.com'),
+    npekin: ApiUrl('https://opk1cxpwec.execute-api.eu-west-1.amazonaws.com'),
     npekin2: ApiUrl('https://8rf1a7iy49.execute-api.eu-west-1.amazonaws.com'),
     production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }

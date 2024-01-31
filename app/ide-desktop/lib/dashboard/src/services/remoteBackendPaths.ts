@@ -99,3 +99,7 @@ export function associateTagPath(assetId: backend.AssetId) {
 export function deleteTagPath(tagId: backend.TagId) {
     return `tags/${tagId}`
 }
+/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
+export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
+    return `payments/checkout-sessions/${checkoutSessionId}`
+}

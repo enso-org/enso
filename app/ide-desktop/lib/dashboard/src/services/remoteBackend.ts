@@ -734,16 +734,10 @@ export class RemoteBackend extends backendModule.Backend {
     /** Gets the status of a payment checkout session.
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async getCheckoutSession(
-        sessionId: string
+        sessionId: backendModule.CheckoutSessionId
     ): Promise<backendModule.CheckoutSessionStatus> {
-        const response = await this.get<backendModule.CheckoutSessionStatus>(
-            remoteBackendPaths.GET_CHECKOUT_SESSION_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    session_id: sessionId,
-                }).toString()
-        )
+        const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
+        const response = await this.get<backendModule.CheckoutSessionStatus>(path)
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Could not get checkout session for session ID '${sessionId}'.`
