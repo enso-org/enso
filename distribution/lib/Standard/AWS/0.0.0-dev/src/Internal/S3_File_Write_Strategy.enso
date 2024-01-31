@@ -45,7 +45,7 @@ with_failure_handler ~failure_action ~action =
         failure_action
         Panic.throw caught_panic
 
-    result = Panic.catch handler=panic_handler action
+    result = Panic.catch Any handler=panic_handler action
     if result.is_error.not then result else
         failure_action
         result

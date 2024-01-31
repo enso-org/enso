@@ -184,6 +184,7 @@ spec =
 
             hello_txt.parent.parent.parent . should_equal root
             hello_txt.parent . should_equal (root / "examples" / "folder 2")
+            hello_txt.parent.is_directory . should_be_true
 
             hello_txt.is_descendant_of root . should_be_true
             root.is_descendant_of hello_txt . should_be_false
