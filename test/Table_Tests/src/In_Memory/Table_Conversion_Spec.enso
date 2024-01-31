@@ -273,7 +273,7 @@ add_specs suite_builder =
             values_to_expand = [3, 4]
             table = Table.new [["aaa", [1, 2]], ["bbb", values_to_expand], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
-            table.expand_to_rows "1" . should_equal expected
+            table.expand_to_rows 1 . should_equal expected
 
         group_builder.specify "Can expand Vectors" <|
             values_to_expand = [[10, 11], [20, 21, 22], [30]]
