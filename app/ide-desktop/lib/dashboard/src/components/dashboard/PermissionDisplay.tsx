@@ -11,9 +11,9 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends React.PropsWithChildren {
   action: permissionsModule.PermissionAction
   className?: string
-  onClick?: React.MouseEventHandler<HTMLDivElement>
-  onMouseEnter?: React.MouseEventHandler<HTMLDivElement>
-  onMouseLeave?: React.MouseEventHandler<HTMLDivElement>
+  onClick?: React.MouseEventHandler<HTMLButtonElement>
+  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>
+  onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>
 }
 
 /** Colored border around icons and text indicating permissions. */
@@ -26,7 +26,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <div
+        <button
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } inline-block rounded-full whitespace-nowrap h-6 px-1.75 py-0.5 ${className ?? ''}`}
@@ -35,13 +35,13 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           onMouseLeave={onMouseLeave}
         >
           {children}
-        </div>
+        </button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <div
+        <button
           className={`relative inline-block rounded-full whitespace-nowrap ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
@@ -60,7 +60,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           >
             {children}
           </div>
-        </div>
+        </button>
       )
     }
   }

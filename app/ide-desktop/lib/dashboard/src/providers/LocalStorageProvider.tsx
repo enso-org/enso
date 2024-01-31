@@ -2,7 +2,7 @@
  * via the shared React context. */
 import * as React from 'react'
 
-import * as localStorageModule from '#/utilities/localStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 
 // ===========================
 // === LocalStorageContext ===
@@ -10,7 +10,7 @@ import * as localStorageModule from '#/utilities/localStorage'
 
 /** State contained in a `LocalStorageContext`. */
 export interface LocalStorageContextType {
-  localStorage: localStorageModule.LocalStorage
+  localStorage: LocalStorage
 }
 
 // @ts-expect-error The default value will never be exposed, as using this without a `Provider`
@@ -27,7 +27,7 @@ export interface LocalStorageProviderProps extends React.PropsWithChildren<objec
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
-  const [localStorage] = React.useState(() => new localStorageModule.LocalStorage())
+  const [localStorage] = React.useState(() => new LocalStorage())
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
