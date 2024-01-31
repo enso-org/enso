@@ -12,9 +12,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
-import org.enso.table.data.table.join.MatchAllStrategy;
-import org.enso.table.data.table.join.NoOpStrategy;
-import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -30,14 +27,11 @@ import org.graalvm.polyglot.Context;
 public class SimpleHashJoin implements JoinStrategy {
 
     public SimpleHashJoin(List<HashableCondition> conditions, JoinKind joinKind) {
-        JoinStrategy.ensureConditionsNotEmpty(conditions);
-        this.remainingMatcher = joinKind.wantsCommon ? new MatchAllStrategy() : new NoOpStrategy();
-        this.joinKind = joinKind;
         this.hashJoinConfig = new HashJoinConfig(conditions);
+        this.joinKind = joinKind;
     }
 
     private final HashJoinConfig hashJoinConfig;
-    private final PluggableJoinStrategy remainingMatcher;
     private final JoinKind joinKind;
 
     @Override
@@ -67,8 +61,10 @@ public class SimpleHashJoin implements JoinStrategy {
             // If any field of the key is null, it cannot match anything.
             List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
             if (rightRows != null) {
-                List<Integer> leftRows = List.of(leftRow);
-                remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
+                if (joinKind.wantsCommon) {
+                    List<Integer> leftRows = List.of(leftRow);
+                    matchAll(leftRows, rightRows, resultBuilder);
+                }
                 if (joinKind.wantsRightUnmatched) {
                     matchedRightKeys.add(leftKey);
                 }
@@ -95,5 +91,20 @@ public class SimpleHashJoin implements JoinStrategy {
         }
 
         return resultBuilder.buildAndInvalidate();
+    }
+
+    private static void matchAll(
+            List<Integer> leftGroup,
+            List<Integer> rightGroup,
+            JoinResult.Builder resultBuilder) {
+        Context context = Context.getCurrent();
+        for (var leftRow : leftGroup) {
+            for (var rightRow : rightGroup) {
+                resultBuilder.addMatchedRowsPair(leftRow, rightRow);
+                context.safepoint();
+            }
+
+            context.safepoint();
+        }
     }
 }

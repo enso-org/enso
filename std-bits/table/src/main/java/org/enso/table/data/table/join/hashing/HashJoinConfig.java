@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
@@ -15,6 +16,7 @@ public class HashJoinConfig {
     private List<TextFoldingStrategy> textFoldingStrategies;
 
     public HashJoinConfig(List<HashableCondition> conditions) {
+        JoinStrategy.ensureConditionsNotEmpty(conditions);
         List<HashEqualityCondition> equalConditions
                 = conditions.stream().map(HashJoinConfig::makeHashEqualityCondition).toList();
 
