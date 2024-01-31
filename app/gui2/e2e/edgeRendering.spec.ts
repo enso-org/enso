@@ -2,12 +2,12 @@ import { expect, test, type Page } from '@playwright/test'
 import * as actions from './actions'
 import * as locate from './locate'
 
-async function edgesFromNodeWithBinding(page: Page, binding: string) {
+export async function edgesFromNodeWithBinding(page: Page, binding: string) {
   const node = locate.graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
   return page.locator(`[data-source-node-id="${nodeId}"]`)
 }
-async function edgesToNodeWithBinding(page: Page, binding: string) {
+export async function edgesToNodeWithBinding(page: Page, binding: string) {
   const node = locate.graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
   return page.locator(`[data-target-node-id="${nodeId}"]`)
