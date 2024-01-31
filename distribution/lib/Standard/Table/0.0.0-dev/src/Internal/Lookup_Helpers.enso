@@ -50,21 +50,24 @@ prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_
     problems_to_add = Vector.new_builder
     key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
         key_set = Set.from_vector key_columns
-        my_updated_columns = base_table.columns.map on_problems=No_Wrap base_column->
-            base_column_name = base_column.name
-            is_key = key_set.contains base_column_name
-            case is_key of
-                True ->
-                    lookup_column = lookup_table_key_columns.at base_column_name
-                    is_float_equality = base_column.value_type.is_floating_point || lookup_column.value_type.is_floating_point
-                    if is_float_equality then
-                        problems_to_add.append (Floating_Point_Equality.Error base_column_name)
-                    Lookup_Column.Key_Column base_column lookup_column
-                False ->
-                    lookup_column = lookup_table.get base_column_name
-                    case lookup_column of
-                        Nothing -> Lookup_Column.Keep_Column base_column
-                        _ -> merge_columns base_column lookup_column allow_unmatched_rows
+
+        my_updated_columns = [Lookup_Column.Replace_Column (base_table.at "x") (lookup_table.at "z") Value_Type.Integer, Lookup_Column.Keep_Column (base_table.at "y")]
+        ##
+            my_updated_columns = base_table.columns.map on_problems=No_Wrap base_column->
+                base_column_name = base_column.name
+                is_key = key_set.contains base_column_name
+                case is_key of
+                    True ->
+                        lookup_column = lookup_table_key_columns.at base_column_name
+                        is_float_equality = base_column.value_type.is_floating_point || lookup_column.value_type.is_floating_point
+                        if is_float_equality then
+                            problems_to_add.append (Floating_Point_Equality.Error base_column_name)
+                        Lookup_Column.Key_Column base_column lookup_column
+                    False ->
+                        lookup_column = lookup_table.get base_column_name
+                        case lookup_column of
+                            Nothing -> Lookup_Column.Keep_Column base_column
+                            _ -> merge_columns base_column lookup_column allow_unmatched_rows
 
         my_column_set = Set.from_vector base_table.column_names
         extra_columns = lookup_table.columns.filter col->
