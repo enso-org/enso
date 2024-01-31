@@ -32,7 +32,7 @@ type File_By_Line
         create_row_map =
             row_map = LongArrayList.new
             row_map.add offset
-            File_By_Line.log "Created row map"
+            File_By_Line.log_message "Created row map"
             row_map
         File_By_Line.Reader file encoding Nothing Nothing create_row_map
 
@@ -134,7 +134,7 @@ type File_By_Line
             position = parent.row_map.getOrLast line
             row_map = LongArrayList.new
             row_map.add position
-            parent.log "Created Skipped Row Map ("+line.to_text+")"
+            parent.log_message "Created Skipped Row Map ("+line.to_text+")"
             row_map
 
         new_limit = if self.limit_lines.is_nothing then lines else lines.min self.limit_lines
@@ -165,7 +165,7 @@ type File_By_Line
             first_index = FileLineReader.findFirstNewFilter parent.java_file parent.file_end parent.row_map end_at parent.charset parent.filter_func new_filter
             new_row_map = LongArrayList.new
             new_row_map.add first_index
-            parent.log "Found Filter Start - "+first_index.to_text
+            parent.log_message "Found Filter Start - "+first_index.to_text
             new_row_map
 
         ## Merge the two predicates together.
@@ -179,7 +179,7 @@ type File_By_Line
                 file_len = if parent.row_map.getSize > line then parent.row_map.get line else
                     for_each_lines self 0 line Nothing
                     parent.row_map.get parent.row_map.getSize-1
-                parent.log "Created File End ("+line.to_text+") - "+file_len.to_text
+                parent.log_message "Created File End ("+line.to_text+") - "+file_len.to_text
                 file_len
             File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) (index_of self self.limit_lines)
 

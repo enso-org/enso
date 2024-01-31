@@ -17,7 +17,8 @@ type Convertible_To_Rows
        Arguments:
        - length: The number of rows in the table.
        - getter: Get the value for a specified row.
-       - columns: The suffix names for the columns when object is expanded.
+       - columns: The names for the columns when object is expanded.
+         These will be added to the name of the input column.
     Value length:Integer (getter : Integer->Any) (columns:Vector=["Value"])
 
     ## PRIVATE
@@ -45,7 +46,7 @@ Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length
 
 ## PRIVATE
 Convertible_To_Rows.from that:Map =
-    vals = that.map_with_key k->v-> Key_Value.Pair k v
+    vals = that.to_vector.map p-> Key_Value.Pair p.first p.second
     Convertible_To_Rows.Value vals.length vals.get ["Key", "Value"]
 
 ## PRIVATE
@@ -71,11 +72,22 @@ type Key_Value
     Pair key:Any value:Any
 
     ## PRIVATE
+    at self idx = self.get idx
+
+    ## PRIVATE
        Return the key of the pair.
-    get self idx:Integer = case idx of
+    get self idx = case idx of
         0 -> self.key
         1 -> self.value
+        "Key" -> self.key
+        "Value" -> self.value
         _ -> Nothing
+
+    ## PRIVATE
+    is_empty self = False
+
+    ## PRIVATE
+    length self = 2
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Key_Value) =
