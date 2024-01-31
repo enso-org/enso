@@ -609,8 +609,8 @@
   join operations.][8849]
 - [Attach a warning when Nothing is used as a value in a comparison or `is_in`
   `Filter_Condition`.][8865]
-- [Added `File_By_Line` type allowing processing a file line by line. New
-  faster JSON parser based off Jackson.][8719]
+- [Added `File_By_Line` type allowing processing a file line by line. New faster
+  JSON parser based off Jackson.][8719]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug

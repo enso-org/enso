@@ -296,9 +296,9 @@ add_specs suite_builder =
             table.expand_to_rows "bbb" . should_equal expected
 
         group_builder.specify "Can expand Pairs" <|
-            values_to_expand = [Pair.new 10 20, Pair.new "a" [30], Pair.new 40 50]
+            values_to_expand = [Pair.new 10 20, Pair.new "a" 30, Pair.new 40 50]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
-            expected = Table.new [["aaa", [1, 1, 2, 2, 3, 3]], ["bbb", [10, 20, "a", [30], 40, 50]], ["ccc", [5, 5, 6, 6, 7, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 3, 3]], ["bbb", [10, 20, "a", 30, 40, 50]], ["ccc", [5, 5, 6, 6, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
         group_builder.specify "Can expand Ranges" <|
@@ -315,6 +315,18 @@ add_specs suite_builder =
             values_expanded = [Date.new 2020 02 28, Date.new 2020 02 29] + [Date.new 2020 10 28, Date.new 2020 11 4, Date.new 2020 11 11, Date.new 2023 07 03, Date.new 2023 08 03] + [Date.new 2023 09 03]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 7, 7, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        group_builder.specify "Can expand Map" <|
+            values_to_expand = [Map.empty.insert "a" 10, Map.empty.insert "d" 40 . insert "b" 20, Map.empty.insert "c" 30]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 2, 2, 3]], ["bbb Key", ["a", "d", "b", "c"]], ["bbb", [10, 40, 20, 30]], ["ccc", [5, 6, 6, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        group_builder.specify "Can expand JS_Object" <|
+            values_to_expand = ['{"a": 10}'.parse_json, '{"b": 20, "d": 40}'.parse_json, '{"c": 30}'.parse_json]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 2, 2, 3]], ["bbb Key", ["a", "b", "d", "c"]], ["bbb", [10, 20, 40, 30]], ["ccc", [5, 6, 6, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
         group_builder.specify "Can expand mixed columns" <|
