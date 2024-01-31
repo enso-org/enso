@@ -4,7 +4,6 @@ import * as React from 'react'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
@@ -38,8 +37,8 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
+  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent } = state
+  const { nodeMap, doOpenManually, doOpenEditor: doOpenIde, doCloseEditor: doCloseIde } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
@@ -78,11 +77,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateProject(
-          asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
-          asset.title
-        )
+        await smartAsset.update({ projectName: newTitle })
       } catch (error) {
         toastAndLog('Could not rename project', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -92,8 +87,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
       case AssetEventType.cancelOpeningAllProjects:
@@ -116,50 +109,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         // are handled by `AssetRow`.
         break
       }
-      case AssetEventType.newProject: {
-        // This should only run before this project gets replaced with the actual project
-        // by this event handler. In both cases `key` will match, so using `key` here
-        // is a mistake.
-        if (asset.id === event.placeholderId) {
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdProject = await backend.createProject({
-              parentDirectoryId: asset.parentId,
-              projectName: asset.title,
-              projectTemplateName: event.templateId,
-            })
-            rowState.setVisibility(Visibility.visible)
-            setAsset(
-              object.merge(asset, {
-                id: createdProject.projectId,
-                projectState: object.merge(projectState, {
-                  type: backendModule.ProjectState.placeholder,
-                }),
-              })
-            )
-            dispatchAssetEvent({
-              type: AssetEventType.openProject,
-              id: createdProject.projectId,
-              shouldAutomaticallySwitchPage: true,
-              runInBackground: false,
-            })
-          } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
-            toastAndLog('Error creating new project', error)
-          }
-        }
-        break
-      }
-      case AssetEventType.updateFiles:
-      case AssetEventType.uploadFiles: {
+      case AssetEventType.updateFiles: {
         const file = event.files.get(item.key)
         if (file != null) {
-          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
-          const { extension } = backendModule.extractProjectExtension(file.name)
           const title = backendModule.stripProjectExtension(asset.title)
           setAsset(object.merge(asset, { title }))
           try {
@@ -183,10 +136,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
                 id = await response.text()
               }
-              const listedProject = await backend.getProjectDetails(
-                backendModule.ProjectId(id),
-                null
-              )
+              const listedProject = await smartAsset.getDetails()
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -195,44 +145,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
               )
             } else {
-              const createdFile = await backend.uploadFile(
-                {
-                  fileId,
-                  fileName: `${title}.${extension}`,
-                  parentDirectoryId: asset.parentId,
-                },
-                file
-              )
-              const project = createdFile.project
-              if (project == null) {
-                throw new Error('The uploaded file was not a project.')
-              } else {
+              try {
+                const newSmartAsset = await smartAsset.update({ file })
                 rowState.setVisibility(Visibility.visible)
-                setAsset(
-                  object.merge(asset, {
-                    title,
-                    id: project.projectId,
-                    projectState: project.state,
-                  })
-                )
-                return
+                setAsset(newSmartAsset.value)
+              } catch (error) {
+                toastAndLog(null, error)
               }
             }
           } catch (error) {
-            switch (event.type) {
-              case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('Could not upload project', error)
-                break
-              }
-              case AssetEventType.updateFiles: {
-                toastAndLog('Could not update project', error)
-                break
-              }
-            }
+            toastAndLog('Could not update project', error)
+            break
           }
         }
         break
@@ -282,7 +205,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-1" />
       ) : (
         <ProjectIcon
-          keyProp={item.key}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}

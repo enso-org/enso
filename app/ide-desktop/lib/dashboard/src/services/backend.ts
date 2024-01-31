@@ -152,20 +152,6 @@ export interface UpdatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw {
-  organizationId: string
-  projectId: ProjectId
-  name: string
-  state: ProjectStateType
-  packageName: string
-  address?: Address
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  ide_version: VersionNumber | null
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  engine_version: VersionNumber | null
-}
-
-/** A user/organization's project containing and/or currently executing code. */
 export interface Project {
   organizationId: string
   projectId: ProjectId
@@ -646,7 +632,6 @@ export interface InviteUserRequestBody {
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
   userSubjects: Subject[]
-  resourceId: AssetId
   action: permissions.PermissionAction | null
 }
 
@@ -669,6 +654,11 @@ export interface UpdateProjectRequestBody {
   ideVersion: VersionNumber | null
 }
 
+/** HTTP request body for the "upload file" endpoint. */
+export interface UploadFileRequestBody {
+  file: globalThis.File
+}
+
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   forceCreate: boolean
@@ -684,6 +674,17 @@ export interface UpdateSecretRequestBody {
 export interface UpdateAssetOrDirectoryRequestBody
   extends UpdateAssetRequestBody,
     Partial<{ [K in keyof UpdateDirectoryRequestBody]: UpdateDirectoryRequestBody[K] | null }> {}
+
+/** Body for the "update project" API function. */
+export interface UpdateAssetOrProjectRequestBody
+  extends UpdateAssetRequestBody,
+    Partial<{ [K in keyof UpdateProjectRequestBody]: UpdateProjectRequestBody[K] | null }>,
+    Partial<{ [K in keyof UploadFileRequestBody]: UploadFileRequestBody[K] | null }> {}
+
+/** Body for the "update file" API function. */
+export interface UpdateAssetOrFileRequestBody
+  extends UpdateAssetRequestBody,
+    Partial<{ [K in keyof UploadFileRequestBody]: UploadFileRequestBody[K] | null }> {}
 
 /** Body for the "update secret" API function. */
 export interface UpdateAssetOrSecretRequestBody
@@ -706,12 +707,6 @@ export interface ListDirectoryRequestParams {
 /** URL query string parameters for the "upload user profile picture" endpoint. */
 export interface UploadUserPictureRequestParams {
   fileName: string | null
-}
-
-/** URL query string parameters for the "list versions" endpoint. */
-export interface ListVersionsRequestParams {
-  versionType: VersionType
-  default: boolean
 }
 
 // ==============================
@@ -827,7 +822,7 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
    * the backend. Otherwise, return `this`. */
   readonly materialize: () => Promise<this>
   /** Change the parent directory of an asset. */
-  readonly update: (body: UpdateAssetRequestBody) => Promise<unknown>
+  readonly update: (body: UpdateAssetRequestBody) => Promise<this>
   /** Move an arbitrary asset to the trash. */
   readonly delete: () => Promise<void>
   /** Restore an arbitrary asset from the trash. */
@@ -837,6 +832,8 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
     parentDirectoryId: DirectoryId,
     parentDirectoryTitle: string
   ) => Promise<CopyAssetResponse>
+  /** Set permissions for a user. */
+  readonly setPermissions: (body: CreatePermissionRequestBody) => Promise<void>
 }
 
 /** A smart wrapper around a {@link DirectoryAsset}. */
@@ -844,7 +841,7 @@ export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
   /** Return a list of assets in a directory. */
   readonly list: (query: ListDirectoryRequestParams) => Promise<AnySmartAsset[]>
   /** Change the name or description of a directory. */
-  readonly update: (body: UpdateAssetOrDirectoryRequestBody) => Promise<UpdatedDirectory>
+  readonly update: (body: UpdateAssetOrDirectoryRequestBody) => Promise<this>
   /** Create a {@link SpecialLoadingAsset}. */
   readonly createSpecialLoadingAsset: () => SmartSpecialLoadingAsset
   /** Create a {@link SpecialEmptyAsset}. */
@@ -874,20 +871,32 @@ export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
   ) => SmartSecret
 }
 
-// FIXME: fill in endpoints
 /** A smart wrapper around a {@link ProjectAsset}. */
-export interface SmartProject extends SmartAsset<ProjectAsset> {}
+export interface SmartProject extends SmartAsset<ProjectAsset> {
+  readonly update: (body: UpdateAssetOrProjectRequestBody) => Promise<this>
+  /** Set a project to an open state. */
+  readonly open: (body?: OpenProjectRequestBody) => Promise<void>
+  /** Return project details. */
+  readonly getDetails: () => Promise<Project>
+  /** Return project memory, processor and storage usage. */
+  readonly getResourceUsage: () => Promise<ResourceUsage>
+  /** Close a project. */
+  readonly close: () => Promise<void>
+}
 
-// FIXME: fill in endpoints
 /** A smart wrapper around a {@link FileAsset}. */
-export interface SmartFile extends SmartAsset<FileAsset> {}
+export interface SmartFile extends SmartAsset<FileAsset> {
+  readonly update: (body: UpdateAssetOrFileRequestBody) => Promise<this>
+  /** Return file details. */
+  readonly getDetails: () => Promise<FileDetails>
+}
 
 /** A smart wrapper around a {@link SecretAsset}. */
 export interface SmartSecret extends SmartAsset<SecretAsset> {
   /** Return a secret environment variable. */
   readonly getValue: () => Promise<Secret>
   /** Change the value or description of a secret environment variable. */
-  readonly update: (body: UpdateAssetOrSecretRequestBody) => Promise<void>
+  readonly update: (body: UpdateAssetOrSecretRequestBody) => Promise<this>
 }
 
 /** A smart wrapper around a {@link SpecialLoadingAsset}. */
@@ -921,34 +930,6 @@ export abstract class Backend {
   abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
-  /** Adds a permission for a specific user on a specific asset. */
-  abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
-  /** Change the name of a directory. */
-  abstract updateDirectory(
-    directoryId: DirectoryId,
-    body: UpdateDirectoryRequestBody,
-    title: string | null
-  ): Promise<UpdatedDirectory>
-  /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
-  /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
-  /** Set a project to an open state. */
-  abstract openProject(
-    projectId: ProjectId,
-    body: OpenProjectRequestBody | null,
-    title: string | null
-  ): Promise<void>
-  /** Change the AMI or IDE version of a project. */
-  abstract updateProject(
-    projectId: ProjectId,
-    body: UpdateProjectRequestBody,
-    title: string | null
-  ): Promise<UpdatedProject>
-  /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
-  /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */

@@ -32,7 +32,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+  Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset>>
@@ -48,14 +48,15 @@ export interface ManagePermissionsModalProps<
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+  Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { item, setItem, self, doRemoveSelf, eventTarget } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [permissions, setPermissions] = React.useState(item.permissions ?? [])
+  const asset = item.value
+  const [permissions, setPermissions] = React.useState(asset.permissions ?? [])
   const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
   const [email, setEmail] = React.useState<string | null>(null)
   const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
@@ -70,12 +71,12 @@ export default function ManagePermissionsModal<
     [permissions, self.permission]
   )
   const usernamesOfUsersWithPermission = React.useMemo(
-    () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
-    [item.permissions]
+    () => new Set(asset.permissions?.map(userPermission => userPermission.user.user_name)),
+    [asset.permissions]
   )
   const emailsOfUsersWithPermission = React.useMemo(
-    () => new Set<string>(item.permissions?.map(userPermission => userPermission.user.user_email)),
-    [item.permissions]
+    () => new Set<string>(asset.permissions?.map(userPermission => userPermission.user.user_email)),
+    [asset.permissions]
   )
   const isOnlyOwner = React.useMemo(
     () =>
@@ -89,9 +90,12 @@ export default function ManagePermissionsModal<
   )
 
   React.useEffect(() => {
-    // This is SAFE, as the type of asset is not being changed.
-    // eslint-disable-next-line no-restricted-syntax
-    setItem(object.merger({ permissions } as Partial<Asset>))
+    // @ts-expect-error This is SAFE, as the type of asset is unchanged.
+    setItem(oldItem =>
+      // This is SAFE, as the type of asset is unchanged.
+      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      oldItem.withValue(object.merge(oldItem.value, { permissions }) as any)
+    )
   }, [permissions, /* should never change */ setItem])
 
   if (backend.type === backendModule.BackendType.local || organization == null) {
@@ -172,11 +176,8 @@ export default function ManagePermissionsModal<
               ...addedUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
           )
-          await backend.createPermission({
-            userSubjects: addedUsersPermissions.map(userPermissions => userPermissions.user.pk),
-            resourceId: item.id,
-            action: action,
-          })
+          const userSubjects = addedUsersPermissions.map(userPermissions => userPermissions.user.pk)
+          await item.setPermissions({ userSubjects, action: action })
         } catch (error) {
           setPermissions(oldPermissions =>
             [
@@ -205,11 +206,7 @@ export default function ManagePermissionsModal<
               oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
             )
           )
-          await backend.createPermission({
-            userSubjects: [userToDelete.pk],
-            resourceId: item.id,
-            action: null,
-          })
+          await item.setPermissions({ userSubjects: [userToDelete.pk], action: null })
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>

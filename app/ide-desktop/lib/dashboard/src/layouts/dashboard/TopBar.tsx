@@ -23,6 +23,7 @@ export interface TopBarProps {
   setPage: (page: pageSwitcher.Page) => void
   projectAsset: backendModule.ProjectAsset | null
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+  isCloud: boolean
   isEditorDisabled: boolean
   setBackendType: (backendType: backendModule.BackendType) => void
   isHelpChatOpen: boolean
@@ -42,7 +43,7 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { isCloud, isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
   const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
 
@@ -74,6 +75,7 @@ export default function TopBar(props: TopBarProps) {
             canToggleSettingsPanel={canToggleSettingsPanel}
             isSettingsPanelVisible={isSettingsPanelVisible}
             setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+            isCloud={isCloud}
           />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}

@@ -104,6 +104,22 @@ export default function AssetRow(props: AssetRowProps) {
     setItem(rawItem)
   }, [rawItem])
 
+  // Materialize the asset on the backend. If it already exists, this will not send a request to
+  // the backend.
+  React.useEffect(() => {
+    rowState.setVisibility(Visibility.faded)
+    void (async () => {
+      try {
+        const materialized = await smartAsset.materialize()
+        setAsset(materialized.value)
+      } catch (error) {
+        rowState.setVisibility(Visibility.visible)
+      }
+    })()
+    // This MUST only run once, on initialization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
     // re - rendering the parent.
@@ -293,10 +309,6 @@ export default function AssetRow(props: AssetRowProps) {
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       // These events are handled in the specific `NameColumn` files.
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
@@ -366,11 +378,11 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.downloadSelected: {
         if (selected) {
           if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
+            if (smartAsset.type !== backendModule.AssetType.file) {
               toastAndLog('Cannot download assets that are not files')
             } else {
               try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
+                const details = await smartAsset.getDetails()
                 const file = details.file
                 download.download(download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {

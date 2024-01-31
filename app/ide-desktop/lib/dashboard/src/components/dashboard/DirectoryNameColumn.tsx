@@ -4,9 +4,6 @@ import * as React from 'react'
 import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -17,7 +14,6 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as shortcutsModule from '#/utilities/shortcuts'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -35,7 +31,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { numberOfSelectedItems, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
@@ -64,61 +60,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
     }
   }
-
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.updateFiles:
-      case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to directories.
-        // `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
-        break
-      }
-      case AssetEventType.newFolder: {
-        if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Cannot create folders on the local drive')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
-              toastAndLog('Could not create new folder', error)
-            }
-          }
-        }
-        break
-      }
-    }
-  })
 
   return (
     <div

@@ -59,9 +59,6 @@ export interface DriveProps {
   hidden: boolean
   page: pageSwitcher.Page
   initialProjectName: string | null
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  queuedAssetEvents: assetEvent.AssetEvent[]
   assetListEvents: assetListEvent.AssetListEvent[]
   dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
@@ -77,8 +74,8 @@ export interface DriveProps {
   >
   doCreateProject: (templateId: string | null) => void
   doOpenEditor: (
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+    project: backendModule.SmartProject,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void
@@ -86,7 +83,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, page, initialProjectName } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
@@ -157,18 +154,15 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (
-        backend.type !== backendModule.BackendType.local &&
-        organization?.value.isEnabled === true
-      ) {
+      if (isCloud && organization?.value.isEnabled === true) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, organization?.value.isEnabled, /* should never change */ setLabels])
+  }, [backend, isCloud, organization?.value.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (backend.type !== backendModule.BackendType.local && organization == null) {
+      if (isCloud && organization == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('Files cannot be uploaded while offline')
       } else if (rootDirectory != null) {
@@ -181,7 +175,7 @@ export default function Drive(props: DriveProps) {
       }
     },
     [
-      backend,
+      isCloud,
       organization,
       rootDirectory,
       toastAndLog,
@@ -372,7 +366,7 @@ export default function Drive(props: DriveProps) {
         >
           <div className="flex flex-col self-start gap-3">
             <h1 className="text-xl font-bold h-9.5 pl-1.5">
-              {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
+              {isCloud ? 'Cloud Drive' : 'Local Drive'}
             </h1>
             <DriveBar
               category={category}
@@ -385,7 +379,7 @@ export default function Drive(props: DriveProps) {
             />
           </div>
           <div className="flex flex-1 gap-3 overflow-hidden">
-            {backend.type === backendModule.BackendType.remote && (
+            {isCloud && (
               <div className="flex flex-col gap-4 py-1">
                 <CategorySwitcher
                   category={category}
@@ -413,14 +407,13 @@ export default function Drive(props: DriveProps) {
               initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
               deletedLabelNames={deletedLabelNames}
-              queuedAssetEvents={queuedAssetEvents}
               assetEvents={assetEvents}
               dispatchAssetEvent={dispatchAssetEvent}
               assetListEvents={assetListEvents}
               dispatchAssetListEvent={dispatchAssetListEvent}
               setAssetSettingsPanelProps={setAssetSettingsPanelProps}
-              doOpenIde={doOpenEditor}
-              doCloseIde={doCloseEditor}
+              doOpenEditor={doOpenEditor}
+              doCloseEditor={doCloseEditor}
               doCreateLabel={doCreateLabel}
             />
           </div>

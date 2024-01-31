@@ -251,12 +251,12 @@ export interface AssetsTableState {
   ) => void
   /** Called when the project is opened via the `ProjectActionButton`. */
   doOpenManually: (projectId: backendModule.ProjectId) => void
-  doOpenIde: (
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+  doOpenEditor: (
+    project: backendModule.SmartProject,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
     switchPage: boolean
   ) => void
-  doCloseIde: (project: backendModule.ProjectAsset) => void
+  doCloseEditor: (project: backendModule.ProjectAsset) => void
   doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   doCopy: () => void
   doCut: () => void
@@ -292,9 +292,6 @@ export interface AssetsTableProps {
   initialProjectName: string | null
   projectStartupInfo: backendModule.ProjectStartupInfo | null
   deletedLabelNames: Set<backendModule.LabelName>
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  queuedAssetEvents: assetEvent.AssetEvent[]
   assetListEvents: assetListEvent.AssetListEvent[]
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
@@ -302,12 +299,12 @@ export interface AssetsTableProps {
   setAssetSettingsPanelProps: React.Dispatch<
     React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
   >
-  doOpenIde: (
-    project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+  doOpenEditor: (
+    project: backendModule.SmartProject,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
     switchPage: boolean
   ) => void
-  doCloseIde: (project: backendModule.ProjectAsset) => void
+  doCloseEditor: (project: backendModule.ProjectAsset) => void
   doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
@@ -315,9 +312,9 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
   const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
-  const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
+  const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor } = props
+  const { doCreateLabel } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -334,7 +331,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     Set<backendModule.AssetId>
   > | null>(null)
-  const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
   const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
@@ -715,12 +711,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
-    if (rawQueuedAssetEvents.length !== 0) {
-      setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
-    }
-  }, [rawQueuedAssetEvents])
-
-  React.useEffect(() => {
     setIsLoading(true)
   }, [backend, category])
 
@@ -829,16 +819,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
           }
         }
-        setQueuedAssetEvents(oldQueuedAssetEvents => {
-          if (oldQueuedAssetEvents.length !== 0) {
-            queueMicrotask(() => {
-              for (const event of oldQueuedAssetEvents) {
-                dispatchAssetEvent(event)
-              }
-            })
-          }
-          return []
-        })
         return null
       })
     },
@@ -1374,16 +1354,16 @@ export default function AssetsTable(props: AssetsTableProps) {
     [/* should never change */ dispatchAssetEvent]
   )
 
-  const doCloseIde = React.useCallback(
+  const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
         dispatchAssetEvent({
           type: AssetEventType.cancelOpeningAllProjects,
         })
-        rawDoCloseIde(project)
+        rawDoCloseEditor(project)
       }
     },
-    [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+    [projectStartupInfo, rawDoCloseEditor, /* should never change */ dispatchAssetEvent]
   )
 
   const doCopy = React.useCallback(() => {
@@ -1526,8 +1506,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor,
+      doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,
@@ -1546,8 +1526,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor,
+      doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,

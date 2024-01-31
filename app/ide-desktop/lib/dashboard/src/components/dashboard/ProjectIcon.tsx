@@ -65,7 +65,6 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
-  keyProp: string
   item: backendModule.ProjectAsset
   setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   assetEvents: assetEvent.AssetEvent[]
@@ -77,7 +76,7 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
+  const { item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -231,9 +230,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newSecret:
       case AssetEventType.copy:
       case AssetEventType.updateFiles:
       case AssetEventType.cut:
@@ -287,14 +283,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
           if (!isOtherUserUsingProject) {
             void closeProject(false)
           }
-        }
-        break
-      }
-      case AssetEventType.newProject: {
-        if (event.placeholderId === key) {
-          setOnSpinnerStateChange(() => event.onSpinnerStateChange)
-        } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
-          setOnSpinnerStateChange(null)
         }
         break
       }

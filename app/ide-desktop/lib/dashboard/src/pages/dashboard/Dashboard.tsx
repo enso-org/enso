@@ -68,7 +68,6 @@ export default function Dashboard(props: DashboardProps) {
   const [page, setPage] = React.useState(
     () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
   )
-  const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
@@ -85,6 +84,7 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ?? false
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
+  const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
 
   React.useEffect(() => {
@@ -124,52 +124,38 @@ export default function Dashboard(props: DashboardProps) {
     } else if (savedProjectStartupInfo != null) {
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
         if (accessToken != null) {
-          if (
-            currentBackend.type === backendModule.BackendType.remote &&
-            savedProjectStartupInfo.projectAsset.parentId === organization.value.rootDirectoryId
-          ) {
-            // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
-            setPage(pageSwitcher.Page.drive)
-            setQueuedAssetEvents([
-              {
-                type: AssetEventType.openProject,
-                id: savedProjectStartupInfo.project.projectId,
-                shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
-                runInBackground: false,
-              },
-            ])
-          } else {
-            setPage(pageSwitcher.Page.drive)
-            const httpClient = new http.Client(
-              new Headers([['Authorization', `Bearer ${accessToken}`]])
+          setPage(pageSwitcher.Page.drive)
+          const httpClient = new http.Client(
+            new Headers([['Authorization', `Bearer ${accessToken}`]])
+          )
+          const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger)
+          void (async () => {
+            const abortController = new AbortController()
+            setOpenProjectAbortController(abortController)
+            const projectAsset = savedProjectStartupInfo.projectAsset
+            const oldProject = await remoteBackend.getProjectDetails(
+              projectAsset.id,
+              projectAsset.title
             )
-            const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger)
-            void (async () => {
-              const abortController = new AbortController()
-              setOpenProjectAbortController(abortController)
-              const oldProject = await backend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.title
+            if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
+              await remoteBackendModule.waitUntilProjectIsReady(
+                remoteBackend,
+                projectAsset.id,
+                projectAsset.title,
+                abortController
               )
-              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
-                await remoteBackendModule.waitUntilProjectIsReady(
-                  remoteBackend,
-                  savedProjectStartupInfo.projectAsset,
-                  abortController
+              if (!abortController.signal.aborted) {
+                const project = await remoteBackend.getProjectDetails(
+                  projectAsset.id,
+                  projectAsset.title
                 )
-                if (!abortController.signal.aborted) {
-                  const project = await remoteBackend.getProjectDetails(
-                    savedProjectStartupInfo.projectAsset.id,
-                    savedProjectStartupInfo.projectAsset.title
-                  )
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
-                    setPage(page)
-                  }
+                setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                if (page === pageSwitcher.Page.editor) {
+                  setPage(page)
                 }
               }
-            })()
-          }
+            }
+          })()
         }
       } else {
         if (currentBackend.type === backendModule.BackendType.local) {
@@ -180,7 +166,7 @@ export default function Dashboard(props: DashboardProps) {
             await localBackend.openProject(
               savedProjectStartupInfo.projectAsset.id,
               null,
-              savedProjectStartupInfo.projectAsset.title
+              savedProjectStartupInfo.projectAsset.id
             )
             const project = await localBackend.getProjectDetails(
               savedProjectStartupInfo.projectAsset.id,
@@ -343,18 +329,26 @@ export default function Dashboard(props: DashboardProps) {
 
   const openEditor = React.useCallback(
     async (
-      newProject: backendModule.ProjectAsset,
-      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+      newProject: backendModule.SmartProject,
+      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
       switchPage: boolean
     ) => {
       if (switchPage) {
         setPage(pageSwitcher.Page.editor)
       }
-      if (projectStartupInfo?.project.projectId !== newProject.id) {
+      if (projectStartupInfo?.project.projectId !== newProject.value.id) {
         setProjectStartupInfo({
-          project: await backend.getProjectDetails(newProject.id, newProject.title),
-          projectAsset: newProject,
-          setProjectAsset: setProjectAsset,
+          project: await newProject.getDetails(),
+          projectAsset: newProject.value,
+          setProjectAsset: valueOrUpdater => {
+            setProjectAsset(oldProjectAsset =>
+              oldProjectAsset.withValue(
+                typeof valueOrUpdater !== 'function'
+                  ? valueOrUpdater
+                  : valueOrUpdater(oldProjectAsset.value)
+              )
+            )
+          },
           backendType: backend.type,
           accessToken,
         })
@@ -406,6 +400,7 @@ export default function Dashboard(props: DashboardProps) {
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
             setPage={setPage}
+            isCloud={isCloud}
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
@@ -437,7 +432,6 @@ export default function Dashboard(props: DashboardProps) {
             setLabels={setLabels}
             setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
-            queuedAssetEvents={queuedAssetEvents}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}

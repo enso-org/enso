@@ -29,12 +29,6 @@ const STATUS_SERVER_ERROR = 500
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
-/** Default HTTP body for an "open project" request. */
-const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = {
-  forceCreate: false,
-  executeAsync: false,
-}
-
 // ============================
 // === responseIsSuccessful ===
 // ============================
@@ -53,13 +47,14 @@ const CHECK_STATUS_INTERVAL_MS = 5000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
-  backend: backendModule.Backend,
-  item: backendModule.ProjectAsset,
+  backend: RemoteBackend,
+  id: backendModule.ProjectId,
+  title: string,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, item.title)
+  let project = await backend.getProjectDetails(id, title)
   if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
-    await backend.openProject(item.id, null, item.title)
+    await backend.openProject(id, null, title)
   }
   let nextCheckTimestamp = 0
   while (
@@ -71,7 +66,65 @@ export async function waitUntilProjectIsReady(
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, item.title)
+    project = await backend.getProjectDetails(id, title)
+  }
+}
+
+// ====================
+// === listVersions ===
+// ====================
+
+/** URL query string parameters for the "list versions" endpoint. */
+export interface ListVersionsRequestParams {
+  versionType: backendModule.VersionType
+  default: boolean
+}
+
+/** Return a list of backend or IDE versions.
+ * @throws An error if a non-successful status code (not 200-299) was received. */
+async function listVersions(
+  client: http.Client,
+  params: ListVersionsRequestParams
+): Promise<backendModule.Version[]> {
+  /** HTTP response body for this endpoint. */
+  interface ResponseBody {
+    versions: [backendModule.Version, ...backendModule.Version[]]
+  }
+  const paramsString = new URLSearchParams({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    version_type: params.versionType,
+    default: String(params.default),
+  }).toString()
+  const path = remoteBackendPaths.LIST_VERSIONS_PATH + '?' + paramsString
+  const response = await client.get<ResponseBody>(path)
+  if (!responseIsSuccessful(response)) {
+    throw new Error(`Could not list versions of type '${params.versionType}'.`)
+  } else {
+    return (await response.json()).versions
+  }
+}
+
+// =========================
+// === getDefaultVersion ===
+// =========================
+
+const DEFAULT_VERSIONS: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
+
+/** Get the default version given the type of version (IDE or backend). */
+async function getDefaultVersion(client: http.Client, versionType: backendModule.VersionType) {
+  const cached = DEFAULT_VERSIONS[versionType]
+  const nowEpochMs = Number(new Date())
+  if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
+    return cached.version
+  } else {
+    const version = (await listVersions(client, { versionType, default: true }))[0]?.number
+    if (version == null) {
+      throw new Error(`No default ${versionType} version found.`)
+    } else {
+      const info: DefaultVersionInfo = { version, lastUpdatedEpochMs: nowEpochMs }
+      DEFAULT_VERSIONS[versionType] = info
+      return info.version
+    }
   }
 }
 
@@ -85,21 +138,6 @@ export interface UploadFileRequestParams {
   // Marked as optional in the data type, however it is required by the actual route handler.
   fileName: string
   parentDirectoryId: backendModule.DirectoryId | null
-}
-
-/** HTTP response body for the "list users" endpoint. */
-export interface ListUsersResponseBody {
-  users: backendModule.SimpleUser[]
-}
-
-/** HTTP response body for the "list directory" endpoint. */
-export interface ListDirectoryResponseBody {
-  assets: backendModule.AnyAsset[]
-}
-
-/** HTTP response body for the "list tags" endpoint. */
-export interface ListTagsResponseBody {
-  tags: backendModule.Label[]
 }
 
 // =====================
@@ -234,13 +272,21 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   }
 
   /** Change the parent directory of an asset. */
-  async update(body: backendModule.UpdateAssetRequestBody): Promise<unknown> {
+  async update(body: backendModule.UpdateAssetRequestBody): Promise<this> {
     const path = remoteBackendPaths.updateAssetPath(this.value.id)
     const response = await this.httpPatch(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not update '${this.value.title}'.`)
     } else {
-      return
+      return body.description == null && body.parentDirectoryId == null
+        ? this
+        : this.withValue(
+            // @ts-expect-error TypeScript is not capable of properly type-checking generic parameters.
+            object.merge(this.value, {
+              ...(body.description == null ? {} : { description: body.description }),
+              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+            })
+          )
     }
   }
 
@@ -287,6 +333,20 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   override withValue(value: T): this {
     return super.withValue(value)
   }
+
+  /** Set permissions for a user. */
+  async setPermissions(body: backendModule.CreatePermissionRequestBody): Promise<void> {
+    const path = remoteBackendPaths.CREATE_PERMISSION_PATH
+    const response = await this.httpPost<backendModule.UserOrOrganization>(path, {
+      ...body,
+      resourceId: this.value.id,
+    })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not set permissions.`)
+    } else {
+      return
+    }
+  }
 }
 
 /** Converts an {@link backendModule.AnyAsset} into its corresponding
@@ -325,6 +385,10 @@ class SmartDirectory
   async list(
     query: backendModule.ListDirectoryRequestParams
   ): Promise<backendModule.AnySmartAsset[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      assets: backendModule.AnyAsset[]
+    }
     const paramsString = new URLSearchParams([
       ['parent_id', this.value.id],
       ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
@@ -332,7 +396,7 @@ class SmartDirectory
       ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
     ]).toString()
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
-    const response = await this.httpGet<ListDirectoryResponseBody>(path)
+    const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       if (response.status === STATUS_SERVER_ERROR) {
         // The directory is probably empty.
@@ -358,9 +422,7 @@ class SmartDirectory
   }
 
   /** Change the name or description of a directory. */
-  override async update(
-    body: backendModule.UpdateAssetOrDirectoryRequestBody
-  ): Promise<backendModule.UpdatedDirectory> {
+  override async update(body: backendModule.UpdateAssetOrDirectoryRequestBody): Promise<this> {
     const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -384,10 +446,19 @@ class SmartDirectory
         !responseIsSuccessful(updateDirectoryResponse.value))
     ) {
       return this.throw(`Could not update folder '${this.value.title}'.`)
-    } else if (updateDirectoryResponse.value != null) {
-      return await updateDirectoryResponse.value.json()
     } else {
-      return { id: this.value.id, parentId: this.value.parentId, title: this.value.title }
+      let newValue = this.value
+      if (updateDirectoryResponse.value != null) {
+        const responseBody = await updateDirectoryResponse.value.json()
+        newValue = object.merge(newValue, responseBody)
+      }
+      if (body.description != null || body.parentDirectoryId != null) {
+        newValue = object.merge(newValue, {
+          ...(body.description == null ? {} : { description: body.description }),
+          ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+        })
+      }
+      return newValue === this.value ? this : this.withValue(newValue)
     }
   }
 
@@ -669,10 +740,94 @@ class SmartDirectory
 /** A smart wrapper around a {@link backendModule.ProjectAsset}. */
 class SmartProject
   extends SmartAsset<backendModule.ProjectAsset>
-  implements backendModule.SmartProject {}
+  implements backendModule.SmartProject
+{
+  /** Set a project to an open state. */
+  async open(body?: backendModule.OpenProjectRequestBody): Promise<void> {
+    const path = remoteBackendPaths.openProjectPath(this.value.id)
+    const response = await this.httpPost(path, body ?? { forceCreate: false, executeAsync: false })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not open project '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
+
+  /** Return project details. */
+  async getDetails(): Promise<backendModule.Project> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      organizationId: string
+      projectId: backendModule.ProjectId
+      name: string
+      state: backendModule.ProjectStateType
+      packageName: string
+      address?: backendModule.Address
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      ide_version: backendModule.VersionNumber | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      engine_version: backendModule.VersionNumber | null
+    }
+    const path = remoteBackendPaths.getProjectDetailsPath(this.value.id)
+    const response = await this.httpGet<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get details of project '${this.value.title}'.`)
+    } else {
+      const project = await response.json()
+      const ideVersion =
+        project.ide_version ?? (await getDefaultVersion(this.client, backendModule.VersionType.ide))
+      return {
+        ...project,
+        ideVersion,
+        engineVersion: project.engine_version,
+        jsonAddress:
+          project.address != null ? backendModule.Address(`${project.address}json`) : null,
+        binaryAddress:
+          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+      }
+    }
+  }
+
+  /** Return project memory, processor and storage usage. */
+  async getResourceUsage(): Promise<backendModule.ResourceUsage> {
+    const path = remoteBackendPaths.checkResourcesPath(this.value.id)
+    const response = await this.httpGet<backendModule.ResourceUsage>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get resource usage for project '${this.value.title}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  override async update(body: backendModule.UpdateAssetOrProjectRequestBody): Promise<this> {}
+
+  /** Close a project. */
+  async close(): Promise<void> {
+    const path = remoteBackendPaths.closeProjectPath(this.value.id)
+    const response = await this.httpPost(path, {})
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not close project '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
+}
 
 /** A smart wrapper around a {@link backendModule.FileAsset}. */
-class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendModule.SmartFile {}
+class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendModule.SmartFile {
+  override update(body: backendModule.UpdateAssetRequestBody): Promise<this> {}
+
+  /** Return file details. */
+  async getDetails(): Promise<backendModule.FileDetails> {
+    const path = remoteBackendPaths.getFileDetailsPath(this.value.id)
+    const response = await this.httpGet<backendModule.FileDetails>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get details of project '${this.value.title}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+}
 
 /** A smart wrapper around a {@link backendModule.SecretAsset}. */
 class SmartSecret
@@ -691,7 +846,7 @@ class SmartSecret
   }
 
   /** Change the value or description of a secret environment variable. */
-  override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<void> {
+  override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<this> {
     const path = remoteBackendPaths.updateSecretPath(this.value.id)
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -713,7 +868,14 @@ class SmartSecret
     ) {
       return this.throw(`Could not update secret '${this.value.title}'.`)
     } else {
-      return
+      return body.description == null && body.parentDirectoryId == null
+        ? this
+        : this.withValue(
+            object.merge(this.value, {
+              ...(body.description == null ? {} : { description: body.description }),
+              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+            })
+          )
     }
   }
 }
@@ -731,7 +893,6 @@ interface DefaultVersionInfo {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backendModule.Backend {
   readonly type = backendModule.BackendType.remote
-  protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
@@ -756,8 +917,12 @@ export class RemoteBackend extends backendModule.Backend {
 
   /** Return a list of all users in the same organization. */
   override async listUsers(): Promise<backendModule.SimpleUser[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      users: backendModule.SimpleUser[]
+    }
     const path = remoteBackendPaths.LIST_USERS_PATH
-    const response = await this.get<ListUsersResponseBody>(path)
+    const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not list users in the organization.`)
     } else {
@@ -789,17 +954,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
   }
 
-  /** Adds a permission for a specific user on a specific asset. */
-  override async createPermission(body: backendModule.CreatePermissionRequestBody): Promise<void> {
-    const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.post<backendModule.UserOrOrganization>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not set permissions.`)
-    } else {
-      return
-    }
-  }
-
   /** Return organization info for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async self(): Promise<SmartUser | null> {
@@ -811,142 +965,6 @@ export class RemoteBackend extends backendModule.Backend {
     } else {
       const json = await response.json()
       return new SmartUser(this.client, this.logger, json)
-    }
-  }
-
-  /** Change the name of a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async updateDirectory(
-    directoryId: backendModule.DirectoryId,
-    body: backendModule.UpdateDirectoryRequestBody,
-    title: string | null
-  ) {
-    const path = remoteBackendPaths.updateDirectoryPath(directoryId)
-    const response = await this.put<backendModule.UpdatedDirectory>(path, body)
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${directoryId}'`
-      return this.throw(`Could not update folder ${name}.`)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Close a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async closeProject(
-    projectId: backendModule.ProjectId,
-    title: string | null
-  ): Promise<void> {
-    const path = remoteBackendPaths.closeProjectPath(projectId)
-    const response = await this.post(path, {})
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
-      )
-    } else {
-      return
-    }
-  }
-
-  /** Return details for a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getProjectDetails(
-    projectId: backendModule.ProjectId,
-    title: string | null
-  ): Promise<backendModule.Project> {
-    const path = remoteBackendPaths.getProjectDetailsPath(projectId)
-    const response = await this.get<backendModule.ProjectRaw>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not get details of project ${
-          title != null ? `'${title}'` : `with ID '${projectId}'`
-        }.`
-      )
-    } else {
-      const project = await response.json()
-      const ideVersion =
-        project.ide_version ?? (await this.getDefaultVersion(backendModule.VersionType.ide))
-      return {
-        ...project,
-        ideVersion,
-        engineVersion: project.engine_version,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
-      }
-    }
-  }
-
-  /** Prepare a project for execution.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async openProject(
-    projectId: backendModule.ProjectId,
-    body: backendModule.OpenProjectRequestBody | null,
-    title: string | null
-  ): Promise<void> {
-    const path = remoteBackendPaths.openProjectPath(projectId)
-    const response = await this.post(path, body ?? DEFAULT_OPEN_PROJECT_BODY)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
-      )
-    } else {
-      return
-    }
-  }
-
-  /** Update the name or AMI of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async updateProject(
-    projectId: backendModule.ProjectId,
-    body: backendModule.UpdateProjectRequestBody,
-    title: string | null
-  ): Promise<backendModule.UpdatedProject> {
-    const path = remoteBackendPaths.projectUpdatePath(projectId)
-    const response = await this.put<backendModule.UpdatedProject>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not update project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
-      )
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Return the resource usage of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async checkResources(
-    projectId: backendModule.ProjectId,
-    title: string | null
-  ): Promise<backendModule.ResourceUsage> {
-    const path = remoteBackendPaths.checkResourcesPath(projectId)
-    const response = await this.get<backendModule.ResourceUsage>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not get resource usage for project ${
-          title != null ? `'${title}'` : `with ID '${projectId}'`
-        }.`
-      )
-    } else {
-      return await response.json()
-    }
-  }
-
-  /** Return details for a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getFileDetails(
-    fileId: backendModule.FileId,
-    title: string | null
-  ): Promise<backendModule.FileDetails> {
-    const path = remoteBackendPaths.getFileDetailsPath(fileId)
-    const response = await this.get<backendModule.FileDetails>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not get details of project ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
-      )
-    } else {
-      return await response.json()
     }
   }
 
@@ -965,8 +983,12 @@ export class RemoteBackend extends backendModule.Backend {
   /** Return all labels accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listTags(): Promise<backendModule.Label[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      tags: backendModule.Label[]
+    }
     const path = remoteBackendPaths.LIST_TAGS_PATH
-    const response = await this.get<ListTagsResponseBody>(path)
+    const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not list labels.`)
     } else {
@@ -982,7 +1004,7 @@ export class RemoteBackend extends backendModule.Backend {
     title: string | null
   ) {
     const path = remoteBackendPaths.associateTagPath(assetId)
-    const response = await this.patch<ListTagsResponseBody>(path, { labels })
+    const response = await this.patch(path, { labels })
     if (!responseIsSuccessful(response)) {
       const name = title != null ? `'${title}'` : `with ID '${assetId}'`
       return this.throw(`Could not set labels for asset ${name}.`)
@@ -1001,6 +1023,67 @@ export class RemoteBackend extends backendModule.Backend {
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not delete label '${value}'.`)
+    } else {
+      return
+    }
+  }
+
+  /** Return details for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  async getProjectDetails(
+    projectId: backendModule.ProjectId,
+    title: string | null
+  ): Promise<backendModule.Project> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      organizationId: string
+      projectId: backendModule.ProjectId
+      name: string
+      state: backendModule.ProjectStateType
+      packageName: string
+      address?: backendModule.Address
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      ide_version: backendModule.VersionNumber | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      engine_version: backendModule.VersionNumber | null
+    }
+    const path = remoteBackendPaths.getProjectDetailsPath(projectId)
+    const response = await this.get<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(
+        `Could not get details of project ${
+          title != null ? `'${title}'` : `with ID '${projectId}'`
+        }.`
+      )
+    } else {
+      const project = await response.json()
+      const ideVersion =
+        project.ide_version ?? (await getDefaultVersion(this.client, backendModule.VersionType.ide))
+      return {
+        ...project,
+        ideVersion,
+        engineVersion: project.engine_version,
+        jsonAddress:
+          project.address != null ? backendModule.Address(`${project.address}json`) : null,
+        binaryAddress:
+          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+      }
+    }
+  }
+
+  /** Prepare a project for execution.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  async openProject(
+    projectId: backendModule.ProjectId,
+    body: backendModule.OpenProjectRequestBody | null,
+    title: string | null
+  ): Promise<void> {
+    const path = remoteBackendPaths.openProjectPath(projectId)
+    const response = await this.post(path, body ?? { forceCreate: false, executeAsync: false })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+      )
     } else {
       return
     }
@@ -1037,47 +1120,6 @@ export class RemoteBackend extends backendModule.Backend {
       }
     } else {
       return
-    }
-  }
-
-  /** Return a list of backend or IDE versions.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  protected async listVersions(
-    params: backendModule.ListVersionsRequestParams
-  ): Promise<backendModule.Version[]> {
-    /** HTTP response body for this endpoint. */
-    interface ResponseBody {
-      versions: [backendModule.Version, ...backendModule.Version[]]
-    }
-    const paramsString = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      version_type: params.versionType,
-      default: String(params.default),
-    }).toString()
-    const path = remoteBackendPaths.LIST_VERSIONS_PATH + '?' + paramsString
-    const response = await this.get<ResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list versions of type '${params.versionType}'.`)
-    } else {
-      return (await response.json()).versions
-    }
-  }
-
-  /** Get the default version given the type of version (IDE or backend). */
-  protected async getDefaultVersion(versionType: backendModule.VersionType) {
-    const cached = this.defaultVersions[versionType]
-    const nowEpochMs = Number(new Date())
-    if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
-      return cached.version
-    } else {
-      const version = (await this.listVersions({ versionType, default: true }))[0]?.number
-      if (version == null) {
-        return this.throw(`No default ${versionType} version found.`)
-      } else {
-        const info: DefaultVersionInfo = { version, lastUpdatedEpochMs: nowEpochMs }
-        this.defaultVersions[versionType] = info
-        return info.version
-      }
     }
   }
 

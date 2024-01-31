@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
 
@@ -10,7 +9,7 @@ import PermissionSelector from '#/components/dashboard/PermissionSelector'
 
 /** Props for a {@link UserPermissions}. */
 export interface UserPermissionsProps {
-  asset: backendModule.Asset
+  asset: backendModule.AnySmartAsset
   self: backendModule.UserPermission
   isOnlyOwner: boolean
   userPermission: backendModule.UserPermission
@@ -22,7 +21,6 @@ export interface UserPermissionsProps {
 export default function UserPermissions(props: UserPermissionsProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
 
@@ -34,9 +32,8 @@ export default function UserPermissions(props: UserPermissionsProps) {
     try {
       setUserPermissions(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
-      await backend.createPermission({
+      await asset.setPermissions({
         userSubjects: [newUserPermissions.user.pk],
-        resourceId: asset.id,
         action: newUserPermissions.permission,
       })
     } catch (error) {
