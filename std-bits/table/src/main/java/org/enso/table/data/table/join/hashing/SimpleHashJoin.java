@@ -22,7 +22,7 @@ public class SimpleHashJoin implements JoinStrategy {
   public SimpleHashJoin(List<HashableCondition> conditions, JoinKind joinKind) {
     var tempHashJoinConfig = new HashJoinConfig(conditions);
 
-    // alogirthm assumes that left table is the big table.
+    // algorithm assumes that left table is the big table.
     // If not we will flip the left and right tables over to do the join
     if (tempHashJoinConfig.getLeftNumRows() >= tempHashJoinConfig.getRightNumRows()) {
       this.hashJoinConfig = tempHashJoinConfig;
@@ -46,7 +46,7 @@ public class SimpleHashJoin implements JoinStrategy {
 
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
-    // alogirthm assumes that left table is the big table.
+    // algorithm assumes that left table is the big table.
     // If not we have flipped the tables round to do the join.
     // If you are debugging your left table might not be your left table here.
     // The result builder flips the indexes back as you add them
