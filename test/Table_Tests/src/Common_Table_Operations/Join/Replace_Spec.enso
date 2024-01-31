@@ -26,7 +26,6 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
-    materialize = setup.materialize
     suite_builder.group prefix+"Table.replace" group_builder->
         data = Data.setup create_connection_fn
 
@@ -39,6 +38,6 @@ add_specs suite_builder setup =
         group_builder.specify "should be able to replace values via a lookup table" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [1, 2, 3, 4]], ['z', [10, 20, 30, 40]]]
-            result = table.replace lookup_table column_to_modify='x'
+            result = table.replace lookup_table replace_column='x'
             expected = table_builder [['x', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
             result . should_equal expected

@@ -1959,12 +1959,78 @@ type Table
                 java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
                 Table.Value java_table
 
-    replace : Table -> (Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:Table column_to_modify:(Text | Integer | Regex) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        new_self = Table.new [self.at 0, self.at 0 . rename 'xx', self.at 1]
-        new_lookup_table = Table.new [lookup_table.at 0, lookup_table.at 1 . rename 'xx']
-        merged = new_self.merge new_lookup_table ['x'] add_new_columns=True allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-        Table.new [merged.at 1 . rename 'x', merged.at 2]
+    ## ALIAS find replace
+       GROUP Standard.Base.Calculations
+       ICON join
+       Replaces values in `replace_column` using `lookup_table` to specify a
+       mapping from old to new values.
+
+       Arguments:
+       - lookup_table: the table to use as a mapping from old to new values.
+       - from_column: the column within `lookup_table` to match against
+         `replace_column` in the base table.
+       - to_column: the co.umn within `lookup_table` to get new values from.
+       - replace_column: the column within the base table to perform the replace
+         on.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified in `from_column`, `to_column`, or `replace_column`, a
+           `Missing_Input_Columns` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a match_column contains `Nothing` values, either in the table or lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+    replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:Table from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 replace_column:(Text | Integer) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        self.select_columns replace_column . column_names . catch No_Output_Columns _->
+            Error.throw (Illegal_Argument.Error "No such column in base table: "+(replace_column.name))
+        lookup_table.select_columns from_column . column_names . catch No_Output_Columns _->
+            Error.throw (Illegal_Argument.Error "No such column in lookup table: "+(from_column.name))
+        lookup_table.select_columns to_column . column_names . catch No_Output_Columns _->
+            Error.throw (Illegal_Argument.Error "No such column in lookup table: "+(to_column.name))
+
+        unique = self.column_naming_helper.create_unique_name_strategy
+        unique.mark_used (self.column_names)
+        unique.mark_used (lookup_table.column_names)
+
+        # `merge` will write to the duplicate of the key column.
+        duplicate_key_column_name = unique.make_unique "duplicate_key"
+        duplicate_key_column = self.at replace_column . rename duplicate_key_column_name
+        self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
+
+        ## Create a lookup table with just `to_column` and `from_column`, renamed
+           to match the base table's `replace_column` and it's duplicate,
+           respectively.
+        lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename replace_column]
+
+        merged = self_with_duplicate.merge lookup_table_renamed [duplicate_key_column_name] add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+        result = merged.remove_columns [duplicate_key_column_name]
+        result
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
