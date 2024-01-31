@@ -503,7 +503,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private syncFileContents(content: string, version: Checksum) {
-    let contentsReceived = splitFileContents(content)
+    const contentsReceived = splitFileContents(content)
     let unsyncedIdMap: IdMap | undefined
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = contentsReceived
