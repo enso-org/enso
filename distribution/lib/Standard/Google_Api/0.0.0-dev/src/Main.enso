@@ -70,11 +70,11 @@ initialize secret_file =
 
 
 ## PLACEHOLDER, performs google analytics call
-
+   This method calls the google reporting v4 api. Presently it specifically returns activeUsers by City
    Arguments:
-   - property_id
-   - start_date
-   - end_date
+   - property_id: The Google Analytics property_id that is being queried
+   - start_date: The beginning date of the query. Default is 2020-03-31
+   - end_date: The end date being queried. Defaults to today.
 run_google_report : Text -> Date -> Date -> Table
 run_google_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today =
     analytics_data = BetaAnalyticsDataClient.create
