@@ -21,20 +21,18 @@ final class CacheUtils {
   }
 
   static Function<Object, Object> readResolve(CompilerContext context) {
-    return                 (obj) -> switch (obj) {
-                  case ProcessingPass.Metadata metadata -> {
-                    var option = metadata.restoreFromSerialization(context);
-                    if (option.nonEmpty()) {
-                      yield option.get();
-                    } else {
-                      throw raise(
-                          RuntimeException.class, new IOException("Cannot convert " + metadata));
-                    }
-                  }
-                  case null -> null;
-                  default -> obj;
-                };
-
+    return (obj) -> switch (obj) {
+      case ProcessingPass.Metadata metadata -> {
+        var option = metadata.restoreFromSerialization(context);
+        if (option.nonEmpty()) {
+          yield option.get();
+        } else {
+          throw raise(RuntimeException.class, new IOException("Cannot convert " + metadata));
+        }
+      }
+      case null -> null;
+      default -> obj;
+    };
   }
 
   @SuppressWarnings("unchecked")
