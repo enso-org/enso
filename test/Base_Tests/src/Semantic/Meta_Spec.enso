@@ -11,9 +11,10 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
-import Standard.Test.Test_Result.Test_Result
+from Standard.Test_New import all
+import Standard.Test_New.Spec_Result.Spec_Result
+
+
 
 type My_Type
     @foo (test_method)
@@ -51,41 +52,41 @@ type Sum_Type
     Variant_A x
     Variant_B y
 
-spec =
-    Test.group "Meta-Value Manipulation" <|
-        Test.specify "should allow manipulating unresolved symbols" <|
+add_specs suite_builder =
+    suite_builder.group "Meta-Value Manipulation" group_builder->
+        group_builder.specify "should allow manipulating unresolved symbols" <|
             sym = .does_not_exist
             meta_sym = Meta.meta sym
             meta_sym.name.should_equal "does_not_exist"
             new_sym = meta_sym . rename "my_method"
             object = My_Type.Value 1 2 3
             new_sym object . should_equal 6
-        Test.specify "should allow manipulating atoms" <|
+        group_builder.specify "should allow manipulating atoms" <|
             atom = My_Type.Value 1 "foo" Nothing
             meta_atom = Meta.meta atom
             meta_atom.constructor.value.should_equal My_Type.Value
             meta_atom.fields.should_equal [1, "foo", Nothing]
             Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
-        Test.specify "should allow getting a value's constructor's name" <|
+        group_builder.specify "should allow getting a value's constructor's name" <|
             Meta.meta List.Nil . constructor . name . should_equal "Nil"
             Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
-        Test.specify "should allow getting a value's constructor's fields" <|
+        group_builder.specify "should allow getting a value's constructor's fields" <|
             Meta.meta List.Nil . constructor . fields . should_equal []
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
-        Test.specify "should allow creating atoms from atom constructors" <|
+        group_builder.specify "should allow creating atoms from atom constructors" <|
             atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
             atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
             (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
-        Test.specify "should correctly return representations of different classes of objects" <|
+        group_builder.specify "should correctly return representations of different classes of objects" <|
             Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
             Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
-        Test.specify "should allow manipulation of error values" <|
+        group_builder.specify "should allow manipulation of error values" <|
             err = Error.throw "My Error"
             meta_err = Meta.meta err
             meta_err.is_a Meta.Error . should_be_true
             meta_err.value . should_equal "My Error"
-        Test.specify "should allow checking if a value is of a certain type" <|
+        group_builder.specify "should allow checking if a value is of a certain type" <|
             1.is_a Any . should_be_true
             1.2.is_a Any . should_be_true
             (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
@@ -138,30 +139,30 @@ spec =
             Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
             Meta.is_a Date_Time.now.zone Date . should_be_false
 
-        Test.specify "constructor variants check" <|
+        group_builder.specify "constructor variants check" <|
             (Sum_Type.Variant_A 42).is_a Sum_Type . should_be_true
             (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_A . should_be_false
             (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_B . should_be_false
 
-        Test.specify "constructor variants case of" <|
+        group_builder.specify "constructor variants case of" <|
             case (Sum_Type.Variant_A 42) of
                 _ : Sum_Type -> Nothing
                 e -> Test.fail "Expected "+e.to_text+" to be a Sum_Type"
 
-        Test.specify "constructor True check" <|
+        group_builder.specify "constructor True check" <|
             True . should_be_a True
             True . should_be_a Boolean
-            Panic.recover Any (True . should_be_a False) . should_fail_with Test_Result
+            Panic.recover Any (True . should_be_a False) . should_fail_with Spec_Result
 
-        Test.specify "constructor Case.Lower check" <|
+        group_builder.specify "constructor Case.Lower check" <|
             Case.Lower . should_be_a Case.Lower
             Case.Lower . should_be_a Case
-            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Test_Result
+            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Spec_Result
 
-        Test.specify "5 isn't a constructor" <|
-            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Test_Result
+        group_builder.specify "5 isn't a constructor" <|
+            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Spec_Result
 
-        Test.specify "should allow for returning the type of a value" <|
+        group_builder.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
             n_1 . should_equal_type Integer
             n_1 . should_not_equal_type Float
@@ -208,7 +209,7 @@ spec =
             e_tpe . should_equal_type IOException
             e_tpe . should_not_equal_type JException
 
-        Test.specify "constructors of Boolean" <|
+        group_builder.specify "constructors of Boolean" <|
             typ = Boolean
 
             Meta.is_atom typ . should_be_false
@@ -224,7 +225,7 @@ spec =
             cons.at 1 . should_be_a Meta.Constructor
             cons . map (x -> x.name) . sort . should_equal [ "False", "True" ]
 
-        Test.specify "constructors of MyType" <|
+        group_builder.specify "constructors of MyType" <|
             typ = My_Type
 
             Meta.is_atom typ . should_be_false
@@ -241,7 +242,7 @@ spec =
             cons.each ctor->
                 ctor.declaring_type . should_equal meta_typ
 
-        Test.specify "methods of MyType" <|
+        group_builder.specify "methods of MyType" <|
             typ = My_Type
 
             Meta.is_atom typ . should_be_false
@@ -253,25 +254,25 @@ spec =
 
             methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
 
-        Test.specify "static methods of MyType" <|
+        group_builder.specify "static methods of MyType" <|
             methods = Meta.meta (Meta.type_of My_Type) . methods
             methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
 
-        Test.specify "methods of Integer" <|
+        group_builder.specify "methods of Integer" <|
             Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_float', 'truncate']
 
-        Test.specify "static methods of Integer" <|
+        group_builder.specify "static methods of Integer" <|
             Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'round', 'to_float', 'truncate']
 
-        Test.specify "methods of Any" <|
+        group_builder.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
 
-        Test.specify "should correctly handle Java values" <|
+        group_builder.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Java_Random.new
             java_meta . should_be_a Meta.Polyglot
             java_meta . get_language . should_equal Meta.Language.Java
 
-        Test.specify "should correctly handle equality of Java values" <|
+        group_builder.specify "should correctly handle equality of Java values" <|
             a = JavaLocale.new "en"
             b = JavaLocale.new "en"
             c = JavaLocale.new "pl"
@@ -284,7 +285,7 @@ spec =
             (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
-        Test.specify "get annotations" <|
+        group_builder.specify "get annotations" <|
             Meta.get_annotation Meta_Spec .test_method "a" . should_equal 7
             Meta.get_annotation Meta_Spec .test_method "b" . should_equal (Test_Type.Value 49)
             Meta.get_annotation Meta_Spec .test_method "c" . should_fail_with Text
@@ -301,31 +302,31 @@ spec =
 
             Meta.get_annotation value .my_method "self" . should_equal "self"
 
-        Test.specify "no constructor annotations on value" <|
+        group_builder.specify "no constructor annotations on value" <|
             value = My_Type.Value 99 "bar" True
             Meta.get_annotation value .Value "foo" . should_equal Nothing
             Meta.get_annotation value .Value "bar" . should_equal Nothing
             Meta.get_annotation value .Value "baz" . should_equal Nothing
 
-        Test.specify "get annotations on constructor" <|
+        group_builder.specify "get annotations on constructor" <|
             Meta.get_annotation My_Type .Value "foo" 7 8 . should_equal 15
             Meta.get_annotation My_Type .Value "bar" . should_equal Nothing
             Meta.get_annotation My_Type .Value "baz" . should_equal (My_Type.Value 1 2 3)
 
-    Test.group "Check Nothing and NaN" <|
-        Test.specify "Nothing.is_a Nothing" <|
+    suite_builder.group "Check Nothing and NaN" group_builder->
+        group_builder.specify "Nothing.is_a Nothing" <|
             Nothing.is_a Nothing . should_be_true
             Meta.is_same_object Nothing Nothing . should_be_true
 
-        Test.specify "type_of Nothing is Nothing" <|
+        group_builder.specify "type_of Nothing is Nothing" <|
             Meta.type_of Nothing . should_equal Nothing
 
-        Test.specify "NaN and NaN should be the same object" <|
+        group_builder.specify "NaN and NaN should be the same object" <|
             Meta.is_same_object Number.nan Number.nan . should_be_true
             (Number.nan == Number.nan) . should_be_false
 
-    Test.group "Atom with holes" <|
-        Test.specify "construct and fill" <|
+    suite_builder.group "Atom with holes" group_builder->
+        group_builder.specify "construct and fill" <|
             pair = Meta.atom_with_hole (e -> My_Type.Value 1 e 3)
 
             atom = pair.value
@@ -350,7 +351,7 @@ spec =
             fill 10 # no change
             atom.bar . should_equal 2
 
-        Test.specify "construct and fill with type" <|
+        group_builder.specify "construct and fill with type" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
 
             atom = pair.value
@@ -375,17 +376,17 @@ spec =
             fill 10 # no change
             atom.bar . should_equal 2
 
-        Test.specify "reject wrong type" <|
+        group_builder.specify "reject wrong type" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
             fill = pair.fill
             Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
 
-        Test.specify "direct use of pair.fill" <|
+        group_builder.specify "direct use of pair.fill" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
             pair.fill 2
             pair.value.bar . should_equal 2
 
-        Test.specify "fail if atom_with_hole isn't used" <|
+        group_builder.specify "fail if atom_with_hole isn't used" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> My_Type.Value 1 2 3)
             case key of
@@ -394,14 +395,14 @@ spec =
                     t.bar . should_equal 2
                     t.baz . should_equal 3
 
-        Test.specify "fail if non-atom is created" <|
+        group_builder.specify "fail if non-atom is created" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> 2)
             case key of
                 t : Number ->
                     t . should_equal 2
 
-        Test.specify "only one atom_with_hole is used" <|
+        group_builder.specify "only one atom_with_hole is used" <|
             pair = Meta.atom_with_hole (e -> My_Type.Value e e e)
             atom = pair.value
             fill = pair.fill
@@ -430,22 +431,22 @@ spec =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
-    Test.group "Unresolved symbol"
-        Test.specify "should be treated as a Function" <|
+    suite_builder.group "Unresolved symbol" group_builder->
+        group_builder.specify "should be treated as a Function" <|
             (_.is_nothing) . is_a Function . should_equal True
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
 
-    Test.group "Meta.Type.find"
-        Test.specify "find boolean and use it" <|
+    suite_builder.group "Meta.Type.find" group_builder->
+        group_builder.specify "find boolean and use it" <|
             fqn = "Standard.Base.Data.Boolean.Boolean"
             typ = Meta.Type.find fqn
             typ . is_a Meta.Type . should_be_true
             typ.name . should_equal "Boolean"
             Meta.Type.find typ.qualified_name . should_equal typ
 
-        Test.specify "find boolean via associated type and use it" <|
+        group_builder.specify "find boolean via associated type and use it" <|
             fqn = "Standard.Base.Data.Boolean"
             typ = Meta.Type.find fqn
             typ . is_a Meta.Type . should_be_true
@@ -453,16 +454,20 @@ spec =
             typ.qualified_name . should_equal fqn
             Meta.Type.find typ.qualified_name . should_equal typ
 
-        Test.specify "unknown type" <|
+        group_builder.specify "unknown type" <|
             Meta.Type.find "Unknown.Type" . should_fail_with Not_Found
             Meta.Type.find "UnknownType" . should_fail_with Not_Found
             Meta.Type.find "" . should_fail_with Not_Found
 
-        Test.specify "My ascribed type" <|
+        group_builder.specify "My ascribed type" <|
             meta_type = Meta.meta My_Ascribed_Type
             fqn =  meta_type . qualified_name
             fqn.should_contain "Meta_Spec.My_Ascribed_Type"
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -9,24 +9,23 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  enso-build-ci-gen-job-cancel-workflow-linux:
+  enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
       - ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-ci-check-backend-linux:
-    name: Engine (linux)
+  enso-build-ci-gen-job-ci-check-backend-linux-x86_64:
+    name: Engine (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -40,17 +39,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -76,7 +67,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (linux)
+          name: Engine Tests (linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -85,7 +76,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (linux)
+          name: Standard Library Tests (linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -102,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       checks: write
-  enso-build-ci-gen-job-ci-check-backend-macos:
-    name: Engine (macos)
+  enso-build-ci-gen-job-ci-check-backend-macos-x86_64:
+    name: Engine (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
@@ -119,17 +110,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -155,7 +138,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (macos)
+          name: Engine Tests (macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -164,7 +147,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (macos)
+          name: Standard Library Tests (macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -181,12 +164,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       checks: write
-  enso-build-ci-gen-job-ci-check-backend-windows:
-    name: Engine (windows)
+  enso-build-ci-gen-job-ci-check-backend-windows-x86_64:
+    name: Engine (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -200,17 +182,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -236,7 +210,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests (windows)
+          name: Engine Tests (windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -245,7 +219,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests (windows)
+          name: Standard Library Tests (windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit

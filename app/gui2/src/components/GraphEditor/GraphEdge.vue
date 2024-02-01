@@ -436,10 +436,19 @@ const arrowTransform = computed(() => {
 
 <template>
   <template v-if="basePath">
-    <path v-if="activePath" :d="basePath" class="edge visible dimmed" :style="baseStyle" />
+    <path
+      v-if="activePath"
+      :d="basePath"
+      class="edge visible dimmed"
+      :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    />
     <path
       :d="basePath"
       class="edge io"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
       @pointerdown="click"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
@@ -449,6 +458,8 @@ const arrowTransform = computed(() => {
       :d="activePath ?? basePath"
       class="edge visible"
       :style="activePath ? activeStyle : baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     />
     <polygon
       v-if="arrowTransform"
@@ -456,6 +467,8 @@ const arrowTransform = computed(() => {
       points="0,-9.375 -9.375,9.375 9.375,9.375"
       class="arrow visible"
       :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     />
   </template>
 </template>

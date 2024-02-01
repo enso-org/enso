@@ -1347,7 +1347,7 @@ type Table
     expand_to_rows self column at_least_one_row=False =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row
 
-    ## ALIAS filter rows
+    ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -2487,14 +2487,13 @@ type Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     @format Widget_Helpers.write_table_selector
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
-        file = File.new path
+    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         case format of
             _ : Auto_Detect ->
-                base_format = format.get_writing_format file
-                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
-                    self.write file format=base_format on_existing_file match_columns on_problems
+                base_format = format.get_writing_format path
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path Table) else
+                    self.write path format=base_format on_existing_file match_columns on_problems
             _ ->
                 handle_no_write_method caught_panic =
                     is_write = caught_panic.payload.method_name == "write_table"
@@ -2502,7 +2501,7 @@ type Table
                         Error.throw (File_Error.Unsupported_Output_Type format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
                     to_write = if Context.Output.is_enabled then self else self.take 1000
-                    format.write_table file to_write on_existing_file match_columns on_problems
+                    format.write_table path to_write on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

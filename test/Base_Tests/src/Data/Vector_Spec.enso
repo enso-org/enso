@@ -15,8 +15,8 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.util.ArrayList
 
@@ -67,7 +67,7 @@ foreign python generate_py_array = """
 foreign python generate_nested_py_array = """
     return [[1, 2, 3], [4, 5]]
 
-type_spec name alter = Test.group name <|
+type_spec suite_builder name alter = suite_builder.group name group_builder->
     map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
     flat_map_fun a = if (a.at 0) == 30 then Error.throw (My_Error.Error a) else a+[100]
     map_with_index_fun i a =
@@ -78,10 +78,10 @@ type_spec name alter = Test.group name <|
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
 
-    Test.specify "text bytes" <|
+    group_builder.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
 
-    Test.specify "should allow vector creation with a programmatic constructor" <|
+    group_builder.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
 
         r = Ref.new 0
@@ -90,7 +90,7 @@ type_spec name alter = Test.group name <|
         const = Vector.new 4 _->next
         const.should_equal [0, 1, 2, 3]
 
-    Test.specify "should allow vector creation with a constant constructor" <|
+    group_builder.specify "should allow vector creation with a constant constructor" <|
         Vector.fill 100 1 . fold (0) (+) . should_equal 100
 
         r = Ref.new 0
@@ -99,34 +99,34 @@ type_spec name alter = Test.group name <|
         const = Vector.fill 4 next
         const.should_equal [0, 0, 0, 0]
 
-    Test.specify "should allow creation from arrays without mutability" <|
+    group_builder.specify "should allow creation from arrays without mutability" <|
         built_from_js = Vector.from_polyglot_array generate_js_array
         built_from_js . should_equal (alter [1, 2, 3, 4, 5])
 
-    Test.specify "should allow creation from arrays without mutability in Python" pending=pending_python_missing <|
+    group_builder.specify "should allow creation from arrays without mutability in Python" pending=pending_python_missing <|
         built_from_py = Vector.from_polyglot_array generate_py_array
         built_from_py . should_equal (alter [1, 2, 3, 4, Nothing])
 
-    Test.specify "should allow creation from nested arrays from JavaScript" <|
+    group_builder.specify "should allow creation from nested arrays from JavaScript" <|
         built_from_js = Vector.from_polyglot_array generate_nested_js_array
         built_from_js . should_equal (alter [[1, 2, 3], [4, 5]])
 
-    Test.specify "should allow creation from nested arrays from Python" pending=pending_python_missing <|
+    group_builder.specify "should allow creation from nested arrays from Python" pending=pending_python_missing <|
         built_from_py = Vector.from_polyglot_array generate_nested_py_array
         built_from_py . should_equal (alter [[1, 2, 3], [4, 5]])
 
-    Test.specify "should allow accessing elements" <|
+    group_builder.specify "should allow accessing elements" <|
         alter [1,2,3] . at 0 . should_equal 1
         alter [1,2,3] . at 2 . should_equal 3
 
-    Test.specify "should allow to store dataflow errors and raise them on access" <|
+    group_builder.specify "should allow to store dataflow errors and raise them on access" <|
         vec = [Error.throw (My_Error.Error "foo"), "bar"]
         vec.at 1 . should_equal "bar"
         vec.at 0 . should_fail_with My_Error
         vec.get 1 . should_equal "bar"
         vec.get 0 . should_fail_with My_Error
 
-    Test.specify "should allow accessing elements with negative indices" <|
+    group_builder.specify "should allow accessing elements with negative indices" <|
         alter [1,2,3] . at -1 . should_equal 3
         alter [1,2,3] . at -2 . should_equal 2
         alter [1,2,3] . at -3 . should_equal 1
@@ -134,7 +134,7 @@ type_spec name alter = Test.group name <|
         alter [1,2,3] . get -2 . should_equal 2
         alter [1,2,3] . get -3 . should_equal 1
 
-    Test.specify "should correctly handle out of bounds access" <|
+    group_builder.specify "should correctly handle out of bounds access" <|
         alter [1,2,3] . at -4 . should_fail_with Index_Out_Of_Bounds
         alter [1,2,3] . at 3 . should_fail_with Index_Out_Of_Bounds
         alter [1,2,3] . get -4 . should_equal Nothing
@@ -142,23 +142,23 @@ type_spec name alter = Test.group name <|
         alter [1,2,3] . get -4 "???" . should_equal "???"
         alter [1,2,3] . get 3 "???" . should_equal "???"
 
-    Test.specify "should have a well-defined length" <|
+    group_builder.specify "should have a well-defined length" <|
         alter [1,2,3] . length . should_equal 3
 
-    Test.specify "should allow folding an operator over its elements" <|
+    group_builder.specify "should allow folding an operator over its elements" <|
         alter [1,2,3] . fold 0 (+) . should_equal 6
         alter [] . fold 123 (+) . should_equal 123
 
-    Test.specify "should allow a running fold operator over its elements" <|
+    group_builder.specify "should allow a running fold operator over its elements" <|
         alter [1,2,3] . running_fold 0 (+) . should_equal [1, 3, 6]
         alter [] . running_fold 123 (+) . should_equal []
 
-    Test.specify "should allow to reduce elements if it is non-empty" <|
+    group_builder.specify "should allow to reduce elements if it is non-empty" <|
         alter [1,2,3] . reduce (+) . should_equal 6
         alter [] . reduce (+) . should_fail_with Empty_Error
         alter [] . reduce (+) 0 . should_equal 0
 
-    Test.specify "should check any" <|
+    group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.any (ix -> ix > 3) . should_be_true
         vec.any (ix -> ix < 0) . should_be_false
@@ -169,7 +169,7 @@ type_spec name alter = Test.group name <|
 
         Test.expect_panic_with matcher=Type_Error (vec.any "invalid argument")
 
-    Test.specify "should check all" <|
+    group_builder.specify "should check all" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.all (ix -> ix > 0) . should_be_true
         vec.all (ix -> ix < 5) . should_be_false
@@ -179,31 +179,31 @@ type_spec name alter = Test.group name <|
 
         Test.expect_panic_with matcher=Type_Error (vec.all "invalid argument")
 
-    Test.specify "should check contains" <|
+    group_builder.specify "should check contains" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.contains 1 . should_be_true
         vec.contains 0 . should_be_false
 
-    Test.specify "should check for emptiness" <|
+    group_builder.specify "should check for emptiness" <|
         non_empty = alter [1]
         empty = alter []
         non_empty.is_empty . should_be_false
         empty.is_empty . should_be_true
 
-    Test.specify "should check for non-emptiness" <|
+    group_builder.specify "should check for non-emptiness" <|
         non_empty = alter [1]
         empty = alter []
         non_empty.not_empty . should_be_true
         empty.not_empty . should_be_false
 
-    Test.specify "should filter elements by a predicate" <|
+    group_builder.specify "should filter elements by a predicate" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
         vec.filter (x -> if x == 2 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-    Test.specify "should filter elements by Filter_Condition" <|
+    group_builder.specify "should filter elements by Filter_Condition" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.filter (Filter_Condition.Greater than=3) . should_equal [4, 5]
         vec.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3]
@@ -300,7 +300,7 @@ type_spec name alter = Test.group name <|
 
         (alter [2, "a"]).filter (Filter_Condition.Greater 1) . should_fail_with Incomparable_Values
 
-    Test.specify "should allow Nothing when filtering by Filter_Condition" <|
+    group_builder.specify "should allow Nothing when filtering by Filter_Condition" <|
         (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Greater 2) . should_equal [3]
         (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Equal_Or_Less 2) . should_equal [1, 2]
         (alter ["a", 2, Nothing, 2]).filter (Filter_Condition.Equal 2) . should_equal [2, 2]
@@ -325,7 +325,7 @@ type_spec name alter = Test.group name <|
 
         (alter ["a", 2, Nothing, 3]).filter (Filter_Condition.Is_In [Nothing, 2]) . should_equal [2, Nothing]
 
-    Test.specify "should have a friendly error when missing Filter_Condition arguments" <|
+    group_builder.specify "should have a friendly error when missing Filter_Condition arguments" <|
         v = alter [0, 1, 2]
 
         r1 = v.filter Filter_Condition.Less
@@ -334,12 +334,12 @@ type_spec name alter = Test.group name <|
 
         v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
 
-    Test.specify "should filter elements with indices" <|
+    group_builder.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-    Test.specify "should partition elements" <|
+    group_builder.specify "should partition elements" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
         (vec . partition x-> if x == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
@@ -348,38 +348,38 @@ type_spec name alter = Test.group name <|
 
         Test.expect_panic_with matcher=Type_Error (vec.partition "invalid arg")
 
-    Test.specify "should partition elements with indices" <|
+    group_builder.specify "should partition elements with indices" <|
         alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair.new ["a", "c"] ["b", "d"])
         alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-    Test.specify "should allow to join a vector of text elements to form a single text" <|
+    group_builder.specify "should allow to join a vector of text elements to form a single text" <|
         alter ["a", "b", "c"] . join . should_equal "abc"
         alter ["a", "b", "c"] . join ";" "{" "}" . should_equal "{a;b;c}"
 
-    Test.specify "should allow mapping an operation, returning a new vector" <|
+    group_builder.specify "should allow mapping an operation, returning a new vector" <|
         vec = alter [1, 2, 3, 4]
         mapped = vec.map x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
 
-    Test.specify "should allow map on_problems=No_Wrap, returning a new vector" <|
+    group_builder.specify "should allow map on_problems=No_Wrap, returning a new vector" <|
         vec = alter [1, 2, 3, 4]
         mapped = vec.map on_problems=No_Wrap x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
 
-    Test.specify "should allow mapping an operation with index" <|
+    group_builder.specify "should allow mapping an operation with index" <|
         vec = alter [1, 2, 3, 4]
         mapped = vec.map_with_index i-> x-> x * x * i
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[0, 4, 18, 48]"
 
-    Test.specify "should allow flat_mapping an operation, returning a new vector" <|
+    group_builder.specify "should allow flat_mapping an operation, returning a new vector" <|
         vec = alter [1, 2, 0, 3]
         mapped = vec.flat_map n-> Vector.fill n n
         mapped.should_equal [1, 2, 2, 3, 3, 3]
 
-    Test.specify "should allow to flatten a nested vector" <|
+    group_builder.specify "should allow to flatten a nested vector" <|
         alter [[1, 2, 3], [4, 10], [], [0], [0]] . flatten . should_equal [1, 2, 3, 4, 10, 0, 0]
         alter [] . flatten . should_equal []
         alter [[]] . flatten . should_equal []
@@ -389,13 +389,13 @@ type_spec name alter = Test.group name <|
         alter [["a", 2], [], [[[3]]], [T.Value 1 2, 44]] . flatten . should_equal ["a", 2, [[3]], T.Value 1 2, 44]
         (alter ["polyglot", " ", "array"] . map .utf_8).flatten . should_equal "polyglot array".utf_8
 
-    Test.specify "should allow applying a function to each element" <|
+    group_builder.specify "should allow applying a function to each element" <|
         vec = alter [1, 2, 3, 4]
         vec_mut = Vector.new_builder
         vec.each vec_mut.append
         vec_mut.to_vector . should_equal vec
 
-    Test.specify "should accept changed elements" <|
+    group_builder.specify "should accept changed elements" <|
         vec_mut = Vector.new_builder
         vec_mut.append 1
         vec_mut.append 1.1
@@ -407,7 +407,7 @@ type_spec name alter = Test.group name <|
         vec.at 1 . should_equal 1.1
         vec.at 2 . should_equal Nothing
 
-    Test.specify "should accept Nothing" <|
+    group_builder.specify "should accept Nothing" <|
         vec_mut = Vector.new_builder
         vec_mut.append Nothing
 
@@ -415,16 +415,16 @@ type_spec name alter = Test.group name <|
         vec.length . should_equal 1
         vec.at 0 . should_equal Nothing
 
-    Test.specify "should allow reversing" <|
+    group_builder.specify "should allow reversing" <|
         alter [1, 2, 3] . reverse . should_equal [3, 2, 1]
 
-    Test.specify "should have a well-defined text conversion" <|
+    group_builder.specify "should have a well-defined text conversion" <|
         alter [] . to_text . should_equal "[]"
         alter [1,2,3] . to_text . should_equal "[1, 2, 3]"
         alter [Nothing] . to_text . should_equal "[Nothing]"
         alter ['a'] . to_text . should_equal "[a]"
 
-    Test.specify "should allow to generate a short text representation for display" <|
+    group_builder.specify "should allow to generate a short text representation for display" <|
         alter [] . short_display_text max_entries=3 . should_equal "[]"
         alter [1] . short_display_text max_entries=3 . should_equal "[1]"
         alter [1, 2] . short_display_text max_entries=3 . should_equal "[1, 2]"
@@ -437,17 +437,17 @@ type_spec name alter = Test.group name <|
 
         alter [] . short_display_text max_entries=0 . should_fail_with Illegal_Argument
 
-    Test.specify "should define equality" <|
+    group_builder.specify "should define equality" <|
         (alter [1,2,3])==[1,2] . should_be_false
         (alter [1,2,3])==[1,2,3] . should_be_true
         (alter [1,2,3])==[3,4,5] . should_be_false
 
-    Test.specify "should define concatenation" <|
+    group_builder.specify "should define concatenation" <|
         concat = (alter [1, 2, 3]) + (alter [4, 5, 6])
         concat.should_equal [1, 2, 3, 4, 5, 6]
         Test.expect_panic_with matcher=Type_Error ((alter [1, 2, 3])+1)
 
-    Test.specify "should allow finding a value" <|
+    group_builder.specify "should allow finding a value" <|
         input = alter [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         input.find (x -> x == 5) . should_equal 5
         input.find (x -> x%3 == 2) . should_equal 2
@@ -466,7 +466,7 @@ type_spec name alter = Test.group name <|
 
         alter ["b", "A", "c"] . find (Filter_Condition.Equal_Ignore_Case "a") . should_equal "A"
 
-    Test.specify "should allow finding the index of a value" <|
+    group_builder.specify "should allow finding the index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
         input.index_of (>3) . should_equal 3
@@ -482,7 +482,7 @@ type_spec name alter = Test.group name <|
         input.index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal 1
         input.index_of "text" . should_equal Nothing
 
-    Test.specify "should allow finding the last index of a value" <|
+    group_builder.specify "should allow finding the last index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.last_index_of 2 . should_equal 8
         input.last_index_of 5 . should_equal Nothing
@@ -496,12 +496,12 @@ type_spec name alter = Test.group name <|
         input.last_index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal input.length-2
         input.last_index_of "text" . should_equal Nothing
 
-    Test.specify "should be convertible to a list" <|
+    group_builder.specify "should be convertible to a list" <|
         alter [] . to_list . should_equal List.Nil
         alter ["A"] . to_list . should_equal (List.Cons "A" List.Nil)
         alter [1, 2, "B", 3] . to_list . should_equal (List.Cons 1 (List.Cons 2 (List.Cons "B" (List.Cons 3 List.Nil))))
 
-    Test.specify "Vector slice should return a Vector" <|
+    group_builder.specify "Vector slice should return a Vector" <|
         vec = alter [1, 2, 3, 4, 5, 6]
         vec.slice 0 3 . should_equal [1, 2, 3]
         vec.slice 1 3 . should_equal [2, 3]
@@ -511,7 +511,7 @@ type_spec name alter = Test.group name <|
         Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
         Meta.get_simple_type_name (vec.slice 1 1) . should_equal "Vector"
 
-    Test.specify "should define take and drop family of operations" <|
+    group_builder.specify "should define take and drop family of operations" <|
         vec = alter [1, 2, 3, 4, 5, 6]
         first_four = alter [1, 2, 3, 4]
         last_four = alter [3, 4, 5, 6]
@@ -633,17 +633,17 @@ type_spec name alter = Test.group name <|
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
 
-    Test.group "take/drop Sample non-determinism" <|
+    suite_builder.group "take/drop Sample non-determinism" group_builder->
         v = 0.up_to 20 . to_vector
 
-        Test.specify "sampling should be deterministic when a seed is supplied" <|
+        group_builder.specify "sampling should be deterministic when a seed is supplied" <|
             v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
 
-        Test.specify "sampling should be non-deterministic when a seed is not supplied" <|
+        group_builder.specify "sampling should be non-deterministic when a seed is not supplied" <|
             0.up_to 3 . map _->
                 v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
-    Test.specify "take/drop should gracefully handle missing constructor arguments" <|
+    group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
         [].take "FOO" . should_fail_with Type_Error
         [].drop "FOO" . should_fail_with Type_Error
 
@@ -659,7 +659,7 @@ type_spec name alter = Test.group name <|
         r3.should_fail_with Illegal_Argument
         r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
-    Test.specify "should allow getting the last element of the vector" <|
+    group_builder.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
         singleton_vec = alter [1]
         empty_vec = alter []
@@ -667,7 +667,7 @@ type_spec name alter = Test.group name <|
         singleton_vec.last . should_equal 1
         empty_vec.last . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should allow getting the first element" <|
+    group_builder.specify "should allow getting the first element" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
         singleton_vec = alter [1]
         empty_vec = alter []
@@ -675,7 +675,7 @@ type_spec name alter = Test.group name <|
         singleton_vec.first . should_equal 1
         empty_vec.first . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should allow getting the second element" <|
+    group_builder.specify "should allow getting the second element" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
         singleton_vec = alter [1]
         empty_vec = alter []
@@ -683,7 +683,7 @@ type_spec name alter = Test.group name <|
         singleton_vec.second . should_fail_with Index_Out_Of_Bounds
         empty_vec.second . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should be able to be sorted" <|
+    group_builder.specify "should be able to be sorted" <|
         empty_vec = alter []
         short_vec = alter [2, 4, 38, -1, -1000, 3671, -32]
         short_expected = alter [-1000, -32, -1, 2, 4, 38, 3671]
@@ -698,53 +698,53 @@ type_spec name alter = Test.group name <|
         alter ["aa", 2] . sort . should_equal [2, "aa"]
         alter [2, Date.new 1999] . sort . should_equal [2, Date.new 1999]
 
-    Test.specify "should leave the original vector unchanged" <|
+    group_builder.specify "should leave the original vector unchanged" <|
         non_empty_vec = alter [2, 4, 2, 3, 2, 3]
         sorted = non_empty_vec.sort
         non_empty_vec . should_equal [2, 4, 2, 3, 2, 3]
         sorted . should_equal [2, 2, 2, 3, 3, 4]
 
-    Test.specify "should have a stable sort" <|
+    group_builder.specify "should have a stable sort" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value 4 0]
         small_vec.sort . should_equal small_expected
 
-    Test.specify "should fail the sort if Report_Error problem_behavior specified" <|
+    group_builder.specify "should fail the sort if Report_Error problem_behavior specified" <|
         alter [T.Value 1 8, Nothing] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
         alter [Nothing, Number.nan] . sort on_incomparable=Problem_Behavior.Report_Error . should_fail_with Incomparable_Values
 
-    Test.specify "should be able to use a custom element projection" <|
+    group_builder.specify "should be able to use a custom element projection" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value -20 0, T.Value 4 0, T.Value -1 1, T.Value 1 3, T.Value 1 8, T.Value -1 10]
         small_vec.sort (on = _.b) . should_equal small_expected
         small_vec.sort (on = .b) . should_equal small_expected
 
-    Test.specify "should be able to use a custom compare function" <|
+    group_builder.specify "should be able to use a custom compare function" <|
         small_vec = alter [2, 7, -3, 383, -392, 28, -90]
         small_expected = [383, 28, 7, 2, -3, -90, -392]
         small_vec.sort (by = l -> r -> Ordering.compare r l) . should_equal small_expected
 
-    Test.specify "should allow tail-recursive comparators in sort" <|
+    group_builder.specify "should allow tail-recursive comparators in sort" <|
          v = alter [Foo.Value [4,2,2], Foo.Value [1,2,3], Foo.Value [1,2,4]]
          r = alter [Foo.Value [1,2,3], Foo.Value [1,2,4], Foo.Value [4,2,2]]
          v.sort by=compare_tco . should_equal r
 
-    Test.specify "should be able to use a custom compare function and projection" <|
+    group_builder.specify "should be able to use a custom compare function and projection" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = alter [T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value -1 1, T.Value -20 0, T.Value 4 0]
         small_vec.sort (on = _.b) (by = l -> r -> Ordering.compare r l) . should_equal small_expected
 
-    Test.specify "should be able to sort in descending order" <|
+    group_builder.specify "should be able to sort in descending order" <|
         small_vec = alter [2, 7, -3, 383, -392, 28, -90]
         small_expected = alter [383, 28, 7, 2, -3, -90, -392]
         small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
-    Test.specify "should be stable in descending order" <|
+    group_builder.specify "should be stable in descending order" <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = alter [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
         small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
-    Test.specify "should correctly propagate state through each" <|
+    group_builder.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
             b = Vector.new_builder
             (alter ["A", "B"]).each x->
@@ -754,7 +754,7 @@ type_spec name alter = Test.group name <|
 
         v.should_equal ['A', '77', 'B', '77']
 
-    Test.specify "should correctly propagate state through map" <|
+    group_builder.specify "should correctly propagate state through map" <|
         v = State.run Number 55 <|
             b = Vector.new_builder
             (alter ["X", "Y"]).map x->
@@ -764,41 +764,41 @@ type_spec name alter = Test.group name <|
 
         v.should_equal ['X', '55', 'Y', '55']
 
-    Test.specify "should pad elements" <|
+    group_builder.specify "should pad elements" <|
         alter [] . pad 3 0 . should_equal [0, 0, 0]
         alter [1, 2, 3] . pad 0 0 . should_equal [1, 2, 3]
         alter [1, 2, 3] . pad 3 0 . should_equal [1, 2, 3]
         alter [1] . pad 3 0 . should_equal [1, 0, 0]
 
-    Test.specify "should zip elements" <|
+    group_builder.specify "should zip elements" <|
         alter [1, 2, 3] . zip [] (+) . should_equal []
         alter [1, 2, 3] . zip [4] (+) . should_equal [5]
         alter [1, 2, 3] . zip [4, 5, 6] (+) . should_equal [5, 7, 9]
         alter [1, 2, 3] . zip [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
         alter [] . zip [4, 5, 6] (+) . should_equal []
 
-    Test.specify "should zip elements with zip on_problems=No_Wrap" <|
+    group_builder.specify "should zip elements with zip on_problems=No_Wrap" <|
         alter [1, 2, 3] . zip on_problems=No_Wrap [] (+) . should_equal []
         alter [1, 2, 3] . zip on_problems=No_Wrap [4] (+) . should_equal [5]
         alter [1, 2, 3] . zip on_problems=No_Wrap [4, 5, 6] (+) . should_equal [5, 7, 9]
         alter [1, 2, 3] . zip on_problems=No_Wrap [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
         alter [] . zip on_problems=No_Wrap [4, 5, 6] (+) . should_equal []
 
-    Test.specify "should flat_map elements" <|
+    group_builder.specify "should flat_map elements" <|
         alter [1, 2, 3] . flat_map (_ -> []) . should_equal []
         alter [1, 2, 3] . flat_map (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
         alter [1, 2, 3] . flat_map (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
         alter [0, 1, 0] . flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
         alter [0, 0, 0] . flat_map (i -> [i]) . should_equal [0, 0, 0]
 
-    Test.specify "should flat_map elements with flat_map on_problems=No_Wrap" <|
+    group_builder.specify "should flat_map elements with flat_map on_problems=No_Wrap" <|
         alter [1, 2, 3] . flat_map on_problems=No_Wrap (_ -> []) . should_equal []
         alter [1, 2, 3] . flat_map on_problems=No_Wrap (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
         alter [1, 2, 3] . flat_map on_problems=No_Wrap (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
         alter [0, 1, 0] . flat_map on_problems=No_Wrap (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
         alter [0, 0, 0] . flat_map on_problems=No_Wrap (i -> [i]) . should_equal [0, 0, 0]
 
-    Test.specify "should allow inserting elements" <|
+    group_builder.specify "should allow inserting elements" <|
         alter [2, 3] . insert . should_equal [2, 3, Nothing]
         alter [2, 3] . insert item=1 . should_equal [2, 3, 1]
         alter [2, 3] . insert 100 item=1 . should_fail_with Index_Out_Of_Bounds
@@ -808,21 +808,21 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3] . insert -1 item=4 . should_equal [1, 2, 4, 3]
         alter [1, 2, 3] . insert -20 item=4 . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should allow removing elements" <|
+    group_builder.specify "should allow removing elements" <|
         alter [1, 2, 3] . remove . should_equal [1, 2]
         alter [1, 2, 3] . remove 100 . should_fail_with Index_Out_Of_Bounds
         alter [1, 2, 3] . remove -123 . should_fail_with Index_Out_Of_Bounds
         alter [1, 2, 3] . remove 0 . should_equal [2, 3]
         alter [1, 2, 3] . remove -1 . should_equal [1, 2]
 
-    Test.specify "should return a vector containing only unique elements" <|
+    group_builder.specify "should return a vector containing only unique elements" <|
         alter [1, 3, 1, 2, 2, 1] . distinct . should_equal [1, 3, 2]
         alter ["a", "a", "a"] . distinct . should_equal ["a"]
         alter ['ś', 's', 's\u0301'] . distinct . should_equal ['ś', 's']
         alter [1, 1.0, 2, 2.0] . distinct . should_equal [1, 2]
         alter [] . distinct . should_equal []
 
-    Test.specify "should be able to handle distinct on different primitive values" <|
+    group_builder.specify "should be able to handle distinct on different primitive values" <|
         alter [1, "a"] . distinct . should_equal [1, "a"]
         alter ["a", 1] . distinct . should_equal ["a", 1]
         alter [Nothing, Nothing] . distinct . should_equal [Nothing]
@@ -837,27 +837,27 @@ type_spec name alter = Test.group name <|
         my_nan = My_Nan.Value 42
         alter [my_nan, Number.nan, my_nan] . distinct . to_text . should_equal "[(My_Nan.Value 42), NaN]"
 
-    Test.specify "should correctly handle distinct with types that have custom comparators" <|
+    group_builder.specify "should correctly handle distinct with types that have custom comparators" <|
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2] . distinct . should_equal [T.Value 1 2, T.Value 3 3]
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [T.Value 1 2, T.Value 3 3, Nothing]
         alter [Nothing, T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [Nothing, T.Value 1 2, T.Value 3 3]
         alter [T.Value 1 2, Date.new year=1973] . distinct . should_equal [T.Value 1 2, Date.new year=1973]
 
-    Test.specify "should return a vector containing only unique elements up to some criteria" <|
+    group_builder.specify "should return a vector containing only unique elements up to some criteria" <|
         alter [Pair.new 1 "a", Pair.new 2 "b", Pair.new 1 "c"] . distinct (on = _.first) . should_equal [Pair.new 1 "a", Pair.new 2 "b"]
 
-    Test.specify "should be able to sort a heterogenous vector" <|
+    group_builder.specify "should be able to sort a heterogenous vector" <|
         arr = alter [ 1, 1.3, "hi", Date.today, Date_Time.now, [ 0 ] ]
         (arr.sort on=(.to_text) . map .to_text) . should_equal (arr.map .to_text . sort)
         (arr.sort on=(_.to_text) . map .to_text) . should_equal (arr.map .to_text . sort)
         (arr.sort on=(x-> x.to_text) . map .to_text) . should_equal (arr.map .to_text . sort)
 
-    Test.specify "should be able to sort a polyglot vector" <|
+    group_builder.specify "should be able to sort a polyglot vector" <|
         input = "beta".utf_8
         expected = "abet".utf_8
         input.sort . should_equal expected
 
-    Test.specify "should report only a limited number of warnings for incomparable values" <|
+    group_builder.specify "should report only a limited number of warnings for incomparable values" <|
         gen x = case (x % 10) of
             0 -> Nothing
             1 -> "foo"+x.to_text
@@ -874,86 +874,87 @@ type_spec name alter = Test.group name <|
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
-    Test.specify "an error thrown inside map should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside map should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
-    Test.specify "an error thrown inside map on_problems=No_Wrap should be caught as a My_Error" <|
+    group_builder.specify "an error thrown inside map on_problems=No_Wrap should be caught as a My_Error" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap map_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map_with_index on_problems=No_Wrap should be caught as a My_Error" <|
+    group_builder.specify "an error thrown inside map_with_index on_problems=No_Wrap should be caught as a My_Error" <|
         map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
         alter [10, 20, 30, 40] . map_with_index on_problems=No_Wrap map_with_index_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map and caught (without error parameter) should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside map and caught (without error parameter) should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside map and caught (with error parameter My_Error) should be caught as a My_Error" <|
+    group_builder.specify "an error thrown inside map and caught (with error parameter My_Error) should be caught as a My_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch My_Error . should_equal (My_Error.Error 30)
 
-    Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside map and caught (with error parameter Map_Error) should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside flat_map should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside flat_map should be caught as a Map_Error" <|
         vec = alter ([[10], [20], [30], [40]].map alter)
         vec.flat_map flat_map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error [30])) unwrap_errors=False
 
-    Test.specify "an error thrown inside map_with_index should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside map_with_index should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
-    Test.specify "an error thrown inside zip should be caught as a Map_Error" <|
+    group_builder.specify "an error thrown inside zip should be caught as a Map_Error" <|
         vec = alter [10, 20, 30, 40]
         vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
-    Test.specify "an error thrown inside nested maps should be wrapped multiple times" <|
+    group_builder.specify "an error thrown inside nested maps should be wrapped multiple times" <|
         nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
         nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30))) unwrap_errors=False
 
-    Test.specify "nested Map_Error indicies should be in the correct order" <|
+    group_builder.specify "nested Map_Error indicies should be in the correct order" <|
         nested_vector = [[10, 20, 30, 40], [30, 10, 20, 30]]
         expected_warnings = [(Map_Error.Error 1 (Map_Error.Error 3 (My_Error.Error 30))), (Map_Error.Error 1 (Map_Error.Error 0 (My_Error.Error 30))), (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))]
         Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=Problem_Behavior.Report_Warning) on_problems=Problem_Behavior.Report_Warning) . map .value . should_equal expected_warnings
 
-    Test.specify "a Nothing thrown inside map should be caught as Nothing" <|
+    group_builder.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing) unwrap_errors=False
 
-    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
+    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
         results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
         results . should_equal [11, 21, Nothing, 41]
         Warning.get_all results wrap_errors=True . should_equal []
 
-    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
+    group_builder.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
         result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, 21, Nothing, 41]
         Warning.get_all result wrap_errors=True . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
-    Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
+    group_builder.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
         Warning.get_all result wrap_errors=True . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
-    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
+    group_builder.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
         Warning.get_all result wrap_errors=True . map .value . should_equal expected_warnings
 
-    Test.specify "map on_problems=No_Wrap does not do error wrapping" <|
+    group_builder.specify "map on_problems=No_Wrap does not do error wrapping" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap map_fun . catch . should_equal (My_Error.Error 30)
 
-    Test.specify "zip on_problems=No_Wrap does not do error wrapping" <|
+    group_builder.specify "zip on_problems=No_Wrap does not do error wrapping" <|
         zip_fun a _ = if a == 30 then Error.throw (My_Error.Error a) else a+1
         arr = alter [10, 20, 30, 40]
         arr . zip on_problems=No_Wrap arr zip_fun . catch . should_equal (My_Error.Error 30)
 
-    Test.specify "flat_map on_problems=No_Wrap does not do error wrapping" <|
+    group_builder.specify "flat_map on_problems=No_Wrap does not do error wrapping" <|
         vec = alter [1, 2, 0, 3]
         vec.flat_map on_problems=No_Wrap (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
-spec =
-    Test.group "Vector builder" <|
-        Test.specify "empty builder.get" <|
+
+add_specs suite_builder =
+    suite_builder.group "Vector builder" group_builder->
+        group_builder.specify "empty builder.get" <|
             b = Vector.new_builder
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
                 err.payload
@@ -961,7 +962,7 @@ spec =
             e.index . should_equal 0
             e.length . should_equal 0
 
-        Test.specify "one number builder.get" <|
+        group_builder.specify "one number builder.get" <|
             b = Vector.new_builder
             b.append 32
             e = Panic.catch Index_Out_Of_Bounds (b.at 1) err->
@@ -971,67 +972,67 @@ spec =
             e.length . should_equal 1
             b.at 0 . should_equal 32
 
-        Test.specify "Vector.collect lazy" <|
+        group_builder.specify "Vector.collect lazy" <|
             seq = Fib.sequence
             seq.take 5 . should_equal [1, 1, 2, 3, 5]
 
-        Test.specify "Vector.collect empty list" <|
+        group_builder.specify "Vector.collect empty list" <|
             l = List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal []
 
-        Test.specify "Vector.collect finite" <|
+        group_builder.specify "Vector.collect finite" <|
             l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
 
-    Test.group "Vector/Array equality" <|
+    suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]
         a1 = v1.to_array
 
         v2 = [1, 2, 3]
         a2 = v2.to_array
 
-        Test.specify "vector1 should be equal to vector1" <|
+        group_builder.specify "vector1 should be equal to vector1" <|
             v1.should_equal v1
 
-        Test.specify "vector1 should be equal to vector2" <|
+        group_builder.specify "vector1 should be equal to vector2" <|
             v1.should_equal v2
 
-        Test.specify "vector1 should be equal to array1" <|
+        group_builder.specify "vector1 should be equal to array1" <|
             v1.should_equal a1
 
-        Test.specify "vector1 should be equal to array2" <|
+        group_builder.specify "vector1 should be equal to array2" <|
             v1.should_equal a2
 
-        Test.specify "array1 should be equal to vector1" <|
+        group_builder.specify "array1 should be equal to vector1" <|
             a1.should_equal v1
 
-        Test.specify "array1 should be equal to vector2" <|
+        group_builder.specify "array1 should be equal to vector2" <|
             a1.should_equal v2
 
-        Test.specify "array1 should be equal to array1" <|
+        group_builder.specify "array1 should be equal to array1" <|
             a1.should_equal a1
 
-        Test.specify "array1 should be equal to array2" <|
+        group_builder.specify "array1 should be equal to array2" <|
             a1.should_equal a2
 
-        Test.specify "should have a well-defined debug-printing method" <|
+        group_builder.specify "should have a well-defined debug-printing method" <|
             [].pretty.should_equal "[]"
             [1,2,3].pretty.should_equal "[1, 2, 3]"
             [Nothing].pretty.should_equal "[Nothing]"
             [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
             [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
 
-    type_spec "Use Vector as vectors" identity
-    type_spec "Use Array as vectors" (v -> v.to_array)
-    type_spec "Use Java ArrayList as vectors" v->
+    type_spec suite_builder "Use Vector as vectors" identity
+    type_spec suite_builder "Use Array as vectors" (v -> v.to_array)
+    type_spec suite_builder "Use Java ArrayList as vectors" v->
         arr = ArrayList.new
         v.each (x -> arr.add x)
         arr
-    type_spec "Use Array_Proxy as vectors" v->
+    type_spec suite_builder "Use Array_Proxy as vectors" v->
         Array_Proxy.new v.length (ix -> v.at ix)
-    type_spec "Use a slice of an array as vectors" v->
+    type_spec suite_builder "Use a slice of an array as vectors" v->
         v2 = v+[Nothing]
         sliced_vector = v2.slice 0 v.length
         sliced_array = sliced_vector.to_array
@@ -1049,4 +1050,8 @@ type Fib
         start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
         start
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

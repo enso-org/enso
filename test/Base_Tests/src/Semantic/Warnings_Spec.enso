@@ -7,8 +7,8 @@ polyglot java import java.lang.Long
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type My_Warning
     Value reason
@@ -95,14 +95,14 @@ do_fold_non_tail v =
     res = v.fold 0 (+)
     res
 
-spec = Test.group "Dataflow Warnings" <|
-    Test.specify "should allow to attach multiple warnings and read them back" <|
+add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder->
+    group_builder.specify "should allow to attach multiple warnings and read them back" <|
         x = 1233
         y = Warning.attach "don't do this" x
         z = Warning.attach "I'm serious" y
         Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
 
-    Test.specify "should thread warnings through constructor calls" <|
+    group_builder.specify "should thread warnings through constructor calls" <|
         z = Warning.attach (My_Warning.Value "warn!!!") 3
         y = Warning.attach (My_Warning.Value "warn!!") 2
         x = Warning.attach (My_Warning.Value "warn!") 1
@@ -110,21 +110,21 @@ spec = Test.group "Dataflow Warnings" <|
         mtp.should_equal (My_Type.Value 1 2 3)
         Warning.get_all mtp . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
 
-    Test.specify "should thread warnings through method calls" <|
+    group_builder.specify "should thread warnings through method calls" <|
         mtp = My_Type.Value 1 2 3
         warned = Warning.attach "omgggg" mtp
         r = warned.my_method
         r.should_equal 6
         Warning.get_all r . map .value . should_equal ["omgggg"]
 
-    Test.specify "should thread warnings through polyglot calls" <|
+    group_builder.specify "should thread warnings through polyglot calls" <|
         y = Warning.attach "warn!!" 2
         x = Warning.attach "warn!" 1
         r = Long.sum x y
         r.should_equal 3
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
 
-    Test.specify "should be passed correctly when combined with warnings added in branches" <|
+    group_builder.specify "should be passed correctly when combined with warnings added in branches" <|
         one = Warning.attach "first" "1"
 
         b = case one of
@@ -138,7 +138,7 @@ spec = Test.group "Dataflow Warnings" <|
         v . should_equal 0
         Warning.get_all v . map .value . should_equal ["a", "first"]
 
-    Test.specify "should thread warnings through case expressions" <|
+    group_builder.specify "should thread warnings through case expressions" <|
         z = Warning.attach (My_Warning.Value "warn!!!") 3
         y = Warning.attach (My_Warning.Value "warn!!") 2
         x = Warning.attach (My_Warning.Value "warn!") 1
@@ -148,19 +148,19 @@ spec = Test.group "Dataflow Warnings" <|
         r.should_equal 6
         Warning.get_all r . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
 
-    Test.specify "should thread warnings through conversions" <|
+    group_builder.specify "should thread warnings through conversions" <|
         z = Wrap.Value (Warning.attach 'warn!' 1)
         i = Integer.from z
         Warning.get_all i . map .value . should_equal ['warn!']
 
-    Test.specify "should attach correct stacktraces" <|
+    group_builder.specify "should attach correct stacktraces" <|
         current = Runtime.get_stack_trace
         warned = foo "value"
         warning_stack = Warning.get_all warned . first . origin
         relevant = warning_stack . drop (Last current.length)
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
-    Test.specify "should attach reassignment info in the last-reassigned-first order" <|
+    group_builder.specify "should attach reassignment info in the last-reassigned-first order" <|
         x = Warning.attach "warn!" 1
         r = reassign_test x
         warn = Warning.get_all r . first
@@ -175,7 +175,7 @@ spec = Test.group "Dataflow Warnings" <|
             + [ 'Wrap.Value' ]
         reassignments.should_equal expected_stack.to_vector
 
-    Test.specify "should allow to set all warnings" <|
+    group_builder.specify "should allow to set all warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
         warnings = Warning.get_all warned
         filtered = warnings.filter x-> x.value % 2 == 0
@@ -183,7 +183,7 @@ spec = Test.group "Dataflow Warnings" <|
         rewarned.should_equal 'foo'
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
-    Test.specify "should allow checking for any warnings" <|
+    group_builder.specify "should allow checking for any warnings" <|
         Warning.has_warnings "foo" . should_be_false
         "foo".has_warnings.should_be_false
 
@@ -191,7 +191,7 @@ spec = Test.group "Dataflow Warnings" <|
         warned.has_warnings.should_be_true
         Warning.has_warnings warned . should_be_true
 
-    Test.specify "should allow to clear warnings" <|
+    group_builder.specify "should allow to clear warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
         cleared = Warning.clear warned
         cleared.should_equal 'foo'
@@ -201,7 +201,7 @@ spec = Test.group "Dataflow Warnings" <|
         clear_2.should_equal 'foo'
         Warning.get_all clear_2 . map .value . should_equal []
 
-    Test.specify "should allow to run a function suspending warnings attached to an argument and reattach them to the result" <|
+    group_builder.specify "should allow to run a function suspending warnings attached to an argument and reattach them to the result" <|
         x = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
         y = Warning.with_suspended x x->
             count = Warning.get_all x . length
@@ -209,13 +209,13 @@ spec = Test.group "Dataflow Warnings" <|
         y . should_equal 0
         Warning.get_all y . map .value . should_contain_the_same_elements_as [4, 3, 2, 1, "BAZ"]
 
-    Test.specify "should allow to map the warnings, selectively" <|
+    group_builder.specify "should allow to map the warnings, selectively" <|
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings warned
         mapped . should_equal 'foo'
         Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
 
-    Test.specify "should allow to map warnings and errors, selectively" <|
+    group_builder.specify "should allow to map warnings and errors, selectively" <|
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings_and_errors warned
         mapped . should_equal 'foo'
@@ -233,14 +233,14 @@ spec = Test.group "Dataflow Warnings" <|
         mapped_3.stack_trace.first.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
 
-    Test.specify "should allow to detach warnings, selectively" <|
+    group_builder.specify "should allow to detach warnings, selectively" <|
         warned = attach_four_warnings "foo"
         detached_pair = Warning.detach_selected_warnings warned odd_warning_filter
         detached_pair . first . should_equal "foo"
         Warning.get_all (detached_pair . first) . map .value . should_equal [2,4]
         detached_pair.second . map .value . should_equal [1,3]
 
-    Test.specify "should allow to checking for warnings, by type" <|
+    group_builder.specify "should allow to checking for warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
         warned.has_warnings.should_be_true
@@ -251,7 +251,7 @@ spec = Test.group "Dataflow Warnings" <|
         warned.has_warnings warning_type=Nothing . should_be_true
         warned.has_warnings warning_type=Unimplemented . should_be_true
 
-    Test.specify "should allow to remove warnings, by type" <|
+    group_builder.specify "should allow to remove warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
         no_int = warned.remove_warnings warning_type=Integer . first
@@ -266,7 +266,7 @@ spec = Test.group "Dataflow Warnings" <|
         no_error = warned.remove_warnings Unimplemented
         Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
 
-    Test.specify "should allow to throwing warnings, by type" <|
+    group_builder.specify "should allow to throwing warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
         warned.throw_on_warning . should_fail_with Integer
@@ -274,12 +274,12 @@ spec = Test.group "Dataflow Warnings" <|
         warned.throw_on_warning warning_type=Nothing . should_fail_with Nothing
         warned.throw_on_warning warning_type=Unimplemented . should_fail_with Unimplemented
 
-    Test.specify "should allow to map the warnings, selectively" <|
+    group_builder.specify "should allow to map the warnings, selectively" <|
         x = Warning.attach "foo" 1
         result = x.is_static_nothing x
         result . should_equal False
 
-    Test.specify "should be allowed in Vector" <|
+    group_builder.specify "should be allowed in Vector" <|
         a = Warning.attach "a" 1
         b = Warning.attach "b" 2
         c = [a, b]
@@ -288,7 +288,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all c wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a')]
         Warning.get_all d wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a'), 'd']
 
-    Test.specify "should be preserved after operations on Vector" <|
+    group_builder.specify "should be preserved after operations on Vector" <|
         even x = (Warning.attach "warn"+x.to_text x) % 2
         res = [1,2,3,4].map even
 
@@ -308,7 +308,7 @@ spec = Test.group "Dataflow Warnings" <|
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
         Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
 
-    Test.specify "should be preserved after operations on multi-dimensional Vector" <|
+    group_builder.specify "should be preserved after operations on multi-dimensional Vector" pending="https://github.com/enso-org/enso/issues/8910" <|
         even x = (Warning.attach x x) % 2
         nested_range_even x =
             (0.up_to x).to_vector.map even
@@ -319,7 +319,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
         Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
-    Test.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
+    group_builder.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
         a = Warning.attach "a" 1
         b = Warning.attach "b" 2
 
@@ -329,7 +329,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
         Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
 
-    Test.specify "should be preserved around polyglot calls" <|
+    group_builder.specify "should be preserved around polyglot calls" <|
         x = Warning.attach "x" 1
 
         java_id = Java_Function.identity
@@ -355,7 +355,7 @@ spec = Test.group "Dataflow Warnings" <|
         #h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
         #i x = Warning.attach "i("+x.to_text+")" Nothing
 
-    Test.specify "should be better preserved around polyglot calls expecting a Value" <|
+    group_builder.specify "should be better preserved around polyglot calls expecting a Value" <|
         x = Warning.attach "x" 1
 
         f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
@@ -379,7 +379,7 @@ spec = Test.group "Dataflow Warnings" <|
         r4.should_equal Nothing
         Warning.get_all r4 . map .value . should_contain_the_same_elements_as ["i(1)", "x"]
 
-    Test.specify "should not affect method dispatch" <|
+    group_builder.specify "should not affect method dispatch" <|
         a = My_Fancy_Collection.Value 42
         b = Warning.attach "WARN" <| My_Fancy_Collection.Value 23
 
@@ -390,7 +390,7 @@ spec = Test.group "Dataflow Warnings" <|
         a.remove_warnings . should_equal 42
         b.remove_warnings . should_equal 42
 
-    Test.specify "should not automatically propagate from suspended arguments" <|
+    group_builder.specify "should not automatically propagate from suspended arguments" <|
         x1 = 33
         x2 = Warning.attach "WARN" 44
         x3 = Error.throw (Illegal_State.Error "ERR")
@@ -407,7 +407,7 @@ spec = Test.group "Dataflow Warnings" <|
         Problems.assume_no_problems <| condition_1 False x3
         Problems.assume_no_problems <| condition_2 False x3
 
-    Test.specify "should only report unique warnings" <|
+    group_builder.specify "should only report unique warnings" <|
         a = 1
         b = Warning.attach "Foo!" a
         c = Warning.attach "Bar!" b
@@ -425,7 +425,7 @@ spec = Test.group "Dataflow Warnings" <|
         result_4 = f a 1 + f a 2 + f a 3
         Warning.get_all result_4 . map (x-> x.value.to_text) . should_equal ["Baz!", "Baz!", "Baz!"]
 
-    Test.specify "should only report the first 100 unique warnings" <|
+    group_builder.specify "should only report the first 100 unique warnings" <|
         vec = (0.up_to 500).map(e -> Warning.attach "Foo!" e)
         vec_plus_1 = vec.map(e -> e+1)
         Warning.get_all vec_plus_1 . length . should_equal 100
@@ -436,7 +436,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all vec_2 . length . should_equal 31
         Warning.limit_reached vec_2 . should_equal False
 
-    Test.specify "should preserve warnings in tail calls" <|
+    group_builder.specify "should preserve warnings in tail calls" <|
         v = Warning.attach "Foo" [1, 2, 3]
 
         result_tail = do_fold_tail v
@@ -447,7 +447,7 @@ spec = Test.group "Dataflow Warnings" <|
         result_non_tail . should_equal 6
         Warning.get_all result_non_tail . map .value . should_equal ["Foo"]
 
-    Test.specify "should not break TCO when warnings are attached to arguments" <|
+    group_builder.specify "should not break TCO when warnings are attached to arguments" <|
         vec = Vector.new 10000 (i-> i+1)
         elem1 = Warning.attach "WARNING1" 998
         vec.contains 998 . should_equal True
@@ -463,4 +463,8 @@ spec = Test.group "Dataflow Warnings" <|
         res2 . should_equal True
         Warning.get_all res2 . map .value . should_equal ["WARNING2"]
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

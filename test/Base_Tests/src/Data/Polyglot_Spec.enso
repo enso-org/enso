@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Integer as Java_Integer
@@ -10,39 +10,39 @@ polyglot java import java.time.LocalDate
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.IntHolder
 
-spec = Test.group "Polyglot" <|
-    Test.specify "should be able to invoke a polyglot method by name and pass arguments" <|
+spec = suite_builder.group "Polyglot" group_builder->
+    group_builder.specify "should be able to invoke a polyglot method by name and pass arguments" <|
         poly_date = LocalDate.now
         date = Date.today.to_date_time
 
         Polyglot.invoke poly_date "atStartOfDay" [] . should_equal date
         Polyglot.invoke poly_date "atStartOfDay" [].to_array . should_equal date
 
-    Test.specify "should be able to create a new polyglot object using the constructor" <|
+    group_builder.specify "should be able to create a new polyglot object using the constructor" <|
         Polyglot.new String ["42"] . should_equal "42"
         Polyglot.new String ["42"].to_array . should_equal "42"
 
-    Test.specify "use Integer created by constructor" <|
+    group_builder.specify "use Integer created by constructor" <|
         Polyglot.new Java_Integer [42] . should_equal 42
 
-    Test.specify "use Double created by constructor" <|
+    group_builder.specify "use Double created by constructor" <|
         Polyglot.new Double [42] . should_equal 42
 
-    Test.specify "use Integer read from Polyglot object" <|
+    group_builder.specify "use Integer read from Polyglot object" <|
         (Polyglot.get_member js_meaning "meaning") . should_equal 42
 
-    Test.specify "access Integer field from Polyglot object" <|
+    group_builder.specify "access Integer field from Polyglot object" <|
         js_meaning.meaning . should_equal 42
 
-    Test.specify "use Integer obtained from a call" <|
+    group_builder.specify "use Integer obtained from a call" <|
         Java_Integer.parseInt "42" . should_equal 42
 
-    Test.specify "use Integer obtained from a read" <|
+    group_builder.specify "use Integer obtained from a read" <|
         hold = IntHolder.new (6 * 7)
         hold.value . should_equal 42
         hold.boxed . should_equal 42
 
-    Test.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
+    group_builder.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Java_Function.identity
         Polyglot.execute fun ["42"] . should_equal "42"
         Polyglot.execute fun ["42"].to_array . should_equal "42"
@@ -50,4 +50,8 @@ spec = Test.group "Polyglot" <|
 foreign js js_meaning = """
     return { meaning : 6 * 7 };
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

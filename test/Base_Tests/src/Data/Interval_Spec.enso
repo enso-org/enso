@@ -1,17 +1,17 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "Bound" <|
-        Test.specify "should allow constructing inclusive bounds" <|
+
+add_specs suite_builder =
+    suite_builder.group "Bound" group_builder->
+        group_builder.specify "should allow constructing inclusive bounds" <|
             bound = Bound.Inclusive 0
             bound.n . should_equal 0
-        Test.specify "should allow constructing exclusive bounds" <|
+        group_builder.specify "should allow constructing exclusive bounds" <|
             bound = Bound.Exclusive 0
             bound.n . should_equal 0
-        Test.specify "should be able to be checked for equality" <|
+        group_builder.specify "should be able to be checked for equality" <|
             inclusive_1 = Bound.Inclusive 10
             inclusive_2 = Bound.Inclusive 5
             exclusive_1 = Bound.Exclusive 10
@@ -22,24 +22,24 @@ spec =
             (exclusive_1 == exclusive_2) . should_be_false
             (inclusive_1 == exclusive_1) . should_be_false
 
-    Test.group "Interval" <|
-        Test.specify "should allow constructing exclusive intervals" <|
+    suite_builder.group "Interval" group_builder->
+        group_builder.specify "should allow constructing exclusive intervals" <|
             interval = Interval.new 1 5 Interval_Type.Exclusive
             interval.start . should_equal (Bound.Exclusive 1)
             interval.end . should_equal (Bound.Exclusive 5)
-        Test.specify "should allow constructing start-exclusive intervals" <|
+        group_builder.specify "should allow constructing start-exclusive intervals" <|
             interval = Interval.new 1 5 Interval_Type.Start_Exclusive
             interval.start . should_equal (Bound.Exclusive 1)
             interval.end . should_equal (Bound.Inclusive 5)
-        Test.specify "should allow constructing end-exclusive intervals" <|
+        group_builder.specify "should allow constructing end-exclusive intervals" <|
             interval = Interval.new 1 5
             interval.start . should_equal (Bound.Inclusive 1)
             interval.end . should_equal (Bound.Exclusive 5)
-        Test.specify "should allow constructing inclusive intervals" <|
+        group_builder.specify "should allow constructing inclusive intervals" <|
             interval = Interval.new 1 5 Interval_Type.Inclusive
             interval.start . should_equal (Bound.Inclusive 1)
             interval.end . should_equal (Bound.Inclusive 5)
-        Test.specify "should allow checking if an interval contains a value of the contained type" <|
+        group_builder.specify "should allow checking if an interval contains a value of the contained type" <|
             interval = Interval.new 1 10
             interval.contains 0 . should_be_false
             interval.contains 1 . should_be_true
@@ -83,7 +83,7 @@ spec =
             interval_7.contains 1 . should_be_false
 
             (Interval.new 0.1 1 Interval_Type.Inclusive) . contains 0.33 . should_be_true
-        Test.specify "can be checked for emptiness" <|
+        group_builder.specify "can be checked for emptiness" <|
             Interval.new 0 0 Interval_Type.Exclusive . is_empty . should_be_true
             Interval.new 1 10 Interval_Type.Exclusive . is_empty . should_be_false
             Interval.new 0 0 Interval_Type.Start_Exclusive . is_empty . should_be_true
@@ -92,7 +92,7 @@ spec =
             Interval.new 1 10 Interval_Type.End_Exclusive . is_empty . should_be_false
             Interval.new 0 0 Interval_Type.Inclusive . is_empty . should_be_false
             Interval.new 0.1 0 Interval_Type.Inclusive . is_empty . should_be_true
-        Test.specify "can be checked for non-emptiness" <|
+        group_builder.specify "can be checked for non-emptiness" <|
             Interval.new 0 0 Interval_Type.Exclusive . not_empty . should_be_false
             Interval.new 0 0.001 Interval_Type.Inclusive . not_empty . should_be_true
             Interval.new 1 10 Interval_Type.Exclusive . not_empty . should_be_true
@@ -103,4 +103,8 @@ spec =
             Interval.new 0 0 Interval_Type.Inclusive . not_empty . should_be_true
             Interval.new 10 0 Interval_Type.Inclusive . not_empty . should_be_false
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
