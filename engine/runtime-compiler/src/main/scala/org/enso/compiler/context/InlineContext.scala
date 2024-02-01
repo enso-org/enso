@@ -27,9 +27,6 @@ case class InlineContext(
   pkgRepo: Option[PackageRepository]           = None
 ) {
   def bindingsAnalysis() = module.bindingsAnalysis()
-  def getCompilerModule() = {
-    module.getCompilerModule()
-  }
 }
 object InlineContext {
 

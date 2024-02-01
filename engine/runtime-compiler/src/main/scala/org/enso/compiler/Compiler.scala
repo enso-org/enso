@@ -859,7 +859,7 @@ class Compiler(
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val hasErrors = reportDiagnostics(errors, inlineContext.getCompilerModule())
+    val hasErrors = reportDiagnostics(errors, null)
     if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
       throw new CompilationAbortedException
     }
@@ -991,7 +991,7 @@ class Compiler(
     * exception breaking the execution flow if there are errors.
     *
     * @param diagnostics all the diagnostics found in the program IR.
-    * @param compilerModule The module in which the diagnostics should be reported.
+    * @param compilerModule The module in which the diagnostics should be reported. Or null if run inline.
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(

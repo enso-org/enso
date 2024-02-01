@@ -255,7 +255,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public String formatDiagnostic(
       CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
-    if (diagnostic.location().isDefined()) {
+    if (module != null && diagnostic.location().isDefined()) {
       var location = diagnostic.location().get();
       if (isLocationInsideModule(module, location)) {
         Source source;
@@ -269,7 +269,7 @@ final class TruffleCompilerContext implements CompilerContext {
         return diagnosticFormatter.format();
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
+    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
     diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
     return diagnosticFormatter.format();
   }
