@@ -33,22 +33,19 @@ type Excel_Workbook
        - file: The file to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - headers: Whether to use the first row as headers (default is to infer).
-    new : File | Text | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
-    new file xls_format=False headers=Infer =
-        file_obj = case file of
-            tmp : Temporary_File -> tmp
-            other -> File.new other
-        file_for_errors = if file_obj.is_a Temporary_File then Nothing else file_obj
+    new : File | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
+    new file:(File|Temporary_File) xls_format=False headers=Infer =
+        file_for_errors = if file.is_a Temporary_File then Nothing else file
 
         continuation raw_file =
             format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
             File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
-                # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file_obj` in the resulting workbook instance.
+                # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
                 java_file = Java_File.new raw_file.absolute.normalize.path
                 excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-                Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+                Excel_Workbook.Value (Ref.new excel_connection_resource) file xls_format headers
 
-        case file_obj of
+        case file of
             tmp : Temporary_File -> tmp.with_file continuation
             f : File -> continuation f
 

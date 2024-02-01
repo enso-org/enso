@@ -18,8 +18,8 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
@@ -31,11 +31,28 @@ import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as github from '#/utilities/github'
-import * as localStorageModule from '#/utilities/LocalStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import * as projectManager from '#/utilities/ProjectManager'
 import * as uniqueString from '#/utilities/uniqueString'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    driveCategory: Category
+  }
+}
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
+})
 
 // ===================
 // === DriveStatus ===
@@ -78,8 +95,8 @@ export interface DriveProps {
   setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   projectStartupInfo: backendModule.ProjectStartupInfo | null
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
   doCreateProject: (templateId: string | null) => void
   doOpenEditor: (
@@ -95,7 +112,7 @@ export default function Drive(props: DriveProps) {
   const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
+  const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -107,7 +124,7 @@ export default function Drive(props: DriveProps) {
   const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
-    () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
+    () => localStorage.get('driveCategory') ?? Category.home
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -417,7 +434,7 @@ export default function Drive(props: DriveProps) {
               dispatchAssetEvent={dispatchAssetEvent}
               assetListEvents={assetListEvents}
               dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+              setAssetPanelProps={setAssetPanelProps}
               doOpenIde={doOpenEditor}
               doCloseIde={doCloseEditor}
               doCreateLabel={doCreateLabel}

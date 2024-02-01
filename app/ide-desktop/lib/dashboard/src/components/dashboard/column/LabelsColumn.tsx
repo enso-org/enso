@@ -41,7 +41,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [isHovered, setIsHovered] = React.useState(false)
   const self = asset.permissions?.find(
     permission => permission.user.user_email === session.organization?.email
   )
@@ -61,15 +60,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     [/* should never change */ setItem]
   )
   return (
-    <div
-      className="flex items-center gap-1"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
-    >
+    <div className="group flex items-center gap-1">
       {(asset.labels ?? [])
         .filter(label => !deletedLabelNames.has(label))
         .map(label => (
@@ -138,7 +129,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <button
-          className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
+          className="h-4 w-4 invisible group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

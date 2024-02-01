@@ -1,56 +1,32 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-
-import * as backend from '#/services/Backend'
-
-import * as array from '#/utilities/array'
+import * as object from '#/utilities/object'
 
 // ====================
 // === LocalStorage ===
 // ====================
 
-/** All possible keys for a {@link LocalStorage}. */
-export enum LocalStorageKey {
-  page = 'page',
-  backendType = 'backend-type',
-  extraColumns = 'extra-columns',
-  isAssetSettingsPanelVisible = 'is-asset-settings-panel-visible',
-  projectStartupInfo = 'project-startup-info',
-  driveCategory = 'drive-category',
-  loginRedirect = 'login-redirect',
+/** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
+export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
+  isUserSpecific?: boolean
+  /** A type-safe way to deserialize a value from `localStorage`. */
+  tryParse: (value: unknown) => LocalStorageData[K] | null
 }
 
-/** The data that can be stored in a {@link LocalStorage}. */
-interface LocalStorageData {
-  [LocalStorageKey.page]: pageSwitcher.Page
-  [LocalStorageKey.backendType]: backend.BackendType
-  [LocalStorageKey.extraColumns]: columnUtils.ExtraColumn[]
-  [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
-  [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
-  [LocalStorageKey.driveCategory]: Category
-  [LocalStorageKey.loginRedirect]: string
-}
+/** The data that can be stored in a {@link LocalStorage}.
+ * Declaration merge into this interface to add a new key. */
+export interface LocalStorageData {}
 
-/** Whether each {@link LocalStorageKey} is user specific.
- * The type annotation ensures that this object MUST be edited when a new {@link LocalStorageKey}
- * is added. */
-const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
-  [LocalStorageKey.page]: false,
-  [LocalStorageKey.backendType]: false,
-  [LocalStorageKey.extraColumns]: false,
-  [LocalStorageKey.isAssetSettingsPanelVisible]: false,
-  [LocalStorageKey.projectStartupInfo]: true,
-  [LocalStorageKey.driveCategory]: false,
-  [LocalStorageKey.loginRedirect]: true,
-}
+/** All possible keys of a {@link LocalStorage}. */
+type LocalStorageKey = keyof LocalStorageData
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
+  // This is UNSAFE. It is assumed that `LocalStorage.register` is always called
+  // when `LocalStorageData` is declaration merged into.
+  // eslint-disable-next-line no-restricted-syntax
+  static keyMetadata = {} as Record<LocalStorageKey, LocalStorageKeyMetadata<LocalStorageKey>>
   localStorageKey = common.PRODUCT_NAME.toLowerCase()
   protected values: Partial<LocalStorageData>
 
@@ -59,82 +35,25 @@ export default class LocalStorage {
     const savedValues: unknown = JSON.parse(localStorage.getItem(this.localStorageKey) ?? '{}')
     this.values = {}
     if (typeof savedValues === 'object' && savedValues != null) {
-      const backendTypes = Object.values(backend.BackendType)
-      if (LocalStorageKey.page in savedValues) {
-        const pages = Object.values(pageSwitcher.Page)
-        if (array.includesPredicate(pages)(savedValues[LocalStorageKey.page])) {
-          this.values[LocalStorageKey.page] = savedValues[LocalStorageKey.page]
-        }
-      }
-      if (LocalStorageKey.backendType in savedValues) {
-        if (array.includesPredicate(backendTypes)(savedValues[LocalStorageKey.backendType])) {
-          this.values[LocalStorageKey.backendType] = savedValues[LocalStorageKey.backendType]
-        }
-      }
-      if (
-        LocalStorageKey.extraColumns in savedValues &&
-        Array.isArray(savedValues[LocalStorageKey.extraColumns])
-      ) {
-        this.values[LocalStorageKey.extraColumns] = savedValues[
-          LocalStorageKey.extraColumns
-        ].filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
-      }
-      if (LocalStorageKey.isAssetSettingsPanelVisible in savedValues) {
-        this.values[LocalStorageKey.isAssetSettingsPanelVisible] = Boolean(
-          savedValues[LocalStorageKey.isAssetSettingsPanelVisible]
-        )
-      }
-      if (LocalStorageKey.driveCategory in savedValues) {
-        const categories = Object.values(Category)
-        if (array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])) {
-          this.values[LocalStorageKey.driveCategory] = savedValues[LocalStorageKey.driveCategory]
-        }
-      }
-      if (LocalStorageKey.projectStartupInfo in savedValues) {
-        const savedInfo = savedValues[LocalStorageKey.projectStartupInfo]
-        if (typeof savedInfo !== 'object' || savedInfo == null) {
-          // Ignored - the saved value is invalid.
-        } else if (!('accessToken' in savedInfo) || typeof savedInfo.accessToken !== 'string') {
-          // Ignored - the saved value is invalid.
-        } else if (
-          !('backendType' in savedInfo) ||
-          !array.includesPredicate(backendTypes)(savedInfo.backendType)
-        ) {
-          // Ignored - the saved value is invalid.
-        } else if (!('project' in savedInfo) || !('projectAsset' in savedInfo)) {
-          // Ignored - the saved value is invalid.
-        } else {
-          this.values[LocalStorageKey.projectStartupInfo] = {
-            // These type assertions are UNSAFE, however correctly type-checking these
-            // would be quite complicated.
-            // eslint-disable-next-line no-restricted-syntax
-            project: savedInfo.project as backend.Project,
-            // eslint-disable-next-line no-restricted-syntax
-            projectAsset: savedInfo.projectAsset as backend.ProjectAsset,
-            backendType: savedInfo.backendType,
-            accessToken: savedInfo.accessToken,
+      for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {
+        if (key in savedValues) {
+          // This is SAFE, as it is guarded by the `key in savedValues` check.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
+          const value = metadata.tryParse((savedValues as any)[key])
+          if (value != null) {
+            // This is SAFE, as the `tryParse` function is required by definition to
+            // return a value of the correct type.
+            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            this.values[key] = value as any
           }
         }
       }
-      if (LocalStorageKey.driveCategory in savedValues) {
-        const categories = Object.values(Category)
-        if (array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])) {
-          this.values[LocalStorageKey.driveCategory] = savedValues[LocalStorageKey.driveCategory]
-        }
-      }
-      if (LocalStorageKey.loginRedirect in savedValues) {
-        const value = savedValues[LocalStorageKey.loginRedirect]
-        if (typeof value === 'string') {
-          this.values[LocalStorageKey.loginRedirect] = value
-        }
-      }
-      if (
-        this.values[LocalStorageKey.projectStartupInfo] == null &&
-        this.values[LocalStorageKey.page] === pageSwitcher.Page.editor
-      ) {
-        this.values[LocalStorageKey.page] = pageSwitcher.Page.drive
-      }
     }
+  }
+
+  /** Register runtime behavior associated with a {@link LocalStorageKey}. */
+  static registerKey<K extends LocalStorageKey>(key: K, metadata: LocalStorageKeyMetadata<K>) {
+    LocalStorage.keyMetadata[key] = metadata
   }
 
   /** Retrieve an entry from the stored data. */
@@ -160,13 +79,9 @@ export default class LocalStorage {
 
   /** Delete user-specific entries from the stored data, and save. */
   clearUserSpecificEntries() {
-    for (const [key, isUserSpecific] of Object.entries(IS_USER_SPECIFIC)) {
-      if (isUserSpecific) {
-        // This is SAFE. The only reason this does not typecheck is because `Object.entries`
-        // types the keys as `strings`, because objects may have extra keys due to width
-        // subtyping.
-        // eslint-disable-next-line no-restricted-syntax
-        this.delete(key as LocalStorageKey)
+    for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {
+      if (metadata.isUserSpecific === true) {
+        this.delete(key)
       }
     }
   }
