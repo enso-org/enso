@@ -60,7 +60,7 @@ import scala.jdk.OptionConverters._
 class Compiler(
   val context: CompilerContext,
   val packageRepository: PackageRepository,
-  config: CompilerConfig
+  private val config: CompilerConfig
 ) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
