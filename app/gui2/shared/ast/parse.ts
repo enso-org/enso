@@ -1,6 +1,14 @@
 import * as map from 'lib0/map'
-import type { AstId, NodeChild, Owned } from '.'
-import { Token, asOwned, parentId, subtreeRoots } from '.'
+import {
+  Token,
+  asOwned,
+  isTokenId,
+  parentId,
+  subtreeRoots,
+  type AstId,
+  type NodeChild,
+  type Owned,
+} from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
 import type { SourceRange, SourceRangeKey } from '../yjsModel'
 import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
@@ -323,6 +331,87 @@ export function print(ast: Ast): PrintedSource {
   }
   const code = ast.printSubtree(info, 0, undefined)
   return { info, code }
+}
+
+/** @internal Used by `Ast.printSubtree`. Note that some AST types have overrides. */
+export function printAst(
+  ast: Ast,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  let code = ''
+  for (const child of ast.concreteChildren(verbatim)) {
+    if (!isTokenId(child.node) && ast.module.checkedGet(child.node) === undefined) continue
+    if (child.whitespace != null) {
+      code += child.whitespace
+    } else if (code.length != 0) {
+      code += ' '
+    }
+    if (isTokenId(child.node)) {
+      const tokenStart = offset + code.length
+      const token = ast.module.getToken(child.node)
+      const span = tokenKey(tokenStart, token.code().length)
+      info.tokens.set(span, token)
+      code += token.code()
+    } else {
+      const childNode = ast.module.checkedGet(child.node)
+      assert(childNode != null)
+      code += childNode.printSubtree(info, offset + code.length, parentIndent, verbatim)
+      // Extra structural validation.
+      assertEqual(childNode.id, child.node)
+      if (parentId(childNode) !== ast.id) {
+        console.error(`Inconsistent parent pointer (expected ${ast.id})`, childNode)
+      }
+      assertEqual(parentId(childNode), ast.id)
+    }
+  }
+  const span = nodeKey(offset, code.length)
+  map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(ast)
+  return code
+}
+
+/** @internal Use `Ast.code()' to stringify. */
+export function printBlock(
+  block: BodyBlock,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  let blockIndent: string | undefined
+  let code = ''
+  for (const line of block.fields.get('lines')) {
+    code += line.newline.whitespace ?? ''
+    const newlineCode = block.module.getToken(line.newline.node).code()
+    // Only print a newline if this isn't the first line in the output, or it's a comment.
+    if (offset || code || newlineCode.startsWith('#')) {
+      // If this isn't the first line in the output, but there is a concrete newline token:
+      // if it's a zero-length newline, ignore it and print a normal newline.
+      code += newlineCode || '\n'
+    }
+    if (line.expression) {
+      if (blockIndent === undefined) {
+        if ((line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)) {
+          blockIndent = line.expression.whitespace!
+        } else if (parentIndent !== undefined) {
+          blockIndent = parentIndent + '    '
+        } else {
+          blockIndent = ''
+        }
+      }
+      const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
+      code += validIndent ? line.expression.whitespace : blockIndent
+      const lineNode = block.module.checkedGet(line.expression.node)
+      assertEqual(lineNode.id, line.expression.node)
+      assertEqual(parentId(lineNode), block.id)
+      code += lineNode.printSubtree(info, offset + code.length, blockIndent, verbatim)
+    }
+  }
+  const span = nodeKey(offset, code.length)
+  map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(block)
+  return code
 }
 
 /** Parse the input as a block. */

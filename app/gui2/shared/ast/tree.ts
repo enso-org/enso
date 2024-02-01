@@ -1,4 +1,3 @@
-import * as map from 'lib0/map'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -18,12 +17,12 @@ import {
   isToken,
   isTokenId,
   newExternalId,
-  nodeKey,
   parentId,
   parse,
   parseBlock,
   print,
-  tokenKey,
+  printAst,
+  printBlock,
 } from '.'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
@@ -123,35 +122,7 @@ export abstract class Ast {
     parentIndent: string | undefined,
     verbatim?: boolean,
   ): string {
-    let code = ''
-    for (const child of this.concreteChildren(verbatim)) {
-      if (!isTokenId(child.node) && this.module.checkedGet(child.node) === undefined) continue
-      if (child.whitespace != null) {
-        code += child.whitespace
-      } else if (code.length != 0) {
-        code += ' '
-      }
-      if (isTokenId(child.node)) {
-        const tokenStart = offset + code.length
-        const token = this.module.getToken(child.node)
-        const span = tokenKey(tokenStart, token.code().length)
-        info.tokens.set(span, token)
-        code += token.code()
-      } else {
-        const childNode = this.module.checkedGet(child.node)
-        assert(childNode != null)
-        code += childNode.printSubtree(info, offset + code.length, parentIndent, verbatim)
-        // Extra structural validation.
-        assertEqual(childNode.id, child.node)
-        if (parentId(childNode) !== this.id) {
-          console.error(`Inconsistent parent pointer (expected ${this.id})`, childNode)
-        }
-        assertEqual(parentId(childNode), this.id)
-      }
-    }
-    const span = nodeKey(offset, code.length)
-    map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(this)
-    return code
+    return printAst(this, info, offset, parentIndent, verbatim)
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
@@ -1616,38 +1587,7 @@ export class BodyBlock extends Ast {
     parentIndent: string | undefined,
     verbatim?: boolean,
   ): string {
-    let blockIndent: string | undefined
-    let code = ''
-    for (const line of this.fields.get('lines')) {
-      code += line.newline.whitespace ?? ''
-      const newlineCode = this.module.getToken(line.newline.node).code()
-      // Only print a newline if this isn't the first line in the output, or it's a comment.
-      if (offset || code || newlineCode.startsWith('#')) {
-        // If this isn't the first line in the output, but there is a concrete newline token:
-        // if it's a zero-length newline, ignore it and print a normal newline.
-        code += newlineCode || '\n'
-      }
-      if (line.expression) {
-        if (blockIndent === undefined) {
-          if ((line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)) {
-            blockIndent = line.expression.whitespace!
-          } else if (parentIndent !== undefined) {
-            blockIndent = parentIndent + '    '
-          } else {
-            blockIndent = ''
-          }
-        }
-        const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
-        code += validIndent ? line.expression.whitespace : blockIndent
-        const lineNode = this.module.checkedGet(line.expression.node)
-        assertEqual(lineNode.id, line.expression.node)
-        assertEqual(parentId(lineNode), this.id)
-        code += lineNode.printSubtree(info, offset + code.length, blockIndent, verbatim)
-      }
-    }
-    const span = nodeKey(offset, code.length)
-    map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(this)
-    return code
+    return printBlock(this, info, offset, parentIndent, verbatim)
   }
 }
 export class MutableBodyBlock extends BodyBlock implements MutableAst {
