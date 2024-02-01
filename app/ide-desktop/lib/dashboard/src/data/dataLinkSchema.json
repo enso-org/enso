@@ -80,7 +80,11 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "S3", "type": "string" },
-        "uri": { "title": "URI", "type": "string" },
+        "uri": {
+          "title": "URI",
+          "type": "string",
+          "pattern": "^s3://[\\w.~-]+/[/\\w.~-]+$"
+        },
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },

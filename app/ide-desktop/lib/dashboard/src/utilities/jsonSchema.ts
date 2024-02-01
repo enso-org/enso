@@ -283,10 +283,18 @@ export function isMatch(
           result = false
           break
         } else {
-          // `format` validation omitted as they are currently not needed, and very complex to
-          // correctly validate.
+          const format =
+            'format' in schema && typeof schema.format === 'string' ? schema.format : null
+          // `format` validation has been omitted as it is currently not needed, and quite complex
+          // to correctly validate.
           // https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
           result = true
+          switch (format) {
+            case null:
+            default: {
+              break
+            }
+          }
           break
         }
       }

@@ -1,8 +1,9 @@
 /** @file A modal for creating a Data Link. */
 import * as React from 'react'
 
-import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 import * as modalProvider from '#/providers/ModalProvider'
+
+import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 
 import Modal from '#/components/Modal'
 

@@ -2,10 +2,11 @@
 import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
-import * as jsonSchema from '#/utilities/jsonSchema'
-import * as object from '#/utilities/object'
 
 import Dropdown from '#/components/Dropdown'
+
+import * as jsonSchema from '#/utilities/jsonSchema'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -143,7 +144,10 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter text here"
             onChange={event => {
-              setIsSubmittable(event.currentTarget.value !== '')
+              setIsSubmittable(
+                event.currentTarget.value !== '' &&
+                  jsonSchema.isMatch(DEFS, schema, event.currentTarget.value)
+              )
               const newValue: string = event.currentTarget.value
               setValue(newValue)
             }}
@@ -166,9 +170,11 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter number here"
             onChange={event => {
-              setIsSubmittable(event.currentTarget.value !== '')
               const newValue: number = event.currentTarget.valueAsNumber
               if (Number.isFinite(newValue)) {
+                setIsSubmittable(
+                  event.currentTarget.value !== '' && jsonSchema.isMatch(DEFS, schema, newValue)
+                )
                 setValue(newValue)
               }
             }}
@@ -191,9 +197,11 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
             placeholder="Enter integer here"
             onChange={event => {
-              setIsSubmittable(event.currentTarget.value !== '')
-              const newValue: number = event.currentTarget.valueAsNumber
+              const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
               if (Number.isFinite(newValue)) {
+                setIsSubmittable(
+                  event.currentTarget.value !== '' && jsonSchema.isMatch(DEFS, schema, newValue)
+                )
                 setValue(Math.floor(newValue))
               }
             }}

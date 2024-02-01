@@ -3,22 +3,26 @@ import * as React from 'react'
 
 import ConnectorIcon from 'enso-assets/connector.svg'
 
+import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
-import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+
+import * as backendModule from '#/services/Backend'
+
+import * as eventModule from '#/utilities/event'
+import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import Visibility from '#/utilities/visibility'
 
 // =====================
 // === ConnectorName ===
@@ -35,13 +39,13 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -121,7 +125,8 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       onClick={event => {
         if (
           eventModule.isSingleClick(event) &&
-          (selected || shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+          (selected ||
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
