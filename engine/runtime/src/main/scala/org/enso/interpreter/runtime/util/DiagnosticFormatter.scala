@@ -149,20 +149,7 @@ class DiagnosticFormatter(
     if (isOutputRedirected) {
       return false
     }
-    val ensoCtx = EnsoContext.get(null)
-    if (ensoCtx.getEnvironmentVariable("NO_COLOR") != null) {
-      return false
-    }
-    if (ensoCtx.getEnvironmentVariable("COLORTERM") != null) {
-      return true
-    }
-    if (ensoCtx.getEnvironmentVariable("TERM") != null) {
-      val termEnv = ensoCtx.getEnvironmentVariable("TERM").toLowerCase
-      return termEnv.split("-").contains("color") || termEnv
-        .split("-")
-        .contains("256color")
-    }
-    return false
+    return EnsoContext.get(null).isColorTerminalOutput;
   }
 
   private def oneLineFromSource(lineNum: Int): String = {

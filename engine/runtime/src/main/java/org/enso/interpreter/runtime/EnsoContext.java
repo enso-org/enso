@@ -485,14 +485,23 @@ public final class EnsoContext {
   }
 
   /**
-   * Returns the value of environment variable as configured in this context. See {@link
-   * Env#getEnvironment()}.
-   *
-   * @param name Name of the env var to return
-   * @return Value of the env var, or {@code null} if the var is not defined.
+   * Returns true if the output is a terminal that supports ANSI colors. {@see
+   * https://github.com/termstandard/colors/} {@see https://no-color.org/}
    */
-  public String getEnvironmentVariable(String name) {
-    return environment.getEnvironment().get(name);
+  public boolean isColorTerminalOutput() {
+    var envVars = environment.getEnvironment();
+    if (envVars.get("NO_COLOR") != null) {
+      return false;
+    }
+    if (envVars.get("COLORTERM") != null) {
+      return true;
+    }
+    if (envVars.get("TERM") != null) {
+      var termEnv = envVars.get("TERM").toLowerCase();
+      return Arrays.stream(termEnv.split("-"))
+          .anyMatch(str -> str.equals("color") || str.equals("256color"));
+    }
+    return false;
   }
 
   /**
