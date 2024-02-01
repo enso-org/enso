@@ -274,6 +274,13 @@ spec =
                     parent_dir = my_file.parent
                     parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
 
+        Test.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
+            weird_ext = my_writable_dir / "weird-ext.unknown"
+            "Hello".write weird_ext . should_succeed
+
+            r = weird_ext.read
+            r.should_fail_with Unsupported_Content_Type
+
         Test.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
             "Hello".write new_file . should_succeed
