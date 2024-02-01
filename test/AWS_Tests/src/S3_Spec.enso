@@ -272,7 +272,7 @@ spec =
                     "version3".write my_file . should_succeed
 
                     my_file.read . should_equal "version3"
-                    bak_file.read . should_equal "version2"
+                    bak_file.read Plain_Text . should_equal "version2"
 
                     # No new file was created
                     parent_dir = my_file.parent

@@ -21,7 +21,8 @@ create_dry_run_file file copy_original =
    Since S3 does not support a cheap 'move' operation, the standard backup
    strategy that mostly relies on it does not work too well.
    Instead, S3 relies on a simpler strategy:
-   1. If the destination file exists, copy it to a backup location.
+   1. If the destination file exists, copy it to a backup location
+      (overwriting a previous backup file, if it was present).
    2. Write the new file.
      i. If the write succeeded, that's it.
         ii. If the write failed, 'restore' from the backup - copy the backup
@@ -30,7 +31,7 @@ create_dry_run_file file copy_original =
 s3_backup file action = recover_errors <|
     backup_location = file.parent / (file.name + ".bak")
     has_backup = if file.exists.not then False else
-        Panic.rethrow <| file.copy_to backup_location
+        Panic.rethrow <| file.copy_to backup_location replace_existing=True
         True
 
     revert_backup =
