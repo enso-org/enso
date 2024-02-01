@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -44,9 +45,9 @@ public final class SuggestionsCache
 
   @Override
   protected CachedSuggestions deserialize(
-      EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, ClassNotFoundException, IOException {
-    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data.array()))) {
       if (stream.readObject() instanceof Suggestions suggestions) {
         return new CachedSuggestions(libraryName, suggestions, Optional.empty());
       } else {

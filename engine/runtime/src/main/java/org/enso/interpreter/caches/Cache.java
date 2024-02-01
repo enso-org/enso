@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -125,7 +126,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     if (ensureRoot(cacheRoot)) {
       byte[] bytesToWrite = serialize(context, entry);
 
-      String blobDigest = computeDigestFromBytes(bytesToWrite);
+      String blobDigest = computeDigestFromBytes(ByteBuffer.wrap(bytesToWrite));
       String sourceDigest = computeDigest(entry, logger).get();
       if (sourceDigest == null) {
         throw new ClassNotFoundException("unable to compute digest");
@@ -254,7 +255,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
               || computeDigestFromSource(context, logger)
                   .map(digest -> digest.equals(meta.sourceHash()))
                   .orElseGet(() -> false);
-      byte[] blobBytes = dataPath.readAllBytes();
+      var blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       boolean blobDigestValid =
           !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
@@ -268,7 +269,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
             logger.log(
                 Level.FINEST,
                 "Loaded cache for {0} with {1} bytes in {2} ms",
-                new Object[] {logName, blobBytes.length, took});
+                new Object[] {logName, blobBytes.limit(), took});
             return Optional.of(cachedObject);
           } else {
             logger.log(logLevel, "`{0}` was corrupt on disk.", logName);
@@ -310,10 +311,10 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return {@code data} transformed to a cached entry or {@code null}
    * @throws ClassNotFoundException exception thrown on unexpected deserialized data
    * @throws IOException when I/O goes wrong
-   * @throws ClassNotFoundException on problems with deserializaiton of Java classes
    */
-  protected abstract T deserialize(EnsoContext context, byte[] data, M meta, TruffleLogger logger)
-      throws IOException, ClassNotFoundException, ClassNotFoundException;
+  protected abstract T deserialize(
+      EnsoContext context, ByteBuffer data, M meta, TruffleLogger logger)
+      throws IOException, ClassNotFoundException;
 
   /**
    * Read metadata representation from the provided location
@@ -365,8 +366,10 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param bytes bytes for which hash will be computed
    * @return string representation of bytes' hash
    */
-  protected final String computeDigestFromBytes(byte[] bytes) {
-    return Hex.toHexString(messageDigest().digest(bytes));
+  protected final String computeDigestFromBytes(ByteBuffer bytes) {
+    var sha = messageDigest();
+    sha.update(bytes);
+    return Hex.toHexString(sha.digest());
   }
 
   /**

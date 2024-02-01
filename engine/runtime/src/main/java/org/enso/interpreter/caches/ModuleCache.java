@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,9 +49,10 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
   @Override
   protected CachedModule deserialize(
-      EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var ref =
+        Persistance.read(data.array(), CacheUtils.readResolve(context.getCompiler().context()));
     var mod = ref.get(Module.class);
     return new CachedModule(
         mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
@@ -70,7 +72,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       } else {
         sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
       }
-      return Optional.of(computeDigestFromBytes(sourceBytes));
+      return Optional.of(computeDigestFromBytes(ByteBuffer.wrap(sourceBytes)));
     } else {
       return Optional.empty();
     }

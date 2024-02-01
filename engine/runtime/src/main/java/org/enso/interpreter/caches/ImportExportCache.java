@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -53,9 +54,10 @@ public final class ImportExportCache
 
   @Override
   protected CachedBindings deserialize(
-      EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var ref =
+        Persistance.read(data.array(), CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }

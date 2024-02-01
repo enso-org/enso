@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import org.enso.compiler.CompilerTest;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
@@ -52,7 +53,7 @@ public class ModuleCacheTest extends TestBase {
     byte[] arr = module.getCache().serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
-    var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
+    var cachedIr = module.getCache().deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
     CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }
@@ -81,7 +82,7 @@ public class ModuleCacheTest extends TestBase {
     byte[] arr = module.getCache().serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
-    var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
+    var cachedIr = module.getCache().deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
     CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }
