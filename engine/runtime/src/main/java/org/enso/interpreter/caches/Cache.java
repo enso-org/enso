@@ -2,9 +2,12 @@ package org.enso.interpreter.caches;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -255,7 +258,14 @@ public abstract class Cache<T, M extends Cache.Metadata> {
               || computeDigestFromSource(context, logger)
                   .map(digest -> digest.equals(meta.sourceHash()))
                   .orElseGet(() -> false);
-      var blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
+      var file = new File(dataPath.toUri());
+      ByteBuffer blobBytes;
+      if (file.exists()) {
+        var raf = new RandomAccessFile(file, "r");
+        blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+      } else {
+        blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
+      }
       boolean blobDigestValid =
           !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
