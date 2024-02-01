@@ -1403,7 +1403,7 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a key column contains `Nothing` values, either in the lookup table,
+         - If a key column contains `Nothing` values in the lookup table,
            a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
@@ -1456,7 +1456,7 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a match_column contains `Nothing` values, either in the table or lookup table,
+         - If a key column contains `Nothing` values in the lookup table,
            a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
