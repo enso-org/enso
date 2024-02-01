@@ -370,6 +370,7 @@ create_inmem_connection =
 
 
 create_file_connection file =
+    file.delete_if_exists
     connection = Database.connect (SQLite file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
