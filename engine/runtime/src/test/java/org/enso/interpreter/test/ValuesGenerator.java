@@ -35,7 +35,7 @@ import org.graalvm.polyglot.Value;
  * call appropriate methods to obtain such values. It's up to the tests to use these values
  * meaningfully.
  */
-class ValuesGenerator {
+public final class ValuesGenerator {
   private final Context ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
@@ -369,7 +369,7 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "", "42").type());
       collect.add(v(null, "", "6.7").type());
-      collect.add(v(null, "", "40321 * 43202").type());
+      collect.add(v(null, "import Standard.Base.Data.Numbers", "40321 * 43202").type());
       collect.add(
           v(
                   null,

@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+import project.Spec_Result.Spec_Result
+
+
+## A wrapper for `Spec_Result` that contains also name of the group and name of the spec.
+type Test_Result
+    Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
+
+    to_text self =
+        "'" + self.group_name + "' '" + self.spec_name + "': " + self.spec_result.to_text
+    
+    is_pending self =
+        self.spec_result.is_pending
+    
+    is_success self =
+        self.spec_result.is_success
+        
+    is_fail self =
+        self.spec_result.is_fail
+    

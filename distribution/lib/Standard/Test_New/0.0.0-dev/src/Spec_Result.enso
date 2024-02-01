@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+## Result of one test Spec
+type Spec_Result
+    ## Represents a successful behavioral test.
+    Success
+
+    ## Represents a failing behavioral test.
+
+       Arguments:
+       - message: The reason why the test failed.
+       - details: Additional context of the error, for example the stack trace.
+    Failure message details=Nothing
+
+    ## Represents a pending behavioral test.
+
+       Arguments:
+       - reason: Text describing why the test is pending.
+    Pending reason
+
+    ## Checks if the Spec_Result is pending.
+    is_pending : Boolean
+    is_pending self = case self of
+        Spec_Result.Pending _ -> True
+        _ -> False
+
+    ## Checks if the Spec_Result is a failure.
+    is_fail : Boolean
+    is_fail self = case self of
+        Spec_Result.Failure _ _ -> True
+        _ -> False
+
+    ## Checks if the Spec_Result is a success.
+    is_success : Boolean
+    is_success self = case self of
+        Spec_Result.Success -> True
+        _ -> False

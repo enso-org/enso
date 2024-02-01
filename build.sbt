@@ -1105,6 +1105,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
@@ -1707,7 +1708,12 @@ lazy val runtime = (project in file("engine/runtime"))
         (LocalProject(
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
-        (LocalProject("refactoring-utils") / Compile / productDirectories).value
+        (LocalProject(
+          "refactoring-utils"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Test / productDirectories).value
       // Patch test-classes into the runtime module. This is standard way to deal with the
       // split package problem in unit tests. For example, Maven's surefire plugin does this.
       val testClassesDir = (Test / productDirectories).value.head
@@ -1727,7 +1733,8 @@ lazy val runtime = (project in file("engine/runtime"))
         runtimeModName -> Seq(
           "ALL-UNNAMED",
           testInstrumentsModName,
-          "truffle.tck.tests"
+          "truffle.tck.tests",
+          "org.openide.util.lookup.RELEASE180"
         ),
         testInstrumentsModName -> Seq(runtimeModName)
       )
@@ -1740,9 +1747,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
       "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
-    Test / compile := (Test / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value
+    Test / compile := {
+      (LocalProject("runtime-instrument-common") / Test / compile).value
+      (Test / compile).value
+    }
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1891,13 +1899,18 @@ lazy val `runtime-instrument-common` =
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
     .dependsOn(`refactoring-utils`)
     .dependsOn(
       LocalProject(
         "runtime"
-      ) % "compile->compile;test->test;runtime->runtime;bench->bench"
+      ) % "compile->compile;runtime->runtime;bench->bench"
     )
 
 lazy val `runtime-instrument-id-execution` =
@@ -1926,7 +1939,7 @@ lazy val `runtime-instrument-runtime-server` =
       instrumentationSettings
     )
     .dependsOn(LocalProject("runtime"))
-    .dependsOn(`runtime-instrument-common`)
+    .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
 
 /** A "meta" project that exists solely to provide logic for assembling the `runtime.jar` fat Jar.
   * We do not want to put this task into any other existing project, as it internally copies some

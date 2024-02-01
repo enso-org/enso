@@ -1,15 +1,17 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
-import AssetSearchBar from '#/layouts/dashboard/assetSearchBar'
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
+import AssetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import BackendSwitcher from '#/layouts/dashboard/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import type * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
+
+import type * as backendModule from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
 
 // ==============
 // === TopBar ===
@@ -27,8 +29,8 @@ export interface TopBarProps {
   setBackendType: (backendType: backendModule.BackendType) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+  query: AssetQuery
+  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   labels: backendModule.Label[]
   suggestions: assetSearchBar.Suggestion[]
   canToggleSettingsPanel: boolean
@@ -78,6 +80,7 @@ export default function TopBar(props: TopBarProps) {
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
             page={page}
+            setPage={setPage}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}

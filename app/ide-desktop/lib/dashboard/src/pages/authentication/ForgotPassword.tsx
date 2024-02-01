@@ -7,6 +7,7 @@ import AtIcon from 'enso-assets/at.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
 
 import Input from '#/components/Input'

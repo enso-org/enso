@@ -3,59 +3,68 @@ from Standard.Base import all
 # We need this import, to ensure that we depend on `Standard.Table`, so that the Java import of `org.enso.table` is valid.
 from Standard.Table import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 polyglot java import java.util.Comparator
 polyglot java import org.enso.table.data.table.join.between.SortedListIndex
 
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
+make_index vec = SortedListIndex.build vec Comparator.naturalOrder
+
+type Data
+    Value ~index1
+    
+    setup =
+        v1 = [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 10, 10, 10, 10, 11, 14, 17, 19]
+        v1_shuffled = v1.take (Index_Sub_Range.Sample v1.length)
+        Data.Value (make_index v1_shuffled)
+        
 
 ## White-box tests for the SortedListIndex, ensuring correctness of the
    implementation - these are additional tests apart from
    the `Join_Condition.Between` test cases, to ensure no off-by-one errors
    or other bugs are present in the implementation.
-spec = Test.group "SortedListIndex (used for SortJoin)" <|
-    make_index vec = SortedListIndex.build vec Comparator.naturalOrder
+add_specs suite_builder = suite_builder.group "SortedListIndex (used for SortJoin)" group_builder->
+    data = Data.setup
+    
+    group_builder.specify "should correctly handle empty matches" <|
+        Vector.from_polyglot_array (data.index1.findSubRange 9 9) . should_equal []
+        Vector.from_polyglot_array (data.index1.findSubRange -10 -2) . should_equal []
+        Vector.from_polyglot_array (data.index1.findSubRange 200 300) . should_equal []
+        Vector.from_polyglot_array (data.index1.findSubRange 20 0) . should_equal []
 
-    v1 = [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 10, 10, 10, 10, 11, 14, 17, 19]
-    v1_shuffled = v1.take (Index_Sub_Range.Sample v1.length)
-    index1 = make_index v1_shuffled
+    group_builder.specify "should correctly handle single-element matches" <|
+        Vector.from_polyglot_array (data.index1.findSubRange 8 8) . should_equal [8]
+        Vector.from_polyglot_array (data.index1.findSubRange 12 16) . should_equal [14]
+        Vector.from_polyglot_array (data.index1.findSubRange 18 100) . should_equal [19]
+        Vector.from_polyglot_array (data.index1.findSubRange 19 100) . should_equal [19]
+        Vector.from_polyglot_array (data.index1.findSubRange 19 19) . should_equal [19]
 
-    Test.specify "should correctly handle empty matches" <|
-        Vector.from_polyglot_array (index1.findSubRange 9 9) . should_equal []
-        Vector.from_polyglot_array (index1.findSubRange -10 -2) . should_equal []
-        Vector.from_polyglot_array (index1.findSubRange 200 300) . should_equal []
-        Vector.from_polyglot_array (index1.findSubRange 20 0) . should_equal []
+    group_builder.specify "should correctly handle matches" <|
+        Vector.from_polyglot_array (data.index1.findSubRange 4 6) . should_equal [4, 5, 6]
+        Vector.from_polyglot_array (data.index1.findSubRange 3 5) . should_equal [3, 3, 4, 5]
 
-    Test.specify "should correctly handle single-element matches" <|
-        Vector.from_polyglot_array (index1.findSubRange 8 8) . should_equal [8]
-        Vector.from_polyglot_array (index1.findSubRange 12 16) . should_equal [14]
-        Vector.from_polyglot_array (index1.findSubRange 18 100) . should_equal [19]
-        Vector.from_polyglot_array (index1.findSubRange 19 100) . should_equal [19]
-        Vector.from_polyglot_array (index1.findSubRange 19 19) . should_equal [19]
+        Vector.from_polyglot_array (data.index1.findSubRange 0 3) . should_equal [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3]
+        Vector.from_polyglot_array (data.index1.findSubRange 2 4) . should_equal [2, 2, 2, 3, 3, 4]
+        Vector.from_polyglot_array (data.index1.findSubRange 8 10) . should_equal [8, 10, 10, 10, 10]
+        Vector.from_polyglot_array (data.index1.findSubRange 8 11) . should_equal [8, 10, 10, 10, 10, 11]
+        Vector.from_polyglot_array (data.index1.findSubRange 8 12) . should_equal [8, 10, 10, 10, 10, 11]
+        Vector.from_polyglot_array (data.index1.findSubRange 9 12) . should_equal [10, 10, 10, 10, 11]
 
-    Test.specify "should correctly handle matches" <|
-        Vector.from_polyglot_array (index1.findSubRange 4 6) . should_equal [4, 5, 6]
-        Vector.from_polyglot_array (index1.findSubRange 3 5) . should_equal [3, 3, 4, 5]
+    group_builder.specify "should correctly handle big all-equal ranges" <|
+        Vector.from_polyglot_array (data.index1.findSubRange 1 1) . should_equal [1, 1, 1, 1]
+        Vector.from_polyglot_array (data.index1.findSubRange 7 7) . should_equal [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
 
-        Vector.from_polyglot_array (index1.findSubRange 0 3) . should_equal [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3]
-        Vector.from_polyglot_array (index1.findSubRange 2 4) . should_equal [2, 2, 2, 3, 3, 4]
-        Vector.from_polyglot_array (index1.findSubRange 8 10) . should_equal [8, 10, 10, 10, 10]
-        Vector.from_polyglot_array (index1.findSubRange 8 11) . should_equal [8, 10, 10, 10, 10, 11]
-        Vector.from_polyglot_array (index1.findSubRange 8 12) . should_equal [8, 10, 10, 10, 10, 11]
-        Vector.from_polyglot_array (index1.findSubRange 9 12) . should_equal [10, 10, 10, 10, 11]
-
-    Test.specify "should correctly handle big all-equal ranges" <|
-        Vector.from_polyglot_array (index1.findSubRange 1 1) . should_equal [1, 1, 1, 1]
-        Vector.from_polyglot_array (index1.findSubRange 7 7) . should_equal [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
-
-    Test.specify "other cases: empty index" <|
+    group_builder.specify "other cases: empty index" <|
         index2 = make_index []
         Vector.from_polyglot_array (index2.findSubRange 1 5) . should_equal []
 
-    Test.specify "other cases: single element index" <|
+    group_builder.specify "other cases: single element index" <|
         index2 = make_index [5]
         Vector.from_polyglot_array (index2.findSubRange 1 5) . should_equal [5]
         Vector.from_polyglot_array (index2.findSubRange 5 5) . should_equal [5]

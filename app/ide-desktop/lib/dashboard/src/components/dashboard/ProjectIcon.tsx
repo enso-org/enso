@@ -9,25 +9,30 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import LogsModal from '#/layouts/dashboard/LogsModal'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as remoteBackend from '#/services/remoteBackend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as object from '#/utilities/object'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import LogsModal from '#/layouts/dashboard/LogsModal'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+import * as remoteBackend from '#/services/RemoteBackend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as errorModule from '#/utilities/error'
+import * as localStorageModule from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -73,11 +78,10 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
   keyProp: string
-  item: assetTreeNode.AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  item: AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   asset: backendModule.ProjectAsset
   setAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  isHovered: boolean
   setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
   assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
@@ -88,24 +92,13 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const {
-    keyProp: key,
-    item,
-    setItem,
-    asset,
-    setAsset,
-    isHovered,
-    assetEvents,
-    doOpenManually,
-    onClose,
-    openIde,
-  } = props
+  const { keyProp: key, item, setItem, asset, setAsset, assetEvents, doOpenManually } = props
+  const { onClose, openIde } = props
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [shouldAnimate, setShouldAnimate] = React.useState(false)
   const state = asset.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -151,18 +144,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     asset.projectState.opened_by !== organization?.email
-
-  React.useEffect(() => {
-    if (isHovered) {
-      // Delay adding animation CSS attributes, to prevent animations for
-      // the initial hover.
-      requestAnimationFrame(() => {
-        setShouldAnimate(true)
-      })
-    } else {
-      setShouldAnimate(false)
-    }
-  }, [isHovered])
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -269,8 +250,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     switch (event.type) {
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
-      case AssetEventType.newDataConnector:
+      case AssetEventType.newSecret:
       case AssetEventType.copy:
+      case AssetEventType.updateFiles:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
       case AssetEventType.move:
@@ -384,12 +366,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   }
 
-  const triangleButton = (
+  const triangleButton = item.children != null && (
     <SvgMask
       src={TriangleDownIcon}
-      className={`cursor-pointer h-4 w-4 m-1 ${
-        shouldAnimate ? 'transition-transform duration-300' : ''
-      } ${item.isProjectExpanded && item.children != null ? '' : '-rotate-90'}`}
+      className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
+        item.isProjectExpanded ? '' : '-rotate-90'
+      }`}
       onClick={event => {
         event.stopPropagation()
         setItem(oldItem => oldItem.with({ isProjectExpanded: !oldItem.isProjectExpanded }))
@@ -403,56 +385,32 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
-      return isHovered && item.children != null ? (
-        triangleButton
-      ) : (
-        <button
-          className="w-6 h-6 disabled:opacity-50"
-          onClick={clickEvent => {
-            clickEvent.stopPropagation()
-            unsetModal()
-            doOpenManually(asset.id)
-          }}
-        >
-          <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
-        </button>
+      return (
+        <>
+          {triangleButton}
+          <button
+            className="group-hover:hidden w-6 h-6 disabled:opacity-50"
+            onClick={clickEvent => {
+              clickEvent.stopPropagation()
+              unsetModal()
+              doOpenManually(asset.id)
+            }}
+          >
+            <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
+          </button>
+        </>
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.cloning:
     case backendModule.ProjectState.placeholder:
-      return isHovered && item.children != null ? (
-        triangleButton
-      ) : (
-        <button
-          disabled={isOtherUserUsingProject}
-          {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="w-6 h-6 disabled:opacity-50"
-          onClick={async clickEvent => {
-            clickEvent.stopPropagation()
-            unsetModal()
-            await closeProject(!isRunningInBackground)
-          }}
-        >
-          <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-            <Spinner size={ICON_SIZE_PX} state={spinnerState} />
-          </div>
-          <SvgMask
-            alt="Stop execution"
-            src={StopIcon}
-            className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
-          />
-        </button>
-      )
-    case backendModule.ProjectState.opened:
-      return isHovered && item.children != null ? (
-        triangleButton
-      ) : (
-        <div>
+      return (
+        <>
+          {triangleButton}
           <button
             disabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="w-6 h-6 disabled:opacity-50"
+            {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
+            className="group-hover:hidden w-6 h-6 disabled:opacity-50"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
@@ -460,7 +418,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }}
           >
             <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={24} state={spinnerState} />
+              <Spinner size={ICON_SIZE_PX} state={spinnerState} />
             </div>
             <SvgMask
               alt="Stop execution"
@@ -468,32 +426,59 @@ export default function ProjectIcon(props: ProjectIconProps) {
               className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
             />
           </button>
-          {!isOtherUserUsingProject && !isRunningInBackground && (
+        </>
+      )
+    case backendModule.ProjectState.opened:
+      return (
+        <>
+          {triangleButton}
+          <div>
             <button
-              className="w-6 h-6"
-              onClick={clickEvent => {
-                clickEvent.stopPropagation()
-                unsetModal()
-                openIde(true)
-              }}
-            >
-              <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
-            </button>
-          )}
-          {isRunningInBackground && (
-            <button
-              className="w-6 h-6"
+              disabled={isOtherUserUsingProject}
+              {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
+              className="group-hover:hidden w-6 h-6 disabled:opacity-50"
               onClick={async clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                const logs = await backend.getLogs(asset.id, asset.title)
-                setModal(<LogsModal logs={logs} />)
+                await closeProject(!isRunningInBackground)
               }}
             >
-              <SvgMask alt="Show logs" src={LogsIcon} className={ICON_CLASSES} />
+              <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+                <Spinner size={24} state={spinnerState} />
+              </div>
+              <SvgMask
+                alt="Stop execution"
+                src={StopIcon}
+                className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+              />
             </button>
-          )}
-        </div>
+            {!isOtherUserUsingProject && !isRunningInBackground && (
+              <button
+                className="w-6 h-6"
+                onClick={clickEvent => {
+                  clickEvent.stopPropagation()
+                  unsetModal()
+                  openIde(true)
+                }}
+              >
+                <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
+              </button>
+            )}
+            {isRunningInBackground && (
+              <button
+                className="w-6 h-6"
+                onClick={async clickEvent => {
+                  clickEvent.stopPropagation()
+                  unsetModal()
+                  const logs = await backend.getLogs(asset.id, asset.title)
+                  setModal(<LogsModal logs={logs} />)
+                }}
+              >
+                <SvgMask alt="Show logs" src={LogsIcon} className={ICON_CLASSES} />
+              </button>
+            )}
+          </div>
+        </>
       )
   }
 }

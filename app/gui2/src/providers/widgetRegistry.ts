@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type Owned } from '@/util/ast/abstract.ts'
+import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -12,7 +12,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 export namespace WidgetInput {
   export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
     return {
-      portId: ast.exprId,
+      portId: ast.id,
       value: ast,
     }
   }
@@ -52,10 +52,11 @@ export namespace WidgetInput {
 
   export function isFunctionCall(
     input: WidgetInput,
-  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.OprApp } {
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } {
     return (
       input.value instanceof Ast.App ||
       input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.PropertyAccess ||
       input.value instanceof Ast.OprApp
     )
   }
@@ -91,7 +92,7 @@ export interface WidgetInput {
    *
    * Also, used as usage key (see {@link usageKeyForInput})
    */
-  portId: PortId
+  portId: PortId | TokenId
   /**
    * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
    * code. If string, it may be e.g. a default value of an argument.
@@ -142,7 +143,7 @@ export interface WidgetProps<T> {
 export interface WidgetUpdate {
   edit: MutableModule
   portUpdate?: {
-    value: Owned<Ast.Ast> | string | undefined
+    value: Ast.Owned | string | undefined
     origin: PortId
   }
 }
@@ -263,7 +264,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
   if (typeof definition.score === 'function') {
     score = definition.score
   } else {
-    const staticScore = definition.score ?? Score.Perfect
+    const staticScore = definition.score ?? Score.Good
     score = () => staticScore
   }
 

@@ -3,21 +3,26 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+
+import type * as assetEvent from '#/events/assetEvent'
+
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import type * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
 
 import Button from '#/components/Button'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+
+import type * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 
 // ==========================
 // === AssetSettingsPanel ===
@@ -25,14 +30,15 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 /** The subset of {@link AssetSettingsPanelProps} that are required to be supplied by the row. */
 export interface AssetSettingsPanelRequiredProps {
-  item: assetTreeNode.AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  item: AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
 }
 
 /** Props for a {@link AssetSettingsPanel}. */
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
   supportsLocalBackend: boolean
   page: pageSwitcher.Page
+  setPage: (page: pageSwitcher.Page) => void
   category: Category
   isHelpChatOpen: boolean
   setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -46,8 +52,8 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
-  const { item: rawItem, setItem: rawSetItem, supportsLocalBackend, page, category } = props
-  const { isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
+  const { item: rawItem, setItem: rawSetItem, supportsLocalBackend, page, setPage } = props
+  const { category, isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
   const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const [item, innerSetItem] = React.useState(rawItem)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
@@ -57,7 +63,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
+    (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
       innerSetItem(valueOrUpdater)
       rawSetItem(valueOrUpdater)
     },
@@ -96,6 +102,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
 
   return (
     <div
+      data-testid="asset-panel"
       className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
       onClick={event => {
         event.stopPropagation()
@@ -116,6 +123,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             onSignOut={onSignOut}
             page={page}
+            setPage={setPage}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}
             doRemoveSelf={doRemoveSelf}
@@ -135,7 +143,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
             />
           )}
         </span>
-        <div className="py-1 self-stretch">
+        <div data-testid="asset-panel-description" className="py-1 self-stretch">
           {!isEditingDescription ? (
             <span className="leading-170 py-px">{item.item.description}</span>
           ) : (
@@ -180,7 +188,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
         <table>
           <tbody>
-            <tr>
+            <tr data-testid="asset-panel-permissions">
               <td className="min-w-32 px-0 py-1">
                 <span className="inline-block leading-170 h-6 py-px">Shared with</span>
               </td>

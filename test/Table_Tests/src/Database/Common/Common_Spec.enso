@@ -8,8 +8,8 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+import Standard.Test_New.Suite.Suite_Builder
 
 import project.Database.Common.Default_Ordering_Spec
 import project.Database.Common.Names_Length_Limits_Spec
@@ -17,251 +17,90 @@ import project.Database.Common.Names_Length_Limits_Spec
 import project.Util
 import project.Database.Helpers.Name_Generator
 
-spec prefix connection =
-    tables_to_clean = Vector.new_builder
-    upload prefix data temporary=True =
-        name = Name_Generator.random_name prefix
-        table = data.select_into_database_table connection name temporary=temporary primary_key=Nothing
-        tables_to_clean.append table.name
-        table
 
-    clean_tables =
-        tables_to_clean.to_vector.each name->
-            Panic.catch Any (connection.drop_table name) caught_panic->
-                IO.println "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
-    Panic.with_finalizer clean_tables <|
-        run_tests prefix connection upload
+upload connection prefix data temporary=True =
+    name = Name_Generator.random_name prefix
+    table = data.select_into_database_table connection name temporary=temporary primary_key=Nothing
+    table
 
-run_tests prefix connection upload =
-    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
-    Test.group prefix+"Basic Table Access" <|
-        Test.specify "should allow to materialize tables and columns into local memory" <|
-            df = t1.read
-            a = t1.at 'a' . read
-            df.at 'a' . to_vector . should_equal [1, 4]
-            a.to_vector . should_equal [1, 4]
-        Test.specify "should allow to materialize columns directly into a Vector" <|
-            v = t1.at 'a' . to_vector
-            v . should_equal [1, 4]
-        Test.specify "should handle bigger result sets" <|
-            n = 1000
-            original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
-            table = upload "Big" original
-            table.read.row_count . should_equal n
-        Test.specify "should not allow to set a column coming from another table" <|
-            t2 = upload "T2" (Table.new [["d", [100, 200]]])
-            t1.set (t2.at "d") . should_fail_with Integrity_Error
 
-    Test.group prefix+"Connection.query" <|
-        name = t1.name
-        Test.specify "should allow to access a Table by name" <|
-            t2 = connection.query (SQL_Query.Table_Name name)
-            t2.read . should_equal t1.read
+drop_table connection name =
+    Panic.catch Any (connection.drop_table name) caught_panic->
+        IO.println <| "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
 
-        Test.specify "should allow to access a Table by an SQL query" <|
-            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "c" . should_fail_with No_Such_Column
 
-        Test.specify "should allow to access a Table by an SQL query" <|
-            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "c" . should_fail_with No_Such_Column
+type Basic_Data
+    Value ~data
 
-            t3 = connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
-            m3 = t3.read
-            m3.at 0 . to_vector . should_equal [3]
+    connection self = self.data.at 0
+    t1 self = self.data.at 1
+    t2 self = self.data.at 2
+    t4 self = self.data.at 3
+    big_table self = self.data.at 4
+    big_size self = self.data.at 5
 
-        Test.specify "should use labels for column names" <|
-            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a AS c, b FROM "' + name + '" WHERE a >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["c", "b"]
-            m2.at "c" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "a" . should_fail_with No_Such_Column
+    setup create_connection_fn = Basic_Data.Value <|
+        big_size = 1000
+        connection = create_connection_fn Nothing
+        t1 = upload connection "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
+        t2 = upload connection "T2" (Table.new [["d", [100, 200]]])
+        ## The effective name may get a deduplication prefix/suffix so we
+            need to use `t4.name` instead of the literal string. Still it
+            will contain the weird characters we wanted.
 
-        Test.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
-            t2 = connection.query name
-            t2.read . should_equal t1.read
+            Also, the table name cannot be too long as Postgres truncates at
+            63 chars (and we append 37 chars of uniqueness suffix) and the
+            test logic will break then.
+        t4 = upload connection 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
+        big = Table.new [["a", Vector.new big_size ix->ix], ["b", Vector.new big_size ix-> ix *  3.1415926], ["c", Vector.new big_size ix-> ix.to_text]]
+        big_table = upload connection "Big" big
+        [connection, t1, t2, t4, big_table, big_size]
 
-            t3 = connection.query ('SELECT a, b FROM "' + name + '" WHERE a >= 3')
-            m3 = t3.read
-            m3.column_names . should_equal ["a", "b"]
-            m3.at "a" . to_vector . should_equal [4]
+    teardown self =
+        drop_table self.connection self.t1.name
+        drop_table self.connection self.t2.name
+        drop_table self.connection self.t4.name
+        drop_table self.connection self.big_table.name
+        self.connection.close
 
-            ## The effective name may get a deduplication prefix/suffix so we
-               need to use `t4.name` instead of the literal string. Still it
-               will contain the weird characters we wanted.
 
-               Also, the table name cannot be too long as Postgres truncates at
-               63 chars (and we append 37 chars of uniqueness suffix) and the
-               test logic will break then.
-            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
-            t5 = connection.query t4.name
-            m5 = t5.read
-            m5.column_names . should_equal ["X", "Y"]
-            m5.at "X" . to_vector . should_equal ["a", "B"]
-            m5.at "Y" . to_vector . should_equal [2, 5]
+type Sorting_Data
+    Value ~data
 
-        Test.specify "should report an error depending on input SQL_Query type" <|
-            r2 = connection.query (SQL_Query.Table_Name "NONEXISTENT-TABLE")
-            r2.should_fail_with Table_Not_Found
-            r2.catch.name . should_equal "NONEXISTENT-TABLE"
-            r2.catch.to_display_text . should_equal "Table NONEXISTENT-TABLE was not found in the database."
+    connection self = self.data.at 0
+    df self = self.data.at 1
+    ints self = self.data.at 2
+    reals self = self.data.at 3
+    bools self = self.data.at 4
+    texts self = self.data.at 5
+    t8 self = self.data.at 6
 
-            r3 = connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
-            r3.should_fail_with SQL_Error
-
-        Test.specify "should not allow interpolations in raw user-built queries" <|
-            r = connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
-            r.should_fail_with Illegal_Argument
-
-        Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
-            r2 = connection.query "NONEXISTENT-TABLE"
-            r2.should_fail_with Table_Not_Found
-            r2.catch.name . should_equal "NONEXISTENT-TABLE"
-            r2.catch.treated_as_query . should_be_true
-            error_text = r2.catch.to_display_text
-            Test.with_clue "r2.catch.to_display_text = "+error_text <|
-                error_text.starts_with "The name NONEXISTENT-TABLE was treated as a query, but the query failed" . should_be_true
-                error_text.ends_with "wrap it in `SQL_Query.Table_Name`." . should_be_true
-
-            r3 = connection.query "SELECT * FROM ........"
-            r3.should_fail_with SQL_Error
-
-        Test.specify "will fail if the table is modified and a column gets removed" <|
-            name = Name_Generator.random_name "removing-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
-
-            t1 = connection.query name
-            m1 = t1.read
-            Problems.assume_no_problems m1
-            m1.at "a" . to_vector . should_equal [1, 2, 3]
-            m1.at "b" . to_vector . should_equal [4, 5, 6]
-
-            Problems.assume_no_problems <| connection.drop_table name
-            Problems.assume_no_problems <|
-                (Table.new [["a", [100, 200]]]).select_into_database_table connection name temporary=True
-
-            # Reading a column that was kept will work OK
-            t1.at "a" . to_vector . should_equal [100, 200]
-
-            # But reading the whole table will fail on the missing column:
-            m2 = t1.read
-            m2.should_fail_with SQL_Error
-
-        Test.specify "will not fail if the table is modified and a column gets added" <|
-            name = Name_Generator.random_name "adding-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
-
-            t1 = connection.query name
-            m1 = t1.read
-            Problems.assume_no_problems m1
-            m1.at "a" . to_vector . should_equal [1, 2, 3]
-            m1.at "b" . to_vector . should_equal [4, 5, 6]
-
-            Problems.assume_no_problems <| connection.drop_table name
-            Problems.assume_no_problems <|
-                (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table connection name temporary=True
-
-            m2 = t1.read
-            Problems.assume_no_problems m2
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [100, 200]
-            m2.at "b" . to_vector . should_equal [300, 400]
-
-            t1.at "c" . should_fail_with No_Such_Column
-
-            t2 = connection.query name
-            t2.column_names . should_equal ["a", "b", "c"]
-
-    Test.group prefix+"Masking Tables" <|
-        Test.specify "should allow to select rows from a table or column based on an expression" <|
-            t2 = t1.filter (t1.at "a" == 1)
-            df = t2.read
-            df.at "a" . to_vector . should_equal [1]
-            df.at "b" . to_vector . should_equal [2]
-            df.at "c" . to_vector . should_equal [3]
-            t2.at "a" . to_vector . should_equal [1]
-            t2.at "b" . to_vector . should_equal [2]
-            t2.at "c" . to_vector . should_equal [3]
-
-    Test.group prefix+"Missing Values" <|
-        t4 = upload "T4" <|
-            Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
-        Test.specify "fill_nothing should replace nulls" <|
-            t4.at 'a' . fill_nothing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
-            t4.at 'b' . fill_nothing False . to_vector . should_equal [True, False, True, False, False]
-            t4.at 'c' . fill_nothing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
-
-        Test.specify "should correctly be counted" <|
-            t4.row_count . should_equal 5
-            col = t4.at 'a'
-            col.length . should_equal 5
-            col.count . should_equal 3
-            col.count_nothing . should_equal 2
-
-    Test.group prefix+"Sorting" <|
-        df = upload "clothes" <|
+    setup create_connection_fn = Sorting_Data.Value <|
+        connection = create_connection_fn Nothing
+        ints = [1, 2, 3, 4, 5]
+        reals = [1.3, 4.6, 3.2, 5.2, 1.6]
+        bools = [False, False, True, True, False]
+        texts = ["foo", "foo", "bar", "baz", "spam"]
+        df = upload connection "clothes" <|
             Table.new [["id", [1,2,3,4,5,6]], ["name", ["shoes","trousers","dress","skirt","blouse","t-shirt"]], ["quantity", [20,10,20,10,30,30]], ["rating", [3.0,Nothing,7.3,3.0,2.2,Nothing]], ["price", [37.2,42.1,64.1,87.4,13.5,64.2]]]
+        t8 = upload connection "T8" <|
+            Table.new [["ord", [0,3,2,4,1]], ["ints", ints], ["reals", reals], ["bools", bools], ["texts", texts]]
+        [connection, df, ints, reals, bools, texts, t8]
 
-        Test.specify "should allow sorting by a single column name" <|
-            r_1 = df.order_by ([Sort_Column.Name 'quantity'])
-            r_1.at 'id' . to_vector . should_equal [2,4,1,3,5,6]
+    teardown self =
+        drop_table self.connection self.df.name
+        drop_table self.connection self.t8.name
+        self.connection.close
 
-            r_3 = df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending])
-            r_3.at 'id' . to_vector . should_equal [3,1,4,5,2,6]
 
-        Test.specify 'should allow sorting by multiple column names' <|
-            r_1 = df.order_by ([Sort_Column.Name 'quantity', Sort_Column.Name 'rating'])
-            r_1.at 'id' . to_vector . should_equal [2,4,1,3,6,5]
+type Aggregation_Data
+    Value ~data
 
-            r_2 = df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending, Sort_Column.Name 'quantity' Sort_Direction.Descending])
-            r_2.at 'id' . to_vector . should_equal [3,1,4,5,6,2]
+    connection self = self.data.first
+    t9 self = self.data.second
 
-        Test.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = df.order_by ([Sort_Column.Name "quantity", Sort_Column.Name "price" Sort_Direction.Descending])
-            r_1.at 'id' . to_vector . should_equal [4,2,3,1,6,5]
-
-        Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
-            ints = [1, 2, 3, 4, 5]
-            reals = [1.3, 4.6, 3.2, 5.2, 1.6]
-            bools = [False, False, True, True, False]
-            texts = ["foo", "foo", "bar", "baz", "spam"]
-            df = upload "T8" <|
-                Table.new [["ord", [0,3,2,4,1]], ["ints", ints], ["reals", reals], ["bools", bools], ["texts", texts]]
-            r = df.order_by ([Sort_Column.Name 'ord'])
-
-            r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
-            df.at 'ints' . to_vector . should_equal ints
-
-            r.at 'reals' . to_vector . should_equal [1.3, 1.6, 3.2, 4.6, 5.2]
-            df.at 'reals' . to_vector . should_equal reals
-
-            r.at 'bools' . to_vector . should_equal [False, False, True, False, True]
-            df.at 'bools' . to_vector . should_equal bools
-
-            r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
-            df.at 'texts' . to_vector . should_equal texts
-
-        Test.specify 'should sort columns with specified ordering and missing placement' <|
-            c = df.at 'rating'
-
-            r_1 = c.sort
-            r_1.to_vector.should_equal [Nothing, Nothing, 2.2, 3.0, 3.0, 7.3]
-
-            r_2 = c.sort Sort_Direction.Descending
-            r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
-
-    Test.group prefix+"Aggregation" <|
+    setup create_connection_fn = Aggregation_Data.Value <|
+        connection = create_connection_fn Nothing
         builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]
         insert v =
             builders.zip v .append
@@ -281,8 +120,287 @@ run_tests prefix connection upload =
         insert ["zzzz", 1, 0]
         insert ["zzzz", 0, 0]
         insert ["zzzz", Nothing, Nothing]
-        t = upload "T9" <|
+        t9 = upload connection "T9" <|
             Table.new [["name", builders.at 0 . to_vector], ["price", builders.at 1 . to_vector], ["quantity", builders.at 2 . to_vector]]
+        [connection, t9]
+
+    teardown self =
+        drop_table self.connection self.t9.name
+        self.connection.close
+
+
+type Missing_Values_Data
+    Value ~data
+
+    connection self = self.data.first
+    t4 self = self.data.second
+
+    setup create_connection_fn = Missing_Values_Data.Value <|
+        connection = create_connection_fn Nothing
+        t4 = upload connection "T4" <|
+            Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
+        [connection, t4]
+
+    teardown self =
+        drop_table self.connection self.t4.name
+        self.connection.close
+
+
+## Adds common database tests specs to the suite builder.
+
+   Arguments:
+   - create_connection_fn: A function that creates an appropriate Connection to the database backend.
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) =
+
+    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
+    Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
+
+    suite_builder.group (prefix + "Basic Table Access") group_builder->
+        data = Basic_Data.setup create_connection_fn
+        
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow to materialize tables and columns into local memory" <|
+            df = data.t1.read
+            a = data.t1.at 'a' . read
+            df.at 'a' . to_vector . should_equal [1, 4]
+            a.to_vector . should_equal [1, 4]
+            
+        group_builder.specify "should allow to materialize columns directly into a Vector" <|
+            v = data.t1.at 'a' . to_vector
+            v . should_equal [1, 4]
+            
+        group_builder.specify "should handle bigger result sets" <|
+            data.big_table.read.row_count . should_equal data.big_size
+            
+        group_builder.specify "should not allow to set a column coming from another table" <|
+            data.t1.set (data.t2.at "d") . should_fail_with Integrity_Error
+
+
+    suite_builder.group (prefix + "Connection.query") group_builder->
+        data = Basic_Data.setup create_connection_fn
+        
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow to access a Table by name" <|
+            name = data.t1.name
+            tmp = data.connection.query (SQL_Query.Table_Name name)
+            tmp.read . should_equal data.t1.read
+            
+        group_builder.specify "should allow to access a Table by an SQL query" <|
+            name = data.t1.name
+            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "c" . should_fail_with No_Such_Column
+
+        group_builder.specify "should allow to access a Table by an SQL query" <|
+            name = data.t1.name
+            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "c" . should_fail_with No_Such_Column
+
+            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
+            m3 = t3.read
+            m3.at 0 . to_vector . should_equal [3]
+
+        group_builder.specify "should use labels for column names" <|
+            name = data.t1.name
+            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT a AS c, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["c", "b"]
+            m2.at "c" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "a" . should_fail_with No_Such_Column
+
+        group_builder.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
+            name = data.t1.name
+            t2 = data.connection.query name
+            t2.read . should_equal data.t1.read
+
+            t3 = data.connection.query ('SELECT a, b FROM "' + name + '" WHERE a >= 3')
+            m3 = t3.read
+            m3.column_names . should_equal ["a", "b"]
+            m3.at "a" . to_vector . should_equal [4]
+
+            t5 = data.connection.query data.t4.name
+            m5 = t5.read
+            m5.column_names . should_equal ["X", "Y"]
+            m5.at "X" . to_vector . should_equal ["a", "B"]
+            m5.at "Y" . to_vector . should_equal [2, 5]
+
+        group_builder.specify "should report an error depending on input SQL_Query type" <|
+            r2 = data.connection.query (SQL_Query.Table_Name "NONEXISTENT-TABLE")
+            r2.should_fail_with Table_Not_Found
+            r2.catch.name . should_equal "NONEXISTENT-TABLE"
+            r2.catch.to_display_text . should_equal "Table NONEXISTENT-TABLE was not found in the database."
+
+            r3 = data.connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
+            r3.should_fail_with SQL_Error
+
+        group_builder.specify "should not allow interpolations in raw user-built queries" <|
+            r = data.connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
+            r.should_fail_with Illegal_Argument
+
+        group_builder.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
+            r2 = data.connection.query "NONEXISTENT-TABLE"
+            r2.should_fail_with Table_Not_Found
+            r2.catch.name . should_equal "NONEXISTENT-TABLE"
+            r2.catch.treated_as_query . should_be_true
+            error_text = r2.catch.to_display_text
+            Test.with_clue "r2.catch.to_display_text = "+error_text <|
+                error_text.starts_with "The name NONEXISTENT-TABLE was treated as a query, but the query failed" . should_be_true
+                error_text.ends_with "wrap it in `SQL_Query.Table_Name`." . should_be_true
+
+            r3 = data.connection.query "SELECT * FROM ........"
+            r3.should_fail_with SQL_Error
+
+        group_builder.specify "will fail if the table is modified and a column gets removed" <|
+            name = Name_Generator.random_name "removing-column"
+            Problems.assume_no_problems <|
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+
+            t1 = data.connection.query name
+            m1 = t1.read
+            Problems.assume_no_problems m1
+            m1.at "a" . to_vector . should_equal [1, 2, 3]
+            m1.at "b" . to_vector . should_equal [4, 5, 6]
+
+            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <|
+                (Table.new [["a", [100, 200]]]).select_into_database_table data.connection name temporary=True
+
+            # Reading a column that was kept will work OK
+            t1.at "a" . to_vector . should_equal [100, 200]
+
+            # But reading the whole table will fail on the missing column:
+            m2 = t1.read
+            m2.should_fail_with SQL_Error
+
+        group_builder.specify "will not fail if the table is modified and a column gets added" <|
+            name = Name_Generator.random_name "adding-column"
+            Problems.assume_no_problems <|
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+
+            t1 = data.connection.query name
+            m1 = t1.read
+            Problems.assume_no_problems m1
+            m1.at "a" . to_vector . should_equal [1, 2, 3]
+            m1.at "b" . to_vector . should_equal [4, 5, 6]
+
+            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <|
+                (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table data.connection name temporary=True
+
+            m2 = t1.read
+            Problems.assume_no_problems m2
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [100, 200]
+            m2.at "b" . to_vector . should_equal [300, 400]
+
+            t1.at "c" . should_fail_with No_Such_Column
+
+            t2 = data.connection.query name
+            t2.column_names . should_equal ["a", "b", "c"]
+
+
+    suite_builder.group (prefix + "Masking Tables") group_builder->
+        data = Basic_Data.setup create_connection_fn
+        
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow to select rows from a table or column based on an expression" <|
+            t2 = data.t1.filter (data.t1.at "a" == 1)
+            df = t2.read
+            df.at "a" . to_vector . should_equal [1]
+            df.at "b" . to_vector . should_equal [2]
+            df.at "c" . to_vector . should_equal [3]
+            t2.at "a" . to_vector . should_equal [1]
+            t2.at "b" . to_vector . should_equal [2]
+            t2.at "c" . to_vector . should_equal [3]
+
+    suite_builder.group (prefix + "Missing Values")  group_builder->
+        data = Missing_Values_Data.setup create_connection_fn
+        
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "fill_nothing should replace nulls" <|
+            data.t4.at 'a' . fill_nothing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
+            data.t4.at 'b' . fill_nothing False . to_vector . should_equal [True, False, True, False, False]
+            data.t4.at 'c' . fill_nothing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
+
+        group_builder.specify "should correctly be counted" <|
+            data.t4.row_count . should_equal 5
+            col = data.t4.at 'a'
+            col.length . should_equal 5
+            col.count . should_equal 3
+            col.count_nothing . should_equal 2
+
+
+    suite_builder.group (prefix + "Sorting") group_builder->
+        data = Sorting_Data.setup create_connection_fn
+        
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow sorting by a single column name" <|
+            r_1 = data.df.order_by ([Sort_Column.Name 'quantity'])
+            r_1.at 'id' . to_vector . should_equal [2,4,1,3,5,6]
+
+            r_3 = data.df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending])
+            r_3.at 'id' . to_vector . should_equal [3,1,4,5,2,6]
+
+        group_builder.specify 'should allow sorting by multiple column names' <|
+            r_1 = data.df.order_by ([Sort_Column.Name 'quantity', Sort_Column.Name 'rating'])
+            r_1.at 'id' . to_vector . should_equal [2,4,1,3,6,5]
+
+            r_2 = data.df.order_by ([Sort_Column.Name 'rating' Sort_Direction.Descending, Sort_Column.Name 'quantity' Sort_Direction.Descending])
+            r_2.at 'id' . to_vector . should_equal [3,1,4,5,6,2]
+
+
+        group_builder.specify 'should allow sorting with specific by-column rules' <|
+            r_1 = data.df.order_by ([Sort_Column.Name "quantity", Sort_Column.Name "price" Sort_Direction.Descending])
+            r_1.at 'id' . to_vector . should_equal [4,2,3,1,6,5]
+
+        group_builder.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
+            r = data.t8.order_by ([Sort_Column.Name 'ord'])
+
+            r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
+            data.t8.at 'ints' . to_vector . should_equal data.ints
+
+            r.at 'reals' . to_vector . should_equal [1.3, 1.6, 3.2, 4.6, 5.2]
+            data.t8.at 'reals' . to_vector . should_equal data.reals
+
+            r.at 'bools' . to_vector . should_equal [False, False, True, False, True]
+            data.t8.at 'bools' . to_vector . should_equal data.bools
+
+            r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
+            data.t8.at 'texts' . to_vector . should_equal data.texts
+
+        group_builder.specify 'should sort columns with specified ordering and missing placement' <|
+            c = data.df.at 'rating'
+
+            r_1 = c.sort
+            r_1.to_vector.should_equal [Nothing, Nothing, 2.2, 3.0, 3.0, 7.3]
+
+            r_2 = c.sort Sort_Direction.Descending
+            r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
+
+
+    suite_builder.group prefix+"Aggregation" group_builder->
+        data = Aggregation_Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
 
         ## A helper which makes sure that the groups in a materialized
            (InMemory) table are ordered according to a specified column or list
@@ -290,45 +408,45 @@ run_tests prefix connection upload =
         determinize_by order_column table =
             table.order_by ([Sort_Column.Name order_column])
 
-        Test.specify "should allow counting group sizes and elements" <|
+        group_builder.specify "should allow counting group sizes and elements" <|
             ## Names set to lower case to avoid issue with Redshift where columns are
                returned in lower case.
             aggregates = [Count "count", Count_Not_Nothing "price" "count not nothing price", Count_Nothing "price" "count nothing price"]
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . read)
+            t1 = determinize_by "name" (data.t9.aggregate ([Group_By "name"] + aggregates) . read)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
             t1.at  "count" . to_vector . should_equal [2, 1, 5, 1, 7]
             t1.at  "count not nothing price" . to_vector . should_equal [2, 1, 3, 0, 5]
             t1.at  "count nothing price" . to_vector . should_equal [0, 0, 2, 1, 2]
 
-            t2 = t.aggregate aggregates . read
+            t2 = data.t9.aggregate aggregates . read
             t2.at  "count" . to_vector . should_equal [16]
             t2.at  "count not nothing price" . to_vector . should_equal [11]
             t2.at  "count nothing price" . to_vector . should_equal [5]
 
-        Test.specify "should allow simple arithmetic aggregations" <|
+        group_builder.specify "should allow simple arithmetic aggregations" <|
             ## Names set to lower case to avoid issue with Redshift where columns are
                returned in lower case.
             aggregates = [Sum "price" "sum price", Sum "quantity" "sum quantity", Average "price" "avg price"]
             ## TODO can check the datatypes
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . read)
+            t1 = determinize_by "name" (data.t9.aggregate ([Group_By "name"] + aggregates) . read)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
             t1.at  "sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing, 2]
             t1.at  "sum quantity" . to_vector . should_equal [80, 40, 120, 70, 2]
             t1.at  "avg price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing, (2/5)]
 
-            t2 = t.aggregate aggregates . read
+            t2 = data.t9.aggregate aggregates . read
             t2.at  "sum price" . to_vector . should_equal [110.2]
             t2.at  "sum quantity" . to_vector . should_equal [312]
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
 
-    Test.group prefix+"Table.filter" <|
-        Test.specify "report error when trying to filter by a custom predicate" <|
-            t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
+    suite_builder.group prefix+"Table.filter" group_builder->
+        data = Basic_Data.setup create_connection_fn
 
-    Default_Ordering_Spec.spec prefix connection
-    Names_Length_Limits_Spec.spec prefix connection
+        group_builder.teardown <|
+            data.teardown
 
-main = Test_Suite.run_main <|
-    spec "[SQLite] " (Database.connect (SQLite In_Memory))
+        group_builder.specify "report error when trying to filter by a custom predicate" <|
+            data.t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
+

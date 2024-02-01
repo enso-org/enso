@@ -16,6 +16,7 @@ export enum Page {
   home = 'home',
   drive = 'drive',
   editor = 'editor',
+  settings = 'settings',
 }
 
 /** Error text for each page. */
@@ -23,18 +24,20 @@ const ERRORS: Record<Page, string | null> = {
   [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'No project is currently open.',
+  [Page.settings]: null,
 }
 
 /** Data describing how to display a button for a pageg. */
 interface PageUIData {
   page: Page
   icon: string
+  alt: string
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon },
-  { page: Page.drive, icon: DriveIcon },
-  { page: Page.editor, icon: NetworkIcon },
+  { page: Page.home, icon: HomeIcon, alt: 'Go to home page' },
+  { page: Page.drive, icon: DriveIcon, alt: 'Go to drive page' },
+  { page: Page.editor, icon: NetworkIcon, alt: 'Go to editor page' },
 ]
 
 /** Props for a {@link PageSwitcher}. */
@@ -59,6 +62,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
         return (
           <Button
             key={pageData.page}
+            alt={pageData.alt}
             image={pageData.icon}
             active={page === pageData.page}
             disabled={isDisabled}

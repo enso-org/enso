@@ -267,12 +267,12 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Specialization(
         limit = "10",
-        guards = {"cachedType != null", "findType(typeOfNode, v) == cachedType"})
+        guards = {"cachedType != null", "findType(typeOfNode, v, cachedType) == cachedType"})
     Object doWithConversionCached(
         VirtualFrame frame,
         Object v,
         @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
-        @Cached("findType(typeOfNode, v)") Type cachedType,
+        @Cached(value = "findType(typeOfNode, v)", dimensions = 1) Type[] cachedType,
         @Cached("findConversionNode(cachedType)") ApplicationNode convertNode) {
       return handleWithConversion(frame, v, convertNode);
     }
@@ -327,39 +327,55 @@ public abstract class ReadArgumentCheckNode extends Node {
       return null;
     }
 
-    ApplicationNode findConversionNode(Type from) {
-      var convAndType = findConversion(from);
+    ApplicationNode findConversionNode(Type[] allTypes) {
+      if (allTypes == null) {
+        allTypes = new Type[] {null};
+      }
+      for (var from : allTypes) {
+        var convAndType = findConversion(from);
 
-      if (convAndType != null) {
-        if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
-          CompilerAsserts.neverPartOfCompilation();
-          var convNode = LiteralNode.build(convAndType.getLeft());
-          var intoNode = LiteralNode.build(convAndType.getRight());
-          var valueNode = ran.plainRead();
-          var args =
-              new CallArgument[] {
-                new CallArgument(null, intoNode), new CallArgument(null, valueNode)
-              };
-          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-        } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class)
-            instanceof TypeCheckExpressionNode tcen) {
-          CompilerAsserts.neverPartOfCompilation();
-          var convNode = LiteralNode.build(convAndType.getLeft());
-          var intoNode = LiteralNode.build(convAndType.getRight());
-          var valueNode = tcen.original;
-          var args =
-              new CallArgument[] {
-                new CallArgument(null, intoNode), new CallArgument(null, valueNode)
-              };
-          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+        if (convAndType != null) {
+          if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = ran.plainRead();
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+          } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class)
+              instanceof TypeCheckExpressionNode tcen) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = tcen.original;
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+          }
         }
       }
       return null;
     }
 
-    Type findType(TypeOfNode typeOfNode, Object v) {
+    Type[] findType(TypeOfNode typeOfNode, Object v) {
+      return findType(typeOfNode, v, null);
+    }
+
+    Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
+      if (v instanceof EnsoMultiValue multi) {
+        return multi.allTypes();
+      }
       if (typeOfNode.execute(v) instanceof Type from) {
-        return from;
+        if (previous != null && previous.length == 1 && previous[0] == from) {
+          return previous;
+        } else {
+          return new Type[] {from};
+        }
       }
       return null;
     }
@@ -379,7 +395,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private Object doWithConversionUncachedBoundary(MaterializedFrame frame, Object v, Type type) {
+    private Object doWithConversionUncachedBoundary(
+        MaterializedFrame frame, Object v, Type[] type) {
       var convertNode = findConversionNode(type);
       return handleWithConversion(frame, v, convertNode);
     }

@@ -4,15 +4,17 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import UserMenu from '#/layouts/dashboard/UserMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
+
+import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+import UserMenu from '#/layouts/dashboard/UserMenu'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -22,6 +24,7 @@ import Button from '#/components/Button'
 export interface UserBarProps {
   supportsLocalBackend: boolean
   page: pageSwitcher.Page
+  setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   projectAsset: backendModule.ProjectAsset | null
@@ -32,7 +35,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
@@ -78,17 +81,22 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
+        className="flex items-center rounded-full overflow-clip w-7.25 h-7.25"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>
             oldModal?.type === UserMenu ? null : (
-              <UserMenu supportsLocalBackend={supportsLocalBackend} onSignOut={onSignOut} />
+              <UserMenu
+                setPage={setPage}
+                supportsLocalBackend={supportsLocalBackend}
+                onSignOut={onSignOut}
+              />
             )
           )
         }}
       >
         <img
-          src={DefaultUserIcon}
+          src={organization?.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}
@@ -97,6 +105,15 @@ export default function UserBar(props: UserBarProps) {
           }}
         />
       </button>
+      {/* Required for shortcuts to work. */}
+      <div className="hidden">
+        <UserMenu
+          hidden
+          setPage={setPage}
+          supportsLocalBackend={supportsLocalBackend}
+          onSignOut={onSignOut}
+        />
+      </div>
     </div>
   )
 }

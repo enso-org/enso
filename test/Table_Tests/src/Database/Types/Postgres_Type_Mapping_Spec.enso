@@ -7,24 +7,39 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import all
 
-from Standard.Test import Problems, Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import project.Database.Helpers.Name_Generator
 from project.Database.Postgres_Spec import create_connection_builder
 
-spec connection =
-    make_table prefix columns =
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    make_table self prefix columns =
         name = Name_Generator.random_name prefix
         column_exprs = columns.map col_def->
             col_def.first + " " + col_def.second
         stmt = 'CREATE TEMPORARY TABLE "'+name+'" ('+(column_exprs.join ', ')+');'
-        Problems.assume_no_problems <| connection.execute_update stmt
-        connection.query (SQL_Query.Table_Name name)
+        Problems.assume_no_problems <| self.connection.execute_update stmt
+        self.connection.query (SQL_Query.Table_Name name)
 
-    Test.group "[PostgreSQL] Type Mapping" <|
-        Test.specify "numeric" <|
-            t = make_table "ints" [["a", "smallint"], ["b", "int2"], ["c", "int"], ["d", "integer"], ["e", "int4"], ["f", "bigint"], ["g", "int8"]]
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder create_connection_fn =
+    suite_builder.group "[PostgreSQL] Type Mapping" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "numeric" <|
+            t = data.make_table "ints" [["a", "smallint"], ["b", "int2"], ["c", "int"], ["d", "integer"], ["e", "int4"], ["f", "bigint"], ["g", "int8"]]
             t.at "a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t.at "c" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
@@ -33,13 +48,13 @@ spec connection =
             t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "g" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-            t2 = make_table "floats" [["a", "real"], ["b", "float4"], ["c", "double precision"], ["d", "float8"]]
+            t2 = data.make_table "floats" [["a", "real"], ["b", "float4"], ["c", "double precision"], ["d", "float8"]]
             t2.at "a" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             t2.at "b" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             t2.at "c" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
-            t3 = make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, 4)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
+            t3 = data.make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, 4)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
             t3.at "a" . value_type . should_equal Value_Type.Decimal
             t3.at "b" . value_type . should_equal Value_Type.Decimal
             t3.at "c" . value_type . should_equal (Value_Type.Decimal precision=10 scale=2)
@@ -47,41 +62,41 @@ spec connection =
             t3.at "e" . value_type . should_equal (Value_Type.Decimal precision=10 scale=0)
             t3.at "f" . value_type . should_equal (Value_Type.Decimal precision=20 scale=0)
 
-        Test.specify "text" <|
-            t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
+        group_builder.specify "text" <|
+            t = data.make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
             t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable_length=False)
             t.at "b" . value_type . should_equal default_text
             t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable_length=True)
             t.at "d" . value_type . should_equal default_text
 
-        Test.specify "binary" <|
+        group_builder.specify "binary" <|
             # Postgres does not support a BLOB type, it has `bytea` instead.
-            t = make_table "binaries" [["a", "bytea"]]
+            t = data.make_table "binaries" [["a", "bytea"]]
             t.at "a" . value_type . should_equal (Value_Type.Binary size=max_int4 variable_length=True)
 
-        Test.specify "datetime" <|
-            t = make_table "dates" [["a", "date"]]
+        group_builder.specify "datetime" <|
+            t = data.make_table "dates" [["a", "date"]]
             t.at "a" . value_type . should_equal Value_Type.Date
 
-            t2 = make_table "times" [["a", "time"], ["b", "timetz"], ["c", "time without time zone"], ["d", "time with time zone"]]
+            t2 = data.make_table "times" [["a", "time"], ["b", "timetz"], ["c", "time without time zone"], ["d", "time with time zone"]]
             t2.at "a" . value_type . should_equal Value_Type.Time
             t2.at "b" . value_type . should_equal Value_Type.Time
             t2.at "c" . value_type . should_equal Value_Type.Time
             t2.at "d" . value_type . should_equal Value_Type.Time
 
-            t3 = make_table "timestamps" [["a", "timestamp"], ["b", "timestamptz"], ["c", "timestamp without time zone"], ["d", "timestamp with time zone"]]
+            t3 = data.make_table "timestamps" [["a", "timestamp"], ["b", "timestamptz"], ["c", "timestamp without time zone"], ["d", "timestamp with time zone"]]
             t3.at "a" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
             t3.at "b" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
             t3.at "c" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
             t3.at "d" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
 
-        Test.specify "boolean" <|
-            t = make_table "bools" [["a", "boolean"], ["b", "bool"]]
+        group_builder.specify "boolean" <|
+            t = data.make_table "bools" [["a", "boolean"], ["b", "bool"]]
             t.at "a" . value_type . should_equal Value_Type.Boolean
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
-        Test.specify "should correctly handle types through operations" <|
-            t = make_table "foo" [["a", "int2"], ["b", "text"], ["c", "boolean"], ["d", "double precision"], ["e", "int4"]]
+        group_builder.specify "should correctly handle types through operations" <|
+            t = data.make_table "foo" [["a", "int2"], ["b", "text"], ["c", "boolean"], ["d", "double precision"], ["e", "int4"]]
 
             t.evaluate_expression 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
             t.evaluate_expression '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
@@ -106,33 +121,38 @@ spec connection =
             t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
             # Postgres does not try to be clever and two fixed-length columns concatenated get promoted to a varying column.
-            t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
+            t3 = data.make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
             t3.evaluate_expression '[a] + [b]' . value_type . should_equal default_text
 
-        Test.specify "other types" <|
-            t = make_table "other" [["a", "box"], ["b", "polygon"]]
+        group_builder.specify "other types" <|
+            t = data.make_table "other" [["a", "box"], ["b", "polygon"]]
             t.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t.at "a" . value_type . type_name . should_equal "box"
             t.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t.at "b" . value_type . type_name . should_equal "polygon"
 
             # Bit strings are not supported by Enso tables at the moment.
-            t2 = make_table "bit strings" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"]]
+            t2 = data.make_table "bit strings" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"]]
             t2.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t2.at "a" . value_type . type_name . should_equal "bit"
             t2.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t2.at "c" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
 
-        Test.specify "should approximate types to the closest supported one" <|
-            t = make_table "T" [["b", "INT"]]
+        group_builder.specify "should approximate types to the closest supported one" <|
+            t = data.make_table "T" [["b", "INT"]]
             t2 = t.cast "b" Value_Type.Byte
             t2.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             Problems.expect_warning Inexact_Type_Coercion t2
 
-    Test.group "[PostgreSQL] Type Edge Cases" <|
-        Test.specify "will fail to read a BigDecimal column and suggest to cast it to Float" <|
+    suite_builder.group "[PostgreSQL] Type Edge Cases" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "will fail to read a BigDecimal column and suggest to cast it to Float" <|
             table_name = Name_Generator.random_name "BigDecimal"
-            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Decimal precision=100 scale=5)] primary_key=[]
+            table = data.connection.create_table table_name [Column_Description.Value "B" (Value_Type.Decimal precision=100 scale=5)] primary_key=[]
             Problems.assume_no_problems table
 
             Problems.expect_only_warning Inexact_Type_Coercion <|
@@ -147,20 +167,20 @@ spec connection =
             w2.requested_type . should_equal (Value_Type.Decimal precision=100 scale=5)
             w2.actual_type . should_equal Value_Type.Float
 
-        Test.specify "should warn when fetching a Binary column and coercing it to Mixed because in-memory does not support Binary" <|
+        group_builder.specify "should warn when fetching a Binary column and coercing it to Mixed because in-memory does not support Binary" <|
             table_name = Name_Generator.random_name "Bin"
-            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Binary size=10)] primary_key=[]
+            table = data.connection.create_table table_name [Column_Description.Value "B" (Value_Type.Binary size=10)] primary_key=[]
             w0 = Problems.expect_only_warning Inexact_Type_Coercion table
             w0.requested_type . should_equal (Value_Type.Binary size=10)
             w0.actual_type . should_equal (Value_Type.Binary variable_length=True size=2147483647)
             table_clean = table.remove_warnings
 
             Problems.assume_no_problems <|
-                table_clean.update_rows (connection.query 'SELECT decode(\'ffff\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query 'SELECT decode(\'ffff\', \'hex\') AS "B"') update_action=Update_Action.Insert
             Problems.assume_no_problems <|
-                table_clean.update_rows (connection.query 'SELECT decode(\'caffee\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query 'SELECT decode(\'caffee\', \'hex\') AS "B"') update_action=Update_Action.Insert
             Problems.assume_no_problems <|
-                table_clean.update_rows (connection.query 'SELECT decode(\'beef\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query 'SELECT decode(\'beef\', \'hex\') AS "B"') update_action=Update_Action.Insert
 
             materialized_table = table_clean.read
             materialized_table.at "B" . value_type . should_equal Value_Type.Mixed
@@ -174,9 +194,11 @@ spec connection =
             beef = [-66, -17]
             materialized_table.at "B" . to_vector . should_equal [ffff, caffee, beef]
 
-main = Test_Suite.run_main <|
-    connection = create_connection_builder Nothing
-    spec connection
+main =
+    create_connection_fn = _-> create_connection_builder Nothing
+    suite = Test.build suite_builder->
+        add_specs suite_builder create_connection_fn
+    suite.run_with_filter
 
 max_int4 = 2147483647
 default_text = Value_Type.Char size=Nothing variable_length=True

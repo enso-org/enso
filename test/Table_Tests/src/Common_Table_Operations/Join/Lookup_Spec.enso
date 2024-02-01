@@ -7,20 +7,36 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation, Invariant_Violation, Integrity_Error
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Common_Table_Operations.Util import run_default_backend, within_table
 import project.Util
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+    
+    teardown self = self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
-    Test.group prefix+"Table.merge" <|
-        Test.specify "should allow to simply update columns based on a lookup table" <|
+    suite_builder.group prefix+"Table.merge" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to simply update columns based on a lookup table" <|
             lookup = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -31,7 +47,7 @@ spec setup =
             m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
 
-        Test.specify "should allow to add new columns from a lookup table" <|
+        group_builder.specify "should allow to add new columns from a lookup table" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
@@ -52,7 +68,7 @@ spec setup =
             m3.at "is_X" . to_vector . should_equal [True, True, False, True]
             m3.at "X" . to_vector . should_equal ["Yes", "Yes", "No", "Yes"]
 
-        Test.specify "will warn if extra columns are unexpected (add_new_columns=False) (default)" <|
+        group_builder.specify "will warn if extra columns are unexpected (add_new_columns=False) (default)" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
@@ -82,7 +98,7 @@ spec setup =
             w3 = Problems.expect_only_warning Unexpected_Extra_Columns t3
             w3.columns . should_equal ["status"]
 
-        Test.specify "will only update rows that are matched and skip others (default - allow_unmatched_rows=True)" <|
+        group_builder.specify "will only update rows that are matched and skip others (default - allow_unmatched_rows=True)" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -94,7 +110,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
             m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
 
-        Test.specify "will fill new columns of unmatched rows with Nothing (allow_unmatched_rows=True)" <|
+        group_builder.specify "will fill new columns of unmatched rows with Nothing (allow_unmatched_rows=True)" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]], ["W", [1.5, 2.0]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -106,7 +122,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
             m2.at "W" . to_vector . should_equal [1.5, 2.0, Nothing, 2.0]
 
-        Test.specify "will report unmatched rows (if allow_unmatched_rows=False)" <|
+        group_builder.specify "will report unmatched rows (if allow_unmatched_rows=False)" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -124,7 +140,7 @@ spec setup =
             m3.at "Y" . to_vector . should_equal ["A", "B", "A", "A"]
             m3.at "Z" . to_vector . should_equal [10, 20, 30, 40]
 
-        Test.specify "will fail on missing key columns in either table" <|
+        group_builder.specify "will fail on missing key columns in either table" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Z", [10, 20, 30, 40]]]
 
@@ -137,7 +153,7 @@ spec setup =
             r3.catch.criteria . should_equal ["Z"]
             r3.catch.to_display_text . should_contain "in the lookup table"
 
-        Test.specify "should allow matching by multiple key columns" <|
+        group_builder.specify "should allow matching by multiple key columns" <|
             lookup = table_builder [["X", [1, 2, 1]], ["Y", ["A", "B", "B"]], ["Z", [100, 100, 200]]]
             my_table = table_builder [["X", [1, 1, 1, 2]], ["Y", ["A", "B", "A", "B"]], ["Z", [10, 20, 30, 40]], ["W", [1000, 2000, 3000, 4000]]]
 
@@ -150,7 +166,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
             m2.at "Z" . to_vector . should_equal [100, 200, 100, 100]
 
-        Test.specify "will fail on duplicate matches in the lookup table" <|
+        group_builder.specify "will fail on duplicate matches in the lookup table" <|
             lookup = table_builder [["X", [1, 2, 1]], ["Y", ["A", "B", "C"]]]
             my_table = table_builder [["X", [4, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -186,7 +202,7 @@ spec setup =
             r4.catch.clashing_example_key_values . should_equal [1, "A"]
             r4.catch.clashing_example_row_count . should_equal 2
 
-        Test.specify "will preserve count of rows, even if there are duplicates" <|
+        group_builder.specify "will preserve count of rows, even if there are duplicates" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 2, 2, 1]], ["Z", [10, 20, 20, 20, 50]]]
 
@@ -197,7 +213,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "B", "B", "A"]
             m2.at "Z" . to_vector . should_equal [10, 20, 20, 20, 50]
 
-        Test.specify "should correctly preserve types of original, merged and added columns" <|
+        group_builder.specify "should correctly preserve types of original, merged and added columns" <|
             table = table_builder [["key1", [0, 1]], ["key2", ["o", "?"]], ["X", [1, 10]], ["Y", ["A", "E"]], ["Z", [1.5, 2.0]], ["W", [True, False]], ["A", [2, 22]], ["B", ["1", "2"]], ["C", [2.0, 2.5]], ["D", [False, False]]]
             lookup = table_builder [["key1", [0, 2]], ["key2", ["o", "?"]], ["X2", [100, 1000]], ["Y2", ["foo", "bar"]], ["Z2", [0.5, 4.0]], ["W2", [False, True]], ["A", [3, 55]], ["B", ["F", "F"]], ["C", [3.0, 10.5]], ["D", [True, False]]]
 
@@ -226,9 +242,9 @@ spec setup =
                 t2.at "Z2" . value_type . should_equal Value_Type.Float
                 t2.at "W2" . value_type . should_equal Value_Type.Boolean
 
-        if setup.test_selection.fixed_length_text_columns then Test.specify "should correctly preserve types of original, merged and added columns (various Char types test case)" <|
-            table2 = table_builder [["key", ["0"]], ["X", ["a"]], ["A", ["bbbbb"]]] . cast "key" (Value_Type.Char size=50) . cast "X" (Value_Type.Char size=1) . cast "A" (Value_Type.Char size=5 variable_length=False)
-            lookup2 = table_builder [["key", ["0"]], ["X2", ["ccc"]], ["A", ["dddd"]]] . cast "key" (Value_Type.Char size=100) . cast "X2" (Value_Type.Char size=3 variable_length=False) . cast "A" (Value_Type.Char size=4 variable_length=False)
+        if setup.test_selection.fixed_length_text_columns then group_builder.specify "should correctly preserve types of original, merged and added columns (various Char types test case)" <|
+            table2 = (table_builder [["key", ["0"]], ["X", ["a"]], ["A", ["bbbbb"]]]) . cast "key" (Value_Type.Char size=50) . cast "X" (Value_Type.Char size=1) . cast "A" (Value_Type.Char size=5 variable_length=False)
+            lookup2 = (table_builder [["key", ["0"]], ["X2", ["ccc"]], ["A", ["dddd"]]]) . cast "key" (Value_Type.Char size=100) . cast "X2" (Value_Type.Char size=3 variable_length=False) . cast "A" (Value_Type.Char size=4 variable_length=False)
 
             table2.at "key" . value_type . should_equal (Value_Type.Char size=50 variable_length=True)
             table2.at "X" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
@@ -255,7 +271,7 @@ spec setup =
                         # If unmatched rows are not allowed, we can guarantee only _new_ values (from the lookup table) will be in the result, so instead of merging the type we inherit the type from the lookup table.
                         t3.at "A" . value_type . should_equal (Value_Type.Char size=4 variable_length=False)
 
-        Test.specify "will report Floating_Point_Equality if floating-point columns are used as key" <|
+        group_builder.specify "will report Floating_Point_Equality if floating-point columns are used as key" <|
             lookup = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", ["A", "B", "C"]]]
             my_table = table_builder [["X", [2.0, 3.0, 2.0, 3.0]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
             lookup.at "X" . value_type . is_floating_point . should_be_true
@@ -270,7 +286,7 @@ spec setup =
             w2 = Problems.expect_only_warning Floating_Point_Equality t2
             w2.to_display_text . should_contain "X"
 
-        Test.specify "will fail with No_Common_Type if types of updated columns are not compatible" <|
+        group_builder.specify "will fail with No_Common_Type if types of updated columns are not compatible" <|
             lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
             my_table = table_builder [["X", [2, 3, 2, 3]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
@@ -280,7 +296,7 @@ spec setup =
             r2.catch.to_display_text . should_contain "Char"
             r2.catch.to_display_text . should_contain "when unifying column [Y]"
 
-        Test.specify "will allow incompatible types if allow_unmatched_rows=False" <|
+        group_builder.specify "will allow incompatible types if allow_unmatched_rows=False" <|
             lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
             my_table = table_builder [["X", [2, 3, 2, 3]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
             my_table.at "Y" . value_type . is_text . should_be_true
@@ -293,7 +309,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal [11, 111, 11, 111]
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
 
-        Test.specify "will fail if key columns of the lookup table contain Nothing" <|
+        group_builder.specify "will fail if key columns of the lookup table contain Nothing" <|
             lookup1 = table_builder [["X", [1, 2, Nothing]], ["Y", ["A", "B", "C"]]]
             my_table1 = table_builder [["X", [2, 3, 2, 3]], ["Z", [10, 20, 30, 40]]]
             r1 = my_table1.merge lookup1 key_columns="X" add_new_columns=True
@@ -312,14 +328,14 @@ spec setup =
             r3 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=False add_new_columns=True
             r3.should_fail_with Unmatched_Rows_In_Lookup
 
-        Test.specify "will not allow providing no key_columns" <|
+        group_builder.specify "will not allow providing no key_columns" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [2, 1]], ["Z", [10, 20]]]
 
             r2 = my_table.merge lookup key_columns=[] add_new_columns=True
             r2.should_fail_with Illegal_Argument
 
-        if setup.is_database.not then Test.specify "(in-memory only) will preserve the order of rows from the original table" <|
+        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the order of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]
             xs = 0.up_to 50 . to_vector
             ys = xs.map x-> x%2
@@ -333,7 +349,7 @@ spec setup =
             vs = xs.map x-> if (x%2) == 1 then "TRUE" else "FALSE"
             t2.at "V" . to_vector . should_equal vs
 
-        if setup.is_database then Test.specify "(database-only) will fail if pre-checked invariants get invalidated between the query is constructed and then materialized" <|
+        if setup.is_database then group_builder.specify "(database-only) will fail if pre-checked invariants get invalidated between the query is constructed and then materialized" <|
             Test.with_clue "(lookup is unique check) " <|
                 lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
                 table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
@@ -419,7 +435,7 @@ spec setup =
                 m2.should_fail_with Invariant_Violation
 
         # This does not seem useful really, but there is no reason to disallow it, so we should ensure it does not crash.
-        Test.specify "(edge-case) should allow lookup with itself" <|
+        group_builder.specify "(edge-case) should allow lookup with itself" <|
             table = table_builder [["X", [1, 2, 3]], ["Y", ["A", "B", "C"]]]
             t2 = table.merge table key_columns="X"
             t2.column_names . should_equal ["X", "Y"]
@@ -428,7 +444,7 @@ spec setup =
             m2.at "X" . to_vector . should_equal [1, 2, 3]
             m2.at "Y" . to_vector . should_equal ["A", "B", "C"]
 
-        Test.specify "should gracefully handle tables from different backends" <|
+        group_builder.specify "should gracefully handle tables from different backends" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
             alternative_connection = Database.connect (SQLite In_Memory)
             t0 = (Table.new [["A", [3, 2, 1]], ["B", ["x", "y", "z"]]]).select_into_database_table alternative_connection "T0" temporary=True

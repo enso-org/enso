@@ -4,13 +4,21 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
+
+import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as navigateHooks from '#/hooks/navigateHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
+
+import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
@@ -18,18 +26,16 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
-import * as github from '#/utilities/github'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as projectManager from '#/utilities/projectManager'
-import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as spinner from '#/components/Spinner'
+
+import * as backendModule from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
+import * as github from '#/utilities/github'
+import * as localStorageModule from '#/utilities/LocalStorage'
+import * as projectManager from '#/utilities/ProjectManager'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ===================
 // === DriveStatus ===
@@ -66,8 +72,8 @@ export interface DriveProps {
   dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
   dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+  query: AssetQuery
+  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   labels: backendModule.Label[]
   setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -119,10 +125,10 @@ export default function Drive(props: DriveProps) {
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
-      : isCloud && organization?.isEnabled !== true
-      ? DriveStatus.notEnabled
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
+      : isCloud && organization?.isEnabled !== true
+      ? DriveStatus.notEnabled
       : DriveStatus.ok
 
   React.useEffect(() => {
@@ -198,9 +204,9 @@ export default function Drive(props: DriveProps) {
         type: AssetListEventType.newProject,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        templateId,
+        templateName,
+        onSpinnerStateChange,
       })
     },
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
@@ -267,10 +273,10 @@ export default function Drive(props: DriveProps) {
     ]
   )
 
-  const doCreateDataConnector = React.useCallback(
+  const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataConnector,
+        type: AssetListEventType.newSecret,
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         name,
@@ -373,7 +379,7 @@ export default function Drive(props: DriveProps) {
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
-              doCreateDataConnector={doCreateDataConnector}
+              doCreateSecret={doCreateSecret}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>
@@ -419,7 +425,7 @@ export default function Drive(props: DriveProps) {
           </div>
           {isFileBeingDragged && organization != null && isCloud ? (
             <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
+              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
               onDragLeave={() => {
                 setIsFileBeingDragged(false)
               }}

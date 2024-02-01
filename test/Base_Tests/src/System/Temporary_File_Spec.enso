@@ -4,20 +4,24 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 
-from Standard.Test import Test, Test_Suite
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
-import Standard.Test.Extensions
+from Standard.Test_New import all
+from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.ByteArrayInputStream
 polyglot java import java.io.FileInputStream
 polyglot java import java.io.InputStream
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
 
-spec =
-    Test.group "Temporary_File facility" <|
-        Test.specify "should allow to create a new file and allow to dispose it manually" <|
+
+add_specs suite_builder =
+    suite_builder.group "Temporary_File facility" group_builder->
+        group_builder.specify "should allow to create a new file and allow to dispose it manually" <|
             tmp = Temporary_File.new
             tmp.with_file f->
                 "test".write f
@@ -33,7 +37,7 @@ spec =
             Test.expect_panic Illegal_State <| tmp.with_file (f->f.read Plain_Text)
             raw_file.exists . should_be_false
 
-        Test.specify "should allow to create a new file and allow to dispose it once the reference is dropped" <|
+        group_builder.specify "should allow to create a new file and allow to dispose it once the reference is dropped" <|
             f foo =
                 # The tmp file is limited to the scope of the function.
                 tmp = Temporary_File.new
@@ -63,20 +67,20 @@ spec =
             repeat_gc 999
             raw_file.exists . should_be_false
 
-        Test.specify "should allow to materialize an input stream, regardless of Output Context settings" <|
+        group_builder.specify "should allow to materialize an input stream, regardless of Output Context settings" <|
             run_with_and_without_output <|
                 stream = make_stream "test payload 1"
                 tmp = Temporary_File.from_stream stream
                 tmp.with_file f->
                     f.read Plain_Text . should_equal "test payload 1"
 
-        Test.specify "will fail if materializing an already closed input stream" <|
+        group_builder.specify "will fail if materializing an already closed input stream" <|
             stream = Input_Stream.new (InputStream.nullInputStream) (File_Error.handle_java_exceptions Nothing)
             stream.close
 
             Test.expect_panic File_Error <| Temporary_File.from_stream stream
 
-        Test.specify "should be able to be converted to text, and indicate if it was disposed" <|
+        group_builder.specify "should be able to be converted to text, and indicate if it was disposed" <|
             tmp = Temporary_File.new "pref" ".suf"
             tmp.to_text.should_contain "Temporary_File"
             tmp.to_text.should_contain "pref"
@@ -88,7 +92,7 @@ spec =
             tmp.to_text . should_not_contain "pref"
             tmp.to_text . should_not_contain "suf"
 
-        Test.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it" <|
+        group_builder.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it" <|
             tmp = Temporary_File.new
             tmp.with_file f->
                 "test payload 3" . write f
