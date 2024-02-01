@@ -36,7 +36,7 @@ polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
 unix_epoch_start : Date_Time
-unix_epoch_start = Date_Time.new 1970
+unix_epoch_start = Date_Time.new 1970 zone=Time_Zone.utc
 
 ## PRIVATE
 ensure_in_epoch : (Date_Time | Date) -> (Any -> Any) -> Any
@@ -280,6 +280,37 @@ type Date_Time
     parse : Text -> Date_Time_Formatter -> Date_Time ! Time_Error
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
         format.parse_date_time text
+
+    ## Creates a new `Date_Time` from a Unix epoch timestamp in seconds (and optional nanoseconds).
+
+       Arguments:
+       - seconds: The number of seconds since the Unix epoch.
+       - nanoseconds: The number of nanoseconds within the second.
+
+       > Example
+         Create a new `Date_Time` from a Unix epoch timestamp.
+
+             from Standard.Base import Date_Time
+
+             example_from_unix_epoch = Date_Time.from_unix_epoch_seconds 1601587200
+    from_unix_epoch_seconds : Integer -> Integer -> Date_Time
+    from_unix_epoch_seconds seconds:Integer nanoseconds:Integer=0 =
+        unix_epoch_start + Duration.new seconds=seconds nanoseconds=nanoseconds
+
+    ## Creates a new `Date_Time` from a Unix epoch timestamp in milliseconds.
+
+       Arguments:
+       - milliseconds: The number of milliseconds since the Unix epoch.
+
+       > Example
+         Create a new `Date_Time` from a Unix epoch timestamp.
+
+             from Standard.Base import Date_Time
+
+             example_from_unix_epoch = Date_Time.from_unix_epoch_milliseconds 1601587200000
+    from_unix_epoch_milliseconds : Integer -> Time_Zone -> Date_Time
+    from_unix_epoch_milliseconds milliseconds:Integer =
+        unix_epoch_start + Duration.new milliseconds=milliseconds
 
     ## GROUP Metadata
        Get the year portion of the time.

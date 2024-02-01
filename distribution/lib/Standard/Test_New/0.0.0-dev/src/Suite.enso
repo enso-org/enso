@@ -2,6 +2,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
+from Standard.Base.Runtime import assert
 
 import project.Group.Group
 import project.Group.Group_Builder
@@ -30,9 +31,15 @@ type Suite_Builder
     group : Text -> (Group_Builder -> Any) -> Nothing
     group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl
-        fn group_builder
-        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
-        self.builder.append group
+        case pending of
+            Nothing ->
+                fn group_builder
+                group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
+                self.builder.append group
+            pend_reason : Text ->
+                group = Group.Impl name group_builder.teardown_ref.get [] pend_reason
+                self.builder.append group
+
 
 
 ## A testing suite that holds all the groups with test specs.
@@ -58,17 +65,23 @@ type Suite
     run_with_filter : (Regex | Text | Nothing) -> (Regex | Text | Nothing) -> Nothing
     run_with_filter self group_filter=Nothing spec_filter=Nothing should_exit=True =
         config = Suite_Config.from_environment
-        filtered_groups = self.groups.filter group->
-            group_name_matches = case group_filter of
+
+        groups_with_matching_names = self.groups.filter group->
+            case group_filter of
                 regex : Regex -> (regex.match group.name) != Nothing
                 text : Text -> group.name.contains text
                 Nothing -> True
-            case group_name_matches of
-                False -> False
-                True -> group.pending == Nothing
+        pending_groups = groups_with_matching_names.filter group->
+            group.pending.is_nothing.not
+        groups_to_run = groups_with_matching_names.filter group->
+            pending_groups.contains group . not
+        assert (pending_groups.length <= groups_to_run.length)
+        assert (groups_to_run.length <= groups_with_matching_names.length)
+        assert (groups_with_matching_names.length <= self.groups.length)
+
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         all_results = Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
-            filtered_groups.flat_map group->
+            groups_to_run.flat_map group->
                 results = Helpers.run_group_with_filter group spec_filter
                 Test_Reporter.print_report results config junit_sb_builder
                 results
@@ -80,6 +93,7 @@ type Suite
                 IO.println <| succ_tests.to_text + " tests succeeded."
                 IO.println <| failed_tests.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
+                IO.println <| pending_groups.length.to_text + " groups skipped."
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
             False ->

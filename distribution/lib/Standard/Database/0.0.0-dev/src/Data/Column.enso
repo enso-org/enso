@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
@@ -111,6 +112,44 @@ type Column
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self = self.read max_rows=Nothing . to_vector
+
+    ## GROUP Standard.Base.Selections
+       ICON select_row
+       Returns the value contained in this column at the given index.
+
+       Arguments:
+       - index: The index in the column from which to get the value.
+
+       If the value is an NA then this method returns nothing. If the index is
+       not an index in the column it returns an `Index_Out_Of_Bounds`.
+
+       > Example
+         Get the first element from a column.
+
+             import Standard.Examples
+
+             example_at = Examples.integer_column.at 0
+    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
+    at self (index : Integer) =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## GROUP Standard.Base.Selections
+       ICON select_row
+       Returns the value contained in this column at the given index.
+
+       Arguments:
+       - index: The index in the column from which to get the value.
+       - default: The value if the index is out of range.
+
+       > Example
+         Get the first element from a column.
+
+             import Standard.Examples
+
+             example_at = Examples.integer_column.get 0 -1
+    get : Integer -> (Any | Nothing)
+    get self (index : Integer) (~default=Nothing) =
+        self.read index+1 . get index default
 
     ## GROUP Standard.Base.Metadata
        Returns the `Value_Type` associated with that column.

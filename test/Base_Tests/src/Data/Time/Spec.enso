@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import project.Data.Time.Duration_Spec
 import project.Data.Time.Period_Spec
@@ -13,15 +13,19 @@ import project.Data.Time.Date_Time_Formatter_Spec
 import project.Data.Time.Time_Zone_Spec
 import project.Data.Time.Day_Of_Week_Spec
 
-spec =
-    Date_Spec.spec
-    Date_Range_Spec.spec
-    Duration_Spec.spec
-    Period_Spec.spec
-    Time_Of_Day_Spec.spec
-    Date_Time_Spec.spec
-    Date_Time_Formatter_Spec.spec
-    Time_Zone_Spec.spec
-    Day_Of_Week_Spec.spec
+add_specs suite_builder =
+    Date_Spec.add_specs suite_builder
+    Date_Range_Spec.add_specs suite_builder
+    Duration_Spec.add_specs suite_builder
+    Period_Spec.add_specs suite_builder
+    Time_Of_Day_Spec.add_specs suite_builder
+    Date_Time_Spec.add_specs suite_builder
+    Date_Time_Formatter_Spec.add_specs suite_builder
+    Time_Zone_Spec.add_specs suite_builder
+    Day_Of_Week_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

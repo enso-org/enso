@@ -18,8 +18,8 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
@@ -44,7 +44,7 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
-import * as localStorageModule from '#/utilities/LocalStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
@@ -54,6 +54,25 @@ import SortDirection from '#/utilities/SortDirection'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/visibility'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    extraColumns: columnUtils.ExtraColumn[]
+  }
+}
+
+LocalStorage.registerKey('extraColumns', {
+  tryParse: value => {
+    const possibleColumns = Array.isArray(value) ? value : []
+    const values = possibleColumns.filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
+    return values.length === 0 ? null : values
+  },
+})
 
 // =================
 // === Constants ===
@@ -246,8 +265,8 @@ export interface AssetsTableState {
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
   nodeMap: Readonly<React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>>
   doToggleDirectoryExpansion: (
@@ -296,8 +315,8 @@ export interface AssetsTableProps {
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
   doOpenIde: (
     project: backendModule.ProjectAsset,
@@ -314,7 +333,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
+  const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -975,7 +994,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   React.useEffect(() => {
-    const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
+    const savedExtraColumns = localStorage.get('extraColumns')
     if (savedExtraColumns != null) {
       setExtraColumns(new Set(savedExtraColumns))
     }
@@ -1019,15 +1038,15 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     if (initialized) {
-      localStorage.set(localStorageModule.LocalStorageKey.extraColumns, Array.from(extraColumns))
+      localStorage.set('extraColumns', Array.from(extraColumns))
     }
   }, [extraColumns, initialized, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (selectedKeys.size !== 1) {
-      setAssetSettingsPanelProps(null)
+      setAssetPanelProps(null)
     }
-  }, [selectedKeys.size, /* should never change */ setAssetSettingsPanelProps])
+  }, [selectedKeys.size, /* should never change */ setAssetPanelProps])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1621,7 +1640,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       assetEvents,
       dispatchAssetEvent,
       dispatchAssetListEvent,
-      setAssetSettingsPanelProps,
+      setAssetPanelProps,
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
@@ -1651,7 +1670,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ setAssetSettingsPanelProps,
+      /* should never change */ setAssetPanelProps,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,
