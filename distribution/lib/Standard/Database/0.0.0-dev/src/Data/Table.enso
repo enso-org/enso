@@ -1427,7 +1427,9 @@ type Table
        mapping from old to new values.
 
        Arguments:
-       - lookup_table: the table to use as a mapping from old to new values.
+       - lookup_table: the table to use as a mapping from old to new values. A
+         `Map` can also be used here (in which case `from_column` and
+         `to_column` are ignored).
        - column: the column within `self` to perform the replace on.
        - from_column: the column within `lookup_table` to match against `column`
          in `self`.
@@ -1492,8 +1494,8 @@ type Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:Table column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
 

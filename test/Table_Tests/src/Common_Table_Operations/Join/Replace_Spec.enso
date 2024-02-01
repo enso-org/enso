@@ -48,6 +48,13 @@ add_specs suite_builder setup =
             result = table.replace lookup_table 'x' 'x' 'z'
             result . should_equal expected
 
+        group_builder.specify "should be able to replace values via a lookup table provided as a Map" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            result = table.replace lookup_table 'x'
+            result . should_equal expected
+
         group_builder.specify "should fail with Illegal_Argument if the specified columns do not exist" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]

@@ -1966,7 +1966,9 @@ type Table
        mapping from old to new values.
 
        Arguments:
-       - lookup_table: the table to use as a mapping from old to new values.
+       - lookup_table: the table to use as a mapping from old to new values. A
+         `Map` can also be used here (in which case `from_column` and
+         `to_column` are ignored).
        - column: the column within `self` to perform the replace on.
        - from_column: the column within `lookup_table` to match against `column`
          in `self`.
@@ -2034,28 +2036,32 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @from_column Widget_Helpers.make_column_name_selector
     @to_column Widget_Helpers.make_column_name_selector
-    replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:Table column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        self.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
-            unique = self.column_naming_helper.create_unique_name_strategy
-            unique.mark_used (self.column_names)
-            unique.mark_used (lookup_table.column_names)
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        case lookup_table of
+            _ : Map ->
+                self.replace (map_to_lookup_table lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+            _ : Table ->
+                self.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
+                    unique = self.column_naming_helper.create_unique_name_strategy
+                    unique.mark_used (self.column_names)
+                    unique.mark_used (lookup_table.column_names)
 
-            ## We perform a `merge` into `column`, using a duplicate of `column`
-               as the key column to join with `from_column`.
+                    ## We perform a `merge` into `column`, using a duplicate of `column`
+                       as the key column to join with `from_column`.
 
-            duplicate_key_column_name = unique.make_unique "duplicate_key"
-            duplicate_key_column = self.at column . rename duplicate_key_column_name
-            self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
+                    duplicate_key_column_name = unique.make_unique "duplicate_key"
+                    duplicate_key_column = self.at column . rename duplicate_key_column_name
+                    self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
 
-            ## Create a lookup table with just `to_column` and `from_column`,
-               renamed to match the base table's `column` and its duplicate,
-               respectively.
-            lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename column]
+                    ## Create a lookup table with just `to_column` and `from_column`,
+                       renamed to match the base table's `column` and its duplicate,
+                       respectively.
+                    lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename column]
 
-            merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-            result = merged.remove_columns duplicate_key_column_name
-            result
+                    merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                    result = merged.remove_columns duplicate_key_column_name
+                    result
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2798,6 +2804,12 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         Column.from_storage column_set.name sealed_storage
+
+## PRIVATE
+   A helper that creates a two-column table from a map.
+map_to_lookup_table : Map Any Any -> Text -> Text -> Table
+map_to_lookup_table map key_column value_column =
+    Table.new [[key_column, map.keys], [value_column, map.values]]
 
 ## PRIVATE
    Conversion method to a Table from a Column.
