@@ -95,7 +95,7 @@ export class Server {
                     http: this.config.port,
                     handler: this.process.bind(this),
                 },
-                (err, { http: httpServer }) =>
+                (err, { http: httpServer }) => {
                     (async () => {
                         if (err) {
                             logger.error(`Error creating server:`, err.http)
@@ -117,6 +117,7 @@ export class Server {
                         )
                         resolve()
                     })()
+		}
             )
         })
     }
