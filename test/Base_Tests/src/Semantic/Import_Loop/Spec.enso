@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import project.Semantic.Import_Loop.B
 
-from Standard.Test import Test
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Looping Imports" <|
-    Test.specify "should behave correctly and not loop the compiler" <|
+
+add_specs suite_builder = suite_builder.group "Looping Imports" group_builder->
+    group_builder.specify "should behave correctly and not loop the compiler" <|
         B.My_Type.baz . should_equal 11

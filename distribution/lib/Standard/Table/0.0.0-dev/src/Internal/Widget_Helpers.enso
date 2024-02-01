@@ -118,7 +118,7 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Less Than" fqn+".Less" [["than", col_names]])
     builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", col_names]])
     builder.append (Option "Greater Than" fqn+".Greater" [["than", col_names]])
-    builder.append (Option "Greater Than Or Equal" fqn+".Greater_Or_Less" [["than", col_names]])
+    builder.append (Option "Greater Than Or Equal" fqn+".Equal_Or_Greater" [["than", col_names]])
     builder.append (Option "Between" fqn+".Between" [["lower", col_names], ["upper", col_names]])
     builder.append (Option "Equals Ignore Case" fqn+".Equal_Ignore_Case" [["to", col_names]])
     builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", col_names]])
