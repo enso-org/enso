@@ -2054,14 +2054,6 @@ type Table
 
             merged = self_with_duplicate.merge lookup_table_renamed [duplicate_key_column_name] add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
             result = merged.remove_columns [duplicate_key_column_name]
-            ##
-                IO.println 'AAA'
-                IO.println self.display
-                IO.println lookup_table.display
-                IO.println self_with_duplicate.display
-                IO.println lookup_table_renamed.display
-                IO.println merged.display
-                IO.println result.display
             result
 
     ## ALIAS join by row position
