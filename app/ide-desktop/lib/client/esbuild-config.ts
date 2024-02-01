@@ -39,12 +39,12 @@ export function bundlerOptions(
         outdir,
         entryPoints: ['src/index.ts', 'src/preload.ts'],
         outbase: 'src',
-        format: 'esm',
+        format: 'cjs',
         platform: 'node',
         plugins: [esbuildPluginYaml.yamlPlugin({})],
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
-        outExtension: { '.js': '.js' },
+        outExtension: { '.js': '.cjs' },
         define: {
             BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
             PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),

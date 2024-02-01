@@ -15,7 +15,7 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "index.js",
+  "main": "index.cjs",
   "dependencies": {
     "@types/mime-types": "^2.1.1",
     "@types/opener": "^1.4.0",

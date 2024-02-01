@@ -63,7 +63,7 @@
 //!
 //!    1. `npm install` is assumed to have been already run in the `this_crate/js` directory.
 //!
-//!    2. The `this_crate/js/runner` is compiled to `target/ensogl-pack/dist/index.js`. This is the
+//!    2. The `this_crate/js/runner` is compiled to `target/ensogl-pack/dist/index.cjs`. This is the
 //!    main file which is capable of loading WASM file, displaying a loading screen, running
 //!    before-main entry points, and running the main entry point of the application.
 //!

@@ -40,7 +40,7 @@ console.log('Linking Project Manager files.')
 await fs.symlink(PROJECT_MANAGER_BUNDLE, path.join(IDE_PATH, paths.PROJECT_MANAGER_BUNDLE), 'dir')
 
 console.log('Spawning Electron process.')
-const ELECTRON_ARGS = [path.join(IDE_PATH, 'index.js'), '--', ...SCRIPT_ARGS]
+const ELECTRON_ARGS = [path.join(IDE_PATH, 'index.cjs'), '--', ...SCRIPT_ARGS]
 const ELECTRON_PROCESS = childProcess.spawn('electron', ELECTRON_ARGS, {
     stdio: 'inherit',
     shell: true,
