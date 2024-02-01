@@ -19,8 +19,8 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 // =====================
 
 /** The value of the schema, if it can only have one possible value. */
-function constantValue(schema: object) {
-  return jsonSchema.constantValue(DEFS, schema)
+function constantValue(schema: object, partial = false) {
+  return jsonSchema.constantValue(DEFS, schema, partial)
 }
 
 // =====================
@@ -85,7 +85,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [isSubmittable, setIsSubmittable] = React.useState(false)
   const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
-  const [initializing, setInitializing] = React.useState(true)
   const [value, setValue] = React.useState(valueRaw)
 
   React.useEffect(() => {
@@ -101,9 +100,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
   }, [isSubmittable])
 
   React.useEffect(() => {
-    if (!initializing) {
-      setValue(valueRaw)
-    }
+    setValue(valueRaw)
     // `initializing` is not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valueRaw])
@@ -114,27 +111,13 @@ export default function DataLinkInput(props: DataLinkInputProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
-  React.useEffect(() => {
-    setInitializing(false)
-  }, [])
-
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
-    if (initializing) {
-      setIsSubmittable(true)
-      setValue(schema.const ?? null)
-    }
     // This value cannot change.
     return null
   } else if ('type' in schema) {
     switch (schema.type) {
       case 'string': {
-        if (initializing) {
-          const newIsSubmittable = typeof value === 'string'
-          if (newIsSubmittable !== isSubmittable) {
-            setIsSubmittable(newIsSubmittable)
-          }
-        }
         return (
           <input
             type="text"
@@ -155,12 +138,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         )
       }
       case 'number': {
-        if (initializing) {
-          const newIsSubmittable = typeof value === 'number'
-          if (newIsSubmittable !== isSubmittable) {
-            setIsSubmittable(newIsSubmittable)
-          }
-        }
         return (
           <input
             type="number"
@@ -182,12 +159,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         )
       }
       case 'integer': {
-        if (initializing) {
-          const newIsSubmittable = typeof value === 'number' && Number.isInteger(value)
-          if (newIsSubmittable !== isSubmittable) {
-            setIsSubmittable(newIsSubmittable)
-          }
-        }
         return (
           <input
             type="number"
@@ -202,17 +173,13 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                 setIsSubmittable(
                   event.currentTarget.value !== '' && jsonSchema.isMatch(DEFS, schema, newValue)
                 )
-                setValue(Math.floor(newValue))
+                setValue(newValue)
               }
             }}
           />
         )
       }
       case 'boolean': {
-        if (initializing) {
-          setIsSubmittable(true)
-          setValue(false)
-        }
         return (
           <input
             type="checkbox"
@@ -240,21 +207,13 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         const stateAsObject: Record<string, NonNullable<unknown> | null> =
           // This is SAFE, as `state` is an untyped object.
           // eslint-disable-next-line no-restricted-syntax
-          (object.asObject(value) as Record<string, NonNullable<unknown> | null> | null) ??
-          Object.fromEntries(
-            propertyDefinitions.map(definition => [
-              definition.key,
-              constantValue(definition.schema)[0] ?? null,
-            ])
+          (object.asObject(value) ?? {}) as Record<string, NonNullable<unknown> | null>
+        if (childSubmittability == null) {
+          setChildSubmittability(
+            Array.from(propertyDefinitions, childDefinition =>
+              jsonSchema.isMatch(DEFS, childDefinition.schema, stateAsObject[childDefinition.key])
+            )
           )
-        if (initializing) {
-          const theValue = constantValue(schema)
-          if (!isSubmittable && theValue.length === 1) {
-            setIsSubmittable(true)
-          }
-          if (value == null) {
-            setValue(stateAsObject)
-          }
         }
         return constantValue(schema).length === 1 ? null : (
           <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
@@ -270,18 +229,16 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                     schema={childSchema}
                     value={stateAsObject[key] ?? null}
                     setValue={newValue => {
-                      if (stateAsObject[key] !== newValue) {
-                        setValue(oldState =>
-                          typeof oldState === 'object' &&
-                          oldState != null &&
-                          // This is SAFE; but there is no way to tell TypeScript that an object
-                          // has an index signature.
-                          // eslint-disable-next-line no-restricted-syntax
-                          (oldState as Record<string, unknown>)[key] === newValue
-                            ? oldState
-                            : { ...oldState, [key]: newValue }
-                        )
-                      }
+                      setValue(oldState =>
+                        typeof oldState === 'object' &&
+                        oldState != null &&
+                        // This is SAFE; but there is no way to tell TypeScript that an object
+                        // has an index signature.
+                        // eslint-disable-next-line no-restricted-syntax
+                        (oldState as Record<string, unknown>)[key] === newValue
+                          ? oldState
+                          : { ...oldState, [key]: newValue }
+                      )
                     }}
                     setIsSubmittable={isChildSubmittable => {
                       setChildSubmittability(oldSubmittability =>
@@ -331,23 +288,16 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       const selectedChildSchema =
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
       const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
-      if (initializing) {
-        if (selectedChildIndex == null) {
-          setSelectedChildIndex(0)
-        }
-        if (!isSubmittable && childValue.length === 1) {
-          setIsSubmittable(true)
-          setValue(childValue[0])
-        } else if (
-          value != null &&
-          (selectedChildSchema == null || jsonSchema.isMatch(DEFS, selectedChildSchema, value))
-        ) {
-          const newIndex = childSchemas.findIndex(childSchema =>
-            jsonSchema.isMatch(DEFS, childSchema, value)
-          )
-          if (newIndex !== -1 && newIndex !== selectedChildIndex) {
-            setSelectedChildIndex(newIndex)
-          }
+      if (
+        value != null &&
+        (selectedChildSchema == null ||
+          !jsonSchema.isMatch(DEFS, selectedChildSchema, value, { partial: true }))
+      ) {
+        const newIndex = childSchemas.findIndex(childSchema =>
+          jsonSchema.isMatch(DEFS, childSchema, value, { partial: true })
+        )
+        if (newIndex !== -1 && newIndex !== selectedChildIndex) {
+          setSelectedChildIndex(newIndex)
         }
       }
       const dropdown = (
@@ -359,7 +309,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           className="self-start"
           onClick={(childSchema, index) => {
             setSelectedChildIndex(index)
-            const newConstantValue = constantValue(childSchema)
+            const newConstantValue = constantValue(childSchema, true)
             setValue(newConstantValue[0] ?? null)
             setIsSubmittable(newConstantValue.length === 1)
           }}

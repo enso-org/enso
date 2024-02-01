@@ -83,11 +83,13 @@ export function constantValueToSchema(value: unknown): object | null {
 // =====================
 
 const CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
+const PARTIAL_CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
 
 /** The value of the schema, if it can only have one possible value. */
 function constantValueHelper(
   defs: Record<string, object>,
-  schema: object
+  schema: object,
+  partial = false
 ): [] | [NonNullable<unknown> | null] {
   let result: [] | [NonNullable<unknown> | null]
   if ('const' in schema) {
@@ -100,6 +102,9 @@ function constantValueHelper(
       case 'boolean': {
         // These should already be covered by the `const` check above.
         result = []
+        if (schema.type === 'boolean' && partial) {
+          result = [false]
+        }
         break
       }
       case 'null': {
@@ -116,13 +121,13 @@ function constantValueHelper(
           if (childSchema == null) {
             continue
           }
-          const value = constantValue(defs, childSchema)
-          if (value.length === 0) {
+          const value = constantValue(defs, childSchema, partial)
+          if (value.length === 0 && !partial) {
             // eslint-disable-next-line no-restricted-syntax
             result = []
             break
           } else {
-            object[key] = value[0]
+            object[key] = value[0] ?? null
           }
         }
         break
@@ -142,12 +147,12 @@ function constantValueHelper(
           for (const childSchema of schema.prefixItems) {
             const childSchemaObject = objectModule.asObject(childSchema)
             const childValue =
-              childSchemaObject == null ? [] : constantValue(defs, childSchemaObject)
-            if (childValue.length === 0) {
+              childSchemaObject == null ? [] : constantValue(defs, childSchemaObject, partial)
+            if (childValue.length === 0 && !partial) {
               result = []
               break
             }
-            array.push(childValue[0])
+            array.push(childValue[0] ?? null)
           }
           break
         }
@@ -159,20 +164,20 @@ function constantValueHelper(
     }
   } else if ('$ref' in schema) {
     const referencedSchema = lookupDef(defs, schema)
-    result = referencedSchema == null ? [] : constantValue(defs, referencedSchema)
+    result = referencedSchema == null ? [] : constantValue(defs, referencedSchema, partial)
   } else if ('anyOf' in schema) {
-    if (!Array.isArray(schema.anyOf) || schema.anyOf.length !== 1) {
+    if (!Array.isArray(schema.anyOf) || (!partial && schema.anyOf.length !== 1)) {
       result = []
     } else {
       const firstMember = objectModule.asObject(schema.anyOf[0])
-      result = firstMember == null ? [] : constantValue(defs, firstMember)
+      result = firstMember == null ? [] : constantValue(defs, firstMember, partial)
     }
   } else if ('allOf' in schema) {
     if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
       result = []
     } else {
       const firstMember = objectModule.asObject(schema.allOf[0])
-      const firstValue = firstMember == null ? [] : constantValue(defs, firstMember)
+      const firstValue = firstMember == null ? [] : constantValue(defs, firstMember, partial)
       if (firstValue.length === 0) {
         result = []
       } else {
@@ -183,17 +188,17 @@ function constantValueHelper(
           if (childSchema == null) {
             continue
           }
-          const value = constantValue(defs, childSchema)
-          if (value.length === 0) {
+          const value = constantValue(defs, childSchema, partial)
+          if (value.length === 0 && !partial) {
             result = []
             break
           } else if (typeof intersection !== 'object' || intersection == null) {
-            if (intersection !== value[0]) {
+            if (intersection !== value[0] && !partial) {
               result = []
               break
             }
           } else {
-            if (value[0] == null || typeof intersection !== typeof value[0]) {
+            if (value[0] == null || (typeof intersection !== typeof value[0] && !partial)) {
               result = []
               break
             }
@@ -205,18 +210,19 @@ function constantValueHelper(
   } else {
     result = []
   }
-  return result
+  return partial && result.length === 0 ? [null] : result
 }
 
 /** The value of the schema, if it can only have one possible value.
  * This function is a memoized version of {@link constantValueHelper}. */
-export function constantValue(defs: Record<string, object>, schema: object) {
-  const cached = CONSTANT_VALUE.get(schema)
+export function constantValue(defs: Record<string, object>, schema: object, partial = false) {
+  const cache = partial ? PARTIAL_CONSTANT_VALUE : CONSTANT_VALUE
+  const cached = cache.get(schema)
   if (cached != null) {
     return cached
   } else {
-    const renderable = constantValueHelper(defs, schema)
-    CONSTANT_VALUE.set(schema, renderable)
+    const renderable = constantValueHelper(defs, schema, partial)
+    cache.set(schema, renderable)
     return renderable
   }
 }
