@@ -2041,7 +2041,9 @@ type Table
             unique.mark_used (self.column_names)
             unique.mark_used (lookup_table.column_names)
 
-            # `merge` will write to the duplicate of the key column.
+            ## We perform a `merge` into `column`, using a duplicate of `column`
+               as the key column to join with `from_column`.
+
             duplicate_key_column_name = unique.make_unique "duplicate_key"
             duplicate_key_column = self.at column . rename duplicate_key_column_name
             self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
