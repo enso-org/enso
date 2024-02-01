@@ -28,7 +28,6 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
 import HttpClient, * as httpClient from '#/utilities/HttpClient'
-import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
@@ -512,9 +511,9 @@ export default function AuthProvider(props: AuthProviderProps) {
             pending: 'Setting username...',
           }
         )
-        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        const redirectTo = localStorage.get('loginRedirect')
         if (redirectTo != null) {
-          localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+          localStorage.delete('loginRedirect')
           location.href = redirectTo
         } else {
           navigate(appUtils.DASHBOARD_PATH)
@@ -680,9 +679,9 @@ export function SemiProtectedLayout() {
   const shouldPreventNavigation = getShouldPreventNavigation()
 
   if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-    const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+    const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
-      localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+      localStorage.delete('loginRedirect')
       location.href = redirectTo
       return
     } else {
@@ -707,9 +706,9 @@ export function GuestLayout() {
   if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
   } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-    const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+    const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
-      localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+      localStorage.delete('loginRedirect')
       location.href = redirectTo
       return
     } else {

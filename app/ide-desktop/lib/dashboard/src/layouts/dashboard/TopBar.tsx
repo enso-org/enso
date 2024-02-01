@@ -33,9 +33,9 @@ export interface TopBarProps {
   setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   labels: backendModule.Label[]
   suggestions: assetSearchBar.Suggestion[]
-  canToggleSettingsPanel: boolean
-  isSettingsPanelVisible: boolean
-  setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  canToggleAssetPanel: boolean
+  isAssetPanelVisible: boolean
+  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
   doRemoveSelf: () => void
   onSignOut: () => void
 }
@@ -45,8 +45,8 @@ export interface TopBarProps {
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
-  const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
+  const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
+  const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
 
   return (
     <div
@@ -70,12 +70,12 @@ export default function TopBar(props: TopBarProps) {
           />
         </div>
       )}
-      {!isSettingsPanelVisible && (
+      {!isAssetPanelVisible && (
         <div className="flex gap-2">
           <AssetInfoBar
-            canToggleSettingsPanel={canToggleSettingsPanel}
-            isSettingsPanelVisible={isSettingsPanelVisible}
-            setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+            canToggleAssetPanel={canToggleAssetPanel}
+            isAssetPanelVisible={isAssetPanelVisible}
+            setIsAssetPanelVisible={setIsAssetPanelVisible}
           />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}

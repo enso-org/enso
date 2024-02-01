@@ -81,7 +81,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
   const { allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -107,10 +107,9 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     setItem(rawItem)
   }, [rawItem])
-
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
-    // re - rendering the parent.
+    // re-rendering the parent.
     rawItem.item = asset
   }, [asset, rawItem])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
@@ -221,9 +220,9 @@ export default function AssetRow(props: AssetRowProps) {
 
   React.useEffect(() => {
     if (isSoleSelectedItem) {
-      setAssetSettingsPanelProps({ item, setItem })
+      setAssetPanelProps({ item, setItem })
     }
-  }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
+  }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
