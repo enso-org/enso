@@ -2,11 +2,11 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Managed_Resource" <|
-    Test.specify "should call the destructor even if the action fails" <|
+
+add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
+    group_builder.specify "should call the destructor even if the action fails" <|
         log_1 = Vector.new_builder
         r_1 = Managed_Resource.bracket 42 log_1.append x->
             log_1.append x+1
@@ -31,7 +31,7 @@ spec = Test.group "Managed_Resource" <|
         r_3.catch . should_equal (Illegal_State.Error "foo")
         log_3.to_vector . should_equal [43, 44, 42]
 
-    Test.specify "should not proceed further if initialization fails" <|
+    group_builder.specify "should not proceed further if initialization fails" <|
         log_1 = Vector.new_builder
         r_1 = Panic.recover Any <| Managed_Resource.bracket (Panic.throw (Illegal_State.Error "foo")) (_ -> log_1.append "destructor") _->
             log_1.append "action"
@@ -46,7 +46,7 @@ spec = Test.group "Managed_Resource" <|
         r_2.catch . should_equal (Illegal_State.Error "foo")
         log_2.to_vector . should_equal []
 
-    Test.specify "should forward panics thrown in initializer and destructor" <|
+    group_builder.specify "should forward panics thrown in initializer and destructor" <|
         r_1 = Panic.recover Any <| Managed_Resource.bracket (Panic.throw "init") (_-> Panic.throw "destruct") (_-> Panic.throw "action")
         r_1.catch . should_equal "init"
 
@@ -56,4 +56,8 @@ spec = Test.group "Managed_Resource" <|
         r_3 = Panic.recover Any <| Managed_Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -4,8 +4,8 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 # === Test Resources ===
 
@@ -45,7 +45,7 @@ Comparable.from (_:Bad_Comparator_Type) = Bad_Comparator
 
 # Tests
 
-spec =
+add_specs suite_builder =
     double_error = 0.000001
 
     vector_compare values expected =
@@ -54,21 +54,21 @@ spec =
                 _ : Float -> v.should_equal (expected.at i) epsilon=double_error
                 _ -> v.should_equal (expected.at i)
 
-    Test.group "Statistics" <|
+    suite_builder.group "Statistics" group_builder->
         simple_set = [1, 2, 3, 4, 5]
         number_set = [0.4, -18.56, -16.99, -16.43, -45.84, 13.44, -6.85, 9.68, -8.55, 10.87, 10.38, 33.85, -41.02, 1.87, -26.52, -13.87, -39.06, 25.92, -16.01, 42.01]
         missing_set = number_set.map_with_index i->v->(if i % 5 == 4 then Nothing else v)
         with_nans_set = number_set.map_with_index i->v->(if i % 5 == 4 then (if i % 10 == 9 then Number.nan else Nothing) else v)
         text_set = ["A", "B", Nothing, "D"]
 
-        Test.specify "should be able to count valid values" <|
+        group_builder.specify "should be able to count valid values" <|
             simple_set.compute . should_equal 5
             number_set.compute . should_equal 20
             missing_set.compute . should_equal 16
             with_nans_set.compute . should_equal 16
             text_set.compute . should_equal 3
 
-        Test.specify "should be able to get minimum of maximum values" <|
+        group_builder.specify "should be able to get minimum of maximum values" <|
             simple_set.compute Statistic.Minimum . should_equal 1
             number_set.compute Statistic.Minimum . should_equal -45.84 epsilon=double_error
             missing_set.compute Statistic.Minimum . should_equal -41.02 epsilon=double_error
@@ -80,72 +80,72 @@ spec =
             with_nans_set.compute Statistic.Maximum . should_equal 33.85 epsilon=double_error
             text_set.compute Statistic.Maximum . should_equal "D"
 
-        Test.specify "should be able to get sum of values" <|
+        group_builder.specify "should be able to get sum of values" <|
             simple_set.compute Statistic.Sum . should_equal 15 epsilon=double_error
             number_set.compute Statistic.Sum . should_equal -101.28 epsilon=double_error
             missing_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
             with_nans_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
 
-        Test.specify "should be able to get mean of values" <|
+        group_builder.specify "should be able to get mean of values" <|
             simple_set.compute Statistic.Mean . should_equal 3 epsilon=double_error
             number_set.compute Statistic.Mean . should_equal -5.064 epsilon=double_error
             missing_set.compute Statistic.Mean . should_equal -5.1125 epsilon=double_error
             with_nans_set.compute Statistic.Mean . should_equal -5.1125 epsilon=double_error
 
-        Test.specify "should be able to get sample variance of values" <|
+        group_builder.specify "should be able to get sample variance of values" <|
             simple_set.compute Statistic.Variance . should_equal 2.5 epsilon=double_error
             number_set.compute Statistic.Variance . should_equal 582.0137832 epsilon=double_error
             missing_set.compute Statistic.Variance . should_equal 431.0218867 epsilon=double_error
             with_nans_set.compute Statistic.Variance . should_equal 431.0218867 epsilon=double_error
             [1].compute Statistic.Variance . is_nan . should_equal True
 
-        Test.specify "should be able to get population variance of values" <|
+        group_builder.specify "should be able to get population variance of values" <|
             simple_set.compute (Statistic.Variance True) . should_equal 2 epsilon=double_error
             number_set.compute (Statistic.Variance True) . should_equal 552.913094 epsilon=double_error
             missing_set.compute (Statistic.Variance True) . should_equal 404.0830188 epsilon=double_error
             with_nans_set.compute (Statistic.Variance True) . should_equal 404.0830188 epsilon=double_error
 
-        Test.specify "should be able to get population standard deviation of values" <|
+        group_builder.specify "should be able to get population standard deviation of values" <|
             simple_set.compute Statistic.Standard_Deviation . should_equal 1.58113883 epsilon=double_error
             number_set.compute Statistic.Standard_Deviation . should_equal 24.12496183 epsilon=double_error
             missing_set.compute Statistic.Standard_Deviation . should_equal 20.76106661 epsilon=double_error
             with_nans_set.compute Statistic.Standard_Deviation . should_equal 20.76106661 epsilon=double_error
             [1].compute Statistic.Standard_Deviation . is_nan . should_equal True
 
-        Test.specify "should be able to get sample standard deviation of values" <|
+        group_builder.specify "should be able to get sample standard deviation of values" <|
             simple_set.compute (Statistic.Standard_Deviation True) . should_equal 1.414213562 epsilon=double_error
             number_set.compute (Statistic.Standard_Deviation True) . should_equal 23.51410415 epsilon=double_error
             missing_set.compute (Statistic.Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
             with_nans_set.compute (Statistic.Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
 
-        Test.specify "should be able to get sample skewness of values" <|
+        group_builder.specify "should be able to get sample skewness of values" <|
             simple_set.compute Statistic.Skew . should_equal 0 epsilon=double_error
             number_set.compute Statistic.Skew . should_equal 0.165086552 epsilon=double_error
             missing_set.compute Statistic.Skew . should_equal 0.084238123 epsilon=double_error
             with_nans_set.compute Statistic.Skew . should_equal 0.084238123 epsilon=double_error
             [1, 2].compute Statistic.Skew . is_nan . should_equal True
 
-        Test.specify "should be able to get population skewness of values" <|
+        group_builder.specify "should be able to get population skewness of values" <|
             simple_set.compute (Statistic.Skew True) . should_equal 0 epsilon=double_error
             number_set.compute (Statistic.Skew True) . should_equal 0.152437706 epsilon=double_error
             missing_set.compute (Statistic.Skew True) . should_equal 0.076125664 epsilon=double_error
             with_nans_set.compute (Statistic.Skew True) . should_equal 0.076125664 epsilon=double_error
             [1, 2].compute (Statistic.Skew True) . is_nan . should_equal True
 
-        Test.specify "should be able to get sample kurtosis of values" <|
+        group_builder.specify "should be able to get sample kurtosis of values" <|
             simple_set.compute Statistic.Kurtosis . should_equal -1.2 epsilon=double_error
             number_set.compute Statistic.Kurtosis . should_equal -0.449422438 epsilon=double_error
             missing_set.compute Statistic.Kurtosis . should_equal -0.201991074 epsilon=double_error
             with_nans_set.compute Statistic.Kurtosis . should_equal -0.201991074 epsilon=double_error
             [1, 2, 3].compute Statistic.Kurtosis . is_nan . should_equal True
 
-        Test.specify "should allow bulk computation" <|
+        group_builder.specify "should allow bulk computation" <|
             stats = [Statistic.Count, Statistic.Minimum, Statistic.Mean, Statistic.Variance, Statistic.Skew]
             expected = [20, -45.84, -5.064, 582.0137832, 0.165086552]
             values = number_set.compute_bulk stats
             vector_compare values expected
 
-        Test.specify "should allow running computation" <|
+        group_builder.specify "should allow running computation" <|
             number_set.running . should_equal [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             expected_counts = [1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15, 16, 16]
             expected_sums = [0.4, -18.16, -35.15, -51.58, -51.58, -38.14, -44.99, -35.31, -43.86, -43.86, -33.48, 0.37, -40.65, -38.78, -38.78, -52.65, -91.71, -65.79, -81.8, -81.8]
@@ -153,7 +153,7 @@ spec =
             values = missing_set.running Statistic.Sum
             vector_compare values expected_sums
 
-        Test.specify "should allow running computation on vectors with missing" <|
+        group_builder.specify "should allow running computation on vectors with missing" <|
             missing_set = [Nothing, 1, 3, Nothing, Number.nan, 2]
             missing_set.running . should_equal [0, 1, 2, 2, 2, 3]
             missing_set.running Statistic.Minimum . should_equal [Nothing, 1, 1, 1, 1, 1]
@@ -163,54 +163,54 @@ spec =
             missing_set.running Statistic.Mean . drop 1 . should_equal [1, 2, 2, 2, 2]
 
 
-    Test.group "Statistics - empty Vector " <|
-        Test.specify "should be able to count and sum on empty Vector" <|
+    suite_builder.group "Statistics - empty Vector " group_builder->
+        group_builder.specify "should be able to count and sum on empty Vector" <|
             [].compute . should_equal 0
             [].compute Statistic.Sum . should_equal 0
 
-        Test.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
+        group_builder.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
             [].compute Statistic.Minimum . should_fail_with Empty_Error
             [].compute Statistic.Maximum . should_fail_with Empty_Error
 
-        Test.specify "should be NaN for other statistics sum on empty Vector" <|
+        group_builder.specify "should be NaN for other statistics sum on empty Vector" <|
             [].compute Statistic.Mean . is_nan . should_equal True
             [].compute Statistic.Variance . is_nan . should_equal True
             [].compute Statistic.Skew . is_nan . should_equal True
             [].compute Statistic.Kurtosis . is_nan . should_equal True
 
-    Test.group "Statistics - NaN Vector " <|
-        Test.specify "should be able to count and sum on NaN Vector" <|
+    suite_builder.group "Statistics - NaN Vector " group_builder->
+        group_builder.specify "should be able to count and sum on NaN Vector" <|
             [Number.nan, Number.nan].compute . should_equal 0
             [Number.nan, Number.nan].running . should_equal [0, 0]
             [Number.nan, Number.nan].compute Statistic.Sum . should_equal 0
             [Number.nan, Number.nan].running Statistic.Sum . should_equal [0, 0]
 
-        Test.specify "should fail with Empty_Error for Minimum and Maximum on NaN Vector" <|
+        group_builder.specify "should fail with Empty_Error for Minimum and Maximum on NaN Vector" <|
             [Number.nan, Number.nan].compute Statistic.Minimum . should_fail_with Empty_Error
             [Number.nan, Number.nan].running Statistic.Minimum . should_equal [Nothing, Nothing]
             [Number.nan, Number.nan].compute Statistic.Maximum . should_fail_with Empty_Error
             [Number.nan, Number.nan].running Statistic.Maximum . should_equal [Nothing, Nothing]
 
-        Test.specify "should be NaN for other statistics sum on NaN Vector" <|
+        group_builder.specify "should be NaN for other statistics sum on NaN Vector" <|
             [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Mean . is_nan . should_equal True
             [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Variance . is_nan . should_equal True
             [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Skew . is_nan . should_equal True
             [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Kurtosis . is_nan . should_equal True
 
-    Test.group "Statistics - Nothing Vector " <|
-        Test.specify "should be able to count and sum on Nothing Vector" <|
+    suite_builder.group "Statistics - Nothing Vector " group_builder->
+        group_builder.specify "should be able to count and sum on Nothing Vector" <|
             [Nothing, Nothing].compute . should_equal 0
             [Nothing, Nothing].running . should_equal [0, 0]
             [Nothing, Nothing].compute Statistic.Sum . should_equal 0
             [Nothing, Nothing].running Statistic.Sum . should_equal [0, 0]
 
-        Test.specify "should fail with Empty_Error for Minimum and Maximum on Nothing Vector" <|
+        group_builder.specify "should fail with Empty_Error for Minimum and Maximum on Nothing Vector" <|
             [Nothing, Nothing].compute Statistic.Minimum . should_fail_with Empty_Error
             [Nothing, Nothing].running Statistic.Minimum . should_equal [Nothing, Nothing]
             [Nothing, Nothing].compute Statistic.Maximum . should_fail_with Empty_Error
             [Nothing, Nothing].running Statistic.Maximum . should_equal [Nothing, Nothing]
 
-        Test.specify "should be NaN for other statistics sum on Nothing Vector" <|
+        group_builder.specify "should be NaN for other statistics sum on Nothing Vector" <|
             [Nothing, Nothing, Nothing, Nothing].compute Statistic.Mean . is_nan . should_equal True
             [Nothing, Nothing, Nothing, Nothing].running Statistic.Mean . all _.is_nan . should_equal True
             [Nothing, Nothing, Nothing, Nothing].compute Statistic.Variance . is_nan . should_equal True
@@ -220,12 +220,12 @@ spec =
             [Nothing, Nothing, Nothing, Nothing].compute Statistic.Kurtosis . is_nan . should_equal True
             [Nothing, Nothing, Nothing, Nothing].running Statistic.Kurtosis . all _.is_nan . should_equal True
 
-    Test.group "Statistics - invalid input" <|
+    suite_builder.group "Statistics - invalid input" group_builder->
         text_set = ["A", "B", Nothing, "D"]
         ord_set = [Ord.Value 10, Ord.Value 2, Nothing, Ord.Value 9]
         no_ord_set = [No_Ord.Value 10, No_Ord.Value 2, Nothing, No_Ord.Value 9]
 
-        Test.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
+        group_builder.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
             text_set.compute Statistic.Sum . should_fail_with Illegal_Argument
             text_set.compute Statistic.Mean . should_fail_with Illegal_Argument
             text_set.compute Statistic.Variance . should_fail_with Illegal_Argument
@@ -233,12 +233,12 @@ spec =
             text_set.compute Statistic.Kurtosis . should_fail_with Illegal_Argument
             text_set.running Statistic.Sum . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to do Count, Minimum and Maximum on custom type with custom ordered comparator" <|
+        group_builder.specify "should be able to do Count, Minimum and Maximum on custom type with custom ordered comparator" <|
             ord_set.compute . should_equal 3
             ord_set.compute Statistic.Minimum . should_equal (Ord.Value 2)
             ord_set.compute Statistic.Maximum . should_equal (Ord.Value 10)
 
-        Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
+        group_builder.specify "should fail with Incomparable_Values on custom incomparable type" <|
             no_ord_set.compute . should_equal 3
             no_ord_set.running . should_equal [1,2,2,3]
             no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values
@@ -246,7 +246,7 @@ spec =
             no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values
             no_ord_set.running Statistic.Maximum . should_fail_with Incomparable_Values
 
-        Test.specify "should fail with the underlying error on broken comparator" <|
+        group_builder.specify "should fail with the underlying error on broken comparator" <|
             bad_comparator_set = [Bad_Comparator_Type.Value 10, Bad_Comparator_Type.Value 2, Nothing, Bad_Comparator_Type.Value 9]
             bad_comparator_set.compute . should_equal 3
             bad_comparator_set.running . should_equal [1,2,2,3]
@@ -255,11 +255,11 @@ spec =
             bad_comparator_set.compute Statistic.Maximum . should_fail_with Illegal_State
             bad_comparator_set.running Statistic.Maximum . should_fail_with Illegal_State
 
-        Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
+        group_builder.specify "should fail with Incomparable_Values on mixed Vectors" <|
             [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values
 
-    Test.group "Rank Data" <|
-        Test.specify "can rank a Float data series" <|
+    suite_builder.group "Rank Data" group_builder->
+        group_builder.specify "can rank a Float data series" <|
             values = [409.892906, 0.839952, 796.468572, 126.931298, -405.265005, -476.675817, 441.651325, 796.468572, 78.50094, 340.163324, 234.861926, 409.892906, 226.467105, 234.861926, 126.931298, 637.870512, -71.008044, -386.399663, -126.534337, -476.675817, 78.50094, -386.399663, 409.892906, 868.54485, 669.113037, 669.113037, 0.839952, 407.162613, -476.675817, 126.931298]
             Statistic.rank_data values . should_equal [9, 21.5, 2.5, 17, 27, 29, 7, 2.5, 19.5, 12, 13.5, 9, 15, 13.5, 17, 6, 23, 25.5, 24, 29, 19.5, 25.5, 9, 1, 4.5, 4.5, 21.5, 11, 29, 17]
             Statistic.rank_data values Rank_Method.Minimum . should_equal [8, 21, 2, 16, 27, 28, 7, 2, 19, 12, 13, 8, 15, 13, 16, 6, 23, 25, 24, 28, 19, 25, 8, 1, 4, 4, 21, 11, 28, 16]
@@ -267,62 +267,62 @@ spec =
             Statistic.rank_data values Rank_Method.Ordinal . should_equal [8, 21, 2, 16, 27, 28, 7, 3, 19, 12, 13, 9, 15, 14, 17, 6, 23, 25, 24, 29, 20, 26, 10, 1, 4, 5, 22, 11, 30, 18]
             Statistic.rank_data values Rank_Method.Dense . should_equal [6, 13, 2, 11, 17, 18, 5, 2, 12, 8, 9, 6, 10, 9, 11, 4, 14, 16, 15, 18, 12, 16, 6, 1, 3, 3, 13, 7, 18, 11]
 
-        Test.specify "can rank an Integer data series" <|
+        group_builder.specify "can rank an Integer data series" <|
             values = [10, 1, 124, 10]
             Statistic.rank_data values . should_equal [2.5, 4, 1, 2.5]
 
-        Test.specify "can rank a Number data series" <|
+        group_builder.specify "can rank a Number data series" <|
             values = [10.0, 1, 12.4, 10]
             Statistic.rank_data values . should_equal [2.5, 4, 1, 2.5]
 
-        Test.specify "can rank a Text data series" <|
+        group_builder.specify "can rank a Text data series" <|
             values = ["G", "AA", "B", "G", "D"]
             Statistic.rank_data values . should_equal [1.5, 5, 4, 1.5, 3]
 
-        Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
+        group_builder.specify "should fail with Incomparable_Values on custom incomparable type" <|
             values = [No_Ord.Value 10, No_Ord.Value 2, No_Ord.Value 9]
             Statistic.rank_data values . should_fail_with Incomparable_Values
 
-        Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
+        group_builder.specify "should fail with Incomparable_Values on mixed Vectors" <|
             Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values
 
-        Test.specify "should fail with Illegal_Argument on Vectors with Nothing" <|
+        group_builder.specify "should fail with Illegal_Argument on Vectors with Nothing" <|
             Statistic.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument
 
-    Test.group "Correlation Statistics" <|
+    suite_builder.group "Correlation Statistics" group_builder->
         series_a = [0.22345,0.258315,0.74663,Nothing,0.686843,0.692246,Nothing,0.401859,0.725442,Nothing,0.963527,0.520363,0.633053,0.397123,Nothing,0.458942,0.036499,0.368194,0.598939,0.296476,0.093746,0.609329]
         series_b = [0.140743,Nothing,0.574639,0.251683,0.902023,0.08723,0.251813,0.1669,0.234405,Nothing,0.28774,0.471757,0.280681,0.925207,0.919041,0.626234,0.429497,0.358597,0.566118,0.333606,0.828172,0.887829]
         series_c = [Nothing,0.769797,0.281678,0.462145,0.727132,0.327978,Nothing,0.648639,0.562636,Nothing,0.159836,0.367404,0.877087,0.365483,Nothing,0.931873,0.723546,0.558085,0.163396,0.940997,0.399685,0.617509]
         series = [series_a, series_b, series_c]
 
-        Test.specify "can compute Covariance, Correlation and R Squared between a pair of series" <|
+        group_builder.specify "can compute Covariance, Correlation and R Squared between a pair of series" <|
             series_a.compute (Statistic.Covariance series_b) . should_equal -0.0053554 epsilon=double_error
             series_a.compute (Statistic.Pearson series_b) . should_equal -0.08263943 epsilon=double_error
             series_a.compute (Statistic.Spearman series_b) . should_equal -0.09313725 epsilon=double_error
             series_a.compute (Statistic.R_Squared series_b) . should_equal 0.006829275 epsilon=double_error
 
-        Test.specify "can calculate a covariance matrix" <|
+        group_builder.specify "can calculate a covariance matrix" <|
             matrix = Statistic.covariance_matrix series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [0.0571699, -0.0053554, -0.02378204]
             vector_compare (matrix.at 1) [-0.0053554, 0.07707381, -0.00098274]
             vector_compare (matrix.at 2) [-0.02378204, -0.00098274, 0.05837098]
 
-        Test.specify "can calculate a pearson correlation matrix" <|
+        group_builder.specify "can calculate a pearson correlation matrix" <|
             matrix = Statistic.pearson_correlation series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [1, -0.08263943, -0.40469045]
             vector_compare (matrix.at 1) [-0.08263943, 1, -0.01537537]
             vector_compare (matrix.at 2) [-0.40469045, -0.01537537, 1]
 
-        Test.specify "can calculate a spearman rank correlation matrix" <|
+        group_builder.specify "can calculate a spearman rank correlation matrix" <|
             matrix = Statistic.spearman_correlation series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [1, -0.09313725, -0.43382353]
             vector_compare (matrix.at 1) [-0.09313725, 1, 0]
             vector_compare (matrix.at 2) [-0.43382353, 0, 1]
 
-        Test.specify "should fail with Illegal_Argument if different lengths" <|
+        group_builder.specify "should fail with Illegal_Argument if different lengths" <|
             data = [[1,2,3,4],[10,20,30]]
             data.first.compute (Statistic.Covariance data.second) . should_fail_with Illegal_Argument
             data.first.compute (Statistic.Pearson data.second) . should_fail_with Illegal_Argument
@@ -332,7 +332,7 @@ spec =
             Statistic.pearson_correlation data . should_fail_with Illegal_Argument
             Statistic.spearman_correlation data . should_fail_with Illegal_Argument
 
-        Test.specify "should fail with Illegal_Argument if not number based" <|
+        group_builder.specify "should fail with Illegal_Argument if not number based" <|
             text = [["A","BC","CD"], ["0", "1", "2"], ["H", "I", "J"]]
             text.first.compute (Statistic.Covariance text.second) . should_fail_with Illegal_Argument
             text.first.compute (Statistic.Pearson text.second) . should_fail_with Illegal_Argument
@@ -342,10 +342,14 @@ spec =
             Statistic.pearson_correlation text . should_fail_with Illegal_Argument
             Statistic.spearman_correlation text . should_fail_with Illegal_Argument
 
-    Test.group "Statistics - invalid input" <|
-        Test.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
+    suite_builder.group "Statistics - invalid input" group_builder->
+        group_builder.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
             series = [["A", "B", Nothing, "D"], ["A", "B", Nothing, "D"]]
             Statistic.covariance_matrix series . should_fail_with Illegal_Argument
             Statistic.pearson_correlation series . should_fail_with Illegal_Argument
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

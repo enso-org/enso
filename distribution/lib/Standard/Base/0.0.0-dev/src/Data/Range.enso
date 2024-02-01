@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -502,7 +503,10 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector Integer
-    to_vector self = self.map x->x
+    to_vector self =
+        proxy = Array_Proxy.new self.length self.at
+        Vector.from_polyglot_array proxy
+
 
     ## Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.

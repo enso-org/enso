@@ -16,6 +16,14 @@ add_specs suite_builder =
             expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.split_to_columns "bar" "|"
             t2.should_equal expected
+
+        group_builder.specify "can do split_to_columns by index" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a|c", "c|d|ef", "gh|ij|u"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
+            t2 = t.split_to_columns 1 "|"
+            t2.should_equal expected
             
         group_builder.specify "can do split_to_columns where split character, first, last and only character" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["|cb", "ab|", "|"]]]
@@ -39,6 +47,14 @@ add_specs suite_builder =
             expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
             t2 = t.split_to_rows "bar" "|"
+            t2.should_equal expected
+
+        group_builder.specify "can do split_to_rows by index" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a|c", "c|d|ef", "gh|ij|u"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_rows 1 "|"
             t2.should_equal expected
 
         group_builder.specify "can do split_to_rows where split character, first, last and only character" <|
@@ -82,12 +98,28 @@ add_specs suite_builder =
             t2 = t.tokenize_to_columns "bar" "\d+"
             t2.should_equal expected
 
+        group_builder.specify "can do tokenize_to_columns by index" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5"], [1, "23", Nothing, Nothing], [2, "2", "4", "55"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
+            t2 = t.tokenize_to_columns 1 "\d+"
+            t2.should_equal expected
+
         group_builder.specify "can do tokenize_to_rows" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
             t = Table.new cols
             expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [2, "2"], [2, "4"], [2, "55"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
             t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal expected
+
+        group_builder.specify "can do tokenize_to_rows by index" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [2, "2"], [2, "4"], [2, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows 1 "\d+"
             t2.should_equal expected
 
         group_builder.specify "can do tokenize_to_columns with some nothings" <|
@@ -267,6 +299,12 @@ add_specs suite_builder =
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
             expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)"
+            actual.should_equal expected
+
+        group_builder.specify "can parse to columns by index" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
+            actual = t.parse_to_columns 1 "(\d)(\d)"
             actual.should_equal expected
 
         group_builder.specify "no regex groups" <|

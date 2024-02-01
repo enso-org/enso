@@ -2,24 +2,28 @@ from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.lang.String as Java_String
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
 
-spec =
-    Test.group "Base_64" <|
-        Test.specify "can encode simple text" <|
+
+add_specs suite_builder =
+    suite_builder.group "Base_64" group_builder->
+        group_builder.specify "can encode simple text" <|
             r = Base_64.encode_text "ABCD"
             r.should_equal "QUJDRA=="
 
-        Test.specify "can decode simple text" <|
+        group_builder.specify "can decode simple text" <|
             r = Base_64.decode_text "QUJDRA=="
             r.should_equal "ABCD"
 
-        Test.specify "can support various encodings" <|
+        group_builder.specify "can support various encodings" <|
             txt = "AąęłśZ"
             r_utf = Base_64.encode_text txt
             r_windows = Base_64.encode_text txt Encoding.windows_1250

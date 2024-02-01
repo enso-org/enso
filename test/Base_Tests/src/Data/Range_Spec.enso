@@ -7,11 +7,11 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Range" <|
-    Test.specify "should be created with a start, an end and a step" <|
+
+add_specs suite_builder = suite_builder.group "Range" group_builder->
+    group_builder.specify "should be created with a start, an end and a step" <|
         range = 1.up_to 100
         range.start . should_equal 1
         range.end . should_equal 100
@@ -37,21 +37,21 @@ spec = Test.group "Range" <|
         range_5.end . should_equal 2
         range_5.step  . should_equal -2
 
-    Test.specify "should allow to include the end" <|
+    group_builder.specify "should allow to include the end" <|
         1.up_to 3 include_end=True . to_vector . should_equal [1, 2, 3]
         3.down_to 1 include_end=True . to_vector . should_equal [3, 2, 1]
 
         1.up_to 1 include_end=True . to_vector . should_equal [1]
         1.down_to 1 include_end=True . to_vector . should_equal [1]
 
-    Test.specify "should allow creation with Range.new" <|
+    group_builder.specify "should allow creation with Range.new" <|
         Range.new . should_equal (Range.Between 0 100 1)
         Range.new 5 20 . should_equal (Range.Between 5 20 1)
         Range.new 20 5 . should_equal (Range.Between 20 5 -1)
         Range.new 5 20 5 . should_equal (Range.Between 5 20 5)
         Range.new 20 5 5 . should_equal (Range.Between 20 5 -5)
 
-    Test.specify "should allow setting a new step magnitude" <|
+    group_builder.specify "should allow setting a new step magnitude" <|
         1.up_to 2 . with_step 3 . should_equal (Range.Between 1 2 3)
 
         0.up_to 10 . with_step 2 . should_equal (Range.Between 0 10 2)
@@ -60,7 +60,7 @@ spec = Test.group "Range" <|
         10.down_to 0 . with_step 2 . should_equal (Range.Between 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
-    Test.specify "should fail with type errors if not the wrong type" <|
+    group_builder.specify "should fail with type errors if not the wrong type" <|
         Test.expect_panic_with (0.0.up_to 2) No_Such_Method
         Test.expect_panic_with (0.0.down_to 2) No_Such_Method
         Test.expect_panic_with (0.up_to 2.0) Type_Error
@@ -72,7 +72,7 @@ spec = Test.group "Range" <|
         1.up_to 2 . with_step 0 . should_fail_with Illegal_State
         1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument
 
-    Test.specify "should have a length" <|
+    group_builder.specify "should have a length" <|
         0.up_to 100 . length . should_equal 100
         100.down_to 0 . length . should_equal 100
         0.up_to 0 . length . should_equal 0
@@ -81,19 +81,19 @@ spec = Test.group "Range" <|
         0.up_to 10 . with_step 2 . length . should_equal 5
         10.down_to 0 . with_step 2 . length . should_equal 5
         0.up_to 10 . with_step 3 . length . should_equal 4
-    Test.specify "should allow checking for emptiness" <|
+    group_builder.specify "should allow checking for emptiness" <|
         0.up_to 0 . is_empty . should_be_true
         0.up_to -100 . is_empty . should_be_true
         0.up_to 1 . is_empty . should_be_false
         0.up_to 5 . is_empty . should_be_false
         5.down_to 0 . is_empty . should_be_false
-    Test.specify "should allow checking for non emptiness" <|
+    group_builder.specify "should allow checking for non emptiness" <|
         0.up_to 0 . not_empty . should_be_false
         0.up_to -100 . not_empty . should_be_false
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
         5.down_to 0 . not_empty . should_be_true
-    Test.specify "should allow getting by index using at" <|
+    group_builder.specify "should allow getting by index using at" <|
         0.up_to 0 . at 0 . should_fail_with Index_Out_Of_Bounds
         0.up_to 100 . at 0 . should_equal 0
         0.up_to 100 . at 5 . should_equal 5
@@ -106,7 +106,7 @@ spec = Test.group "Range" <|
         1.up_to 100 . with_step 5 . at 3 . should_equal 16
         1.up_to 100 . with_step 5 . at -1 . should_equal 96
         1.up_to 100 . with_step 5 . at -3 . should_equal 86
-    Test.specify "should allow getting by index using get" <|
+    group_builder.specify "should allow getting by index using get" <|
         0.up_to 0 . get 0 . should_equal Nothing
         0.up_to 100 . get 0 . should_equal 0
         0.up_to 100 . get 5 . should_equal 5
@@ -118,13 +118,13 @@ spec = Test.group "Range" <|
         1.up_to 100 . with_step 5 . get 3 . should_equal 16
         1.up_to 100 . with_step 5 . get -1 . should_equal 96
         1.up_to 100 . with_step 5 . get -3 . should_equal 86
-    Test.specify "should allow getting first" <|
+    group_builder.specify "should allow getting first" <|
         0.up_to 0 . first . should_fail_with Index_Out_Of_Bounds
         0.up_to 0 . first . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
         3.up_to 100 . first . should_equal 3
         0.down_to 0 . first . should_fail_with Index_Out_Of_Bounds
         0.down_to -3 . first . should_equal 0
-    Test.specify "should allow getting second" <|
+    group_builder.specify "should allow getting second" <|
         0.up_to 0 . second . should_fail_with Index_Out_Of_Bounds
         0.up_to 0 . second . catch . should_equal (Index_Out_Of_Bounds.Error 1 0)
         3.up_to 100 . second . should_equal 4
@@ -134,23 +134,23 @@ spec = Test.group "Range" <|
         0.down_to -3 . second . should_equal -1
         0.down_to -3 . with_step 2 . second . should_equal -2
         0.down_to -3 . with_step 4 . second . should_fail_with Index_Out_Of_Bounds
-    Test.specify "should allow getting last" <|
+    group_builder.specify "should allow getting last" <|
         0.up_to 0 . last . should_fail_with Index_Out_Of_Bounds
         0.up_to 0 . last . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
         3.up_to 100 . last . should_equal 99
         3.up_to 100 . with_step 25 . last . should_equal 78
         0.down_to 0 . last . should_fail_with Index_Out_Of_Bounds
         0.down_to -3 . last . should_equal -2
-    Test.specify "should be able to be mapped over to make a Vector" <|
+    group_builder.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
         empty.map *2 . should_equal []
         elements = 0.up_to 10
         elements.map *2 . should_equal [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
-    Test.specify "should allow to filter its elements, returning a vector" <|
+    group_builder.specify "should allow to filter its elements, returning a vector" <|
         elements = 0.up_to 10
         elements.filter (x -> x % 2 == 0) . should_equal [0, 2, 4, 6, 8]
 
-    Test.specify "should filter elements by Filter_Condition" <|
+    group_builder.specify "should filter elements by Filter_Condition" <|
         range = 1.up_to 6
         range.filter (Filter_Condition.Greater than=3) . should_equal [4, 5]
         range.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3]
@@ -177,7 +177,7 @@ spec = Test.group "Range" <|
         range.filter Filter_Condition.Is_Empty . should_equal []
         range.filter Filter_Condition.Not_Empty . should_equal [1, 2, 3, 4, 5]
 
-    Test.specify "should allow to partition its elements" <|
+    group_builder.specify "should allow to partition its elements" <|
         elements = 0.up_to 10
         r1 = elements.partition (x -> x % 2 == 0)
         r1.first . should_equal [0, 2, 4, 6, 8]
@@ -187,18 +187,18 @@ spec = Test.group "Range" <|
         r2.first . should_equal [4, 5, 6, 7, 8, 9]
         r2.second . should_equal [0, 1, 2, 3]
 
-    Test.specify "should allow iteration" <|
+    group_builder.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
         vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
-    Test.specify "should allow iteration, with error propagation and early exit" <|
+    group_builder.specify "should allow iteration, with error propagation and early exit" <|
         vec_mut = Vector.new_builder
         result = 1.up_to 6 . each_propagate i->
             if i >= 3 then Error.throw (Illegal_Argument.Error "dummy") else
               vec_mut.append i
         result . should_fail_with Illegal_Argument
         vec_mut.to_vector . should_equal [1, 2]
-    Test.specify "should allow iteration with index" <|
+    group_builder.specify "should allow iteration with index" <|
         vec_mut = Vector.new_builder
         5.up_to 8 . each_with_index ix-> elem->
             vec_mut.append (Pair.new ix elem)
@@ -208,28 +208,28 @@ spec = Test.group "Range" <|
         5.up_to 10 . with_step 2 . each_with_index ix-> elem->
             vec_mut_2.append (Pair.new ix elem)
         vec_mut_2.to_vector . should_equal [Pair.new 0 5, Pair.new 1 7, Pair.new 2 9]
-    Test.specify "should be able to be folded" <|
+    group_builder.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
         1.up_to 1 . fold 123 (+) . should_equal 123
-    Test.specify "should be able to perform a running fold" <|
+    group_builder.specify "should be able to perform a running fold" <|
         1.up_to 6 . running_fold 0 (+) . should_equal [1, 3, 6, 10, 15]
         1.up_to 1 . running_fold 123 (+) . should_equal []
-    Test.specify "should be able to be reduced" <|
+    group_builder.specify "should be able to be reduced" <|
         1.up_to 6 . reduce (+) . should_equal 15
         1.up_to 6 . with_step 2 . reduce (+) . should_equal 9
         1.up_to 1 . reduce (+) . should_fail_with Empty_Error
         1.up_to 1 . reduce (+) 0 . should_equal 0
-    Test.specify "should check all" <|
+    group_builder.specify "should check all" <|
         1.up_to 10 . all (> 0) . should_be_true
         1.up_to 10 . all (< 0) . should_be_false
         1.up_to 10 . all (Filter_Condition.Greater 10) . should_be_false
         Test.expect_panic_with (1.up_to 10 . all "invalid arg") Type_Error
-    Test.specify "should check any" <|
+    group_builder.specify "should check any" <|
         1.up_to 10 . any (> 5) . should_be_true
         1.up_to 10 . any (> 10) . should_be_false
         1.up_to 10 . any (Filter_Condition.Greater 5) . should_be_true
         Test.expect_panic_with (1.up_to 10 . any "invalid arg") Type_Error
-    Test.specify "should find elements" <|
+    group_builder.specify "should find elements" <|
         1.up_to 10 . find (> 5) . should_equal 6
         1.up_to 10 . find (Filter_Condition.Greater than=5) . should_equal 6
         1.up_to 10 . find (> 10) . should_be_a Nothing
@@ -238,7 +238,7 @@ spec = Test.group "Range" <|
         1.up_to 10 . find (< 5) start=10 . should_fail_with Index_Out_Of_Bounds
         1.up_to 10 . find (< 5) start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
         Test.expect_panic_with (1.up_to 10 . find "invalid arg") Type_Error
-    Test.specify "should find index of elements" <|
+    group_builder.specify "should find index of elements" <|
         1.up_to 10 . index_of (> 5) . should_equal 5
         1.up_to 10 . index_of 7 . should_equal 6
         1.up_to 10 . with_step 2 . index_of (> 4) . should_equal 2
@@ -256,7 +256,7 @@ spec = Test.group "Range" <|
         1.up_to 10 . index_of (Filter_Condition.Greater than=5) . should_equal 5
         1.up_to 10 . index_of "invalid arg" . should_fail_with Illegal_Argument
         1.up_to 10 . index_of 2.5 . should_fail_with Illegal_Argument
-    Test.specify "should find last index of elements" <|
+    group_builder.specify "should find last index of elements" <|
         1.up_to 10 . last_index_of (> 5) . should_equal 8
         1.up_to 10 . last_index_of 7 . should_equal 6
         1.up_to 10 . with_step 2 . last_index_of (> 4) . should_equal 4
@@ -274,14 +274,14 @@ spec = Test.group "Range" <|
         1.up_to 10 . last_index_of (Filter_Condition.Greater than=5) . should_equal 8
         1.up_to 10 . last_index_of "invalid arg" . should_fail_with Illegal_Argument
         1.up_to 10 . last_index_of 2.5 . should_fail_with Illegal_Argument
-    Test.specify "should allow conversion to vector" <|
+    group_builder.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
-    Test.specify "should allow reversing" <|
+    group_builder.specify "should allow reversing" <|
         1.up_to 6 . reverse . should_equal (5.down_to 0)
         5.down_to 0 . reverse . should_equal (1.up_to 6)
         1.up_to 6 . with_step 2 . reverse . should_equal (5.down_to -1 . with_step 2)
 
-    Test.specify "should allow checking if a value is in the range" <|
+    group_builder.specify "should allow checking if a value is in the range" <|
         0.up_to 10 . contains 5 . should_be_true
         0.up_to 10 . contains 0 . should_be_true
         0.up_to 10 . contains 9 . should_be_true
@@ -309,7 +309,7 @@ spec = Test.group "Range" <|
         builder = Vector.new_builder
         range.each builder.append
         builder.to_vector
-    Test.specify "should behave correctly if it is empty" <|
+    group_builder.specify "should behave correctly if it is empty" <|
         check_empty_range r =
             r.is_empty . should_be_true
             r.not_empty . should_be_false
@@ -334,7 +334,7 @@ spec = Test.group "Range" <|
         check_empty_range (Range.Between 0 10 -1)
         check_empty_range (Range.Between -1 0 -2)
 
-    Test.specify "should behave correctly when containing exactly one element" <|
+    group_builder.specify "should behave correctly when containing exactly one element" <|
         r1 = Range.Between 10 11
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
@@ -351,7 +351,7 @@ spec = Test.group "Range" <|
         r1.find (x-> x*x == 25) . should_equal Nothing
         verify_contains r1 [10] [-1, 0, 1, 2, 9, 11, 12]
 
-    Test.specify "should behave correctly with step greater than 1" <|
+    group_builder.specify "should behave correctly with step greater than 1" <|
         r1 = Range.Between 0 10 2
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
@@ -449,7 +449,7 @@ spec = Test.group "Range" <|
         r6.filter (_ < 4) . should_equal [0, 3]
         verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
 
-    Test.specify "should behave correctly with negative step" <|
+    group_builder.specify "should behave correctly with negative step" <|
         r1 = Range.Between 4 0 -1
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
@@ -514,7 +514,7 @@ spec = Test.group "Range" <|
         r4.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r4 [3] [-3, -2, -1, 0, 1, 2, 4, 5, 6, 7, 10]
 
-    Test.specify "should report errors if trying to set step to 0" <|
+    group_builder.specify "should report errors if trying to set step to 0" <|
         0.up_to 0 . with_step 0 . should_fail_with Illegal_State
         invalid_range = Range.Between 0 0 0
         invalid_range . length . should_fail_with Illegal_State
@@ -538,4 +538,8 @@ spec = Test.group "Range" <|
         invalid_range . find _->True . should_fail_with Illegal_State
         invalid_range . contains 0 . should_fail_with Illegal_State
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

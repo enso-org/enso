@@ -9,9 +9,16 @@ export function shallowEqual<T>(a: readonly T[], b: readonly T[]) {
   return a.length === b.length && a.every((item, i) => item === b[i])
 }
 
-// =========================
-// === includesPredicate ===
-// =========================
+// ================
+// === includes ===
+// ================
+
+/** Returns a type predicate that returns true if and only if the value is in the array.
+ * The array MUST contain every element of `T`. */
+export function includes<T>(array: T[], item: unknown): item is T {
+  const arrayOfUnknown: unknown[] = array
+  return arrayOfUnknown.includes(item)
+}
 
 /** Returns a type predicate that returns true if and only if the value is in the array.
  * The array MUST contain every element of `T`. */

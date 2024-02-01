@@ -7,7 +7,7 @@ type Client_Certificate
        - cert_file: path to the client certificate file.
        - key_file: path to the client key file.
        - key_password: password for the client key file.
-    Value cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
+    Value cert_file:File key_file:File (key_password:Text='')
 
     ## PRIVATE
        Creates the JDBC properties for the client certificate.
@@ -18,5 +18,5 @@ type Client_Certificate
        - sslpass: password for the client key file.
     properties : Vector
     properties self =
-        base = [Pair.new 'sslcert' (File.new self.cert_file).absolute.path, Pair.new 'sslkey' (File.new self.key_file).absolute.path]
+        base = [Pair.new 'sslcert' self.cert_file.absolute.path, Pair.new 'sslkey' self.key_file.absolute.path]
         if self.key_password == "" then base else base + [Pair.new 'sslpassword' self.key_password]
