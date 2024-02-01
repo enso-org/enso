@@ -143,7 +143,7 @@ pub fn run(run_args: impl AsRef<str>) -> Step {
 pub fn cancel_workflow_action() -> Step {
     Step {
         name: Some("Cancel Previous Runs".into()),
-        uses: Some("styfle/cancel-workflow-action@0.12.0".into()),
+        uses: Some("styfle/cancel-workflow-action@0.12.1".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "access_token".into(),
             "${{ github.token }}".into(),
