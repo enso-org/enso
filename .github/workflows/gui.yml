@@ -9,12 +9,11 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  enso-build-ci-gen-job-build-backend-linux:
-    name: Build Backend (linux)
+  enso-build-ci-gen-job-build-backend-linux-x86_64:
+    name: Build Backend (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -28,17 +27,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -67,8 +58,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-build-backend-macos:
-    name: Build Backend (macos)
+  enso-build-ci-gen-job-build-backend-macos-x86_64:
+    name: Build Backend (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
@@ -84,17 +75,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -123,12 +106,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-build-backend-windows:
-    name: Build Backend (windows)
+  enso-build-ci-gen-job-build-backend-windows-x86_64:
+    name: Build Backend (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -142,17 +124,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -181,24 +155,23 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-cancel-workflow-linux:
+  enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
       - ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-lint-linux:
-    name: Lint (linux)
+  enso-build-ci-gen-job-lint-linux-x86_64:
+    name: Lint (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -212,17 +185,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -251,12 +216,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-native-test-linux:
-    name: Native GUI tests (linux)
+  enso-build-ci-gen-job-native-test-linux-x86_64:
+    name: Native GUI tests (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -270,17 +234,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -309,12 +265,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-build-linux:
-    name: New (Vue) GUI build (linux)
+  enso-build-ci-gen-job-new-gui-build-linux-x86_64:
+    name: New (Vue) GUI build (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -328,17 +283,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -367,8 +314,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-build-macos:
-    name: New (Vue) GUI build (macos)
+  enso-build-ci-gen-job-new-gui-build-macos-x86_64:
+    name: New (Vue) GUI build (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
@@ -384,17 +331,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -423,12 +362,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-build-windows:
-    name: New (Vue) GUI build (windows)
+  enso-build-ci-gen-job-new-gui-build-windows-x86_64:
+    name: New (Vue) GUI build (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -442,17 +380,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -481,12 +411,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-test-linux:
-    name: New (Vue) GUI tests (linux)
+  enso-build-ci-gen-job-new-gui-test-linux-x86_64:
+    name: New (Vue) GUI tests (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -500,17 +429,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -539,14 +460,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-linux:
-    name: Package New IDE (linux)
+  enso-build-ci-gen-job-package-new-ide-linux-x86_64:
+    name: Package New IDE (linux, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-linux
+      - enso-build-ci-gen-job-build-backend-linux-x86_64
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -560,17 +480,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -599,10 +511,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-macos:
-    name: Package New IDE (macos)
+  enso-build-ci-gen-job-package-new-ide-macos-x86_64:
+    name: Package New IDE (macos, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-macos
+      - enso-build-ci-gen-job-build-backend-macos-x86_64
     runs-on:
       - macos-latest
     steps:
@@ -618,17 +530,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -670,14 +574,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-windows:
-    name: Package New IDE (windows)
+  enso-build-ci-gen-job-package-new-ide-windows-x86_64:
+    name: Package New IDE (windows, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-windows
+      - enso-build-ci-gen-job-build-backend-windows-x86_64
     runs-on:
       - self-hosted
       - Windows
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -691,17 +594,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
@@ -732,12 +627,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-wasm-test-linux:
-    name: WASM GUI tests (linux)
+  enso-build-ci-gen-job-wasm-test-linux-x86_64:
+    name: WASM GUI tests (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
-      - engine
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
@@ -751,17 +645,9 @@ jobs:
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
