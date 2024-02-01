@@ -9,15 +9,15 @@ import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend (spec detailed=True)
+main = run_default_backend (add_specs detailed=True)
 
-spec detailed setup =
+add_specs suite_builder detailed setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
@@ -50,32 +50,32 @@ spec detailed setup =
 
         new_column.name . should_equal expression
 
-    specify_test label action expression_test=tester pending=Nothing = case pending of
+    specify_test label group_builder action expression_test=tester pending=Nothing = case pending of
         Nothing ->
             case detailed of
                 True ->
                     specify_tester expression value =
-                        Test.specify (label + ": " + expression) <|
+                        group_builder.specify (label + ": " + expression) <|
                             expression_test expression value
                     action specify_tester
                 False ->
-                    Test.specify label (action expression_test)
-        _ -> Test.specify label Nothing pending
+                    group_builder.specify label (action expression_test)
+        _ -> group_builder.specify label Nothing pending
 
-    Test.group prefix+"Expression Integer literals" <|
-        specify_test "should be able to add an integer column" expression_test->
+    suite_builder.group prefix+"Expression Integer literals" group_builder->
+        specify_test "should be able to add an integer column" group_builder expression_test->
             expression_test "1" 1
             expression_test "-3" -3
             expression_test "1_000" 1000
 
-    Test.group prefix+"Expression Float literals" <|
-        specify_test "should be able to add an decimal column" expression_test->
+    suite_builder.group prefix+"Expression Float literals" group_builder->
+        specify_test "should be able to add an decimal column" group_builder expression_test->
             expression_test "1.23" 1.23
             expression_test "-3.1415" -3.1415
             expression_test "1_000.456" 1000.456
 
-    Test.group prefix+"Expression Boolean literals" <|
-        specify_test "should be able to add a boolean column" expression_test->
+    suite_builder.group prefix+"Expression Boolean literals" group_builder->
+        specify_test "should be able to add a boolean column" group_builder expression_test->
             expression_test "True" True
             expression_test "true" True
             expression_test "TRUE" True
@@ -85,8 +85,8 @@ spec detailed setup =
             expression_test "FALSE" False
             expression_test "FaLsE" False
 
-    Test.group prefix+"Expression Text literals" <|
-        specify_test "should be able to add a text column" expression_test->
+    suite_builder.group prefix+"Expression Text literals" group_builder->
+        specify_test "should be able to add a text column" group_builder expression_test->
             expression_test "'Hello World'" 'Hello World'
             expression_test "'Hello \'World\''" "Hello 'World'"
             expression_test '"Hello World"' 'Hello World'
@@ -94,12 +94,12 @@ spec detailed setup =
             expression_test '"Hello \\""World"""' 'Hello \\"World"'
             expression_test "'Alpha\r\n\gBeta'" 'Alpha\r\n\\gBeta'
 
-    Test.group prefix+"Expression Text literals" <|
-        specify_test "should be able to get a Column" expression_test->
+    suite_builder.group prefix+"Expression Text literals" group_builder->
+        specify_test "should be able to get a Column" group_builder expression_test->
             expression_test "[A]" (column_a.at 1)
             expression_test "[Bad]] Name]" (column_odd.at 1)
 
-        Test.specify "should sanitize names" <|
+        group_builder.specify "should sanitize names" <|
             t = table_builder [["X", ['\0', 'x', '']]]
             c = t.evaluate_expression '[X] == \'\0\'' . catch SQL_Error
             # We ignore the SQL error - some backends just do not support `\0` values. This is not the main point of this test.
@@ -109,14 +109,14 @@ spec detailed setup =
                     c.name.should_equal "[X] == '\0'"
                     c.to_vector.should_equal [True, False, False]
 
-    Test.group prefix+"Expression Nothing literals" <|
-        specify_test "should be able to add an nothing column" expression_test->
+    suite_builder.group prefix+"Expression Nothing literals" group_builder->
+        specify_test "should be able to add an nothing column" group_builder expression_test->
             expression_test "null" Nothing
             expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
 
-        Test.specify "should allow to create a NULL column" <|
+        group_builder.specify "should allow to create a NULL column" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.evaluate_expression "null"
             c.name . should_equal "null"
@@ -132,7 +132,7 @@ spec detailed setup =
            introduce a Value_Type.Null and make it accepted by all
            `Value_Type.expect_*` checks.
            See: https://github.com/enso-org/enso/issues/6281
-        Test.specify "a null column may fail typechecks that expect a concrete type" <|
+        group_builder.specify "a null column may fail typechecks that expect a concrete type" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.evaluate_expression "null"
             (c + c) . should_fail_with Illegal_Argument
@@ -147,13 +147,13 @@ spec detailed setup =
             t.evaluate_expression "[X] + Nothing" . to_vector . should_equal [Nothing, Nothing, Nothing]
             t.evaluate_expression "Nothing + [X]" . should_fail_with Illegal_Argument
 
-    Test.group prefix+"Expression Date and Time literals" <|
-        specify_test "should be able to add a date or time column" pending=pending_datetime expression_test->
+    suite_builder.group prefix+"Expression Date and Time literals" group_builder->
+        specify_test "should be able to add a date or time column" group_builder pending=pending_datetime expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
             expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
 
-        Test.specify "should be able to add a date-time column" pending=pending_datetime <|
+        group_builder.specify "should be able to add a date-time column" pending=pending_datetime <|
             ## We cannot just test equality as the Database may change the timezone,
                so all we can do is check that the values are accepted and can be compared
                with other values in the database.
@@ -161,18 +161,18 @@ spec detailed setup =
             c = t.evaluate_expression "#2020-12-23 12:34:56# == [X]"
             c.to_vector . should_equal [True, False]
 
-        specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_datetime expression_test->
+        specify_test "should be able to add a time column with sub-millisecond accuracy" group_builder pending=pending_datetime expression_test->
             expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789)
             expression_test "#12:34:56.000123#" (Time_Of_Day.new 12 34 56 millisecond=0 microsecond=123 nanosecond=0)
 
         if setup.is_database.not then
-            specify_test "should be able to add a date time column with timezone" expression_test->
+            specify_test "should be able to add a date time column with timezone" group_builder expression_test->
                 expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
                 expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
                 expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
                 expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
 
-        Test.specify "should correctly handle timezones" pending=pending_datetime <|
+        group_builder.specify "should correctly handle timezones" pending=pending_datetime <|
             ## We cannot just test equality as the Database may change the timezone,
                so all we can do is check that the values are accepted and can be compared
                with other values in the database.
@@ -182,8 +182,8 @@ spec detailed setup =
             c2 = t.evaluate_expression "#2010-01-02 12:34:56[Europe/Warsaw]# == [X]"
             c2.to_vector . should_equal [False, True]
 
-    Test.group prefix+"Expression Arithmetic" <|
-        specify_test "should be able to do basic arithmetic" expression_test->
+    suite_builder.group prefix+"Expression Arithmetic" group_builder->
+        specify_test "should be able to do basic arithmetic" group_builder expression_test->
             expression_test "1+1" 2
             expression_test "23-15" 8
             expression_test "2.5*4.2" 10.5
@@ -195,13 +195,13 @@ spec detailed setup =
             expression_test "floor(5.3)" 5
             expression_test "round(5.5)" 6
 
-        specify_test "should be able to do basic arithmetic with order" expression_test->
+        specify_test "should be able to do basic arithmetic with order" group_builder expression_test->
             expression_test "1+1*2+2" 5
             expression_test "23-15/3+6" 24
             expression_test "52.92/4.2^2" 3
             expression_test "(1+1)*2+2" 6
 
-        specify_test "should be able to do basic arithmetic with whitespace" expression_test->
+        specify_test "should be able to do basic arithmetic with whitespace" group_builder expression_test->
             expression_test "1 + 1" 2
             expression_test "  23 -15  " 8
             expression_test "2.5*  4.2" 10.5
@@ -211,8 +211,8 @@ spec detailed setup =
             expression_test "1+1 * 2" 3
             expression_test "1 + 1*2" 3
 
-    Test.group prefix+"Expression Column Arithmetic" <|
-        specify_test "should be able to perform arithmetic on columns" expression_test->
+    suite_builder.group prefix+"Expression Column Arithmetic" group_builder->
+        specify_test "should be able to perform arithmetic on columns" group_builder expression_test->
             expression_test "[A] + 2" [3, 4, 5, 6, 7]
             expression_test "[B] - 2" [-1, -0.5, 0.5, 2, 4]
             expression_test "[A] * 4" [4, 8, 12, 16, 20]
@@ -230,7 +230,7 @@ spec detailed setup =
             expression_test "[A] ^ [B] * [A]" [1, 5.65685424949238, 46.7653718043597, 1024, 78125]
             expression_test "[A] % [B] % [A]" [0, 0.5, 0.5, 0, 0]
 
-        specify_test "should be able to perform arithmetic on columns with order" expression_test->
+        specify_test "should be able to perform arithmetic on columns with order" group_builder expression_test->
             expression_test "([A] + [B]) * 3" [6, 10.5, 16.5, 24, 33]
             expression_test "[A] * (4 + [B])" [5, 11, 19.5, 32, 50]
             expression_test "[A] * [B] + [A]" [2, 5, 10.5, 20, 35]
@@ -242,8 +242,8 @@ spec detailed setup =
             expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
             expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
 
-    Test.group prefix+"Expression Comparison Operators" <|
-        specify_test "should be able to compare equality" expression_test->
+    suite_builder.group prefix+"Expression Comparison Operators" group_builder->
+        specify_test "should be able to compare equality" group_builder expression_test->
             expression_test "2 = 1 + 1" True
             expression_test "2 == 1 + 1" True
             expression_test "[A] = 2" [False, True, False, False, False]
@@ -253,7 +253,7 @@ spec detailed setup =
             expression_test "[A] != 2" [True, False, True, True, True]
             expression_test "[A] <> 2" [True, False, True, True, True]
 
-        specify_test "should be able to compare ordering" expression_test->
+        specify_test "should be able to compare ordering" group_builder expression_test->
             expression_test "1 > 2" False
             expression_test "1 < 2" True
             expression_test "[A] > 2" [False, False, True, True, True]
@@ -261,7 +261,7 @@ spec detailed setup =
             expression_test "[A] < 2" [True, False, False, False, False]
             expression_test "[A] <= 2" [True, True, False, False, False]
 
-        specify_test "should be able to use between" expression_test->
+        specify_test "should be able to use between" group_builder expression_test->
             expression_test "1 + 1 BETWEEN 1 AND 3" True
             expression_test "1 + 1 between 2 AND 3" True
             expression_test "1 + 1 bETWEEN 1 AND 2" True
@@ -269,7 +269,7 @@ spec detailed setup =
             expression_test "1 + 1 NOT BETWEEN 1 AND 3" False
             expression_test "[A] not between 2 AND 3" [True, False, False, True, True]
 
-        specify_test "should be able to use in" expression_test->
+        specify_test "should be able to use in" group_builder expression_test->
             expression_test "1 + 1 IN (2, 4, 6)" True
             expression_test "[A] IN (2, 4, 6)" [False, True, False, True, False]
             expression_test "1 + 1 NOT IN (2, 4, 6)" False
@@ -277,7 +277,7 @@ spec detailed setup =
             expression_test "[A] IN (3)" [False, False, True, False, False]
             expression_test "[A] NOT IN (3)" [True, True, False, True, True]
 
-        specify_test "should be able to check null" expression_test->
+        specify_test "should be able to check null" group_builder expression_test->
             expression_test "1 IS NULL" False
             expression_test "1 IS NoTHing" False
             expression_test "Nothing IS NULL" True
@@ -288,20 +288,20 @@ spec detailed setup =
             expression_test "[A] IS NOT NULL" [True, True, True, True, True]
             expression_test "[C] IS NOT NULL" [True, True, True, True, False]
 
-        specify_test "should be able to check empty" expression_test->
+        specify_test "should be able to check empty" group_builder expression_test->
             expression_test "'Hello World' IS EMPTY" False
             expression_test "'' IS EMPTY" True
             expression_test "'Hello World' IS NOT EMPTY" True
             expression_test "'' IS NOT EMPTY" False
 
-    Test.group prefix+"Expression Text Operators" <|
-        specify_test "should be able to concatenate text" expression_test->
+    suite_builder.group prefix+"Expression Text Operators" group_builder->
+        specify_test "should be able to concatenate text" group_builder expression_test->
             expression_test "'Hello ' + 'World'" "Hello World"
             expression_test "[C] + ' World'" ["Hello World", "World World", "Hello World! World", " World", Nothing]
             expression_test "'Hello ' + [C]" ["Hello Hello", "Hello World", "Hello Hello World!", "Hello ", Nothing]
             expression_test "[C] + [C]" ["HelloHello", "WorldWorld", "Hello World!Hello World!", "", Nothing]
 
-        specify_test "should be able to use like" expression_test->
+        specify_test "should be able to use like" group_builder expression_test->
             expression_test "'Hello World' LIKE 'Hello%'" True
             expression_test "'Hello' LIKE 'H_llo'" True
             expression_test "'Hello' LIKE 'H_l%'" True
@@ -311,63 +311,63 @@ spec detailed setup =
             expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
             expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
 
-    Test.group prefix+"Expression Boolean Operators" <|
-        specify_test "should be able to AND booleans" expression_test->
+    suite_builder.group prefix+"Expression Boolean Operators" group_builder->
+        specify_test "should be able to AND booleans" group_builder expression_test->
             expression_test "True && TRUE" True
             expression_test "True && Nothing" Nothing
             expression_test "True AND False" False
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
             expression_test "False AND [Bad]] Name]" False
 
-        specify_test "should be able to OR booleans" expression_test->
+        specify_test "should be able to OR booleans" group_builder expression_test->
             expression_test "True || TRUE" True
             expression_test "True OR False" True
             expression_test "False OR False" False
             expression_test "True OR [Bad]] Name]" True
             expression_test "False || [Bad]] Name]" [True, False, True, False, True]
 
-        specify_test "should be able to NOT booleans" expression_test->
+        specify_test "should be able to NOT booleans" group_builder expression_test->
             expression_test "!TRUE" False
             expression_test "Not False" True
             expression_test "NOT [Bad]] Name]" [False, True, False, True, False]
 
-        specify_test "should be able to use IF" expression_test->
+        specify_test "should be able to use IF" group_builder expression_test->
             expression_test "IF True THEN 1 ELSE 0" 1
             expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
             expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
 
-    Test.group prefix+"Function invocation" <|
-        specify_test "should be able to call a function with arguments" expression_test->
+    suite_builder.group prefix+"Function invocation" group_builder->
+        specify_test "should be able to call a function with arguments" group_builder expression_test->
             expression_test "Not(True)" False
             expression_test "not(False)" True
             expression_test "iif(True, 1, 3)" 1
             expression_test "iif([Bad]] Name], 2, 3)" [2, 3, 2, 3, 2]
 
-        specify_test "should be able to call a variable args function" expression_test->
+        specify_test "should be able to call a variable args function" group_builder expression_test->
             expression_test "min(10, 3, 8)" 3
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
-    Test.group prefix+"Expression Errors should be handled" <|
+    suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         error_tester expression fail_ctor =
             test_table.set expression new_name="NEW_COL" . should_fail_with Expression_Error
             test_table.set expression new_name="NEW_COL" . catch . should_be_a fail_ctor
 
-        specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
+        specify_test "should fail with Syntax_Error if badly formed" group_builder expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
             expression_test "A + B" Expression_Error.Syntax_Error
             expression_test "#2022-31-21#" Expression_Error.Syntax_Error
 
-        specify_test "should fail with Unsupported_Operation if not sufficient arguments" expression_test=error_tester expression_test->
+        specify_test "should fail with Unsupported_Operation if not sufficient arguments" group_builder expression_test=error_tester expression_test->
             expression_test "unknown([C])" Expression_Error.Unsupported_Operation
 
-        specify_test "should fail with Argument_Mismatch if not sufficient arguments" expression_test=error_tester expression_test->
+        specify_test "should fail with Argument_Mismatch if not sufficient arguments" group_builder expression_test=error_tester expression_test->
             expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
 
-        specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
+        specify_test "should fail with Argument_Mismatch if too many arguments" group_builder expression_test=error_tester expression_test->
             expression_test "is_empty([C], 'Hello')" Expression_Error.Argument_Mismatch
 
-    Test.group prefix+"Expression Warnings should be reported" <|
-        Test.specify "should report floating point equality" <|
+    suite_builder.group prefix+"Expression Warnings should be reported" group_builder->
+        group_builder.specify "should report floating point equality" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
             r1 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
@@ -387,7 +387,7 @@ spec detailed setup =
             Problems.expect_warning Floating_Point_Equality r4
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
-        Test.specify "should report arithmetic errors" pending=db_pending <|
+        group_builder.specify "should report arithmetic errors" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
             action1 = t1.evaluate_expression "3 / [X]" on_problems=_
@@ -396,7 +396,7 @@ spec detailed setup =
             problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
             Problems.test_problem_handling action1 problems1 tester1
 
-        Test.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
+        group_builder.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
             c1 = t1.evaluate_expression "3 / [X]" on_problems=Problem_Behavior.Report_Warning
             Problems.expect_warning Arithmetic_Error c1
@@ -420,7 +420,7 @@ spec detailed setup =
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Arithmetic_Error t4
 
-        Test.specify "already existing warnings should not be escalated to errors in error handling mode (2)" <|
+        group_builder.specify "already existing warnings should not be escalated to errors in error handling mode (2)" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
             c1 = Warning.attach (Illegal_State.Error "FOO") (t1.evaluate_expression "[X] + 3.0")
             Problems.expect_warning Illegal_State c1

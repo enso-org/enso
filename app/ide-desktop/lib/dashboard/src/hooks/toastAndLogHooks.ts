@@ -3,9 +3,11 @@ import * as React from 'react'
 
 import * as toastify from 'react-toastify'
 
+import type * as text from '#/text'
+
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
-import type * as text from '#/text'
+
 import * as errorModule from '#/utilities/error'
 
 // ======================

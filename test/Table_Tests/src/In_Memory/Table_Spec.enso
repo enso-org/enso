@@ -16,8 +16,7 @@ import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 from Standard.Database import Database, SQLite, In_Memory
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
@@ -42,25 +41,32 @@ type My_Comparator
 
 Comparable.from (_:My) = My_Comparator
 
-spec =
-    make_varied_type_table =
-        strs = ["strs", ["a", "b", "c", Nothing]]
-        ints = ["ints", [Nothing, 1, 2, 4]]
-        doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
-        doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
-        custom_objects = ["custom_objects", [My.Data 1 2, My.Data 3 4, Nothing, Nothing]]
-        dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
-        times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
-        datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
-        mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
-        mixed_dates = ["mixed_dates", [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40]]
-        just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
 
-        Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
-    varied_type_table = make_varied_type_table
+type Data
+    Value ~varied_type_table
 
-    Test.group "Construction" <|
-        Test.specify "should allow creating a table from rows" <|
+    setup =
+        make_varied_type_table =
+            strs = ["strs", ["a", "b", "c", Nothing]]
+            ints = ["ints", [Nothing, 1, 2, 4]]
+            doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
+            doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
+            custom_objects = ["custom_objects", [My.Data 1 2, My.Data 3 4, Nothing, Nothing]]
+            dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
+            times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
+            datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
+            mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+            mixed_dates = ["mixed_dates", [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40]]
+            just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
+
+            Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
+        Data.Value make_varied_type_table
+
+add_specs suite_builder =
+    suite_builder.group "Construction" group_builder->
+        data = Data.setup
+
+        group_builder.specify "should allow creating a table from rows" <|
             header = ['foo', 'bar']
             rows = [[1, False], [2, True], [3, False]]
             r = Table.from_rows header rows
@@ -73,7 +79,7 @@ spec =
             r2.at "foo" . to_vector . should_equal []
             r2.at "bar" . to_vector . should_equal []
 
-        Test.specify "should allow creating a table from columns" <|
+        group_builder.specify "should allow creating a table from columns" <|
             r = Table.new [["foo", [1, 2, 3]], ["bar", [False, True, False]]]
             r.row_count.should_equal 3
             r.at "foo" . to_vector . should_equal [1, 2, 3]
@@ -84,7 +90,7 @@ spec =
             r2.at "foo" . to_vector . should_equal []
             r2.at "bar" . to_vector . should_equal []
 
-        Test.specify "should handle error scenarios gracefully" <|
+        group_builder.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
@@ -99,25 +105,25 @@ spec =
 
             Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Invalid_Column_Names
 
-        Test.specify "should be internally guarded against creating a table without columns" <|
+        group_builder.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
 
-        Test.specify "should correctly infer storage types" <|
-            varied_type_table.at "strs" . value_type . should_equal Value_Type.Char
-            varied_type_table.at "ints" . value_type . should_equal Value_Type.Integer
-            varied_type_table.at "doubles" . value_type . should_equal Value_Type.Float
-            varied_type_table.at "doubles_and_ints" . value_type . should_equal Value_Type.Float
-            varied_type_table.at "custom_objects" . value_type . should_equal Value_Type.Mixed
-            varied_type_table.at "dates" . value_type . should_equal Value_Type.Date
-            varied_type_table.at "times" . value_type . should_equal Value_Type.Time
-            varied_type_table.at "datetimes" . value_type . should_equal Value_Type.Date_Time
-            varied_type_table.at "mixed" . value_type . should_equal Value_Type.Mixed
-            varied_type_table.at "mixed_dates" . value_type . should_equal Value_Type.Mixed
-            varied_type_table.at "just_nulls" . value_type . should_equal Value_Type.Mixed
+        group_builder.specify "should correctly infer storage types" <|
+            data.varied_type_table.at "strs" . value_type . should_equal Value_Type.Char
+            data.varied_type_table.at "ints" . value_type . should_equal Value_Type.Integer
+            data.varied_type_table.at "doubles" . value_type . should_equal Value_Type.Float
+            data.varied_type_table.at "doubles_and_ints" . value_type . should_equal Value_Type.Float
+            data.varied_type_table.at "custom_objects" . value_type . should_equal Value_Type.Mixed
+            data.varied_type_table.at "dates" . value_type . should_equal Value_Type.Date
+            data.varied_type_table.at "times" . value_type . should_equal Value_Type.Time
+            data.varied_type_table.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+            data.varied_type_table.at "mixed" . value_type . should_equal Value_Type.Mixed
+            data.varied_type_table.at "mixed_dates" . value_type . should_equal Value_Type.Mixed
+            data.varied_type_table.at "just_nulls" . value_type . should_equal Value_Type.Mixed
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
-        Test.specify "should work with polyglot values coming from Python" pending=pending_python_missing <|
+        group_builder.specify "should work with polyglot values coming from Python" pending=pending_python_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
@@ -127,7 +133,7 @@ spec =
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
-        Test.specify "should work with polyglot values coming from JS" <|
+        group_builder.specify "should work with polyglot values coming from JS" <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
@@ -142,14 +148,14 @@ spec =
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
-        Test.specify "should work with a Text value split into lines" <|
+        group_builder.specify "should work with a Text value split into lines" <|
             ## This tests verifies an issue with passing through a `List<String>` to the table.
             words = 'The\nquick\nbrown\nfox\njumps\nover\nthe\nlazy\ndog'.lines
             table = Table.new [["words", words]]
             table.at "words" . value_type . should_equal Value_Type.Char
             table.at "words" . to_vector . should_equal words
 
-        Test.specify "should handle Unicode normalization when accessing table columns" <|
+        group_builder.specify "should handle Unicode normalization when accessing table columns" <|
             col1 = ['s\u0301ciana', [1, 2, 3]]
             col2 = ['café', [4, 5, 6]]
             t = Table.new [col1, col2]
@@ -163,8 +169,8 @@ spec =
             r2 = Table.new [['ściana', [1, 2, 3]], ['s\u0301ciana', [4, 5, 6]]]
             r2.should_fail_with Illegal_Argument
 
-    Test.group "Vector conversion" <|
-        Test.specify "should allow converting columns to valid vectors" <|
+    suite_builder.group "Vector conversion" group_builder->
+        group_builder.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
             col_1.to_vector.reduce (+) . should_equal 6
 
@@ -174,8 +180,8 @@ spec =
             col_3 = Column.from_vector 'z' [False, True, False]
             col_3.to_vector.map .not . should_equal [True, False, True]
 
-    Test.group "Mapping Operations" <|
-        Test.specify "should allow mapping a function over a column" <|
+    suite_builder.group "Mapping Operations" group_builder->
+        group_builder.specify "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             c_str.map (+ "x") . to_vector . should_equal ['ax', 'bx', Nothing, 'bx']
             c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
@@ -187,13 +193,13 @@ spec =
             c_any = Column.from_vector 'x' [My.Data 1 6, My.Data 6 3, My.Data 2 5, My.Data 3 4, My.Data 200 300]
             c_any.map (_.frobnicate) . to_vector . should_equal [My.Data 6 1, My.Data 3 6, My.Data 5 2, My.Data 4 3, My.Data 300 200]
 
-        Test.specify "should correctly handle storage of results" <|
+        group_builder.specify "should correctly handle storage of results" <|
             c_int = Column.from_vector 'year' [2022, 2000, 1999]
             r = c_int . map Date_Time.new
             r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
             r.value_type . should_equal Value_Type.Date_Time
 
-        Test.specify "should allow zipping columns with a custom function" <|
+        group_builder.specify "should allow zipping columns with a custom function" <|
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
             a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
             c = a.zip b x-> y-> x + y.to_text
@@ -212,7 +218,7 @@ spec =
             r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
             r2.value_type . should_equal Value_Type.Time
 
-        Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
+        group_builder.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
             c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
@@ -224,7 +230,7 @@ spec =
             c_any = Column.from_vector 'x' [My.Data 1 6, My.Data 6 3, My.Data 2 5, My.Data 3 4, My.Data 200 300]
             (c_any == My.Data 7 0).to_vector.should_equal [True, False, True, True, False]
 
-        Test.specify "should switch between maps and zips based on argument type" <|
+        group_builder.specify "should switch between maps and zips based on argument type" <|
             a = Column.from_vector 'x' [0, 1, 7, 3, 6]
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, Nothing, 8]
             (a + 3.2).to_vector.should_equal [3.2, 4.2, 10.2, 6.2, 9.2]
@@ -236,7 +242,7 @@ spec =
             both = gt_const && gt_b
             both.to_vector.should_equal [False, False, True, False, False]
 
-        Test.specify "should handle Text operations" <|
+        group_builder.specify "should handle Text operations" <|
             a = Column.from_vector 'a' ["abab", "abc", Nothing, "bca", "acca"]
             nils = [Nothing, Nothing, Nothing, Nothing, Nothing]
 
@@ -254,7 +260,7 @@ spec =
             a.contains c . to_vector . should_equal [True, True, Nothing, Nothing, True]
             a.contains Nothing . to_vector . should_equal nils
 
-        Test.specify "should take Unicode normalization into account in Text operations" <|
+        group_builder.specify "should take Unicode normalization into account in Text operations" <|
             x = Column.from_vector 'x' ['s', 'ś', 's\u0301']
             y = Column.from_vector 'y' ['s\u0301', 's\u0301', 'ś']
 
@@ -276,35 +282,35 @@ spec =
             z.contains 'ś' . to_vector . should_equal [True, True, False, True, True]
             z.contains 's\u0301' . to_vector . should_equal [True, True, False, True, True]
 
-    Test.group "Masking Tables" <|
-        Test.specify "should allow selecting table rows based on a boolean column" <|
+    suite_builder.group "Masking Tables" group_builder->
+        group_builder.specify "should allow selecting table rows based on a boolean column" <|
             df = (enso_project.data / "simple_empty.csv").read
             r = df.filter (Column.from_vector 'x' [True, False, False, True])
             r.at "a" . to_vector . should_equal ["1", "10"]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
-        Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
+        group_builder.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
             df = (enso_project.data / "simple_empty.csv").read
             r = df.filter (Column.from_vector 'x' [Nothing, True, False])
             r.at "a" . to_vector . should_equal ["4"]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
-        Test.specify "should work correctly if a mask is bigger than the table itself" <|
+        group_builder.specify "should work correctly if a mask is bigger than the table itself" <|
             df = (enso_project.data / "simple_empty.csv").read
             r = df.filter (Column.from_vector 'x' [True, False, False, False, True])
             r.at "a" . to_vector . should_equal ["1"]
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
 
-    Test.group "Counting Values" <|
-        Test.specify "should count missing and non-missing values" <|
+    suite_builder.group "Counting Values" group_builder->
+        group_builder.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
             col.length . should_equal 3
             col.count . should_equal 2
             col.count_nothing . should_equal 1
 
-    Test.group "Dropping Missing Values" <|
-        Test.specify "should correctly handle NaNs with mixed type columns" <|
+    suite_builder.group "Dropping Missing Values" group_builder->
+        group_builder.specify "should correctly handle NaNs with mixed type columns" <|
             t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
             t1 = t.filter_blank_rows when=Blank_Selector.Any_Cell treat_nans_as_blank=False
             t1.at "X" . to_vector . should_equal [1, 4, 5]
@@ -323,8 +329,8 @@ spec =
             t4 = t3.remove_blank_columns treat_nans_as_blank=True
             t4.columns . map .name . should_equal ["X"]
 
-    Test.group "Info" <|
-        Test.specify "should return Table information" <|
+    suite_builder.group "Info" group_builder->
+        group_builder.specify "should return Table information" <|
             a = ["strs", ["a", "b", Nothing, "a"]]
             b = ["ints", [1, 2, Nothing, Nothing]]
             c = ["objs", [1, "a", "c", Any]]
@@ -334,15 +340,15 @@ spec =
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
 
-    Test.group "Sorting Tables" <|
-        Test.specify 'should respect defined comparison operations for custom types' <|
+    suite_builder.group "Sorting Tables" group_builder->
+        group_builder.specify 'should respect defined comparison operations for custom types' <|
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]]
             df = Table.new [c_1, c_2]
             r = df.order_by (['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
-        Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
+        group_builder.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
             ord = [0, 3, 2, 4, 1]
             ints = [1, 2, 3, 4, 5]
             reals = [1.3, 4.6, 3.2, 5.2, 1.6]
@@ -401,8 +407,8 @@ spec =
             r6 = df.order_by (['mixed_dates'])
             r6 . should_fail_with Incomparable_Values
 
-    Test.group "Sorting Columns" <|
-        Test.specify 'should sort columns with specified ordering and missing placement' <|
+    suite_builder.group "Sorting Columns" group_builder->
+        group_builder.specify 'should sort columns with specified ordering and missing placement' <|
             c = Column.from_vector 'foo' [1, 7, Nothing, 4, 8, Nothing]
 
             r_1 = c.sort
@@ -414,13 +420,13 @@ spec =
             r_3 = c.sort Sort_Direction.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing,Nothing,8,7,4,1]
 
-        Test.specify 'should respect defined comparison operations for custom types' <|
+        group_builder.specify 'should respect defined comparison operations for custom types' <|
             c = Column.from_vector 'foo'  [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]
             r = c.sort
             r.to_vector.should_equal [My.Data 1 2, My.Data 2 1, My.Data 4 -1, My.Data 3 4, My.Data 5 2, My.Data 7 0]
 
 
-        Test.specify 'should allow passing a custom comparator' <|
+        group_builder.specify 'should allow passing a custom comparator' <|
             c = Column.from_vector 'foo' [My.Data 1 2, My.Data 2 5, My.Data 3 4, My.Data 6 3, Nothing, My.Data 1 0]
             cmp a b = Ordering.compare (a.x-a.y).abs (b.x-b.y).abs
             r = c.sort by=cmp
@@ -433,12 +439,12 @@ spec =
             r3 = d.sort by=cmp2 missing_last=False
             r3.to_vector.should_equal [Nothing,5,4,3,2,1]
 
-        Test.specify 'should handle Unicode characters correctly' <|
+        group_builder.specify 'should handle Unicode characters correctly' <|
             c = Column.from_vector 'c' ['z', 'a', 'd', 'f', 's', 'e\u0301', 'ś', 'ą', 's\u0301', 'w', 'b']
             c.sort.to_vector . should_equal ['a', 'ą', 'b', 'd', 'e\u0301', 'f', 's', 's\u0301', 'ś', 'w', 'z']
 
-    Test.group "Slicing Tables" <|
-        Test.specify 'should allow taking first n rows' <|
+    suite_builder.group "Slicing Tables" group_builder->
+        group_builder.specify 'should allow taking first n rows' <|
             i_1 = ['ix', [1, 2, 3]]
             c_1 = ['col', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
@@ -461,7 +467,7 @@ spec =
             t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
             t_1.at 'col' . take 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
 
-        Test.specify "should allow taking the last n rows" <|
+        group_builder.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
             c_1 = ['col1', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
@@ -477,7 +483,7 @@ spec =
 
             t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
 
-        Test.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
+        group_builder.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
             t1 = Table.new [["X", [1, 2, 3, 4, 5, 5]], ["Y", [9, 8, 7, 2, 10, 5]]]
 
             t2 = t1.take (Index_Sub_Range.While row-> row.to_vector.compute Statistic.Sum == 10)
@@ -500,7 +506,7 @@ spec =
             t6.at "X" . to_vector . should_equal []
             t6.at "Y" . to_vector . should_equal []
 
-        Test.specify "should allow reversing the table" <|
+        group_builder.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]
             c_1 = ['col1', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
@@ -519,8 +525,8 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)
 
-    Test.group "fill"
-        Test.specify "should allow to fill_nothing from a value" <|
+    suite_builder.group "fill" group_builder->
+        group_builder.specify "should allow to fill_nothing from a value" <|
             col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
             col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
             default = 1000
@@ -529,7 +535,7 @@ spec =
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
 
-        Test.specify "should allow to fill_nothing from other columns" <|
+        group_builder.specify "should allow to fill_nothing from other columns" <|
             col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
             col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
             defaults = Column.from_vector "def0" [1, 2, 10, 20, Nothing, 30]
@@ -538,7 +544,7 @@ spec =
             actual.at "col0" . to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
             actual.at "col1" . to_vector . should_equal [1, 200, 10, 400, 500, 30]
 
-        Test.specify "should allow to fill_empty from a value" <|
+        group_builder.specify "should allow to fill_empty from a value" <|
             col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
             col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
             default = "1000"
@@ -547,7 +553,7 @@ spec =
             actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
             actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
 
-        Test.specify "should allow to fill_empty from other columns" <|
+        group_builder.specify "should allow to fill_empty from other columns" <|
             col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
             col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
             defaults = Column.from_vector "def0" ["1", "2", "10", "20", Nothing, "30"]
@@ -556,7 +562,7 @@ spec =
             actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
 
-        Test.specify "fill_nothing should leave other columns alone" <|
+        group_builder.specify "fill_nothing should leave other columns alone" <|
             col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
             col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
             col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
@@ -568,7 +574,7 @@ spec =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1"]
 
-        Test.specify "fill_nothing should work with integer column selectors" <|
+        group_builder.specify "fill_nothing should work with integer column selectors" <|
             col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
             col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
             col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
@@ -580,11 +586,11 @@ spec =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1"]
 
-    Test.group "Use First Row As Names" <|
+    suite_builder.group "Use First Row As Names" group_builder->
         expect_column_names names table =
             table.columns . map .name . should_equal names frames_to_skip=2
 
-        Test.specify "should work happily with mixed types" <|
+        group_builder.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
@@ -593,7 +599,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] table.use_first_row_as_names
 
-        Test.specify "should correctly handle problems: invalid names ''" <|
+        group_builder.specify "should correctly handle problems: invalid names ''" <|
             c_0 = ['A', ["", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
@@ -605,7 +611,7 @@ spec =
             problems = [Invalid_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: invalid names Nothing" <|
+        group_builder.specify "should correctly handle problems: invalid names Nothing" <|
             c_0 = ['A', ["A", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [Nothing, 2, 3]]
@@ -617,7 +623,7 @@ spec =
             problems = [Invalid_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: multiple invalid names" <|
+        group_builder.specify "should correctly handle problems: multiple invalid names" <|
             c_0 = ['A', ["", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [Nothing, 2, 3]]
@@ -629,7 +635,7 @@ spec =
             problems = [Invalid_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: duplicate names" <|
+        group_builder.specify "should correctly handle problems: duplicate names" <|
             c_0 = ['A', ["A", "B", "C"]]
             c_1 = ['B', ["A", "B", "C"]]
             c_2 = ['x', ["A", "B", "C"]]
@@ -640,8 +646,8 @@ spec =
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
-    Test.group "[In-Memory] Table.aggregate" <|
-        Test.specify "should return columns with correct types" <|
+    suite_builder.group "[In-Memory] Table.aggregate" group_builder->
+        group_builder.specify "should return columns with correct types" <|
             dates = ["dates", [Date.new 1999, Date.new 2000, Date.new 2000, Date.new 2000]]
             texts = ["texts", ["a", "bb", "a", "bb"]]
             mixed = ["mixed", [1, "a", "a", 1]]
@@ -666,7 +672,7 @@ spec =
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
             t4.info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
 
-        Test.specify "should take Unicode normalization into account when grouping by Text" <|
+        group_builder.specify "should take Unicode normalization into account when grouping by Text" <|
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
             ints = ["ints", [1, 2, 4, 8, 16, 32]]
             table = Table.new [texts, ints]
@@ -677,7 +683,7 @@ spec =
             r2 = table.aggregate [Count_Distinct "texts"]
             r2.at "Count Distinct texts" . to_vector . should_equal [3]
 
-        Test.specify "should be able to aggregate over enso Types" <|
+        group_builder.specify "should be able to aggregate over enso Types" <|
             weekday_table  = Table.new [["days", [Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Sunday]], ["group", [1,1,2,1,2]]]
 
             r1 = weekday_table.aggregate [Group_By "days"] . order_by "days"
@@ -692,8 +698,8 @@ spec =
        more guarantees: preserving order of rows and always selecting the first
        row of ones sharing the same distinctness key. For database tests (to be
        added later) we can not rely on ordering.
-    Test.group "[In-Memory] Table.distinct" <|
-        Test.specify "should allow to select distinct rows based on a subset of columns, returning the first row from each group" <|
+    suite_builder.group "[In-Memory] Table.distinct" group_builder->
+        group_builder.specify "should allow to select distinct rows based on a subset of columns, returning the first row from each group" <|
             a = ["A", ["a", "a", "a", "a", "a", "a"]]
             b = ["B", [1, 1, 2, 2, 1, 2]]
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
@@ -704,7 +710,7 @@ spec =
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
 
-        Test.specify "should handle nulls correctly and preserve original ordering" <|
+        group_builder.specify "should handle nulls correctly and preserve original ordering" <|
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
@@ -712,11 +718,11 @@ spec =
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should handle Unicode normalization of keys correctly" <|
+        group_builder.specify "should handle Unicode normalization of keys correctly" <|
             t1 = Table.new [["X", ['ś', 's\u0301', 's', 'ś']]]
             t1.distinct . at "X" . to_vector . should_equal ['ś', 's']
 
-        Test.specify "should allow to control case-sensitivity of keys, correctly handling Unicode folding" <|
+        group_builder.specify "should allow to control case-sensitivity of keys, correctly handling Unicode folding" <|
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
@@ -731,7 +737,7 @@ spec =
             t2 = Table.new [["X", ["łąka", "STRASSE", "Straße", "ﬃ", "ŁĄka", "ffi"]]]
             t2.distinct case_sensitivity=Case_Sensitivity.Insensitive . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
 
-        Test.specify "should report a warning if the key contains floating point values" <|
+        group_builder.specify "should report a warning if the key contains floating point values" <|
             t1 = Table.new [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
             action1 = t1.distinct on_problems=_
             tester1 table =
@@ -746,15 +752,17 @@ spec =
             problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
-        Test.specify "should be able to create distinct on Enso objects" <|
+        group_builder.specify "should be able to create distinct on Enso objects" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
             t.distinct ["X"] . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 3 4]
 
             t2 = Table.new [["X", [Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Wednesday]]]
             t2.distinct ["X"] . at "X" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Wednesday]
 
-    Test.group "[In-Memory] Table.filter" <|
-        Test.specify "by a custom predicate" <|
+    suite_builder.group "[In-Memory] Table.filter" group_builder->
+        data = Data.setup
+
+        group_builder.specify "by a custom predicate" <|
             t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [5, 0, 4, 5, 1]]]
             t1 = t.filter "X" (x -> x % 2 == 0)
             t1.at "ix" . to_vector . should_equal [2, 3]
@@ -768,7 +776,7 @@ spec =
             t3.at "ix" . to_vector . should_equal [1, 4, 5]
             t3.at "X" . to_vector . should_equal [5, 5, 1]
 
-        Test.specify "by custom object comparisons" <|
+        group_builder.specify "by custom object comparisons" <|
             t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My.Data 1 2, My.Data 300 400, My.Data 100 200, My.Data 5 6, My.Data 7 8]]]
             t1 = t.filter "X" (Filter_Condition.Between (My.Data 10 20) (My.Data 300 400))
             t1.at "ix" . to_vector . should_equal [2, 3]
@@ -785,7 +793,7 @@ spec =
             t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My.Data 100 200, My.Data 5 6]
             t.filter "X" (Filter_Condition.Greater than=c) . at "X" . to_vector . should_equal []
 
-        Test.specify "by a boolean mask of varying length" <|
+        group_builder.specify "by a boolean mask of varying length" <|
             t = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
 
             t1 = t.filter (Column.from_vector "f" [False, True])
@@ -796,7 +804,7 @@ spec =
             t2.at "A" . to_vector . should_equal [2, 3]
             t2.at "B" . to_vector . should_equal [5, 6]
 
-        Test.specify "by an Is_In check, on various types of columns" <|
+        group_builder.specify "by an Is_In check, on various types of columns" <|
             ins = Table.new <|
                 str = ["str", ["c", "b", Nothing, Nothing]]
                 int = ["int", [1, 2, 3, 3]]
@@ -809,29 +817,29 @@ spec =
                 nulls = ["nulls", [Nothing, Nothing, Nothing, 0]]
                 custom = ["custom", [2, My.Data 2 1, Nothing, Nothing]]
                 [str, int, int2, dbl, dates, dts, tod, mix, nulls, custom]
-            varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str")) . at "strs" . to_vector . should_equal ["b", "c"]
-            varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str" . to_vector)) . at "strs" . to_vector . should_equal ["b", "c"]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int")) . at "ints" . to_vector . should_equal [1, 2]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int" . to_vector)) . at "ints" . to_vector . should_equal [1, 2]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2")) . at "ints" . to_vector . should_equal [1]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2" . to_vector)) . at "ints" . to_vector . should_equal [1]
-            varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl")) . at "doubles" . to_vector . should_equal [0.0]
-            varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl" . to_vector)) . at "doubles" . to_vector . should_equal [0.0]
-            varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates")) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
-            varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates" . to_vector)) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
-            varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts")) . at "datetimes" . to_vector . should_equal [Date_Time.new 2022 8 27 11 22 25]
-            varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts" . to_vector)) . at "datetimes" . to_vector . should_equal [Date_Time.new 2022 8 27 11 22 25]
-            varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
-            varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod" . to_vector)) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
-            varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, "a", 1, Nothing, Date.new 2022 8 27, Date_Time.new 2022 8 27]) . at "mixed" . to_vector . should_equal [1, "a", Date.new 2022 8 27]
-            varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix")) . at "mixed" . to_vector . should_equal [1]
-            varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix" . to_vector)) . at "mixed" . to_vector . should_equal [1]
-            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In []) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls")) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls" . to_vector)) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [0]) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom")) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
-            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom" . to_vector)) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
+            data.varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str")) . at "strs" . to_vector . should_equal ["b", "c"]
+            data.varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str" . to_vector)) . at "strs" . to_vector . should_equal ["b", "c"]
+            data.varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int")) . at "ints" . to_vector . should_equal [1, 2]
+            data.varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int" . to_vector)) . at "ints" . to_vector . should_equal [1, 2]
+            data.varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2")) . at "ints" . to_vector . should_equal [1]
+            data.varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2" . to_vector)) . at "ints" . to_vector . should_equal [1]
+            data.varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl")) . at "doubles" . to_vector . should_equal [0.0]
+            data.varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl" . to_vector)) . at "doubles" . to_vector . should_equal [0.0]
+            data.varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates")) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
+            data.varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates" . to_vector)) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
+            data.varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts")) . at "datetimes" . to_vector . should_equal [Date_Time.new 2022 8 27 11 22 25]
+            data.varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts" . to_vector)) . at "datetimes" . to_vector . should_equal [Date_Time.new 2022 8 27 11 22 25]
+            data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+            data.varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod" . to_vector)) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+            data.varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, "a", 1, Nothing, Date.new 2022 8 27, Date_Time.new 2022 8 27]) . at "mixed" . to_vector . should_equal [1, "a", Date.new 2022 8 27]
+            data.varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix")) . at "mixed" . to_vector . should_equal [1]
+            data.varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix" . to_vector)) . at "mixed" . to_vector . should_equal [1]
+            data.varied_type_table.filter "just_nulls" (Filter_Condition.Is_In []) . at "just_nulls" . to_vector . should_equal []
+            data.varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls")) . at "just_nulls" . to_vector . should_equal []
+            data.varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls" . to_vector)) . at "just_nulls" . to_vector . should_equal []
+            data.varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [0]) . at "just_nulls" . to_vector . should_equal []
+            data.varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom")) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
+            data.varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom" . to_vector)) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
 
             t2 = Table.new [["ints", [1, 2, 3]], ["doubles", [1.2, 0.0, 1.0]]]
             t2.filter "ints" (Filter_Condition.Is_In [2.0, 1.5, 3, 4]) . at "ints" . to_vector . should_equal [2, 3]
@@ -874,8 +882,8 @@ spec =
                                 t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
                                 t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
-    Test.group "[In-Memory-specific] Table.join" <|
-        Test.specify "should correctly report unsupported cross-backend joins" <|
+    suite_builder.group "[In-Memory-specific] Table.join" group_builder->
+        group_builder.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
             Panic.recover Type_Error (t.join 42) . should_fail_with Type_Error
 
@@ -886,8 +894,8 @@ spec =
             r.should_fail_with Illegal_Argument
             r.catch.message . contains "cross-backend" . should_be_true
 
-    Test.group "[In-Memory-specific] Table.set" <|
-        Test.specify "should allow using vector and range for a new column" <|
+    suite_builder.group "[In-Memory-specific] Table.set" group_builder->
+        group_builder.specify "should allow using vector and range for a new column" <|
             t = Table.new [["X", [1, 2, 3]]]
 
             t_vec = t.set [10, 20, 30]
@@ -906,7 +914,7 @@ spec =
             t_month_range.column_names.should_equal ["X", "Month"]
             t_month_range.at "Month" . to_vector . should_equal [Date.new 2020 1 1, Date.new 2020 2 1, Date.new 2020 3 1]
 
-        Test.specify "should fail if there is a length mismatch on a new column" <|
+        group_builder.specify "should fail if there is a length mismatch on a new column" <|
             t = Table.new [["X", [1, 2, 3]]]
 
             c = Column.from_vector "Column" [10, 20]
@@ -915,7 +923,11 @@ spec =
             t.set (100.up_to 102) . should_fail_with Row_Count_Mismatch
             t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 3)) . should_fail_with Row_Count_Mismatch
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 ## JS indexes months form 0, so we need to subtract 1.
 foreign js js_make_date year month day = """

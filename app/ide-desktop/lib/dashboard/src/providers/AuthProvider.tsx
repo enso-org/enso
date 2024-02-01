@@ -13,21 +13,27 @@ import * as toast from 'react-toastify'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backendModule from '#/services/backend'
-import * as localBackend from '#/services/localBackend'
-import * as remoteBackend from '#/services/remoteBackend'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
+
 import * as errorModule from '#/utilities/error'
-import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
+import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+
+import * as cognitoModule from '#/authentication/cognito'
+import type * as authServiceModule from '#/authentication/service'
 
 // =================
 // === Constants ===
@@ -108,7 +114,7 @@ interface AuthContextType {
   goOffline: (shouldShowToast?: boolean) => Promise<boolean>
   signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
   confirmSignUp: (email: string, code: string) => Promise<boolean>
-  setUsername: (backend: backendModule.Backend, username: string, email: string) => Promise<boolean>
+  setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
   signInWithGoogle: () => Promise<boolean>
   signInWithGitHub: () => Promise<boolean>
   signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -211,12 +217,12 @@ export default function AuthProvider(props: AuthProviderProps) {
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
     if (supportsLocalBackend) {
-      setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
+      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
-      const client = new http.Client([['Authorization', '']])
-      setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger, getText))
+      const client = new HttpClient([['Authorization', '']])
+      setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
     }
   }, [
     getText,
@@ -274,9 +280,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     const onFetchError = () => {
       void goOffline()
     }
-    document.addEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
     return () => {
-      document.removeEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
     }
   }, [/* should never change */ goOffline])
 
@@ -297,8 +303,8 @@ export default function AuthProvider(props: AuthProviderProps) {
           setUserSession(null)
         }
       } else {
-        const client = new http.Client([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new remoteBackend.RemoteBackend(client, logger, getText)
+        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+        const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
@@ -452,15 +458,18 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_confirm_sign_up')
     const result = await cognito.confirmSignUp(email, code)
     if (result.err) {
-      switch (result.val.kind) {
-        case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
+      switch (result.val.type) {
+        case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
           break
-        case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
+        }
+        case cognitoModule.CognitoErrorType.userNotFound: {
           toastError(getText('confirmSignUpError'))
           navigate(appUtils.LOGIN_PATH)
           return false
-        default:
-          throw new errorModule.UnreachableCaseError(result.val.kind)
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
+        }
       }
     }
     toastSuccess(getText('confirmSignUpSuccess'))
@@ -474,7 +483,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (result.ok) {
       toastSuccess(getText('signInWithPasswordSuccess'))
     } else {
-      if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
+      if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
         // It may not be safe to pass the user's password in the URL.
         navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
       }
@@ -483,7 +492,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     return result.ok
   }
 
-  const setUsername = async (backend: backendModule.Backend, username: string, email: string) => {
+  const setUsername = async (backend: Backend, username: string, email: string) => {
     if (backend.type === backendModule.BackendType.local) {
       toastError('You cannot set your username on the local backend.')
       return false

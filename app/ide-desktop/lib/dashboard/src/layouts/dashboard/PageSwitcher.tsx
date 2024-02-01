@@ -5,8 +5,9 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as textProvider from '#/providers/TextProvider'
 import type * as text from '#/text'
+
+import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/Button'
 

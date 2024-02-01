@@ -4,49 +4,65 @@ from Standard.Table import Table, Delimited, Column, Data_Formatter
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
-spec =
-    c_number = ["Serial number", ["2LMXK1", "2LMXK1", "JEMLP3", "JEMLP3", "BR83GP", "BR83GP"]]
-    c_type = ["Movement type", [101, 301, 101, 203, 101, 301]]
-    c_date = ["Posting date", [Date_Time.new 2015 1 5 9 0, Date_Time.new 2015 1 5 14 0, Date_Time.new 2015 1 6 9 0, Date_Time.new 2015 1 7 17 30, Date_Time.new 2011 1 5 9 0, Date_Time.new 2011 1 9 15 30]]
-    expected = Table.new [c_number, c_type, c_date]
+type Data
+    Value ~data
 
-    Test.group "File.read (Delimited) should work with Date_Time" <|
+    c_number self = self.data.at 0
+    c_type self = self.data.at 1
+    c_date self = self.data.at 2
+    expected self = self.data.at 3
+    table self = self.data.at 4
+
+    setup = Data.Value <|
+        c_number = ["Serial number", ["2LMXK1", "2LMXK1", "JEMLP3", "JEMLP3", "BR83GP", "BR83GP"]]
+        c_type = ["Movement type", [101, 301, 101, 203, 101, 301]]
+        c_date = ["Posting date", [Date_Time.new 2015 1 5 9 0, Date_Time.new 2015 1 5 14 0, Date_Time.new 2015 1 6 9 0, Date_Time.new 2015 1 7 17 30, Date_Time.new 2011 1 5 9 0, Date_Time.new 2011 1 9 15 30]]
+        expected = Table.new [c_number, c_type, c_date]
         table = (enso_project.data / "datetime_sample.csv").read
-        Test.specify "should be able to read in a table with dates" <|
-            table.column_count.should_equal 3
-            table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
-            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
-            table.row_count.should_equal 6
+        [c_number, c_type, c_date, expected, table]
 
-        Test.specify "should be able to treat a single value as a Date_Time" <|
-            from_column = table.at 'Posting date'
+
+add_specs suite_builder =
+    data = Data.setup
+    suite_builder.group "File.read (Delimited) should work with Date_Time" group_builder->
+        group_builder.specify "should be able to read in a table with dates" <|
+            data.table.column_count.should_equal 3
+            data.table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
+            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
+            data.table.row_count.should_equal 6
+
+        group_builder.specify "should be able to treat a single value as a Date_Time" <|
+            from_column = data.table.at 'Posting date'
             from_column.at 5 . year . should_equal 2011
             from_column.at 5 . should_equal (Date_Time.new 2011 1 9 15 30)
 
-        Test.specify "should be able to compare columns and table" <|
-            table.at 'Serial number' . should_equal (Column.from_vector c_number.first c_number.second)
-            table.at 'Movement type' . should_equal (Column.from_vector c_type.first c_type.second)
-            table.at 'Posting date' . should_equal (Column.from_vector c_date.first c_date.second)
-            table.should_equal expected
+        group_builder.specify "should be able to compare columns and table" <|
+            data.table.at 'Serial number' . should_equal (Column.from_vector data.c_number.first data.c_number.second)
+            data.table.at 'Movement type' . should_equal (Column.from_vector data.c_type.first data.c_type.second)
+            data.table.at 'Posting date' . should_equal (Column.from_vector data.c_date.first data.c_date.second)
+            data.table.should_equal data.expected
 
-    Test.group "Should be able to serialise a table with DateTimes to Text" <|
-        Test.specify "should serialise back to input" <|
+    suite_builder.group "Should be able to serialise a table with DateTimes to Text" group_builder->
+        group_builder.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "datetime_sample_normalized_hours.csv").read_text
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["yyyy-MM-dd HH:mm:ss"]
-            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix value_formatter=data_formatter)
+            delimited = Text.from data.expected format=(Delimited "," line_endings=Line_Ending_Style.Unix value_formatter=data_formatter)
             delimited.should_equal expected_text
 
-        Test.specify "should serialise dates with format" <|
-            test_table = Table.new [c_date]
+        group_builder.specify "should serialise dates with format" <|
+            test_table = Table.new [data.c_date]
             expected_text = 'Posting date\n05.01.2015 09-00\n05.01.2015 14-00\n06.01.2015 09-00\n07.01.2015 17-30\n05.01.2011 09-00\n09.01.2011 15-30\n'
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["dd.MM.yyyy HH-mm"]
             delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

@@ -3,29 +3,33 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as shortcutsModule from '#/utilities/shortcuts'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/visibility'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+
+import * as eventModule from '#/utilities/event'
+import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
+import Visibility from '#/utilities/visibility'
 
 // ===================
 // === ProjectName ===
@@ -44,14 +48,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
   const { getText } = textProvider.useText()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`ProjectNameColumn` can only display project assets.')
+    throw new Error('`ProjectNameColumn` can only display projects.')
   }
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
     null
@@ -235,7 +239,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={event => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
+        } else if (
+          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.open, event)
+        ) {
           // It is a double click; open the project.
           dispatchAssetEvent({
             type: AssetEventType.openProject,
@@ -243,7 +249,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             shouldAutomaticallySwitchPage: true,
             runInBackground: false,
           })
-        } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
+        } else if (
+          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.run, event)
+        ) {
           dispatchAssetEvent({
             type: AssetEventType.openProject,
             id: asset.id,
@@ -254,7 +262,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           !isRunning &&
           eventModule.isSingleClick(event) &&
           ((selected && numberOfSelectedItems === 1) ||
-            shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))
         }
@@ -280,7 +288,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         />
       )}
       <EditableSpan
+        data-testid="asset-row-name"
         editable={rowState.isEditingName}
+        className={`bg-transparent grow leading-170 h-6 py-px ${
+          rowState.isEditingName
+            ? 'cursor-text'
+            : canExecute && !isOtherUserUsingProject
+            ? 'cursor-pointer'
+            : ''
+        }`}
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
@@ -302,13 +318,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               inputTitle: getText('projectNameCannotBeEmpty'),
             }
           : {})}
-        className={`bg-transparent grow leading-170 h-6 py-px ${
-          rowState.isEditingName
-            ? 'cursor-text'
-            : canExecute && !isOtherUserUsingProject
-            ? 'cursor-pointer'
-            : ''
-        }`}
       >
         {asset.title}
       </EditableSpan>

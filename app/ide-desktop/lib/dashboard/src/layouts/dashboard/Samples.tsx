@@ -233,7 +233,7 @@ export default function Samples(props: SamplesProps) {
   const { createProject } = props
   const { getText } = textProvider.useText()
   return (
-    <div className="flex flex-col gap-4 px-4.75">
+    <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
       <h2 className="text-xl leading-144.5 py-0.5">{getText('sampleAndCommunityProjects')}</h2>
       <div className="grid gap-2 grid-cols-fill-60">
         <ProjectsEntry createProject={createProject} />

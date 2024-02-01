@@ -187,6 +187,14 @@
   "stopExecution": "Stop execution",
   "openInEditor": "Open in editor",
 
+  "expand": "Expand",
+  "collapse": "Collapse",
+  "sortAscending": "Sort Ascending",
+  "sortDescending": "Sort Descending",
+  "closeAssetPanel": "Close Asset Panel",
+  "openAssetPanel": "Open Asset Panel",
+  "confirmEdit": "Confirm Edit",
+  "cancelEdit": "Cancel Edit",
   "loadingAppMessage": "Logging in to Enso...",
   "discoverWhatsNew": "Discover what’s new",
   "sampleAndCommunityProjects": "Sample and community projects",
@@ -287,7 +295,7 @@
 
   "homePageAltText": "Home tab",
   "drivePageAltText": "Drive tab",
-  "editorPageAltText": "Editor tab",
+  "editorPageAltText": "Project tab",
   "settingsPageAltText": "Settings tab",
   "homePageTooltip": "Go to homepage",
   "drivePageTooltip": "Go to drive",
@@ -351,5 +359,14 @@
   "signInShortcut": "Login",
   "signOutShortcut": "Logout",
   "downloadAppShortcut": "Download App",
-  "cancelCutShortcut": "Cancel Cut"
+  "cancelCutShortcut": "Cancel Cut",
+
+  "labelsShow": "Show Labels",
+  "labelsHide": "Hide Labels",
+  "accessedByProjectsShow": "Show Accessed by projects",
+  "accessedByProjectsHide": "Hide Accessed by projects",
+  "accessedDataShow": "Show Accessed data",
+  "accessedDataHide": "Hide Accessed data",
+  "docsShow": "Show Docs",
+  "docsHide": "Hide Docs"
 }

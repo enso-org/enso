@@ -15,23 +15,23 @@
   "scripts": {
     "compile": "tsc",
     "typecheck": "tsc --noEmit",
-    "build": "tsx bundle.ts",
+    "build": "vite build",
     "dev": "vite",
-    "start": "tsx start.ts",
+    "dev:e2e": "vite -c vite.test.config.ts",
     "test": "vitest run",
     "test:unit": "vitest",
-    "test:browsers": "npx --yes playwright install && npm run test:component && npm run test:e2e-and-log",
-    "test:component": "playwright test -c playwright-component.config.ts",
-    "test:e2e": "npx playwright test -c playwright-e2e.config.ts",
-    "test:e2e-and-log": "npm run test:e2e || npx tsx log-screenshot-diffs.ts"
+    "test:e2e": "npx playwright test",
+    "test:e2e:debug": "npx playwright test --ui"
   },
+  "//": [
+    "@fortawesome/fontawesome-svg-core is required as a peer dependency for @fortawesome/react-fontawesome"
+  ],
   "dependencies": {
     "@aws-amplify/auth": "^5.6.5",
     "@aws-amplify/core": "^5.8.5",
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
     "@fortawesome/free-brands-svg-icons": "^6.4.2",
     "@fortawesome/react-fontawesome": "^0.2.0",
-    "@heroicons/react": "^2.0.15",
     "@sentry/react": "^7.74.0",
     "enso-common": "^1.0.0",
     "is-network-error": "^1.0.1",
@@ -70,7 +70,6 @@
     "react-toastify": "^9.1.3",
     "tailwindcss": "^3.2.7",
     "ts-plugin-namespace-auto-import": "^1.0.0",
-    "tsx": "^3.12.6",
     "typescript": "~5.2.2",
     "vite": "^4.4.9",
     "vitest": "^0.34.4"

@@ -6,18 +6,21 @@ import isEmail from 'validator/es/lib/isEmail'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
-import * as permissionsModule from '#/utilities/permissions'
 
 import Autocomplete from '#/components/Autocomplete'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import UserPermissions from '#/components/dashboard/UserPermissions'
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
+import * as permissionsModule from '#/utilities/permissions'
 
 // =================
 // === Constants ===

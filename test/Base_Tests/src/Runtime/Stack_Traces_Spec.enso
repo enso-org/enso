@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type My_Type
 
@@ -11,8 +11,8 @@ Number.foo self = baz
 foo x = x.foo
 My_Type.foo self = foo 123
 
-spec = Test.group "Stack traces" <|
-    Test.specify "should capture traces correctly" <|
+add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
+    group_builder.specify "should capture traces correctly" <|
         modname = Meta.get_simple_type_name Stack_Traces_Spec
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]

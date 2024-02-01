@@ -6,12 +6,14 @@ import * as reactDom from 'react-dom'
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
-import * as chat from '#/layouts/dashboard/Chat'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as animations from '#/utilities/animations'
+
+import * as chat from '#/layouts/dashboard/Chat'
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
@@ -27,33 +29,8 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
-  const [right, setTargetRight] = animations.useInterpolateOverTime(
-    animations.interpolationFunctionEaseInOut,
-    chat.ANIMATION_DURATION_MS,
-    -chat.WIDTH_PX
-  )
 
   const container = document.getElementById(chat.HELP_CHAT_ID)
-
-  React.useEffect(() => {
-    // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    let handle: number | undefined
-    if (container != null) {
-      if (isOpen) {
-        container.style.display = ''
-        setTargetRight(0)
-      } else {
-        setTargetRight(-chat.WIDTH_PX)
-        handle = window.setTimeout(() => {
-          container.style.display = 'none'
-        }, chat.ANIMATION_DURATION_MS)
-      }
-    }
-    return () => {
-      clearTimeout(handle)
-    }
-  }, [isOpen, container, setTargetRight])
 
   if (container == null) {
     logger.error('Chat container not found.')
@@ -61,10 +38,9 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        style={{ right }}
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
+        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 transition-transform ${
           page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
-        }`}
+        } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <div className="flex text-sm font-semibold mx-4 mt-2">
           <div className="grow" />

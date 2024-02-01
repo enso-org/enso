@@ -6,20 +6,36 @@ from Standard.Table.Errors import Clashing_Column_Name, Duplicate_Output_Column_
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
 
-main = run_default_backend spec
+type Data
+    Value ~connection
 
-spec setup =
-    table_builder = setup.table_builder
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
     is_case_sensitive = setup.test_selection.supports_case_sensitive_columns
-    Test.group setup.prefix+"Column Naming edge cases" <|
-        Test.specify "case insensitive name collisions - set" <|
+    suite_builder.group setup.prefix+"Column Naming edge cases" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "case insensitive name collisions - set" <|
             t1 = table_builder [["X", [1]]]
             Problems.assume_no_problems (t1.at "X" . rename "x")
             t2 = t1.set "[X] + 100" "x"
@@ -51,7 +67,7 @@ spec setup =
                         t6.at "Right X" . to_vector . should_equal [1, 1, 1, 1]
                         t6.at "Right x" . to_vector . should_equal [101, 101, 101, 101]
 
-        Test.specify "case insensitive name collisions - rename" <|
+        group_builder.specify "case insensitive name collisions - rename" <|
             t1 = table_builder [["X", [1]], ["Y", [2]]]
             t2 = t1.rename_columns [["X", "A"], ["Y", "a"]]
             case is_case_sensitive of
@@ -71,7 +87,7 @@ spec setup =
                     t3.column_names . should_equal ["X 1", "x"]
                     Problems.expect_only_warning Duplicate_Output_Column_Names t3
 
-        Test.specify "case insensitive name collisions - aggregate" <|
+        group_builder.specify "case insensitive name collisions - aggregate" <|
             t1 = table_builder [["X", [2, 1, 3, 2]]]
             t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
 
@@ -91,7 +107,7 @@ spec setup =
             t3.at 0 . to_vector . should_equal [3]
             t3.at 1 . to_vector . should_equal [1]
 
-        Test.specify "case insensitive name collisions - joins" <|
+        group_builder.specify "case insensitive name collisions - joins" <|
             t1 = table_builder [["X", [1, 2]], ["a", [3, 4]]]
             t2 = table_builder [["X", [2, 1]], ["A", [5, 6]]]
 
@@ -118,7 +134,7 @@ spec setup =
             t5 = t1.join t2 on="X" join_kind=Join_Kind.Left_Exclusive
             t5.column_names . should_equal ["X", "a"]
 
-        Test.specify "case insensitive name collisions - cross_tab" <|
+        group_builder.specify "case insensitive name collisions - cross_tab" <|
             t0 = table_builder [["X", ["a", "A", "b"]], ["Y", [4, 5, 6]]]
             t1 = t0.cross_tab group_by=[] name_column="X" values=[Aggregate_Column.First "Y"] . sort_columns
             case setup.is_database of
@@ -136,7 +152,7 @@ spec setup =
                             # TODO possibly ensure a more detailed error message is included here so that the user knows the column names come from cross_tab
                             t1.should_fail_with Clashing_Column_Name
 
-        Test.specify "case insensitive name collisions - transpose" <|
+        group_builder.specify "case insensitive name collisions - transpose" <|
             t0 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             t1 = t0.transpose attribute_column_name="a" value_column_name="A"
             case setup.is_database of
@@ -152,7 +168,7 @@ spec setup =
                             t1.column_names . should_equal ["a", "A 1"]
                             Problems.expect_only_warning Duplicate_Output_Column_Names t1
 
-        Test.specify "unicode-normalized-equality vs selecting columns" <|
+        group_builder.specify "unicode-normalized-equality vs selecting columns" <|
             ## In Enso column 'ś' and 's\u0301' are the same entity.
                But in Databases, quite not necessarily.
             t1 = table_builder [['ś', [1, 2]], ['X', ['a', 'b']]]

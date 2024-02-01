@@ -6,9 +6,10 @@ import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
@@ -43,6 +44,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         }}
       />
       <Button
+        alt={isSettingsPanelVisible ? getText('closeAssetPanel') : getText('openAssetPanel')}
         active={canToggleSettingsPanel && isSettingsPanelVisible}
         disabled={!canToggleSettingsPanel}
         image={SettingsIcon}

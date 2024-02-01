@@ -4,10 +4,12 @@ import * as React from 'react'
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
-import type * as backend from '#/services/backend'
-import * as dateTime from '#/utilities/dateTime'
 
 import AssetIcon from '#/components/dashboard/AssetIcon'
+
+import type * as backend from '#/services/Backend'
+
+import * as dateTime from '#/utilities/dateTime'
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {

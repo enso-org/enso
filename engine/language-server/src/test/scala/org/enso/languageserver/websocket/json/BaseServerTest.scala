@@ -67,10 +67,9 @@ import java.io.File
 import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import scala.concurrent.duration._
 
-class BaseServerTest
+abstract class BaseServerTest
     extends JsonRpcServerTestKit
     with EitherValue
     with OptionValues
@@ -177,6 +176,11 @@ class BaseServerTest
     cleanupCallbacks = Nil
     timingsConfig    = TimingsConfig.default()
     super.afterEach()
+  }
+
+  override def afterAll(): Unit = {
+    sqlDatabase.close()
+    super.afterAll()
   }
 
   /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree

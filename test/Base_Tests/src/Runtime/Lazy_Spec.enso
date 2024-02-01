@@ -3,16 +3,16 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type Lazy
     Value ~get
     new ~computation = Lazy.Value computation
     new_eager computation = Lazy.Value computation
 
-spec = Test.group "Lazy" <|
-    Test.specify "should compute the result only once" <|
+add_specs suite_builder = suite_builder.group "Lazy" group_builder->
+    group_builder.specify "should compute the result only once" <|
         ref = Ref.new 0
         compute =
             ref.put (ref.get+1)
@@ -31,7 +31,7 @@ spec = Test.group "Lazy" <|
 
         ref.get . should_equal 3
 
-    Test.specify "should compute the result only once, even if copied" <|
+    group_builder.specify "should compute the result only once, even if copied" <|
         ref = Ref.new 0
         compute =
             ref.put (ref.get+1)
@@ -43,7 +43,7 @@ spec = Test.group "Lazy" <|
         vec.map .get . should_equal ["Value", "Value", "Value", "Value"]
         ref.get . should_equal 1
 
-    Test.specify "should cache the result even if it results in a dataflow error" <|
+    group_builder.specify "should cache the result even if it results in a dataflow error" <|
         ref = Ref.new 0
         compute =
             ref.put (ref.get+1)
@@ -57,7 +57,7 @@ spec = Test.group "Lazy" <|
         r.get.catch.message . should_equal "FOO"
         ref.get . should_equal 1
 
-    Test.specify "should cache the result even if the operation panics" <|
+    group_builder.specify "should cache the result even if the operation panics" <|
         ref = Ref.new 0
         compute =
             ref.put (ref.get+1)
@@ -75,7 +75,7 @@ spec = Test.group "Lazy" <|
         msg.should_equal "FOO"
         ref.get . should_equal 1
 
-    Test.specify "should allow to create a Lazy instance that is computed eagerly" <|
+    group_builder.specify "should allow to create a Lazy instance that is computed eagerly" <|
         ref = Ref.new 0
         compute =
             ref.put (ref.get+1)
@@ -89,11 +89,15 @@ spec = Test.group "Lazy" <|
         r.get . should_equal "Value"
         ref.get . should_equal 1
 
-    Test.specify "eager mode will not handle dataflow errors/panics specially" <|
+    group_builder.specify "eager mode will not handle dataflow errors/panics specially" <|
         r = Lazy.new_eager (Error.throw (Illegal_Argument.Error "FOO"))
         r.should_fail_with Illegal_Argument
 
         Test.expect_panic_with matcher=Illegal_Argument <|
             Lazy.new_eager (Panic.throw (Illegal_Argument.Error "FOO"))
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

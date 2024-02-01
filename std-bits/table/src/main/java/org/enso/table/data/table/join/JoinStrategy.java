@@ -15,8 +15,6 @@ public interface JoinStrategy {
   static JoinStrategy createStrategy(List<JoinCondition> conditions, JoinKind joinKind) {
     ensureConditionsNotEmpty(conditions);
 
-    JoinResult.BuilderSettings builderSettings = JoinKind.makeSettings(joinKind);
-
     List<HashableCondition> hashableConditions =
         conditions.stream()
             .filter(c -> c instanceof HashableCondition)
@@ -31,12 +29,14 @@ public interface JoinStrategy {
 
     if (hashableConditions.isEmpty()) {
       assert !betweenConditions.isEmpty();
-      return new SortJoin(betweenConditions, builderSettings);
+      return new SortJoin(betweenConditions, joinKind);
     } else if (betweenConditions.isEmpty()) {
-      return new HashJoin(hashableConditions, new MatchAllStrategy(), builderSettings);
-    } else {
       return new HashJoin(
-          hashableConditions, new SortJoin(betweenConditions, builderSettings), builderSettings);
+          hashableConditions,
+          joinKind.wantsCommon ? new MatchAllStrategy() : new NoOpStrategy(),
+          joinKind);
+    } else {
+      return new HashJoin(hashableConditions, new SortJoin(betweenConditions, joinKind), joinKind);
     }
   }
 

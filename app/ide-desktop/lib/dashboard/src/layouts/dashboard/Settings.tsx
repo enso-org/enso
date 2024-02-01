@@ -1,12 +1,13 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
+
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsTab'
 import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
 import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
-import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 // ================
 // === Settings ===

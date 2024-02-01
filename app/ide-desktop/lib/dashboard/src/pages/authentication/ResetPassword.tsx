@@ -9,25 +9,19 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-// =================
-// === Constants ===
-// =================
-
-const RESET_PASSWORD_QUERY_PARAMS = {
-  email: 'email',
-  verificationCode: 'verification_code',
-} as const
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
 
 // =====================
 // === ResetPassword ===
@@ -36,12 +30,14 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 /** A form for users to reset their password. */
 export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
-  const { search } = router.useLocation()
   const { getText } = textProvider.useText()
+  const location = router.useLocation()
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const { verificationCode, email } = parseUrlSearchParams(search)
+  const query = new URLSearchParams(location.search)
+  const email = query.get('email')
+  const verificationCode = query.get('verification_code')
 
   const [newPassword, setNewPassword] = React.useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = React.useState('')
@@ -127,12 +123,4 @@ export default function ResetPassword() {
       <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
     </div>
   )
-}
-
-/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
-function parseUrlSearchParams(search: string) {
-  const query = new URLSearchParams(search)
-  const verificationCode = query.get(RESET_PASSWORD_QUERY_PARAMS.verificationCode)
-  const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
-  return { verificationCode, email }
 }

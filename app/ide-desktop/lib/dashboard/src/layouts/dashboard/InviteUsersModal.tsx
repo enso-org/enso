@@ -5,14 +5,15 @@ import isEmail from 'validator/es/lib/isEmail'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backendModule from '#/services/backend'
-import type * as text from '#/text'
 
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -50,7 +51,8 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         ? 'userIsAlreadyInTheOrganization'
         : newEmails.has(email)
         ? 'youAreAlreadyAddingUser'
-        : null) satisfies text.TextId | null,
+        : // The `satisfies` is required to ensure the `toastAndLog` call below passes typechecking.
+          null) satisfies string | null,
     [email, existingEmails, newEmails]
   )
   const isEmailValid = invalidEmailError == null

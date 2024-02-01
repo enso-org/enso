@@ -2,7 +2,7 @@
 import * as fc from '@fast-check/vitest'
 import * as v from 'vitest'
 
-import * as arrayModule from '../array'
+import * as arrayModule from '#/utilities/array'
 
 // =============
 // === Tests ===

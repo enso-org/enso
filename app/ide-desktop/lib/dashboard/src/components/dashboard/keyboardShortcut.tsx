@@ -8,11 +8,12 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as shortcutsModule from '#/utilities/shortcuts'
 
 import SvgMask from '#/components/SvgMask'
+
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ========================
 // === KeyboardShortcut ===
@@ -31,7 +32,9 @@ interface InternalModifierProps {
 /** Icons for modifier keys (if they exist). */
 const MODIFIER_MAPPINGS: Record<
   detect.Platform,
-  Partial<Record<shortcutsModule.ModifierKey, (props: InternalModifierProps) => React.ReactNode>>
+  Partial<
+    Record<shortcutManagerModule.ModifierKey, (props: InternalModifierProps) => React.ReactNode>
+  >
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -65,21 +68,21 @@ const MODIFIER_MAPPINGS: Record<
 
 /** Props for a {@link KeyboardShortcut} */
 export interface KeyboardShortcutProps {
-  action: shortcutsModule.KeyboardAction
+  action: shortcutManagerModule.KeyboardAction
 }
 
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
   const { action } = props
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const { getText } = textProvider.useText()
-  const shortcut = shortcuts.keyboardShortcuts[action][0]
+  const shortcut = shortcutManager.keyboardShortcuts[action][0]
   if (shortcut == null) {
     return null
   } else {
     return (
       <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
-        {shortcutsModule.getModifierKeysOfShortcut(shortcut).map(
+        {shortcutManagerModule.getModifierKeysOfShortcut(shortcut).map(
           modifier =>
             MODIFIER_MAPPINGS[detect.platform()][modifier]?.({ getText }) ?? (
               <span key={modifier} className="leading-170 h-6 py-px">

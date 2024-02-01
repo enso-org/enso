@@ -1,9 +1,10 @@
 /** @file Home screen. */
 import * as React from 'react'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import Samples from '#/layouts/dashboard/Samples'
 import WhatsNew from '#/layouts/dashboard/WhatsNew'
-import * as textProvider from '#/providers/TextProvider'
 
 import type * as spinner from '#/components/Spinner'
 

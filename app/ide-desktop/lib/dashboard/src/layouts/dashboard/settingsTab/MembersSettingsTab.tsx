@@ -2,10 +2,12 @@
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
+
+import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 

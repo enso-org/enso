@@ -4,10 +4,11 @@ import * as React from 'react'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
 import * as textProvider from '#/providers/TextProvider'
-import * as sorting from '#/utilities/sorting'
 
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+
+import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
@@ -17,8 +18,15 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
   const [isHovered, setIsHovered] = React.useState(false)
   const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
   return (
-    <div
-      className="flex items-center cursor-pointer gap-2 pt-1 pb-1.5"
+    <button
+      title={
+        !isSortActive
+          ? 'Sort by name'
+          : sortDirection === SortDirection.ascending
+          ? 'Sort by name descending'
+          : 'Stop sorting by name'
+      }
+      className="flex items-center gap-2 pt-1 pb-1.5"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -28,18 +36,23 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
       onClick={event => {
         event.stopPropagation()
         if (sortColumn === columnUtils.Column.name) {
-          setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+          setSortDirection(sortDirectionModule.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
         } else {
           setSortColumn(columnUtils.Column.name)
-          setSortDirection(sorting.SortDirection.ascending)
+          setSortDirection(SortDirection.ascending)
         }
       }}
     >
       <span className="leading-144.5 h-6 py-0.5">{getText('nameColumnName')}</span>
       <img
+        alt={
+          !isSortActive || sortDirection === SortDirection.ascending
+            ? getText('sortAscending')
+            : getText('sortDescending')
+        }
         src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
       />
-    </div>
+    </button>
   )
 }

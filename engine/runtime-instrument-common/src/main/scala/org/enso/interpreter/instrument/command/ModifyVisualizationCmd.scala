@@ -33,7 +33,7 @@ class ModifyVisualizationCmd(
     ctx.executionService.getLogger.log(
       Level.FINE,
       "Modify visualization cmd for request id [{}] and visualization id [{}]",
-      Array(maybeRequestId, request.visualizationId)
+      Array[Object](maybeRequestId, request.visualizationId)
     )
     val existingVisualization = ctx.contextManager.getVisualizationById(
       request.visualizationConfig.executionContextId,

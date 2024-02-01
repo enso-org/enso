@@ -15,8 +15,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class FloorNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-  Object execute(double self) {
-    double floor = Math.floor(self);
+  Object execute(double own) {
+    double floor = Math.floor(own);
     if (fitsProfile.profile(BigIntegerOps.fitsInLong(floor))) {
       return (long) floor;
     } else {
