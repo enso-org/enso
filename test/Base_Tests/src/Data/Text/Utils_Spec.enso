@@ -4,13 +4,13 @@ polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.text.CaseFoldedString
 polyglot java import com.ibm.icu.text.BreakIterator
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.lang.Exception as JException
 
-spec =
-    Test.group "Text_Utils" <|
+add_specs suite_builder =
+    suite_builder.group "Text_Utils" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         text = "a"+kshi+facepalm+'e\u{301}Z'
@@ -18,7 +18,7 @@ spec =
             codepoints_count = grapheme.char_vector.length
             Vector.new codepoints_count _->ix
 
-        Test.specify "should correctly translate an codepoint index to a grapheme index" <|
+        group_builder.specify "should correctly translate an codepoint index to a grapheme index" <|
             codepoints_to_graphemes . each_with_index codepoint_ix-> grapheme_ix->
                 found_grapheme_ix = Text_Utils.utf16_index_to_grapheme_index text codepoint_ix
                 found_grapheme_ix.should_equal grapheme_ix
@@ -37,7 +37,7 @@ spec =
             Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 1 . should_equal 0
             Text_Utils.utf16_index_to_grapheme_index 'a\u{301}' 2 . should_equal 1
 
-        Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
+        group_builder.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
             translate_indices text ixes =
                 Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices text ixes
             codepoint_indices = Vector.new text.char_vector.length ix->ix
@@ -48,7 +48,7 @@ spec =
             translate_indices "aB" [0, 1, 2] . should_equal [0, 1, 2]
             translate_indices 'a\u{301}' [0, 1, 2] . should_equal [0, 0, 1]
 
-        Test.specify "should correctly case-fold a string and translate codeunits to graphemes" <|
+        group_builder.specify "should correctly case-fold a string and translate codeunits to graphemes" <|
             text = 'a\u{301}AZßﬃą'
             folded = CaseFoldedString.fold text Locale.default.java_locale
             folded.getFoldedString . should_equal 'a\u{301}azssffią'
@@ -61,7 +61,7 @@ spec =
             Test.expect_panic_with (folded.findGrapheme -1) JException
             Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) JException
 
-        Test.specify "should correctly take prefix and suffix of a string" <|
+        group_builder.specify "should correctly take prefix and suffix of a string" <|
             txt = 's\u0301ąśc\u0301'
             Text_Utils.take_prefix txt 1 . should_equal 's\u0301'
             Text_Utils.take_prefix txt 2 . should_equal 's\u0301ą'
@@ -93,27 +93,31 @@ spec =
             Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 2 . should_equal 'a'+kshi
             Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 1 . should_equal kshi
 
-    Test.group "to_display_text" <|
-        Test.specify "simple conversion" <|
+    suite_builder.group "to_display_text" group_builder->
+        group_builder.specify "simple conversion" <|
             "Hello".to_display_text . should_equal "Hello"
 
-        Test.specify "long text conversion" <|
+        group_builder.specify "long text conversion" <|
             long = "Hello World! ".repeat 1024
             disp = long.to_display_text
             disp.length . should_equal 80
             disp.characters.take (First 5) . should_equal [ 'H', 'e', 'l', 'l', 'o' ]
             disp.characters.take (Last 6) . should_equal ['l', 'd', '!', ' ', ' ', '…']
 
-        Test.specify "grapheme 1 conversion" <|
+        group_builder.specify "grapheme 1 conversion" <|
             txt = 'a\u0321\u0302'*100
             txt.to_display_text . should_equal ('a\u0321\u0302'*78 + ' …')
 
-        Test.specify "grapheme 2 conversion" <|
+        group_builder.specify "grapheme 2 conversion" <|
             txt = '\u0915\u094D\u0937\u093F'*100
             txt.to_display_text . should_equal ('\u0915\u094D\u0937\u093F'*78 + ' …')
 
-        Test.specify "grapheme 3 conversion" <|
+        group_builder.specify "grapheme 3 conversion" <|
             txt = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*100
             txt.to_display_text . should_equal ('\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*78 + ' …')
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
