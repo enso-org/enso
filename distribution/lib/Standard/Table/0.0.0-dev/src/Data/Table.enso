@@ -2032,6 +2032,9 @@ type Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
+    @replace_column Widget_Helpers.make_column_name_selector
+    @from_column Widget_Helpers.make_column_name_selector
+    @to_column Widget_Helpers.make_column_name_selector
     replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:Table replace_column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         self.select_columns replace_column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
