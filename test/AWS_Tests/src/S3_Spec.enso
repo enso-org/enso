@@ -3,6 +3,7 @@ from Standard.Base.Runtime import assert
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Response_Body.Unsupported_Content_Type
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
 
@@ -229,6 +230,7 @@ spec =
             Panic.catch Any action handler
         delete_afterwards file ~action =
             Panic.with_finalizer file.delete action
+
         Test.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
             "Hello".write new_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
@@ -263,7 +265,9 @@ spec =
                 bak_file.exists . should_be_true
                 delete_afterwards bak_file <|
                     my_file.read . should_equal "version2"
-                    bak_file.read . should_equal "version1"
+
+                    # ensure correct format is used for reading the .bak file - Auto_Detect fails because it does not know the `.bak` extension
+                    bak_file.read Plain_Text . should_equal "version1"
 
                     "version3".write my_file . should_succeed
 
