@@ -95,25 +95,28 @@ export class Server {
                     http: this.config.port,
                     handler: this.process.bind(this),
                 },
-                async (err, { http: httpServer }) => {
-                    if (err) {
-                        logger.error(`Error creating server:`, err.http)
-                        reject(err)
-                    }
-                    // Prepare the YDoc server access point for the new Vue-based GUI.
-                    if (httpServer) {
-                        await ydocServer.createGatewayServer(
-                            httpServer,
-                            // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
-                            // working both in browser and in ydocs server. Doing it properly
-                            // is tracked in https://github.com/enso-org/enso/issues/8931
-                            path.join(paths.ASSETS_PATH, 'assets', 'rust_ffi_bg-c353f976.wasm')
+                (err, { http: httpServer }) =>
+                    (async () => {
+                        if (err) {
+                            logger.error(`Error creating server:`, err.http)
+                            reject(err)
+                        }
+                        // Prepare the YDoc server access point for the new Vue-based GUI.
+                        if (httpServer) {
+                            await ydocServer.createGatewayServer(
+                                httpServer,
+                                // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
+                                // working both in browser and in ydocs server. Doing it properly
+                                // is tracked in https://github.com/enso-org/enso/issues/8931
+                                path.join(paths.ASSETS_PATH, 'assets', 'rust_ffi_bg-c353f976.wasm')
+                            )
+                        }
+                        logger.log(`Server started on port ${this.config.port}.`)
+                        logger.log(
+                            `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
                         )
-                    }
-                    logger.log(`Server started on port ${this.config.port}.`)
-                    logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-                    resolve()
-                }
+                        resolve()
+                    })()
             )
         })
     }
