@@ -80,11 +80,17 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             TZ?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            APPLEID?: string
+            readonly CSC_LINK?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            APPLEIDPASS?: string
+            readonly APPLEID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            APPLETEAMID?: string
+            readonly APPLEIDPASS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly APPLETEAMID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ICONS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly npm_package_name?: string
             // Cloud environment variables.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_REDIRECT: string

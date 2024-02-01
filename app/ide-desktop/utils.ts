@@ -20,7 +20,9 @@ export const INDENT_SIZE = 4
  * @throws {Error} If the environment variable is not set. */
 export function requireEnv(name: string) {
     return (
-        process.env[name] ??
+        // This evaluates to `never` because of the index signature.
+        // eslint-disable-next-line no-restricted-syntax
+        (process.env[name] as string | undefined) ??
         (() => {
             throw Error(`Missing ${name} environment variable.`)
         })()
