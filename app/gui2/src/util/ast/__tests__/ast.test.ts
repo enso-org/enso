@@ -9,9 +9,12 @@ import {
   readTokenSpan,
   walkRecursive,
 } from '@/util/ast'
+import { initializeFFI } from 'shared/ast/ffi'
 import { Token, Tree } from 'shared/ast/generated/ast'
 import type { LazyObject } from 'shared/ast/parserSupport'
 import { assert, expect, test } from 'vitest'
+
+await initializeFFI()
 
 function validateSpans(obj: LazyObject, initialPos?: number): number {
   const state = { pos: initialPos ?? 0 }

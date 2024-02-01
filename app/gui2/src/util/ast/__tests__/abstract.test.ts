@@ -1,7 +1,10 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+
+await initializeFFI()
 
 //const disabledCases = [
 //  ' a',

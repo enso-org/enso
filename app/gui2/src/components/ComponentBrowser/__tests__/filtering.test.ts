@@ -13,6 +13,9 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { unwrap } from '@/util/data/result'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { initializeFFI } from 'shared/ast/ffi'
+
+await initializeFFI()
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },

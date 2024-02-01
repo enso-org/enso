@@ -1,7 +1,10 @@
 import { Ast } from '@/util/ast'
 import { MutableModule, newExternalId, ReactiveModule } from '@/util/ast/abstract'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import * as Y from 'yjs'
+
+await initializeFFI()
 
 test('Reactive module observes tree changes', () => {
   const syncModule = MutableModule.Transient()
