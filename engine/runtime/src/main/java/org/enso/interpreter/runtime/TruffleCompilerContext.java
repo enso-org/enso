@@ -17,6 +17,7 @@ import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
@@ -234,23 +235,42 @@ final class TruffleCompilerContext implements CompilerContext {
     return option.isEmpty() ? null : option.get().asCompilerModule();
   }
 
+  /**
+   * Return true if the given location is inside module. More specifically, if the location's bounds
+   * point inside the character bounds of the module.
+   *
+   * <p>Note that it is possible that a {@link Diagnostic}'s location has a bigger size than the
+   * size of the module.
+   */
+  private static boolean isLocationInsideModule(
+      CompilerContext.Module module, IdentifiedLocation location) {
+    try {
+      return location.end() <= module.getSource().getLength();
+    } catch (IOException e) {
+      throw new AssertionError("Unreachable", e);
+    }
+  }
+
   @Override
   public String formatDiagnostic(
       CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
     if (diagnostic.location().isDefined()) {
-      Source source;
-      try {
-        source = module.getSource();
-      } catch (IOException e) {
-        throw new AssertionError(e);
+      var location = diagnostic.location().get();
+      if (isLocationInsideModule(module, location)) {
+        Source source;
+        try {
+          source = module.getSource();
+        } catch (IOException e) {
+          throw new AssertionError(e);
+        }
+        assert source != null;
+        diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+        return diagnosticFormatter.format();
       }
-      assert source != null;
-      diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
-    } else {
-      var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
-      diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
     }
+    var emptySource = Source.newBuilder(LanguageInfo.ID, "<unknown>", null).build();
+    diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
     return diagnosticFormatter.format();
   }
 

@@ -41,7 +41,11 @@ class DiagnosticFormatter(
   private val sourceSection: Option[SourceSection] =
     diagnostic.location match {
       case Some(location) =>
-        Some(source.createSection(location.start, location.length))
+        if (location.length > source.getLength) {
+          None
+        } else {
+          Some(source.createSection(location.start, location.length))
+        }
       case None => None
     }
   private val shouldPrintLineNumber = sourceSection match {
@@ -199,18 +203,27 @@ class DiagnosticFormatter(
     loc: Option[IdentifiedLocation],
     source: Source
   ): String = {
-    val srcLocation = loc
-      .map { loc =>
+    val srcLocation = loc match {
+      case Some(identifiedLoc)
+          if isLocationInSourceBounds(identifiedLoc, source) =>
         val section =
-          source.createSection(loc.location.start, loc.location.length)
+          source.createSection(identifiedLoc.start, identifiedLoc.length)
         val locStr =
           "" + section.getStartLine + ":" +
           section.getStartColumn + "-" +
           section.getEndLine + ":" +
           section.getEndColumn
         "[" + locStr + "]"
-      }
-      .getOrElse("")
+      case _ => ""
+    }
+
     source.getPath + ":" + srcLocation
+  }
+
+  private def isLocationInSourceBounds(
+    loc: IdentifiedLocation,
+    source: Source
+  ): Boolean = {
+    loc.end() <= source.getLength
   }
 }
