@@ -18,8 +18,9 @@
     "build": "vite build",
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
-    "test": "vitest run",
-    "test:unit": "vitest",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:debug": "vitest",
     "test:e2e": "npx playwright test",
     "test:e2e:debug": "npx playwright test --ui"
   },
