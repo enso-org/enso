@@ -1962,16 +1962,16 @@ type Table
     ## ALIAS find replace
        GROUP Standard.Base.Calculations
        ICON join
-       Replaces values in `replace_column` using `lookup_table` to specify a
+       Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values.
-       - from_column: the column within `lookup_table` to match against
-         `replace_column` in the base table.
-       - to_column: the column within `lookup_table` to get new values from.
-       - replace_column: the column within the base table to perform the replace
+       - column: the column within the base table to perform the replace
          on.
+       - from_column: the column within `lookup_table` to match against
+         `column` in the base table.
+       - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
          If `True`, the unmatched rows are left unchanged. Any new columns will
@@ -1989,7 +1989,7 @@ type Table
        ? Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
-           specified by `from_column`, `to_column`, or `replace_column`, a
+           specified by `from_column`, `to_column`, or `column`, a
            `Missing_Input_Columns` error is raised.
          - If a single row is matched by multiple entries in the lookup table,
            a `Non_Unique_Key` error is raised.
@@ -2025,32 +2025,32 @@ type Table
              #    2 | 3     | 30
              #    3 | 4     | 40
 
-             result = table.replace lookup_table replace_column='x'
+             result = table.replace lookup_table 'x'
              #      | x  | y | z
              #   ---+----+---+---
              #    0 | 10 | a | e
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @replace_column Widget_Helpers.make_column_name_selector
+    @column Widget_Helpers.make_column_name_selector
     @from_column Widget_Helpers.make_column_name_selector
     @to_column Widget_Helpers.make_column_name_selector
     replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:Table replace_column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        self.select_columns replace_column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
+    replace self lookup_table:Table column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        self.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
             unique = self.column_naming_helper.create_unique_name_strategy
             unique.mark_used (self.column_names)
             unique.mark_used (lookup_table.column_names)
 
             # `merge` will write to the duplicate of the key column.
             duplicate_key_column_name = unique.make_unique "duplicate_key"
-            duplicate_key_column = self.at replace_column . rename duplicate_key_column_name
+            duplicate_key_column = self.at column . rename duplicate_key_column_name
             self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
 
             ## Create a lookup table with just `to_column` and `from_column`,
-               renamed to match the base table's `replace_column` and its
+               renamed to match the base table's `column` and its
                duplicate, respectively.
-            lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename replace_column]
+            lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename column]
 
             merged = self_with_duplicate.merge lookup_table_renamed [duplicate_key_column_name] add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
             result = merged.remove_columns [duplicate_key_column_name]

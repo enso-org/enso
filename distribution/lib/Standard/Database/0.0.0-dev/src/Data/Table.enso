@@ -1423,16 +1423,16 @@ type Table
     ## ALIAS find replace
        GROUP Standard.Base.Calculations
        ICON join
-       Replaces values in `replace_column` using `lookup_table` to specify a
+       Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values.
-       - from_column: the column within `lookup_table` to match against
-         `replace_column` in the base table.
-       - to_column: the column within `lookup_table` to get new values from.
-       - replace_column: the column within the base table to perform the replace
+       - column: the column within the base table to perform the replace
          on.
+       - from_column: the column within `lookup_table` to match against
+         `column` in the base table.
+       - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
          If `True`, the unmatched rows are left unchanged. Any new columns will
@@ -1450,7 +1450,7 @@ type Table
        ? Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
-           specified by `from_column`, `to_column`, or `replace_column`, a
+           specified by `from_column`, `to_column`, or `column`, a
            `Missing_Input_Columns` error is raised.
          - If a single row is matched by multiple entries in the lookup table,
            a `Non_Unique_Key` error is raised.
@@ -1486,7 +1486,7 @@ type Table
              #    2 | 3     | 30
              #    3 | 4     | 40
 
-             result = table.replace lookup_table replace_column='x'
+             result = table.replace lookup_table 'x'
              #      | x  | y | z
              #   ---+----+---+---
              #    0 | 10 | a | e
@@ -1494,8 +1494,8 @@ type Table
              #    2 | 30 | c | g
              #    3 | 40 | d | h
     replace : Table -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:Table replace_column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        _ = [lookup_table, replace_column, from_column, to_column, allow_unmatched_rows, on_problems]
+    replace self lookup_table:Table column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
 
     ## ALIAS join by row position
