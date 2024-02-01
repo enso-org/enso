@@ -4,24 +4,28 @@ import * as React from 'react'
 import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
+import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
-import * as string from '#/utilities/string'
-import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+
+import * as eventModule from '#/utilities/event'
+import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as string from '#/utilities/string'
+import Visibility from '#/utilities/visibility'
 
 // =====================
 // === DirectoryName ===
@@ -34,18 +38,18 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, selected, setSelected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState } = props
   const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DirectoryNameColumn` can only display directory assets.')
+    throw new Error('`DirectoryNameColumn` can only display folders.')
   }
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const doRename = async (newTitle: string) => {
@@ -133,23 +137,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         if (
           eventModule.isSingleClick(event) &&
           ((selected && numberOfSelectedItems === 1) ||
-            shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
+          event.stopPropagation()
           setRowState(object.merger({ isEditingName: true }))
-        } else if (eventModule.isDoubleClick(event)) {
-          if (!rowState.isEditingName) {
-            // This must be processed on the next tick, otherwise it will be overridden
-            // by the default click handler.
-            window.setTimeout(() => {
-              setSelected(false)
-            }, 0)
-            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-          }
         }
       }}
     >
       <SvgMask
         src={TriangleDownIcon}
+        alt={item.children == null ? 'Expand' : 'Collapse'}
         className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
           item.children != null ? '' : '-rotate-90'
         }`}
@@ -160,7 +157,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       />
       <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
       <EditableSpan
+        data-testid="asset-row-name"
         editable={rowState.isEditingName}
+        className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+        }`}
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
@@ -176,9 +177,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
-        }`}
       >
         {asset.title}
       </EditableSpan>

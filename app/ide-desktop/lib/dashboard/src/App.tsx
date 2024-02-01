@@ -41,7 +41,16 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as authServiceModule from '#/authentication/service'
+
+import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import BackendProvider from '#/providers/BackendProvider'
+import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import LoggerProvider from '#/providers/LoggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+import ModalProvider from '#/providers/ModalProvider'
+import SessionProvider from '#/providers/SessionProvider'
+import ShortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
@@ -50,17 +59,13 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
-import LocalStorageProvider from '#/providers/LocalStorageProvider'
-import LoggerProvider from '#/providers/LoggerProvider'
-import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
-import SessionProvider from '#/providers/SessionProvider'
-import ShortcutsProvider from '#/providers/ShortcutsProvider'
-import type * as backend from '#/services/backend'
-import * as localBackend from '#/services/localBackend'
-import * as shortcutsModule from '#/utilities/shortcuts'
+
+import type Backend from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+
+import ShortcutManager, * as shortcutManagerModule from '#/utilities/ShortcutManager'
+
+import * as authServiceModule from '#/authentication/service'
 
 // ======================
 // === getMainPageUrl ===
@@ -145,14 +150,16 @@ function AppRouter(props: AppProps) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
+  const [shortcutManager] = React.useState(() => ShortcutManager.createWithDefaults())
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isTargetEditable =
         event.target instanceof HTMLInputElement ||
         (event.target instanceof HTMLElement && event.target.isContentEditable)
-      const shouldHandleEvent = isTargetEditable ? !shortcutsModule.isTextInputEvent(event) : true
-      if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
+      const shouldHandleEvent = isTargetEditable
+        ? !shortcutManagerModule.isTextInputEvent(event)
+        : true
+      if (shouldHandleEvent && shortcutManager.handleKeyboardEvent(event)) {
         event.preventDefault()
         // This is required to prevent the event from propagating to the event handler
         // that focuses the search input.
@@ -163,7 +170,7 @@ function AppRouter(props: AppProps) {
     return () => {
       document.body.removeEventListener('keydown', onKeyDown)
     }
-  }, [shortcuts])
+  }, [shortcutManager])
   const mainPageUrl = getMainPageUrl()
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
@@ -171,8 +178,8 @@ function AppRouter(props: AppProps) {
   }, [props, /* should never change */ navigate])
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
-  const initialBackend: backend.Backend = isAuthenticationDisabled
-    ? new localBackend.LocalBackend(projectManagerUrl)
+  const initialBackend: Backend = isAuthenticationDisabled
+    ? new LocalBackend(projectManagerUrl)
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
@@ -233,7 +240,9 @@ function AppRouter(props: AppProps) {
     </router.Routes>
   )
   let result = routes
-  result = <ShortcutsProvider shortcuts={shortcuts}>{result}</ShortcutsProvider>
+  result = (
+    <ShortcutManagerProvider shortcutManager={shortcutManager}>{result}</ShortcutManagerProvider>
+  )
   result = <ModalProvider>{result}</ModalProvider>
   result = (
     <AuthProvider

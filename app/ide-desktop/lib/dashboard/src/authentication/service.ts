@@ -7,13 +7,11 @@ import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as cognitoModule from '#/authentication/cognito'
-import * as listen from '#/authentication/listen'
+
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-// =============
-// === Types ===
-// =============
+import * as cognitoModule from '#/authentication/cognito'
+import * as listen from '#/authentication/listen'
 
 // =====================
 // === AmplifyConfig ===

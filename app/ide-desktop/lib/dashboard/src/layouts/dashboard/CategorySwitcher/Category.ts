@@ -7,9 +7,7 @@
 /** The categories available in the category switcher. */
 enum Category {
   recent = 'Recent',
-  drafts = 'Drafts',
   home = 'Home',
-  root = 'Root',
   trash = 'Trash',
 }
 

@@ -45,7 +45,8 @@ abstract class JsonRpcServerTestKit
   }
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   val interface       = "127.0.0.1"
@@ -137,7 +138,7 @@ abstract class JsonRpcServerTestKit
                   .append(")\n")
               }
             }
-            println(sb.toString())
+            //println(sb.toString())
             throw e
         }
       if (debugMessages) println(message)

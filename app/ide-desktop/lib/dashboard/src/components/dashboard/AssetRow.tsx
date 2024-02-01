@@ -3,29 +3,38 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
+import * as columnModule from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
+import * as backendModule from '#/services/Backend'
+
+import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as errorModule from '#/utilities/error'
+import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import Visibility, * as visibilityModule from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
 // === Constants ===
@@ -45,8 +54,8 @@ const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folde
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   key: backendModule.AssetId
-  item: assetTreeNode.AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
+  item: AssetTreeNode
+  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   state: assetsTable.AssetsTableState
   rowState: assetsTable.AssetRowState
   setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -55,13 +64,10 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
   extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
-  keyProp: backendModule.AssetId
-  tableRowRef?: React.RefObject<HTMLTableRowElement>
-  item: assetTreeNode.AssetTreeNode
+  item: AssetTreeNode
   state: assetsTable.AssetsTableState
   hidden: boolean
-  initialRowState: assetsTable.AssetRowState
-  columns: column.AssetColumn[]
+  columns: columnUtils.Column[]
   selected: boolean
   setSelected: (selected: boolean) => void
   isSoleSelectedItem: boolean
@@ -72,9 +78,8 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { keyProp: key, item: rawItem, initialRowState, hidden: hiddenRaw, selected } = props
-  const { isSoleSelectedItem, setSelected, allowContextMenu, onContextMenu, state } = props
-  const { tableRowRef, columns, onClick } = props
+  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
+  const { allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
@@ -88,8 +93,9 @@ export default function AssetRow(props: AssetRowProps) {
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(initialRowState, { setVisibility: setInsertionVisibility })
+    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
+  const key = AssetTreeNode.getKey(item)
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(key)
   const visibility =
@@ -107,7 +113,7 @@ export default function AssetRow(props: AssetRowProps) {
     // re - rendering the parent.
     rawItem.item = asset
   }, [asset, rawItem])
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
@@ -541,11 +547,26 @@ export default function AssetRow(props: AssetRowProps) {
         <>
           {!hidden && (
             <tr
-              ref={tableRowRef}
+              draggable
               tabIndex={-1}
+              className={`h-8 transition duration-300 ease-in-out ${
+                visibilityModule.CLASS_NAME[visibility]
+              } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
+                if (
+                  asset.type === backendModule.AssetType.directory &&
+                  eventModule.isDoubleClick(event) &&
+                  !rowState.isEditingName
+                ) {
+                  // This must be processed on the next tick, otherwise it will be overridden
+                  // by the default click handler.
+                  window.setTimeout(() => {
+                    setSelected(false)
+                  })
+                  doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                }
               }}
               onContextMenu={event => {
                 if (allowContextMenu) {
@@ -569,9 +590,6 @@ export default function AssetRow(props: AssetRowProps) {
                   onContextMenu?.(innerProps, event)
                 }
               }}
-              className={`h-8 transition duration-300 ease-in-out ${
-                visibilityModule.CLASS_NAME[visibility]
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
               onDragStart={event => {
                 if (rowState.isEditingName || !isCloud) {
                   event.preventDefault()
@@ -589,6 +607,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }, DRAG_EXPAND_DELAY_MS)
                 }
                 // Required because `dragover` does not fire on `mouseenter`.
+                props.onDragOver?.(event)
                 onDragOver(event)
               }}
               onDragOver={event => {
@@ -607,7 +626,9 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                clearDragState()
+                if (event.currentTarget === event.target) {
+                  clearDragState()
+                }
                 props.onDragLeave?.(event)
               }}
               onDrop={event => {
@@ -635,9 +656,9 @@ export default function AssetRow(props: AssetRowProps) {
               {columns.map(column => {
                 // This is a React component even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
-                const Render = column.render
+                const Render = columnModule.COLUMN_RENDERER[column]
                 return (
-                  <td key={column.id} className={column.className ?? ''}>
+                  <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                     <Render
                       keyProp={key}
                       item={item}
