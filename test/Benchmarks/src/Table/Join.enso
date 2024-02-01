@@ -153,8 +153,8 @@ create_scenario_antijoin num_rows =
 ## This is a scenario where we join a very large table with a much smaller table 
    to check an optimisation where we only index the smaller of the 2 tables
 create_scenario_large_small_table =
-    xs = (0.up_to 1000000).map _-> Random.integer 0 99
-    ys = (0.up_to 100).to_vector
+    xs = (0.up_to 10000000).map _-> Random.integer 0 999
+    ys = (0.up_to 1000).to_vector
     table1 = Table.new [["key", xs]]
     table2 = Table.new [["key", ys]]
     Scenario.Value table1 table2
@@ -228,12 +228,12 @@ collect_benches = Bench.build builder->
             r = scenario.table2.join scenario.table1 on="key" join_kind=Join_Kind.Left_Exclusive
             assert (r.row_count == 1000)
 
-        if extended_tests then group_builder.specify "Join_Large_Table_to_Small_Table" <|
+        group_builder.specify "Join_Large_Table_to_Small_Table" <|
             scenario = data.large_small_table
             r = scenario.table1.join scenario.table2 on="key"
             assert (r.row_count == scenario.table1.row_count)
 
-        if extended_tests then  group_builder.specify "Join_Small_Table_to_Large_Table" <|
+        group_builder.specify "Join_Small_Table_to_Large_Table" <|
             scenario = data.large_small_table
             r = scenario.table2.join scenario.table1 on="key"
             assert (r.row_count == scenario.table1.row_count)

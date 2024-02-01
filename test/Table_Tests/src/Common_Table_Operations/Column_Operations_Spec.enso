@@ -12,28 +12,175 @@ from Standard.Table.Data.Type.Value_Type import Bits
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
+import Standard.Database.Data.Table.Table as Database_Table
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend spec
+main = run_default_backend add_specs
 
-spec setup =
+type Data
+    Value ~connection
+
+    setup create_connection_fn = Data.Value <|
+        connection = create_connection_fn Nothing
+        connection
+
+    teardown self =
+        self.connection.close
+
+type Arithmetic_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    x self = self.data.at 1
+    y self = self.data.at 2
+
+    setup create_connection_fn table_builder = Arithmetic_Data.Value <|
+        connection = create_connection_fn Nothing
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] connection=connection
+        x = t2.at "x"
+        y = t2.at "y"
+        [connection, x, y]
+
+    teardown self =
+        self.connection.close
+
+type Min_Max_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    a self = self.data.at 1
+    b self = self.data.at 2
+    c self = self.data.at 3
+    t self = self.data.at 4
+
+    setup create_connection_fn table_builder = Min_Max_Data.Value <|
+        connection = create_connection_fn Nothing
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] connection=connection
+        a = t.at "a"
+        b = t.at "b"
+        c = t.at "c"
+        [connection, a, b, c, t]
+
+    teardown self =
+        drop_table self.connection self.t
+        self.connection.close
+
+type Literal_Data
+    Value ~data
+    
+    connection self = self.data.at 0
+    col0 self = self.data.at 1
+    col1 self = self.data.at 2
+    
+    setup create_connection_fn table_builder = Literal_Data.Value <|
+        connection = create_connection_fn Nothing
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+        [connection, col0, col1]
+    
+    teardown self =
+        self.connection.close
+
+type Replace_Data
+    Value ~data
+    
+    connection self = self.data.at 0
+    col self = self.data.at 1
+    patterns self = self.data.at 2
+    replacements self = self.data.at 3
+    
+    setup create_connection_fn table_builder = Replace_Data.Value <|
+        connection = create_connection_fn Nothing
+        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+        col = table.at "x"
+        patterns = table.at "patterns"
+        replacements = table.at "replacements"
+        [connection, col, patterns, replacements]
+    
+    teardown self =
+        self.connection.close
+
+
+type Text_Replace_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    a self = self.data.at 1
+    b self = self.data.at 2
+    c self = self.data.at 3
+    d self = self.data.at 4
+
+    setup create_connection_fn table_builder = Text_Replace_Data.Value <|
+        connection = create_connection_fn Nothing
+        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] connection=connection
+        a = t4.at "A"
+        b = t4.at "B"
+        c = t4.at "C"
+        d = t4.at "D"
+        [connection, a, b, c, d]
+
+    teardown self =
+        self.connection.close
+
+
+type Trim_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    a self = self.data.at 1
+    b self = self.data.at 2
+    c self = self.data.at 3
+
+    setup create_connection_fn table_builder = Trim_Data.Value <|
+        connection = create_connection_fn Nothing
+        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
+        a = table.at "A"
+        b = table.at "B"
+        c = table.at "C"
+
+        [connection, a, b, c]
+
+    teardown self =
+        self.connection.close
+
+
+type Names_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t self = self.data.at 1
+
+    setup create_connection_fn table_builder = Names_Data.Value <|
+        connection = create_connection_fn Nothing
+        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
+        [connection, t]
+
+    teardown self =
+        self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
-    do_op n op =
-        table = table_builder [["x", [n]]]
-        result = table.at "x" |> op
-        result.to_vector.at 0
-    do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+    suite_builder.group prefix+"Rounding numeric tests" group_builder->
+        data = Data.setup create_connection_fn
 
-    Round_Spec.spec prefix do_round
+        do_op n op =
+            table = setup.table_builder [["x", [n]]] connection=data.connection
+            result = table.at "x" |> op
+            result.to_vector.at 0
+
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Round_Spec.add_specs group_builder do_round
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
@@ -51,19 +198,27 @@ spec setup =
             Test.with_clue clue <|
                 callback table
         case setup.test_selection.supports_mixed_columns of
-            False -> callback_with_clue (table_builder table_structure)
+            False -> callback_with_clue (setup.table_builder table_structure)
             True ->
                 all_combinations (Vector.fill table_structure.length [Nothing, Mixed_Type_Object.Value]) . each combination->
                     amended_table_structure = table_structure.zip combination column_definition-> prefix->
                         name = column_definition.first
                         values = column_definition.second
                         [name, [prefix]+values]
-                    mixed_table = table_builder amended_table_structure
+                    mixed_table = setup.table_builder amended_table_structure
                     aligned_table = mixed_table.drop 1
                     callback_with_clue aligned_table
 
-    Test.group prefix+"Boolean Column Operations" <|
-        Test.specify "iif" <|
+    suite_builder.group prefix+"Boolean Column Operations" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
@@ -91,7 +246,7 @@ spec setup =
             t.at "X" . iif 22.0 False . should_fail_with No_Common_Type
             t.at "X" . iif 22 "0" . should_fail_with No_Common_Type
 
-        Test.specify "iif on Columns" <|
+        group_builder.specify "iif on Columns" <|
             with_mixed_columns_if_supported [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]] t1->
                 c1 = t1.at "X" . iif (t1.at "Y") (t1.at "Z")
                 c1.to_vector . should_equal [1, 2.0, Nothing, 4.0]
@@ -124,7 +279,7 @@ spec setup =
                         c2.to_vector . should_equal [10, "<NA>"]
                     False -> c2.should_fail_with No_Common_Type
 
-        Test.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+        group_builder.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 
@@ -150,7 +305,7 @@ spec setup =
             Test.with_clue "g.value_type="+g.value_type.to_display_text+": " <|
                 g.value_type.variable_length.should_be_true
 
-        Test.specify "should allow to compute &&, || and not" <|
+        group_builder.specify "should allow to compute &&, || and not" <|
             with_mixed_columns_if_supported [["X", [True, False, True]], ["Y", [True, False, False]]] t->
                 x = t.at "X"
                 y = t.at "Y"
@@ -162,13 +317,13 @@ spec setup =
                 (x && y).to_vector . should_equal [True, False, False]
                 (x || y.not).to_vector . should_equal [True, True, True]
 
-        Test.specify "should handle nulls correctly in not" <|
+        group_builder.specify "should handle nulls correctly in not" <|
             t = table_builder [["A", [True, False, Nothing]]]
             a = t.at "A"
             a_not = a.not
             a_not.to_vector . should_equal [False, True, Nothing]
 
-        Test.specify "should handle nulls correctly in &&" <|
+        group_builder.specify "should handle nulls correctly in &&" <|
             t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
             a = t.at "A"
             (a && True).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
@@ -184,7 +339,7 @@ spec setup =
             (a && b).to_vector . should_equal [True, False, Nothing, False, False, False, Nothing, False, Nothing]
             (a_not && b).to_vector . should_equal [False, False, False, True, False, Nothing, Nothing, False, Nothing]
 
-        Test.specify "should handle nulls correctly in ||" <|
+        group_builder.specify "should handle nulls correctly in ||" <|
             t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
             a = t.at "A"
             (a || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
@@ -200,7 +355,7 @@ spec setup =
             (a || b).to_vector . should_equal [True, True, True, True, False, Nothing, True, Nothing, Nothing]
             (a_not || b).to_vector . should_equal [True, False, Nothing, True, True, True, True, Nothing, Nothing]
 
-        Test.specify "should check types" <|
+        group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [True, False, Nothing]]]
 
             ((t.at "X") && (t.at "Z")) . should_fail_with Invalid_Value_Type
@@ -214,8 +369,16 @@ spec setup =
             ((t.at "X") . not) . should_fail_with Invalid_Value_Type
             ((t.at "Y") . iif 10 20) . should_fail_with Invalid_Value_Type
 
-    Test.group prefix+"Column Operations - Equality & Null Handling" <|
-        Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
+    suite_builder.group prefix+"Column Operations - Equality & Null Handling" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
@@ -224,7 +387,7 @@ spec setup =
                 (x == 4).to_vector . should_equal [False, True, False, Nothing]
                 (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
-        Test.specify "should allow to check which values are null"
+        group_builder.specify "should allow to check which values are null" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]]] t->
                 x = t.at "x"
                 x.is_nothing.to_vector . should_equal [False, False, False, True]
@@ -232,7 +395,7 @@ spec setup =
                 x.is_present.to_vector . should_equal [True, True, True, False]
                 (x + Nothing).is_present.to_vector . should_equal [False, False, False, False]
 
-        Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
+        group_builder.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
             b = [2, 4, Nothing, 5]
             r = [True, False, True, False]
@@ -243,7 +406,7 @@ spec setup =
             c.to_vector . should_equal r
             c.value_type.should_equal Value_Type.Boolean
 
-        Test.specify "equals_ignore_case for ASCII strings" <|
+        group_builder.specify "equals_ignore_case for ASCII strings" <|
             x = ["a", "B", "c", "DEF"]
             y = ["aa", "b", "c", "dEf"]
             r = [False, True, True, True]
@@ -256,7 +419,7 @@ spec setup =
                 c.value_type.should_equal Value_Type.Boolean
                 (t.at "X") . equals_ignore_case "Def" . to_vector . should_equal [False, False, False, True]
 
-        Test.specify "equals_ignore_case should check types" <|
+        group_builder.specify "equals_ignore_case should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
 
             r1 = (t.at "X") . equals_ignore_case (t.at "Y") . to_vector
@@ -268,7 +431,7 @@ spec setup =
             r3 = (t.at "Y") . equals_ignore_case 42 . to_vector
             r3.should_fail_with Invalid_Value_Type
 
-        Test.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending="TODO" <|
+        group_builder.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending="TODO" <|
             a = ["Z", "a", "b", Nothing, Nothing]
             b = ["Z", "A", "C", Nothing, "d"]
             r_sensitive   = [True, False, False, True, False]
@@ -281,7 +444,7 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
-        Test.specify "should report a warning if checking equality on floating point columns" <|
+        group_builder.specify "should report a warning if checking equality on floating point columns" <|
             t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
 
             r1 = (t.at "X") == (t.at "Y")
@@ -292,42 +455,58 @@ spec setup =
             r2.to_vector . should_equal [False, True, False]
             Problems.expect_warning Floating_Point_Equality r2
 
-    Test.group prefix+"Column.fill_nothing/empty" <|
-        Test.specify "should allow to fill_nothing from a value" <|
+    suite_builder.group prefix+"Column.fill_nothing/empty" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to fill_nothing from a value" <|
             col = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]]] . at "col"
             default = 300
             r = col.fill_nothing default
             r.to_vector . should_equal [0, 300, 4, 5, 300, 300]
             r.name . should_equal "col"
 
-        Test.specify "should allow to fill_nothing from another column" <|
+        group_builder.specify "should allow to fill_nothing from another column" <|
             t = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
             r = t.at "col" . fill_nothing (t.at "def")
             r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
             r.name . should_equal "col"
 
-        Test.specify "should allow to fill_empty from a value" <|
+        group_builder.specify "should allow to fill_empty from a value" <|
             col = table_builder [["col", ["0", Nothing, "4", "5", Nothing, Nothing]]] . at "col"
             default = "default"
             r = col.fill_empty default
             r.to_vector . should_equal ["0", "default", "4", "5", "default", "default"]
             r.name . should_equal "col"
 
-        Test.specify "should allow to fill_empty from another column" <|
+        group_builder.specify "should allow to fill_empty from another column" <|
             t = table_builder [["col", ["0", Nothing, "4", "5", Nothing, Nothing]], ["def", ["1", "2", "10", "20", Nothing, "30"]]]
             r = t.at "col" . fill_nothing (t.at "def")
             r.to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             r.name . should_equal "col"
 
-    Test.group prefix+"Table.fill_nothing/empty" <|
-        Test.specify "should allow to fill_nothing from a value" <|
+    suite_builder.group prefix+"Table.fill_nothing/empty" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to fill_nothing from a value" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]]]
             default = 1000
             actual = t.fill_nothing ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
         
-        Test.specify "should allow to fill_nothing from larger string and expands type to fit" <|
+        group_builder.specify "should allow to fill_nothing from larger string and expands type to fit" <|
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             actual = t.fill_nothing ["col0"] "ABCDE"
             actual.at "col0" . to_vector . should_equal ["0", "ABCDE", "4", "5", "ABCDE", "ABCDE"]
@@ -335,13 +514,13 @@ spec setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
-        Test.specify "should allow to fill_nothing from an empty string" <|
+        group_builder.specify "should allow to fill_nothing from an empty string" <|
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
             actual = t.fill_nothing ["col0", "col1"] ""
             actual.at "col0" . to_vector . should_equal ["0", "", "4", "5", "", ""]
             actual.at "col1" . to_vector . should_equal ["", "200", "", "400", "500", ""]
 
-        Test.specify "should allow to fill_nothing a fixed width from an empty string" <|
+        group_builder.specify "should allow to fill_nothing a fixed width from an empty string" <|
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] ""
             actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]  
@@ -349,7 +528,7 @@ spec setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
         
-        Test.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
             t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             fillBlank = t.fill_nothing ["col0"] ""
             fillOneSpace = t.fill_nothing ["col0"] " "
@@ -372,7 +551,7 @@ spec setup =
                 True -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "", ""]
                 False -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "  ", " "]
                 
-        Test.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
+        group_builder.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
             actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]  
@@ -380,26 +559,26 @@ spec setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
-        Test.specify "should allow to fill_nothing from other columns" <|
+        group_builder.specify "should allow to fill_nothing from other columns" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
             actual = t.fill_nothing ["col0", "col1"] (t.at "def")
             actual.at "col0" . to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
             actual.at "col1" . to_vector . should_equal [1, 200, 10, 400, 500, 30]
 
-        Test.specify "should allow to fill_empty from a value" <|
+        group_builder.specify "should allow to fill_empty from a value" <|
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
             default = "1000"
             actual = t.fill_empty ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
             actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
 
-        Test.specify "should allow to fill_empty from other columns" <|
+        group_builder.specify "should allow to fill_empty from other columns" <|
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]], ["def", ["1", "2", "10", "20", Nothing, "30"]]]
             actual = t.fill_empty ["col0", "col1"] (t.at "def")
             actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
 
-        Test.specify "fill_nothing should leave other columns alone" <|
+        group_builder.specify "fill_nothing should leave other columns alone" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
             default = 1000
             actual = t.fill_nothing ["col0", "col1"] default
@@ -408,7 +587,7 @@ spec setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
-        Test.specify "fill_nothing should work with integer column selectors" <|
+        group_builder.specify "fill_nothing should work with integer column selectors" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
             default = 1000
             actual = t.fill_nothing [0, 2] default
@@ -417,14 +596,22 @@ spec setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
-    Test.group prefix+"Table.text_replace" <|
-        Test.specify "should allow to replace values in a table" <|
+    suite_builder.group prefix+"Table.text_replace" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to replace values in a table" <|
             with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
                 actual = t.text_replace ["col0", "col1"] "ab" "xy"
                 actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
                 actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
 
-        Test.specify "should allow to replace values in a table with a regex" <|
+        group_builder.specify "should allow to replace values in a table with a regex" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
             actual = t.text_replace ["col0", "col1"] "[bdi]".to_regex "xy"
             case actual.is_error && setup.is_database of
@@ -434,7 +621,7 @@ spec setup =
                     actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
                     actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
 
-        Test.specify "should allow to replace values in a table with a column" <|
+        group_builder.specify "should allow to replace values in a table with a column" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
             actual = t.text_replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
             case actual.is_error && setup.is_database of
@@ -445,7 +632,7 @@ spec setup =
                     actual.at "col1" . to_vector . should_equal ["naxyc", "nyxef", "aszzf"]
                     actual.at "col2" . to_vector . should_equal ["xy", "yx", "zz"]
 
-        Test.specify "should allow to use Column_Ref in replace" <|
+        group_builder.specify "should allow to use Column_Ref in replace" <|
             t = table_builder [["txt", ["abc", "def", "ghi"]], ["term", ["b", "d", "i"]], ["new", ["X", "Y", "Z"]]]
             t1 = t.text_replace "txt" (Column_Ref.Name "term") (Column_Ref.Name "new")
             case t1.is_error && setup.is_database of
@@ -454,8 +641,16 @@ spec setup =
                 False ->
                     t1.at "txt" . to_vector . should_equal ["aXc", "Yef", "ghZ"]
 
-    Test.group prefix+"Column Comparisons" <|
-        Test.specify "should allow to compare numbers" <|
+    suite_builder.group prefix+"Column Comparisons" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow to compare numbers" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
@@ -476,7 +671,7 @@ spec setup =
                     op y 23 . to_vector . should_succeed
                     op x 1.5 . to_vector . should_succeed
 
-        Test.specify "should allow to compare texts" <|
+        group_builder.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
             t = t0.cast "X" (Value_Type.Char size=1 variable_length=False)
 
@@ -485,7 +680,7 @@ spec setup =
                 op (t.at "X") (t.at "Y") . to_vector . should_succeed
                 op (t.at "X") "abc" . to_vector . should_succeed
 
-        Test.specify "should allow to compare booleans" <|
+        group_builder.specify "should allow to compare booleans" <|
             t = table_builder [["X", [True, False, True]], ["Y", [False, True, True]]]
 
             ((t.at "X") < (t.at "Y")).to_vector . should_equal [False, True, False]
@@ -498,7 +693,7 @@ spec setup =
             ((t.at "X") <= True).to_vector . should_equal [True, True, True]
             ((t.at "X") > True).to_vector . should_equal [False, False, False]
 
-        Test.specify "should report error if incomparable types are compared" <|
+        group_builder.specify "should report error if incomparable types are compared" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
 
             [(<), (<=), (>), (>=)].each op->
@@ -513,7 +708,7 @@ spec setup =
                 op (t.at "Z") (t.at "X") . should_fail_with Invalid_Value_Type
 
         if setup.test_selection.supports_mixed_columns then
-            Test.specify "should allow comparing Mixed columns" <|
+            group_builder.specify "should allow comparing Mixed columns" <|
                 t1 = table_builder [["X", ["a", 23]], ["Y", ["b", 1]]]
                 ((t1.at "X") == (t1.at "Y")) . to_vector . should_equal [False, False]
                 ((t1.at "X") <= (t1.at "Y")) . to_vector . should_equal [True, False]
@@ -553,7 +748,7 @@ spec setup =
                 ((t7.at "X") <= (t7.at "Y")) . to_vector . should_fail_with Incomparable_Values
                 ((t7.at "Y") > (t7.at "X")) . to_vector . should_fail_with Incomparable_Values
 
-        Test.specify "Between should return null if any of the values are null" pending="TODO" <|
+        group_builder.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
             b = [0, 5, 7,       Nothing, 7,       Nothing]
             c = [9, 8, 7,       7,       Nothing, Nothing]
@@ -562,21 +757,26 @@ spec setup =
             t = table_builder [["A", a], ["B", b], ["C", c]]
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
 
-    Test.group prefix+"Arithmetic Column Operations" <|
-        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]]
-        x = t2.at "x"
-        y = t2.at "y"
-        Test.specify "should allow basic operations" <|
-            (x + y).to_vector . should_equal [3, 7.25, 10, Nothing]
-            (x - y).to_vector . should_equal [-1.0, 0.75, 0.0, Nothing]
-            (x * y).to_vector . should_equal [2.0, 13.0, 25.0, Nothing]
+    suite_builder.group prefix+"Arithmetic Column Operations" group_builder->
+        data = Arithmetic_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "should allow combining a column with a scalar" <|
-            (x + 100).to_vector . should_equal [101, 104, 105, Nothing]
-            (x * 10).to_vector . should_equal [10, 40, 50, Nothing]
-            (x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "should work with mixed types" <|
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should allow basic operations" <|
+            (data.x + data.y).to_vector . should_equal [3, 7.25, 10, Nothing]
+            (data.x - data.y).to_vector . should_equal [-1.0, 0.75, 0.0, Nothing]
+            (data.x * data.y).to_vector . should_equal [2.0, 13.0, 25.0, Nothing]
+
+        group_builder.specify "should allow combining a column with a scalar" <|
+            (data.x + 100).to_vector . should_equal [101, 104, 105, Nothing]
+            (data.x * 10).to_vector . should_equal [10, 40, 50, Nothing]
+            (data.x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
+
+        group_builder.specify "should work with mixed types" <|
             with_mixed_columns_if_supported [["X", [100, 25]], ["Y", [2, 5]]] t->
                 x = t.at "X"
                 y = t.at "Y"
@@ -587,25 +787,25 @@ spec setup =
                 (x % y).to_vector . should_equal [0, 0]
                 (x ^ y).to_vector . should_equal [10000, 9765625]
 
-        Test.specify "should correctly infer the types" <|
-            (x + x).value_type . is_integer . should_be_true
-            (x + y).value_type . is_floating_point . should_be_true
-            (x + 2).value_type . is_integer . should_be_true
-            (x + 1.5).value_type . is_floating_point . should_be_true
+        group_builder.specify "should correctly infer the types" <|
+            (data.x + data.x).value_type . is_integer . should_be_true
+            (data.x + data.y).value_type . is_floating_point . should_be_true
+            (data.x + 2).value_type . is_integer . should_be_true
+            (data.x + 1.5).value_type . is_floating_point . should_be_true
 
-            (x - x).value_type . is_integer . should_be_true
-            (x - y).value_type . is_floating_point . should_be_true
-            (x - 2).value_type . is_integer . should_be_true
-            (x - 1.5).value_type . is_floating_point . should_be_true
+            (data.x - data.x).value_type . is_integer . should_be_true
+            (data.x - data.y).value_type . is_floating_point . should_be_true
+            (data.x - 2).value_type . is_integer . should_be_true
+            (data.x - 1.5).value_type . is_floating_point . should_be_true
 
-            (x * x).value_type . is_integer . should_be_true
-            (x * y).value_type . is_floating_point . should_be_true
-            (x * 2).value_type . is_integer . should_be_true
-            (x * 1.5).value_type . is_floating_point . should_be_true
+            (data.x * data.x).value_type . is_integer . should_be_true
+            (data.x * data.y).value_type . is_floating_point . should_be_true
+            (data.x * 2).value_type . is_integer . should_be_true
+            (data.x * 1.5).value_type . is_floating_point . should_be_true
 
-            (x ^ x).value_type . is_numeric . should_be_true
+            (data.x ^ data.x).value_type . is_numeric . should_be_true
 
-        Test.specify "should check types" <|
+        group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
             x = t.at "X"
             y = t.at "Y"
@@ -642,32 +842,32 @@ spec setup =
             True ->
                 t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
 
-                Test.specify "should support is_nan" <|
+                group_builder.specify "should support is_nan" <|
                     t.at "X" . is_nan . to_vector . should_equal [False, False, False, False, True, Nothing]
                     t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
 
-                Test.specify "should support is_infinite" <|
+                group_builder.specify "should support is_infinite" <|
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
             False ->
-                Test.specify "should report that is_nan is not supported" <|
+                group_builder.specify "should report that is_nan is not supported" <|
                     t = table_builder [["X", [1.5]]]
                     t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
 
-                Test.specify "should support is_infinite" <|
+                group_builder.specify "should support is_infinite" <|
                     t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
 
-        Test.specify "should support is_blank" <|
+        group_builder.specify "should support is_blank" <|
             t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
             t.at "X" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, False, True, True]
             t.at "Y" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, True, False, False]
 
-        Test.specify "division should be aligned with the Enso arithmetic" <|
+        group_builder.specify "division should be aligned with the Enso arithmetic" <|
             a = [1, 5, 10, 100]
             b = [2, 2, 4, 5]
             r = [0.5, 2.5, 2.5, 20.0]
@@ -703,7 +903,7 @@ spec setup =
             r6.value_type . is_floating_point . should_be_true
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
-        Test.specify "should allow division by 0 and report warnings" pending=db_pending <|
+        group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
             t = table_builder [["a", [3, 1, 0]], ["b", [2, 0, 0]], ["c", [1.5, 1.5, 0.0]], ["d", [1.5, 0.0, 0.0]]]
             a = t.at "a"
             b = t.at "b"
@@ -748,7 +948,7 @@ spec setup =
             r10.to_vector.to_text . should_equal "[NaN, NaN, NaN]"
             has_div_warnings "[c] % 0" [0, 1, 2] r10
 
-        Test.specify "should limit the number of rows listed in the message" pending=db_pending <|
+        group_builder.specify "should limit the number of rows listed in the message" pending=db_pending <|
             t1 = table_builder [["a", 0.up_to 200 . to_vector]]
             zero = t1.at "a" - t1.at "a"
             div = t1.at "a" / zero
@@ -758,50 +958,58 @@ spec setup =
             warning.should_be_a Arithmetic_Error
             warning.message . should_equal "Division by zero (at rows [0, 1, 2, 3, 4, 5, 6, 7, 8, ...])."
 
-        Test.specify "should return null if one of arguments is missing" <|
+        group_builder.specify "should return null if one of arguments is missing" <|
             nulls = [Nothing, Nothing, Nothing, Nothing]
-            (x + Nothing).to_vector . should_equal nulls
-            (x - Nothing).to_vector . should_equal nulls
-            (x * Nothing).to_vector . should_equal nulls
-            (x / Nothing).to_vector . should_equal nulls
+            (data.x + Nothing).to_vector . should_equal nulls
+            (data.x - Nothing).to_vector . should_equal nulls
+            (data.x * Nothing).to_vector . should_equal nulls
+            (data.x / Nothing).to_vector . should_equal nulls
 
-    Test.group prefix+"Rounding-like operations" <|
-        Test.specify "should name a rounding column correctly" <|
+    suite_builder.group prefix+"Rounding-like operations" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should name a rounding column correctly" <|
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
 
         test_floatlike type =
-            Test.specify "should allow round on a "+type.to_text+" column" <|
+            group_builder.specify "should allow round on a "+type.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast type . round
                 result.to_vector.should_equal [0, 1, 3, 4, 0, -1, -3, -4]
                 result.name . should_equal "round([x])"
 
-            Test.specify "should allow round on a float column (to >0 decimal places)" <|
+            group_builder.specify "should allow round on a float column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.name . should_equal "round([x])"
 
-            Test.specify "should allow round on a float column (to <0 decimal places)" <|
+            group_builder.specify "should allow round on a float column (to <0 decimal places)" <|
                 table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
                 result = table.at "x" . cast type . round -1
                 result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
                 result.name . should_equal "round([x])"
 
-            Test.specify "should allow truncate on a "+type.to_text+" column" <|
+            group_builder.specify "should allow truncate on a "+type.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast type . truncate
                 result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
                 result.name . should_equal "truncate([x])"
 
-            Test.specify "should allow ceil on a "+type.to_text+" column" <|
+            group_builder.specify "should allow ceil on a "+type.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast type . ceil
                 result.to_vector.should_equal [1, 1, 4, 4, 0, 0, -3, -3]
                 result.name . should_equal "ceil([x])"
 
-            Test.specify "should allow floor on a "+type.to_text+" column" <|
+            group_builder.specify "should allow floor on a "+type.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast type . floor
                 result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
@@ -811,36 +1019,36 @@ spec setup =
         if setup.test_selection.supports_decimal_type then
             test_floatlike Value_Type.Decimal
 
-        Test.specify "should allow round on an int column" <|
+        group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
             result = table.at "x" . round -1
             result.to_vector.should_equal [0, 10, 30, 40, 0, -10, -30, -40]
             result.name . should_equal "round([x])"
 
-        Test.specify "should allow truncate on an int column" <|
+        group_builder.specify "should allow truncate on an int column" <|
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             result = table.at "x" . truncate
             result.to_vector.should_equal [0, 3, -3, 1, -2]
             result.name . should_equal "truncate([x])"
 
-        Test.specify "should allow ceil on an int column" <|
+        group_builder.specify "should allow ceil on an int column" <|
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             result = table.at "x" . ceil
             result.to_vector.should_equal [0, 3, -3, 1, -2]
             result.name . should_equal "ceil([x])"
 
-        Test.specify "should allow floor on an int column" <|
+        group_builder.specify "should allow floor on an int column" <|
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             result = table.at "x" . floor
             result.to_vector.should_equal [0, 3, -3, 1, -2]
             result.name . should_equal "floor([x])"
 
-        Test.specify "should fail on decimal_places out of range" <|
+        group_builder.specify "should fail on decimal_places out of range" <|
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         if setup.test_selection.supports_decimal_type then
-            Test.specify "should return decimals when rounding decimals" <|
+            group_builder.specify "should return decimals when rounding decimals" <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
                 decimal_col = c.cast Value_Type.Decimal
@@ -849,16 +1057,16 @@ spec setup =
                 [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
                     op decimal_col2 . to_vector . should_equal [i1 + i1*i1]
 
-        Test.specify "should allow Nothing/NULL" <|
+        group_builder.specify "should allow Nothing/NULL" <|
             table = table_builder [["x", [Nothing, 0.51, 0.59, 3.51, Nothing, 3.59, -0.51, -0.59, -3.51, -3.59]]]
             result = table.at "x" . round 1
             result.to_vector.should_equal [Nothing, 0.5, 0.6, 3.5, Nothing, 3.6, -0.5, -0.6, -3.5, -3.6]
 
-        Test.specify "should fail on bad column type" <|
+        group_builder.specify "should fail on bad column type" <|
             table = table_builder [["x", ["a", "b"]]]
             table.at "x" . round . should_fail_with Invalid_Value_Type
 
-        Test.specify "should work with mixed type columns" <|
+        group_builder.specify "should work with mixed type columns" <|
             with_mixed_columns_if_supported [["X", [112, 210, 222]]] t->
                 x = t.at "X"
                 x.floor . to_vector . should_equal [112, 210, 222]
@@ -874,8 +1082,16 @@ spec setup =
                 x.round . to_vector . should_equal [1, -2, 4]
                 x.truncate . to_vector . should_equal [1, -2, 3]
 
-    Test.group prefix+"Date truncation" pending=pending_datetime <|
-        Test.specify "should be able to truncate a column of Date_Times" <|
+    suite_builder.group prefix+"Date truncation" pending=pending_datetime group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should be able to truncate a column of Date_Times" <|
             dates = [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             table = table_builder [["foo", dates]]
             table.at "foo" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
@@ -884,8 +1100,16 @@ spec setup =
             truncated . value_type . should_equal Value_Type.Date
             truncated.name . should_equal "truncate([foo])"
 
-    Test.group prefix+"Text Column Operations" <|
-        Test.specify "should handle operations like starts_with, ends_with, contains" <|
+    suite_builder.group prefix+"Text Column Operations" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should handle operations like starts_with, ends_with, contains" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
                 s1 = t3.at "s1"
                 s2 = t3.at "s2"
@@ -911,7 +1135,7 @@ spec setup =
                 s1.like (s2+"%r") . to_vector . should_equal [True, False, False, False, Nothing]
                 s1.like "%r%" . to_vector . should_equal [True, True, False, False, Nothing]
 
-        Test.specify "should handle operation text_length" <|
+        group_builder.specify "should handle operation text_length" <|
             with_mixed_columns_if_supported [["strings", ["foobar", "", Nothing, "👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 res = col.text_length
@@ -921,12 +1145,12 @@ spec setup =
                     False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
                     True -> res . to_vector . should_equal [6, 0, Nothing, 3, 4, 286]  # Storage Length
 
-        Test.specify "text_length should error on non-string columns" <|
+        group_builder.specify "text_length should error on non-string columns" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             col.text_length . should_fail_with Invalid_Value_Type
         
-        Test.specify "should handle operation text_left and text_right with length 1" <|
+        group_builder.specify "should handle operation text_left and text_right with length 1" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
                 resLeft = col.text_left 1
@@ -942,7 +1166,7 @@ spec setup =
                     False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
                     True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
         
-        Test.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
+        group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left 3
@@ -957,13 +1181,13 @@ spec setup =
                     False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
                     True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
         
-        Test.specify "text_left and text_right should error on non-string columns" <|
+        group_builder.specify "text_left and text_right should error on non-string columns" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             col.text_left 6 . should_fail_with Invalid_Value_Type
             col.text_right 6 . should_fail_with Invalid_Value_Type
 
-        Test.specify "text_left and text_right should error on non integer parameters" <|
+        group_builder.specify "text_left and text_right should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             col.text_left 3.14 . should_fail_with Invalid_Value_Type
@@ -971,7 +1195,7 @@ spec setup =
             col.text_left "7" . should_fail_with Invalid_Value_Type
             col.text_left "7" . should_fail_with Invalid_Value_Type
 
-        Test.specify "text_left and text_right should return empty on zero argument" <|
+        group_builder.specify "text_left and text_right should return empty on zero argument" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left 0
@@ -981,7 +1205,7 @@ spec setup =
                 resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
                 resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
 
-        Test.specify "text_left and text_right should return empty on negative arguments" <|
+        group_builder.specify "text_left and text_right should return empty on negative arguments" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left -3
@@ -991,7 +1215,7 @@ spec setup =
                 resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
                 resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
 
-        Test.specify "should handle operations like is_empty, is_blank, fill_empty" <|
+        group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
                 s.is_empty . to_vector . should_equal [True, False, False, True, False]
@@ -999,7 +1223,7 @@ spec setup =
                 s.fill_empty "<>" . to_vector . should_equal ["<>", " ", "  ", "<>", "foo"]
                 s.fill_empty (t.at "letters") . to_vector . should_equal ["a", " ", "  ", "d", "foo"]
 
-        Test.specify "should check types" <|
+        group_builder.specify "should check types" <|
             t4 = table_builder [["str", ['a', 'b']], ["int", [1, 2]]]
             str = t4.at "str"
             int = t4.at "int"
@@ -1025,7 +1249,7 @@ spec setup =
 
             int.is_empty . should_fail_with Invalid_Value_Type
 
-        Test.specify "should return right types" <|
+        group_builder.specify "should return right types" <|
             t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
             s1 = t3.at "s1"
             s2 = t3.at "s2"
@@ -1046,7 +1270,7 @@ spec setup =
             s1.fill_empty "<>" . value_type . is_text . should_be_true
             s1.fill_empty s2 . value_type . is_text . should_be_true
 
-        Test.specify "should support text concatenation with the + operator" <|
+        group_builder.specify "should support text concatenation with the + operator" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
                 s1 = t3.at "s1"
                 s2 = t3.at "s2"
@@ -1062,61 +1286,62 @@ spec setup =
                 c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
                 c3.value_type.is_text . should_be_true
 
-    Test.group prefix+"Min/Max Operations" <|
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]]
-        a = t.at "a"
-        b = t.at "b"
-        c = t.at "c"
-        Test.specify "should allow one or more args and return the correct type" <|
-            c1 = a.min 2
+    suite_builder.group prefix+"Min/Max Operations" group_builder->
+        data = Min_Max_Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should allow one or more args and return the correct type" <|
+            c1 = data.a.min 2
             c1.to_vector . should_equal [1, 2, 2]
             c1.value_type.is_integer . should_be_true
 
-            c2 = a.max 2
+            c2 = data.a.max 2
             c2.to_vector . should_equal [2, 2, 3]
             c2.value_type.is_integer . should_be_true
 
-            c3 = a.min [2.5, 2]
+            c3 = data.a.min [2.5, 2]
             c3.to_vector . should_equal [1, 2, 2]
             Test.with_clue "c3.value_type="+c3.value_type.to_display_text <|
                 c3.value_type.is_floating_point . should_be_true
 
-            c4 = a.max [2.5, 2]
+            c4 = data.a.max [2.5, 2]
             c4.to_vector . should_equal [2.5, 2.5, 3]
             c4.value_type.is_floating_point . should_be_true
 
-            c5 = a.min b
+            c5 = data.a.min data.b
             c5.to_vector . should_equal [1, 2, 3]
             Test.with_clue "c5.value_type="+c5.value_type.to_display_text+": " <|
                 c5.value_type.is_floating_point . should_be_true
 
-            c6 = a.max b
+            c6 = data.a.max data.b
             c6.to_vector . should_equal [4.5, 5.5, 6.5]
             c6.value_type.is_floating_point . should_be_true
 
-            c7 = a.min [a, b, 1]
+            c7 = data.a.min [data.a, data.b, 1]
             c7.to_vector . should_equal [1, 1, 1]
             c7.value_type.is_floating_point . should_be_true
 
-            c8 = a.max [a, b, 1]
+            c8 = data.a.max [data.a, data.b, 1]
             c8.to_vector . should_equal [4.5, 5.5, 6.5]
             c8.value_type.is_floating_point . should_be_true
 
-            c9 = (t.at "d").min False
+            c9 = (data.t.at "d").min False
             c9.to_vector . should_equal [False, False, False]
             c9.value_type.is_boolean . should_be_true
 
-            c10 = (t.at "d").max False
+            c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
             c10.value_type.is_boolean . should_be_true
 
-        Test.specify "should check types" <|
+        group_builder.specify "should check types" <|
             [(.min), (.max)].each op->
-                op a c . should_fail_with Invalid_Value_Type
-                op a [1, 2, c] . should_fail_with Invalid_Value_Type
-                op a [1, Nothing, c, Nothing] . should_fail_with Invalid_Value_Type
-                op c 1 . should_fail_with Invalid_Value_Type
-                op a True . should_fail_with Invalid_Value_Type
+                op data.a data.c . should_fail_with Invalid_Value_Type
+                op data.a [1, 2, data.c] . should_fail_with Invalid_Value_Type
+                op data.a [1, Nothing, data.c, Nothing] . should_fail_with Invalid_Value_Type
+                op data.c 1 . should_fail_with Invalid_Value_Type
+                op data.a True . should_fail_with Invalid_Value_Type
 
     do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
         case setup.is_database of
@@ -1134,84 +1359,108 @@ spec setup =
                 result.value_type . should_equal Value_Type.Char
                 result . to_vector . should_equal expected
 
-    Test.group prefix+"replace: literal text pattern and replacement" <|
-        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+    suite_builder.group prefix+"replace: literal text pattern and replacement" group_builder->
+        data = Literal_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            do_replace col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
-            do_replace col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            do_replace col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
-            do_replace col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+            do_replace data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+            do_replace data.col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
 
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
-            do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+            do_replace data.col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
+            do_replace data.col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
-            do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
+            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
 
-    Test.group prefix+"replace: literal regex pattern and replacement" <|
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+        group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+            do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
+            do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
-            do_replace col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
+    suite_builder.group prefix+"replace: literal regex pattern and replacement" group_builder->
+        data = Literal_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-            do_replace col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-            do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
-        Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-            do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
+            do_replace data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
-        Test.specify "can properly escape complex regexes" <|
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
+            do_replace data.col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+
+        group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=false"
+            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+
+        group_builder.specify "case_sensitivity=insensitive use_regex=True only_first=true"
+            do_replace data.col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+
+        group_builder.specify "can properly escape complex regexes" <|
             regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
             col = table_builder [["x", [regex]]] . at "x"
             do_replace col regex "asdf" ["asdf"]
 
-    Test.group prefix+"replace: pattern and replacement columns" <|
-        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
-        col = table.at "x"
-        patterns = table.at "patterns"
-        replacements = table.at "replacements"
+    suite_builder.group prefix+"replace: pattern and replacement columns" group_builder->
+        data = Replace_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            do_replace col patterns replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            do_replace col patterns replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+            do_replace data.col data.patterns data.replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+            do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
 
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+            do_replace data.col data.patterns data.replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+        group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+            do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
 
-    Test.group prefix+"replace: empty table and nothings" <|
-        Test.specify "should work on empty tables" <|
+        group_builder.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+            do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+    suite_builder.group prefix+"replace: empty table and nothings" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should work on empty tables" <|
             col = table_builder [["x", ['hello Hello']]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
             do_replace col 'hello' 'bye' expected=[]
 
-        Test.specify "should work on Nothing text column" <|
+        group_builder.specify "should work on Nothing text column" <|
             col = table_builder [["x", ['hello Hello', Nothing]]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
             do_replace col 'hello' 'bye' expected=[Nothing]
 
-    if setup.is_database then Test.group prefix+"replace: DB specific edge-cases" <|
-        col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
-        Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
+    if setup.is_database then suite_builder.group prefix+"replace: DB specific edge-cases" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
+            col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
             locale = Locale.new "en" "GB" "UTF-8"
             col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-        Test.specify "column name" <|
+        group_builder.specify "column name" <|
             table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
             col = table.at "x"
             patterns = table.at "patterns"
@@ -1225,29 +1474,32 @@ spec setup =
             if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
                 col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
 
-    Test.group prefix+"Column Operations - Text Replace (in-memory only)" <|
+    suite_builder.group prefix+"Column Operations - Text Replace (in-memory only)" group_builder->
+
         if setup.is_database.not then
-            t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]]
-            a = t4.at "A"
-            b = t4.at "B"
-            c = t4.at "C"
-            d = t4.at "D"
+            data = Text_Replace_Data.setup create_connection_fn setup.table_builder
 
-            Test.specify "should allow simple replacing" <|
-                a.replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
-                a.replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
-                a.replace b "#" . to_vector . should_equal ["#lpha", "Bravo", "Ch#rlie", "Delta", "Ech#", "Foxtrot"]
-                a.replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtrot"]
-                a.replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
-                a.replace b "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtr#t"]
-                a.replace b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
+            group_builder.teardown <|
+                data.teardown
 
-            Test.specify "should allow regex based replacing" <|
-                a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+            table_builder cols =
+                setup.table_builder cols connection=data.connection
 
-            Test.specify "should handle unicode" <|
+            group_builder.specify "should allow simple replacing" <|
+                data.a.replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                data.a.replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
+                data.a.replace data.b "#" . to_vector . should_equal ["#lpha", "Bravo", "Ch#rlie", "Delta", "Ech#", "Foxtrot"]
+                data.a.replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtrot"]
+                data.a.replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                data.a.replace data.b "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtr#t"]
+                data.a.replace data.b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
+
+            group_builder.specify "should allow regex based replacing" <|
+                data.a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                data.a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                data.a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+
+            group_builder.specify "should handle unicode" <|
                 table = table_builder [["x", ["śćxx", "ąąasdfąą", "aﬃb"]], ["patterns", ["ć", "ąą", "ﬃ"]], ["replacements", ["abc", "def", "ghi"]]]
                 col = table.at "x"
                 patterns = table.at "patterns"
@@ -1255,7 +1507,7 @@ spec setup =
 
                 col.replace patterns replacements . to_vector . should_equal ["śabcxx", "defasdfdef", "aghib"]
 
-            Test.specify "should take pattern and replacement string columns" <|
+            group_builder.specify "should take pattern and replacement string columns" <|
                 t = table_builder [["x", ["hello", "what", "yes"]], ["patterns", ["ell", "wh", "es"]], ["replacements", ["xyz", "qwer", "asdf"]]]
                 col = t.at "x"
                 patterns = t.at "patterns"
@@ -1263,18 +1515,18 @@ spec setup =
 
                 col.replace patterns replacements . to_vector . should_equal ["hxyzo", "qwerat", "yasdf"]
 
-            Test.specify "should only allow replace on Text columns" <|
-                c.replace "a" "#" . should_fail_with Invalid_Value_Type
-                a.replace 1 "#" . should_fail_with Invalid_Value_Type
-                a.replace c "#" . should_fail_with Invalid_Value_Type
-                a.replace "a" 1 . should_fail_with Invalid_Value_Type
-                a.replace "a" c . should_fail_with Invalid_Value_Type
+            group_builder.specify "should only allow replace on Text columns" <|
+                data.c.replace "a" "#" . should_fail_with Invalid_Value_Type
+                data.a.replace 1 "#" . should_fail_with Invalid_Value_Type
+                data.a.replace data.c "#" . should_fail_with Invalid_Value_Type
+                data.a.replace "a" 1 . should_fail_with Invalid_Value_Type
+                data.a.replace "a" data.c . should_fail_with Invalid_Value_Type
 
-            Test.specify "should not replace if Empty term" <|
-                a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                a.replace d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+            group_builder.specify "should not replace if Empty term" <|
+                data.a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                data.a.replace data.d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 
-            Test.specify "should infer correct return type" <|
+            group_builder.specify "should infer correct return type" <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
 
                 c1 = c.replace "a" "---"
@@ -1284,7 +1536,7 @@ spec setup =
                     vt1.should_be_a (Value_Type.Char ...)
                     vt1.variable_length.should_be_true
 
-            Test.specify "should infer correct return type (2)" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            group_builder.specify "should infer correct return type (2)" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
                 c2 = c.cast (Value_Type.Char size=2 variable_length=False)
                 c3 = c2.replace "a" "---"
@@ -1295,35 +1547,43 @@ spec setup =
                     vt3.should_be_a (Value_Type.Char ...)
                     vt3.variable_length.should_be_true
 
-    Test.group prefix+"Column Operations - Text Trim" <|
-        t5 = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
-        a = t5.at "A"
-        b = t5.at "B"
-        c = t5.at "C"
+    suite_builder.group prefix+"Column Operations - Text Trim" group_builder->
+        data = Trim_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "should trim whitespace by default" <|
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should trim whitespace by default" <|
             with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
                 a = t.at "A"
                 a.trim . to_vector . should_equal ["A", "A", "xxxAxx"]
                 a.trim Location.Start . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
                 a.trim Location.End . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
 
-       Test.specify "should trim custom characters" <|
-            a.trim what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "A"]
-            a.trim what='x' Location.Start . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
-            a.trim what='x' Location.End . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
-            a.trim what=' ' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
-            a.trim what=' \t' . to_vector . should_equal ["A", '\n\rA\r\n', "xxxAxx"]
-            a.trim what=' \r' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
-            a.trim what=b . to_vector . should_equal ["A", '\n\rA\r\n', "A"]
+       group_builder.specify "should trim custom characters" <|
+            data.a.trim what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "A"]
+            data.a.trim what='x' Location.Start . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
+            data.a.trim what='x' Location.End . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
+            data.a.trim what=' ' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
+            data.a.trim what=' \t' . to_vector . should_equal ["A", '\n\rA\r\n', "xxxAxx"]
+            data.a.trim what=' \r' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
+            data.a.trim what=data.b . to_vector . should_equal ["A", '\n\rA\r\n', "A"]
 
-        Test.specify "should only allow trim on Text columns" <|
-            c.trim what="a" . should_fail_with Invalid_Value_Type
-            a.trim what=1 . should_fail_with Invalid_Value_Type
-            a.trim what=c . should_fail_with Invalid_Value_Type
+        group_builder.specify "should only allow trim on Text columns" <|
+            data.c.trim what="a" . should_fail_with Invalid_Value_Type
+            data.a.trim what=1 . should_fail_with Invalid_Value_Type
+            data.a.trim what=data.c . should_fail_with Invalid_Value_Type
 
-    Test.group prefix+"Other Column Operations" <|
-        Test.specify "is_in" <|
+    suite_builder.group prefix+"Other Column Operations" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "is_in" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]]]
             x = t.at "X"
             y = t.at "Y"
@@ -1336,73 +1596,88 @@ spec setup =
             c2.to_vector . should_equal [False, False, True, True]
             c2.value_type.should_equal Value_Type.Boolean
 
-    Test.group prefix+"Colum Operations - Names" <|
-        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
-        Test.specify "arithmetic" <|
-            ((t.at "a") + 42) . name . should_equal "[a] + 42"
-            ((t.at "a") - (t.at "c")) . name . should_equal "[a] - [c]"
-            ((t.at "a") * (t.at "c")) . name . should_equal "[a] * [c]"
-            ((t.at "a") / (t.at "c")) . name . should_equal "[a] / [c]"
-            ((t.at "a") % (t.at "c")) . name . should_equal "[a] % [c]"
-            ((t.at "a") ^ (t.at "c")) . name . should_equal "[a] ^ [c]"
-            ((t.at "b") + 'xyz') . name . should_equal "[b] + 'xyz'"
-            ((t.at "b") + '\0') . name . should_equal "[b] + '\0'"
+    suite_builder.group prefix+"Colum Operations - Names" group_builder->
+        data = Names_Data.setup create_connection_fn setup.table_builder
 
-        Test.specify "comparison" <|
-            ((t.at "b") == '\0\0') . name . should_equal "[b] == '\0\0'"
-            ((t.at "b") != '\0\0') . name . should_equal "[b] != '\0\0'"
-            ((t.at "a") < 0) . name . should_equal "[a] < 0"
-            ((t.at "a") <= 0) . name . should_equal "[a] <= 0"
-            ((t.at "a") > 0) . name . should_equal "[a] > 0"
-            ((t.at "b") >= 'X') . name . should_equal "[b] >= 'X'"
-            ((t.at "a").between (t.at "c") 42) . name . should_equal "[a] between [c] and 42"
+        group_builder.teardown <|
+            data.teardown
 
-        Test.specify "logical" <|
-            ((t.at "d") || False) . name . should_equal "[d] || False"
-            ((t.at "d") && True) . name . should_equal "[d] && True"
-            ((t.at "d").not) . name . should_equal "not [d]"
-            ((t.at "d").iif 10 20) . name . should_equal "if [d] then 10 else 20"
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
-        Test.specify "text" <|
-            t.at "b" . equals_ignore_case "abc" . name . should_equal "equals_ignore_case([b], 'abc')"
-            t.at "b" . starts_with "abc" . name . should_equal "starts_with([b], 'abc')"
-            t.at "b" . contains "abc" . name . should_equal "contains([b], 'abc')"
-            t.at "b" . like "%abc%" . name . should_equal "[b] like '%abc%'"
-            t.at "b" . ends_with "abc" . name . should_equal "ends_with([b], 'abc')"
-            t.at "b" . is_empty . name . should_equal "[b] is empty"
-            t.at "b" . fill_empty "<empty>" . name . should_equal "b"
+        group_builder.specify "arithmetic" <|
+            ((data.t.at "a") + 42) . name . should_equal "[a] + 42"
+            ((data.t.at "a") - (data.t.at "c")) . name . should_equal "[a] - [c]"
+            ((data.t.at "a") * (data.t.at "c")) . name . should_equal "[a] * [c]"
+            ((data.t.at "a") / (data.t.at "c")) . name . should_equal "[a] / [c]"
+            ((data.t.at "a") % (data.t.at "c")) . name . should_equal "[a] % [c]"
+            ((data.t.at "a") ^ (data.t.at "c")) . name . should_equal "[a] ^ [c]"
+            ((data.t.at "b") + 'xyz') . name . should_equal "[b] + 'xyz'"
+            ((data.t.at "b") + '\0') . name . should_equal "[b] + '\0'"
 
-        Test.specify "nulls" <|
-            t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
-            t.at "a" . is_nothing . name . should_equal "[a] is Nothing"
-            t.at "a" . is_present . name . should_equal "is_present([a])"
-            t.at "a" . is_blank . name . should_equal "is_blank([a])"
-            t.at "a" . fill_nothing 100 . name . should_equal "a"
+        group_builder.specify "comparison" <|
+            ((data.t.at "b") == '\0\0') . name . should_equal "[b] == '\0\0'"
+            ((data.t.at "b") != '\0\0') . name . should_equal "[b] != '\0\0'"
+            ((data.t.at "a") < 0) . name . should_equal "[a] < 0"
+            ((data.t.at "a") <= 0) . name . should_equal "[a] <= 0"
+            ((data.t.at "a") > 0) . name . should_equal "[a] > 0"
+            ((data.t.at "b") >= 'X') . name . should_equal "[b] >= 'X'"
+            ((data.t.at "a").between (data.t.at "c") 42) . name . should_equal "[a] between [c] and 42"
 
-        Test.specify "misc"
-            t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
-            t.at "a" . max 33 . name . should_equal "max([a], 33)"
-            t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+        group_builder.specify "logical" <|
+            ((data.t.at "d") || False) . name . should_equal "[d] || False"
+            ((data.t.at "d") && True) . name . should_equal "[d] && True"
+            ((data.t.at "d").not) . name . should_equal "not [d]"
+            ((data.t.at "d").iif 10 20) . name . should_equal "if [d] then 10 else 20"
 
-        Test.specify "composed operations" <|
+        group_builder.specify "text" <|
+            data.t.at "b" . equals_ignore_case "abc" . name . should_equal "equals_ignore_case([b], 'abc')"
+            data.t.at "b" . starts_with "abc" . name . should_equal "starts_with([b], 'abc')"
+            data.t.at "b" . contains "abc" . name . should_equal "contains([b], 'abc')"
+            data.t.at "b" . like "%abc%" . name . should_equal "[b] like '%abc%'"
+            data.t.at "b" . ends_with "abc" . name . should_equal "ends_with([b], 'abc')"
+            data.t.at "b" . is_empty . name . should_equal "[b] is empty"
+            data.t.at "b" . fill_empty "<empty>" . name . should_equal "b"
+
+        group_builder.specify "nulls" <|
+            data.t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
+            data.t.at "a" . is_nothing . name . should_equal "[a] is Nothing"
+            data.t.at "a" . is_present . name . should_equal "is_present([a])"
+            data.t.at "a" . is_blank . name . should_equal "is_blank([a])"
+            data.t.at "a" . fill_nothing 100 . name . should_equal "a"
+
+        group_builder.specify "misc"
+            data.t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
+            data.t.at "a" . max 33 . name . should_equal "max([a], 33)"
+            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+
+        group_builder.specify "composed operations" <|
             # These look a bit weird, but they are consistent with the column name escaping scheme.
-            ((t.at "a" + 42) * (t.at "c")) . name . should_equal "[[a] + 42] * [c]"
-            ((t.at "a" + 42) * (t.at "c") - 33) . name . should_equal "[[[a] + 42] * [c]] - 33"
+            ((data.t.at "a" + 42) * (data.t.at "c")) . name . should_equal "[[a] + 42] * [c]"
+            ((data.t.at "a" + 42) * (data.t.at "c") - 33) . name . should_equal "[[[a] + 42] * [c]] - 33"
 
-        Test.specify "sort" <|
-            t.at "a" . sort . name . should_equal "a"
+        group_builder.specify "sort" <|
+            data.t.at "a" . sort . name . should_equal "a"
 
         if setup.is_database.not then
-            Test.specify "parse" <|
+            group_builder.specify "parse" <|
                 t2 = table_builder [["X", ["1", "2", "3"]]]
                 t2.at "X" . parse . name . should_equal "X"
 
-            Test.specify "map and zip" <|
-                t.at "a" . map (x -> x + 1) . name . should_equal "a"
-                t.at "a" . zip (t.at "b") [_, _] . name . should_equal "[a] x [b]"
+            group_builder.specify "map and zip" <|
+                data.t.at "a" . map (x -> x + 1) . name . should_equal "a"
+                data.t.at "a" . zip (data.t.at "b") [_, _] . name . should_equal "[a] x [b]"
 
-    Test.group prefix+"Column.rename" <|
-        Test.specify "should not allow illegal names" <|
+    suite_builder.group prefix+"Column.rename" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should not allow illegal names" <|
             t = table_builder [["a", [1, 2, 3]]]
             c = t.at "a"
 
@@ -1411,38 +1686,54 @@ spec setup =
             c.rename 'a\0b' . should_fail_with Invalid_Column_Names
             c.rename '\0' . should_fail_with Invalid_Column_Names
 
-    Test.group prefix+"Column.const" <|
-        Test.specify "Should allow the creation of constant columns" <|
+    suite_builder.group prefix+"Column.const" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const True . to_vector . should_equal [True, True, True]
             t.at "x" . const 12 . to_vector . should_equal [12, 12, 12]
             t.at "x" . const 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
             t.at "x" . const "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
 
-        Test.specify "Should create the correct column name" <|
+        group_builder.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const 12 . name . should_equal "12"
 
-        Test.specify "Should not allow the creation of a constant column of columns" <|
+        group_builder.specify "Should not allow the creation of a constant column of columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
-    Test.group prefix+"Table.make_constant_column" <|
-        Test.specify "Should allow the creation of constant columns" <|
+    suite_builder.group prefix+"Table.make_constant_column" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.make_constant_column True . to_vector . should_equal [True, True, True]
             t.make_constant_column 12 . to_vector . should_equal [12, 12, 12]
             t.make_constant_column 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
             t.make_constant_column "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
 
-        Test.specify "Should allow the creation of constant columns on a table with no rows" <|
+        group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
             constant = empty.make_constant_column 42
             empty2 = empty.set constant
             empty2.column_names.should_equal ['x', '42']
 
-        Test.specify "Should create a column of the correct type on a table with no rows" <|
+        group_builder.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
             [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
@@ -1453,7 +1744,7 @@ spec setup =
                 pred ((empty.set c).at c.name . value_type) . should_be_true
 
         nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
-        Test.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
+        group_builder.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
             c = empty.make_constant_column Nothing
@@ -1474,3 +1765,10 @@ all_combinations variables =
                 go (current_choices + [x])
     go []
     result.to_vector
+
+
+drop_table connection table =
+    case table of
+        _ : Database_Table ->
+            connection.drop_table table.name
+        _ -> Nothing

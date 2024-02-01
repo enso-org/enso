@@ -1,14 +1,17 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test_New import all
 
 import project.Helpers.Sorted_List_Index_Spec
 import project.Helpers.Unique_Naming_Strategy_Spec
 import project.Helpers.Value_Type_Spec
 
-spec =
-    Unique_Naming_Strategy_Spec.spec
-    Sorted_List_Index_Spec.spec
-    Value_Type_Spec.spec
+add_specs suite_builder =
+    Unique_Naming_Strategy_Spec.add_specs suite_builder
+    Sorted_List_Index_Spec.add_specs suite_builder
+    Value_Type_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

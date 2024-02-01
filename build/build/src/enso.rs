@@ -4,6 +4,7 @@ use crate::paths::Paths;
 use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
+use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -121,6 +122,7 @@ impl BuiltEnso {
         ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
 
         ENSO_ENABLE_ASSERTIONS.set("true")?;
+        ENSO_TEST_ANSI_COLORS.set("true")?;
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {

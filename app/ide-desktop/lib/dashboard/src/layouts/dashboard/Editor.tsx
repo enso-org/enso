@@ -2,7 +2,9 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendModule from '#/services/backend'
+
+import * as backendModule from '#/services/Backend'
+
 import * as load from '#/utilities/load'
 
 // =================
@@ -47,10 +49,12 @@ export default function Editor(props: EditorProps) {
     if (ideElement != null) {
       if (hidden) {
         ideElement.style.top = '-100vh'
-        ideElement.style.display = 'fixed'
+        ideElement.style.position = 'fixed'
+        ideElement.style.visibility = 'hidden'
       } else {
         ideElement.style.top = ''
-        ideElement.style.display = 'absolute'
+        ideElement.style.position = 'absolute'
+        ideElement.style.visibility = ''
       }
     }
     const ide2Element = document.getElementById(IDE2_ELEMENT_ID)

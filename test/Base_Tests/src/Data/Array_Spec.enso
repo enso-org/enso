@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 Array.method self = 0
 
@@ -12,48 +12,48 @@ Array.method self = 0
 make_enso_array vector =
     vector.to_array
 
-test_arrays array_from_vector =
-    Test.specify "should allow accessing elements" <|
+test_arrays group_builder array_from_vector =
+    group_builder.specify "should allow accessing elements" <|
         arr = array_from_vector [1, 2, 3]
         arr.at 0 . should_equal 1
         arr.at 2 . should_equal 3
         arr.at -1 . should_equal 3
 
-    Test.specify "should panic on out of bounds access" <|
+    group_builder.specify "should panic on out of bounds access" <|
         arr = array_from_vector [1, 2, 3]
         (arr.at -4) . should_fail_with Index_Out_Of_Bounds
         (arr.at 3) . should_fail_with Index_Out_Of_Bounds
 
-spec =
-    Test.group "Enso Arrays" <|
-        test_arrays make_enso_array
+add_specs suite_builder =
+    suite_builder.group "Enso Arrays" group_builder->
+        test_arrays group_builder make_enso_array
 
-        Test.specify "should allow for functional dispatch on a method defined in this module" <|
+        group_builder.specify "should allow for functional dispatch on a method defined in this module" <|
             arr = make_enso_array [1, 2, 3]
             arr.method . should_equal 0
 
-        Test.specify "should handle ==" <|
+        group_builder.specify "should handle ==" <|
             (make_enso_array [1,2,3]).should_equal (make_enso_array [1,2,3])
             (make_enso_array [1]).should_not_equal (make_enso_array [2])
 
-        Test.specify "should not sort in place" <|
+        group_builder.specify "should not sort in place" <|
             arr = make_enso_array [3, 1, 2]
             new_arr = arr.sort
             arr . should_equal [3, 1, 2]
             new_arr . should_equal [1, 2, 3]
 
-    Test.group "Compare functionality with Vector" <|
-        Test.specify "compare methods" <|
+    suite_builder.group "Compare functionality with Vector" group_builder->
+        group_builder.specify "compare methods" <|
             vector_methods = Meta.meta Vector . methods . sort
             array_methods = Meta.meta Array . methods . sort
             vector_methods . should_equal array_methods
 
-    Test.group "ArrayOverBuffer" <|
+    suite_builder.group "ArrayOverBuffer" group_builder->
         location_pending = case Platform.os of
             Platform.OS.Windows -> "This test is disabled on Windows."
             _ -> Nothing
 
-        Test.specify "should behave like an Array" pending=location_pending <|
+        group_builder.specify "should behave like an Array" pending=location_pending <|
             array_over_buffer = (File.new (enso_project.data / "sample.txt") . read_last_bytes 10).to_array
 
             case array_over_buffer of
@@ -66,4 +66,8 @@ spec =
             sorted.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
 
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

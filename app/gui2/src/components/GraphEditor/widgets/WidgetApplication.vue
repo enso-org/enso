@@ -19,7 +19,10 @@ const appClass = computed(() => {
 })
 
 const operatorStyle = computed(() => {
-  if (application.value.appTree instanceof Ast.OprApp) {
+  if (
+    application.value.appTree instanceof Ast.OprApp ||
+    application.value.appTree instanceof Ast.PropertyAccess
+  ) {
     const [_lhs, opr, rhs] = application.value.appTree.concreteChildren()
     return {
       '--whitespace-pre': `${JSON.stringify(opr?.whitespace ?? '')}`,

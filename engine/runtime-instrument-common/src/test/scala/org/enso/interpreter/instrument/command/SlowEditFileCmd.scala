@@ -5,7 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.ExecutionContext
 
-class SlowEditFileCmd(request: Api.EditFileNotification, counter: Int)
+class SlowEditFileCmd(request: Api.EditFileNotification, delay: Boolean)
     extends EditFileCmd(request) {
 
   override def executeSynchronously(implicit
@@ -13,7 +13,7 @@ class SlowEditFileCmd(request: Api.EditFileNotification, counter: Int)
     ec: ExecutionContext
   ): Unit = {
     if (
-      ctx.executionService.getContext.isRandomDelayedCommandExecution && counter % 2 == 0
+      ctx.executionService.getContext.isRandomDelayedCommandExecution && delay
     ) {
       try {
         Thread.sleep(2000)

@@ -1,6 +1,5 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
-import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
+import { Ast, RawAst } from '@/util/ast'
 import assert from 'assert'
 import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
@@ -10,10 +9,9 @@ import { expect, test } from 'vitest'
  * @param x sequential value, e.g. 15
  * @returns fake uuid, e.g. 00000000-0000-0000-0000-000000000015
  */
-function id(x: number): AstId & ExternalId {
+function eid(x: number): ExternalId {
   const xStr = `${x}`
-  return ('00000000-0000-0000-0000-000000000000'.slice(0, -xStr.length) + xStr) as AstId &
-    ExternalId
+  return ('00000000-0000-0000-0000-000000000000'.slice(0, -xStr.length) + xStr) as ExternalId
 }
 
 test('Reading graph from definition', () => {
@@ -23,26 +21,31 @@ test('Reading graph from definition', () => {
     node3 = node2 + 1`
 
   const idMap = IdMap.Mock()
-  idMap.insertKnownId([0, 8], id(1)) // function
-  idMap.insertKnownId([9, 10], id(2)) // a
-  idMap.insertKnownId([17, 22], id(3)) // node1
-  idMap.insertKnownId([25, 30], id(4)) // a + 4
-  idMap.insertKnownId([25, 26], id(5)) // a
-  idMap.insertKnownId([29, 30], id(6)) // 4
-  idMap.insertKnownId([35, 40], id(7)) // node2
-  idMap.insertKnownId([43, 52], id(8)) // node1 + 4
-  idMap.insertKnownId([43, 48], id(9)) // node1
-  idMap.insertKnownId([51, 52], id(10)) // 4
-  idMap.insertKnownId([57, 62], id(11)) // node3
-  idMap.insertKnownId([65, 74], id(12)) // node2 + 1
+  idMap.insertKnownId([0, 8], eid(1)) // function
+  idMap.insertKnownId([9, 10], eid(2)) // a
+  idMap.insertKnownId([17, 22], eid(3)) // node1
+  idMap.insertKnownId([25, 30], eid(4)) // a + 4
+  idMap.insertKnownId([25, 26], eid(5)) // a
+  idMap.insertKnownId([29, 30], eid(6)) // 4
+  idMap.insertKnownId([35, 40], eid(7)) // node2
+  idMap.insertKnownId([43, 52], eid(8)) // node1 + 4
+  idMap.insertKnownId([43, 48], eid(9)) // node1
+  idMap.insertKnownId([51, 52], eid(10)) // 4
+  idMap.insertKnownId([57, 62], eid(11)) // node3
+  idMap.insertKnownId([65, 74], eid(12)) // node2 + 1
 
   const db = GraphDb.Mock()
-  const ast = Ast.parseTransitional(code, idMap)
-  assert(ast instanceof Ast.BodyBlock)
+  const { root: ast, toRaw, getSpan } = Ast.parseExtended(code, idMap)
   const expressions = Array.from(ast.statements())
   const func = expressions[0]
   assert(func instanceof Ast.Function)
-  db.readFunctionAst(func, (_) => ({ x: 0.0, y: 0.0, vis: null }))
+  const rawFunc = toRaw.get(func.id)
+  assert(rawFunc?.type === RawAst.Tree.Type.Function)
+  db.readFunctionAst(func, rawFunc, code, (_) => ({ x: 0.0, y: 0.0, vis: null }), getSpan)
+
+  const idFromExternal = new Map()
+  ast.visitRecursiveAst((ast) => idFromExternal.set(ast.externalId, ast.id))
+  const id = (x: number) => idFromExternal.get(eid(x))!
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([id(4), id(8), id(12)])
   expect(db.getExpressionNodeId(id(4))).toBe(id(4))

@@ -2,52 +2,56 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Time_Error.Time_Error
-import Standard.Test.Extensions
+
 import Standard.Base.Data.Json.Invalid_JSON
 
 import Standard.Base.Data.Numbers.Number_Parse_Error
-from Standard.Test import Test, Test_Suite
+from Standard.Test_New import all
 
-spec =
-    Test.group "parse" <|
-        Test.specify "Float" <|
+add_specs suite_builder =
+    suite_builder.group "parse" group_builder->
+        group_builder.specify "Float" <|
             "32.5".parse_float . should_equal <| Float.parse "32.5"
             l = Locale.new "cs"
             "32,5".parse_float l . should_equal <| Float.parse "32,5" l
             "abc".parse_float . should_fail_with Number_Parse_Error
 
-        Test.specify "Integer" <|
+        group_builder.specify "Integer" <|
             "12343456".parse_integer . should_equal <| Integer.parse "12343456"
             "ABC123".parse_integer 16 . should_equal <| Integer.parse "ABC123" 16
             "abc".parse_integer . should_fail_with Number_Parse_Error
 
-        Test.specify "Json" <|
+        group_builder.specify "Json" <|
             "[null, null, true, false]".parse_json  . should_equal <| Json.parse "[null, null, true, false]"
             "[[".parse_json . should_fail_with Invalid_JSON
 
-        Test.specify "Date" <|
+        group_builder.specify "Date" <|
             "1999-01-01".parse_date . should_equal <| Date.new 1999 1 1
             "1999 1 1".parse_date "yyyy M d" . should_equal <| Date.new 1999 1 1
             "1999-01-01".parse_date "yyyy M d" . should_fail_with Time_Error
             "13 Jan 2023".parse_date "d MMM yyyy" . should_equal <| Date.new 2023 1 13
             "13 January 2023".parse_date "d MMMM yyyy" . should_equal <| Date.new 2023 1 13
 
-        Test.specify "Date_Time" <|
+        group_builder.specify "Date_Time" <|
             "2020-10-01T04:11:12-04:00".parse_date_time . should_equal <| Date_Time.parse "2020-10-01T04:11:12-04:00"
             "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss" . should_equal <| Date_Time.parse  "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
             "asdf".parse_date_time . should_fail_with Time_Error
 
-        Test.specify "Time_Of_Day" <|
+        group_builder.specify "Time_Of_Day" <|
             "15:05:30".parse_time_of_day . should_equal <| Time_Of_Day.parse "15:05:30"
             "4:30AM".parse_time_of_day "h:mma" . should_equal <| Time_Of_Day.parse "4:30AM" "h:mma"
             "half twelve".parse_time_of_day . should_fail_with Time_Error
 
-        Test.specify "Time_Zone" <|
+        group_builder.specify "Time_Zone" <|
             "CET".parse_time_zone . should_equal <| Time_Zone.parse "CET"
             "foo".parse_time_zone . should_fail_with Time_Error
 
-        Test.specify "URI" <|
+        group_builder.specify "URI" <|
             "http://example.com".to_uri . should_equal <| URI.parse "http://example.com"
             ":::".to_uri . should_fail_with Syntax_Error
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

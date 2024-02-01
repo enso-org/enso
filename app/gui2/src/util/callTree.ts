@@ -161,8 +161,6 @@ export class ArgumentApplication {
   ) {}
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
-    // Access infixes are not real infix calls.
-    if (isAccessOperator(interpreted.operator)) return interpreted.appTree
     const { suggestion, widgetCfg } = callInfo
 
     const kind = ApplicationKind.Infix
@@ -385,11 +383,7 @@ const unknownArgInfoNamed = (name: string) => ({
 })
 
 export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
-  if (app instanceof Ast.PropertyAccess) return app.lhs ?? undefined
-}
-
-function isAccessOperator(opr: Ast.Token | undefined): boolean {
-  return opr != null && opr.code() === '.'
+  if (app instanceof Ast.PropertyAccess) return app.lhs
 }
 
 export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')

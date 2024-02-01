@@ -4,17 +4,21 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as github from '#/utilities/github'
-import * as shortcuts from '#/utilities/shortcuts'
+
+import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
+
+import * as github from '#/utilities/github'
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 // ================
 // === UserMenu ===
@@ -22,6 +26,8 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+  /** If `true`, disables `data-testid` because it will not be visible. */
+  hidden?: boolean
   setPage: (page: pageSwitcher.Page) => void
   supportsLocalBackend: boolean
   onSignOut: () => void
@@ -29,7 +35,7 @@ export interface UserMenuProps {
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { setPage, supportsLocalBackend, onSignOut } = props
+  const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { accessToken, organization } = authProvider.useNonPartialUserSession()
@@ -44,9 +50,11 @@ export default function UserMenu(props: UserMenuProps) {
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
   return (
-    <Modal className="absolute overflow-hidden bg-dim w-full h-full">
+    <Modal hidden={hidden} className="absolute overflow-hidden bg-dim w-full h-full">
       <div
-        data-testid="user-menu"
+        // The name comes from a third-party API and cannot be changed.
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-2 py-2.25"
         onClick={event => {
           event.stopPropagation()
@@ -63,7 +71,7 @@ export default function UserMenu(props: UserMenuProps) {
             <div className="flex flex-col">
               {canChangePassword && (
                 <MenuEntry
-                  action={shortcuts.KeyboardAction.changeYourPassword}
+                  action={shortcutManager.KeyboardAction.changeYourPassword}
                   paddingClassName="p-1"
                   doAction={() => {
                     setModal(<ChangePasswordModal />)
@@ -72,7 +80,7 @@ export default function UserMenu(props: UserMenuProps) {
               )}
               {!supportsLocalBackend && (
                 <MenuEntry
-                  action={shortcuts.KeyboardAction.downloadApp}
+                  action={shortcutManager.KeyboardAction.downloadApp}
                   paddingClassName="p-1"
                   doAction={async () => {
                     unsetModal()
@@ -86,7 +94,7 @@ export default function UserMenu(props: UserMenuProps) {
                 />
               )}
               <MenuEntry
-                action={shortcuts.KeyboardAction.settings}
+                action={shortcutManager.KeyboardAction.settings}
                 paddingClassName="p-1"
                 doAction={() => {
                   unsetModal()
@@ -94,7 +102,7 @@ export default function UserMenu(props: UserMenuProps) {
                 }}
               />
               <MenuEntry
-                action={shortcuts.KeyboardAction.signOut}
+                action={shortcutManager.KeyboardAction.signOut}
                 paddingClassName="p-1"
                 doAction={() => {
                   onSignOut()
@@ -113,7 +121,7 @@ export default function UserMenu(props: UserMenuProps) {
             </div>
             <div className="flex flex-col">
               <MenuEntry
-                action={shortcuts.KeyboardAction.signIn}
+                action={shortcutManager.KeyboardAction.signIn}
                 paddingClassName="p-1"
                 doAction={() => {
                   navigate(appUtils.LOGIN_PATH)

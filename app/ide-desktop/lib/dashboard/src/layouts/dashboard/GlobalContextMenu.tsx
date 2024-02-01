@@ -1,18 +1,22 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import type * as assetListEventModule from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
-import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcuts from '#/utilities/shortcuts'
+
+import type * as assetListEventModule from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import MenuEntry from '#/components/MenuEntry'
+
+import * as backendModule from '#/services/Backend'
+
+import * as shortcutManager from '#/utilities/ShortcutManager'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -64,8 +68,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         hidden={hidden}
         action={
           backend.type === backendModule.BackendType.local
-            ? shortcuts.KeyboardAction.uploadProjects
-            : shortcuts.KeyboardAction.uploadFiles
+            ? shortcutManager.KeyboardAction.uploadProjects
+            : shortcutManager.KeyboardAction.uploadFiles
         }
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
@@ -94,7 +98,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newProject}
+          action={shortcutManager.KeyboardAction.newProject}
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -111,7 +115,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newFolder}
+          action={shortcutManager.KeyboardAction.newFolder}
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -125,7 +129,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newSecret}
+          action={shortcutManager.KeyboardAction.newSecret}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -148,7 +152,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newDataLink}
+          action={shortcutManager.KeyboardAction.newDataLink}
           doAction={() => {
             setModal(
               <UpsertDataLinkModal
@@ -169,7 +173,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && directoryKey == null && hasCopyData && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.paste}
+          action={shortcutManager.KeyboardAction.paste}
           doAction={() => {
             unsetModal()
             doPaste(rootDirectoryId, rootDirectoryId)

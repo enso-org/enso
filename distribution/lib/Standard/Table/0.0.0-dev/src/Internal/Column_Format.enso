@@ -12,7 +12,6 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.time.temporal.UnsupportedTemporalTypeException
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.operations.OrderBuilder
 
 ## PRIVATE
    Create a formatter for the specified `Value_Type`.

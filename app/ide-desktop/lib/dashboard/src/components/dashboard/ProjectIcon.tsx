@@ -7,22 +7,26 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as remoteBackend from '#/services/remoteBackend'
-import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as object from '#/utilities/object'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+import * as remoteBackend from '#/services/RemoteBackend'
+
+import * as errorModule from '#/utilities/error'
+import * as localStorageModule from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===

@@ -7,10 +7,11 @@ import FolderIcon from 'enso-assets/folder.svg'
 import KeyIcon from 'enso-assets/key.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as backend from '#/services/backend'
-import * as fileIcon from '#/utilities/fileIcon'
-
 import SvgMask from '#/components/SvgMask'
+
+import * as backend from '#/services/Backend'
+
+import * as fileIcon from '#/utilities/fileIcon'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {

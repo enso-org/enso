@@ -3,14 +3,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.time.format.DateTimeFormatter
 
-spec =
-    Test.group "Parsing formats" <|
-        Test.specify "should throw informative error for replacements of Java patterns in Simple format" <|
+add_specs suite_builder =
+    suite_builder.group "Parsing formats" group_builder->
+        group_builder.specify "should throw informative error for replacements of Java patterns in Simple format" <|
             r1 = Date_Time_Formatter.from "d LLL yyyy"
             r1.should_fail_with Date_Time_Format_Parse_Error
             r1.catch.to_display_text . should_contain "use `MMM`"
@@ -27,7 +27,7 @@ spec =
             r4.should_fail_with Date_Time_Format_Parse_Error
             r4.catch.to_display_text . should_contain "at most 4"
 
-        Test.specify "should report format parse failures" <|
+        group_builder.specify "should report format parse failures" <|
             Date_Time_Formatter.from "yyyy[" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "yyyy{12}" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "yy{baz}" . should_fail_with Date_Time_Format_Parse_Error
@@ -37,10 +37,10 @@ spec =
             Date_Time_Formatter.from "[]]" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "'" . should_fail_with Date_Time_Format_Parse_Error
 
-        Test.specify "should gracefully handle Java pattern errors" <|
+        group_builder.specify "should gracefully handle Java pattern errors" <|
             Date_Time_Formatter.from_java "}}{{,.,..} INVALID PATTERN FORMAT" . should_fail_with Illegal_Argument
 
-        Test.specify "should warn about likely M/m mistakes" <|
+        group_builder.specify "should warn about likely M/m mistakes" <|
             f1 = Date_Time_Formatter.from "yyyy-mm-dd"
             w1 = Problems.expect_only_warning Suspicious_Date_Time_Format f1
             w1.to_display_text . should_contain "Did you mean 'M'"
@@ -69,23 +69,23 @@ spec =
             w4 = Problems.expect_only_warning Suspicious_Date_Time_Format f4
             w4.to_display_text . should_contain "Did you mean 'h'"
 
-    Test.group "Formatting date/time values" <|
-        Test.specify "should allow printing month names" <|
+    suite_builder.group "Formatting date/time values" group_builder->
+        group_builder.specify "should allow printing month names" <|
             d = Date.new 2020 6 30
             d.format "d. MMM yyyy" . should_equal "30. Jun 2020"
             d.format "d. MMMM yyyy" . should_equal "30. June 2020"
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.us) . should_equal "30. June 2020"
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. June 2020"
 
-        Test.specify "should allow using a Java formatter" <|
+        group_builder.specify "should allow using a Java formatter" <|
             jformatter = Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE
             Date.new 2020 2 1 . format jformatter . should_equal "2020-032"
 
-        Test.specify "should allow parsing Java patterns" <|
+        group_builder.specify "should allow parsing Java patterns" <|
             Date.new 2020 2 1 . format (Date_Time_Formatter.from_java "E, d LLL yyyy") . should_equal "Sat, 1 Feb 2020"
             Date.new 2020 3 1 . format (Date_Time_Formatter.from_java "E, d LLLL yyyy") . should_equal "Sun, 1 March 2020"
 
-        Test.specify "should handle various formats" <|
+        group_builder.specify "should handle various formats" <|
             Date.new 2023 09 21 . format "E, dd.MM.yy" . should_equal "Thu, 21.09.23"
             Date.new 2023 09 21 . format (Date_Time_Formatter.from "DDDD" Locale.poland) . should_equal "czwartek"
             Date.new 2023 09 21 . format (Date_Time_Formatter.from_iso_week_date_pattern "eee, 'W'WW ''yy" Locale.uk) . should_equal "Thursday, W38 '23"
@@ -94,7 +94,7 @@ spec =
             tz = Time_Zone.parse "US/Hawaii"
             Date_Time.new 2023 09 21 12 zone=tz . format "yyyy/MM/dd HH:mm:ss VV" . should_equal "2023/09/21 12:00:00 US/Hawaii"
 
-        Test.specify "should allow to customize the 'zero' of a zone offset" <|
+        group_builder.specify "should allow to customize the 'zero' of a zone offset" <|
             dt = Date_Time.new 2020 01 02 12 zone=(Time_Zone.utc)
             dt.format "yyyy/MM/dd HH:mm:ss ZZ" . should_equal "2020/01/02 12:00:00 +0000"
             dt.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 Z"
@@ -105,25 +105,25 @@ spec =
             dt2.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 -1000"
             dt2.format "yyyy/MM/dd HH:mm:ss ZZZZZ{<no offset>}" . should_equal "2020/01/02 12:00:00 -10:00"
 
-        Test.specify "should work with optional parts" <|
+        group_builder.specify "should work with optional parts" <|
             f = Date_Time_Formatter.from "[('Date:' yyyy-MM-dd)][('Time:' HH:mm)]"
             Date_Time.new 2020 01 02 12 30 . format f . should_equal "(Date: 2020-01-02)(Time: 12:30)"
             Date.new 2020 01 02 . format f . should_equal "(Date: 2020-01-02)"
             Time_Of_Day.new 12 30 . format f . should_equal "(Time: 12:30)"
 
-    Test.group "Parsing date/time values" <|
-        Test.specify "should allow short month names" <|
+    suite_builder.group "Parsing date/time values" group_builder->
+        group_builder.specify "should allow short month names" <|
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
 
-        Test.specify "should allow long month names" <|
+        group_builder.specify "should allow long month names" <|
             Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy") . should_equal (Date.new 2020 6 30)
             Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
 
-        Test.specify "should allow long month names from Java" <|
+        group_builder.specify "should allow long month names from Java" <|
             Date.parse "30. June 2020" (Date_Time_Formatter.from_java "d. LLLL yyyy") . should_equal (Date.new 2020 6 30)
             Date.parse "30. June 2020" (Date_Time_Formatter.from_java "d. LLLL yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
 
-        Test.specify "should parse default time format" <|
+        group_builder.specify "should parse default time format" <|
             text = Date_Time.new 1970 (zone = Time_Zone.utc) . to_text
             time = Date_Time.parse text
             time . year . should_equal 1970
@@ -135,7 +135,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should parse local time adding system zone" <|
+        group_builder.specify "should parse local time adding system zone" <|
             time = Date_Time.parse "1970-01-01T00:00:01"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -146,17 +146,17 @@ spec =
             time . nanosecond . should_equal 0
             (time.zone.offset time) . should_equal (Time_Zone.system.offset time)
 
-        Test.specify "should parse time Z" <|
+        group_builder.specify "should parse time Z" <|
             time = Date_Time.parse "1582-10-15T00:00:01Z"
             time . to_enso_epoch_seconds . should_equal 1
             time.zone.zone_id . should_equal "Z"
 
-        Test.specify "should parse time UTC" <|
+        group_builder.specify "should parse time UTC" <|
             time = Date_Time.parse "1582-10-15T00:00:01Z[UTC]"
             time . to_enso_epoch_seconds . should_equal 1
             time . zone . zone_id . should_equal "UTC"
 
-        Test.specify "should parse time with nanoseconds" <|
+        group_builder.specify "should parse time with nanoseconds" <|
             time = Date_Time.parse "1970-01-01T00:00:01.123456789Z"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -170,7 +170,7 @@ spec =
             time . nanosecond . should_equal 789
             time.zone.zone_id . should_equal "Z"
 
-        Test.specify "should parse time with offset-based zone" <|
+        group_builder.specify "should parse time with offset-based zone" <|
             time = Date_Time.parse "1970-01-01T00:00:01+01:00"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -183,7 +183,7 @@ spec =
             time . nanosecond . should_equal 0
             time.zone.zone_id . take (Last 6) . should_equal "+01:00"
 
-        Test.specify "should parse time with id-based zone" <|
+        group_builder.specify "should parse time with id-based zone" <|
             time = Date_Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -199,14 +199,14 @@ spec =
             zone.zone_id . should_equal "Europe/Paris"
             time.to_display_text . should_equal "1970-01-01 00:00:01[Europe/Paris]"
 
-        Test.specify "should throw error when parsing invalid time" <|
+        group_builder.specify "should throw error when parsing invalid time" <|
             case Date_Time.parse "2008-1-1" . catch of
                 Time_Error.Error msg _ ->
                     msg . should_contain "Text '2008-1-1' could not be parsed"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should parse custom format of zoned time" <|
+        group_builder.specify "should parse custom format of zoned time" <|
             time = Date_Time.parse "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss VV"
             time . year . should_equal 2020
             time . month . should_equal 5
@@ -219,7 +219,7 @@ spec =
             time . nanosecond . should_equal 0
             (time.zone.zone_id . take (Last 3) . to_case Case.Upper) . should_equal "UTC"
 
-        Test.specify "should parse custom format of local time" <|
+        group_builder.specify "should parse custom format of local time" <|
             time = Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
             time . year . should_equal 2020
             time . month . should_equal 5
@@ -231,7 +231,7 @@ spec =
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
 
-        Test.specify "should throw error when parsing custom format" <|
+        group_builder.specify "should throw error when parsing custom format" <|
             time = Date_Time.parse "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['tt']'"
             case time.catch of
                 Time_Error.Error msg _ ->
@@ -239,29 +239,29 @@ spec =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should be able to parse YYYY as well as yyyy" <|
+        group_builder.specify "should be able to parse YYYY as well as yyyy" <|
             Date.parse "2020-01-02" "YYYY-MM-dd" . should_equal (Date.new 2020 1 2)
             Date.parse "2020-01-02" "yyyy-MM-dd" . should_equal (Date.new 2020 1 2)
 
-        Test.specify "should be able to parse year-month without day" <|
+        group_builder.specify "should be able to parse year-month without day" <|
             Date.parse "2022-05" "yyyy-MM" . should_equal (Date.new 2022 5 1)
 
-        Test.specify "should be able to parse a quarter without day" <|
+        group_builder.specify "should be able to parse a quarter without day" <|
             Date.parse "Q2 of 2022" "'Q'Q 'of' yyyy" . should_equal (Date.new 2022 4 1)
 
-        Test.specify "should be able to parse 2-digit year" <|
+        group_builder.specify "should be able to parse 2-digit year" <|
             Date.parse "22-05-06" "yy-MM-dd" . should_equal (Date.new 2022 5 6)
             Date.parse "99-01-02" "yy-MM-dd" . should_equal (Date.new 1999 1 2)
             Date.parse "49-03-04" "yy-MM-dd" . should_equal (Date.new 2049 3 4)
             Date.parse "50-03-04" "yy-MM-dd" . should_equal (Date.new 1950 3 4)
 
-        Test.specify "should be able to parse 2-digit year with custom base-year" <|
+        group_builder.specify "should be able to parse 2-digit year with custom base-year" <|
             Date.parse "22-05-06" "yy{1999}-MM-dd" . should_equal (Date.new 1922 5 6)
             Date.parse "99-01-02" "yy{1949}-MM-dd" . should_equal (Date.new 1899 1 2)
             Date.parse "49-03-04" "yy{3099}-MM-dd" . should_equal (Date.new 3049 3 4)
             Date.parse "50-03-04" "yy{2099}-MM-dd" . should_equal (Date.new 2050 3 4)
 
-        Test.specify "should work like in examples" <|
+        group_builder.specify "should work like in examples" <|
              Date.parse "Tue, 12 Oct 2021" "ddd, d MMM yyyy" . should_equal (Date.new 2021 10 12)
              Date.parse "Thursday, 1 October '98" (Date_Time_Formatter.from "dddd, d MMMM ''yy" Locale.uk) . should_equal (Date.new 1998 10 01)
              Date_Time.parse "12/10/2021 5:34 PM" "d/M/Y h:mm a" . should_equal (Date_Time.new 2021 10 12 17 34 00)
@@ -270,7 +270,7 @@ spec =
              Date.parse "1 Nov '95" "d MMM ''yy{2099}" . should_equal (Date.new 2095 11 01)
              Date_Time.parse "2021-10-12T12:34:56.789+0200" "yyyy-MM-dd'T'HH:mm:ss.fZ" . should_equal (Date_Time.new 2021 10 12 12 34 56 millisecond=789 zone=(Time_Zone.new hours=2))
 
-        Test.specify "should be able to parse a week-based year format" <|
+        group_builder.specify "should be able to parse a week-based year format" <|
              Date.parse "1976-W53-6" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d") . should_equal (Date.new 1977 01 01)
              Date_Time.parse "1978-W01-4 12:34:56" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss") . should_equal (Date_Time.new 1978 01 05 12 34 56)
 
@@ -280,7 +280,7 @@ spec =
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
 
-        Test.specify "should include the pattern in the parse failure message" <|
+        group_builder.specify "should include the pattern in the parse failure message" <|
             r1 = "1999.01.02".parse_date
             r1.should_fail_with Time_Error
             r1.to_display_text . should_contain "Expected date/time format: (ISO date) yyyy-MM-dd"
@@ -301,7 +301,7 @@ spec =
             r5.should_fail_with Time_Error
             r5.to_display_text . should_contain "Expected date/time format: (Java DateTimeFormatter) ParseCaseSensitive(false)Value(Year,4,10,EXCEEDS_PAD)'-'Value(DayOfYear,3)[Offset(+HH:MM:ss,'Z')]"
 
-        Test.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
+        group_builder.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
             f1 = Date_Time_Formatter.from "hh:mm"
             # No warning yet.
             Problems.assume_no_problems f1
@@ -319,7 +319,7 @@ spec =
             w1.to_display_text . should_contain "default to AM"
             w1.to_display_text . should_contain "Did you mean 'H'"
 
-        Test.specify "the warning should be removable as indicated in the message" pending="TODO: bug https://github.com/enso-org/enso/issues/7892" <|
+        group_builder.specify "the warning should be removable as indicated in the message" pending="TODO: bug https://github.com/enso-org/enso/issues/7892" <|
             f1 = Date_Time_Formatter.from "hh:mm"
             r1 = Time_Of_Day.parse "04:24" f1
             w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
@@ -329,7 +329,7 @@ spec =
             r2.should_equal (Time_Of_Day.new 4 24)
             Problems.assume_no_problems r2
 
-        Test.specify "should allow to parse MM-dd without a year, defaulting to current year but adding a warning (only in parsing)" <|
+        group_builder.specify "should allow to parse MM-dd without a year, defaulting to current year but adding a warning (only in parsing)" <|
             f1 = Date_Time_Formatter.from "dd.MM"
 
             s1 = Date.new 2020 12 31 . format f1
@@ -347,7 +347,7 @@ spec =
             Date.parse "07/23" "MM/dd" . should_equal (Date.new current_year 7 23)
             Date.parse "14. of May" "d. 'of' MMMM" . should_equal (Date.new current_year 5 14)
 
-        Test.specify "should allow nested patterns" <|
+        group_builder.specify "should allow nested patterns" <|
             # Difference between a nested pattern and two optional patterns next to each other.
             Date.parse "2023-01-02 XY" "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
             Date.parse "2023-01-02 X"  "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
@@ -367,7 +367,11 @@ spec =
             Date.parse "2023-01-07 XY" very_nested . should_equal (Date.new 2023 1 7)
             Date.parse "2023-01-08 XZ" very_nested . should_fail_with Time_Error
 
-        Test.specify "should allow to parse even when some patterns are unused" <|
+        group_builder.specify "should allow to parse even when some patterns are unused" <|
             "2020-01-02 14:55".parse_date "yyyy-MM-dd HH:mm" . should_equal (Date.new 2020 1 2)
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

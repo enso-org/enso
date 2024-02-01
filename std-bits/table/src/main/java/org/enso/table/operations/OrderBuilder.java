@@ -71,17 +71,6 @@ public class OrderBuilder {
 
     int[] positions =
         IntStream.range(0, size).boxed().sorted(comparator).mapToInt(i -> i).toArray();
-    return new OrderMask(positions);
-  }
-
-  /**
-   * Builds an order mask based that will reverse the order of the data being masked.
-   *
-   * @param size the length of the data being masked
-   * @return an order mask that will result in reversing the data it is applied to
-   */
-  public static OrderMask buildReversedMask(int size) {
-    int[] positions = IntStream.range(0, size).map(i -> size - i - 1).toArray();
-    return new OrderMask(positions);
+    return OrderMask.fromArray(positions);
   }
 }
