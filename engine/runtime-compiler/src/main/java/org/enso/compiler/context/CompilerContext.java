@@ -54,10 +54,11 @@ public interface CompilerContext extends CompilerStub {
 
   /**
    * Format the given diagnostic into a string. The returned string might have ANSI colors.
+   *
    * @param module May be null if inline diagnostics is required.
    * @param diagnostic
    * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
-   *                           characters will be inside the returned string.
+   *     characters will be inside the returned string.
    */
   String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
