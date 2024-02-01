@@ -81,7 +81,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex items-center rounded-full overflow-clip w-7.25 h-7.25"
+        className="flex items-center select-none rounded-full overflow-clip w-7.25 h-7.25"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>
@@ -100,9 +100,6 @@ export default function UserBar(props: UserBarProps) {
           alt="Open user menu"
           height={28}
           width={28}
-          onDragStart={event => {
-            event.preventDefault()
-          }}
         />
       </button>
       {/* Required for shortcuts to work. */}

@@ -24,9 +24,9 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type JDBC_Connection
     ## PRIVATE
