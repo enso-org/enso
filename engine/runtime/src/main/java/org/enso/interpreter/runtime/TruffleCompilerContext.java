@@ -257,34 +257,37 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
-    var library = module.getPackage().libraryName();
-    var bindings = known.get(library);
-    if (bindings == null) {
-      var cached = serializationManager.deserializeLibraryBindings(library);
-      if (cached.isDefined()) {
-        bindings = cached.get().bindings();
-        known.put(library, bindings);
+    var level = Level.FINE;
+    if (module.getPackage() != null) {
+      var library = module.getPackage().libraryName();
+      var bindings = known.get(library);
+      if (bindings == null) {
+        var cached = serializationManager.deserializeLibraryBindings(library);
+        if (cached.isDefined()) {
+          bindings = cached.get().bindings();
+          known.put(library, bindings);
+        }
       }
-    }
-    if (bindings != null) {
-      var ir = bindings.findForModule(module.getName());
-      loggerSerializationManager.log(
-          Level.FINE,
-          "Deserializing module " + module.getName() + " from library: " + (ir != null));
-      if (ir != null) {
-        compiler
-            .context()
-            .updateModule(
-                module,
-                (u) -> {
-                  u.ir(ir);
-                  u.compilationStage(CompilationStage.AFTER_STATIC_PASSES);
-                  u.loadedFromCache(true);
-                });
-        return true;
+      if (bindings != null) {
+        var ir = bindings.findForModule(module.getName());
+        loggerSerializationManager.log(
+            Level.FINE,
+            "Deserializing module " + module.getName() + " from library: " + (ir != null));
+        if (ir != null) {
+          compiler
+              .context()
+              .updateModule(
+                  module,
+                  (u) -> {
+                    u.ir(ir);
+                    u.compilationStage(CompilationStage.AFTER_STATIC_PASSES);
+                    u.loadedFromCache(true);
+                  });
+          return true;
+        }
       }
+      level = "Standard".equals(library.namespace()) ? Level.WARNING : Level.FINE;
     }
-    var level = "Standard".equals(library.namespace()) ? Level.WARNING : Level.FINE;
     var result = serializationManager.deserialize(compiler, module);
     loggerSerializationManager.log(
         level, "Deserializing module " + module.getName() + " from IR file: " + result.nonEmpty());
