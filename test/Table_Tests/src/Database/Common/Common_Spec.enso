@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Sort_Column
@@ -170,7 +171,19 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
         group_builder.specify "should allow to materialize columns directly into a Vector" <|
             v = data.t1.at 'a' . to_vector
             v . should_equal [1, 4]
-            
+
+        group_builder.specify "should allow getting specific elements" <|
+            test_column = data.t1.at 'a'
+            test_column.get 0 . should_equal 1
+            test_column.get 3 . should_equal Nothing
+            test_column.get 4 -1 . should_equal -1
+
+        group_builder.specify "should allow getting specific elements (with at)" <|
+            test_column = data.t1.at 'a'
+            test_column.at 0 . should_equal 1
+            test_column.at 1 . should_equal 4
+            test_column.at 3 . should_fail_with Index_Out_Of_Bounds
+
         group_builder.specify "should handle bigger result sets" <|
             data.big_table.read.row_count . should_equal data.big_size
             

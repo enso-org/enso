@@ -1,8 +1,9 @@
 /** @file Events related to changes in asset state. */
 import type AssetEventType from '#/events/AssetEventType'
-import type * as backendModule from '#/services/backend'
 
 import type * as spinner from '#/components/Spinner'
+
+import type * as backendModule from '#/services/Backend'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax

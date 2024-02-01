@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 
 import project.Data.Column.Column
+import project.Data.Conversions.Convertible_To_Rows.Key_Value
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
@@ -40,16 +42,20 @@ fan_out_to_columns table input_column_id function column_count=Nothing column_bu
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
+   - column_names: The names for the generated columns or a call back to create
+     the names for each row.
    - at_least_one_row: When true, if the function returns an empty list, a
      single row is output with `Nothing` for the transformed column. If false,
     the row is not output at all.
-fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id function at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+fan_out_to_rows : Table -> Text -> (Any -> Vector Any) -> Vector | Function -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id:Text function column_names=[input_column_id] at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
-    wrapped_function x = function x . map y-> [y]
-    column_names = [input_column_id]
+    wrapped_function x = function x . map y-> case y of
+        _:Vector -> y
+        _:Key_Value -> y
+        _ -> [y]
     fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row column_builder=column_builder on_problems=on_problems
 
 ## PRIVATE
@@ -99,62 +105,125 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
-    num_input_rows = input_storage.size
 
-    num_output_columns = column_names.length
-
-    # Guess that most of the time, we'll get at least one value for each input.
-    initial_size = input_column.length
-    # Accumulates the outputs of the function.
-    output_column_builders = Vector.new num_output_columns _-> column_builder initial_size
-    # Accumulates repeated position indices for the order mask.
-    order_mask_positions = Vector.new_builder initial_size
-
-    maybe_add_empty_row vecs =
-        should_add_empty_row = vecs.is_empty && at_least_one_row
-        if should_add_empty_row.not then vecs else
-            empty_row = Vector.fill num_output_columns Nothing
-            [empty_row]
-
-    0.up_to num_input_rows . each i->
-        input_value = input_storage.getItemBoxed i
-        output_values = function input_value |> maybe_add_empty_row
-        # Append each group of values to the builder.
-        output_values.each row_unchecked->
-            row = uniform_length num_output_columns row_unchecked problem_builder
-            row.each_with_index i-> v-> output_column_builders.at i . append v
-        # Append n copies of the input row position, n = # of output values.
-        repeat_each output_values.length <| order_mask_positions.append i
+    # Create the columns and a mask.
+    pair = if column_names.is_a Vector then fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row column_names column_builder problem_builder else
+        fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row column_names column_builder problem_builder
+    raw_output_columns = pair.first
+    order_mask_positions = pair.second
 
     # Reserve the non-input column names that will not be changing.
     non_input_columns = table.columns.filter c-> c.name != input_column.name
     unique.mark_used <| non_input_columns.map .name
 
-    # Build the output column
-    output_storages = output_column_builders.map .seal
-    output_columns = output_storages.map_with_index i-> output_storage->
-        column_name = unique.make_unique <| column_names.at i
-        Column.from_storage column_name output_storage
+    # Make output columns unique.
+    output_columns = raw_output_columns.map column->
+        column_name = unique.make_unique column.name
+        column.rename column_name
 
     # Build the order mask.
     order_mask = OrderMask.fromArray (order_mask_positions.to_vector)
 
-    ## Build the new table, replacing the input column with the new output
-       columns.
+    ## Build the new table, replacing the input column with the new output columns.
     new_columns_unflattened = table.columns.map column->
-        case column.name == input_column_id of
-            True ->
-                # Replace the input column with the output columns.
-                output_columns
-            False ->
-                # Build a new column from the old one with the mask
-                old_storage = column.java_column.getStorage
-                new_storage = old_storage.applyMask order_mask
-                [Column.from_storage column.name new_storage]
-    new_columns = new_columns_unflattened.flatten
-
-    new_table = Table.new new_columns
+        # Replace the input column with the output columns.
+        if column.name == input_column_id then output_columns else
+            # Build a new column from the old one with the mask
+            old_storage = column.java_column.getStorage
+            new_storage = old_storage.applyMask order_mask
+            [Column.from_storage column.name new_storage]
+    new_table = Table.new new_columns_unflattened.flatten
     problem_builder.attach_problems_after on_problems new_table
+
+## PRIVATE
+   Inner method for fan_out_to_rows_and_columns where the column names are fixed.
+fan_out_to_rows_and_columns_fixed : Any -> (Any -> Vector (Vector Any)) -> Boolean -> Vector Text -> (Integer -> Any) -> Problem_Builder -> Vector
+fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolean column_names:Vector column_builder problem_builder =
+    num_output_columns = column_names.length
+    num_input_rows = input_storage.size
+
+    # Accumulates the outputs of the function.
+    output_column_builders = Vector.new num_output_columns _-> column_builder num_input_rows
+
+    # Accumulates repeated position indices for the order mask.
+    order_mask_positions = Vector.new_builder num_input_rows
+
+    empty_row = [Vector.fill num_output_columns Nothing]
+    maybe_add_empty_row vecs = if vecs.is_empty && at_least_one_row then empty_row else vecs
+
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        output_values = maybe_add_empty_row (function input_value)
+
+        output_values.each row_unchecked->
+            row = uniform_length num_output_columns row_unchecked problem_builder
+            row.each_with_index i-> v-> output_column_builders.at i . append v
+
+        # Append n copies of the input row position, n = # of output values.
+        repeat_each output_values.length <| order_mask_positions.append i
+
+    output_columns = column_names.map_with_index i->n->
+        Column.from_storage n (output_column_builders.at i . seal)
+
+    [output_columns, order_mask_positions]
+
+## PRIVATE
+   Inner method for fan_out_to_rows_and_columns where the column names are determined by each row.
+fan_out_to_rows_and_columns_dynamic : Any -> (Any -> Vector (Vector Any)) -> Boolean -> (Any -> Text) -> (Integer -> Any) -> Problem_Builder -> Vector
+fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row column_names_for_row column_builder problem_builder =
+    # Accumulates the outputs of the function.
+    column_map = Ref.new Map.empty
+    output_column_builders = Vector.new_builder
+
+    # Guess that most of the time, we'll get at least one value for each input.
+    num_input_rows = input_storage.size
+
+    # Column Builder add function
+    add_column n current_length =
+        column_map.put (column_map.get.insert n output_column_builders.length)
+        builder = column_builder num_input_rows
+        builder.appendNulls current_length
+        output_column_builders.append builder
+
+    # Accumulates repeated position indices for the order mask.
+    order_mask_positions = Vector.new_builder num_input_rows
+
+    maybe_add_empty_row vecs = if (vecs.is_empty && at_least_one_row).not then vecs else
+        [Vector.fill output_column_builders.length Nothing]
+
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        output_values = maybe_add_empty_row (function input_value)
+
+        # get the column names for the row.
+        row_column_names = column_names_for_row input_value
+
+        # Add any missing columns.
+        row_column_names.each n->
+            if column_map.get.contains_key n . not then 
+                add_column n order_mask_positions.length
+
+        # Append each group of values to the builder.
+        current_columns = column_map.get
+        output_values.each row_unchecked->
+            row = uniform_length row_column_names.length row_unchecked problem_builder
+            row_column_names.each_with_index i->n->
+                output_column_builders.at (current_columns.at n) . append (row.at i)
+
+        # Fill in values for any column not present
+        if row_column_names.length != output_column_builders.length then
+            current_columns.each_with_key k->i->
+                if row_column_names.contains k . not then
+                    output_column_builders.at i . appendNulls output_values.length
+
+        # Append n copies of the input row position, n = # of output values.
+        repeat_each output_values.length <| order_mask_positions.append i
+
+    # Build the output column
+    output_columns = column_map.get.to_vector.sort on=_.second . map pair->
+        Column.from_storage pair.first (output_column_builders.at pair.second . seal)
+
+    [output_columns, order_mask_positions]
 
 ## PRIVATE
 

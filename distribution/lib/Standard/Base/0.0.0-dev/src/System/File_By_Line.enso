@@ -1,0 +1,222 @@
+import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.File_Error.File_Error
+import project.Nothing.Nothing
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+from project.Logging import all
+
+polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.arrays.LongArrayList
+polyglot java import org.enso.base.FileLineReader
+polyglot java import java.io.File as Java_File
+polyglot java import java.nio.charset.Charset
+
+type File_By_Line
+    ## Creates a new File_By_Line object.
+
+       Arguments
+       - file: The file to read.
+       - encoding: The encoding to use when reading the file (defaults to UTF 8).
+       - offset: The position within the file to read from (defaults to first byte).
+    new : File->Encoding->File_By_Line
+    new file:File encoding:Encoding=Encoding.utf_8 offset:Integer=0 =
+        create_row_map =
+            row_map = LongArrayList.new
+            row_map.add offset
+            File_By_Line.log_message "Created row map"
+            row_map
+        File_By_Line.Reader file encoding Nothing Nothing create_row_map
+
+    ## PRIVATE
+       Creates a new File_By_Line object.
+
+       Arguments
+       - file: The file to read.
+       - encoding: The encoding to use when reading the file (defaults to UTF 8).
+       - limit_lines: The number of lines to read (defaults to all lines).
+       - filter_func: The filter to apply to each line (defaults to no filter).
+       - row_map: The row map to use (defaults to a new row map).
+       - file_end: The end of the file in bytes.
+    Reader file:File encoding:Encoding limit_lines:(Integer|Nothing) filter_func row_map file_end=file.size
+
+    ## Reads a specific line from the file.
+
+       Arguments
+       - line: The line to read (0 indexed).
+    get : Integer->Text
+    get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
+        read_line self line
+
+    ## Reads the first line
+    first : Text
+    first self = self.get 0
+
+    ## Reads the first line
+    second : Text
+    second self = self.get 1
+
+    ## Counts the number of lines in the file.
+    count : Integer
+    count self =
+        end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines
+        for_each_lines self 0 end_at Nothing
+        ## We've added all the indexes to the row map including the last one so we need to subtract 1
+           As row_map can be shared if we have a limit return that.
+        if end_at == -1 then self.row_map.getSize-1 else end_at.min self.row_map.getSize-1
+
+    ## Returns the lines in the file as a vector.
+    to_vector : Vector Text
+    to_vector self = File_Error.handle_java_exceptions self.file <|
+        end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
+        FileLineReader.readLines self.java_file self.file_end self.row_map 0 end_at self.charset self.filter_func
+
+    ## Performs an action on each line.
+
+       Arguments
+       - function: The action to perform on each line.
+    each : (Text -> Any) -> Nothing
+    each self function =
+        new_function _ t = function t
+        self.each_with_index new_function
+
+    ## Performs an action on each line.
+
+       Arguments:
+       - function: A function to apply that takes an index and an item.
+
+       The function is called with both the element index as well as the
+       element itself.
+    each_with_index : (Integer -> Text -> Any) -> Nothing
+    each_with_index self function =
+        end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
+        for_each_lines self 0 end_at function
+
+    ## Transforms each line in the file and returns the result as a vector.
+
+       Arguments
+       - action: The action to perform on each line.
+    map : (Text -> Any) -> Vector Any
+    map self action =
+        builder = Vector.new_builder
+        wrapped_action _ t = builder.append (action t)
+        self.each_with_index wrapped_action
+        builder.to_vector
+
+    ## Transforms each line in the file and returns the result as a vector.
+
+       Arguments
+       - action: The action to perform on each line.
+    map_with_index : (Integer -> Text -> Any) -> Vector Any
+    map_with_index self action =
+        builder = Vector.new_builder
+        wrapped_action i t = builder.append (action i t)
+        self.each_with_index wrapped_action
+        builder.to_vector
+
+    ## Skips the specified number of lines.
+
+       Arguments
+       - lines: The number of lines to skip.
+    skip : Integer -> File_By_Line
+    skip self lines:Integer =
+        ## Read the line
+        create_row_map parent line =
+            if parent.row_map.getSize <= line then for_each_lines self 0 line Nothing
+            position = parent.row_map.getOrLast line
+            row_map = LongArrayList.new
+            row_map.add position
+            parent.log_message "Created Skipped Row Map ("+line.to_text+")"
+            row_map
+
+        new_limit = if self.limit_lines.is_nothing then lines else lines.min self.limit_lines
+        File_By_Line.Reader self.file self.encoding new_limit self.filter_func (create_row_map self lines) self.file_end
+
+    ## Limits a file to a specific number of lines.
+
+       Arguments
+       - lines: The number of lines to limit the file to.
+    limit : Integer -> File_By_Line
+    limit self lines:Integer =
+        File_By_Line.Reader self.file self.encoding lines self.filter_func self.row_map self.file_end
+
+    ## Filters the file by a predicate.
+
+       Arguments
+       - predicate: The predicate to filter by.
+    filter : Text | (Text -> Boolean) -> File_By_Line
+    filter self predicate =
+        ## Create the predicate
+        new_filter = case predicate of
+            _:Text -> FileLineReader.createContainsFilter predicate self.charset
+            _ -> FileLineReader.wrapBooleanFilter predicate self.charset
+
+        ## Find the index of the first line matching the new index.
+        make_filter_map parent new_filter =
+            end_at = if parent.limit_lines.is_nothing then -1 else parent.limit_lines-1
+            first_index = FileLineReader.findFirstNewFilter parent.java_file parent.file_end parent.row_map end_at parent.charset parent.filter_func new_filter
+            new_row_map = LongArrayList.new
+            new_row_map.add first_index
+            parent.log_message "Found Filter Start - "+first_index.to_text
+            new_row_map
+
+        ## Merge the two predicates together.
+        new_predicate = if self.filter_func.is_nothing then new_filter else
+            FileLineReader.mergeTwoFilters self.filter_func new_filter
+
+        ## If the parent is limited need to limit the child by end position in file.
+        if self.limit_lines == Nothing then File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) self.file_end else
+            ## Find the index of the last line matching the new index.
+            index_of parent line =
+                file_len = if parent.row_map.getSize > line then parent.row_map.get line else
+                    for_each_lines self 0 line Nothing
+                    parent.row_map.get parent.row_map.getSize-1
+                parent.log_message "Created File End ("+line.to_text+") - "+file_len.to_text
+                file_len
+            File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) (index_of self self.limit_lines)
+
+    ## ADVANCED
+       Exports the row_map
+    row_positions : Vector Integer
+    row_positions self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.row_map.getSize (i-> self.row_map.get i)
+
+    ## PRIVATE
+       Gets the Java_File for the backing file.
+    java_file : Java_File
+    java_file self = Java_File.new self.file.path
+
+    ## PRIVATE
+       Gets the encoding as a Java Charset.
+    charset : Charset
+    charset self = self.encoding.to_java_charset
+
+## PRIVATE
+   Reads a specific line from the file.
+read_line : File_By_Line->Integer->Any->Any
+read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
+    FileLineReader.readSingleLine file.java_file file.file_end file.row_map line file.charset file.filter_func . if_nothing default
+
+## PRIVATE
+   Performs an action on each line in the file.
+for_each_lines : File_By_Line->Integer->(Integer|Nothing)->Any->Any
+for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) action = File_Error.handle_java_exceptions file.file <|
+    java_file = file.java_file
+    row_map = file.row_map
+    file_end = file.file_end
+    charset = file.charset
+
+    ## First if we haven't read the found the start_at line we need to find that.
+    if start_at >= row_map.getSize then FileLineReader.readSingleLine java_file file_end row_map start_at charset file.filter_func
+
+    ## Now we can read the lines we need.
+    if row_map.getOrLast start_at >= file_end then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else
+        FileLineReader.forEachLine java_file file_end row_map start_at (end_at.if_nothing -1) charset file.filter_func action

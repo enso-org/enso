@@ -1,24 +1,28 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
+import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as eventModule from '#/utilities/event'
-import * as fileIcon from '#/utilities/fileIcon'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
-import Visibility from '#/utilities/visibility'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+
+import * as eventModule from '#/utilities/event'
+import * as fileIcon from '#/utilities/fileIcon'
+import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import Visibility from '#/utilities/visibility'
 
 // ================
 // === FileName ===
@@ -32,16 +36,16 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { assetEvents, dispatchAssetListEvent } = state
+  const { nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`FileNameColumn` can only display file assets.')
+    throw new Error('`FileNameColumn` can only display files.')
   }
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -129,7 +133,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       onClick={event => {
         if (
           eventModule.isSingleClick(event) &&
-          (selected || shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+          (selected ||
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))
         }
@@ -137,7 +142,20 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     >
       <SvgMask src={fileIcon.fileIcon()} className="m-1" />
       <EditableSpan
+        data-testid="asset-row-name"
         editable={false}
+        className="bg-transparent grow leading-170 h-6 py-px"
+        checkSubmittable={newTitle =>
+          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
+            child =>
+              // All siblings,
+              child.key === item.key ||
+              // that are not directories,
+              backendModule.assetIsDirectory(child.item) ||
+              // must have a different name.
+              child.item.title !== newTitle
+          )
+        }
         onSubmit={async newTitle => {
           setRowState(object.merger({ isEditingName: false }))
           if (newTitle !== asset.title) {
@@ -153,7 +171,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        className="bg-transparent grow leading-170 h-6 py-px"
       >
         {asset.title}
       </EditableSpan>

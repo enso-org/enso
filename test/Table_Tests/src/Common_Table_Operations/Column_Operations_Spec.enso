@@ -200,7 +200,7 @@ add_specs suite_builder setup =
         case setup.test_selection.supports_mixed_columns of
             False -> callback_with_clue (setup.table_builder table_structure)
             True ->
-                all_combinations (Vector.fill table_structure.length [Nothing, Mixed_Type_Object.Value]) . each combination->
+                all_combinations (Vector.fill table_structure.length [Nothing, Mixed_Type_Object]) . each combination->
                     amended_table_structure = table_structure.zip combination column_definition-> prefix->
                         name = column_definition.first
                         values = column_definition.second
@@ -1753,7 +1753,6 @@ add_specs suite_builder setup =
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
-    Value
 
 all_combinations variables =
     result = Vector.new_builder

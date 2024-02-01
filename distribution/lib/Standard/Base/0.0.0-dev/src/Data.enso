@@ -145,9 +145,9 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Wa
 
          example_list_files =
              Data.list_directory Examples.data_dir name_filter="**.md" recursive=True
-list_directory : (File | Text) -> Text -> Boolean -> Vector File
-list_directory directory name_filter=Nothing recursive=False =
-    File.new directory . list name_filter=name_filter recursive=recursive
+list_directory : File -> Text | Nothing -> Boolean -> Vector File
+list_directory directory:File name_filter:Text|Nothing=Nothing recursive:Boolean=False =
+    directory . list name_filter=name_filter recursive=recursive
 
 ## ALIAS download, http get
    GROUP Input

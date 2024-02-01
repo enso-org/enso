@@ -1,23 +1,23 @@
 from Standard.Base import all
 import Standard.Base
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type My_Type
     Value foo bar baz
 
-spec = Test.group "Meta-Value Inspection" <|
+add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_builder->
     location_pending = case Platform.os of
         Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
 
-    Test.specify "should allow to get the source location of a frame" pending=location_pending <|
+    group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
         loc = "Meta_Location_Spec.enso:16:15-40"
         src.take (Last loc.length) . should_equal loc
 
-    Test.specify "should allow to get qualified type names of values" <|
+    group_builder.specify "should allow to get qualified type names of values" <|
         x = 42
         y = My_Type.Value 1 2 3
         Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Numbers.Integer"
@@ -25,11 +25,15 @@ spec = Test.group "Meta-Value Inspection" <|
         Meta.get_qualified_type_name y . should_equal "enso_dev.Base_Tests.Semantic.Meta_Location_Spec.My_Type"
         Meta.get_simple_type_name y . should_equal "My_Type"
 
-    Test.specify "should allow access to package names" <|
+    group_builder.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Base_Tests'
         (Project_Description.new Base).name.should_equal 'Base'
 
-    Test.specify "should allow to fetch enso project description from a module" <|
+    group_builder.specify "should allow to fetch enso project description from a module" <|
         (Project_Description.new Standard.Base.Data.Vector).name.should_equal "Base"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

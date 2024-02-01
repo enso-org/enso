@@ -1,11 +1,11 @@
 from Standard.Base import all
 from Standard.Base.Data.Text.Text_Sub_Range import character_ranges
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Text_Sub_Range_Data" <|
-    Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
+
+add_specs suite_builder = suite_builder.group "Text_Sub_Range_Data" group_builder->
+    group_builder.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
         character_ranges "" . should_equal []
         character_ranges "A" . should_equal [0.up_to 1]
         character_ranges "abc" . should_equal [0.up_to 1, 1.up_to 2, 2.up_to 3]
@@ -21,7 +21,7 @@ spec = Test.group "Text_Sub_Range_Data" <|
         character_ranges accent_2 . should_equal [0.up_to 2]
         character_ranges kshi+facepalm+accent_1+accent_2 . should_equal [0.up_to 4, 4.up_to 11, 11.up_to 12, 12.up_to 14]
 
-    Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
+    group_builder.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
         character_ranges "" . should_equal []
         character_ranges "A" . should_equal [0.up_to 1]
         character_ranges "abc" . should_equal [0.up_to 1, 1.up_to 2, 2.up_to 3]
@@ -37,4 +37,8 @@ spec = Test.group "Text_Sub_Range_Data" <|
         character_ranges accent_2 . should_equal [0.up_to 2]
         character_ranges kshi+facepalm+accent_1+accent_2 . should_equal [0.up_to 4, 4.up_to 11, 11.up_to 12, 12.up_to 14]
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

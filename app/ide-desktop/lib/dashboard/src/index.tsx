@@ -11,6 +11,7 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
+
 import * as config from '#/utilities/config'
 
 // =================

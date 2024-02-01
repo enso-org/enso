@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Data.Java_Json.Jackson_Object
 
 ## PRIVATE
    A special type describing how to convert an object into a set of table
@@ -16,12 +17,34 @@ Convertible_To_Columns.from (that:JS_Object) =
     Convertible_To_Columns.Value that.field_names that.get
 
 ## PRIVATE
+Convertible_To_Columns.from (that:Jackson_Object) =
+    Convertible_To_Columns.Value that.field_names that.get
+
+## PRIVATE
 Convertible_To_Columns.from (that:Map) =
     pairs = that.keys.map k-> [k.to_text, k]
     field_map = pairs.if_not_error <|
         Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
             Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_display_text+" to a set of columns, because its keys are duplicated when converted to text.")
     Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Pair) =
+    Convertible_To_Columns.Value ["0", "1"] (k-> if k == "0" then that.first else that.second)
+
+## PRIVATE
+Convertible_To_Columns.from (that:Vector) =
+    fields = 0.up_to that.length . map _.to_text
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Array) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Range) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Date_Range) = Convertible_To_Columns.from that.to_vector
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Any) =
