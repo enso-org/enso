@@ -75,7 +75,6 @@
     },
 
     "S3DataLink": {
-      "$comment": "missing <headers with secrets> OR <query string with secrets>",
       "title": "S3",
       "type": "object",
       "properties": {
@@ -91,6 +90,7 @@
       "required": ["type", "uri", "auth"]
     },
     "HttpFetchDataLink": {
+      "$comment": "missing <headers with secrets> OR <query string with secrets>",
       "title": "HTTP Fetch",
       "type": "object",
       "properties": {
