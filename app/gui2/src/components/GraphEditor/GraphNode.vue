@@ -355,6 +355,7 @@ function portGroupStyle(port: PortData) {
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
+    :data-node-id="nodeId"
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>

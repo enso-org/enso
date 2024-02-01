@@ -519,7 +519,7 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error.Error "Column "+column.name)
 
-    ## ALIAS filter rows
+    ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -2516,8 +2516,8 @@ type Table
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     @format Widget_Helpers.write_table_selector
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
 

@@ -1,18 +1,18 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "Process" <|
-        Test.specify "should call simple command" <|
+
+add_specs suite_builder =
+    suite_builder.group "Process" group_builder->
+        group_builder.specify "should call simple command" <|
             result = case Platform.os of
                 Platform.OS.Windows ->
                     Process.run "PowerShell" ["-Command", "exit 0"]
                 _ ->
                     Process.run "bash" ["-c", "exit 0"]
             result.exit_code.should_equal Exit_Code.Success
-        Test.specify "should return exit code" <|
+        group_builder.specify "should return exit code" <|
             case Platform.os of
                 Platform.OS.Unknown ->
                     Test.fail "Unsupported platform."
@@ -28,7 +28,7 @@ spec =
 
                     s = Process.run "bash" ["-c", "exit 0"]
                     s.exit_code.should_equal <| Exit_Code.Success
-        Test.specify "should return stdout" <|
+        group_builder.specify "should return stdout" <|
             case Platform.os of
                 Platform.OS.Unknown ->
                     Test.fail "Unsupported platform."
@@ -54,7 +54,7 @@ spec =
                     run_result.exit_code.to_number . should_equal 0
                     run_result.stdout . should_equal "Hello"
                     run_result.stderr . should_equal ""
-        Test.specify "should return stderr" <|
+        group_builder.specify "should return stderr" <|
             case Platform.os of
                 Platform.OS.Unknown ->
                     Test.fail "Unsupported platform."
@@ -80,7 +80,7 @@ spec =
                     run_result.exit_code.to_number . should_equal 0
                     run_result.stdout . should_equal ""
                     run_result.stderr . should_equal "Error"
-        Test.specify "should feed stdin" <|
+        group_builder.specify "should feed stdin" <|
             case Platform.os of
                 Platform.OS.Unknown ->
                     Test.fail "Unsupported platform."
@@ -107,4 +107,8 @@ spec =
                     run_result.stdout . should_equal 'sample'
                     run_result.stderr . should_equal ""
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

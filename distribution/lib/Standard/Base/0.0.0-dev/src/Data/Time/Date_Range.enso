@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
@@ -202,7 +203,9 @@ type Date_Range
 
              (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
     to_vector : Vector Date
-    to_vector self = self.map x->x
+    to_vector self =
+        proxy = Array_Proxy.new self.length self.at
+        Vector.from_polyglot_array proxy
 
     ## GROUP Logical
        Checks if this range is empty.
