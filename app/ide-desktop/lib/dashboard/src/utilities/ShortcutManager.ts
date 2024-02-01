@@ -457,8 +457,16 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
   [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
   [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
   [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
-  [KeyboardAction.newSecret]: [keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], 'N')],
-  [KeyboardAction.newDataLink]: [keybind(KeyboardAction.newDataLink, [CTRL, 'Alt', 'Shift'], 'N')],
+  [KeyboardAction.newSecret]: [
+    keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], 'N'),
+    ...(!detect.isOnMacOS() ? [] : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], '~')]),
+  ],
+  [KeyboardAction.newDataLink]: [
+    keybind(KeyboardAction.newDataLink, [CTRL, 'Alt', 'Shift'], 'N'),
+    ...(!detect.isOnMacOS()
+      ? []
+      : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt', 'Shift'], '~')]),
+  ],
   [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
   [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
   [KeyboardAction.changeYourPassword]: [],
