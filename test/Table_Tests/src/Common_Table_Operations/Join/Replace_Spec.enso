@@ -26,7 +26,6 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
-    materialize = setup.materialize
     suite_builder.group prefix+"Table.replace" group_builder->
         data = Data.setup create_connection_fn
 
@@ -39,15 +38,15 @@ add_specs suite_builder setup =
         group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]] |> materialize
-            result = table.replace lookup_table 'x' |> materialize
+            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            result = table.replace lookup_table 'x'
             result . should_equal expected
 
         group_builder.specify "should be able to replace values via a lookup table, specifying from/to columns" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]] |> materialize
-            result = table.replace lookup_table 'x' 'x' 'z' |> materialize
+            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            result = table.replace lookup_table 'x' 'x' 'z'
             result . should_equal expected
 
         group_builder.specify "should fail with Illegal_Argument if the specified columns do not exist" <|
@@ -60,8 +59,8 @@ add_specs suite_builder setup =
         group_builder.specify "can allow unmatched rows" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [4, 3, 1]], ['z', [40, 30, 10]]]
-            expected = table_builder [['x', [10, 2, 30, 40]], ['y', ['a', 'b', 'c', 'd']]] |> materialize
-            result = table.replace lookup_table 'x' |> materialize
+            expected = table_builder [['x', [10, 2, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
+            result = table.replace lookup_table 'x'
             result . should_equal expected
 
         group_builder.specify "fails on unmatched rows" <|
@@ -77,14 +76,14 @@ add_specs suite_builder setup =
         group_builder.specify "should avoid name clashes in the generated column name" <|
             table = table_builder [['duplicate_key', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
-            expected = table_builder [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]] |> materialize
-            result = table.replace lookup_table 'duplicate_key' |> materialize
+            expected = table_builder [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
+            result = table.replace lookup_table 'duplicate_key'
             result . should_equal expected
 
         group_builder.specify "(edge-case) should allow lookup with itself" <|
             table = table_builder [['x', [2, 1, 4, 3]], ['y', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]] |> materialize
-            result = table.replace table 'x' |> materialize
+            expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]]
+            result = table.replace table 'x'
             result . should_equal expected
 
         group_builder.specify "should fail on null key values in lookup table" <|
