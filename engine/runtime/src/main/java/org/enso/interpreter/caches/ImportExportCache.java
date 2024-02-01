@@ -56,8 +56,7 @@ public final class ImportExportCache
   protected CachedBindings deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref =
-        Persistance.read(data.array(), CacheUtils.readResolve(context.getCompiler().context()));
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }
