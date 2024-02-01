@@ -10,21 +10,15 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
-import * as validation from '#/utilities/validation'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-// =================
-// === Constants ===
-// =================
-
-const LOGIN_QUERY_PARAMS = {
-  email: 'email',
-} as const
+import * as validation from '#/utilities/validation'
 
 // =============
 // === Login ===
@@ -38,10 +32,11 @@ export interface LoginProps {
 /** A form for users to log in. */
 export default function Login(props: LoginProps) {
   const { supportsLocalBackend } = props
-  const { search } = router.useLocation()
+  const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
 
-  const initialEmail = parseUrlSearchParams(search)
+  const query = new URLSearchParams(location.search)
+  const initialEmail = query.get('email')
 
   const [email, setEmail] = React.useState(initialEmail ?? '')
   const [password, setPassword] = React.useState('')
@@ -146,11 +141,4 @@ export default function Login(props: LoginProps) {
       )}
     </div>
   )
-}
-
-/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
-function parseUrlSearchParams(search: string) {
-  const query = new URLSearchParams(search)
-  const email = query.get(LOGIN_QUERY_PARAMS.email)
-  return email
 }

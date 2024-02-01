@@ -13,20 +13,26 @@ import * as toast from 'react-toastify'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as backendModule from '#/services/backend'
-import * as localBackend from '#/services/localBackend'
-import * as remoteBackend from '#/services/remoteBackend'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
+
 import * as errorModule from '#/utilities/error'
-import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
+import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+
+import * as cognitoModule from '#/authentication/cognito'
+import type * as authServiceModule from '#/authentication/service'
 
 // =================
 // === Constants ===
@@ -34,22 +40,6 @@ import * as object from '#/utilities/object'
 
 /** The minimum delay between two requests. */
 const REQUEST_DELAY_MS = 200
-const MESSAGES = {
-  signUpSuccess: 'We have sent you an email with further instructions!',
-  confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
-  confirmSignUpFailure: 'Incorrect email or confirmation code.',
-  setUsernameLoading: 'Setting username...',
-  setUsernameSuccess: 'Your username has been set!',
-  setUsernameFailure: 'Could not set your username.',
-  signInWithPasswordSuccess: 'Successfully logged in!',
-  forgotPasswordSuccess: 'We have sent you an email with further instructions!',
-  changePasswordSuccess: 'Successfully changed password!',
-  resetPasswordSuccess: 'Successfully reset password!',
-  signOutLoading: 'Logging out...',
-  signOutSuccess: 'Successfully logged out!',
-  signOutError: 'Could not log out, please try again.',
-  pleaseWait: 'Please wait...',
-} as const
 
 // ===================
 // === UserSession ===
@@ -123,7 +113,7 @@ interface AuthContextType {
   goOffline: (shouldShowToast?: boolean) => Promise<boolean>
   signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
   confirmSignUp: (email: string, code: string) => Promise<boolean>
-  setUsername: (backend: backendModule.Backend, username: string, email: string) => Promise<boolean>
+  setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
   signInWithGoogle: () => Promise<boolean>
   signInWithGitHub: () => Promise<boolean>
   signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -225,12 +215,12 @@ export default function AuthProvider(props: AuthProviderProps) {
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
     if (supportsLocalBackend) {
-      setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
+      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
-      const client = new http.Client([['Authorization', '']])
-      setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
+      const client = new HttpClient([['Authorization', '']])
+      setBackendWithoutSavingType(new RemoteBackend(client, logger))
     }
   }, [
     /* should never change */ projectManagerUrl,
@@ -287,9 +277,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     const onFetchError = () => {
       void goOffline()
     }
-    document.addEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
     return () => {
-      document.removeEventListener(http.FETCH_ERROR_EVENT_NAME, onFetchError)
+      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
     }
   }, [/* should never change */ goOffline])
 
@@ -310,8 +300,8 @@ export default function AuthProvider(props: AuthProviderProps) {
           setUserSession(null)
         }
       } else {
-        const client = new http.Client([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new remoteBackend.RemoteBackend(client, logger)
+        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+        const backend = new RemoteBackend(client, logger)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
@@ -421,7 +411,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const withLoadingToast =
     <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
     async (...args: T) => {
-      toast.toast.loading(MESSAGES.pleaseWait, { toastId })
+      toast.toast.loading('Please wait...', { toastId })
       return await action(...args)
     }
 
@@ -453,7 +443,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_sign_up')
     const result = await cognito.signUp(username, password, organizationId)
     if (result.ok) {
-      toastSuccess(MESSAGES.signUpSuccess)
+      toastSuccess('We have sent you an email with further instructions!')
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -465,18 +455,21 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_confirm_sign_up')
     const result = await cognito.confirmSignUp(email, code)
     if (result.err) {
-      switch (result.val.kind) {
-        case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
+      switch (result.val.type) {
+        case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
           break
-        case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
-          toastError(MESSAGES.confirmSignUpFailure)
+        }
+        case cognitoModule.CognitoErrorType.userNotFound: {
+          toastError('Incorrect email or confirmation code.')
           navigate(appUtils.LOGIN_PATH)
           return false
-        default:
-          throw new errorModule.UnreachableCaseError(result.val.kind)
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
+        }
       }
     }
-    toastSuccess(MESSAGES.confirmSignUpSuccess)
+    toastSuccess('Your account has been confirmed! Please log in.')
     navigate(appUtils.LOGIN_PATH)
     return result.ok
   }
@@ -485,9 +478,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_sign_in', { provider: 'Email' })
     const result = await cognito.signInWithPassword(email, password)
     if (result.ok) {
-      toastSuccess(MESSAGES.signInWithPasswordSuccess)
+      toastSuccess('Successfully logged in!')
     } else {
-      if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
+      if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
         // It may not be safe to pass the user's password in the URL.
         navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
       }
@@ -496,7 +489,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     return result.ok
   }
 
-  const setUsername = async (backend: backendModule.Backend, username: string, email: string) => {
+  const setUsername = async (backend: Backend, username: string, email: string) => {
     if (backend.type === backendModule.BackendType.local) {
       toastError('You cannot set your username on the local backend.')
       return false
@@ -514,9 +507,9 @@ export default function AuthProvider(props: AuthProviderProps) {
               organizationId != null ? backendModule.UserOrOrganizationId(organizationId) : null,
           }),
           {
-            success: MESSAGES.setUsernameSuccess,
-            error: MESSAGES.setUsernameFailure,
-            pending: MESSAGES.setUsernameLoading,
+            success: 'Your username has been set!',
+            error: 'Could not set your username.',
+            pending: 'Setting username...',
           }
         )
         const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
@@ -536,7 +529,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const forgotPassword = async (email: string) => {
     const result = await cognito.forgotPassword(email)
     if (result.ok) {
-      toastSuccess(MESSAGES.forgotPasswordSuccess)
+      toastSuccess('We have sent you an email with further instructions!')
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -547,7 +540,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const resetPassword = async (email: string, code: string, password: string) => {
     const result = await cognito.forgotPasswordSubmit(email, code, password)
     if (result.ok) {
-      toastSuccess(MESSAGES.resetPasswordSuccess)
+      toastSuccess('Successfully reset password!')
       navigate(appUtils.LOGIN_PATH)
     } else {
       toastError(result.val.message)
@@ -558,7 +551,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const changePassword = async (oldPassword: string, newPassword: string) => {
     const result = await cognito.changePassword(oldPassword, newPassword)
     if (result.ok) {
-      toastSuccess(MESSAGES.changePasswordSuccess)
+      toastSuccess('Successfully changed password!')
     } else {
       toastError(result.val.message)
     }
@@ -578,9 +571,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     // This should not omit success and error toasts as it is not possible
     // to render this optimistically.
     await toast.toast.promise(cognito.signOut(), {
-      success: MESSAGES.signOutSuccess,
-      error: MESSAGES.signOutError,
-      pending: MESSAGES.signOutLoading,
+      success: 'Successfully logged out!',
+      error: 'Could not log out, please try again.',
+      pending: 'Logging out...',
     })
     return true
   }

@@ -110,6 +110,11 @@ pub mod secret {
     pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+/// Return an expression piece that evaluates to `true` if the current branch is not the default.
+pub fn not_default_branch() -> String {
+    format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
+}
+
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
 }

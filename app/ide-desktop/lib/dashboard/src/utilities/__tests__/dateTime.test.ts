@@ -1,7 +1,7 @@
 /** @file Tests for `dateTime.ts`. */
 import * as v from 'vitest'
 
-import * as dateTime from '../dateTime'
+import * as dateTime from '#/utilities/dateTime'
 
 // =============
 // === Tests ===

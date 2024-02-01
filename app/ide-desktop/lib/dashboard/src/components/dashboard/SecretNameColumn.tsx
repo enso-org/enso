@@ -3,24 +3,28 @@ import * as React from 'react'
 
 import ConnectorIcon from 'enso-assets/connector.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
+import type * as column from '#/components/dashboard/column'
+
+import * as backendModule from '#/services/Backend'
+
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
 
 // =====================
 // === ConnectorName ===
@@ -38,20 +42,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
-
-  // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-  // context menu entry should be re-added.
-  // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-  const doRename = async () => {
-    await Promise.resolve(null)
-  }
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
@@ -122,7 +119,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       onClick={event => {
         if (
           eventModule.isSingleClick(event) &&
-          (selected || shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+          (selected ||
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
@@ -144,27 +142,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       }}
     >
       <img src={ConnectorIcon} className="m-1" />
-      <EditableSpan
-        editable={false}
-        onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
-          if (newTitle !== asset.title) {
-            const oldTitle = asset.title
-            setAsset(object.merger({ title: newTitle }))
-            try {
-              await doRename()
-            } catch {
-              setAsset(object.merger({ title: oldTitle }))
-            }
-          }
-        }}
-        onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
-        }}
-        className="bg-transparent grow leading-170 h-6 py-px"
-      >
+      {/* Secrets cannot be renamed. */}
+      <span data-testid="asset-row-name" className="bg-transparent grow leading-170 h-6 py-px">
         {asset.title}
-      </EditableSpan>
+      </span>
     </div>
   )
 }
