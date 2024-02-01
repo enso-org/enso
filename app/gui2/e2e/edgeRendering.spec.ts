@@ -48,13 +48,13 @@ test('Hover behaviour of edges', async ({ page }) => {
 
   const targetEdge = edgeElements.first()
   await expect(targetEdge).toHaveClass('edge io')
+  // It is not currently possible to interact with edges in the default node layout.
+  // See: https://github.com/enso-org/enso/issues/8938
+  /*
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.hover({
     position: { x: 60, y: 45 }, // source node
   })
-  // It is not currently possible to interact with edges in the default node layout.
-  // See: https://github.com/enso-org/enso/issues/8938
-  /*
   // Expect an extra edge for the split rendering.
   const hoveredEdgeElements = await edgesFromNodeWithBinding(page, 'ten')
   await expect(hoveredEdgeElements).toHaveCount(2 * EDGE_PARTS)
