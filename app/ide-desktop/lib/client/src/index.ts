@@ -281,7 +281,7 @@ class App {
                 const useHiddenInsetTitleBar = !useFrame && macOS
                 const useVibrancy = this.args.groups.window.options.vibrancy.value
                 const webPreferences: electron.WebPreferences = {
-                    preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
+                    preload: pathModule.join(paths.APP_PATH, 'preload.js'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,

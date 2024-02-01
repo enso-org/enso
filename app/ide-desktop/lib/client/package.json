@@ -26,6 +26,7 @@
     "electron-is-dev": "^2.0.0",
     "mime-types": "^2.1.35",
     "opener": "^1.5.2",
+    "portfinder": "^1.0.32",
     "string-length": "^5.0.1",
     "tar": "^6.1.13",
     "yargs": "17.6.2"
@@ -35,12 +36,11 @@
   },
   "devDependencies": {
     "@electron/notarize": "2.1.0",
-    "electron": "25.7.0",
+    "electron": "28.2.0",
     "electron-builder": "^22.14.13",
     "enso-common": "^1.0.0",
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
-    "portfinder": "^1.0.32",
     "tsx": "^3.12.6"
   },
   "optionalDependencies": {

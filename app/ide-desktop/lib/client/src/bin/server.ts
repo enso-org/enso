@@ -176,11 +176,11 @@ export class Server {
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
-            // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+            // `preload.js` must be specialcased here as it is loaded by electron from the root,
             // in contrast to all assets loaded by the window, which are loaded from `assets/` via
             // this server.
             const resourceFile =
-                resource === '/preload.cjs.map'
+                resource === '/preload.js.map'
                     ? `${paths.APP_PATH}${resource}`
                     : `${this.config.dir}${resource}`
             for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
