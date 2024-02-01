@@ -2,53 +2,53 @@ from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
+
+add_specs suite_builder =
     sample_xxx = enso_project.data / "sample.xxx"
     sample_txt = enso_project.data / "helloworld.txt"
     windows_log = enso_project.data / "windows.log"
 
-    Test.group "Auto_Detect" <|
-        Test.specify "should raise an error when reading an unknown file" <|
+    suite_builder.group "Auto_Detect" group_builder->
+        group_builder.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
             bytes.should_fail_with File_Error
             bytes.catch.should_be_a File_Error.Unsupported_Type
 
-        Test.specify "should be able to read a text file" <|
+        group_builder.specify "should be able to read a text file" <|
             content = sample_txt.read
             content.should_equal "Hello World!"
 
-        Test.specify "should raise a not-found error when reading a nonexistent file even of unknown format" <|
+        group_builder.specify "should raise a not-found error when reading a nonexistent file even of unknown format" <|
             r1 = (File.new "nonexistent.file.of.weird-format").read
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Not_Found
 
-    Test.group "Bytes" <|
-        Test.specify "should be able to read a file as Bytes" <|
+    suite_builder.group "Bytes" group_builder->
+        group_builder.specify "should be able to read a file as Bytes" <|
             bytes = sample_xxx.read Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
-        Test.specify "should be able to read a file as Bytes by method" <|
+        group_builder.specify "should be able to read a file as Bytes by method" <|
             bytes = Data.read (sample_xxx) Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
-        Test.specify "should be able to read a file as Bytes by path" <|
+        group_builder.specify "should be able to read a file as Bytes by path" <|
             path = sample_xxx.path
             bytes = Data.read path Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
-    Test.group "Plain_Text" <|
-        Test.specify "should be able to read a file as Text" <|
+    suite_builder.group "Plain_Text" group_builder->
+        group_builder.specify "should be able to read a file as Text" <|
             text = sample_xxx.read Plain_Text
             text.should_equal "Hello World!"
 
-        Test.specify "should be able to read a file as Text with Encoding" <|
+        group_builder.specify "should be able to read a file as Text with Encoding" <|
             text = windows_log.read (Plain_Text Encoding.windows_1252)
             text.should_equal "Hello World! $¢¤¥"
 
-        Test.specify "should raise a warning when invalid encoding in a Text file" <|
+        group_builder.specify "should raise a warning when invalid encoding in a Text file" <|
             action = windows_log.read (Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
@@ -58,8 +58,8 @@ spec =
             Problems.expect_only_warning Encoding_Error <|
                 windows_log.read (Plain_Text Encoding.ascii)
 
-    Test.group "JSON_Format" <|
-        Test.specify "should be able to read a file as Json" <|
+    suite_builder.group "JSON_Format" group_builder->
+        group_builder.specify "should be able to read a file as Json" <|
             f1 = enso_project.data / "sample.json"
             j1 = f1.read
             j1.at "arr" . should_equal [1, 2, 3]
@@ -73,10 +73,14 @@ spec =
             j2.at 2 . should_equal Nothing
             j2.at 3 . should_equal "baz"
 
-        Test.specify "should gracefully handle malformed files" <|
+        group_builder.specify "should gracefully handle malformed files" <|
             f1 = enso_project.data / "sample-malformed.json"
             r1 = f1.read
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

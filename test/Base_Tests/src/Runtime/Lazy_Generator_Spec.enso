@@ -1,5 +1,5 @@
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type Generator
     Value n ~next
@@ -8,8 +8,8 @@ natural =
     gen n = Generator.Value n (gen n+1)
     gen 2
 
-spec = Test.group "Lazy Generator" <|
-    Test.specify "Generates four numbers properly" <|
+add_specs suite_builder = suite_builder.group "Lazy Generator" group_builder->
+    group_builder.specify "Generates four numbers properly" <|
         two = natural
         two.n . should_equal 2
         three = two.next
@@ -17,4 +17,8 @@ spec = Test.group "Lazy Generator" <|
         four = three.next
         four.n . should_equal 4
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

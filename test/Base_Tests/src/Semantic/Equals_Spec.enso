@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.math.BigInteger as Java_Big_Integer
 polyglot java import java.nio.file.Path as Java_Path
@@ -132,9 +132,9 @@ foreign js js_obj a b = """
     m.b = b;
     return m;
 
-spec =
-    Test.group "Operator ==" <|
-        Test.specify "should handle primitive values" <|
+add_specs suite_builder =
+    suite_builder.group "Operator ==" group_builder->
+        group_builder.specify "should handle primitive values" <|
             (2 == (2.0)).should_be_true
             (2 == (2.1)).should_be_false
             (2.0).should_equal 2
@@ -143,16 +143,16 @@ spec =
             (js_true == False).should_be_false
             (js_text_foo == "foo").should_be_true
 
-        Test.specify "should handle Text via NFD normalization" <|
+        group_builder.specify "should handle Text via NFD normalization" <|
             ('ś' == 's\u0301') . should_be_true
             ('e\u0301abc' == 'éabc') . should_be_true
             ('e\u0301abc' == 'é') . should_be_false
             ((Point.Value 'ś' 23.0) == (Point.Value 's\u0301' 23)) . should_be_true
 
-        Test.specify "should dispatch to overriden `==` on atoms" <|
+        group_builder.specify "should dispatch to overriden `==` on atoms" <|
             (Child.Value 11 == Child.Value 111) . should_be_true
 
-        Test.specify "should dispatch to overriden `==` on atoms transitively" <|
+        group_builder.specify "should dispatch to overriden `==` on atoms transitively" <|
             child1 = Child.Value 11
             parent1 = Parent.Value child1
             grand_parent1 = GrandParent.Value parent1
@@ -163,34 +163,34 @@ spec =
 
             (grand_parent1 == grand_parent2).should_be_true
 
-        Test.specify "should handle `==` on types with many fields with custom comparator" <|
+        group_builder.specify "should handle `==` on types with many fields with custom comparator" <|
             many_fields1 = ManyFieldType.Value (Child.Value 1) (Child.Value 2) (Child.Value 3) (Child.Value 4) (Child.Value 5) (Child.Value 6) (Child.Value 7) (Child.Value 8) (Child.Value 9) (Child.Value 10) (Child.Value 11) (Child.Value 12) (Child.Value 13) (Child.Value 14) (Child.Value 15)
             many_fields2 = ManyFieldType.Value (Child.Value 101) (Child.Value 102) (Child.Value 103) (Child.Value 104) (Child.Value 105) (Child.Value 106) (Child.Value 107) (Child.Value 108) (Child.Value 109) (Child.Value 110) (Child.Value 111) (Child.Value 112) (Child.Value 113) (Child.Value 114) (Child.Value 115)
 
             (many_fields1 == many_fields2).should_be_true
 
-        Test.specify "should handle `==` on atoms with fields with mixed comparators" <|
+        group_builder.specify "should handle `==` on atoms with fields with mixed comparators" <|
             obj_1 = FourFieldType.Value (Child.Value 1) 42 (Child.Value 2) 83
             obj_2 = FourFieldType.Value (Child.Value 101) 42 (Child.Value 102) 83
             (obj_1 == obj_2).should_be_true
 
-        Test.specify "should be able to compare atoms with different constructors" <|
+        group_builder.specify "should be able to compare atoms with different constructors" <|
             ((CustomEqType.C1 10) == (CustomEqType.C2 7 3)).should_be_true
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
-        Test.specify "should dispatch to equals on host values" <|
+        group_builder.specify "should dispatch to equals on host values" <|
             path1 = Java_Path.of "home" "user" . resolve "file.txt"
             path2 = Java_Path.of "home" "user" "file.txt"
             (path1 == path2).should_be_true
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false
 
-        Test.specify "should return False for different Atoms with same fields" <|
+        group_builder.specify "should return False for different Atoms with same fields" <|
             rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
 
-        Test.specify "Any.== should check for Meta.is_same_object" <|
+        group_builder.specify "Any.== should check for Meta.is_same_object" <|
             obj_1 = My_Nan.Value 42
             obj_2 = My_Nan.Value 42
             (obj_1 == obj_2).should_be_false
@@ -198,25 +198,25 @@ spec =
             (obj_1 == obj_1).should_be_true
             Meta.is_same_object obj_1 obj_1 . should_be_true
 
-        Test.specify "should handle `==` on types" <|
+        group_builder.specify "should handle `==` on types" <|
             (Child == Child).should_be_true
             (Child == Point).should_be_false
             (Point == Child).should_be_false
             (Boolean == Any).should_be_false
             (Boolean == Boolean).should_be_true
 
-        Test.specify "should handle `==` on types with Any as first operand" <|
+        group_builder.specify "should handle `==` on types with Any as first operand" <|
             (Any == Boolean).should_be_false
             (Any == Any).should_be_true
 
-        Test.specify "should dispatch to overriden `==` in vectors" <|
+        group_builder.specify "should dispatch to overriden `==` in vectors" <|
             ([(Child.Value 1)] == [(Child.Value 101)]).should_be_true
             ([(Child.Value 1)] == [(Child.Value 2)]).should_be_false
 
-        Test.specify "should dispatch to overriden `==` in arrays" <|
+        group_builder.specify "should dispatch to overriden `==` in arrays" <|
             ([Child.Value 1].to_array == [Child.Value 101].to_array).should_be_true
 
-        Test.specify "should handle recursive atoms without custom `==`" <|
+        group_builder.specify "should handle recursive atoms without custom `==`" <|
             rnd = (Random.new_generator seed=42).java_random
             trees = (0.up_to 5).map _->
                 create_random_tree 5 rnd
@@ -224,13 +224,13 @@ spec =
                 dupl_tree = tree.deep_copy
                 Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
-        Test.specify "partially applied constructors aren't == " <|
+        group_builder.specify "partially applied constructors aren't == " <|
             f1 = CustomEqType.C2 10
             f2 = CustomEqType.C2 10
             f1==f2 . should_be_false
 
-    Test.group "Polyglot Operator ==" <|
-        Test.specify "should not try to compare members" <|
+    suite_builder.group "Polyglot Operator ==" group_builder->
+        group_builder.specify "should not try to compare members" <|
             x = IntHolder.new 5
             y = IntHolder.new 5
             z = IntHolder.new 3
@@ -240,7 +240,7 @@ spec =
             x==x . should_be_true
             z==z . should_be_true
 
-        Test.specify "should not try to compare members in JS object" <|
+        group_builder.specify "should not try to compare members in JS object" <|
             x = js_obj 5 3
             y = js_obj 5 3
             z = js_obj 3 5
@@ -250,7 +250,7 @@ spec =
             x==x . should_be_true
             z==z . should_be_true
 
-        Test.specify "should invoke equals" <|
+        group_builder.specify "should invoke equals" <|
             x = IntHolderEquals.new 5
             y = IntHolderEquals.new 5
             z = IntHolderEquals.new 3
@@ -260,23 +260,27 @@ spec =
             x==x . should_be_true
             z==z . should_be_true
 
-        Test.specify "should compare big integer" <|
+        group_builder.specify "should compare big integer" <|
             x = Java_Big_Integer.new "54024430107564432"
             y = Java_Big_Integer.new "54024430107564432"
             x==y . should_be_true
 
-        Test.specify "JSON is found different" <|
+        group_builder.specify "JSON is found different" <|
             x = js_json 10 5
             y = js_json 10 5
             x==y . should_be_false
 
-        Test.specify "Identical JSON is found equal" <|
+        group_builder.specify "Identical JSON is found equal" <|
             x = js_json 10 5
             x==x . should_be_true
 
-        Test.specify "JavaScript Map is found same" <|
+        group_builder.specify "JavaScript Map is found same" <|
             x = js_map 10 5
             y = js_map 10 5
             x==y . should_be_true
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
