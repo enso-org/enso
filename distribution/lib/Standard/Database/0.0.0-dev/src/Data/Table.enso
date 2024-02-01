@@ -1428,10 +1428,9 @@ type Table
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values.
-       - column: the column within the base table to perform the replace
-         on.
-       - from_column: the column within `lookup_table` to match against
-         `column` in the base table.
+       - column: the column within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against `column`
+         in `self`.
        - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.

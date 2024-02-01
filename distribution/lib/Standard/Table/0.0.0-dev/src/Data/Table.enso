@@ -1967,10 +1967,9 @@ type Table
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values.
-       - column: the column within the base table to perform the replace
-         on.
-       - from_column: the column within `lookup_table` to match against
-         `column` in the base table.
+       - column: the column within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against `column`
+         in `self`.
        - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
@@ -2048,12 +2047,12 @@ type Table
             self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
 
             ## Create a lookup table with just `to_column` and `from_column`,
-               renamed to match the base table's `column` and its
-               duplicate, respectively.
+               renamed to match the base table's `column` and its duplicate,
+               respectively.
             lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename column]
 
-            merged = self_with_duplicate.merge lookup_table_renamed [duplicate_key_column_name] add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-            result = merged.remove_columns [duplicate_key_column_name]
+            merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+            result = merged.remove_columns duplicate_key_column_name
             result
 
     ## ALIAS join by row position
