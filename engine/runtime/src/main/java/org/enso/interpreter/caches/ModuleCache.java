@@ -12,11 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
@@ -41,26 +39,18 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   @Override
+  protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
+    var arr =
+        Persistance.write(
+            entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context()));
+    return arr;
+  }
+
+  @Override
   protected CachedModule deserialize(
       EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref =
-        Persistance.read(
-            data,
-            (obj) ->
-                switch (obj) {
-                  case ProcessingPass.Metadata metadata -> {
-                    var option = metadata.restoreFromSerialization(context.getCompiler().context());
-                    if (option.nonEmpty()) {
-                      yield option.get();
-                    } else {
-                      throw raise(
-                          RuntimeException.class, new IOException("Cannot convert " + metadata));
-                    }
-                  }
-                  case null -> null;
-                  default -> obj;
-                });
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var mod = ref.get(Module.class);
     return new CachedModule(
         mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
@@ -146,22 +136,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
   }
 
-  @Override
-  protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-    var arr =
-        Persistance.write(
-            entry.moduleIR(),
-            (obj) ->
-                switch (obj) {
-                  case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(
-                      context.getCompiler().context());
-                  case UUID uuid -> null;
-                  case null -> null;
-                  default -> obj;
-                });
-    return arr;
-  }
-
   public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {}
 
   public record Metadata(String sourceHash, String blobHash, String compilationStage)
@@ -187,9 +161,4 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   private static final String irCacheDataExtension = ".ir";
 
   private static final String irCacheMetadataExtension = ".meta";
-
-  @SuppressWarnings("unchecked")
-  private static <T extends Exception> T raise(Class<T> cls, Exception e) throws T {
-    throw (T) e;
-  }
 }

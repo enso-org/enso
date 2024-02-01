@@ -5,7 +5,9 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -21,6 +23,7 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
@@ -250,9 +253,41 @@ final class TruffleCompilerContext implements CompilerContext {
     return (Future<Boolean>) res;
   }
 
+  private final Map<LibraryName, MapToBindings> known = new HashMap<>();
+
   @Override
   public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
+    var library = module.getPackage().libraryName();
+    var bindings = known.get(library);
+    if (bindings == null) {
+      var cached = serializationManager.deserializeLibraryBindings(library);
+      if (cached.isDefined()) {
+        bindings = cached.get().bindings();
+        known.put(library, bindings);
+      }
+    }
+    if (bindings != null) {
+      var ir = bindings.findForModule(module.getName());
+      loggerSerializationManager.log(
+          Level.FINE,
+          "Deserializing module " + module.getName() + " from library: " + (ir != null));
+      if (ir != null) {
+        compiler
+            .context()
+            .updateModule(
+                module,
+                (u) -> {
+                  u.ir(ir);
+                  u.compilationStage(CompilationStage.AFTER_STATIC_PASSES);
+                  u.loadedFromCache(true);
+                });
+        return true;
+      }
+    }
+    var level = "Standard".equals(library.namespace()) ? Level.WARNING : Level.FINE;
     var result = serializationManager.deserialize(compiler, module);
+    loggerSerializationManager.log(
+        level, "Deserializing module " + module.getName() + " from IR file: " + result.nonEmpty());
     return result.nonEmpty();
   }
 

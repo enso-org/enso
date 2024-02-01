@@ -2,12 +2,10 @@ package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.Compiler
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -31,6 +29,7 @@ import java.util.logging.Level
 
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
+import scala.jdk.CollectionConverters._
 
 final class SerializationManager(private val context: TruffleCompilerContext) {
 
@@ -205,18 +204,13 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
           .getModulesForLibrary(libraryName)
           .map { module =>
             val ir = module.getIr
-            val bindings = ir.unsafeGetMetadata(
-              BindingAnalysis,
-              "Non-parsed module used in ImportResolver"
-            )
-            val abstractBindings =
-              bindings.prepareForSerialization(compiler.context)
             (
               module.getName,
-              org.enso.persist.Persistance.Reference.of(abstractBindings)
+              ir
             )
           }
           .toMap
+          .asJava
       ),
       context
         .getPackageRepository()

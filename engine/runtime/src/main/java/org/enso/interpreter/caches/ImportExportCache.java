@@ -22,9 +22,6 @@ import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
-import scala.Option;
-import scala.Tuple2;
-import scala.collection.immutable.Map;
 
 @Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache
@@ -47,10 +44,18 @@ public final class ImportExportCache
   }
 
   @Override
+  protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
+    var arr =
+        Persistance.write(
+            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context()));
+    return arr;
+  }
+
+  @Override
   protected CachedBindings deserialize(
       EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref = Persistance.read(data, null);
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }
@@ -103,57 +108,34 @@ public final class ImportExportCache
             });
   }
 
-  @Override
-  protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-    var arr = Persistance.write(entry.bindings(), null);
-    return arr;
-  }
-
   public static final class MapToBindings {
-    private final Map<QualifiedName, Persistance.Reference<BindingsMap>> entries;
+    private final java.util.Map<QualifiedName, org.enso.compiler.core.ir.Module> entries;
 
-    public MapToBindings(Map<QualifiedName, Persistance.Reference<BindingsMap>> entries) {
+    public MapToBindings(java.util.Map<QualifiedName, org.enso.compiler.core.ir.Module> entries) {
       this.entries = entries;
     }
 
-    public Option<BindingsMap> findForModule(QualifiedName moduleName) {
-      var ref = entries.get(moduleName);
-      if (ref.isEmpty()) {
-        return Option.empty();
-      }
-      return Option.apply(ref.get().get(BindingsMap.class));
+    public org.enso.compiler.core.ir.Module findForModule(QualifiedName moduleName) {
+      return entries.get(moduleName);
     }
   }
 
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMapToBindings extends Persistance<MapToBindings> {
     public PersistMapToBindings() {
-      super(MapToBindings.class, false, 364);
+      super(MapToBindings.class, false, 3642);
     }
 
     @Override
     protected void writeObject(MapToBindings obj, Output out) throws IOException {
-      out.writeInt(obj.entries.size());
-      var it = obj.entries.iterator();
-      while (it.hasNext()) {
-        var e = it.next();
-        out.writeInline(QualifiedName.class, e._1());
-        out.writeObject(e._2().get(BindingsMap.class));
-      }
+      out.writeInline(java.util.Map.class, obj.entries);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MapToBindings readObject(Input in) throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var b = Map.newBuilder();
-      b.sizeHint(size);
-      while (size-- > 0) {
-        var name = in.readInline(QualifiedName.class);
-        var value = in.readReference(BindingsMap.class);
-        b.addOne(Tuple2.apply(name, value));
-      }
-      return new MapToBindings((Map) b.result());
+      var map = in.readInline(java.util.Map.class);
+      return new MapToBindings(map);
     }
   }
 
