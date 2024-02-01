@@ -31,7 +31,8 @@ type Nothing
     if_nothing : Any -> Any
     if_nothing self ~function = function
 
-    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+    ## GROUP Logical
+       If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 
        > Example

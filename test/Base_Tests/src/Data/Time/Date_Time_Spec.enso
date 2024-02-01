@@ -44,6 +44,32 @@ add_specs suite_builder =
             (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
             (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
 
+    suite_builder.group "Unix epoch conversion" group_builder->
+        group_builder.specify "should allow creating from second and nanosecond" <|
+            Date_Time.from_unix_epoch_seconds 0 . should_equal (Date_Time.new 1970 1 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1 . should_equal (Date_Time.new 1970 1 1 0 0 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1 123456789 . should_equal (Date_Time.new 1970 1 1 0 0 1 nanosecond=123456789 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1704371744 . should_equal (Date_Time.new 2024 1 4 12 35 44 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1704371744 123456789 . should_equal (Date_Time.new 2024 1 4 12 35 44 nanosecond=123456789 zone=Time_Zone.utc)
+
+        group_builder.specify "should allow creating from milliseconds" <|
+            Date_Time.from_unix_epoch_milliseconds 0 . should_equal (Date_Time.new 1970 1 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 1 . should_equal (Date_Time.new 1970 1 1 0 0 0 millisecond=1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 123 . should_equal (Date_Time.new 1970 1 1 0 0 0 millisecond=123 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 1704371744123 . should_equal (Date_Time.new 2024 1 4 12 35 44 millisecond=123 zone=Time_Zone.utc)
+
+        group_builder.specify "should allow convert to epoch seconds" <|
+            Date_Time.new 1970 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 0
+            Date_Time.new 1970 1 1 0 0 1 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1
+            Date_Time.new 1970 1 1 0 0 1 nanosecond=123456789 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1
+            Date_Time.new 2024 1 4 12 35 44 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1704371744
+
+        group_builder.specify "should allow convert to epoch milliseconds" <|
+            Date_Time.new 1970 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 0
+            Date_Time.new 1970 1 1 0 0 0 millisecond=1 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1
+            Date_Time.new 1970 1 1 0 0 0 millisecond=1 microsecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1
+            Date_Time.new 2024 1 4 12 35 44 millisecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1704371744123
+
 spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     suite_builder.group name group_builder->
 
