@@ -29,12 +29,14 @@ create_dry_run_file file copy_original =
             longer needed because the original file is back with the old contents).
 s3_backup file action = recover_errors <|
     backup_location = file.parent / (file.name + ".bak")
-    if file.exists then
+    has_backup = if file.exists.not then False else
         Panic.rethrow <| file.copy_to backup_location
+        True
 
     revert_backup =
-        Panic.rethrow <| backup_location.copy_to file
-        Panic.rethrow <| backup_location.delete
+        if has_backup then
+            Panic.rethrow <| backup_location.copy_to file
+            Panic.rethrow <| backup_location.delete
 
     with_failure_handler revert_backup <|
         file.with_output_stream [File_Access.Write, File_Access.Truncate_Existing] action
