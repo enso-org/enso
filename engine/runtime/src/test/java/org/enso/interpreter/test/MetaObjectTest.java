@@ -226,7 +226,8 @@ public class MetaObjectTest extends TestBase {
 
   @Test
   public void nothingWithWarningIsNotMeta() {
-    var src = """
+    var src =
+        """
 import Standard.Base.Warning.Warning
 import Standard.Base.Nothing.Nothing
 
