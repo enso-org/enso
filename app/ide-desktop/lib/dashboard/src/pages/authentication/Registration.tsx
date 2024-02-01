@@ -18,9 +18,25 @@ import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-import * as localStorageModule from '#/utilities/LocalStorage'
+import LocalStorage from '#/utilities/LocalStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    loginRedirect: string
+  }
+}
+
+LocalStorage.registerKey('loginRedirect', {
+  isUserSpecific: true,
+  tryParse: value => (typeof value === 'string' ? value : null),
+})
 
 // ====================
 // === Registration ===
@@ -45,9 +61,9 @@ export default function Registration() {
 
   React.useEffect(() => {
     if (redirectTo != null) {
-      localStorage.set(localStorageModule.LocalStorageKey.loginRedirect, redirectTo)
+      localStorage.set('loginRedirect', redirectTo)
     } else {
-      localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+      localStorage.delete('loginRedirect')
     }
   }, [localStorage, redirectTo])
 

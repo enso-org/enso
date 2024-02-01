@@ -660,6 +660,18 @@ export const assetIsSecret = assetIsType(AssetType.secret)
 export const assetIsFile = assetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
+/** Metadata describing a specific version of an asset. */
+export interface S3ObjectVersion {
+  versionId: string
+  lastModified: dateTime.Rfc3339DateTime
+  isLatest: boolean
+}
+
+/** A list of asset versions. */
+export interface AssetVersions {
+  versions: S3ObjectVersion[]
+}
+
 // ==============================
 // === compareUserPermissions ===
 // ==============================
@@ -921,6 +933,8 @@ export default abstract class Backend {
     body: UpdateDirectoryRequestBody,
     title: string
   ): Promise<UpdatedDirectory>
+  /** List previous versions of an asset. */
+  abstract listAssetVersions(assetId: AssetId, title: string | null): Promise<AssetVersions>
   /** Change the parent directory of an asset. */
   abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */

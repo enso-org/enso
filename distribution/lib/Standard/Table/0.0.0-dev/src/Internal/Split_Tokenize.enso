@@ -11,16 +11,16 @@ split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Probl
 split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
     column = table.at input_column_id
     Value_Type.expect_text column <|
-        fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
+        fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Table
-split_to_rows table input_column_id delimiter="," =
+split_to_rows table input_column_id:(Text|Integer) delimiter="," =
     column = table.at input_column_id
-    Value_Type.expect_text column
-        fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter)) at_least_one_row=True
+    Value_Type.expect_text column <|
+        fan_out_to_rows table column.name (handle_nothing (_.split delimiter)) at_least_one_row=True
 
 ## PRIVATE
    Tokenizes a column of text into a set of new columns using a regular
@@ -29,8 +29,8 @@ split_to_rows table input_column_id delimiter="," =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
     column = table.at input_column_id
-    Value_Type.expect_text column
-        fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
+    Value_Type.expect_text column <|
+        fan_out_to_columns table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular
@@ -39,8 +39,8 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
     column = table.at input_column_id
-    Value_Type.expect_text column
-        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
+    Value_Type.expect_text column <|
+        fan_out_to_rows table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
 
 ## PRIVATE
    Converts a Text column into new columns using a regular expression
@@ -54,13 +54,14 @@ parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensiti
             case_insensitive = case_sensitivity.is_case_insensitive_in_memory
             Regex.compile pattern case_insensitive=case_insensitive
 
-    fun = handle_nothing (regex_parse_to_vectors regex)
-    column_names = regex_to_column_names regex input_column_id
-
     column = table.at input_column_id
 
+    fun = handle_nothing (regex_parse_to_vectors regex)
+    column_names = regex_to_column_names regex column.name
+
+
     new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table input_column_id fun column_names at_least_one_row=True on_problems=on_problems
+        fan_out_to_rows_and_columns table column.name fun column_names at_least_one_row=True on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE

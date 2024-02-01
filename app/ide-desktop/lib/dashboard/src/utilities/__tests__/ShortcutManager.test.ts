@@ -25,7 +25,7 @@ v.test.each([
   },
   {
     event: new KeyboardEvent('keydown', { key: 'C', ctrlKey: true }),
-    action: shortcutManagerModule.KeyboardAction.copy,
+    action: shortcutManagerModule.KeyboardAction.copyAll,
   },
   {
     event: new KeyboardEvent('keydown', { key: 'X', ctrlKey: true }),
@@ -33,7 +33,7 @@ v.test.each([
   },
   {
     event: new KeyboardEvent('keydown', { key: 'V', ctrlKey: true }),
-    action: shortcutManagerModule.KeyboardAction.paste,
+    action: shortcutManagerModule.KeyboardAction.pasteAll,
   },
   // Disallow extra modifier keys
   {

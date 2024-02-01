@@ -13,16 +13,16 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-  canToggleSettingsPanel: boolean
-  isSettingsPanelVisible: boolean
-  setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  canToggleAssetPanel: boolean
+  isAssetPanelVisible: boolean
+  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A toolbar for displaying asset information. */
 // This parameter will be used in the future.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
-  const { canToggleSettingsPanel, isSettingsPanelVisible, setIsSettingsPanelVisible } = props
+  const { canToggleAssetPanel, isAssetPanelVisible, setIsAssetPanelVisible } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   return (
@@ -44,13 +44,13 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         }}
       />
       <Button
-        alt={isSettingsPanelVisible ? getText('closeAssetPanel') : getText('openAssetPanel')}
-        active={canToggleSettingsPanel && isSettingsPanelVisible}
-        disabled={!canToggleSettingsPanel}
+        alt={isAssetPanelVisible ? getText('closeAssetPanel') : getText('openAssetPanel')}
+        active={canToggleAssetPanel && isAssetPanelVisible}
+        disabled={!canToggleAssetPanel}
         image={SettingsIcon}
         error={getText('multipleAssetsSettingsError')}
         onClick={() => {
-          setIsSettingsPanelVisible(oldIsSettingsPanelVisible => !oldIsSettingsPanelVisible)
+          setIsAssetPanelVisible(visible => !visible)
         }}
       />
     </div>

@@ -23,6 +23,7 @@
   "noJSONEndpointError": "Could not get the address of the project's JSON endpoint",
   "noBinaryEndpointError": "Could not get the address of the project's binary endpoint",
 
+  "listVersionsError": "Could not list versions",
   "noAppDownloadError": "Could not find a compatible download link",
   "multipleAssetsSettingsError": "Select exactly one asset to see its settings.",
   "editDescriptionError": "Could not edit description",
@@ -71,6 +72,7 @@
   "listRootFolderBackendError": "Could not list root folder.",
   "createFolderBackendError": "Could not create folder '$0'.",
   "updateFolderBackendError": "Could not update folder '$0'.",
+  "listAssetVersionsBackendError": "Could not list versions for '$0'.",
   "updateAssetBackendError": "Could not update '$0'.",
   "deleteAssetBackendError": "Could not delete '$0'.",
   "undoDeleteAssetBackendError": "Could not restore '$0' from Trash.",
@@ -147,6 +149,7 @@
   "profilePicture": "Profile picture",
   "settingsFor": "Settings for ",
   "inviteMembers": "Invite Members",
+  "versions": "Versions",
 
   "itemSingular": "item",
   "itemPlural": "items",
@@ -216,6 +219,8 @@
   "newColon": "New:",
   "replyExclamation": "Reply!",
   "lastModifiedOn": "last modified on $0",
+  "versionX": "version $0",
+  "onDateX": "on $0",
   "deleteUserAccountButtonLabel": "Delete this user account",
   "deleteUserAccountWarning": "Once deleted, it will be gone forever. Please be certain.",
   "areYouSure": "Are you sure?",

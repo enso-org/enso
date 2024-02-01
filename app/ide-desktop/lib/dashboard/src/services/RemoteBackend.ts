@@ -354,6 +354,20 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** List all previous versions of an asset. */
+  override async listAssetVersions(
+    assetId: backendModule.AssetId,
+    title: string
+  ): Promise<backendModule.AssetVersions> {
+    const path = remoteBackendPaths.listAssetVersionsPath(assetId)
+    const response = await this.get<backendModule.AssetVersions>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('listAssetVersionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Change the parent directory of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateAsset(

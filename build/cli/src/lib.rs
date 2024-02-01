@@ -350,7 +350,10 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => gui2::tests(&self.repo_root),
+            arg::gui2::Command::Test =>
+                try_join(gui2::tests(&self.repo_root), gui2::dashboard_tests(&self.repo_root))
+                    .void_ok()
+                    .boxed(),
             arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
