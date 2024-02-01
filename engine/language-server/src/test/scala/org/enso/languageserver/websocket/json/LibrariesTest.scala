@@ -59,7 +59,7 @@ class LibrariesTest
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" taggedAs SkipOnFailure in {
+    "create a library project and include it on the list of local projects" taggedAs Flaky in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 

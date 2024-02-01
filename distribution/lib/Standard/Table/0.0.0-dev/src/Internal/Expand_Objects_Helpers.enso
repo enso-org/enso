@@ -28,9 +28,13 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
         Prefix_Name.None -> ""
         Prefix_Name.Column_Name -> column_object.name+" "
         Prefix_Name.Custom value -> value
+    default_name = case prefix of
+        Prefix_Name.None -> "Value"
+        Prefix_Name.Column_Name -> column_object.name
+        Prefix_Name.Custom value -> value
     naming_strategy = table.column_naming_helper.create_unique_name_strategy
     naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
-    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
+    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> if n=='Value' then default_name else resolved_prefix+n)
     new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
 
     ## Create Merged Columns
@@ -74,13 +78,16 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
      # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
 @column Widget_Helpers.make_column_name_selector
 expand_to_rows : Table -> Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
-expand_to_rows table column at_least_one_row=False =
+expand_to_rows table column:(Text|Integer) at_least_one_row=False = if column.is_a Integer then expand_to_rows table (table.at column).name at_least_one_row else
     row_expander : Any -> Vector
     row_expander value:Convertible_To_Rows = value.to_vector
 
+    column_names : Any -> Vector
+    column_names value:Convertible_To_Rows = value.columns.map name-> if name=="Value" then column else column+" "+name
+
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
         builder size = make_inferred_builder size java_problem_aggregator
-        Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=builder
+        Fan_Out.fan_out_to_rows table column row_expander column_names at_least_one_row column_builder=builder
 
 ## PRIVATE
 create_table_from_objects : Convertible_To_Rows -> (Vector Text | Nothing) -> Table
@@ -130,6 +137,6 @@ create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothi
             columns = case preset_fields of
                 True  -> fields.distinct.map column_map.get
                 False ->
-                    if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to discover expected column names, because all input objects had no fields. Specify fields explicitly if you need a constant set of expected columns.") else
+                    if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to generate column names as all inputs had no fields.") else
                         discovered_field_names.to_vector.map column_map.get
             Table.new columns
