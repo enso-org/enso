@@ -68,6 +68,7 @@ function overwriteMaterialize<T>(
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
 
+// FIXME: move to `SmartProject`
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
   backend: Backend,
@@ -280,6 +281,32 @@ class SmartUser
     const rootDirectory = backendModule.createRootDirectoryAsset(this.value.rootDirectoryId)
     return new SmartDirectory(this.client, this.logger, rootDirectory)
   }
+
+  /** Invite a new user to the organization by email. */
+  async invite(body: backendModule.InviteUserRequestBody): Promise<void> {
+    const path = remoteBackendPaths.INVITE_USER_PATH
+    const response = await this.httpPost(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not invite user '${body.userEmail}'.`)
+    } else {
+      return
+    }
+  }
+
+  /** Return a list of all users in the same organization. */
+  async listUsers(): Promise<backendModule.SimpleUser[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      users: backendModule.SimpleUser[]
+    }
+    const path = remoteBackendPaths.LIST_USERS_PATH
+    const response = await this.httpGet<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not list users in the organization.`)
+    } else {
+      return (await response.json()).users
+    }
+  }
 }
 
 /** A smart wrapper around a {@link backendModule.AnyAsset}. */
@@ -381,6 +408,18 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
     })
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not set permissions.`)
+    } else {
+      return
+    }
+  }
+
+  /** Set the full list of labels for a specific asset.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  async setTags(labels: backendModule.LabelName[]) {
+    const path = remoteBackendPaths.associateTagPath(this.value.id)
+    const response = await this.httpPatch(path, { labels })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not set labels for asset '${this.value.title}'.`)
     } else {
       return
     }
@@ -908,6 +947,26 @@ class SmartProject
       return
     }
   }
+
+  /** Resolve only when the project is ready to be opened. */
+  async waitUntilReady(abortController: AbortController = new AbortController()) {
+    let project = await this.getDetails()
+    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
+      await this.open()
+    }
+    let nextCheckTimestamp = 0
+    while (
+      !abortController.signal.aborted &&
+      project.state.type !== backendModule.ProjectState.opened
+    ) {
+      await new Promise<void>(resolve => {
+        const delayMs = nextCheckTimestamp - Number(new Date())
+        setTimeout(resolve, Math.max(0, delayMs))
+      })
+      nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
+      project = await this.getDetails()
+    }
+  }
 }
 
 /** A smart wrapper around a {@link backendModule.FileAsset}. */
@@ -1047,21 +1106,6 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backendModule.SimpleUser[]> {
-    /** HTTP response body for this endpoint. */
-    interface ResponseBody {
-      users: backendModule.SimpleUser[]
-    }
-    const path = remoteBackendPaths.LIST_USERS_PATH
-    const response = await this.get<ResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list users in the organization.`)
-    } else {
-      return (await response.json()).users
-    }
-  }
-
   /** Set the username and parent organization of the current user. */
   override async createUser(
     body: backendModule.CreateUserRequestBody
@@ -1072,17 +1116,6 @@ export default class RemoteBackend extends Backend {
       return this.throw('Could not create user.')
     } else {
       return await response.json()
-    }
-  }
-
-  /** Invite a new user to the organization by email. */
-  override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
-    const path = remoteBackendPaths.INVITE_USER_PATH
-    const response = await this.post(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not invite user '${body.userEmail}'.`)
-    } else {
-      return
     }
   }
 
@@ -1125,23 +1158,6 @@ export default class RemoteBackend extends Backend {
       return this.throw(`Could not list labels.`)
     } else {
       return (await response.json()).tags
-    }
-  }
-
-  /** Set the full list of labels for a specific asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async associateTag(
-    assetId: backendModule.AssetId,
-    labels: backendModule.LabelName[],
-    title: string | null
-  ) {
-    const path = remoteBackendPaths.associateTagPath(assetId)
-    const response = await this.patch(path, { labels })
-    if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${assetId}'`
-      return this.throw(`Could not set labels for asset ${name}.`)
-    } else {
-      return
     }
   }
 

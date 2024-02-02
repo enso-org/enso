@@ -16,8 +16,6 @@ import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
-import type Backend from '#/services/Backend'
-
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -27,7 +25,6 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp {
-  backend: Backend
   category: column.AssetColumnProps['state']['category']
   dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
 }
@@ -40,7 +37,7 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
-  const { backend, category, dispatchAssetEvent } = state
+  const { category, dispatchAssetEvent } = state
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const smartAsset = item.item
@@ -71,7 +68,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 key={uniqueString.uniqueString()}
                 item={smartAsset}
                 setItem={setAsset}
-                backend={backend}
                 self={self}
                 eventTarget={event.currentTarget}
                 doRemoveSelf={() => {

@@ -32,7 +32,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
-  const { backend, category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
+  const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -73,7 +73,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 unsetModal()
                 setAsset(oldAsset => {
                   const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                  void backend.associateTag(asset.id, newLabels, asset.title).catch(error => {
+                  void smartAsset.setTags(newLabels).catch(error => {
                     toastAndLog(null, error)
                     setAsset(oldAsset2 =>
                       oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
@@ -124,9 +124,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             setModal(
               <ManageLabelsModal
                 key={uniqueString.uniqueString()}
-                item={asset}
+                item={smartAsset}
                 setItem={setAsset}
-                backend={backend}
                 allLabels={labels}
                 doCreateLabel={doCreateLabel}
                 eventTarget={event.currentTarget}

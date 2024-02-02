@@ -79,7 +79,7 @@ export interface AssetRowProps
 export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, visibility: visibilityRaw, selected, isSoleSelectedItem } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { backend, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { isCloud, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
@@ -96,7 +96,6 @@ export default function AssetRow(props: AssetRowProps) {
   )
   const key = AssetTreeNode.getKey(item)
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const isCloud = backend.type === backendModule.BackendType.remote
   const visibility =
     visibilityRaw == null || visibilityRaw === Visibility.visible
       ? insertionVisibility
@@ -265,14 +264,8 @@ export default function AssetRow(props: AssetRowProps) {
       })
     }
     try {
-      dispatchAssetListEvent({
-        type: AssetListEventType.willDelete,
-        key: item.key,
-      })
-      if (
-        smartAsset.type === backendModule.AssetType.project &&
-        backend.type === backendModule.BackendType.local
-      ) {
+      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
+      if (smartAsset.type === backendModule.AssetType.project && !isCloud) {
         if (
           smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
           smartAsset.value.projectState.type !== backendModule.ProjectState.closed
@@ -298,7 +291,7 @@ export default function AssetRow(props: AssetRowProps) {
       )
     }
   }, [
-    backend,
+    isCloud,
     dispatchAssetListEvent,
     smartAsset,
     /* should never change */ item.key,
@@ -471,7 +464,7 @@ export default function AssetRow(props: AssetRowProps) {
           ]
           setAsset(object.merger({ labels: newLabels }))
           try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
+            await smartAsset.setTags(newLabels)
           } catch (error) {
             setAsset(object.merger({ labels }))
             toastAndLog(null, error)
@@ -494,7 +487,7 @@ export default function AssetRow(props: AssetRowProps) {
           const newLabels = labels.filter(label => !event.labelNames.has(label))
           setAsset(object.merger({ labels: newLabels }))
           try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
+            await smartAsset.setTags(newLabels)
           } catch (error) {
             setAsset(object.merger({ labels }))
             toastAndLog(null, error)
@@ -588,7 +581,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onContextMenu?.(innerProps, event)
                   setModal(
                     <AssetContextMenu
-                      backend={backend}
+                      isCloud={isCloud}
                       innerProps={innerProps}
                       event={event}
                       eventTarget={
@@ -690,7 +683,7 @@ export default function AssetRow(props: AssetRowProps) {
             // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
               hidden
-              backend={backend}
+              isCloud={isCloud}
               innerProps={{
                 key,
                 item,

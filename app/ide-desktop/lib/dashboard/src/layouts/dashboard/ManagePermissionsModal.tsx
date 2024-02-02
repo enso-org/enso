@@ -16,7 +16,6 @@ import UserPermissions from '#/components/dashboard/UserPermissions'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -39,7 +38,6 @@ export interface ManagePermissionsModalProps<
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
-  backend: Backend
   self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
@@ -54,7 +52,7 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, backend, self, doRemoveSelf, eventTarget } = props
+  const { item, setItem, self, doRemoveSelf, eventTarget } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -96,14 +94,16 @@ export default function ManagePermissionsModal<
     setItem(object.merger<backendModule.AnyAsset>({ permissions }))
   }, [permissions, /* should never change */ setItem])
 
-  if (backend.type === backendModule.BackendType.local || organization == null) {
+  if (organization == null) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [])
+    const listedUsers = asyncEffectHooks.useAsyncEffect([], () => organization.listUsers(), [
+      organization,
+    ])
     const allUsers = React.useMemo(
       () =>
         listedUsers.filter(
@@ -137,7 +137,7 @@ export default function ManagePermissionsModal<
           setUsers([])
           setEmail('')
           if (email != null) {
-            await backend.inviteUser({
+            await organization.invite({
               organizationId: organization.value.id,
               userEmail: backendModule.EmailAddress(email),
             })

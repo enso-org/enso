@@ -15,8 +15,6 @@ import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
-import type Backend from '#/services/Backend'
-
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -27,7 +25,6 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
-  backend: Backend
   item: AssetTreeNode
   setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   category: Category
@@ -36,7 +33,7 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item: rawItem, setItem: rawSetItem, category, dispatchAssetEvent } = props
+  const { item: rawItem, setItem: rawSetItem, category, dispatchAssetEvent } = props
 
   const [item, innerSetItem] = React.useState(rawItem)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
@@ -145,7 +142,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <SharedWithColumn
                   item={item}
                   setItem={setItem}
-                  state={{ backend, category, dispatchAssetEvent }}
+                  state={{ category, dispatchAssetEvent }}
                 />
               </td>
             </tr>

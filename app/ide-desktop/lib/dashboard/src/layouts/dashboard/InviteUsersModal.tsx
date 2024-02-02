@@ -12,7 +12,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -22,19 +21,22 @@ import type Backend from '#/services/Backend'
 export interface InviteUsersModalProps {
   /** If this is `null`, this modal will be centered. */
   eventTarget: HTMLElement | null
-  backend: Backend
 }
 
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
-  const { eventTarget, backend } = props
+  const { eventTarget } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState(new Set<string>())
   const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
-  const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
+  const members = asyncEffectHooks.useAsyncEffect(
+    [],
+    async () => (await organization?.listUsers()) ?? [],
+    [organization]
+  )
   const existingEmails = React.useMemo(
     () => new Set(members.map<string>(member => member.email)),
     [members]
@@ -69,7 +71,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
       for (const newEmail of newEmails) {
         void (async () => {
           try {
-            await backend.inviteUser({
+            await organization.invite({
               organizationId: organization.value.id,
               userEmail: backendModule.EmailAddress(newEmail),
             })

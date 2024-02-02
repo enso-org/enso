@@ -466,7 +466,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === pageSwitcher.Page.settings && <Settings backend={backend} />}
+          {page === pageSwitcher.Page.settings && <Settings />}
           {/* `accessToken` MUST be present in order for the `Chat` component to work. */}
           {accessToken != null ? (
             <Chat

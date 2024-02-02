@@ -70,7 +70,6 @@ export default function UserBar(props: UserBarProps) {
               <ManagePermissionsModal
                 item={projectAsset}
                 setItem={setProjectAsset}
-                backend={backend}
                 self={self}
                 doRemoveSelf={doRemoveSelf}
                 eventTarget={null}

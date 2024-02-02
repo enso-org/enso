@@ -25,7 +25,6 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/visibility'
 
 // ===================
@@ -40,7 +39,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { backend, numberOfSelectedItems, assetEvents, nodeMap, dispatchAssetEvent } = state
+  const { isCloud, numberOfSelectedItems, assetEvents, nodeMap, dispatchAssetEvent } = state
   const { doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { organization } = authProvider.useNonPartialUserSession()
@@ -74,10 +73,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const projectState = asset.projectState
   const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
   const canExecute =
-    backend.type === backendModule.BackendType.local ||
+    !isCloud ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
+    isCloud &&
     projectState.opened_by != null &&
     projectState.opened_by !== organization?.value.email
 
@@ -128,7 +127,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           const title = backendModule.stripProjectExtension(asset.title)
           setAsset(object.merge(asset, { title }))
           try {
-            if (backend.type === backendModule.BackendType.local) {
+            if (isCloud) {
+              try {
+                const newSmartAsset = await smartAsset.update({ file })
+                rowState.setVisibility(Visibility.visible)
+                setAsset(newSmartAsset.value)
+              } catch (error) {
+                toastAndLog(null, error)
+              }
+            } else {
               let id: string
               if (
                 'backendApi' in window &&
@@ -156,14 +163,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id: backendModule.ProjectId(id),
                 })
               )
-            } else {
-              try {
-                const newSmartAsset = await smartAsset.update({ file })
-                rowState.setVisibility(Visibility.visible)
-                setAsset(newSmartAsset.value)
-              } catch (error) {
-                toastAndLog(null, error)
-              }
             }
           } catch (error) {
             toastAndLog('Could not update project', error)
@@ -223,7 +222,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <ProjectIcon
           smartAsset={smartAssetWithProjectState}
           setItem={setAsset}
-          backend={backend}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
           openEditor={switchPage => {
@@ -260,12 +258,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        {...(backend.type === backendModule.BackendType.local
-          ? {
-              inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
-            }
-          : {})}
       >
         {asset.title}
       </EditableSpan>

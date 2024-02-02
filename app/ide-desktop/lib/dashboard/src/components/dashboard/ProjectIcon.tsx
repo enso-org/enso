@@ -23,8 +23,6 @@ import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
-import * as remoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
 import * as object from '#/utilities/object'
@@ -72,7 +70,6 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 export interface ProjectIconProps {
   smartAsset: backendModule.SmartProject
   setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  backend: Backend
   assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -83,7 +80,7 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { smartAsset, setItem, backend, assetEvents, doOpenManually, onClose, openEditor } = props
+  const { smartAsset, setItem, assetEvents, doOpenManually, onClose, openEditor } = props
   const { state } = props
   const { isCloud } = state
   const { organization } = authProvider.useNonPartialUserSession()
@@ -151,13 +148,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
           const abortController = new AbortController()
           setOpenProjectAbortController(abortController)
-          // FIXME: try refactor to become `smartProject.waitUntilReady`
-          await remoteBackend.waitUntilProjectIsReady(
-            backend,
-            smartAsset.value.id,
-            smartAsset.value.title,
-            abortController
-          )
+          await smartAsset.waitUntilReady(abortController)
           setToastId(null)
           if (!abortController.signal.aborted) {
             setProjectState(oldState =>
@@ -188,7 +179,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
       smartAsset,
       isCloud,
       projectState,
-      backend,
       closeProjectAbortController,
       /* should never change */ toastAndLog,
       /* should never change */ setProjectState,
@@ -209,16 +199,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.
     requestAnimationFrame(() => {
-      const newSpinnerState =
-        backend.type === backendModule.BackendType.remote
-          ? REMOTE_SPINNER_STATE[projectState]
-          : LOCAL_SPINNER_STATE[projectState]
+      const newSpinnerState = isCloud
+        ? REMOTE_SPINNER_STATE[projectState]
+        : LOCAL_SPINNER_STATE[projectState]
       setSpinnerState(newSpinnerState)
       onSpinnerStateChange?.(
         projectState === backendModule.ProjectState.closed ? null : newSpinnerState
       )
     })
-  }, [projectState, backend.type, onSpinnerStateChange])
+  }, [projectState, isCloud, onSpinnerStateChange])
 
   React.useEffect(() => {
     onSpinnerStateChange?.(spinner.SpinnerState.initial)
@@ -315,10 +304,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setCloseProjectAbortController(abortController)
     if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState]) {
       try {
-        if (
-          backend.type === backendModule.BackendType.local &&
-          projectState === backendModule.ProjectState.openInProgress
-        ) {
+        if (!isCloud && projectState === backendModule.ProjectState.openInProgress) {
           // Projects that are not opened cannot be closed.
           // This is the only way to wait until the project is open.
           await smartAsset.open()

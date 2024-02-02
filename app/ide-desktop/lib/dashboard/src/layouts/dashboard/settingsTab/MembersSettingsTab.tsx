@@ -3,28 +3,26 @@ import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
-import type Backend from '#/services/Backend'
-
 // ==========================
 // === MembersSettingsTab ===
 // ==========================
 
-/** Props for a {@link MembersSettingsTab}. */
-export interface MembersSettingsTabProps {
-  backend: Backend
-}
-
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsTab(props: MembersSettingsTabProps) {
-  const { backend } = props
+export default function MembersSettingsTab() {
+  const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const members = asyncEffectHooks.useAsyncEffect(
+    null,
+    async () => (await organization?.listUsers()) ?? null,
+    [organization]
+  )
   const isLoading = members == null
 
   return (
@@ -36,7 +34,7 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
             className="flex items-center bg-frame rounded-full h-8 px-2.5"
             onClick={event => {
               event.stopPropagation()
-              setModal(<InviteUsersModal eventTarget={null} backend={backend} />)
+              setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
             <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">

@@ -1,4 +1,4 @@
-/** @file The context menu for an arbitrary {@link backendModule.Asset}. */
+/** @file The context menu for an arbitrary {@link backendModule.AnyAsset}. */
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
@@ -27,7 +27,6 @@ import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
@@ -42,7 +41,7 @@ import * as shortcutManager from '#/utilities/ShortcutManager'
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
   hidden?: boolean
-  backend: Backend
+  isCloud: boolean
   innerProps: assetRow.AssetRowInnerProps
   event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   eventTarget: HTMLElement | null
@@ -52,9 +51,9 @@ export interface AssetContextMenuProps {
   doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
-/** The context menu for an arbitrary {@link backendModule.Asset}. */
+/** The context menu for an arbitrary {@link backendModule.AnyAsset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { hidden = false, backend, innerProps, event, eventTarget } = props
+  const { hidden = false, isCloud, innerProps, event, eventTarget } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
@@ -69,7 +68,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = asset.permissions?.find(
     permission => permission.user.user_email === organization?.value.email
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
   const canEditThisAsset =
@@ -78,10 +76,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.type === backendModule.AssetType.project &&
     backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
   const canExecute =
-    backend.type === backendModule.BackendType.local ||
+    !isCloud ||
     (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
+    isCloud &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
     asset.projectState.opened_by !== organization?.value.email
@@ -242,12 +240,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <MenuEntry
             hidden={hidden}
             action={
-              backend.type === backendModule.BackendType.local
-                ? shortcutManager.KeyboardAction.delete
-                : shortcutManager.KeyboardAction.moveToTrash
+              isCloud
+                ? shortcutManager.KeyboardAction.moveToTrash
+                : shortcutManager.KeyboardAction.delete
             }
             doAction={() => {
-              if (backend.type === backendModule.BackendType.remote) {
+              if (isCloud) {
                 unsetModal()
                 doDelete()
               } else {
@@ -271,7 +269,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <ManagePermissionsModal
                   item={smartAsset}
                   setItem={setAsset}
-                  backend={backend}
                   self={self}
                   eventTarget={eventTarget}
                   doRemoveSelf={() => {
@@ -289,9 +286,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               setModal(
                 <ManageLabelsModal
-                  item={asset}
+                  item={smartAsset}
                   setItem={setAsset}
-                  backend={backend}
                   allLabels={labels}
                   doCreateLabel={doCreateLabel}
                   eventTarget={eventTarget}

@@ -751,6 +751,10 @@ export interface SmartUser extends SmartObject<UserOrOrganization> {
   ) => Promise<UserOrOrganization>
   /** Get the root directory for this user. */
   readonly rootDirectory: () => SmartDirectory
+  /** Invite a new user to the organization by email. */
+  readonly invite: (body: InviteUserRequestBody) => Promise<void>
+  /** Return a list of all users in the same organization. */
+  readonly listUsers: () => Promise<SimpleUser[]>
 }
 
 /** A smart wrapper around an {@link AnyAsset}. */
@@ -775,6 +779,8 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
   readonly listVersions: () => Promise<AssetVersions>
   /** Set permissions for a user. */
   readonly setPermissions: (body: CreatePermissionRequestBody) => Promise<void>
+  /** Replace the list of labels. */
+  readonly setTags: (tagIds: LabelName[]) => Promise<void>
 }
 
 /** A smart wrapper around a {@link DirectoryAsset}. */
@@ -823,6 +829,8 @@ export interface SmartProject extends SmartAsset<ProjectAsset> {
   readonly getResourceUsage: () => Promise<ResourceUsage>
   /** Close a project. */
   readonly close: () => Promise<void>
+  /** Resolve only when the project is ready to be opened. */
+  readonly waitUntilReady: (abortController?: AbortController) => Promise<void>
 }
 
 /** A smart wrapper around a {@link FileAsset}. */
@@ -865,18 +873,12 @@ export default abstract class Backend {
 
   /** Return user details for the current user. */
   abstract self(): Promise<SmartUser | null>
-  /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
-  /** Invite a new user to the organization by email. */
-  abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
-  /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
 }

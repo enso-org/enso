@@ -316,7 +316,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             try {
               user =
                 organization?.value.isEnabled === true
-                  ? (await remoteBackend.listUsers()).find(
+                  ? (await organization.listUsers()).find(
                       listedUser => listedUser.email === organization?.value.email
                     ) ?? null
                   : null

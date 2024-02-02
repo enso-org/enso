@@ -162,7 +162,6 @@ export default function AssetPanel(props: AssetPanelProps) {
         <AssetProperties
           item={item}
           setItem={setItem}
-          backend={backend}
           category={category}
           dispatchAssetEvent={dispatchAssetEvent}
         />

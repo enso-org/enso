@@ -150,19 +150,9 @@ export default class LocalBackend extends Backend {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
 
-  /** Return an empty array. This function should never need to be called. */
-  override listUsers() {
-    return Promise.resolve([])
-  }
-
   /** Invalid operation. */
   override createUser() {
     return this.invalidOperation()
-  }
-
-  /** Do nothing. This function should never need to be called. */
-  override inviteUser() {
-    return Promise.resolve()
   }
 
   /** FIXME: This is required to get (and by extension, list) the root directory. */
@@ -178,11 +168,6 @@ export default class LocalBackend extends Backend {
   /** Return an empty array. This function should never need to be called. */
   override listTags() {
     return Promise.resolve([])
-  }
-
-  /** Do nothing. This function should never need to be called. */
-  override associateTag() {
-    return Promise.resolve()
   }
 
   /** Do nothing. This function should never need to be called. */

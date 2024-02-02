@@ -175,7 +175,6 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   isCloud: boolean
-  backend: Backend
   numberOfSelectedItems: number
   category: Category
   labels: Map<backendModule.LabelName, backendModule.Label>
@@ -1271,7 +1270,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     // The type MUST be here to trigger excess property errors at typecheck time.
     (): AssetsTableState => ({
       isCloud,
-      backend,
       numberOfSelectedItems: selectedKeys.size,
       category,
       labels: allLabels,
@@ -1299,7 +1297,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }),
     [
       isCloud,
-      backend,
       selectedKeys.size,
       category,
       allLabels,
