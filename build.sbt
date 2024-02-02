@@ -2019,7 +2019,7 @@ lazy val `runtime-fat-jar` =
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
         case PathList(xs @ _*) if xs.last.contains("module-info") =>
-          JPMSUtils.removeAllModuleInfoExcept("runtime")
+          MergeStrategy.preferProject
         case _ => MergeStrategy.first
       }
     )
