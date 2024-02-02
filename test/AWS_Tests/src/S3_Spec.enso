@@ -10,7 +10,7 @@ from Standard.AWS import S3, S3_File, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found, S3_Key_Not_Found
 
 # Needed for custom formats test
-from Standard.Table import Table
+from Standard.Table import Table, Excel, Worksheet
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -385,16 +385,52 @@ spec =
             weird_ext = my_writable_dir / "weird-ext.unknown"
             "Hello".write weird_ext . should_succeed
 
-            r = weird_ext.read
-            r.should_fail_with File_Error
-            r.catch.should_be_a File_Error.Unsupported_Type
-            r.catch.to_display_text . should_contain ".unknown"
+            delete_afterwards weird_ext <|
+                r = weird_ext.read
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Unsupported_Type
+                r.catch.to_display_text . should_contain ".unknown"
 
-        Test.specify "should be able to write and then read custom types, like Table, in various format, like Excel" <|
+        Test.specify "should be able to write and then read custom types, like Table as Excel" <|
             file = my_writable_dir / "table.xlsx"
             table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
             table.write file . should_succeed
-            file.read . should_equal table
+            delete_afterwards file <|
+                workbook1 = file.read
+                workbook1.sheet_names . should_equal ['EnsoSheet']
+                workbook1.read "EnsoSheet" . should_equal table
+
+                # We should be able to append
+                table2 = Table.new [["X", [5, 6, 7, 8]], ["Y", ["e", "f", "g", "h"]]]
+                table2.write file on_existing_file=Existing_File_Behavior.Append . should_succeed
+
+                workbook2 = file.read
+                workbook2.sheet_names . should_equal ['EnsoSheet']
+                expected_table = Table.new [["X", [1, 2, 3, 4, 5, 6, 7, 8]], ["Y", ["a", "b", "c", "d", "e", "f", "g", "h"]]]
+                workbook2.read "EnsoSheet" . should_equal expected_table
+
+                # And should be able to add another sheet
+                table3 = Table.new [["A", [9, 10, 11, 12]], ["B", ["i", "j", "k", "l"]]]
+                table3.write file (Excel (Worksheet "MySheet2")) . should_succeed
+
+                workbook3 = file.read
+                workbook3.sheet_names . should_equal ['EnsoSheet', 'MySheet2']
+                workbook3.read "MySheet2" . should_equal table3
+                # The old table is kept intact
+                workbook3.read "EnsoSheet" . should_equal expected_table
+
+        Test.specify "should be able to write and then read custom types, like Table as CSV" <|
+            file = my_writable_dir / "table.csv"
+            table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
+            table.write file . should_succeed
+            delete_afterwards file <|
+                file.read . should_equal table
+
+                # We should be able to append
+                table2 = Table.new [["X", [5, 6, 7, 8]], ["Y", ["e", "f", "g", "h"]]]
+                table2.write file on_existing_file=Existing_File_Behavior.Append . should_succeed
+                expected_table = Table.new [["X", [1, 2, 3, 4, 5, 6, 7, 8]], ["Y", ["a", "b", "c", "d", "e", "f", "g", "h"]]
+                file.read . should_equal expected_table
 
         Test.specify "should fail to write a file if permissions are lacking" <|
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
