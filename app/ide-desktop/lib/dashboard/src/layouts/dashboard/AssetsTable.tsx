@@ -1302,22 +1302,18 @@ export default function AssetsTable(props: AssetsTableProps) {
           const newParent = newParentNode.item
           doToggleDirectoryExpansion(newParentNode.item, newParentKey, true)
           if (pasteData.type === PasteType.copy) {
-            const assets = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
+            const items = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
               asset => (asset ? [asset.item] : [])
             )
             dispatchAssetListEvent({
               type: AssetListEventType.copy,
-              items: assets,
+              items,
               newParentKey,
               newParent,
             })
           } else {
-            dispatchAssetEvent({
-              type: AssetEventType.move,
-              ids: pasteData.data,
-              newParentKey,
-              newParent,
-            })
+            const ids = pasteData.data
+            dispatchAssetEvent({ type: AssetEventType.move, ids, newParentKey, newParent })
           }
           pasteDataRef.current = null
         }
@@ -1534,15 +1530,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           event
         )
       ) {
-        setSelectedKeys(oldSelectedItems => {
-          const newItems = new Set(oldSelectedItems)
-          if (oldSelectedItems.has(key)) {
-            newItems.delete(key)
-          } else {
-            newItems.add(key)
-          }
-          return newItems
-        })
+        setSelectedKeys(oldSelectedItems =>
+          set.withPresence(oldSelectedItems, key, !oldSelectedItems.has(key))
+        )
       } else {
         setSelectedKeys(new Set([key]))
       }
@@ -1650,8 +1640,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDragOver={event => {
             setSelectedKeys(oldSelectedKeys => {
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
+              const labelNames = drag.LABELS.lookup(event)
+              if (labelNames != null) {
                 event.preventDefault()
                 event.stopPropagation()
                 const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
@@ -1668,21 +1658,26 @@ export default function AssetsTable(props: AssetsTableProps) {
                   const labels = nodeMapRef.current.get(selectedKey)?.item.value.labels
                   if (labels != null) {
                     for (const label of labels) {
-                      if (payload.has(label)) {
+                      if (labelNames.has(label)) {
                         labelsPresent += 1
                       }
                     }
                   }
                 }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
                 window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: shouldAdd
-                      ? AssetEventType.temporarilyAddLabels
-                      : AssetEventType.temporarilyRemoveLabels,
-                    ids,
-                    labelNames: payload,
-                  })
+                  if (labelsPresent * 2 < ids.size * labelNames.size) {
+                    dispatchAssetEvent({
+                      type: AssetEventType.temporarilyAddLabels,
+                      ids,
+                      labelNames,
+                    })
+                  } else {
+                    dispatchAssetEvent({
+                      type: AssetEventType.temporarilyRemoveLabels,
+                      ids,
+                      labelNames,
+                    })
+                  }
                 })
               }
               return oldSelectedKeys
@@ -1711,8 +1706,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                   }
                 }
               }
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
+              const labelNames = drag.LABELS.lookup(event) ?? set.EMPTY
+              if (labelNames === set.EMPTY) {
+                window.setTimeout(() => {
+                  dispatchAssetEvent({ type: AssetEventType.temporarilyAddLabels, ids, labelNames })
+                })
+              } else {
                 event.preventDefault()
                 event.stopPropagation()
                 let labelsPresent = 0
@@ -1720,27 +1719,18 @@ export default function AssetsTable(props: AssetsTableProps) {
                   const labels = nodeMapRef.current.get(selectedKey)?.item.value.labels
                   if (labels != null) {
                     for (const label of labels) {
-                      if (payload.has(label)) {
+                      if (labelNames.has(label)) {
                         labelsPresent += 1
                       }
                     }
                   }
                 }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
                 window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
-                    ids,
-                    labelNames: payload,
-                  })
-                })
-              } else {
-                window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.temporarilyAddLabels,
-                    ids,
-                    labelNames: set.EMPTY,
-                  })
+                  if (labelsPresent * 2 < ids.size * labelNames.size) {
+                    dispatchAssetEvent({ type: AssetEventType.addLabels, ids, labelNames })
+                  } else {
+                    dispatchAssetEvent({ type: AssetEventType.removeLabels, ids, labelNames })
+                  }
                 })
               }
               return oldSelectedKeys
@@ -1781,15 +1771,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.relatedTarget instanceof Node &&
           !event.currentTarget.contains(event.relatedTarget)
         ) {
-          setSelectedKeys(oldSelectedKeys => {
+          setSelectedKeys(ids => {
             window.setTimeout(() => {
-              dispatchAssetEvent({
-                type: AssetEventType.temporarilyAddLabels,
-                ids: oldSelectedKeys,
-                labelNames: set.EMPTY,
-              })
+              const labelNames = set.EMPTY
+              dispatchAssetEvent({ type: AssetEventType.temporarilyAddLabels, ids, labelNames })
             })
-            return oldSelectedKeys
+            return ids
           })
         }
       }}
