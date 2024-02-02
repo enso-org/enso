@@ -159,76 +159,6 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
   },
 ]
 
-// ===================================
-// === insertAssetTreeNodeChildren ===
-// ===================================
-
-/** Return a directory, with new children added into its list of children.
- * All children MUST have the same asset type. */
-function insertAssetTreeNodeChildren(
-  item: AssetTreeNode,
-  children: backendModule.AnySmartAsset[],
-  directoryKey: backendModule.AssetId,
-  directory: backendModule.SmartDirectory
-): AssetTreeNode {
-  const depth = item.depth + 1
-  const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].value.type] : 0
-  const nodes = (item.children ?? []).filter(
-    node => node.item.value.type !== backendModule.AssetType.specialEmpty
-  )
-  const nodesToInsert = children.map(asset =>
-    AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
-  )
-  const newNodes = array.splicedBefore(
-    nodes,
-    nodesToInsert,
-    innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.value.type] >= typeOrder
-  )
-  return item.with({ children: newNodes })
-}
-
-/** Return a directory, with new children added into its list of children.
- * The children MAY be of different asset types. */
-function insertArbitraryAssetTreeNodeChildren(
-  item: AssetTreeNode,
-  children: backendModule.AnySmartAsset[],
-  directoryKey: backendModule.AssetId,
-  directory: backendModule.SmartDirectory,
-  getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
-): AssetTreeNode {
-  const depth = item.depth + 1
-  const nodes = (item.children ?? []).filter(
-    node => node.item.value.type !== backendModule.AssetType.specialEmpty
-  )
-  const byType: Record<backendModule.AssetType, backendModule.AnySmartAsset[]> = {
-    [backendModule.AssetType.directory]: [],
-    [backendModule.AssetType.project]: [],
-    [backendModule.AssetType.file]: [],
-    [backendModule.AssetType.secret]: [],
-    [backendModule.AssetType.specialLoading]: [],
-    [backendModule.AssetType.specialEmpty]: [],
-  }
-  for (const child of children) {
-    byType[child.value.type].push(child)
-  }
-  let newNodes = nodes
-  for (const childrenOfSpecificType of Object.values(byType)) {
-    const firstChild = childrenOfSpecificType[0]
-    if (firstChild) {
-      const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.value.type]
-      const nodesToInsert = childrenOfSpecificType.map(asset =>
-        AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
-      )
-      newNodes = array.splicedBefore(
-        newNodes,
-        nodesToInsert,
-        innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.value.type] >= typeOrder
-      )
-    }
-  }
-  return newNodes === nodes ? item : item.with({ children: newNodes })
-}
-
 // =============================
 // === Category to filter by ===
 // =============================
@@ -1106,46 +1036,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   const insertAssets = React.useCallback(
     (
       assets: backendModule.AnySmartAsset[],
-      parentKey: backendModule.AssetId | null,
-      parent: backendModule.SmartDirectory | null
+      parentKey: backendModule.AssetId,
+      parent: backendModule.SmartDirectory
     ) => {
-      const actualParentKey = parentKey ?? rootDirectory.value.id
-      const actualParent = parent ?? rootDirectory
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParent)
-        )
-      })
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.withHomogeneousDescendantsInserted(assets, parentKey, parent)
+      )
     },
-    [rootDirectory]
-  )
-
-  const insertArbitraryAssets = React.useCallback(
-    (
-      assets: backendModule.AnySmartAsset[],
-      parentKey: backendModule.AssetId | null,
-      parent: backendModule.SmartDirectory | null,
-      getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
-    ) => {
-      const actualParentKey = parentKey ?? rootDirectory.value.id
-      const actualParent = parent ?? rootDirectory
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
-          item.key !== actualParentKey
-            ? item
-            : insertArbitraryAssetTreeNodeChildren(
-                item,
-                assets,
-                actualParentKey,
-                actualParent,
-                getKey
-              )
-        )
-      })
-    },
-    [rootDirectory]
+    []
   )
 
   eventHooks.useEventHandler(assetListEvents, event => {
@@ -1286,7 +1184,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.insertAssets: {
-        insertArbitraryAssets(event.assets, event.parentKey, event.parent)
+        setAssetTree(oldAssetTree =>
+          oldAssetTree.withDescendantsInserted(event.assets, event.parentKey, event.parent)
+        )
         break
       }
       case AssetListEventType.willDelete: {
@@ -1301,18 +1201,16 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.copy: {
         const ids = new Set<backendModule.AssetId>()
+        const { items, newParentKey, newParent } = event
         const getKey = (asset: backendModule.AnyAsset) => {
           const newId = backendModule.createPlaceholderAssetId(asset.type)
           ids.add(newId)
           return newId
         }
-        insertArbitraryAssets(event.items, event.newParentKey, event.newParent, getKey)
-        dispatchAssetEvent({
-          type: AssetEventType.copy,
-          ids,
-          newParentKey: event.newParentKey,
-          newParent: event.newParent,
-        })
+        setAssetTree(oldAssetTree =>
+          oldAssetTree.withDescendantsInserted(items, newParentKey, newParent, getKey)
+        )
+        dispatchAssetEvent({ type: AssetEventType.copy, ids, newParentKey, newParent })
         break
       }
       case AssetListEventType.move: {

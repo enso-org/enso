@@ -1,6 +1,8 @@
 /** @file A node in the drive's item tree. */
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
+
 // =====================
 // === AssetTreeNode ===
 // =====================
@@ -141,6 +143,98 @@ export default class AssetTreeNode {
   ): AssetTreeNode[] {
     return (preprocess?.(this.children ?? []) ?? this.children ?? []).flatMap(node =>
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
+    )
+  }
+
+  /** Return self, with new children added into its list of children.
+   * The children MAY be of different asset types. */
+  withChildrenInserted(
+    children: backendModule.AnySmartAsset[],
+    directoryKey: backendModule.AssetId,
+    directory: backendModule.SmartDirectory,
+    getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
+  ) {
+    const depth = this.depth + 1
+    const nodes = (this.children ?? []).filter(
+      node => node.item.value.type !== backendModule.AssetType.specialEmpty
+    )
+    const byType: Record<backendModule.AssetType, backendModule.AnySmartAsset[]> = {
+      [backendModule.AssetType.directory]: [],
+      [backendModule.AssetType.project]: [],
+      [backendModule.AssetType.file]: [],
+      [backendModule.AssetType.secret]: [],
+      [backendModule.AssetType.specialLoading]: [],
+      [backendModule.AssetType.specialEmpty]: [],
+    }
+    for (const child of children) {
+      byType[child.value.type].push(child)
+    }
+    let newNodes = nodes
+    for (const childrenOfSpecificType of Object.values(byType)) {
+      const firstChild = childrenOfSpecificType[0]
+      if (firstChild) {
+        const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.value.type]
+        const nodesToInsert = childrenOfSpecificType.map(asset =>
+          AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
+        )
+        newNodes = array.splicedBefore(
+          newNodes,
+          nodesToInsert,
+          child => backendModule.ASSET_TYPE_ORDER[child.item.value.type] >= typeOrder
+        )
+      }
+    }
+    return newNodes === nodes ? this : this.with({ children: newNodes })
+  }
+
+  /** Return self, with new children added into its list of children.
+   * All children MUST have the same asset type. */
+  withHomogeneousChildrenInserted(
+    children: backendModule.AnySmartAsset[],
+    directoryKey: backendModule.AssetId,
+    directory: backendModule.SmartDirectory
+  ): AssetTreeNode {
+    const depth = this.depth + 1
+    const typeOrder =
+      children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].value.type] : 0
+    const nodes = (this.children ?? []).filter(
+      node => node.item.value.type !== backendModule.AssetType.specialEmpty
+    )
+    const nodesToInsert = children.map(asset =>
+      AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
+    )
+    const newNodes = array.splicedBefore(
+      nodes,
+      nodesToInsert,
+      innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.value.type] >= typeOrder
+    )
+    return this.with({ children: newNodes })
+  }
+
+  /** Return self, with new children added into the children list of the given directory.
+   * The children MAY be of different asset types. */
+  withDescendantsInserted(
+    assets: backendModule.AnySmartAsset[],
+    parentKey: backendModule.AssetId,
+    parent: backendModule.SmartDirectory,
+    getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
+  ) {
+    return this.map(item =>
+      item.key !== parentKey ? item : item.withChildrenInserted(assets, parentKey, parent, getKey)
+    )
+  }
+
+  /** Return self, with new children added into the children list of the given directory.
+   * All children MUST have the same asset type. */
+  withHomogeneousDescendantsInserted(
+    assets: backendModule.AnySmartAsset[],
+    parentKey: backendModule.AssetId,
+    parent: backendModule.SmartDirectory
+  ) {
+    return this.map(item =>
+      item.key !== parentKey
+        ? item
+        : item.withHomogeneousChildrenInserted(assets, parentKey, parent)
     )
   }
 }
