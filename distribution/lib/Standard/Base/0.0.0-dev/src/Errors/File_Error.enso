@@ -59,7 +59,7 @@ type File_Error
             msg + suffix
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
-        File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
+        File_Error.Unsupported_Type metadata -> "Could not recognize the type of file "+metadata.to_display_text+"."
         File_Error.Unsupported_Output_Type format data_type ->
             name_from_constructor =
                 (Meta.meta format).constructor.name

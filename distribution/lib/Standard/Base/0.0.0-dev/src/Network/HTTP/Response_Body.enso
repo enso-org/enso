@@ -6,6 +6,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Metadata.Display
@@ -116,7 +117,7 @@ type Response_Body
        - if_unsupported: Specifies how to proceed if the format is not supported.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type self.metadata)) =
         case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
@@ -197,22 +198,6 @@ type Response_Body
             r = on_existing_file.write file output_stream->
                 output_stream.write_stream body_stream
             r.if_not_error file
-
-## PRIVATE
-type Unsupported_Content_Type
-    ## PRIVATE
-       A type representing an unsupported content type.
-
-       Arguments:
-       - content_type: The content type that is unsupported.
-    Error (content_type : Text | Nothing)
-
-    ## PRIVATE
-       Convert the error to a human readable string.
-    to_display_text : Text
-    to_display_text self = case self.content_type of
-        Nothing -> "The response did not contain a content type."
-        _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."
 
 ## PRIVATE
 can_decode : File_Format -> Boolean
