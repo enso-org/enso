@@ -16,7 +16,6 @@ import * as appUtils from '#/appUtils'
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
@@ -173,6 +172,8 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 export interface AuthProviderProps {
   shouldStartInOfflineMode: boolean
   supportsLocalBackend: boolean
+  backend: backendModule.Backend
+  setBackendWithoutSavingType: (backend: backendModule.Backend) => void
   authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
   onAuthenticated: (accessToken: string | null) => void
@@ -183,12 +184,10 @@ export interface AuthProviderProps {
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
   const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl } = props
+  const { backend, setBackendWithoutSavingType, children, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService
   const { session, deinitializeSession, onError: onSessionError } = sessionProvider.useSession()
-  const { backend } = backendProvider.useBackend()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.

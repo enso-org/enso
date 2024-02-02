@@ -20,7 +20,6 @@ import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import Settings from '#/layouts/dashboard/Settings'
 import TopBar from '#/layouts/dashboard/TopBar'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -45,6 +44,8 @@ import type * as spinner from '#/components/Spinner'
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
   supportsLocalBackend: boolean
+  backend: backendModule.Backend
+  setBackend: (backend: backendModule.Backend) => void
   appRunner: AppRunner
   initialProjectName: string | null
   projectManagerUrl: string | null
@@ -52,12 +53,10 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName: rawInitialProjectName } = props
-  const { projectManagerUrl } = props
+  const { supportsLocalBackend, backend, setBackend, appRunner } = props
+  const { initialProjectName: rawInitialProjectName, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { organization, accessToken } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const { setBackend } = backendProvider.useSetBackend()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()

@@ -52,7 +52,6 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
 import LocalStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
@@ -61,6 +60,7 @@ import SessionProvider from '#/providers/SessionProvider'
 import ShortcutsProvider from '#/providers/ShortcutsProvider'
 import type * as backend from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
+import * as localStorageModule from '#/utilities/localStorage'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 // ======================
@@ -174,6 +174,15 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
+  const [localStorage] = React.useState(() => new localStorageModule.LocalStorage())
+  const [backend, setBackendWithoutSavingType] = React.useState<backend.Backend>(initialBackend)
+  const setBackend = React.useCallback(
+    (newBackend: backend.Backend) => {
+      setBackendWithoutSavingType(newBackend)
+      localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
+    },
+    [/* should never change */ localStorage]
+  )
   React.useEffect(() => {
     let isClick = false
     const onMouseDown = () => {
@@ -215,7 +224,11 @@ function AppRouter(props: AppProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route
             path={appUtils.DASHBOARD_PATH}
-            element={shouldShowDashboard && <Dashboard {...props} />}
+            element={
+              shouldShowDashboard && (
+                <Dashboard {...props} backend={backend} setBackend={setBackend} />
+              )
+            }
           />
         </router.Route>
         {/* Semi-protected pages are visible to users currently registering. */}
@@ -237,6 +250,8 @@ function AppRouter(props: AppProps) {
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
       supportsLocalBackend={supportsLocalBackend}
+      backend={backend}
+      setBackendWithoutSavingType={setBackendWithoutSavingType}
       authService={authService}
       onAuthenticated={onAuthenticated}
       projectManagerUrl={projectManagerUrl}
@@ -244,8 +259,6 @@ function AppRouter(props: AppProps) {
       {result}
     </AuthProvider>
   )
-  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
-  /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
   result = <LocalStorageProvider>{result}</LocalStorageProvider>
   result = (
     <SessionProvider
