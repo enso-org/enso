@@ -1496,8 +1496,25 @@ type Table
              #    3 | 40 | d | h
     replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
+        self.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
+            unique = self.column_naming_helper.create_unique_name_strategy
+            unique.mark_used (self.column_names)
+
+            ## We perform a `merge` into `column`, using a duplicate of `column`
+                as the key column to join with `from_column`.
+
+            duplicate_key_column_name = unique.make_unique "duplicate_key"
+            duplicate_key_column = self.at column . rename duplicate_key_column_name
+            self_with_duplicate = self.set duplicate_key_column set_mode=Set_Mode.Add
+
+            ## Create a lookup table with just `to_column` and `from_column`,
+                renamed to match the base table's `column` and its duplicate,
+                respectively.
+            lookup_table_renamed = lookup_table.select_columns [from_column, to_column] . rename_columns (Map.from_vector [[from_column, duplicate_key_column_name], [to_column, column]])
+
+            merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+            merged.remove_columns duplicate_key_column_name
+
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations

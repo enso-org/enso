@@ -37,22 +37,22 @@ add_specs suite_builder setup =
         group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            result = table.replace lookup_table 'x'
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
             result . should_equal expected
 
         group_builder.specify "should be able to replace values via a lookup table, specifying from/to columns" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['d', [4, 5, 6, 7]], ['x', [2, 1, 4, 3]], ['d2', [5, 6, 7, 8]], ['z', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            result = table.replace lookup_table 'x' 'x' 'z'
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' 'x' 'z' . order_by ["x", "y"]
             result . should_equal expected
 
         group_builder.specify "should be able to replace values via a lookup table provided as a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            result = table.replace lookup_table 'x'
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
             result . should_equal expected
 
         group_builder.specify "should fail with Missing_Input_Columns if the specified columns do not exist" <|
@@ -65,8 +65,8 @@ add_specs suite_builder setup =
         group_builder.specify "can allow unmatched rows" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [4, 3, 1]], ['z', [40, 30, 10]]]
-            expected = table_builder [['x', [10, 2, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
-            result = table.replace lookup_table 'x'
+            expected = table_builder [['x', [2, 10, 30, 40]], ['y', ['b', 'a', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by "x"
             result . should_equal expected
 
         group_builder.specify "fails on unmatched rows" <|
@@ -88,15 +88,15 @@ add_specs suite_builder setup =
 
         group_builder.specify "(edge-case) should allow lookup with itself" <|
             table = table_builder [['x', [2, 1, 4, 3]], ['y', [20, 10, 40, 30]]]
-            expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]]
-            result = table.replace table 'x'
+            expected = table_builder [['x', [10, 20, 30, 40]], ['y', [10, 20, 30, 40]]]
+            result = table.replace table 'x' . order_by "x"
             result . should_equal expected
 
         group_builder.specify "should not merge columns other than the one specified in the `column` param" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']], ['q', [4, 5, 6, 7, 8]]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]], ['q', [40, 50, 60, 70]]]
-            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']], ['q', [4, 5, 6, 7, 8]]]
-            result = table.replace lookup_table 'x'
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']], ['q', [4, 5, 8, 6, 7]]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
             result . should_equal expected
 
         group_builder.specify "should fail on null key values in lookup table" <|
