@@ -115,6 +115,7 @@ export default function AssetRow(props: AssetRowProps) {
     void (async () => {
       try {
         const materialized = await smartAsset.materialize()
+        rowState.setVisibility(Visibility.visible)
         setAsset(materialized.value)
       } catch (error) {
         rowState.setVisibility(Visibility.visible)

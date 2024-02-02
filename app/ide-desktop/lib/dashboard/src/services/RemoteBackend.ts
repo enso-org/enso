@@ -434,7 +434,9 @@ class SmartDirectory
             permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
           })
         )
-      return assets.map(intoSmartAsset(this.client, this.logger))
+      // FIXME [sb]: This is TEMPORARY, until support for connectors is merged in.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      return assets.map(intoSmartAsset(this.client, this.logger)).filter(value => value != null)
     }
   }
 

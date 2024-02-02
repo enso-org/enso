@@ -221,7 +221,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-1" />
       ) : (
         <ProjectIcon
-          smartAsset={smartAsset}
+          smartAsset={smartAssetWithProjectState}
           setItem={setAsset}
           backend={backend}
           assetEvents={assetEvents}
