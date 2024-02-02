@@ -412,7 +412,8 @@ class Compiler(
               context.serializeModule(
                 this,
                 module,
-                useGlobalCacheLocations
+                useGlobalCacheLocations,
+                true
               )
             }
           }

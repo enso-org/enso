@@ -247,7 +247,10 @@ final class TruffleCompilerContext implements CompilerContext {
   @SuppressWarnings("unchecked")
   @Override
   public Future<Boolean> serializeModule(
-      Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations) {
+      Compiler compiler,
+      CompilerContext.Module module,
+      boolean useGlobalCacheLocations,
+      boolean usePool) {
     Object res =
         serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
     return (Future<Boolean>) res;
