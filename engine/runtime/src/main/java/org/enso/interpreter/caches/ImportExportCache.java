@@ -126,6 +126,16 @@ public final class ImportExportCache
             });
   }
 
+  @Override
+  public String sourceHash(Metadata meta) {
+    return meta.sourceHash();
+  }
+
+  @Override
+  public String blobHash(Metadata meta) {
+    return meta.blobHash();
+  }
+
   public static final class MapToBindings {
     private final java.util.Map<QualifiedName, org.enso.compiler.core.ir.Module> entries;
 
@@ -162,7 +172,7 @@ public final class ImportExportCache
       MapToBindings bindings,
       Optional<List<SourceFile<TruffleFile>>> sources) {}
 
-  public record Metadata(String sourceHash, String blobHash) implements Cache.Metadata {
+  public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {
       try (var os = new ByteArrayOutputStream();
           var dos = new DataOutputStream(os)) {

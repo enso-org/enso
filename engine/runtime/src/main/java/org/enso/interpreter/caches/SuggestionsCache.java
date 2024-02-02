@@ -128,6 +128,16 @@ public final class SuggestionsCache
     return byteStream.toByteArray();
   }
 
+  @Override
+  public String sourceHash(Metadata meta) {
+    return meta.sourceHash();
+  }
+
+  @Override
+  public String blobHash(Metadata meta) {
+    return meta.blobHash();
+  }
+
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
   public static final class Suggestions implements Serializable {
 
@@ -177,7 +187,7 @@ public final class SuggestionsCache
     }
   }
 
-  record Metadata(String sourceHash, String blobHash) implements Cache.Metadata {
+  record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {
       try (var os = new ByteArrayOutputStream();
           var dos = new DataOutputStream(os)) {

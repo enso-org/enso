@@ -23,7 +23,7 @@ import org.enso.logger.masking.MaskedPath;
  * @param <T> type of the cached data
  * @param <M> type of the metadata associated with the data
  */
-public final class Cache<T, M extends Cache.Metadata> {
+public final class Cache<T, M> {
   private final Object LOCK = new Object();
 
   /** implementation of the serialize/deserialize operations */
@@ -83,7 +83,7 @@ public final class Cache<T, M extends Cache.Metadata> {
    * @param needsDataDigestVerification Flag indicating if the de-serialization process should
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
-  static <T, M extends Cache.Metadata> Cache<T, M> create(
+  static <T, M> Cache<T, M> create(
       Cache.Spi<T, M> spi,
       Level logLevel,
       String logName,
@@ -265,7 +265,7 @@ public final class Cache<T, M extends Cache.Metadata> {
       boolean sourceDigestValid =
           !needsSourceDigestVerification
               || spi.computeDigestFromSource(context, logger)
-                  .map(digest -> digest.equals(meta.sourceHash()))
+                  .map(digest -> digest.equals(spi.sourceHash(meta)))
                   .orElseGet(() -> false);
       var file = new File(dataPath.toUri());
       ByteBuffer blobBytes;
@@ -277,7 +277,7 @@ public final class Cache<T, M extends Cache.Metadata> {
       }
       boolean blobDigestValid =
           !needsDataDigestVerification
-              || CacheUtils.computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+              || CacheUtils.computeDigestFromBytes(blobBytes).equals(spi.blobHash(meta));
 
       if (sourceDigestValid && blobDigestValid) {
         T cachedObject = null;
@@ -529,11 +529,9 @@ public final class Cache<T, M extends Cache.Metadata> {
     public abstract String dataSuffix();
 
     public abstract String metadataSuffix();
-  }
 
-  interface Metadata {
-    String sourceHash();
+    public abstract String sourceHash(M meta);
 
-    String blobHash();
+    public abstract String blobHash(M meta);
   }
 }

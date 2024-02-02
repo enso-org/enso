@@ -158,10 +158,19 @@ public final class ModuleCache
     }
   }
 
+  @Override
+  public String sourceHash(Metadata meta) {
+    return meta.sourceHash();
+  }
+
+  @Override
+  public String blobHash(Metadata meta) {
+    return meta.blobHash();
+  }
+
   public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {}
 
-  public record Metadata(String sourceHash, String blobHash, String compilationStage)
-      implements Cache.Metadata {
+  public record Metadata(String sourceHash, String blobHash, String compilationStage) {
     byte[] toBytes() throws IOException {
       try (var os = new ByteArrayOutputStream();
           var dos = new DataOutputStream(os)) {
