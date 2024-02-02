@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
-
 import AssetVersion from '#/layouts/dashboard/AssetVersion'
 
 import type * as backend from '#/services/Backend'
@@ -24,17 +22,17 @@ export interface AssetVersionsProps {
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
   const { hidden, item } = props
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [versions, setVersions] = React.useState<backend.S3ObjectVersion[]>([])
+  const smartAsset = item.item
 
   React.useEffect(() => {
     if (!hidden && !initialized) {
       setInitialized(true)
       void (async () => {
         try {
-          const assetVersions = await backend.listAssetVersions(item.item.id, item.item.title)
+          const assetVersions = await smartAsset.listVersions()
           setVersions([...assetVersions.versions].reverse())
         } catch (error) {
           setInitialized(false)
@@ -42,14 +40,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
         }
       })()
     }
-  }, [
-    hidden,
-    initialized,
-    backend,
-    item.item.id,
-    item.item.title,
-    /* should never change */ toastAndLog,
-  ])
+  }, [hidden, initialized, smartAsset, /* should never change */ toastAndLog])
 
   return hidden ? (
     <></>

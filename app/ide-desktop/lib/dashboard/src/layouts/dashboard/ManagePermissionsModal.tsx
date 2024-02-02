@@ -16,6 +16,7 @@ import UserPermissions from '#/components/dashboard/UserPermissions'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -38,7 +39,7 @@ export interface ManagePermissionsModalProps<
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
-  backend: backendModule.Backend
+  backend: Backend
   self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */

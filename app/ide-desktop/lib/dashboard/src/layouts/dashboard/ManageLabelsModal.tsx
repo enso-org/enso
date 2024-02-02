@@ -11,6 +11,7 @@ import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
@@ -25,7 +26,7 @@ export interface ManageLabelsModalProps<
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset>>
-  backend: backendModule.Backend
+  backend: Backend
   allLabels: Map<backendModule.LabelName, backendModule.Label>
   doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */

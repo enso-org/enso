@@ -6,8 +6,10 @@
 import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
+
 import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
@@ -337,6 +339,8 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   override withValue(value: T): this {
     return super.withValue(value)
   }
+
+  async listVersions(): Promise<backendModule.AssetVersions> {}
 
   /** Set permissions for a user. */
   async setPermissions(body: backendModule.CreatePermissionRequestBody): Promise<void> {

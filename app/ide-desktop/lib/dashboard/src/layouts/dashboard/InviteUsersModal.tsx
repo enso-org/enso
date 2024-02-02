@@ -12,6 +12,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -21,7 +22,7 @@ import * as backendModule from '#/services/Backend'
 export interface InviteUsersModalProps {
   /** If this is `null`, this modal will be centered. */
   eventTarget: HTMLElement | null
-  backend: backendModule.Backend
+  backend: Backend
 }
 
 /** A modal for inviting one or more users. */

@@ -14,6 +14,7 @@ import UserMenu from '#/layouts/dashboard/UserMenu'
 import Button from '#/components/Button'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -22,7 +23,7 @@ import * as backendModule from '#/services/Backend'
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
   supportsLocalBackend: boolean
-  backend: backendModule.Backend
+  backend: Backend
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean

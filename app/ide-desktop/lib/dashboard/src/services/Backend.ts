@@ -846,6 +846,8 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
     parentDirectoryId: DirectoryId,
     parentDirectoryTitle: string
   ) => Promise<CopyAssetResponse>
+  /** List all versions of this asset. Only works for projects and files. */
+  readonly listVersions: () => Promise<AssetVersions>
   /** Set permissions for a user. */
   readonly setPermissions: (body: CreatePermissionRequestBody) => Promise<void>
 }
