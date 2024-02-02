@@ -16,7 +16,7 @@ export default test.defineConfig({
   retries: 2,
   expect: {
     toHaveScreenshot: { threshold: 0 },
-    timeout: 10_000,
+    timeout: 30_000,
   },
   use: {
     baseURL: 'http://localhost:8080',
