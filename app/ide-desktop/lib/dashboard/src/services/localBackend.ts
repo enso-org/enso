@@ -43,26 +43,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
-  override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
-    try {
-      await this.projectManager.closeProject({ projectId })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
-    }
-  }
-
-  /** Close the project identified by the given project ID.
-   * @throws An error if the JSON-RPC call fails. */
-  override async getProjectDetails(
+  async getProjectDetails(
     projectId: backend.ProjectId,
     title: string | null
   ): Promise<backend.Project> {
@@ -132,7 +113,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Prepare a project for execution.
    * @throws An error if the JSON-RPC call fails. */
-  override async openProject(
+  async openProject(
     projectId: backend.ProjectId,
     _body: backend.OpenProjectRequestBody | null,
     title: string | null
@@ -154,45 +135,6 @@ export class LocalBackend extends backend.Backend {
         )
       } finally {
         LocalBackend.currentlyOpeningProjectId = null
-      }
-    }
-  }
-
-  /** Change the name of a project.
-   * @throws An error if the JSON-RPC call fails. */
-  override async updateProject(
-    projectId: backend.ProjectId,
-    body: backend.UpdateProjectRequestBody
-  ): Promise<backend.UpdatedProject> {
-    if (body.ami != null) {
-      throw new Error('Cannot change project AMI on local backend.')
-    } else {
-      if (body.projectName != null) {
-        await this.projectManager.renameProject({
-          projectId,
-          name: projectManager.ProjectName(body.projectName),
-        })
-      }
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
-      const version =
-        project?.engineVersion == null
-          ? null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
-      if (project == null) {
-        throw new Error(`The project ID '${projectId}' is invalid.`)
-      } else {
-        return {
-          ami: null,
-          engineVersion: version,
-          ideVersion: version,
-          name: project.name,
-          organizationId: '',
-          projectId,
-        }
       }
     }
   }
@@ -221,29 +163,9 @@ export class LocalBackend extends backend.Backend {
     return Promise.resolve()
   }
 
-  /** Do nothing. This function should never need to be called. */
-  override createPermission() {
-    return Promise.resolve()
-  }
-
   /** FIXME: This is required to get (and by extension, list) the root directory. */
   override self() {
     return Promise.resolve(null)
-  }
-
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override checkResources() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getFileDetails() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */

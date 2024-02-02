@@ -9,7 +9,7 @@ import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
 import * as authProvider from '#/providers/AuthProvider'
-import type * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -31,6 +31,7 @@ export interface AssetSettingsPanelRequiredProps {
 /** Props for a {@link AssetSettingsPanel}. */
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
   supportsLocalBackend: boolean
+  backend: backendModule.Backend
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
   category: Category
@@ -38,7 +39,7 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
   setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
   setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  projectAsset: backendModule.ProjectAsset | null
+  projectAsset: backendModule.SmartProject | null
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   doRemoveSelf: () => void
   onSignOut: () => void
@@ -46,7 +47,7 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
-  const { item: rawItem, setItem: rawSetItem, supportsLocalBackend, page, setPage } = props
+  const { item: rawItem, setItem: rawSetItem, backend, supportsLocalBackend, page, setPage } = props
   const { category, isHelpChatOpen, setIsHelpChatOpen, setIsSettingsPanelVisible } = props
   const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const [item, innerSetItem] = React.useState(rawItem)
@@ -69,7 +70,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     permission => permission.user.user_email === organization?.value.email
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
-
+  const isCloud = backend.type === backendModule.BackendType.remote
   React.useEffect(() => {
     setDescription(asset.description ?? '')
   }, [asset.description])
@@ -100,11 +101,13 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         <div className="grow" />
         <div className="flex gap-2">
           <AssetInfoBar
+            isCloud={isCloud}
             canToggleSettingsPanel={true}
             isSettingsPanelVisible={true}
             setIsSettingsPanelVisible={setIsSettingsPanelVisible}
           />
           <UserBar
+            backend={backend}
             supportsLocalBackend={supportsLocalBackend}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
@@ -183,7 +186,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 <SharedWithColumn
                   item={item}
                   setItem={setItem}
-                  state={{ category, dispatchAssetEvent }}
+                  state={{ backend, category, dispatchAssetEvent }}
                 />
               </td>
             </tr>

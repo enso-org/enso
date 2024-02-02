@@ -34,7 +34,7 @@ export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 > {
   item: Asset
-  setItem: React.Dispatch<React.SetStateAction<Asset>>
+  setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
   backend: backendModule.Backend
   self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
@@ -89,12 +89,7 @@ export default function ManagePermissionsModal<
   )
 
   React.useEffect(() => {
-    // @ts-expect-error This is SAFE, as the type of asset is unchanged.
-    setItem(oldItem =>
-      // This is SAFE, as the type of asset is unchanged.
-      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-      oldItem.withValue(object.merge(oldItem.value, { permissions }) as any)
-    )
+    setItem(object.merger<backendModule.AnyAsset>({ permissions }))
   }, [permissions, /* should never change */ setItem])
 
   if (backend.type === backendModule.BackendType.local || organization == null) {

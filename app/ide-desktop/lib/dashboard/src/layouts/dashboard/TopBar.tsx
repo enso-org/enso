@@ -21,7 +21,7 @@ export interface TopBarProps {
   supportsLocalBackend: boolean
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
-  projectAsset: backendModule.ProjectAsset | null
+  projectAsset: backendModule.SmartProject | null
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   isCloud: boolean
   isEditorDisabled: boolean

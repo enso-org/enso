@@ -2,7 +2,6 @@
 import * as test from '@playwright/test'
 
 import * as backend from '../src/services/backend'
-import type * as remoteBackend from '../src/services/remoteBackend'
 import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
 import * as config from '../src/utilities/config'
 import * as dateTime from '../src/utilities/dateTime'
@@ -128,22 +127,14 @@ export async function mockApi(page: test.Page) {
             break
           }
         }
-        await route.fulfill({
-          json: {
-            assets: filteredAssets,
-          } satisfies remoteBackend.ListDirectoryResponseBody,
-        })
+        await route.fulfill({ json: { assets: filteredAssets } })
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.LIST_TAGS_PATH + '*', async route => {
-      await route.fulfill({
-        json: { tags: [] } satisfies remoteBackend.ListTagsResponseBody,
-      })
+      await route.fulfill({ json: { tags: [] } })
     })
     await page.route(BASE_URL + remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
-      await route.fulfill({
-        json: { users: [] } satisfies remoteBackend.ListUsersResponseBody,
-      })
+      await route.fulfill({ json: { users: [] } })
     })
     await page.route(
       BASE_URL + remoteBackendPaths.LIST_VERSIONS_PATH + '*',

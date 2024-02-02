@@ -7,8 +7,8 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import type * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -22,6 +22,7 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp {
+  backend: backendModule.Backend
   category: column.AssetColumnProps['state']['category']
   dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
 }
@@ -34,10 +35,9 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
-  const { category, dispatchAssetEvent } = state
+  const { backend, category, dispatchAssetEvent } = state
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
@@ -64,7 +64,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
-                item={asset}
+                item={smartAsset}
                 setItem={setAsset}
                 backend={backend}
                 self={self}

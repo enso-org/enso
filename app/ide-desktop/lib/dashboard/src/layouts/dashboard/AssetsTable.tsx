@@ -254,7 +254,7 @@ export interface AssetsTableState {
   doOpenManually: (projectId: backendModule.ProjectId) => void
   doOpenEditor: (
     project: backendModule.SmartProject,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void
@@ -304,7 +304,7 @@ export interface AssetsTableProps {
   >
   doOpenEditor: (
     project: backendModule.SmartProject,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void
@@ -1351,7 +1351,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
-      if (project.id === projectStartupInfo?.projectAsset.id) {
+      if (project.id === projectStartupInfo?.projectAsset.value.id) {
         dispatchAssetEvent({
           type: AssetEventType.cancelOpeningAllProjects,
         })

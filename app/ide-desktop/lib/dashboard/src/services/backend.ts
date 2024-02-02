@@ -174,7 +174,9 @@ export interface BackendProject extends Project {
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
   project: Project
-  projectAsset: ProjectAsset
+  // FIXME: Avoid putting all this info in `localStorage` to avoid these issues -
+  // instead store only the id of the last opened project.
+  projectAsset: SmartProject
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
   setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   backendType: BackendType

@@ -133,20 +133,20 @@ export default function Dashboard(props: DashboardProps) {
             setOpenProjectAbortController(abortController)
             const projectAsset = savedProjectStartupInfo.projectAsset
             const oldProject = await remoteBackend.getProjectDetails(
-              projectAsset.id,
-              projectAsset.title
+              projectAsset.value.id,
+              projectAsset.value.title
             )
             if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
               await remoteBackendModule.waitUntilProjectIsReady(
                 remoteBackend,
-                projectAsset.id,
-                projectAsset.title,
+                projectAsset.value.id,
+                projectAsset.value.title,
                 abortController
               )
               if (!abortController.signal.aborted) {
                 const project = await remoteBackend.getProjectDetails(
-                  projectAsset.id,
-                  projectAsset.title
+                  projectAsset.value.id,
+                  projectAsset.value.title
                 )
                 setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                 if (page === pageSwitcher.Page.editor) {
@@ -157,20 +157,15 @@ export default function Dashboard(props: DashboardProps) {
           })()
         }
       } else {
+        const projectId = savedProjectStartupInfo.projectAsset.value.id
+        const projectTitle = savedProjectStartupInfo.projectAsset.value.title
         if (currentBackend.type === backendModule.BackendType.local) {
-          setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
+          setInitialProjectName(projectId)
         } else {
           const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
           void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              null,
-              savedProjectStartupInfo.projectAsset.id
-            )
-            const project = await localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.title
-            )
+            await localBackend.openProject(projectId, null, projectTitle)
+            const project = await localBackend.getProjectDetails(projectId, projectTitle)
             setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
           })()
         }
@@ -326,28 +321,20 @@ export default function Dashboard(props: DashboardProps) {
     [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
-  const openEditor = React.useCallback(
+  const doOpenEditor = React.useCallback(
     async (
-      newProject: backendModule.SmartProject,
-      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
+      projectAsset: backendModule.SmartProject,
+      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
       switchPage: boolean
     ) => {
       if (switchPage) {
         setPage(pageSwitcher.Page.editor)
       }
-      if (projectStartupInfo?.project.projectId !== newProject.value.id) {
+      if (projectStartupInfo?.project.projectId !== projectAsset.value.id) {
         setProjectStartupInfo({
-          project: await newProject.getDetails(),
-          projectAsset: newProject.value,
-          setProjectAsset: valueOrUpdater => {
-            setProjectAsset(oldProjectAsset =>
-              oldProjectAsset.withValue(
-                typeof valueOrUpdater !== 'function'
-                  ? valueOrUpdater
-                  : valueOrUpdater(oldProjectAsset.value)
-              )
-            )
-          },
+          project: await projectAsset.getDetails(),
+          projectAsset,
+          setProjectAsset,
           backendType: backend.type,
           accessToken,
         })
@@ -356,9 +343,9 @@ export default function Dashboard(props: DashboardProps) {
     [backend, projectStartupInfo?.project.projectId, accessToken]
   )
 
-  const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
     setProjectStartupInfo(oldInfo =>
-      oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
+      oldInfo?.projectAsset.value.id === closingProject.id ? null : oldInfo
     )
   }, [])
 
@@ -366,7 +353,7 @@ export default function Dashboard(props: DashboardProps) {
     if (projectStartupInfo?.projectAsset != null) {
       dispatchAssetListEvent({
         type: AssetListEventType.removeSelf,
-        id: projectStartupInfo.projectAsset.id,
+        id: projectStartupInfo.projectAsset.value.id,
       })
       setProjectStartupInfo(null)
     }
@@ -438,8 +425,8 @@ export default function Dashboard(props: DashboardProps) {
             dispatchAssetEvent={dispatchAssetEvent}
             setAssetSettingsPanelProps={setAssetSettingsPanelProps}
             doCreateProject={doCreateProject}
-            doOpenEditor={openEditor}
-            doCloseEditor={closeEditor}
+            doOpenEditor={doOpenEditor}
+            doCloseEditor={doCloseEditor}
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
@@ -476,6 +463,7 @@ export default function Dashboard(props: DashboardProps) {
             <AssetSettingsPanel
               key={assetSettingsPanelProps.item.item.value.id}
               {...assetSettingsPanelProps}
+              backend={backend}
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}

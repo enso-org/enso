@@ -25,7 +25,7 @@ export interface UserBarProps {
   setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  projectAsset: backendModule.ProjectAsset | null
+  projectAsset: backendModule.SmartProject | null
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   doRemoveSelf: () => void
   onSignOut: () => void
@@ -39,7 +39,7 @@ export default function UserBar(props: UserBarProps) {
   const { setModal, updateModal } = modalProvider.useSetModal()
   const self =
     organization != null
-      ? projectAsset?.permissions?.find(
+      ? projectAsset?.value.permissions?.find(
           permissions => permissions.user.user_email === organization.value.email
         ) ?? null
       : null

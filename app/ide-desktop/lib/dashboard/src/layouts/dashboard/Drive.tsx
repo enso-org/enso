@@ -73,7 +73,7 @@ export interface DriveProps {
   doCreateProject: (templateId: string | null) => void
   doOpenEditor: (
     project: backendModule.SmartProject,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.SmartProject>>,
+    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void

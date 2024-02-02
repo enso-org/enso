@@ -108,7 +108,7 @@ export class LocalStorage {
             // eslint-disable-next-line no-restricted-syntax
             project: savedInfo.project as backend.Project,
             // eslint-disable-next-line no-restricted-syntax
-            projectAsset: savedInfo.projectAsset as backend.ProjectAsset,
+            projectAsset: savedInfo.projectAsset as backend.SmartProject,
             backendType: savedInfo.backendType,
             accessToken: savedInfo.accessToken,
           }
