@@ -21,27 +21,24 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
 
-public final class SuggestionsCache
-    extends Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
-
+public final class SuggestionsCache {
   private static final String SUGGESTIONS_CACHE_DATA_EXTENSION = ".suggestions";
   private static final String SUGGESTIONS_CACHE_METADATA_EXTENSION = ".suggestions.meta";
 
   final LibraryName libraryName;
 
   private SuggestionsCache(LibraryName libraryName) {
-    super(Level.FINEST, libraryName.toString(), true, false);
-    this.spi = new Impl();
     this.libraryName = libraryName;
   }
 
   public static Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> create(
       LibraryName libraryName) {
-    return new SuggestionsCache(libraryName);
+    var impl = new SuggestionsCache(libraryName).new Impl();
+    return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
   }
 
   private final class Impl
-      implements Spi<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
+      implements Cache.Spi<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
 
     @Override
     public String metadataSuffix() {
@@ -86,7 +83,7 @@ public final class SuggestionsCache
 
     @Override
     public Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
-      return entry.getSources().map(sources -> computeDigestOfLibrarySources(sources, logger));
+      return entry.getSources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
     }
 
     @Override
@@ -94,11 +91,11 @@ public final class SuggestionsCache
       return context
           .getPackageRepository()
           .getPackageForLibraryJava(libraryName)
-          .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
+          .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
     }
 
     @Override
-    public Optional<Roots> getCacheRoots(EnsoContext context) {
+    public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
       return context
           .getPackageRepository()
           .getPackageForLibraryJava(libraryName)

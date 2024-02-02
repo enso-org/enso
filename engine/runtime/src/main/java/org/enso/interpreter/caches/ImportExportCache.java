@@ -25,24 +25,22 @@ import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
 
 @Persistable(clazz = QualifiedName.class, id = 30300)
-public final class ImportExportCache
-    extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+public final class ImportExportCache {
 
   private final LibraryName libraryName;
 
   private ImportExportCache(LibraryName libraryName) {
-    super(Level.FINEST, libraryName.toString(), true, false);
-    this.spi = new Impl();
     this.libraryName = libraryName;
   }
 
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
       LibraryName libraryName) {
-    return new ImportExportCache(libraryName);
+    var impl = new ImportExportCache(libraryName).new Impl();
+    return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
   }
 
   private final class Impl
-      implements Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+      implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
     @Override
     public String metadataSuffix() {
@@ -90,7 +88,7 @@ public final class ImportExportCache
 
     @Override
     public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
-      return entry.sources().map(sources -> computeDigestOfLibrarySources(sources, logger));
+      return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
     }
 
     @Override
@@ -99,7 +97,7 @@ public final class ImportExportCache
       return context
           .getPackageRepository()
           .getPackageForLibraryJava(libraryName)
-          .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
+          .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
     }
 
     @Override

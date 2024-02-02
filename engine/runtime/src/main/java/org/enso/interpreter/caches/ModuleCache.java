@@ -21,27 +21,26 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
 import org.enso.polyglot.CompilationStage;
 
-public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
-
+public final class ModuleCache {
   private final org.enso.interpreter.runtime.Module module;
+  private final Impl spi;
 
   private ModuleCache(org.enso.interpreter.runtime.Module module) {
-    super(Level.FINEST, module.getName().toString(), true, false);
     this.spi = new Impl();
     this.module = module;
   }
 
   public static Cache<ModuleCache.CachedModule, ModuleCache.Metadata> create(
       org.enso.interpreter.runtime.Module module) {
-    return new ModuleCache(module);
+    var mc = new ModuleCache(module);
+    return Cache.create(mc.spi, Level.FINEST, module.getName().toString(), true, false);
   }
 
   static ModuleCache.Impl find(Cache<?, ?> c) {
-    var mc = (ModuleCache) c;
-    return (ModuleCache.Impl) mc.spi;
+    throw new IllegalStateException();
   }
 
-  final class Impl implements Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
+  final class Impl implements Cache.Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
     @Override
     public String metadataSuffix() {
@@ -96,7 +95,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         } else {
           sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
         }
-        return Optional.of(computeDigestFromBytes(ByteBuffer.wrap(sourceBytes)));
+        return Optional.of(CacheUtils.computeDigestFromBytes(ByteBuffer.wrap(sourceBytes)));
       } else {
         return Optional.empty();
       }
@@ -112,7 +111,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       try {
         return computeDigestOfModuleSources(module.getSource());
       } catch (IOException e) {
-        logger.log(logLevel, "failed to retrieve the source of " + module.getName(), e);
+        logger.log(Level.FINEST, "failed to retrieve the source of " + module.getName(), e);
         return Optional.empty();
       }
     }

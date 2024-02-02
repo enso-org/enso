@@ -11,16 +11,10 @@ import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
-import org.enso.pkg.SourceFile;
-import org.enso.text.Hex;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
@@ -29,14 +23,14 @@ import org.enso.text.Hex;
  * @param <T> type of the cached data
  * @param <M> type of the metadata associated with the data
  */
-public class Cache<T, M extends Cache.Metadata> {
+public final class Cache<T, M extends Cache.Metadata> {
   private final Object LOCK = new Object();
 
   /** implementation of the serialize/deserialize operations */
-  protected /* final & private */ Spi<T, M> spi;
+  private final Spi<T, M> spi;
 
   /** Returns a default level of logging for this Cache. */
-  protected final Level logLevel;
+  private final Level logLevel;
 
   /** Log name to use in log messages */
   private final String logName;
@@ -64,16 +58,39 @@ public class Cache<T, M extends Cache.Metadata> {
    * @param needsDataDigestVerification Flag indicating if the de-serialization process should
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
-  protected Cache(
+  private Cache(
+      Cache.Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
+    this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
-    this.spi = null;
+  }
+
+  /**
+   * Factory method to create new cache instance.
+   *
+   * @param spi the implementation logic of the cache
+   * @param logLevel logging level
+   * @param logName name to use in logs
+   * @param needsSourceDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the sources from which the cache was created and compare it with the
+   *     stored metadata entry.
+   * @param needsDataDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the stored cache and compare it with the stored metadata entry.
+   */
+  static <T, M extends Cache.Metadata> Cache<T, M> create(
+      Cache.Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification) {
+    return new Cache<>(
+        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
   }
 
   /**
@@ -133,7 +150,7 @@ public class Cache<T, M extends Cache.Metadata> {
     if (ensureRoot(cacheRoot)) {
       byte[] bytesToWrite = spi.serialize(context, entry);
 
-      String blobDigest = computeDigestFromBytes(ByteBuffer.wrap(bytesToWrite));
+      String blobDigest = CacheUtils.computeDigestFromBytes(ByteBuffer.wrap(bytesToWrite));
       String sourceDigest = spi.computeDigest(entry, logger).get();
       if (sourceDigest == null) {
         throw new ClassNotFoundException("unable to compute digest");
@@ -259,7 +276,8 @@ public class Cache<T, M extends Cache.Metadata> {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       }
       boolean blobDigestValid =
-          !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+          !needsDataDigestVerification
+              || CacheUtils.computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
       if (sourceDigestValid && blobDigestValid) {
         T cachedObject = null;
@@ -314,55 +332,6 @@ public class Cache<T, M extends Cache.Metadata> {
       return spi.metadataFromBytes(path.readAllBytes(), logger);
     } else {
       return Optional.empty();
-    }
-  }
-
-  /**
-   * Computes digest from an array of bytes using a default hashing algorithm.
-   *
-   * @param bytes bytes for which hash will be computed
-   * @return string representation of bytes' hash
-   */
-  protected final String computeDigestFromBytes(ByteBuffer bytes) {
-    var sha = messageDigest();
-    sha.update(bytes);
-    return Hex.toHexString(sha.digest());
-  }
-
-  /**
-   * Computes digest from package sources using a default hashing algorithm.
-   *
-   * @param pkgSources the list of package sources
-   * @param logger the truffle logger
-   * @return string representation of bytes' hash
-   */
-  protected final String computeDigestOfLibrarySources(
-      List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
-    pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
-
-    var digest = messageDigest();
-    pkgSources.forEach(
-        source -> {
-          try {
-            digest.update(source.file().readAllBytes());
-          } catch (IOException e) {
-            logger.log(
-                logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
-          }
-        });
-    return Hex.toHexString(digest.digest());
-  }
-
-  /**
-   * Returns a default hashing algorithm used for Enso caches.
-   *
-   * @return digest used for computing hashes
-   */
-  protected MessageDigest messageDigest() {
-    try {
-      return MessageDigest.getInstance("SHA-1");
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalStateException("Unreachable", ex);
     }
   }
 
@@ -473,7 +442,11 @@ public class Cache<T, M extends Cache.Metadata> {
     return new MaskedPath(Path.of(truffleFile.getPath()));
   }
 
-  /** Set of methods to be implemented by those who want to cache something. */
+  /**
+   * Set of methods to be implemented by those who want to cache something.
+   *
+   * @param <T>
+   */
   public static interface Spi<T, M> {
     /**
      * Deserializes and validates data by returning the expected cached entry, or {@code null}.
