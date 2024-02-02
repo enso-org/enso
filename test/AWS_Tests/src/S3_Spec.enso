@@ -394,7 +394,8 @@ spec =
         Test.specify "should be able to write and then read custom types, like Table as Excel" <|
             file = my_writable_dir / "table.xlsx"
             table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
-            table.write file . should_succeed
+            table.write file . should_equal file
+            IO.println file.size
             delete_afterwards file <|
                 workbook1 = file.read
                 workbook1.sheet_names . should_equal ['EnsoSheet']

@@ -4,6 +4,7 @@ import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.Input_Stream.Input_Stream
 import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
+import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -31,6 +32,9 @@ type Writable_File
     exists self -> Boolean = self.file.exists
 
     ## PRIVATE
+    copy_to self destination replace_existing = self.file.copy_to destination replace_existing
+
+    ## PRIVATE
     write self (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) -> Any =
         self.write_strategy.write self.file existing_file_behavior action
 
@@ -54,3 +58,7 @@ Writable_File.from (that : Text) =
 ## PRIVATE
    If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.
 File_Format_Metadata.from (that : Writable_File) = File_Format_Metadata.from that.file
+
+## PRIVATE
+   If a conversion to `File_Like` is needed, we delegate to the underlying file.
+File_Like.from (that : Writable_File) = File_Like.from that.file
