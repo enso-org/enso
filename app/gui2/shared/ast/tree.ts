@@ -208,6 +208,12 @@ export abstract class MutableAst extends Ast {
     return old
   }
 
+  replaceValueChecked<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
+    const parentId = this.fields.get('parent')
+    assertDefined(parentId)
+    return this.replaceValue(replacement)
+  }
+
   /** Replace the parent of this object with a reference to a new placeholder object.
    *  Returns the object, now parentless, and the placeholder. */
   takeToReplace(): Removed<this> {
@@ -325,9 +331,13 @@ interface AppFields {
 }
 export class App extends Ast {
   declare fields: FixedMap<AstFields & AppFields>
-
   constructor(module: Module, fields: FixedMapView<AstFields & AppFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableApp> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableApp) return parsed
   }
 
   static concrete(
@@ -457,6 +467,11 @@ export class UnaryOprApp extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableUnaryOprApp> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableUnaryOprApp) return parsed
+  }
+
   static concrete(
     module: MutableModule,
     operator: NodeChild<Token>,
@@ -520,6 +535,11 @@ export class NegationApp extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableNegationApp> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableNegationApp) return parsed
+  }
+
   static concrete(module: MutableModule, operator: NodeChild<Token>, argument: NodeChild<Owned>) {
     const base = module.baseObject('NegationApp')
     const id_ = base.get('id')
@@ -575,6 +595,11 @@ export class OprApp extends Ast {
   declare fields: FixedMapView<AstFields & OprAppFields>
   constructor(module: Module, fields: FixedMapView<AstFields & OprAppFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableOprApp> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableOprApp) return parsed
   }
 
   static concrete(
@@ -662,6 +687,14 @@ export class PropertyAccess extends Ast {
   declare fields: FixedMapView<AstFields & PropertyAccessFields>
   constructor(module: Module, fields: FixedMapView<AstFields & PropertyAccessFields>) {
     super(module, fields)
+  }
+
+  static tryParse(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutablePropertyAccess> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutablePropertyAccess) return parsed
   }
 
   static new(module: MutableModule, lhs: Owned, rhs: IdentLike) {
@@ -865,6 +898,11 @@ export class Import extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableImport> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableImport) return parsed
+  }
+
   get polyglot(): Ast | undefined {
     return this.module.checkedGet(this.fields.get('polyglot')?.body?.node)
   }
@@ -1045,6 +1083,11 @@ export class TextLiteral extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableTextLiteral> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableTextLiteral) return parsed
+  }
+
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -1103,6 +1146,11 @@ export class Documented extends Ast {
   declare fields: FixedMapView<AstFields & DocumentedFields>
   constructor(module: Module, fields: FixedMapView<AstFields & DocumentedFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableDocumented> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableDocumented) return parsed
   }
 
   static concrete(
@@ -1230,6 +1278,11 @@ export class Group extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableGroup> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableGroup) return parsed
+  }
+
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -1286,6 +1339,14 @@ export class NumericLiteral extends Ast {
     super(module, fields)
   }
 
+  static tryParse(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableNumericLiteral> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableNumericLiteral) return parsed
+  }
+
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
     const base = module.baseObject('NumericLiteral')
     const fields = setAll(base, { tokens })
@@ -1334,6 +1395,11 @@ export class Function extends Ast {
   declare fields: FixedMapView<AstFields & FunctionFields>
   constructor(module: Module, fields: FixedMapView<AstFields & FunctionFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableFunction> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableFunction) return parsed
   }
 
   get name(): Ast {
@@ -1477,6 +1543,11 @@ export class Assignment extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableAssignment> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableAssignment) return parsed
+  }
+
   static concrete(
     module: MutableModule,
     pattern: NodeChild<Owned>,
@@ -1549,6 +1620,11 @@ export class BodyBlock extends Ast {
   declare fields: FixedMapView<AstFields & BodyBlockFields>
   constructor(module: Module, fields: FixedMapView<AstFields & BodyBlockFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableBodyBlock> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableBodyBlock) return parsed
   }
 
   static concrete(module: MutableModule, lines: OwnedBlockLine[]) {
@@ -1712,6 +1788,11 @@ export class Ident extends Ast {
     super(module, fields)
   }
 
+  static tryParse(source: string, module?: MutableModule): Owned<MutableIdent> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableIdent) return parsed
+  }
+
   get token(): IdentifierToken {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
@@ -1763,6 +1844,11 @@ export class Wildcard extends Ast {
   declare fields: FixedMapView<AstFields & WildcardFields>
   constructor(module: Module, fields: FixedMapView<AstFields & WildcardFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableWildcard> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableWildcard) return parsed
   }
 
   get token(): Token {
