@@ -52,10 +52,11 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await page.mouse.click(40, 300)
   await expectAndCancelBrowser('final.')
   // Double-clicking port
+  // TODO[ao] Without timeout, even the first click would be treated as double due to previous
+  // event. Probably we need a better way to simulate double clicks.
+  await page.waitForTimeout(600)
   await page.mouse.click(outputPortX, outputPortY)
-  // TODO[ao] the above click is already treated as double (due to previous event)
-  //  But perhaps we should have more reliable method of simulating double clicks.
-  // await outputPortArea.dispatchEvent('pointerdown')
+  await page.mouse.click(outputPortX, outputPortY)
   await expectAndCancelBrowser('final.')
 })
 
