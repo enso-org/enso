@@ -577,7 +577,7 @@ class SmartDirectory
         return this.throw(`Could not create folder with name '${body.title}'.`)
       } else {
         const reponseBody = await response.json()
-        return result.withValue(object.merge(this.value, reponseBody))
+        return result.withValue(object.merge(result.value, reponseBody))
       }
     })
     return result
