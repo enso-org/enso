@@ -1,6 +1,6 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.source.{Source}
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
@@ -22,7 +22,7 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.ir.module.scope.imports;
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
@@ -60,7 +60,7 @@ import scala.jdk.OptionConverters._
 class Compiler(
   val context: CompilerContext,
   val packageRepository: PackageRepository,
-  config: CompilerConfig
+  private val config: CompilerConfig
 ) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
@@ -74,6 +74,9 @@ class Compiler(
       new PrintStream(config.outputRedirect.get)
     else context.getOut
   private lazy val ensoCompiler: EnsoParser = new EnsoParser()
+
+  /** Java accessor */
+  def getConfig(): CompilerConfig = config
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -678,7 +681,7 @@ class Compiler(
 
     ensoCompiler.generateIRInline(tree).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
-      runErrorHandlingInline(compilerOutput, source, newContext)
+      runErrorHandlingInline(compilerOutput, newContext)
       (newContext, compilerOutput, source)
     }
   }
@@ -843,12 +846,10 @@ class Compiler(
     * context) for the inline compiler flow.
     *
     * @param ir the IR after compilation passes.
-    * @param source the original source code.
     * @param inlineContext the inline compilation context.
     */
   private def runErrorHandlingInline(
     ir: Expression,
-    source: Source,
     inlineContext: InlineContext
   ): Unit = {
     val errors = GatherDiagnostics
@@ -858,7 +859,7 @@ class Compiler(
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val hasErrors = reportDiagnostics(errors, source)
+    val hasErrors = reportDiagnostics(errors, null)
     if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
       throw new CompilationAbortedException
     }
@@ -979,7 +980,7 @@ class Compiler(
     diagnostics
       .foldLeft(false) { case (result, (mod, diags)) =>
         if (diags.nonEmpty) {
-          reportDiagnostics(diags, mod.getSource) || result
+          reportDiagnostics(diags, mod) || result
         } else {
           result
         }
@@ -990,208 +991,20 @@ class Compiler(
     * exception breaking the execution flow if there are errors.
     *
     * @param diagnostics all the diagnostics found in the program IR.
-    * @param source the original source code.
+    * @param compilerModule The module in which the diagnostics should be reported. Or null if run inline.
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    source: Source
+    compilerModule: CompilerContext.Module
   ): Boolean = {
-    diagnostics.foreach(diag =>
-      printDiagnostic(new DiagnosticFormatter(diag, source).format())
-    )
+    val isOutputRedirected = config.outputRedirect.isDefined
+    diagnostics.foreach { diag =>
+      val formattedDiag =
+        context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+      printDiagnostic(formattedDiag)
+    }
     diagnostics.exists(_.isInstanceOf[Error])
-  }
-
-  /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
-    * diagnostics. The output is colorized if the output stream supports ANSI colors.
-    * Also prints the offending lines from the source along with line number - the same way as
-    * GCC does.
-    * @param diagnostic the diagnostic to pretty print
-    * @param source     the original source code
-    */
-  private class DiagnosticFormatter(
-    private val diagnostic: Diagnostic,
-    private val source: Source
-  ) {
-    private val maxLineNum                     = 99999
-    private val blankLinePrefix                = "      | "
-    private val maxSourceLinesToPrint          = 3
-    private val linePrefixSize                 = blankLinePrefix.length
-    private val outSupportsAnsiColors: Boolean = outSupportsColors
-    private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
-      case _: Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
-      case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
-      case _          => throw new IllegalStateException("Unexpected diagnostic type")
-    }
-
-    def fileLocationFromSection(loc: IdentifiedLocation) = {
-      val section =
-        source.createSection(loc.location().start(), loc.location().length());
-      val locStr = "" + section.getStartLine() + ":" + section
-        .getStartColumn() + "-" + section.getEndLine() + ":" + section
-        .getEndColumn()
-      source.getName() + "[" + locStr + "]";
-    }
-
-    private val sourceSection: Option[SourceSection] =
-      diagnostic.location match {
-        case Some(location) =>
-          Some(source.createSection(location.start, location.length))
-        case None => None
-      }
-    private val shouldPrintLineNumber = sourceSection match {
-      case Some(section) =>
-        section.getStartLine <= maxLineNum && section.getEndLine <= maxLineNum
-      case None => false
-    }
-
-    def format(): String = {
-      sourceSection match {
-        case Some(section) =>
-          val isOneLine = section.getStartLine == section.getEndLine
-          val srcPath: String =
-            if (source.getPath == null && source.getName == null) {
-              "<Unknown source>"
-            } else if (source.getPath != null) {
-              source.getPath
-            } else {
-              source.getName
-            }
-          if (isOneLine) {
-            val lineNumber  = section.getStartLine
-            val startColumn = section.getStartColumn
-            val endColumn   = section.getEndColumn
-            var str         = fansi.Str()
-            str ++= fansi
-              .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
-              .overlay(fansi.Bold.On)
-            str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage(fileLocationFromSection)
-            str ++= "\n"
-            str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
-            str ++= "\n"
-            str ++= underline(startColumn, endColumn)
-            if (outSupportsAnsiColors) {
-              str.render.stripLineEnd
-            } else {
-              str.plainText.stripLineEnd
-            }
-          } else {
-            var str = fansi.Str()
-            str ++= fansi
-              .Str(
-                srcPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
-              )
-              .overlay(fansi.Bold.On)
-            str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage(fileLocationFromSection)
-            str ++= "\n"
-            val printAllSourceLines =
-              section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
-            val endLine =
-              if (printAllSourceLines) section.getEndLine
-              else section.getStartLine + maxSourceLinesToPrint
-            for (lineNum <- section.getStartLine to endLine) {
-              str ++= oneLineFromSource(lineNum)
-              str ++= "\n"
-            }
-            if (!printAllSourceLines) {
-              val restLineCount =
-                section.getEndLine - section.getStartLine - maxSourceLinesToPrint
-              str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
-              str ++= "\n"
-            }
-            if (outSupportsAnsiColors) {
-              str.render.stripLineEnd
-            } else {
-              str.plainText.stripLineEnd
-            }
-          }
-        case None =>
-          // There is no source section associated with the diagnostics
-          var str = fansi.Str()
-          val fileLocation = diagnostic.location match {
-            case Some(_) =>
-              fileLocationFromSectionOption(diagnostic.location, source)
-            case None =>
-              Option(source.getPath).getOrElse("<Unknown source>")
-          }
-
-          str ++= fansi
-            .Str(fileLocation)
-            .overlay(fansi.Bold.On)
-          str ++= ": "
-          str ++= fansi.Str(subject).overlay(textAttrs)
-          str ++= diagnostic.formattedMessage(fileLocationFromSection)
-          if (outSupportsAnsiColors) {
-            str.render.stripLineEnd
-          } else {
-            str.plainText.stripLineEnd
-          }
-      }
-    }
-
-    /** @see https://github.com/termstandard/colors/
-      * @see https://no-color.org/
-      * @return
-      */
-    private def outSupportsColors: Boolean = {
-      if (System.console() == null) {
-        // Non-interactive output is always without color support
-        return false
-      }
-      if (System.getenv("NO_COLOR") != null) {
-        return false
-      }
-      if (config.outputRedirect.isDefined) {
-        return false
-      }
-      if (System.getenv("COLORTERM") != null) {
-        return true
-      }
-      if (System.getenv("TERM") != null) {
-        val termEnv = System.getenv("TERM").toLowerCase
-        return termEnv.split("-").contains("color") || termEnv
-          .split("-")
-          .contains("256color")
-      }
-      return false
-    }
-
-    private def oneLineFromSource(lineNum: Int): String = {
-      val line = source.createSection(lineNum).getCharacters.toString
-      linePrefix(lineNum) + line
-    }
-
-    private def oneLineFromSourceColored(
-      lineNum: Int,
-      startCol: Int,
-      endCol: Int
-    ): String = {
-      val line = source.createSection(lineNum).getCharacters.toString
-      linePrefix(lineNum) + fansi
-        .Str(line)
-        .overlay(textAttrs, startCol - 1, endCol)
-    }
-
-    private def linePrefix(lineNum: Int): String = {
-      if (shouldPrintLineNumber) {
-        val pipeSymbol = " | "
-        val prefixWhitespaces =
-          linePrefixSize - lineNum.toString.length - pipeSymbol.length
-        " " * prefixWhitespaces + lineNum + pipeSymbol
-      } else {
-        blankLinePrefix
-      }
-    }
-
-    private def underline(startColumn: Int, endColumn: Int): String = {
-      val sectionLen = endColumn - startColumn
-      blankLinePrefix +
-      " " * (startColumn - 1) +
-      fansi.Str("^" + ("~" * sectionLen)).overlay(textAttrs)
-    }
   }
 
   private def fileLocationFromSectionOption(

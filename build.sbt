@@ -1619,6 +1619,7 @@ lazy val runtime = (project in file("engine/runtime"))
     libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
+      "com.lihaoyi"         %% "fansi"                   % fansiVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
@@ -1871,8 +1872,7 @@ lazy val `runtime-compiler` =
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-        "com.lihaoyi"     %% "fansi"                   % fansiVersion
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
     .dependsOn(`runtime-parser`)
