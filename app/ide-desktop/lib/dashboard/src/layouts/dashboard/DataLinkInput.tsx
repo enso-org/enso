@@ -3,6 +3,9 @@ import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
+import * as backendProvider from '#/providers/BackendProvider'
+
+import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
@@ -82,10 +85,12 @@ export interface DataLinkInputProps {
 export default function DataLinkInput(props: DataLinkInputProps) {
   const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
   const { setValue: setValueRaw, setIsSubmittable: setIsSubmittableRaw } = props
+  const { backend } = backendProvider.useBackend()
+  const [value, setValue] = React.useState(valueRaw)
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [isSubmittable, setIsSubmittable] = React.useState(false)
   const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
-  const [value, setValue] = React.useState(valueRaw)
+  const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
 
   React.useEffect(() => {
     if (childSubmittability != null) {
@@ -118,24 +123,49 @@ export default function DataLinkInput(props: DataLinkInputProps) {
   } else if ('type' in schema) {
     switch (schema.type) {
       case 'string': {
-        return (
-          <input
-            type="text"
-            readOnly={readOnly}
-            value={typeof value === 'string' ? value : ''}
-            size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
-            placeholder="Enter text here"
-            onChange={event => {
-              setIsSubmittable(
-                event.currentTarget.value !== '' &&
-                  jsonSchema.isMatch(DEFS, schema, event.currentTarget.value)
-              )
-              const newValue: string = event.currentTarget.value
-              setValue(newValue)
-            }}
-          />
-        )
+        if ('format' in schema && schema.format === 'enso-secret') {
+          if (autocompleteItems == null) {
+            setAutocompleteItems([])
+            void (async () => {
+              const secrets = await backend.listSecrets()
+              // FIXME: Extract secret path instead of ID.
+              setAutocompleteItems(secrets.map(secret => secret.id))
+            })()
+          }
+          return (
+            <Autocomplete
+              items={autocompleteItems ?? []}
+              itemToKey={item => item}
+              itemToString={item => item}
+              matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
+              values={typeof value !== 'string' || value === '' ? [] : [value]}
+              setValues={values => {
+                setValue(values[0])
+              }}
+              text={typeof value !== 'string' ? null : value}
+              setText={setValue}
+            />
+          )
+        } else {
+          return (
+            <input
+              type="text"
+              readOnly={readOnly}
+              value={typeof value === 'string' ? value : ''}
+              size={1}
+              className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
+              placeholder="Enter text here"
+              onChange={event => {
+                setIsSubmittable(
+                  event.currentTarget.value !== '' &&
+                    jsonSchema.isMatch(DEFS, schema, event.currentTarget.value)
+                )
+                const newValue: string = event.currentTarget.value
+                setValue(newValue)
+              }}
+            />
+          )
+        }
       }
       case 'number': {
         return (

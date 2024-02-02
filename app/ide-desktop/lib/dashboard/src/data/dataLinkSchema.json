@@ -20,7 +20,11 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "secret", "type": "string" },
-        "secretPath": { "title": "Path", "type": "string" }
+        "secretPath": {
+          "title": "Path",
+          "type": "string",
+          "format": "enso-secret"
+        }
       },
       "required": ["type", "secretPath"]
     },

@@ -102,8 +102,22 @@ function constantValueHelper(
       case 'boolean': {
         // These should already be covered by the `const` check above.
         result = []
-        if (schema.type === 'boolean' && partial) {
-          result = [false]
+        if (partial) {
+          switch (schema.type) {
+            case 'string': {
+              result = ['']
+              break
+            }
+            case 'number':
+            case 'integer': {
+              result = [0]
+              break
+            }
+            case 'boolean': {
+              result = [false]
+              break
+            }
+          }
         }
         break
       }
@@ -266,28 +280,26 @@ export function isMatch(
         // https://json-schema.org/understanding-json-schema/reference/string
         if (typeof value !== 'string') {
           result = false
-          break
+        } else if (options.partial === true && value === '') {
+          result = true
         } else if (
           'minLength' in schema &&
           typeof schema.minLength === 'number' &&
           value.length < schema.minLength
         ) {
           result = false
-          break
         } else if (
           'maxLength' in schema &&
           typeof schema.maxLength === 'number' &&
           value.length > schema.maxLength
         ) {
           result = false
-          break
         } else if (
           'pattern' in schema &&
           typeof schema.pattern === 'string' &&
           !tryRegExp(schema.pattern).test(value)
         ) {
           result = false
-          break
         } else {
           const format =
             'format' in schema && typeof schema.format === 'string' ? schema.format : null
@@ -301,16 +313,18 @@ export function isMatch(
               break
             }
           }
-          break
         }
+        break
       }
       case 'number':
       case 'integer': {
         // https://json-schema.org/understanding-json-schema/reference/numeric
         if (typeof value !== 'number') {
-          return false
+          result = false
+        } else if (options.partial === true && value === 0) {
+          result = true
         } else if (schema.type === 'integer' && !Number.isInteger(value)) {
-          return false
+          result = false
         } else if (
           'multipleOf' in schema &&
           typeof schema.multipleOf === 'number' &&
@@ -320,34 +334,35 @@ export function isMatch(
           // in some cases like`1 % 0.01`.
           value - schema.multipleOf * Math.round(value / schema.multipleOf) !== 0
         ) {
-          return false
+          result = false
         } else if (
           'minimum' in schema &&
           typeof schema.minimum === 'number' &&
           value < schema.minimum
         ) {
-          return false
+          result = false
         } else if (
           'exclusiveMinimum' in schema &&
           typeof schema.exclusiveMinimum === 'number' &&
           value <= schema.exclusiveMinimum
         ) {
-          return false
+          result = false
         } else if (
           'maximum' in schema &&
           typeof schema.maximum === 'number' &&
           value > schema.maximum
         ) {
-          return false
+          result = false
         } else if (
           'exclusiveMaximum' in schema &&
           typeof schema.exclusiveMaximum === 'number' &&
           value >= schema.exclusiveMaximum
         ) {
-          return false
+          result = false
         } else {
-          return true
+          result = true
         }
+        break
       }
       case 'boolean': {
         result = typeof value === 'boolean'
