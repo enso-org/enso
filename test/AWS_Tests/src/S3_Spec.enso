@@ -247,51 +247,6 @@ spec =
                 new_file.exists . should_be_false
                 my_writable_dir.list . should_not_contain new_file
 
-        Test.specify "should support .bak logic" <|
-            my_file = my_writable_dir / "bak-test/my_file.txt"
-            bak_file = my_writable_dir / "bak-test/my_file.txt.bak"
-            my_file.exists.should_be_false
-            bak_file.exists.should_be_false
-
-            "version1".write my_file . should_succeed
-            delete_afterwards my_file <|
-                my_file.read . should_equal "version1"
-                bak_file.exists . should_be_false
-
-                # Backup is the default behavior:
-                "version2".write my_file . should_succeed
-
-                bak_file.exists . should_be_true
-                delete_afterwards bak_file <|
-                    my_file.read . should_equal "version2"
-
-                    # ensure correct format is used for reading the .bak file - Auto_Detect fails because it does not know the `.bak` extension
-                    bak_file.read Plain_Text . should_equal "version1"
-
-                    "version3".write my_file . should_succeed
-
-                    my_file.read . should_equal "version3"
-                    bak_file.read Plain_Text . should_equal "version2"
-
-                    # No new file was created
-                    parent_dir = my_file.parent
-                    parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
-
-        Test.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
-            weird_ext = my_writable_dir / "weird-ext.unknown"
-            "Hello".write weird_ext . should_succeed
-
-            r = weird_ext.read
-            r.should_fail_with File_Error
-            r.catch.should_be_a File_Error.Unsupported_Type
-            r.catch.to_display_text . should_contain ".unknown"
-
-        Test.specify "should be able to write and then read custom types, like Table, in various format, like Excel" <|
-            file = my_writable_dir / "table.xlsx"
-            table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
-            table.write file . should_succeed
-            file.read . should_equal table
-
         Test.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
             "Hello".write new_file . should_succeed
@@ -392,6 +347,51 @@ spec =
             [4, 5, 6].write_bytes new_file . should_succeed
             delete_afterwards new_file <|
                 new_file.read_bytes.should_equal [4, 5, 6]
+
+        Test.specify "should support .bak logic" <|
+            my_file = my_writable_dir / "bak-test/my_file.txt"
+            bak_file = my_writable_dir / "bak-test/my_file.txt.bak"
+            my_file.exists.should_be_false
+            bak_file.exists.should_be_false
+
+            "version1".write my_file . should_succeed
+            delete_afterwards my_file <|
+                my_file.read . should_equal "version1"
+                bak_file.exists . should_be_false
+
+                # Backup is the default behavior:
+                "version2".write my_file . should_succeed
+
+                bak_file.exists . should_be_true
+                delete_afterwards bak_file <|
+                    my_file.read . should_equal "version2"
+
+                    # ensure correct format is used for reading the .bak file - Auto_Detect fails because it does not know the `.bak` extension
+                    bak_file.read Plain_Text . should_equal "version1"
+
+                    "version3".write my_file . should_succeed
+
+                    my_file.read . should_equal "version3"
+                    bak_file.read Plain_Text . should_equal "version2"
+
+                    # No new file was created
+                    parent_dir = my_file.parent
+                    parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
+
+        Test.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
+            weird_ext = my_writable_dir / "weird-ext.unknown"
+            "Hello".write weird_ext . should_succeed
+
+            r = weird_ext.read
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Unsupported_Type
+            r.catch.to_display_text . should_contain ".unknown"
+
+        Test.specify "should be able to write and then read custom types, like Table, in various format, like Excel" <|
+            file = my_writable_dir / "table.xlsx"
+            table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
+            table.write file . should_succeed
+            file.read . should_equal table
 
         Test.specify "should fail to write a file if permissions are lacking" <|
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
