@@ -2045,7 +2045,6 @@ type Table
                 self.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
                     unique = self.column_naming_helper.create_unique_name_strategy
                     unique.mark_used (self.column_names)
-                    unique.mark_used (lookup_table.column_names)
 
                     ## We perform a `merge` into `column`, using a duplicate of `column`
                        as the key column to join with `from_column`.
