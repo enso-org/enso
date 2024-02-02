@@ -10,6 +10,7 @@ import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.CompilationStage
+import org.enso.interpreter.caches.Cache
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.caches.ModuleCache
 import org.enso.interpreter.caches.SuggestionsCache
@@ -220,7 +221,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     try {
       val result =
         try {
-          val cache = new ImportExportCache(libraryName)
+          val cache = ImportExportCache.create(libraryName)
           val file = context.saveCache(
             cache,
             bindingsCache,
@@ -292,7 +293,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
             .getPackageForLibraryJava(libraryName)
             .map(_.listSourcesJava())
         )
-      val cache = new SuggestionsCache(libraryName)
+      val cache = SuggestionsCache.create(libraryName)
       val file = context.saveCache(
         cache,
         cachedSuggestions,
@@ -327,7 +328,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       while (isSerializingLibrary(libraryName)) {
         Thread.sleep(100)
       }
-      val cache = new SuggestionsCache(libraryName)
+      val cache = SuggestionsCache.create(libraryName)
       context.loadCache(cache).toScala match {
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
           context.logSerializationManager(
@@ -357,7 +358,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       while (isSerializingLibrary(libraryName)) {
         Thread.sleep(100)
       }
-      val cache = new ImportExportCache(libraryName)
+      val cache = ImportExportCache.create(libraryName)
       context.loadCache(cache).toScala match {
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           context.logSerializationManager(
@@ -576,7 +577,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     * @return the task that serialies the provided `ir`
     */
   private def doSerializeModule(
-    cache: ModuleCache,
+    cache: Cache[ModuleCache.CachedModule, ModuleCache.Metadata],
     ir: IRModule,
     stage: CompilationStage,
     name: QualifiedName,
@@ -660,7 +661,9 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       .asScala
   }
 
-  private def getCache(module: Module): ModuleCache = {
+  private def getCache(
+    module: Module
+  ): Cache[ModuleCache.CachedModule, ModuleCache.Metadata] = {
     module.asInstanceOf[TruffleCompilerContext.Module].getCache
   }
 }

@@ -29,87 +29,97 @@ public final class SuggestionsCache
 
   final LibraryName libraryName;
 
-  public SuggestionsCache(LibraryName libraryName) {
+  private SuggestionsCache(LibraryName libraryName) {
     super(Level.FINEST, libraryName.toString(), true, false);
+    this.spi = new Impl();
     this.libraryName = libraryName;
     this.entryName = libraryName.name();
     this.dataSuffix = SUGGESTIONS_CACHE_DATA_EXTENSION;
     this.metadataSuffix = SUGGESTIONS_CACHE_METADATA_EXTENSION;
   }
 
-  @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry)
-      throws IOException {
-    return new Metadata(sourceDigest, blobDigest).toBytes();
+  public static Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> create(
+      LibraryName libraryName) {
+    return new SuggestionsCache(libraryName);
   }
 
-  @Override
-  protected CachedSuggestions deserialize(
-      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-      throws ClassNotFoundException, ClassNotFoundException, IOException {
-    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data.array()))) {
-      if (stream.readObject() instanceof Suggestions suggestions) {
-        return new CachedSuggestions(libraryName, suggestions, Optional.empty());
-      } else {
-        throw new ClassNotFoundException(
-            "Expected SuggestionsCache.Suggestions, got " + data.getClass());
+  private final class Impl
+      implements Spi<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
+
+    @Override
+    public byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry)
+        throws IOException {
+      return new Metadata(sourceDigest, blobDigest).toBytes();
+    }
+
+    @Override
+    public CachedSuggestions deserialize(
+        EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
+        throws ClassNotFoundException, ClassNotFoundException, IOException {
+      try (var stream = new ObjectInputStream(new ByteArrayInputStream(data.array()))) {
+        if (stream.readObject() instanceof Suggestions suggestions) {
+          return new CachedSuggestions(libraryName, suggestions, Optional.empty());
+        } else {
+          throw new ClassNotFoundException(
+              "Expected SuggestionsCache.Suggestions, got " + data.getClass());
+        }
       }
     }
-  }
 
-  @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
-  }
-
-  @Override
-  protected Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
-    return entry.getSources().map(sources -> computeDigestOfLibrarySources(sources, logger));
-  }
-
-  @Override
-  protected Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
-  }
-
-  @Override
-  protected Optional<Roots> getCacheRoots(EnsoContext context) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(
-            pkg -> {
-              var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
-              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-              var distribution = context.getDistributionManager();
-              var pathSegments =
-                  new String[] {
-                    pkg.namespace(),
-                    pkg.normalizedName(),
-                    pkg.getConfig().version(),
-                    Info.ensoVersion(),
-                    libraryName.namespace()
-                  };
-              var path =
-                  distribution.LocallyInstalledDirectories()
-                      .irCacheDirectory()
-                      .resolve(StringUtils.join(pathSegments, "/"));
-              var globalCacheRoot = context.getTruffleFile(path.toFile());
-              return new Cache.Roots(localCacheRoot, globalCacheRoot);
-            });
-  }
-
-  @Override
-  protected byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    var byteStream = new ByteArrayOutputStream();
-    try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
-      stream.writeObject(entry.getSuggestionsObjectToSerialize());
+    @Override
+    public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+        throws IOException {
+      return Optional.of(Metadata.read(bytes));
     }
-    return byteStream.toByteArray();
+
+    @Override
+    public Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
+      return entry.getSources().map(sources -> computeDigestOfLibrarySources(sources, logger));
+    }
+
+    @Override
+    public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
+      return context
+          .getPackageRepository()
+          .getPackageForLibraryJava(libraryName)
+          .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
+    }
+
+    @Override
+    public Optional<Roots> getCacheRoots(EnsoContext context) {
+      return context
+          .getPackageRepository()
+          .getPackageForLibraryJava(libraryName)
+          .map(
+              pkg -> {
+                var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
+                var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+                var distribution = context.getDistributionManager();
+                var pathSegments =
+                    new String[] {
+                      pkg.namespace(),
+                      pkg.normalizedName(),
+                      pkg.getConfig().version(),
+                      Info.ensoVersion(),
+                      libraryName.namespace()
+                    };
+                var path =
+                    distribution.LocallyInstalledDirectories()
+                        .irCacheDirectory()
+                        .resolve(StringUtils.join(pathSegments, "/"));
+                var globalCacheRoot = context.getTruffleFile(path.toFile());
+                return new Cache.Roots(localCacheRoot, globalCacheRoot);
+              });
+    }
+
+    @Override
+    public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
+      var byteStream = new ByteArrayOutputStream();
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+        stream.writeObject(entry.getSuggestionsObjectToSerialize());
+      }
+      return byteStream.toByteArray();
+    }
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.

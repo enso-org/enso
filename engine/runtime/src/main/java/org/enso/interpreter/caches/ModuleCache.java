@@ -25,115 +25,128 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
   private final org.enso.interpreter.runtime.Module module;
 
-  public ModuleCache(org.enso.interpreter.runtime.Module module) {
+  private ModuleCache(org.enso.interpreter.runtime.Module module) {
     super(Level.FINEST, module.getName().toString(), true, false);
+    this.spi = new Impl();
     this.module = module;
     this.entryName = module.getName().item();
     this.dataSuffix = irCacheDataExtension;
     this.metadataSuffix = irCacheMetadataExtension;
   }
 
-  @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry)
-      throws IOException {
-    return new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()).toBytes();
+  public static Cache<ModuleCache.CachedModule, ModuleCache.Metadata> create(
+      org.enso.interpreter.runtime.Module module) {
+    return new ModuleCache(module);
   }
 
-  @Override
-  protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-    var arr =
-        Persistance.write(
-            entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context()));
-    return arr;
+  static ModuleCache.Impl find(Cache<?, ?> c) {
+    var mc = (ModuleCache) c;
+    return (ModuleCache.Impl) mc.spi;
   }
 
-  @Override
-  protected CachedModule deserialize(
-      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-      throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
-    var mod = ref.get(Module.class);
-    return new CachedModule(
-        mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
-  }
+  final class Impl implements Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
+    @Override
+    public byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry)
+        throws IOException {
+      return new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()).toBytes();
+    }
 
-  @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
-  }
+    @Override
+    public byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
+      var arr =
+          Persistance.write(
+              entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context()));
+      return arr;
+    }
 
-  private Optional<String> computeDigestOfModuleSources(Source source) {
-    if (source != null) {
-      byte[] sourceBytes;
-      if (source.hasBytes()) {
-        sourceBytes = source.getBytes().toByteArray();
+    @Override
+    public CachedModule deserialize(
+        EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
+        throws ClassNotFoundException, IOException, ClassNotFoundException {
+      var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+      var mod = ref.get(Module.class);
+      return new CachedModule(
+          mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
+    }
+
+    @Override
+    public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+        throws IOException {
+      return Optional.of(Metadata.read(bytes));
+    }
+
+    private Optional<String> computeDigestOfModuleSources(Source source) {
+      if (source != null) {
+        byte[] sourceBytes;
+        if (source.hasBytes()) {
+          sourceBytes = source.getBytes().toByteArray();
+        } else {
+          sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
+        }
+        return Optional.of(computeDigestFromBytes(ByteBuffer.wrap(sourceBytes)));
       } else {
-        sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
+        return Optional.empty();
       }
-      return Optional.of(computeDigestFromBytes(ByteBuffer.wrap(sourceBytes)));
-    } else {
-      return Optional.empty();
     }
-  }
 
-  @Override
-  protected Optional<String> computeDigest(CachedModule entry, TruffleLogger logger) {
-    return computeDigestOfModuleSources(entry.source());
-  }
-
-  @Override
-  protected Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
-    try {
-      return computeDigestOfModuleSources(module.getSource());
-    } catch (IOException e) {
-      logger.log(logLevel, "failed to retrieve the source of " + module.getName(), e);
-      return Optional.empty();
+    @Override
+    public Optional<String> computeDigest(CachedModule entry, TruffleLogger logger) {
+      return computeDigestOfModuleSources(entry.source());
     }
-  }
 
-  @Override
-  protected Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
-    if (module != context.getBuiltins().getModule()) {
-      return context
-          .getPackageOf(module.getSourceFile())
-          .map(
-              pkg -> {
-                var irCacheRoot = pkg.getIrCacheRootForPackage(Info.ensoVersion());
-                var qualName = module.getName();
-                var localCacheRoot = irCacheRoot.resolve(qualName.path().mkString("/"));
+    @Override
+    public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
+      try {
+        return computeDigestOfModuleSources(module.getSource());
+      } catch (IOException e) {
+        logger.log(logLevel, "failed to retrieve the source of " + module.getName(), e);
+        return Optional.empty();
+      }
+    }
 
-                var distribution = context.getDistributionManager();
-                var pathSegmentsJava = new ArrayList<String>();
-                pathSegmentsJava.addAll(
-                    Arrays.asList(
-                        pkg.namespace(),
-                        pkg.normalizedName(),
-                        pkg.getConfig().version(),
-                        Info.ensoVersion()));
-                pathSegmentsJava.addAll(qualName.pathAsJava());
-                var path =
-                    distribution.LocallyInstalledDirectories()
-                        .irCacheDirectory()
-                        .resolve(StringUtils.join(pathSegmentsJava, "/"));
-                var globalCacheRoot = context.getTruffleFile(path.toFile());
+    @Override
+    public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
+      if (module != context.getBuiltins().getModule()) {
+        return context
+            .getPackageOf(module.getSourceFile())
+            .map(
+                pkg -> {
+                  var irCacheRoot = pkg.getIrCacheRootForPackage(Info.ensoVersion());
+                  var qualName = module.getName();
+                  var localCacheRoot = irCacheRoot.resolve(qualName.path().mkString("/"));
 
-                return new Cache.Roots(localCacheRoot, globalCacheRoot);
-              });
-    } else {
-      var distribution = context.getDistributionManager();
-      var pathSegmentsJava = new ArrayList<String>();
-      pathSegmentsJava.addAll(
-          Arrays.asList(
-              Builtins.NAMESPACE, Builtins.PACKAGE_NAME, Info.ensoVersion(), Info.ensoVersion()));
-      pathSegmentsJava.addAll(module.getName().pathAsJava());
-      var path =
-          distribution.LocallyInstalledDirectories()
-              .irCacheDirectory()
-              .resolve(StringUtils.join(pathSegmentsJava, "/"));
-      var globalCacheRoot = context.getTruffleFile(path.toFile());
+                  var distribution = context.getDistributionManager();
+                  var pathSegmentsJava = new ArrayList<String>();
+                  pathSegmentsJava.addAll(
+                      Arrays.asList(
+                          pkg.namespace(),
+                          pkg.normalizedName(),
+                          pkg.getConfig().version(),
+                          Info.ensoVersion()));
+                  pathSegmentsJava.addAll(qualName.pathAsJava());
+                  var path =
+                      distribution.LocallyInstalledDirectories()
+                          .irCacheDirectory()
+                          .resolve(StringUtils.join(pathSegmentsJava, "/"));
+                  var globalCacheRoot = context.getTruffleFile(path.toFile());
 
-      return Optional.of(new Cache.Roots(globalCacheRoot, globalCacheRoot));
+                  return new Cache.Roots(localCacheRoot, globalCacheRoot);
+                });
+      } else {
+        var distribution = context.getDistributionManager();
+        var pathSegmentsJava = new ArrayList<String>();
+        pathSegmentsJava.addAll(
+            Arrays.asList(
+                Builtins.NAMESPACE, Builtins.PACKAGE_NAME, Info.ensoVersion(), Info.ensoVersion()));
+        pathSegmentsJava.addAll(module.getName().pathAsJava());
+        var path =
+            distribution.LocallyInstalledDirectories()
+                .irCacheDirectory()
+                .resolve(StringUtils.join(pathSegmentsJava, "/"));
+        var globalCacheRoot = context.getTruffleFile(path.toFile());
+
+        return Optional.of(new Cache.Roots(globalCacheRoot, globalCacheRoot));
+      }
     }
   }
 

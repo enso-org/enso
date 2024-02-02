@@ -431,7 +431,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.getDirectModulesRefs();
     }
 
-    public ModuleCache getCache() {
+    public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
       return module.getCache();
     }
 
