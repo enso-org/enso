@@ -1,7 +1,9 @@
 /** @file Test dragging of labels. */
 import * as test from '@playwright/test'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
+
+import * as color from '#/utilities/color'
 
 import * as actions from './actions'
 
@@ -10,13 +12,13 @@ test.test('drag labels onto single row', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
   const labels = actions.locateLabelsPanelLabels(page)
   const label = 'aaaa'
-  api.addLabel(label, backend.COLORS[0])
+  api.addLabel(label, color.COLORS[0])
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('bbbb', backend.COLORS[1]!)
+  api.addLabel('bbbb', color.COLORS[1]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('cccc', backend.COLORS[2]!)
+  api.addLabel('cccc', color.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('dddd', backend.COLORS[3]!)
+  api.addLabel('dddd', color.COLORS[3]!)
   api.addDirectory('foo')
   api.addSecret('bar')
   api.addFile('baz')
@@ -36,13 +38,13 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
   const labels = actions.locateLabelsPanelLabels(page)
   const label = 'aaaa'
-  api.addLabel(label, backend.COLORS[0])
+  api.addLabel(label, color.COLORS[0])
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('bbbb', backend.COLORS[1]!)
+  api.addLabel('bbbb', color.COLORS[1]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('cccc', backend.COLORS[2]!)
+  api.addLabel('cccc', color.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('dddd', backend.COLORS[3]!)
+  api.addLabel('dddd', color.COLORS[3]!)
   api.addDirectory('foo')
   api.addSecret('bar')
   api.addFile('baz')
@@ -66,13 +68,13 @@ test.test('drag (recursive)', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
   const labels = actions.locateLabelsPanelLabels(page)
   const label = 'bbbb'
-  api.addLabel('aaaa', backend.COLORS[0])
+  api.addLabel('aaaa', color.COLORS[0])
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel(label, backend.COLORS[1]!)
+  api.addLabel(label, color.COLORS[1]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('cccc', backend.COLORS[2]!)
+  api.addLabel('cccc', color.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('dddd', backend.COLORS[3]!)
+  api.addLabel('dddd', color.COLORS[3]!)
   const assetsWithLabel = new Set<string>()
   const shouldHaveLabel = <T extends backend.AnyAsset>(asset: T) => {
     assetsWithLabel.add(asset.title)
@@ -132,13 +134,13 @@ test.test('drag (inverted, recursive)', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
   const labels = actions.locateLabelsPanelLabels(page)
   const label = 'bbbb'
-  api.addLabel('aaaa', backend.COLORS[0])
+  api.addLabel('aaaa', color.COLORS[0])
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const backendLabel = api.addLabel(label, backend.COLORS[1]!)
+  const backendLabel = api.addLabel(label, color.COLORS[1]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('cccc', backend.COLORS[2]!)
+  api.addLabel('cccc', color.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('dddd', backend.COLORS[3]!)
+  api.addLabel('dddd', color.COLORS[3]!)
   const assetsWithoutLabel = new Set<string>()
   const shouldNotHaveLabel = <T extends backend.AnyAsset>(asset: T) => {
     assetsWithoutLabel.add(asset.title)

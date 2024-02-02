@@ -32,6 +32,7 @@ import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type * as colorModule from '#/utilities/color'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as projectManager from '#/utilities/ProjectManager'
@@ -235,7 +236,7 @@ export default function Drive(props: DriveProps) {
   }, [rootDirectory, /* should never change */ dispatchAssetListEvent])
 
   const doCreateLabel = React.useCallback(
-    async (value: string, color: backendModule.LChColor) => {
+    async (value: string, color: colorModule.LChColor) => {
       const newLabelName = backendModule.LabelName(value)
       const placeholderLabel: backendModule.Label = {
         id: backendModule.TagId(uniqueString.uniqueString()),

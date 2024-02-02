@@ -1,6 +1,7 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
+import type * as color from '#/utilities/color'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -156,7 +157,7 @@ export async function mockApi({ page }: MockParams) {
       rest
     )
 
-  const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
+  const createLabel = (value: string, color: color.LChColor): backend.Label => ({
     id: backend.TagId('tag-' + uniqueString.uniqueString()),
     value: backend.LabelName(value),
     color,
@@ -178,7 +179,7 @@ export async function mockApi({ page }: MockParams) {
     return addAsset(createSecret(title, rest))
   }
 
-  const addLabel = (value: string, color: backend.LChColor) => {
+  const addLabel = (value: string, color: color.LChColor) => {
     const label = createLabel(value, color)
     labels.push(label)
     labelsByValue.set(label.value, label)

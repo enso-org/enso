@@ -1,7 +1,7 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as backend from '#/services/Backend'
+import * as colorModule from '#/utilities/color'
 
 // =============
 // === Label ===
@@ -22,7 +22,7 @@ interface InternalLabelProps
   negated?: boolean
   /** When true, the button cannot be clicked. */
   disabled?: boolean
-  color: backend.LChColor
+  color: colorModule.LChColor
   /** When true, will turn opaque when the nearest ancestor `.group` is hovered.
    * Otherwise, will turn opaque only when itself is hovered. */
   group?: boolean
@@ -60,7 +60,7 @@ export default function Label(props: InternalLabelProps) {
       } ${active ? '' : 'opacity-50'} ${
         disabled ? '' : group ? 'group-hover:opacity-100' : 'hover:opacity-100'
       } ${textColorClassName}`}
-      style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+      style={{ backgroundColor: colorModule.lChColorToCssColor(color) }}
       {...passthrough}
     >
       {children}

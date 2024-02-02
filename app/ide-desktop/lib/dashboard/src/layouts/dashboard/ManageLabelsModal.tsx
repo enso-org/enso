@@ -13,6 +13,7 @@ import Modal from '#/components/Modal'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
+import * as colorModule from '#/utilities/color'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
@@ -28,7 +29,7 @@ export interface ManageLabelsModalProps<
   setItem: React.Dispatch<React.SetStateAction<Asset>>
   backend: Backend
   allLabels: Map<backendModule.LabelName, backendModule.Label>
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  doCreateLabel: (value: string, color: colorModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
   eventTarget: HTMLElement | null
 }
@@ -45,9 +46,9 @@ export default function ManageLabelsModal<
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
-  const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
+  const [color, setColor] = React.useState<colorModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
-    () => backendModule.leastUsedColor(allLabels.values()),
+    () => colorModule.leastUsedColor(Array.from(allLabels.values(), label => label.color)),
     [allLabels]
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
@@ -171,7 +172,7 @@ export default function ManageLabelsModal<
                 !canSelectColor || color == null
                   ? {}
                   : {
-                      backgroundColor: backendModule.lChColorToCssColor(color),
+                      backgroundColor: colorModule.lChColorToCssColor(color),
                     }
               }
             >

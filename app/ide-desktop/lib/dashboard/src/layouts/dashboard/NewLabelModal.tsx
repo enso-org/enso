@@ -8,7 +8,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
+
+import * as colorModule from '#/utilities/color'
 
 // =====================
 // === NewLabelModal ===
@@ -18,7 +20,7 @@ import * as backend from '#/services/Backend'
 export interface NewLabelModalProps {
   labels: backend.Label[]
   eventTarget: HTMLElement
-  doCreate: (value: string, color: backend.LChColor) => void
+  doCreate: (value: string, color: colorModule.LChColor) => void
 }
 
 /** A modal for creating a new label. */
@@ -32,10 +34,13 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
-  const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
+  const leastUsedColor = React.useMemo(
+    () => colorModule.leastUsedColor(labels.map(label => label.color)),
+    [labels]
+  )
 
   const [value, setName] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
+  const [color, setColor] = React.useState<colorModule.LChColor | null>(null)
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const onSubmit = () => {
@@ -89,7 +94,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
               color == null
                 ? {}
                 : {
-                    backgroundColor: backend.lChColorToCssColor(color),
+                    backgroundColor: colorModule.lChColorToCssColor(color),
                   }
             }
             onInput={event => {

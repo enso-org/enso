@@ -19,6 +19,7 @@ import type * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import * as assetQuery from '#/utilities/AssetQuery'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type * as color from '#/utilities/color'
 import * as drag from '#/utilities/drag'
 
 // ==============
@@ -30,7 +31,7 @@ export interface LabelsProps {
   labels: backend.Label[]
   query: AssetQuery
   setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  doCreateLabel: (name: string, color: backend.LChColor) => void
+  doCreateLabel: (name: string, color: color.LChColor) => void
   doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
   newLabelNames: Set<backend.LabelName>
   deletedLabelNames: Set<backend.LabelName>

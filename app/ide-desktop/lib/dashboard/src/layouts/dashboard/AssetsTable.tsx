@@ -39,6 +39,7 @@ import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as color from '#/utilities/color'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -280,7 +281,7 @@ export interface AssetsTableState {
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
   doCopy: () => void
   doCut: () => void
   doPaste: (newParentKey: backendModule.AssetId) => void
@@ -320,7 +321,7 @@ export interface AssetsTableProps {
     switchPage: boolean
   ) => void
   doCloseEditor: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
