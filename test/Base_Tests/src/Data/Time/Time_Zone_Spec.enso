@@ -1,76 +1,81 @@
 from Standard.Base import all
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
-spec =
-    Test.group "Zone" <|
-        Test.specify "should get system zone id" <|
+add_specs suite_builder =
+    suite_builder.group "Zone" group_builder->
+        group_builder.specify "should get system zone id" <|
             Time_Zone.system
-        Test.specify "Different time zones should not equal" <|
+        group_builder.specify "Different time zones should not equal" <|
             (Time_Zone.parse "UTC").should_not_equal (Time_Zone.parse "CET")
             (Time_Zone.parse "UTC").should_equal (Time_Zone.parse "UTC")
-        Test.specify "should parse UTC zone" <|
+        group_builder.specify "should parse UTC zone" <|
             zone = "UTC"
             id = Time_Zone.parse zone
             id . zone_id . should_equal zone
-        Test.specify "should parse id-based zone" <|
+        group_builder.specify "should parse id-based zone" <|
             zone = "Europe/Warsaw"
             id = Time_Zone.parse zone
             id . zone_id . should_equal zone
-        Test.specify "should parse offset-based zone" <|
+        group_builder.specify "should parse offset-based zone" <|
             zone = "+01:02:03"
             id = Time_Zone.parse zone
             id . zone_id . should_equal zone
-        Test.specify "should get utc zone id" <|
+        group_builder.specify "should get utc zone id" <|
             id = Time_Zone.utc
             id . zone_id . should_equal "UTC"
-        Test.specify "should convert to Json" <|
+        group_builder.specify "should convert to Json" <|
             zone = Time_Zone.new 1 2 3
             zone.to_json.should_equal <|
                 JS_Object.from_pairs [["type", "Time_Zone"], ["constructor", "parse"], ["id", "+01:02:03"]] . to_text
             Time_Zone.utc.to_json.should_equal <|
                 JS_Object.from_pairs [["type", "Time_Zone"], ["constructor", "parse"], ["id", "UTC"]] . to_text
-        Test.specify "should throw error when parsing invalid zone id" <|
+        group_builder.specify "should throw error when parsing invalid zone id" <|
             case Time_Zone.parse "foo" . catch of
                 Time_Error.Error msg _ ->
                     msg . should_equal "Unknown time-zone ID: foo"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
-        Test.specify "should correctly determine the type of zone" <|
+        group_builder.specify "should correctly determine the type of zone" <|
             zone = Time_Zone.parse "Europe/Warsaw"
             Meta.type_of zone . should_equal_type Time_Zone
-    Test.group "JavaZoneId" <|
-        Test.specify "should get system zone id" <|
+
+    suite_builder.group "JavaZoneId" group_builder->
+        group_builder.specify "should get system zone id" <|
             defaultZone = ZoneId.systemDefault
             Time_Zone.system . should_equal defaultZone
-        Test.specify "should parse UTC zone" <|
+        group_builder.specify "should parse UTC zone" <|
             zone = "UTC"
             id = ZoneId.of zone
             id . should_equal Time_Zone.utc
-        Test.specify "should parse id-based zone" <|
+        group_builder.specify "should parse id-based zone" <|
             zone = "Europe/Warsaw"
             id = ZoneId.of zone
             id . zone_id . should_equal zone
-        Test.specify "should parse offset-based zone" <|
+        group_builder.specify "should parse offset-based zone" <|
             zone = "+01:02:03"
             id = ZoneId.of zone
             id . zone_id . should_equal zone
-        Test.specify "should get utc zone id" <|
+        group_builder.specify "should get utc zone id" <|
             zone = ZoneId.of "UTC"
             zone  . should_equal Time_Zone.utc
-        Test.specify "should convert to Json" <|
+        group_builder.specify "should convert to Json" <|
             zone = ZoneOffset.ofHoursMinutesSeconds 1 2 3
             zone.to_json.should_equal <|
                 JS_Object.from_pairs [["type", "Time_Zone"], ["constructor", "parse"], ["id", "+01:02:03"]] . to_text
             (ZoneId.of "UTC").to_json.should_equal <|
                 JS_Object.from_pairs [["type", "Time_Zone"], ["constructor", "parse"], ["id", "UTC"]] . to_text
-        Test.specify "should correctly determine the type of zone" <|
+        group_builder.specify "should correctly determine the type of zone" <|
             zone = ZoneId.systemDefault
             Meta.type_of zone . should_equal_type Time_Zone
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

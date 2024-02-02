@@ -143,9 +143,12 @@ export type ConfigValue<T extends Config<any> = Config> = ConfigOptionValues<T> 
   ConfigGroupValues<T>
 
 export function configValue<T extends Config<any>>(config: T): ConfigValue<T> {
+  // The object may be undefined if we pass an incomplete `ApplicationConfigValue` to `provideGuiConfig._mock`.
+  const options = config.options ?? {}
+  const groups = config.groups ?? {}
   return Object.fromEntries([
-    ...Object.entries(config.options).map(([k, v]) => [k, optionValue(v as Option)]),
-    ...Object.entries(config.groups).map(([k, v]) => [k, groupValue(v as Group)]),
+    ...Object.entries(options).map(([k, v]) => [k, optionValue(v as Option)]),
+    ...Object.entries(groups).map(([k, v]) => [k, groupValue(v as Group)]),
   ]) satisfies ConfigValue as any
 }
 

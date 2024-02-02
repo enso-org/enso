@@ -5,12 +5,12 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "ReportingStreamEncoder" <|
-        Test.specify "should allow writing a file codepoint by codepoint" <|
+
+add_specs suite_builder =
+    suite_builder.group "ReportingStreamEncoder" group_builder->
+        group_builder.specify "should allow writing a file codepoint by codepoint" <|
             f = enso_project.data / "transient" / "char-by-char.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -21,7 +21,7 @@ spec =
                         reporting_stream_encoder.write char
             f.read_text.should_equal contents
 
-        Test.specify "should work correctly when writing chunks of varying sizes" <|
+        group_builder.specify "should work correctly when writing chunks of varying sizes" <|
             f = enso_project.data / "transient" / "varying-utf16.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -41,7 +41,7 @@ spec =
             contents = 'AAbcDefghiO\u0301X' + big + "YŹ"
             f.read_text encoding . should_equal contents
 
-        Test.specify "should allow writing a Windows file" <|
+        group_builder.specify "should allow writing a Windows file" <|
             f = enso_project.data / "transient" / "windows.txt"
             encoding = Encoding.windows_1252
             contents = "Hello World! $¢¤¥"
@@ -53,7 +53,7 @@ spec =
 
             f.read_text encoding . should_equal contents
 
-        Test.specify "should raise warnings when writing characters that cannot be encoded and replace them with the Unicode replacement character or a question mark" <|
+        group_builder.specify "should raise warnings when writing characters that cannot be encoded and replace them with the Unicode replacement character or a question mark" <|
             f = enso_project.data / "transient" / "ascii.txt"
             encoding = Encoding.ascii
             contents = 'Sło\u0301wka!'
@@ -78,7 +78,7 @@ spec =
             Problems.get_attached_warnings result_2 . should_equal [Encoding_Error.Error "Encoding issues at codepoints 3, 9."]
             f.read_text encoding . should_equal "ABC?foo -?- bar"
 
-        Test.specify "should work correctly if no data is written to it" <|
+        group_builder.specify "should work correctly if no data is written to it" <|
             f = enso_project.data / "transient" / "empty.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
@@ -87,7 +87,7 @@ spec =
             result.should_succeed
             f.read_text encoding . should_equal ""
 
-        Test.specify "should forward any dataflow errors raised in the inner action" <|
+        group_builder.specify "should forward any dataflow errors raised in the inner action" <|
             f = enso_project.data / "transient" / "error.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
@@ -99,7 +99,7 @@ spec =
             result.catch.message.should_equal "FOO"
             f.delete_if_exists
 
-        Test.specify "should forward any warnings attached to the result of the inner action (1)" <|
+        group_builder.specify "should forward any warnings attached to the result of the inner action (1)" <|
             f = enso_project.data / "transient" / "warning.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
@@ -114,7 +114,7 @@ spec =
             f.read_text encoding . should_equal "BAZ23"
             f.delete_if_exists
 
-        Test.specify "should forward any warnings attached to the result of the inner action (2)" <|
+        group_builder.specify "should forward any warnings attached to the result of the inner action (2)" <|
             f = enso_project.data / "transient" / "warning.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
@@ -129,4 +129,8 @@ spec =
             f.read_text encoding . should_equal "BAZ23"
             f.delete_if_exists
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

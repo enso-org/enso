@@ -21,6 +21,7 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
+import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 
@@ -158,28 +159,8 @@ useEvent(
   { capture: true },
 )
 
-// === Preview ===
-
 const inputElement = ref<HTMLElement>()
 const inputSize = useResizeObserver(inputElement, false)
-
-const previewedExpression = computed(() => {
-  if (selectedSuggestion.value == null) return input.code.value
-  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
-})
-
-const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
-  if (!previewedExpression.value.trim()) return
-  if (!graphStore.methodAst) return
-  const body = graphStore.methodAst.body
-  if (!body) return
-
-  return {
-    type: 'expression',
-    expression: previewedExpression.value,
-    contextId: body.externalId,
-  }
-})
 
 // === Components List and Positions ===
 
@@ -256,6 +237,26 @@ function selectWithoutScrolling(index: number) {
   scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
   selected.value = index
 }
+
+// === Preview ===
+
+const previewedExpression = debouncedGetter(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+}, 200)
+
+const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.body
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.externalId,
+  }
+})
 
 // === Scrolling ===
 

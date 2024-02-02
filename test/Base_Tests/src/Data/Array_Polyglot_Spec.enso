@@ -1,37 +1,37 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "JavaScript Objects, Arrays & Functions" <|
-        Test.specify "Missing method" <|
+
+add_specs suite_builder =
+    suite_builder.group "JavaScript Objects, Arrays & Functions" group_builder->
+        group_builder.specify "Missing method" <|
             Test.expect_panic_with data.missing No_Such_Method
 
-        Test.specify "Found method" <|
+        group_builder.specify "Found method" <|
             data.classes
 
-        Test.specify "Array length" <|
+        group_builder.specify "Array length" <|
             len = data.classes.length
             len.should_equal 3
 
-        Test.specify "Array at" <|
+        group_builder.specify "Array at" <|
             number = data.classes.at 1
             number.name.should_equal "java.lang.Number"
             number.superclass.name.should_equal "java.lang.Object"
 
-        Test.specify "Vector/Array copy & map" <|
+        group_builder.specify "Vector/Array copy & map" <|
             classes = Vector.from_array data.classes
             names = classes.map (x -> x.name)
             names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
 
-        Test.specify "Vector/Array no copy & map" <|
+        group_builder.specify "Vector/Array no copy & map" <|
             classes = Vector.from_polyglot_array data.classes
             names = classes.map (x -> x.name)
             names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
 
-        Test.specify "Vector.from_array creates a copy" <|
+        group_builder.specify "Vector.from_array creates a copy" <|
             js_arr = create_array [1, 2, 3]
             enso_vector = Vector.from_array js_arr
 
@@ -47,7 +47,7 @@ spec =
             (enso_vector.at 2).should_equal 3
             enso_vector.should_not_equal js_arr
 
-        Test.specify "Vector.from_polyglot_array doesn't create a copy" <|
+        group_builder.specify "Vector.from_polyglot_array doesn't create a copy" <|
             js_arr = create_array [1, 2, 3]
             enso_vector = Vector.from_polyglot_array js_arr
 
@@ -63,7 +63,11 @@ spec =
             (enso_vector.at 2).should_equal Nothing
             enso_vector.should_equal js_arr
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 foreign js data = """
     var object = { name : "java.lang.Object", superclass: null };

@@ -204,14 +204,8 @@ export function performCollapse(
     outputNodeId = asNodeId(ident.id)
   }
   const argNames = info.extracted.inputs
-  const collapsedFunction = Ast.Function.fromStatements(
-    edit,
-    collapsedName,
-    argNames,
-    collapsed,
-    true,
-  )
-  topLevel.insert(posToInsert, collapsedFunction)
+  const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
+  topLevel.insert(posToInsert, collapsedFunction, undefined)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
@@ -244,6 +238,8 @@ function findInsertionPos(topLevel: Ast.BodyBlock, currentMethodName: string): n
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+  const { initializeFFI } = await import('shared/ast/ffi')
+  await initializeFFI()
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
     const { root, toRaw, getSpan } = Ast.parseExtended(code)
@@ -252,7 +248,7 @@ if (import.meta.vitest) {
     assert(func instanceof Ast.Function)
     const rawFunc = toRaw.get(func.id)
     assert(rawFunc?.type === RawAst.Tree.Type.Function)
-    graphDb.readFunctionAst(func, rawFunc, code, (_id) => undefined, getSpan)
+    graphDb.readFunctionAst(func, rawFunc, code, getSpan, new Set())
   }
 
   interface TestCase {

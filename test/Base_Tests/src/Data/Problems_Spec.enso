@@ -1,13 +1,17 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-main = Test_Suite.run_main spec
 
-spec = Test.group "Problem_Behavior" <|
-    Test.specify "escalate_warnings should escalate warnings according to its setting" <|
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
+
+add_specs suite_builder = suite_builder.group "Problem_Behavior" group_builder->
+    group_builder.specify "escalate_warnings should escalate warnings according to its setting" <|
         w = Illegal_State.Error "Foo"
         x = Warning.attach w 42
 
@@ -23,7 +27,7 @@ spec = Test.group "Problem_Behavior" <|
             x + 2
         err3.should_fail_with Illegal_State
 
-    Test.specify "escalate_warnings should forward any dataflow errors as-is" <|
+    group_builder.specify "escalate_warnings should forward any dataflow errors as-is" <|
         [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
             x = Error.throw (Illegal_State.Error "Foo")
             pb.escalate_warnings x . should_fail_with Illegal_State

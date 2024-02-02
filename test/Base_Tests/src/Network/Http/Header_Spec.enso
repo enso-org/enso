@@ -1,14 +1,18 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec =
-    Test.group "Header" <|
-        Test.specify "should check equality" <|
+
+add_specs suite_builder =
+    suite_builder.group "Header" group_builder->
+        group_builder.specify "should check equality" <|
             Header.new "A" "B" . should_equal (Header.new "A" "B")
             Header.new "A" "B" . should_equal (Header.new "a" "B")
             (Header.new "A" "B" == Header.new "A" "b") . should_equal False
             (Header.new "A" "B" == Header.new "a" "b") . should_equal False
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

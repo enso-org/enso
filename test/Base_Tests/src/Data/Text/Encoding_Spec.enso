@@ -2,35 +2,35 @@ from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.lang.String as Java_String
 
-spec =
-    Test.group "Encoding object" <|
-        Test.specify "Can get standard UTF encodings" <|
+add_specs suite_builder =
+    suite_builder.group "Encoding object" group_builder->
+        group_builder.specify "Can get standard UTF encodings" <|
             Encoding.utf_8 . should_equal (Encoding.Value "UTF-8")
             Encoding.utf_16_le . should_equal (Encoding.Value "UTF-16LE")
             Encoding.utf_16_be . should_equal (Encoding.Value "UTF-16BE")
             Encoding.utf_32_le . should_equal (Encoding.Value "UTF-32LE")
             Encoding.utf_32_be . should_equal (Encoding.Value "UTF-32BE")
 
-        Test.specify "Catches invalid character sets" <|
+        group_builder.specify "Catches invalid character sets" <|
             invalid = Encoding.Value "NotAValidCharacterSet"
             invalid.to_java_charset . should_fail_with Illegal_Argument
 
-        Test.specify "Can get full set of character sets" <|
+        group_builder.specify "Can get full set of character sets" <|
             character_sets = Encoding.all_character_sets
             character_sets.length . should_not_equal 0
             character_sets.contains "UTF-8" . should_equal True
 
-        Test.specify "Can get full set of encoding objects" <|
+        group_builder.specify "Can get full set of encoding objects" <|
             encodings = Encoding.all_encodings
             encodings.length . should_not_equal 0
             encodings.contains Encoding.utf_8 . should_equal True
 
-    Test.group "ASCII" <|
+    suite_builder.group "ASCII" group_builder->
         test = 'Hello World!'
         test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
@@ -38,17 +38,17 @@ spec =
         invalid_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, -56]
         invalid_ascii_out = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 63]
 
-        Test.specify "should dump ASCII bytes to a vector via encoding" <|
+        group_builder.specify "should dump ASCII bytes to a vector via encoding" <|
             dump = test.bytes Encoding.ascii
             Test.assert_no_problems dump
             dump . should_equal test_ascii
 
-        Test.specify "should convert an array of bytes to text" <|
+        group_builder.specify "should convert an array of bytes to text" <|
             result = Text.from_bytes test_ascii Encoding.ascii
             Test.assert_no_problems result
             result . should_equal test
 
-        Test.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
+        group_builder.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 12."]
@@ -58,7 +58,7 @@ spec =
             default_error.should_fail_with Encoding_Error
             default_error.catch.message . should_equal "Encoding issues at 12."
 
-        Test.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
+        group_builder.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
             action = invalid.bytes Encoding.ascii on_problems=_
             tester result = result . should_equal invalid_ascii_out
             problems = [Encoding_Error.Error "Encoding issues at 12."]
@@ -68,24 +68,24 @@ spec =
             default_warning.should_equal invalid_ascii_out
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
-    Test.group "UTF_8" <|
+    suite_builder.group "UTF_8" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 
         invalid = 'Hello World! ¢£¥\uFFFD'
         invalid_utf_8 = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -62, -94, -62, -93, -62, -91, -62]
 
-        Test.specify "should dump utf-8 bytes to a vector via encoding" <|
+        group_builder.specify "should dump utf-8 bytes to a vector via encoding" <|
             dump = kshi.bytes Encoding.utf_8
             Test.assert_no_problems dump
             dump . should_equal kshi_utf_8
 
-        Test.specify "should dump utf-8 bytes to a vector" <|
+        group_builder.specify "should dump utf-8 bytes to a vector" <|
             dump = kshi.utf_8
             Test.assert_no_problems dump
             dump.should_equal kshi_utf_8
 
-        Test.specify "should raise a problem when encoding (warning by default)" <|
+        group_builder.specify "should raise a problem when encoding (warning by default)" <|
             unpaired_surrogate = Integer.parse "DEDC" 16
             text = Text.from_codepoints [unpaired_surrogate]
 
@@ -97,23 +97,23 @@ spec =
             default_warning = text.utf_8
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
-        Test.specify "should convert an array of bytes to text via encoding" <|
+        group_builder.specify "should convert an array of bytes to text via encoding" <|
             result = Text.from_bytes kshi_utf_8 Encoding.utf_8
             Test.assert_no_problems result
             result . should_equal kshi
 
-        Test.specify "should convert an array of bytes to text" <|
+        group_builder.specify "should convert an array of bytes to text" <|
             result = Text.from_utf_8 kshi_utf_8
             Test.assert_no_problems result
             result . should_equal kshi
 
-        Test.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
+        group_builder.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
             action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 19."]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
+        group_builder.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
             action = Text.from_utf_8 invalid_utf_8 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 19."]
@@ -123,45 +123,45 @@ spec =
             default_error.should_fail_with Encoding_Error
             default_error.catch.message . should_equal "Encoding issues at 19."
 
-    Test.group "UTF_16 BigEndian" <|
+    suite_builder.group "UTF_16 BigEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [9, 21, 9, 77, 9, 55, 9, 63]
 
-        Test.specify "should dump utf-16 bytes to a vector via encoding" <|
+        group_builder.specify "should dump utf-16 bytes to a vector via encoding" <|
             dump = kshi.bytes Encoding.utf_16_be
             Test.assert_no_problems dump
             dump . should_equal kshi_utf_16
 
-        Test.specify "should convert an array of bytes to text via encoding" <|
+        group_builder.specify "should convert an array of bytes to text via encoding" <|
             result = Text.from_bytes kshi_utf_16 Encoding.utf_16_be
             Test.assert_no_problems result
             result . should_equal kshi
 
-    Test.group "UTF_16 LittleEndian" <|
+    suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [21, 9, 77, 9, 55, 9, 63, 9]
 
-        Test.specify "should dump utf-16 bytes to a vector via encoding" <|
+        group_builder.specify "should dump utf-16 bytes to a vector via encoding" <|
             dump = kshi.bytes Encoding.utf_16_le
             Test.assert_no_problems dump
             dump . should_equal kshi_utf_16
 
-        Test.specify "should convert an array of bytes to text via encoding" <|
+        group_builder.specify "should convert an array of bytes to text via encoding" <|
             result = Text.from_bytes kshi_utf_16 Encoding.utf_16_le
             Test.assert_no_problems result
             result . should_equal kshi
 
-    Test.group "codepoints" <|
+    suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         facepalm_codes = [129318, 127996, 8205, 9794, 65039]
 
-        Test.specify "should dump utf codepoints to a vector" <|
+        group_builder.specify "should dump utf codepoints to a vector" <|
             facepalm.codepoints.should_equal facepalm_codes
 
-        Test.specify "should convert an array of codepoints to text" <|
+        group_builder.specify "should convert an array of codepoints to text" <|
             Text.from_codepoints facepalm_codes . should_equal facepalm
 
-    Test.group "Windows 1252" <|
+    suite_builder.group "Windows 1252" group_builder->
         test = 'Hello World! ¢£¥'
         test_windows = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -94, -93, -91]
 
@@ -169,26 +169,30 @@ spec =
         invalid_windows = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -94, -93, -91, -127]
         invalid_windows_out = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -94, -93, -91, 63]
 
-        Test.specify "should dump Windows-1252 bytes to a vector via encoding" <|
+        group_builder.specify "should dump Windows-1252 bytes to a vector via encoding" <|
             dump = test.bytes Encoding.windows_1252
             Test.assert_no_problems dump
             dump . should_equal test_windows
 
-        Test.specify "should convert an array of bytes to text" <|
+        group_builder.specify "should convert an array of bytes to text" <|
             result = Text.from_bytes test_windows Encoding.windows_1252
             Test.assert_no_problems result
             result . should_equal test
 
-        Test.specify "Invalid Windows-1252 should raise a problem when decoding" <|
+        group_builder.specify "Invalid Windows-1252 should raise a problem when decoding" <|
             action = Text.from_bytes invalid_windows Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "Invalid Windows-1252 should raise a problem when encoding" <|
+        group_builder.specify "Invalid Windows-1252 should raise a problem when encoding" <|
             action = invalid.bytes Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid_windows_out
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
