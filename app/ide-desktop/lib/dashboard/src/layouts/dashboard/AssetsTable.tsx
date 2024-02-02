@@ -1182,8 +1182,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         const projectIndices = siblings
           .map(node => node.item.value)
           .filter(backendModule.assetIsProject)
-          .map(item => /^New Project (?<projectIndex>\\d+)$/.exec(item.title))
-          .map(match => match?.groups?.directoryIndex)
+          .map(item => /^New Project (?<projectIndex>\d+)$/.exec(item.title))
+          .map(match => match?.groups?.projectIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const projectName = `New Project ${Math.max(0, ...projectIndices) + 1}`
         const permission = permissions.tryGetSingletonOwnerPermission(organization, user)

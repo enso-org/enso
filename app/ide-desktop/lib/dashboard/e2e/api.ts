@@ -490,7 +490,7 @@ export async function mockApi({ page }: MockParams) {
                 id: backend.DirectoryId(directoryId),
                 parentId: asset.parentId,
                 title: body.title,
-              } satisfies backend.UpdatedDirectory,
+              },
             })
           }
         } else {
