@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import { Annotation, StateEffect, StateField } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -11,7 +11,7 @@ import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -38,35 +38,41 @@ const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
-const executionContextDiagnostics = computed(() =>
-  projectStore.module && graphStore.moduleSource.text
-    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, projectStore.diagnostics)
-    : [],
-)
+const executionContextDiagnostics = shallowRef<Diagnostic[]>([])
+
+// Effect that can be applied to the document to invalidate the linter state.
+const diagnosticsUpdated = StateEffect.define()
+// State value that is perturbed by any `diagnosticsUpdated` effect.
+const diagnosticsVersion = StateField.define({
+  create: (_state) => 0,
+  update: (value, transaction) => {
+    for (const effect of transaction.effects) {
+      if (effect.is(diagnosticsUpdated)) value += 1
+    }
+    return value
+  },
+})
 
 const expressionUpdatesDiagnostics = computed(() => {
-  const nodeMap = graphStore.db.nodeIdToNode
   const updates = projectStore.computedValueRegistry.db
   const panics = updates.type.reverseLookup('Panic')
   const errors = updates.type.reverseLookup('DataflowError')
   const diagnostics: Diagnostic[] = []
-  for (const id of chain(panics, errors)) {
-    const update = updates.get(id)
+  for (const externalId of chain(panics, errors)) {
+    const update = updates.get(externalId)
     if (!update) continue
-    const externalId = graphStore.db.idFromExternal(id)
-    if (!externalId) continue
-    const node = nodeMap.get(asNodeId(externalId))
-    if (!node) continue
-    const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
-    if (!rootSpan) continue
-    const [from, to] = rootSpan
+    const astId = graphStore.db.idFromExternal(externalId)
+    if (!astId) continue
+    const span = graphStore.moduleSource.getSpan(astId)
+    if (!span) continue
+    const [from, to] = span
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
         break
       }
       case 'DataflowError': {
-        const error = projectStore.dataflowErrors.lookup(id)
+        const error = projectStore.dataflowErrors.lookup(externalId)
         if (error?.value?.message) {
           diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
         }
@@ -80,21 +86,16 @@ const expressionUpdatesDiagnostics = computed(() => {
 // == CodeMirror editor setup  ==
 
 const editorView = new EditorView()
+const viewInitialized = ref(false)
 watchEffect(() => {
   const module = projectStore.module
   if (!module) return
-  /*
-  const yText = module.doc.contents
-  const undoManager = module.undoManager
-  const awareness = projectStore.awareness.internal
-  extensions: [yCollab(yText, awareness, { undoManager }), ...]
-   */
-  if (!graphStore.moduleSource.text) return
   editorView.setState(
     EditorState.create({
-      doc: graphStore.moduleSource.text,
       extensions: [
         minimalSetup,
+        updateListener(),
+        diagnosticsVersion,
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
@@ -157,13 +158,70 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
-        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
+        linter(
+          () => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value],
+          {
+            needsRefresh(update) {
+              return (
+                update.state.field(diagnosticsVersion) !==
+                update.startState.field(diagnosticsVersion)
+              )
+            },
+          },
+        ),
       ],
     }),
   )
+  viewInitialized.value = true
 })
 
-watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
+let pendingChanges = false
+function updateListener() {
+  return EditorView.updateListener.of((update) => {
+    for (const transaction of update.transactions) {
+      if (transaction.annotation(synchronizedModule) === undefined && transaction.docChanged) {
+        pendingChanges = true
+        // Defer the update until after pending events have been processed, so that if changes are arriving faster than
+        // we would be able to apply them individually we coalesce them to keep up.
+        setTimeout(() => {
+          if (!pendingChanges) return
+          pendingChanges = false
+          const newCode = editorView.state.doc.toString()
+          graphStore.edit((edit) => edit.syncToCode(newCode))
+        })
+      }
+    }
+  })
+}
+// Indicates a change that originated from outside the editor.
+const synchronizedModule = Annotation.define<boolean>()
+watchEffect(() => {
+  if (!viewInitialized.value) return
+  const code = graphStore.moduleSource.text
+  if (!code) return
+  if (editorView.state.doc.toString() === code) return
+  const end = editorView.state.doc.length
+  editorView.dispatch({
+    changes: { from: 0, to: end, insert: code },
+    annotations: synchronizedModule.of(true),
+  })
+})
+
+// The LS protocol doesn't identify what version of the file updates are in reference to. When diagnostics are received
+// from the LS, we map them to the text assuming that they are applicable to the current version of the module. This
+// will be correct if there is no one else editing, and we aren't editing faster than the LS can send updates. Typing
+// too quickly can result in incorrect ranges, but at idle it should correct itself when we receive new diagnostics.
+watch([viewInitialized, () => projectStore.diagnostics], ([ready, diagnostics]) => {
+  if (!ready) return
+  executionContextDiagnostics.value = graphStore.moduleSource.text
+    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
+    : []
+})
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => {
+  editorView.dispatch({ effects: diagnosticsUpdated.of(null) })
+  forceLinting(editorView)
+})
 
 onMounted(() => {
   editorView.focus()

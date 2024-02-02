@@ -163,7 +163,8 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
+  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
@@ -325,7 +326,6 @@ const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
     showCodeEditor.value = !showCodeEditor.value
   },
 })
