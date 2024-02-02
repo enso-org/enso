@@ -133,18 +133,21 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             })()
           }
           return (
-            <Autocomplete
-              items={autocompleteItems ?? []}
-              itemToKey={item => item}
-              itemToString={item => item}
-              matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
-              values={typeof value !== 'string' || value === '' ? [] : [value]}
-              setValues={values => {
-                setValue(values[0])
-              }}
-              text={typeof value !== 'string' ? null : value}
-              setText={setValue}
-            />
+            <div className="rounded-2xl border border-black/10">
+              <Autocomplete
+                items={autocompleteItems ?? []}
+                itemToKey={item => item}
+                itemToString={item => item}
+                placeholder="Enter secret path"
+                matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
+                values={typeof value !== 'string' || value === '' ? [] : [value]}
+                setValues={values => {
+                  setValue(values[0])
+                }}
+                text={typeof value !== 'string' ? null : value}
+                setText={setValue}
+              />
+            </div>
           )
         } else {
           return (
@@ -154,7 +157,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               value={typeof value === 'string' ? value : ''}
               size={1}
               className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
-              placeholder="Enter text here"
+              placeholder="Enter text"
               onChange={event => {
                 setIsSubmittable(
                   event.currentTarget.value !== '' &&
@@ -175,7 +178,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
-            placeholder="Enter number here"
+            placeholder="Enter number"
             onChange={event => {
               const newValue: number = event.currentTarget.valueAsNumber
               if (Number.isFinite(newValue)) {
@@ -196,7 +199,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
-            placeholder="Enter integer here"
+            placeholder="Enter integer"
             onChange={event => {
               const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
               if (Number.isFinite(newValue)) {
@@ -251,7 +254,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               const { key, schema: childSchema } = definition
               return constantValue(childSchema).length === 1 ? null : (
                 <div key={key} className="flex flex-wrap items-center">
-                  <div className="inline-block w-24">
+                  <div className="inline-block w-28 whitespace-nowrap">
                     {'title' in childSchema ? String(childSchema.title) : key}
                   </div>
                   <DataLinkInput
