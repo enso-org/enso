@@ -43,7 +43,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should be able to replace values via a lookup table, specifying from/to columns" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
-            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
+            lookup_table = table_builder [['d', [4, 5, 6, 7]], ['x', [2, 1, 4, 3]], ['d2', [5, 6, 7, 8]], ['z', [20, 10, 40, 30]]]
             expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             result = table.replace lookup_table 'x' 'x' 'z'
             result . should_equal expected
@@ -55,7 +55,7 @@ add_specs suite_builder setup =
             result = table.replace lookup_table 'x'
             result . should_equal expected
 
-        group_builder.specify "should fail with Illegal_Argument if the specified columns do not exist" <|
+        group_builder.specify "should fail with Missing_Input_Columns if the specified columns do not exist" <|
             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
             table.replace lookup_table 'q' 'x' 'z' . should_fail_with Missing_Input_Columns
@@ -79,7 +79,7 @@ add_specs suite_builder setup =
             lookup_table = table_builder [['x', [2, 1, 4, 1, 3]], ['z', [20, 10, 40, 11, 30]]]
             table.replace lookup_table 'x' . should_fail_with Non_Unique_Key
 
-        group_builder.specify "should avoid name clashes in the generated column name" <|
+        group_builder.specify "should avoid name clashes in the (internally) generated column name" <|
             table = table_builder [['duplicate_key', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
             lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
             expected = table_builder [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
@@ -90,6 +90,13 @@ add_specs suite_builder setup =
             table = table_builder [['x', [2, 1, 4, 3]], ['y', [20, 10, 40, 30]]]
             expected = table_builder [['x', [20, 10, 40, 30]], ['y', [20, 10, 40, 30]]]
             result = table.replace table 'x'
+            result . should_equal expected
+
+        group_builder.specify "should not merge columns other than the one specified in the `column` param" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']], ['q', [4, 5, 6, 7, 8]]]
+            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]], ['q', [40, 50, 60, 70]]]
+            expected = table_builder [['x', [10, 20, 30, 40, 20]], ['y', ['a', 'b', 'c', 'd', 'e']], ['q', [4, 5, 6, 7, 8]]]
+            result = table.replace lookup_table 'x'
             result . should_equal expected
 
         group_builder.specify "should fail on null key values in lookup table" <|

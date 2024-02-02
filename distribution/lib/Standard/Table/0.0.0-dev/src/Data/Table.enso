@@ -2052,12 +2052,12 @@ type Table
 
                     duplicate_key_column_name = unique.make_unique "duplicate_key"
                     duplicate_key_column = self.at column . rename duplicate_key_column_name
-                    self_with_duplicate = Table.new ([duplicate_key_column] + self.columns)
+                    self_with_duplicate = self.set duplicate_key_column set_mode=Set_Mode.Add
 
                     ## Create a lookup table with just `to_column` and `from_column`,
                        renamed to match the base table's `column` and its duplicate,
                        respectively.
-                    lookup_table_renamed = Table.new [lookup_table.at from_column . rename duplicate_key_column_name, lookup_table.at to_column . rename column]
+                    lookup_table_renamed = lookup_table.select_columns [from_column, to_column] . rename_columns (Map.from_vector [[from_column, duplicate_key_column_name], [to_column, column]])
 
                     merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
                     merged.remove_columns duplicate_key_column_name
@@ -2808,7 +2808,8 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
    A helper that creates a two-column table from a map.
 map_to_lookup_table : Map Any Any -> Text -> Text -> Table
 map_to_lookup_table map key_column value_column =
-    Table.new [[key_column, map.keys], [value_column, map.values]]
+    keys_and_values = map.to_vector
+    Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
 
 ## PRIVATE
    Conversion method to a Table from a Column.
