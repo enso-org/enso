@@ -65,7 +65,7 @@ export interface AssetRowProps
   extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
   item: AssetTreeNode
   state: assetsTable.AssetsTableState
-  hidden: boolean
+  visibility: Visibility | null
   columns: columnUtils.Column[]
   selected: boolean
   setSelected: (selected: boolean) => void
@@ -77,9 +77,9 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
-  const { allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { item: rawItem, visibility: visibilityRaw, selected, isSoleSelectedItem } = props
+  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { backend, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
@@ -97,12 +97,11 @@ export default function AssetRow(props: AssetRowProps) {
   const key = AssetTreeNode.getKey(item)
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const outerVisibility = visibilities.get(key)
   const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible
+    visibilityRaw == null || visibilityRaw === Visibility.visible
       ? insertionVisibility
-      : outerVisibility
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+      : visibilityRaw
+  const hidden = visibility === Visibility.hidden
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -671,7 +670,6 @@ export default function AssetRow(props: AssetRowProps) {
                 return (
                   <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                     <Render
-                      keyProp={key}
                       item={item}
                       setItem={setItem}
                       selected={selected}

@@ -24,9 +24,8 @@ import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
 import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
+import UninteractableNameColumn from '#/components/dashboard/column/UninteractableNameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
@@ -249,12 +248,10 @@ export interface AssetsTableState {
   isCloud: boolean
   backend: Backend
   numberOfSelectedItems: number
-  visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   category: Category
   labels: Map<backendModule.LabelName, backendModule.Label>
   deletedLabelNames: Set<backendModule.LabelName>
   hasPasteData: boolean
-  setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   sortColumn: columnUtils.SortableColumn | null
   setSortColumn: (column: columnUtils.SortableColumn | null) => void
   sortDirection: SortDirection | null
@@ -343,9 +340,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
   const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
-  const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
-    Set<backendModule.AssetId>
-  > | null>(null)
+  const [hasPasteData, setHasPasteData] = React.useState(false)
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
   const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -360,7 +355,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       : PLACEHOLDER
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-  const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<Set<backendModule.AssetId>> | null>(
     null
   )
@@ -747,15 +741,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [backend, category])
 
   React.useEffect(() => {
-    assetTreeRef.current = assetTree
     const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
     newNodeMap.set(assetTree.key, assetTree)
     nodeMapRef.current = newNodeMap
   }, [assetTree])
-
-  React.useEffect(() => {
-    pasteDataRef.current = pasteData
-  }, [pasteData])
 
   React.useEffect(() => {
     return shortcutManager.registerKeyboardHandlers({
@@ -763,11 +752,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (pasteDataRef.current == null) {
           return false
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.cancelCut,
-            ids: pasteDataRef.current.data,
-          })
-          setPasteData(null)
+          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+          pasteDataRef.current = null
+          setHasPasteData(false)
           return
         }
       },
@@ -1379,7 +1366,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     unsetModal()
     setSelectedKeys(oldSelectedKeys => {
       queueMicrotask(() => {
-        setPasteData({ type: PasteType.copy, data: oldSelectedKeys })
+        pasteDataRef.current = { type: PasteType.copy, data: oldSelectedKeys }
+        setHasPasteData(true)
       })
       return oldSelectedKeys
     })
@@ -1389,29 +1377,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     unsetModal()
     setSelectedKeys(oldSelectedKeys => {
       queueMicrotask(() => {
-        if (pasteData != null) {
-          dispatchAssetEvent({
-            type: AssetEventType.cancelCut,
-            ids: pasteData.data,
-          })
+        if (pasteDataRef.current != null) {
+          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
         }
-        setPasteData({ type: PasteType.move, data: oldSelectedKeys })
-        dispatchAssetEvent({
-          type: AssetEventType.cut,
-          ids: oldSelectedKeys,
-        })
+        pasteDataRef.current = { type: PasteType.move, data: oldSelectedKeys }
+        setHasPasteData(true)
+        dispatchAssetEvent({ type: AssetEventType.cut, ids: oldSelectedKeys })
       })
       return new Set()
     })
-  }, [
-    pasteData,
-    /* should never change */ unsetModal,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }, [/* should never change */ unsetModal, /* should never change */ dispatchAssetEvent])
 
   const doPaste = React.useCallback(
     (newParentKey: backendModule.AssetId) => {
       unsetModal()
+      const pasteData = pasteDataRef.current
       if (pasteData != null) {
         const newParentNode = nodeMapRef.current.get(newParentKey)
         if (pasteData.data.has(newParentKey)) {
@@ -1441,12 +1421,11 @@ export default function AssetsTable(props: AssetsTableProps) {
               newParent,
             })
           }
-          setPasteData(null)
+          pasteDataRef.current = null
         }
       }
     },
     [
-      pasteData,
       doToggleDirectoryExpansion,
       /* should never change */ toastAndLog,
       /* should never change */ unsetModal,
@@ -1461,7 +1440,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         hidden
         isCloud={isCloud}
         category={category}
-        pasteData={pasteData}
+        hasPasteData={hasPasteData}
         selectedKeys={selectedKeys}
         nodeMapRef={nodeMapRef}
         event={{ pageX: 0, pageY: 0 }}
@@ -1476,7 +1455,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     [
       isCloud,
       category,
-      pasteData,
+      hasPasteData,
       selectedKeys,
       doCopy,
       doCut,
@@ -1499,13 +1478,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     (): AssetsTableState => ({
       isCloud,
       backend,
-      visibilities,
       numberOfSelectedItems: selectedKeys.size,
       category,
       labels: allLabels,
       deletedLabelNames,
-      hasPasteData: pasteData != null,
-      setPasteData,
+      hasPasteData,
       sortColumn,
       setSortColumn,
       sortDirection,
@@ -1529,12 +1506,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     [
       isCloud,
       backend,
-      visibilities,
       selectedKeys.size,
       category,
       allLabels,
       deletedLabelNames,
-      pasteData,
+      hasPasteData,
       sortColumn,
       sortDirection,
       assetEvents,
@@ -1721,7 +1697,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={visibilities.get(item.key) === Visibility.hidden}
+          visibility={visibilities.get(item.key) ?? null}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(oldSelectedKeys => set.withPresence(oldSelectedKeys, key, selected))
@@ -1762,19 +1738,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }}
                   >
                     {nodes.map(node => (
-                      <NameColumn
+                      <UninteractableNameColumn
                         key={node.key}
-                        keyProp={node.key}
                         item={node.with({ depth: 0 })}
                         state={state}
-                        // Default states.
-                        isSoleSelectedItem={false}
-                        selected={false}
-                        rowState={assetRowUtils.INITIAL_ROW_STATE}
-                        // The drag placeholder cannot be interacted with.
-                        setSelected={() => {}}
-                        setItem={() => {}}
-                        setRowState={() => {}}
                       />
                     ))}
                   </DragModal>
@@ -1896,7 +1863,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           <AssetsTableContextMenu
             isCloud={isCloud}
             category={category}
-            pasteData={pasteData}
+            hasPasteData={hasPasteData}
             selectedKeys={selectedKeys}
             nodeMapRef={nodeMapRef}
             event={event}

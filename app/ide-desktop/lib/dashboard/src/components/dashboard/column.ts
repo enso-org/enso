@@ -19,7 +19,6 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
-  keyProp: backendModule.AssetId
   item: AssetTreeNode
   setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   selected: boolean

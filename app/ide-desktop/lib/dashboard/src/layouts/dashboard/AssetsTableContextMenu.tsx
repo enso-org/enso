@@ -20,7 +20,6 @@ import MenuEntry from '#/components/MenuEntry'
 import * as backendModule from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
@@ -43,7 +42,7 @@ export interface AssetsTableContextMenuProps {
   hidden?: boolean
   isCloud: boolean
   category: Category
-  pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
+  hasPasteData: boolean
   selectedKeys: Set<backendModule.AssetId>
   setSelectedKeys: (items: Set<backendModule.AssetId>) => void
   nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
@@ -58,8 +57,8 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { isCloud, category, pasteData, selectedKeys, setSelectedKeys, nodeMapRef, event } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
+  const { isCloud, category, hasPasteData, selectedKeys, setSelectedKeys, nodeMapRef } = props
+  const { event, dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -149,7 +148,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCut}
               />
             )}
-            {pasteData != null && pasteData.data.size > 0 && (
+            {hasPasteData && (
               <MenuEntry
                 hidden={hidden}
                 action={shortcutManager.KeyboardAction.pasteAll}
@@ -172,7 +171,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         <GlobalContextMenu
           hidden={hidden}
           isCloud={isCloud}
-          hasPasteData={pasteData != null}
+          hasPasteData={hasPasteData}
           directoryKey={null}
           directory={null}
           dispatchAssetListEvent={dispatchAssetListEvent}
