@@ -1,0 +1,30 @@
+from Standard.Base import all
+
+import project.Data.Table.Table
+import project.Data.Set_Mode.Set_Mode
+from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
+
+replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+replace base_table lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    case lookup_table of
+        _ : Map ->
+            base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+        _ : Table ->
+            base_table.select_columns column . if_not_error <| lookup_table.select_columns [from_column, to_column] . if_not_error <|
+                unique = base_table.column_naming_helper.create_unique_name_strategy
+                unique.mark_used (base_table.column_names)
+
+                ## We perform a `merge` into `column`, using a duplicate of `column`
+                    as the key column to join with `from_column`.
+
+                duplicate_key_column_name = unique.make_unique "duplicate_key"
+                duplicate_key_column = base_table.at column . rename duplicate_key_column_name
+                base_table_with_duplicate = base_table.set duplicate_key_column set_mode=Set_Mode.Add
+
+                ## Create a lookup table with just `to_column` and `from_column`,
+                    renamed to match the base table's `column` and its duplicate,
+                    respectively.
+                lookup_table_renamed = lookup_table.select_columns [from_column, to_column] . rename_columns (Map.from_vector [[from_column, duplicate_key_column_name], [to_column, column]])
+
+                merged = base_table_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                merged.remove_columns duplicate_key_column_name
