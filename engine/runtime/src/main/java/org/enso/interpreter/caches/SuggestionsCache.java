@@ -33,9 +33,6 @@ public final class SuggestionsCache
     super(Level.FINEST, libraryName.toString(), true, false);
     this.spi = new Impl();
     this.libraryName = libraryName;
-    this.entryName = libraryName.name();
-    this.dataSuffix = SUGGESTIONS_CACHE_DATA_EXTENSION;
-    this.metadataSuffix = SUGGESTIONS_CACHE_METADATA_EXTENSION;
   }
 
   public static Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> create(
@@ -45,6 +42,21 @@ public final class SuggestionsCache
 
   private final class Impl
       implements Spi<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
+
+    @Override
+    public String metadataSuffix() {
+      return SUGGESTIONS_CACHE_METADATA_EXTENSION;
+    }
+
+    @Override
+    public String dataSuffix() {
+      return SUGGESTIONS_CACHE_DATA_EXTENSION;
+    }
+
+    @Override
+    public String entryName() {
+      return libraryName.name();
+    }
 
     @Override
     public byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry)

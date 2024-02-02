@@ -366,13 +366,6 @@ public class Cache<T, M extends Cache.Metadata> {
     }
   }
 
-  protected String entryName;
-
-  /** Suffix to be used */
-  protected String dataSuffix;
-
-  protected String metadataSuffix;
-
   /**
    * Gets the path to the cache data within the `cacheRoot`.
    *
@@ -380,11 +373,11 @@ public class Cache<T, M extends Cache.Metadata> {
    * @return the name of the data file for this entry's cache
    */
   private TruffleFile getCacheDataPath(TruffleFile cacheRoot) {
-    return cacheRoot.resolve(cacheFileName(dataSuffix));
+    return cacheRoot.resolve(cacheFileName(spi.dataSuffix()));
   }
 
   private TruffleFile getCacheMetadataPath(TruffleFile cacheRoot) {
-    return cacheRoot.resolve(cacheFileName(metadataSuffix));
+    return cacheRoot.resolve(cacheFileName(spi.metadataSuffix()));
   }
 
   /**
@@ -394,7 +387,7 @@ public class Cache<T, M extends Cache.Metadata> {
    * @return the cache file name with the provided `ext`
    */
   private String cacheFileName(String suffix) {
-    return entryName + suffix;
+    return spi.entryName() + suffix;
   }
 
   /**
@@ -557,6 +550,12 @@ public class Cache<T, M extends Cache.Metadata> {
      * @return non-empty if the locations have been inferred successfully, empty otherwise
      */
     public abstract Optional<Roots> getCacheRoots(EnsoContext context);
+
+    public abstract String entryName();
+
+    public abstract String dataSuffix();
+
+    public abstract String metadataSuffix();
   }
 
   interface Metadata {

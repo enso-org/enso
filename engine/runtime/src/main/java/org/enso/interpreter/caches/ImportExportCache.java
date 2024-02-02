@@ -34,9 +34,6 @@ public final class ImportExportCache
     super(Level.FINEST, libraryName.toString(), true, false);
     this.spi = new Impl();
     this.libraryName = libraryName;
-    this.entryName = libraryName.name();
-    this.dataSuffix = bindingsCacheDataExtension;
-    this.metadataSuffix = bindingsCacheMetadataExtension;
   }
 
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
@@ -46,6 +43,22 @@ public final class ImportExportCache
 
   private final class Impl
       implements Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+
+    @Override
+    public String metadataSuffix() {
+      return bindingsCacheMetadataExtension;
+    }
+
+    @Override
+    public String dataSuffix() {
+      return bindingsCacheDataExtension;
+    }
+
+    @Override
+    public String entryName() {
+      return libraryName.name();
+    }
+
     @Override
     public byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry)
         throws IOException {

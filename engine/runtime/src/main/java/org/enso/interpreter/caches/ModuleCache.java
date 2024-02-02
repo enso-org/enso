@@ -29,9 +29,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     super(Level.FINEST, module.getName().toString(), true, false);
     this.spi = new Impl();
     this.module = module;
-    this.entryName = module.getName().item();
-    this.dataSuffix = irCacheDataExtension;
-    this.metadataSuffix = irCacheMetadataExtension;
   }
 
   public static Cache<ModuleCache.CachedModule, ModuleCache.Metadata> create(
@@ -45,6 +42,22 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   final class Impl implements Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
+
+    @Override
+    public String metadataSuffix() {
+      return irCacheMetadataExtension;
+    }
+
+    @Override
+    public String dataSuffix() {
+      return irCacheDataExtension;
+    }
+
+    @Override
+    public String entryName() {
+      return module.getName().item();
+    }
+
     @Override
     public byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry)
         throws IOException {
