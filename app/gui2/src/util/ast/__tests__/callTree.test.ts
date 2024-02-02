@@ -7,7 +7,10 @@ import {
   ArgumentPlaceholder,
   interpretCall,
 } from '@/util/callTree'
+import { initializeFFI } from 'shared/ast/ffi'
 import { assert, expect, test } from 'vitest'
+
+await initializeFFI()
 
 const prefixFixture = {
   allowInfix: false,

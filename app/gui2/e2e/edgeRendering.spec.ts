@@ -1,4 +1,4 @@
-import { expect, Page, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import * as actions from './actions'
 import * as locate from './locate'
 
@@ -13,28 +13,29 @@ async function edgesToNodeWithBinding(page: Page, binding: string) {
   return page.locator(`[data-target-node-id="${nodeId}"]`)
 }
 
+// For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
+const EDGE_PARTS = 2
+
 test('Existence of edges between nodes', async ({ page }) => {
   await actions.goToGraph(page)
 
-  // For each outgoing edge we expect three elements: an element for io, an element for the arrow, and an element for the rendered edge itself.
-
   await expect(await edgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(6)
+  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(2 * EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'list')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'final')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(3)
-  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(3)
-  await expect(await edgesFromNodeWithBinding(page, 'ten')).toHaveCount(3)
-  await expect(await edgesFromNodeWithBinding(page, 'five')).toHaveCount(3)
+  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesFromNodeWithBinding(page, 'ten')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesFromNodeWithBinding(page, 'five')).toHaveCount(EDGE_PARTS)
 
-  await expect(await edgesToNodeWithBinding(page, 'aggregated')).toHaveCount(3)
-  await expect(await edgesToNodeWithBinding(page, 'filtered')).toHaveCount(3)
+  await expect(await edgesToNodeWithBinding(page, 'aggregated')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'filtered')).toHaveCount(EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'data')).toHaveCount(0)
   await expect(await edgesToNodeWithBinding(page, 'list')).toHaveCount(0)
-  await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(3)
-  await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(3)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(6)
+  await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'ten')).toHaveCount(0)
   await expect(await edgesToNodeWithBinding(page, 'five')).toHaveCount(0)
 })
@@ -42,18 +43,21 @@ test('Existence of edges between nodes', async ({ page }) => {
 test('Hover behaviour of edges', async ({ page }) => {
   await actions.goToGraph(page)
 
-  // One for interaction, one for rendering, one for the arrow element.
-  await expect(await edgesFromNodeWithBinding(page, 'ten')).toHaveCount(3)
+  const edgeElements = await edgesFromNodeWithBinding(page, 'ten')
+  await expect(edgeElements).toHaveCount(EDGE_PARTS)
 
-  const targetEdge = page.locator('path:nth-child(4)')
+  const targetEdge = edgeElements.first()
+  await expect(targetEdge).toHaveClass('edge io')
+  // It is not currently possible to interact with edges in the default node layout.
+  // See: https://github.com/enso-org/enso/issues/8938
+  /*
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.hover({
-    position: { x: 65, y: 135.0 },
-    force: true,
+    position: { x: 60, y: 45 }, // source node
   })
   // Expect an extra edge for the split rendering.
-  const edgeElements = await edgesFromNodeWithBinding(page, 'ten')
-  await expect(edgeElements).toHaveCount(4)
+  const hoveredEdgeElements = await edgesFromNodeWithBinding(page, 'ten')
+  await expect(hoveredEdgeElements).toHaveCount(2 * EDGE_PARTS)
 
   // Expect the top edge part to be dimmed
   const topEdge = page.locator('path:nth-child(4)')
@@ -61,4 +65,5 @@ test('Hover behaviour of edges', async ({ page }) => {
   // Expect the bottom edge part not to be dimmed
   const bottomEdge = page.locator('path:nth-child(6)')
   await expect(bottomEdge).toHaveClass('edge visible')
+   */
 })
