@@ -12,6 +12,7 @@ import project.Errors.File_Error.File_Error
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
+import project.Network.HTTP.Response_Body.Throw_Unsupported_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
@@ -122,7 +123,7 @@ type Response
        format.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type (resolve_file_metadata_for_response self))) =
+    decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
         self.body.decode format if_unsupported
 
     ## ALIAS parse as text
