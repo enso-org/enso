@@ -55,7 +55,7 @@ public final class SuggestionsCache
     @Override
     public CachedSuggestions deserialize(
         EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-        throws ClassNotFoundException, ClassNotFoundException, IOException {
+        throws ClassNotFoundException, IOException {
       try (var stream = new ObjectInputStream(new ByteArrayInputStream(data.array()))) {
         if (stream.readObject() instanceof Suggestions suggestions) {
           return new CachedSuggestions(libraryName, suggestions, Optional.empty());
