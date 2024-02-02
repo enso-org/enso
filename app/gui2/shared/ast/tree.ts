@@ -993,17 +993,17 @@ export class MutableImport extends Import implements MutableAst {
 
   replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
     const { polyglot, from, import: import_, as, hiding } = getAll(this.fields)
-    ;(polyglot?.body?.node === target
-      ? this.setPolyglot
+    polyglot?.body?.node === target
+      ? this.setPolyglot(replacement)
       : from?.body?.node === target
-      ? this.setFrom
+      ? this.setFrom(replacement)
       : import_.body?.node === target
-      ? this.setImport
+      ? this.setImport(replacement)
       : as?.body?.node === target
-      ? this.setAs
+      ? this.setAs(replacement)
       : hiding?.body?.node === target
-      ? this.setHiding
-      : bail(`Failed to find child ${target} in node ${this.externalId}.`))(replacement)
+      ? this.setHiding(replacement)
+      : bail(`Failed to find child ${target} in node ${this.externalId}.`)
   }
 }
 export interface MutableImport extends Import, MutableAst {
