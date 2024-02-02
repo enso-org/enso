@@ -196,7 +196,7 @@ public final class Type implements EnsoObject {
   @ExportMessage
   Object getMetaParents(@CachedLibrary("this") InteropLibrary lib)
       throws UnsupportedMessageException {
-    if (isNothing(lib) || !hasMetaParents(lib)) {
+    if (!hasMetaParents(lib)) {
       throw UnsupportedMessageException.create();
     }
     assert getSupertype() != null;
