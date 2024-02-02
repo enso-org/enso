@@ -25,7 +25,6 @@ import * as backendModule from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 // =================
@@ -319,7 +318,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
       onClose()
-      localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+      localStorage.delete('projectStartupInfo')
     }
     setToastId(null)
     setShouldOpenWhenReady(false)

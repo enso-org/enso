@@ -28,13 +28,12 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
-import type { AstId } from '@/util/ast/abstract.ts'
+import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
-import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
@@ -281,14 +280,19 @@ const graphBindingsHandler = graphBindings.handler({
       const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      const meta = new Map<AstId, Partial<NodeMetadata>>()
       const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
+      edit
+        .checkedGet(refactoredNodeId)
+        .mutableNodeMetadata()
+        .set('position', { x: position.x, y: position.y })
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
+        edit
+          .checkedGet(outputNodeId)
+          .mutableNodeMetadata()
+          .set('position', { x: position.x, y: position.y })
       }
-      graphStore.commitEdit(edit, meta)
+      graphStore.commitEdit(edit)
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -489,7 +493,7 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
-  metadata: NodeMetadata | undefined
+  metadata: NodeMetadataFields | undefined
 }
 
 /** Copy the content of the selected node to the clipboard. */
@@ -498,7 +502,11 @@ function copyNodeContent() {
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
   const content = node.rootSpan.code()
-  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
+  const nodeMetadata = node.rootSpan.nodeMetadata
+  const metadata = {
+    position: nodeMetadata.get('position'),
+    visualization: nodeMetadata.get('visualization'),
+  }
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
   const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
