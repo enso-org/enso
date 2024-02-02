@@ -31,7 +31,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.data.TypeGraph;
-import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -205,10 +204,7 @@ final class TruffleCompilerContext implements CompilerContext {
       builtins.initializeBuiltinsSource();
 
       if (irCachingEnabled) {
-        if (serializationManager.deserialize(compiler, builtinsModule) instanceof Option<?> op
-            && op.isDefined()
-            && op.get() instanceof Boolean b
-            && b) {
+        if (deserializeModule(compiler, builtinsModule)) {
           // Ensure that builtins doesn't try and have codegen run on it.
           updateModule(builtinsModule, u -> u.compilationStage(CompilationStage.AFTER_CODEGEN));
         } else {
