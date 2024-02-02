@@ -96,7 +96,7 @@ export class Server {
                     handler: this.process.bind(this),
                 },
                 (err, { http: httpServer }) => {
-                    (async () => {
+                    void (async () => {
                         if (err) {
                             logger.error(`Error creating server:`, err.http)
                             reject(err)
