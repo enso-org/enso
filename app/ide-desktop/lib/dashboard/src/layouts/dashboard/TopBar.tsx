@@ -25,6 +25,7 @@ export interface TopBarProps {
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   isCloud: boolean
   isEditorDisabled: boolean
+  backend: backendModule.Backend
   setBackendType: (backendType: backendModule.BackendType) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
@@ -42,8 +43,8 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
-  const { isCloud, isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset, isCloud } = props
+  const { isEditorDisabled, backend, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
   const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
 
@@ -55,7 +56,7 @@ export default function TopBar(props: TopBarProps) {
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
-        <BackendSwitcher setBackendType={setBackendType} />
+        <BackendSwitcher backendType={backend.type} setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
@@ -79,6 +80,7 @@ export default function TopBar(props: TopBarProps) {
           />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
+            backend={backend}
             page={page}
             setPage={setPage}
             isHelpChatOpen={isHelpChatOpen}

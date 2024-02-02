@@ -5,9 +5,8 @@ import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
+import type * as backendModule from '#/services/backend'
 import * as shortcuts from '#/utilities/shortcuts'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -16,7 +15,8 @@ import MenuEntry from '#/components/MenuEntry'
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
   hidden?: boolean
-  hasCopyData: boolean
+  isCloud: boolean
+  hasPasteData: boolean
   directoryKey: backendModule.DirectoryId | null
   directory: backendModule.SmartDirectory | null
   dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -25,14 +25,12 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, hasCopyData, directoryKey, directory, dispatchAssetListEvent } = props
-  const { doPaste } = props
+  const { hidden = false, isCloud, hasPasteData, directoryKey, directory } = props
+  const { dispatchAssetListEvent, doPaste } = props
   const { organization } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const filesInputRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = backend.type === backendModule.BackendType.remote
   return rootDirectory == null ? (
     <></>
   ) : (
@@ -43,7 +41,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           multiple
           type="file"
           id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
+          {...(isCloud ? {} : { accept: '.enso-project' })}
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
@@ -61,9 +59,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       <MenuEntry
         hidden={hidden}
         action={
-          backend.type === backendModule.BackendType.local
-            ? shortcuts.KeyboardAction.uploadProjects
-            : shortcuts.KeyboardAction.uploadFiles
+          isCloud ? shortcuts.KeyboardAction.uploadFiles : shortcuts.KeyboardAction.uploadProjects
         }
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
@@ -143,7 +139,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
-      {isCloud && directoryKey == null && hasCopyData && (
+      {isCloud && directoryKey == null && hasPasteData && (
         <MenuEntry
           hidden={hidden}
           action={shortcuts.KeyboardAction.paste}

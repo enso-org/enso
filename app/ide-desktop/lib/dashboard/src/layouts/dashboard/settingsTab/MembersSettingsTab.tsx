@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import type * as backend from '#/services/backend'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
@@ -12,9 +12,14 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 // === MembersSettingsTab ===
 // ==========================
 
+/** Props for a {@link MembersSettingsTab}. */
+export interface MembersSettingsTabProps {
+  backend: backend.Backend
+}
+
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsTab() {
-  const { backend } = backendProvider.useBackend()
+export default function MembersSettingsTab(props: MembersSettingsTabProps) {
+  const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
@@ -28,7 +33,7 @@ export default function MembersSettingsTab() {
             className="flex items-center bg-frame rounded-full h-8 px-2.5"
             onClick={event => {
               event.stopPropagation()
-              setModal(<InviteUsersModal eventTarget={null} />)
+              setModal(<InviteUsersModal eventTarget={null} backend={backend} />)
             }}
           >
             <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">

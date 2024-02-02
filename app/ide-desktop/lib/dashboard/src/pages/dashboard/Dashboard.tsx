@@ -404,6 +404,7 @@ export default function Dashboard(props: DashboardProps) {
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
+            backend={backend}
             setBackendType={setBackendType}
             query={query}
             setQuery={setQuery}
@@ -424,7 +425,7 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
-            page={page}
+            backend={backend}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
@@ -447,7 +448,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === pageSwitcher.Page.settings && <Settings />}
+          {page === pageSwitcher.Page.settings && <Settings backend={backend} />}
           {/* `accessToken` MUST be present in order for the `Chat` component to work. */}
           {isHelpChatVisible && accessToken != null ? (
             <Chat

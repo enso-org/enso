@@ -12,7 +12,6 @@ import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
@@ -37,6 +36,7 @@ import MenuEntry from '#/components/MenuEntry'
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
   hidden?: boolean
+  backend: backendModule.Backend
   innerProps: assetRow.AssetRowInnerProps
   event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   eventTarget: HTMLElement | null
@@ -48,8 +48,8 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, eventTarget, doCopy, doCut, doPaste, doDelete } = props
-  const { hidden = false } = props
+  const { hidden = false, backend, innerProps, event, eventTarget } = props
+  const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { doCreateLabel } = state
@@ -57,7 +57,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const logger = loggerProvider.useLogger()
   const { organization, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
@@ -266,6 +265,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <ManagePermissionsModal
                   item={smartAsset}
                   setItem={setAsset}
+                  backend={backend}
                   self={self}
                   eventTarget={eventTarget}
                   doRemoveSelf={() => {
@@ -285,6 +285,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <ManageLabelsModal
                   item={asset}
                   setItem={setAsset}
+                  backend={backend}
                   allLabels={labels}
                   doCreateLabel={doCreateLabel}
                   eventTarget={eventTarget}
@@ -341,7 +342,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       {category === Category.home && (
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={hasPasteData}
+          isCloud={isCloud}
+          hasPasteData={hasPasteData}
           directoryKey={
             // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
             // eslint-disable-next-line no-restricted-syntax

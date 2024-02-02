@@ -7,7 +7,6 @@ import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -37,10 +36,9 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
+  const { backend, numberOfSelectedItems, assetEvents, nodeMap, dispatchAssetEvent } = state
+  const { doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const smartAsset = item.item
@@ -217,6 +215,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <ProjectIcon
           smartAsset={smartAsset}
           setItem={setAsset}
+          backend={backend}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
           openEditor={switchPage => {

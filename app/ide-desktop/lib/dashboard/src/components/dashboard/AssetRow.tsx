@@ -10,7 +10,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -77,9 +76,9 @@ export default function AssetRow(props: AssetRowProps) {
   const { tableRowRef, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetSettingsPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { backend } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
@@ -557,6 +556,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onContextMenu?.(innerProps, event)
                   setModal(
                     <AssetContextMenu
+                      backend={backend}
                       innerProps={innerProps}
                       event={event}
                       eventTarget={
@@ -659,6 +659,7 @@ export default function AssetRow(props: AssetRowProps) {
             // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
               hidden
+              backend={backend}
               innerProps={{
                 key,
                 item,

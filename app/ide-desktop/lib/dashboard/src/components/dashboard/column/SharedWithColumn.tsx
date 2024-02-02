@@ -7,6 +7,7 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as permissions from '#/utilities/permissions'
@@ -36,6 +37,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { category, dispatchAssetEvent } = state
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
+  const { backend } = backendProvider.useBackend()
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
@@ -64,6 +66,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 key={uniqueString.uniqueString()}
                 item={asset}
                 setItem={setAsset}
+                backend={backend}
                 self={self}
                 eventTarget={event.currentTarget}
                 doRemoveSelf={() => {

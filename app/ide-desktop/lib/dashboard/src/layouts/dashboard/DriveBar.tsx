@@ -11,7 +11,6 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
@@ -26,6 +25,7 @@ import Button from '#/components/Button'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
   category: Category
+  backend: backendModule.Backend
   canDownloadFiles: boolean
   doCreateProject: () => void
   doCreateDirectory: () => void
@@ -37,9 +37,8 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
+  const { category, backend, canDownloadFiles, doCreateProject, doCreateDirectory } = props
   const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { shortcuts } = shortcutsProvider.useShortcuts()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)

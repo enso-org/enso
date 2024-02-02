@@ -6,7 +6,6 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
@@ -19,7 +18,6 @@ import SubmitButton from '#/components/SubmitButton'
 export default function SetUsername() {
   const { setUsername: authSetUsername } = authProvider.useAuth()
   const { email } = authProvider.usePartialUserSession()
-  const { backend } = backendProvider.useBackend()
 
   const [username, setUsername] = React.useState('')
 
@@ -30,7 +28,7 @@ export default function SetUsername() {
         className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
         onSubmit={async event => {
           event.preventDefault()
-          await authSetUsername(backend, username, email)
+          await authSetUsername(username, email)
         }}
       >
         <div className="font-medium self-center text-xl">Set your username</div>

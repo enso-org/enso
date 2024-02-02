@@ -169,7 +169,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={pasteData != null}
+          isCloud={isCloud}
+          hasPasteData={pasteData != null}
           directoryKey={null}
           directory={null}
           dispatchAssetListEvent={dispatchAssetListEvent}

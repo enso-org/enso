@@ -7,7 +7,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as assetQuery from '#/utilities/assetQuery'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -30,11 +29,10 @@ import MenuEntry from '#/components/MenuEntry'
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
-  const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
+  const { backend, category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isHovered, setIsHovered] = React.useState(false)
   const smartAsset = item.item
@@ -133,6 +131,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 key={uniqueString.uniqueString()}
                 item={asset}
                 setItem={setAsset}
+                backend={backend}
                 allLabels={labels}
                 doCreateLabel={doCreateLabel}
                 eventTarget={event.currentTarget}

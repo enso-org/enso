@@ -4,10 +4,9 @@ import * as React from 'react'
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
-import * as backendProvider from '#/providers/BackendProvider'
-import * as backendModule from '#/services/backend'
-
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/backend'
 
 // =======================
 // === BackendSwitcher ===
@@ -15,19 +14,20 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link BackendSwitcher}. */
 export interface BackendSwitcherProps {
+  backendType: backendModule.BackendType
   setBackendType: (backendType: backendModule.BackendType) => void
 }
 
 /** Switcher for choosing the project management backend. */
 export default function BackendSwitcher(props: BackendSwitcherProps) {
-  const { setBackendType } = props
-  const { backend } = backendProvider.useBackend()
+  const { backendType, setBackendType } = props
+
   return (
     <div className="flex shrink-0 gap-px">
       <button
-        disabled={backend.type === backendModule.BackendType.remote}
+        disabled={backendType === backendModule.BackendType.remote}
         className={`rounded-l-full px-2.5 py-1 ${
-          backend.type === backendModule.BackendType.remote
+          backendType === backendModule.BackendType.remote
             ? 'bg-frame-selected text-cloud'
             : 'bg-frame text-black'
         }`}
@@ -37,7 +37,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div
           className={`flex items-center gap-2 ${
-            backend.type === backendModule.BackendType.remote ? '' : 'opacity-30'
+            backendType === backendModule.BackendType.remote ? '' : 'opacity-30'
           }`}
         >
           <SvgMask src={CloudIcon} />
@@ -45,9 +45,9 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         </div>
       </button>
       <button
-        disabled={backend.type === backendModule.BackendType.local}
+        disabled={backendType === backendModule.BackendType.local}
         className={`rounded-r-full px-2.5 py-1 ${
-          backend.type === backendModule.BackendType.local
+          backendType === backendModule.BackendType.local
             ? 'bg-frame-selected text-cloud'
             : 'bg-frame text-black'
         }`}
@@ -57,7 +57,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div
           className={`flex items-center gap-2 ${
-            backend.type === backendModule.BackendType.local ? '' : 'opacity-30'
+            backendType === backendModule.BackendType.local ? '' : 'opacity-30'
           }`}
         >
           <SvgMask src={NotCloudIcon} />

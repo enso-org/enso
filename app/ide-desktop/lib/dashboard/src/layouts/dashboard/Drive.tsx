@@ -17,9 +17,7 @@ import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
@@ -57,7 +55,7 @@ enum DriveStatus {
 export interface DriveProps {
   supportsLocalBackend: boolean
   hidden: boolean
-  page: pageSwitcher.Page
+  backend: backendModule.Backend
   initialProjectName: string | null
   assetListEvents: assetListEvent.AssetListEvent[]
   dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
@@ -83,15 +81,14 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, page, initialProjectName } = props
-  const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { supportsLocalBackend, backend, hidden, initialProjectName, query, setQuery } = props
+  const { labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { modalRef } = modalProvider.useModalRef()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
@@ -285,7 +282,7 @@ export default function Drive(props: DriveProps) {
     const onDragEnter = (event: DragEvent) => {
       if (
         modalRef.current == null &&
-        page === pageSwitcher.Page.drive &&
+        !hidden &&
         category === Category.home &&
         event.dataTransfer?.types.includes('Files') === true
       ) {
@@ -296,7 +293,7 @@ export default function Drive(props: DriveProps) {
     return () => {
       document.body.removeEventListener('dragenter', onDragEnter)
     }
-  }, [page, category, /* should never change */ modalRef])
+  }, [hidden, category, /* should never change */ modalRef])
 
   switch (status) {
     case DriveStatus.offline: {
@@ -370,6 +367,7 @@ export default function Drive(props: DriveProps) {
             </h1>
             <DriveBar
               category={category}
+              backend={backend}
               canDownloadFiles={canDownloadFiles}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -397,25 +395,29 @@ export default function Drive(props: DriveProps) {
                 />
               </div>
             )}
-            <AssetsTable
-              query={query}
-              setQuery={setQuery}
-              setCanDownloadFiles={setCanDownloadFiles}
-              category={category}
-              allLabels={allLabels}
-              setSuggestions={setSuggestions}
-              initialProjectName={initialProjectName}
-              projectStartupInfo={projectStartupInfo}
-              deletedLabelNames={deletedLabelNames}
-              assetEvents={assetEvents}
-              dispatchAssetEvent={dispatchAssetEvent}
-              assetListEvents={assetListEvents}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetSettingsPanelProps={setAssetSettingsPanelProps}
-              doOpenEditor={doOpenEditor}
-              doCloseEditor={doCloseEditor}
-              doCreateLabel={doCreateLabel}
-            />
+            {rootDirectory != null && (
+              <AssetsTable
+                backend={backend}
+                rootDirectory={rootDirectory}
+                query={query}
+                setQuery={setQuery}
+                setCanDownloadFiles={setCanDownloadFiles}
+                category={category}
+                allLabels={allLabels}
+                setSuggestions={setSuggestions}
+                initialProjectName={initialProjectName}
+                projectStartupInfo={projectStartupInfo}
+                deletedLabelNames={deletedLabelNames}
+                assetEvents={assetEvents}
+                dispatchAssetEvent={dispatchAssetEvent}
+                assetListEvents={assetListEvents}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+                doOpenEditor={doOpenEditor}
+                doCloseEditor={doCloseEditor}
+                doCreateLabel={doCreateLabel}
+              />
+            )}
           </div>
           {isFileBeingDragged && organization != null && isCloud ? (
             <div

@@ -8,7 +8,6 @@ import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserMenu from '#/layouts/dashboard/UserMenu'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 
@@ -21,6 +20,7 @@ import Button from '#/components/Button'
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
   supportsLocalBackend: boolean
+  backend: backendModule.Backend
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean
@@ -33,11 +33,10 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, backend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const self =
     organization != null
       ? projectAsset?.permissions?.find(
@@ -68,6 +67,7 @@ export default function UserBar(props: UserBarProps) {
               <ManagePermissionsModal
                 item={projectAsset}
                 setItem={setProjectAsset}
+                backend={backend}
                 self={self}
                 doRemoveSelf={doRemoveSelf}
                 eventTarget={null}

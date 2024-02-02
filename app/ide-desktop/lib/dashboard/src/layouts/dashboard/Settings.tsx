@@ -6,13 +6,20 @@ import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsT
 import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
 import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
 import * as authProvider from '#/providers/AuthProvider'
+import type * as backend from '#/services/backend'
 
 // ================
 // === Settings ===
 // ================
 
+/** Props for a {@link Settings}. */
+export interface SettingsProps {
+  backend: backend.Backend
+}
+
 /** Settings screen. */
-export default function Settings() {
+export default function Settings(props: SettingsProps) {
+  const { backend } = props
   const [settingsTab, setSettingsTab] = React.useState(SettingsTab.account)
   const { organization } = authProvider.useNonPartialUserSession()
 
@@ -23,7 +30,7 @@ export default function Settings() {
       break
     }
     case SettingsTab.members: {
-      content = <MembersSettingsTab />
+      content = <MembersSettingsTab backend={backend} />
       break
     }
     default: {

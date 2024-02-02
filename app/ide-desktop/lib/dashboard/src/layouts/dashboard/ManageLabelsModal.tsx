@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
@@ -23,6 +22,7 @@ export interface ManageLabelsModalProps<
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset>>
+  backend: backendModule.Backend
   allLabels: Map<backendModule.LabelName, backendModule.Label>
   doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
@@ -35,9 +35,8 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-  const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
+  const { item, setItem, backend, allLabels, doCreateLabel, eventTarget } = props
   const { organization } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])

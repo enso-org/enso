@@ -14,7 +14,6 @@ import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
@@ -223,6 +222,7 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   isCloud: boolean
+  backend: backendModule.Backend
   numberOfSelectedItems: number
   visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   category: Category
@@ -284,6 +284,8 @@ const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
+  backend: backendModule.Backend
+  rootDirectory: backendModule.SmartDirectory
   query: assetQuery.AssetQuery
   setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
   setCanDownloadFiles: (canDownloadFiles: boolean) => void
@@ -311,14 +313,13 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
-  const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { backend, rootDirectory, query, setQuery, setCanDownloadFiles, category } = props
+  const { allLabels, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor } = props
-  const { doCreateLabel } = props
+  const { doCreateLabel, setSuggestions } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -333,7 +334,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     Set<backendModule.AssetId>
   > | null>(null)
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
-  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     return assetTreeNode.AssetTreeNode.fromSmartAsset(
@@ -781,7 +781,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         setInitialized(true)
         const rootParentDirectoryId = backendModule.DirectoryId('')
         const newRootNode = new assetTreeNode.AssetTreeNode(
-          rootDirectory?.value.id,
+          rootDirectory.value.id,
           rootDirectory,
           rootParentDirectoryId,
           // This is INCORRECT, but it should not ever need to be accessed.
@@ -789,7 +789,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           newAssets.map(asset =>
             assetTreeNode.AssetTreeNode.fromSmartAsset(
               asset,
-              rootDirectory?.value.id,
+              rootDirectory.value.id,
               rootDirectory,
               0
             )
@@ -844,12 +844,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     async signal => {
       switch (backend.type) {
         case backendModule.BackendType.local: {
-          const newAssets =
-            (await rootDirectory?.list({
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            })) ?? []
+          const newAssets = await rootDirectory.list({
+            filterBy: CATEGORY_TO_FILTER_BY[category],
+            recentProjects: category === Category.recent,
+            labels: null,
+          })
           if (!signal.aborted) {
             setIsLoading(false)
             overwriteNodes(newAssets)
@@ -918,12 +917,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }
           try {
-            const newAssets =
-              (await rootDirectory?.list({
-                filterBy: CATEGORY_TO_FILTER_BY[category],
-                recentProjects: category === Category.recent,
-                labels: null,
-              })) ?? []
+            const newAssets = await rootDirectory.list({
+              filterBy: CATEGORY_TO_FILTER_BY[category],
+              recentProjects: category === Category.recent,
+              labels: null,
+            })
             if (!signal.aborted) {
               setIsLoading(false)
               overwriteNodes(newAssets)
@@ -1110,17 +1108,15 @@ export default function AssetsTable(props: AssetsTableProps) {
       parentKey: backendModule.AssetId | null,
       parent: backendModule.SmartDirectory | null
     ) => {
-      const actualParentKey = parentKey ?? rootDirectory?.value.id
+      const actualParentKey = parentKey ?? rootDirectory.value.id
       const actualParent = parent ?? rootDirectory
-      if (actualParent != null) {
-        setAssetTree(oldAssetTree => {
-          return oldAssetTree.map(item =>
-            item.key !== actualParentKey
-              ? item
-              : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParent)
-          )
-        })
-      }
+      setAssetTree(oldAssetTree => {
+        return oldAssetTree.map(item =>
+          item.key !== actualParentKey
+            ? item
+            : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParent)
+        )
+      })
     },
     [rootDirectory]
   )
@@ -1132,23 +1128,21 @@ export default function AssetsTable(props: AssetsTableProps) {
       parent: backendModule.SmartDirectory | null,
       getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
     ) => {
-      const actualParentKey = parentKey ?? rootDirectory?.value.id
+      const actualParentKey = parentKey ?? rootDirectory.value.id
       const actualParent = parent ?? rootDirectory
-      if (actualParent != null) {
-        setAssetTree(oldAssetTree => {
-          return oldAssetTree.map(item =>
-            item.key !== actualParentKey
-              ? item
-              : insertArbitraryAssetTreeNodeChildren(
-                  item,
-                  assets,
-                  actualParentKey,
-                  actualParent,
-                  getKey
-                )
-          )
-        })
-      }
+      setAssetTree(oldAssetTree => {
+        return oldAssetTree.map(item =>
+          item.key !== actualParentKey
+            ? item
+            : insertArbitraryAssetTreeNodeChildren(
+                item,
+                assets,
+                actualParentKey,
+                actualParent,
+                getKey
+              )
+        )
+      })
     },
     [rootDirectory]
   )
@@ -1480,7 +1474,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory?.value.id)
+    const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory.value.id)
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     }
@@ -1490,6 +1484,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     // The type MUST be here to trigger excess property errors at typecheck time.
     (): AssetsTableState => ({
       isCloud,
+      backend,
       visibilities,
       numberOfSelectedItems: selectedKeys.size,
       category,
@@ -1519,6 +1514,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }),
     [
       isCloud,
+      backend,
       visibilities,
       selectedKeys.size,
       category,
@@ -1911,8 +1907,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         onDragOver={onDragOver}
         onDrop={event => {
           const payload = drag.ASSET_ROWS.lookup(event)
-          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory?.value.id)
-          if (filtered != null && filtered.length > 0 && rootDirectory != null) {
+          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory.value.id)
+          if (filtered != null && filtered.length > 0) {
             event.preventDefault()
             event.stopPropagation()
             unsetModal()

@@ -13,7 +13,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
@@ -68,6 +67,7 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 export interface ProjectIconProps {
   smartAsset: backendModule.SmartProject
   setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+  backend: backendModule.Backend
   assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -78,10 +78,9 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { smartAsset, setItem, assetEvents, doOpenManually, onClose, openEditor } = props
+  const { smartAsset, setItem, backend, assetEvents, doOpenManually, onClose, openEditor } = props
   const { state } = props
   const { isCloud } = state
-  const { backend } = backendProvider.useBackend()
   const { organization } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()

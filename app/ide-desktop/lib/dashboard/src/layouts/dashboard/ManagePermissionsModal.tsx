@@ -7,7 +7,6 @@ import isEmail from 'validator/es/lib/isEmail'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as object from '#/utilities/object'
@@ -36,6 +35,7 @@ export interface ManagePermissionsModalProps<
 > {
   item: Asset
   setItem: React.Dispatch<React.SetStateAction<Asset>>
+  backend: backendModule.Backend
   self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
@@ -50,9 +50,8 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { item, setItem, backend, self, doRemoveSelf, eventTarget } = props
   const { organization } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.value
