@@ -25,7 +25,8 @@ import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
 
 @Persistable(clazz = QualifiedName.class, id = 30300)
-public final class ImportExportCache {
+public final class ImportExportCache
+    implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
   private final LibraryName libraryName;
 
@@ -35,98 +36,94 @@ public final class ImportExportCache {
 
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
       LibraryName libraryName) {
-    var impl = new ImportExportCache(libraryName).new Impl();
+    var impl = new ImportExportCache(libraryName);
     return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
   }
 
-  private final class Impl
-      implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+  @Override
+  public String metadataSuffix() {
+    return bindingsCacheMetadataExtension;
+  }
 
-    @Override
-    public String metadataSuffix() {
-      return bindingsCacheMetadataExtension;
-    }
+  @Override
+  public String dataSuffix() {
+    return bindingsCacheDataExtension;
+  }
 
-    @Override
-    public String dataSuffix() {
-      return bindingsCacheDataExtension;
-    }
+  @Override
+  public String entryName() {
+    return libraryName.name();
+  }
 
-    @Override
-    public String entryName() {
-      return libraryName.name();
-    }
+  @Override
+  public byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry)
+      throws IOException {
+    return new Metadata(sourceDigest, blobDigest).toBytes();
+  }
 
-    @Override
-    public byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry)
-        throws IOException {
-      return new Metadata(sourceDigest, blobDigest).toBytes();
-    }
+  @Override
+  public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
+    var arr =
+        Persistance.write(
+            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context()));
+    return arr;
+  }
 
-    @Override
-    public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-      var arr =
-          Persistance.write(
-              entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context()));
-      return arr;
-    }
+  @Override
+  public CachedBindings deserialize(
+      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
+      throws ClassNotFoundException, IOException, ClassNotFoundException {
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var bindings = ref.get(MapToBindings.class);
+    return new CachedBindings(libraryName, bindings, Optional.empty());
+  }
 
-    @Override
-    public CachedBindings deserialize(
-        EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-        throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
-      var bindings = ref.get(MapToBindings.class);
-      return new CachedBindings(libraryName, bindings, Optional.empty());
-    }
+  @Override
+  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException {
+    return Optional.of(Metadata.read(bytes));
+  }
 
-    @Override
-    public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-        throws IOException {
-      return Optional.of(Metadata.read(bytes));
-    }
+  @Override
+  public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
+    return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
+  }
 
-    @Override
-    public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
-      return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
-    }
+  @Override
+  @SuppressWarnings("unchecked")
+  public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
+    return context
+        .getPackageRepository()
+        .getPackageForLibraryJava(libraryName)
+        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
+  }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
-      return context
-          .getPackageRepository()
-          .getPackageForLibraryJava(libraryName)
-          .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
-      return context
-          .getPackageRepository()
-          .getPackageForLibraryJava(libraryName)
-          .map(
-              pkg -> {
-                var bindingsCacheRoot = pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
-                var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-                var distribution = context.getDistributionManager();
-                var pathSegments =
-                    new String[] {
-                      pkg.namespace(),
-                      pkg.normalizedName(),
-                      pkg.getConfig().version(),
-                      Info.ensoVersion(),
-                      libraryName.namespace()
-                    };
-                var path =
-                    distribution.LocallyInstalledDirectories()
-                        .irCacheDirectory()
-                        .resolve(StringUtils.join(pathSegments, "/"));
-                var globalCacheRoot = context.getTruffleFile(path.toFile());
-                return new Cache.Roots(localCacheRoot, globalCacheRoot);
-              });
-    }
+  @Override
+  @SuppressWarnings("unchecked")
+  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
+    return context
+        .getPackageRepository()
+        .getPackageForLibraryJava(libraryName)
+        .map(
+            pkg -> {
+              var bindingsCacheRoot = pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
+              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+              var distribution = context.getDistributionManager();
+              var pathSegments =
+                  new String[] {
+                    pkg.namespace(),
+                    pkg.normalizedName(),
+                    pkg.getConfig().version(),
+                    Info.ensoVersion(),
+                    libraryName.namespace()
+                  };
+              var path =
+                  distribution.LocallyInstalledDirectories()
+                      .irCacheDirectory()
+                      .resolve(StringUtils.join(pathSegments, "/"));
+              var globalCacheRoot = context.getTruffleFile(path.toFile());
+              return new Cache.Roots(localCacheRoot, globalCacheRoot);
+            });
   }
 
   public static final class MapToBindings {
