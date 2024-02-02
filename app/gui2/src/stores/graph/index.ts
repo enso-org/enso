@@ -1,7 +1,7 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
@@ -222,6 +222,7 @@ export const useGraphStore = defineStore('graph', () => {
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(assignment)
     commitEdit(edit)
+    return asNodeId(rhs.id)
   }
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {

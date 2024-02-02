@@ -418,7 +418,14 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     } else {
       // We finish creating a new node.
       const metadata = undefined
-      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+      const createdNode = graphStore.createNode(
+        componentBrowserNodePosition.value,
+        content,
+        metadata,
+        requiredImports,
+      )
+      console.log(createdNode)
+      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
   // Finish interaction. This should also hide component browser.
