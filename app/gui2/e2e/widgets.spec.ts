@@ -14,12 +14,12 @@ class DropDownLocator {
 
   async expectVisibleWithOptions(page: Page, options: string[]): Promise<void> {
     await expect(this.dropDown).toBeVisible()
-    await expect(this.items).toHaveCount(options.length)
     for (const option of options) {
       await expect(
         this.items.filter({ has: page.getByText(option, { exact: true }) }),
       ).toBeVisible()
     }
+    await expect(this.items).toHaveCount(options.length)
   }
 
   async clickOption(page: Page, option: string): Promise<void> {
