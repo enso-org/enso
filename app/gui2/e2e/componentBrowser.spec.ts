@@ -73,9 +73,11 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read_text',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 
   // Clicking at highlighted entry
   nodeCount = await locate.graphNode(page).count()
+  await page.mouse.click(100, 100) // deselect node
   await locate.addNewNodeButton(page).click()
   await locate.componentBrowserSelectedEntry(page).first().click()
   await expect(locate.componentBrowser(page)).not.toBeVisible()
@@ -85,9 +87,11 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 
   // Accepting with Enter
   nodeCount = await locate.graphNode(page).count()
+  await page.mouse.click(100, 100) // deselect node
   await locate.addNewNodeButton(page).click()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
@@ -97,6 +101,7 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 })
 
 test('Accepting any written input', async ({ page }) => {
