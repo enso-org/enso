@@ -929,7 +929,8 @@ type Table
     ## PRIVATE
        A helper that creates a two-column table from a Map.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
-    make_table_from_map self map key_column_name _value_column_name =
+    make_table_from_map self map key_column_name value_column_name =
+        _ = [value_column_name]
         type_mapping = self.connection.dialect.get_type_mapping
         values_to_type_ref values =
             value_type = Value_Type_Helpers.find_common_type_for_arguments (map.keys.to_vector)
@@ -950,6 +951,20 @@ type Table
         IO.println 'AAA2'
         IO.println contents
         IO.println contents.to_vector
+        IO.println "===="
+        from_spec =
+            keys_and_values = map.to_vector
+            From_Spec.Values [keys_and_values.map .first, keys_and_values.map .second] "lala"
+        context = Context.for_subquery from_spec
+        sql_expression = SQL_Expression.Column "lala" "column1"
+        internal_column = Internal_Column.Value key_column_name keys_type_ref sql_expression
+        t = Table.Value "lolo" self.connection [internal_column] context
+        IO.println t
+        IO.println t.read
+        #SQL_Expression.Column (origin : Text) (name : Text)
+        #ic.Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_Expression
+        #t.Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
         Nothing
 
     ## PRIVATE

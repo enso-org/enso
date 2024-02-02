@@ -38,6 +38,8 @@ type From_Spec
          the same table.
     Query (raw_sql : Text) (alias : Text)
 
+    Values (column_vectors : Vector (Vector Any)) (alias : Text)
+
     ## PRIVATE
 
        A query source that performs a join operation on two sources.
