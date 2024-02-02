@@ -1,5 +1,5 @@
 import { createContextStore } from '@/providers'
-import type { AstId, TokenId } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import { identity } from '@vueuse/core'
 
 declare const portIdBrand: unique symbol

@@ -3,18 +3,23 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/backend'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+import AssetEventType from '#/events/AssetEventType'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+
+import type Backend from '#/services/Backend'
+
+import * as permissions from '#/utilities/permissions'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ========================
 // === SharedWithColumn ===
@@ -22,7 +27,7 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp {
-  backend: backendModule.Backend
+  backend: Backend
   category: column.AssetColumnProps['state']['category']
   dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
 }
@@ -47,7 +52,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
     <div className="group flex items-center gap-1">

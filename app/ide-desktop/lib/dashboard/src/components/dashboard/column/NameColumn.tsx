@@ -1,13 +1,13 @@
 /** @file The icon and name of an {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as backendModule from '#/services/backend'
-
 import type * as column from '#/components/dashboard/column'
 import DirectoryNameColumn from '#/components/dashboard/column/DirectoryNameColumn'
 import FileNameColumn from '#/components/dashboard/column/FileNameColumn'
 import ProjectNameColumn from '#/components/dashboard/column/ProjectNameColumn'
 import SecretNameColumn from '#/components/dashboard/column/SecretNameColumn'
+
+import * as backendModule from '#/services/Backend'
 
 // =================
 // === AssetName ===

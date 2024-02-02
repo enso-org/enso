@@ -7,16 +7,21 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
+import * as modalProvider from '#/providers/ModalProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
+
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcutsModule from '#/utilities/shortcuts'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ================
 // === DriveBar ===
@@ -25,11 +30,11 @@ import Button from '#/components/Button'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
   category: Category
-  backend: backendModule.Backend
+  backend: Backend
   canDownloadFiles: boolean
   doCreateProject: () => void
   doCreateDirectory: () => void
-  doCreateDataConnector: (name: string, value: string) => void
+  doCreateSecret: (name: string, value: string) => void
   doUploadFiles: (files: File[]) => void
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -38,30 +43,30 @@ export interface DriveBarProps {
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
   const { category, backend, canDownloadFiles, doCreateProject, doCreateDirectory } = props
-  const { doCreateDataConnector, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const isHomeCategory = category === Category.home || !isCloud
 
   React.useEffect(() => {
-    return shortcuts.registerKeyboardHandlers({
+    return shortcutManager.registerKeyboardHandlers({
       ...(backend.type !== backendModule.BackendType.local
         ? {
-            [shortcutsModule.KeyboardAction.newFolder]: () => {
+            [shortcutManagerModule.KeyboardAction.newFolder]: () => {
               doCreateDirectory()
             },
           }
         : {}),
-      [shortcutsModule.KeyboardAction.newProject]: () => {
+      [shortcutManagerModule.KeyboardAction.newProject]: () => {
         doCreateProject()
       },
-      [shortcutsModule.KeyboardAction.uploadFiles]: () => {
+      [shortcutManagerModule.KeyboardAction.uploadFiles]: () => {
         uploadFilesRef.current?.click()
       },
     })
-  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
+  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcutManager])
 
   return (
     <div className="flex h-8 py-0.5">
@@ -106,15 +111,13 @@ export default function DriveBar(props: DriveBarProps) {
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
-              error="You can only create a new data connector in Home."
+              error="You can only create a secret in Home."
               image={AddConnectorIcon}
-              alt="New Data Connector"
+              alt="New Secret"
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()
-                setModal(
-                  <UpsertSecretModal id={null} name={null} doCreate={doCreateDataConnector} />
-                )
+                setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
               }}
             />
           )}

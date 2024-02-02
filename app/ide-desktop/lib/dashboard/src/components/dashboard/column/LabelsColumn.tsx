@@ -3,17 +3,14 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as assetQuery from '#/utilities/assetQuery'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as shortcuts from '#/utilities/shortcuts'
-import * as uniqueString from '#/utilities/uniqueString'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
@@ -21,6 +18,12 @@ import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
+
+import * as assetQuery from '#/utilities/AssetQuery'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as shortcutManager from '#/utilities/ShortcutManager'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ====================
 // === LabelsColumn ===
@@ -34,7 +37,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [isHovered, setIsHovered] = React.useState(false)
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
@@ -44,23 +46,16 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
-    <div
-      className="flex items-center gap-1"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
-    >
+    <div className="group flex items-center gap-1">
       {(asset.labels ?? [])
         .filter(label => !deletedLabelNames.has(label))
         .map(label => (
           <Label
             key={label}
+            data-testid="asset-label"
             title="Right click to remove label."
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
@@ -94,7 +89,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
                   <ContextMenu>
-                    <MenuEntry action={shortcuts.KeyboardAction.delete} doAction={doDelete} />
+                    <MenuEntry action={shortcutManager.KeyboardAction.delete} doAction={doDelete} />
                   </ContextMenu>
                 </ContextMenus>
               )
@@ -123,7 +118,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <button
-          className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
+          className="h-4 w-4 invisible group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

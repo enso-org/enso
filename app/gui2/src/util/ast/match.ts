@@ -1,14 +1,17 @@
+import { assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
+import { zipLongest } from '@/util/data/iterable'
 
 export class Pattern {
-  private readonly tokenTree: Ast.TokenTree
-  private readonly template: string
+  private readonly template: Ast.Ast
+  private readonly placeholders: Ast.AstId[]
   private readonly placeholder: string
 
   constructor(template: string, placeholder: string) {
-    this.tokenTree = Ast.tokenTree(Ast.parse(template))
-    this.template = template
+    const ast = Ast.parse(template)
+    this.template = ast
+    this.placeholders = findPlaceholders(ast, placeholder)
     this.placeholder = placeholder
   }
 
@@ -20,92 +23,64 @@ export class Pattern {
 
   /** If the given expression matches the pattern, return the subtrees that matched the holes in the pattern. */
   match(target: Ast.Ast): Ast.AstId[] | undefined {
-    const extracted: Ast.AstId[] = []
-    if (this.tokenTree.length === 1 && this.tokenTree[0] === this.placeholder) {
-      return [target.id]
+    const placeholders = this.placeholders.map((placeholder) => ({ placeholder, match: undefined }))
+    if (!matchSubtree(this.template, target, placeholders)) return
+    const matches: Ast.AstId[] = []
+    for (const placeholder of placeholders) {
+      if (!placeholder.match) return
+      matches.push(placeholder.match)
     }
-    if (
-      isMatch_(
-        this.tokenTree,
-        target.concreteChildren(),
-        target.module,
-        this.placeholder,
-        extracted,
-      )
-    ) {
-      return extracted
-    }
+    return matches
   }
 
-  /** Create a new concrete example of the pattern, with the placeholders replaced with the given subtrees.
-   *  The subtree IDs provided must be accessible in the `edit` module. */
-  instantiate(edit: MutableModule, subtrees: Ast.AstId[]): Ast.Ast {
-    const ast = Ast.parse(this.template, edit)
-    for (const matched of placeholders(ast, this.placeholder)) {
-      const replacement = subtrees.shift()
-      if (replacement === undefined) break
-      const replacementAst = edit.splice(edit.get(replacement))
-      if (replacementAst === null) {
-        console.error(
-          'Subtree ID provided to `instantiate` is not accessible in the `edit` module.',
-        )
-        continue
-      }
-      replacementAst.parent = matched.parent
-      matched.ref.node = replacement
+  /** Create a new concrete example of the pattern, with the placeholders replaced with the given subtrees. */
+  instantiate(edit: MutableModule, subtrees: Ast.Owned[]): Ast.Owned {
+    const template = edit.copy(this.template)
+    const placeholders = findPlaceholders(template, this.placeholder).map((ast) => edit.get(ast))
+    for (const [placeholder, replacement] of zipLongest(placeholders, subtrees)) {
+      assertDefined(placeholder)
+      assertDefined(replacement)
+      placeholder.replace(replacement)
     }
-    return ast
+    return template
   }
 }
 
-function isMatch_(
-  pattern: Ast.TokenTree,
-  target: Iterator<Ast.NodeChild>,
-  module: Ast.Module,
-  placeholder: string,
-  extracted: Ast.AstId[],
+function findPlaceholders(ast: Ast.Ast, placeholder: string): Ast.AstId[] {
+  const placeholders: Ast.AstId[] = []
+  ast.visitRecursive((child) => {
+    if (child instanceof Ast.Ident && child.code() === placeholder) placeholders.push(child.id)
+  })
+  return placeholders
+}
+
+type PlaceholderMatch = {
+  placeholder: Ast.AstId
+  match: Ast.AstId | undefined
+}
+
+function matchSubtree(
+  pattern: Ast.Ast,
+  target: Ast.Ast,
+  placeholders: PlaceholderMatch[],
 ): boolean {
-  for (const subpattern of pattern) {
-    const next = target.next()
-    if (next.done) return false
-    const astOrToken = next.value.node
-    const isPlaceholder = typeof subpattern !== 'string' && subpattern[0] === placeholder
-    if (typeof subpattern === 'string') {
-      if (!(astOrToken instanceof Ast.Token) || astOrToken.code() !== subpattern) {
-        return false
+  if (pattern instanceof Ast.Ident) {
+    for (const placeholder of placeholders) {
+      if (pattern.id === placeholder.placeholder) {
+        placeholder.match = target.id
+        return true
       }
-    } else if (astOrToken instanceof Ast.Token) {
-      return false
-    } else if (isPlaceholder) {
-      extracted.push(astOrToken)
+    }
+  }
+  for (const [patternNode, targetNode] of zipLongest(pattern.children(), target.children())) {
+    if (!patternNode || !targetNode) return false
+    if (patternNode instanceof Ast.Token && targetNode instanceof Ast.Token) {
+      if (patternNode.code() !== targetNode.code()) return false
+    } else if (patternNode instanceof Ast.Ast && targetNode instanceof Ast.Ast) {
+      if (!matchSubtree(patternNode, targetNode, placeholders)) return false
     } else {
-      const ast = module.get(astOrToken)
-      if (!ast) return false
-      if (!isMatch_(subpattern, ast.concreteChildren(), module, placeholder, extracted))
-        return false
+      return false
     }
   }
   return true
-}
-
-type PlaceholderRef = {
-  ref: Ast.NodeChild<Ast.AstId>
-  parent: Ast.AstId
-}
-
-function placeholders(ast: Ast.Ast, placeholder: string, outIn?: PlaceholderRef[]) {
-  const out = outIn ?? []
-  for (const child of ast.concreteChildren()) {
-    if (!(child.node instanceof Ast.Token)) {
-      // The type of `child` has been determined by checking the type of `child.node`
-      const nodeChild = child as Ast.NodeChild<Ast.AstId>
-      const subtree = ast.module.get(child.node)!
-      if (subtree instanceof Ast.Ident && subtree.code() === placeholder) {
-        out.push({ ref: nodeChild, parent: ast.id })
-      } else {
-        placeholders(subtree, placeholder, out)
-      }
-    }
-  }
-  return out
 }

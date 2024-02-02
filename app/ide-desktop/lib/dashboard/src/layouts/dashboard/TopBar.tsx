@@ -6,10 +6,13 @@ import AssetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import BackendSwitcher from '#/layouts/dashboard/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import type * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
 
 // ==============
 // === TopBar ===
@@ -25,17 +28,17 @@ export interface TopBarProps {
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   isCloud: boolean
   isEditorDisabled: boolean
-  backend: backendModule.Backend
+  backend: Backend
   setBackendType: (backendType: backendModule.BackendType) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+  query: AssetQuery
+  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   labels: backendModule.Label[]
   suggestions: assetSearchBar.Suggestion[]
-  canToggleSettingsPanel: boolean
-  isSettingsPanelVisible: boolean
-  setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  canToggleAssetPanel: boolean
+  isAssetPanelVisible: boolean
+  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
   doRemoveSelf: () => void
   onSignOut: () => void
 }
@@ -43,10 +46,11 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset, isCloud } = props
+  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, backend, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, canToggleSettingsPanel } = props
-  const { isSettingsPanelVisible, setIsSettingsPanelVisible, doRemoveSelf, onSignOut } = props
+  const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
+  const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
+  const isCloud = backend.type === backendModule.BackendType.remote
 
   return (
     <div
@@ -70,12 +74,12 @@ export default function TopBar(props: TopBarProps) {
           />
         </div>
       )}
-      {!isSettingsPanelVisible && (
+      {!isAssetPanelVisible && (
         <div className="flex gap-2">
           <AssetInfoBar
-            canToggleSettingsPanel={canToggleSettingsPanel}
-            isSettingsPanelVisible={isSettingsPanelVisible}
-            setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+            canToggleAssetPanel={canToggleAssetPanel}
+            isAssetPanelVisible={isAssetPanelVisible}
+            setIsAssetPanelVisible={setIsAssetPanelVisible}
             isCloud={isCloud}
           />
           <UserBar

@@ -8,6 +8,7 @@ import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portIn
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -15,6 +16,7 @@ import { Rect } from '@/util/data/rect'
 import { asNot } from '@/util/data/types.ts'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
+import { isUuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -61,6 +63,7 @@ const randomUuid = uuidv4() as PortId
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
+  assert(!isUuid(props.input.portId))
   return asNot<TokenId>(props.input.portId)
 })
 
@@ -124,6 +127,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       props.input.value instanceof Ast.Group ||
       props.input.value instanceof Ast.NumericLiteral ||
       props.input.value instanceof Ast.OprApp ||
+      props.input.value instanceof Ast.PropertyAccess ||
       props.input.value instanceof Ast.UnaryOprApp ||
       props.input.value instanceof Ast.Wildcard ||
       props.input.value instanceof Ast.TextLiteral

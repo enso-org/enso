@@ -2,14 +2,18 @@ import project.Any.Any
 import project.Data.Enso_Cloud.Utils
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
@@ -27,11 +31,24 @@ from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Te
 type Enso_File
     ## PRIVATE
        Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text organisation:Text asset_type:Enso_Asset_Type
+    Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
 
     ## Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "" "" "" Enso_Asset_Type.Directory
+    root = Enso_File.Value "/" "" "" Enso_Asset_Type.Directory
+
+    ## Represents the current working directory.
+
+       If the workflow is running on the Cloud, this will be the directory
+       containing the current project.
+
+       If the workflow is running locally, this will default to the root
+       directory.
+    current_working_directory : Enso_File
+    current_working_directory =
+        java_dir = Utils.internal_cloud_project_directory
+        if java_dir.is_nothing then Enso_File.root else
+            Enso_File.Value java_dir.name java_dir.id java_dir.organizationId Enso_Asset_Type.Directory
 
     ## PRIVATE
        Target URI for the api
@@ -55,9 +72,50 @@ type Enso_File
         response.code.is_success
 
     ## GROUP Metadata
+       Gets the size of a file in bytes.
+    size : Integer
+    size self = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
+        s3_url = get_s3_url_for_file self
+        response = HTTP.fetch s3_url HTTP_Method.Head []
+        content_length = response.get_header "content-length" if_missing=(Error.throw (Illegal_State.Error "Cannot get file size: missing `Content-Lentth` header."))
+        Integer.parse content_length
+
+    ## GROUP Metadata
+       Gets the creation time of a file.
+    creation_time : Date_Time
+    creation_time self = Unimplemented.throw "Enso_File.creation_time is not implemented"
+
+    ## GROUP Metadata
+       Gets the last modified time of a file.
+    last_modified_time : Date_Time
+    last_modified_time self = Unimplemented.throw "Enso_File.creation_time is not implemented"
+
+    ## GROUP Metadata
        Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
+
+    ## GROUP Metadata
+       Checks if this is a regular file
+    is_regular_file : Boolean
+    is_regular_file self = self.asset_type == Enso_Asset_Type.File
+
+    ## GROUP Metadata
+       Finds the parent Enso_File for this file.
+    parent : Enso_File | Nothing
+    parent self = Unimplemented.throw "Enso_File.parent is not implemented"
+
+    ## GROUP Metadata
+       Returns the path of this file.
+    path : Text
+    path self = Unimplemented.throw "Enso_File.path is not implemented"
+
+    ## GROUP Metadata
+       Checks if `self` is a child path of `other`.
+    is_child_of : Enso_File -> Boolean
+    is_child_of self (other : Enso_File) =
+        _ = other
+        Unimplemented.throw "Enso_File.is_child_of is not implemented"
 
     ## PRIVATE
        ADVANCED
@@ -93,15 +151,9 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self open_options action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
         if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
-            auth_header = Utils.authorization_header
-            response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
-            response.if_not_error <|
-                js_object = response.decode_as_json
-                path = js_object.get "path"
-                if path.is_nothing then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
-                    url = path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
-                    response = HTTP.fetch url HTTP_Method.Get []
-                    response.if_not_error <| response.with_stream action
+            s3_url = get_s3_url_for_file self
+            response = HTTP.fetch s3_url HTTP_Method.Get []
+            response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -131,7 +183,9 @@ type Enso_File
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                     self.read real_format on_problems
             _ ->
-                metadata = File_Format_Metadata.Value file_name=self.name
+                # TODO this is just a placeholder, until we implement the proper path
+                path = "enso://"+self.id
+                metadata = File_Format_Metadata.Value path=path name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
@@ -199,6 +253,14 @@ type Enso_File
         response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
         response.if_not_error <| Nothing
 
+    ## UNSTABLE
+       Resolves a file or directory within this directory.
+    / : Text -> Enso_File
+    / self (name : Text) -> Enso_File ! Not_Found =
+        if self.is_directory.not then Error.throw (Illegal_Argument.Error "/ can only be used for directories") else
+            if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
+                self.list . find f-> f.name == name
+
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
      auth_header = Utils.authorization_header
@@ -243,3 +305,17 @@ Enso_Asset_Type.from (that:Text) = case that of
 
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
+
+## PRIVATE
+get_file_description file:Enso_File -> JS_Object =
+    auth_header = Utils.authorization_header
+    response = HTTP.fetch file.internal_uri HTTP_Method.Get [auth_header]
+    response.if_not_error <|
+        js_object = response.decode_as_json
+        js_object.get "file" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `file` field): "+js_object.to_text))
+
+## PRIVATE
+get_s3_url_for_file file:Enso_File -> Text =
+    file_description = get_file_description file
+    path = file_description.get "path" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `path`): "+file_description.to_text))
+    path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"

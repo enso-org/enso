@@ -2,25 +2,29 @@
  * are selected. */
 import * as React from 'react'
 
+import * as authProvider from '#/providers/AuthProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
+
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import * as permissions from '#/utilities/permissions'
-import * as shortcuts from '#/utilities/shortcuts'
-import * as string from '#/utilities/string'
-import * as uniqueString from '#/utilities/uniqueString'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
+
+import * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as pasteDataModule from '#/utilities/pasteData'
+import * as permissions from '#/utilities/permissions'
+import * as shortcutManager from '#/utilities/ShortcutManager'
+import * as string from '#/utilities/string'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -42,9 +46,7 @@ export interface AssetsTableContextMenuProps {
   pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
   selectedKeys: Set<backendModule.AssetId>
   setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-  nodeMapRef: React.MutableRefObject<
-    ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
-  >
+  nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -67,7 +69,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
-    isCloud ||
+    !isCloud ||
     (organization != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.value.permissions
@@ -114,7 +116,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         <ContextMenu hidden={hidden}>
           <MenuEntry
             hidden={hidden}
-            action={shortcuts.KeyboardAction.restoreAllFromTrash}
+            action={shortcutManager.KeyboardAction.restoreAllFromTrash}
             doAction={doRestoreAll}
           />
         </ContextMenu>
@@ -124,8 +126,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return null
   } else {
     const deleteAction = isCloud
-      ? shortcuts.KeyboardAction.moveAllToTrash
-      : shortcuts.KeyboardAction.deleteAll
+      ? shortcutManager.KeyboardAction.moveAllToTrash
+      : shortcutManager.KeyboardAction.deleteAll
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
@@ -136,21 +138,21 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             {isCloud && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.copyAll}
+                action={shortcutManager.KeyboardAction.copyAll}
                 doAction={doCopy}
               />
             )}
             {isCloud && ownsAllSelectedAssets && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.cutAll}
+                action={shortcutManager.KeyboardAction.cutAll}
                 doAction={doCut}
               />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.pasteAll}
+                action={shortcutManager.KeyboardAction.pasteAll}
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =

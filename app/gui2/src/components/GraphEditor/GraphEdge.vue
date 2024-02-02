@@ -9,6 +9,8 @@ import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 
+const DEBUG = false
+
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
@@ -53,7 +55,11 @@ const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
-    if (targetRectRelative == null) return
+    if (targetRectRelative == null) {
+      // This seems to happen for some `Ast.Ident` ports while processing updates, but is quickly fixed.
+      if (DEBUG) console.warn(`No relative rect found for ${expr}.`)
+      return
+    }
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
@@ -436,10 +442,19 @@ const arrowTransform = computed(() => {
 
 <template>
   <template v-if="basePath">
-    <path v-if="activePath" :d="basePath" class="edge visible dimmed" :style="baseStyle" />
+    <path
+      v-if="activePath"
+      :d="basePath"
+      class="edge visible dimmed"
+      :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    />
     <path
       :d="basePath"
       class="edge io"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
       @pointerdown="click"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
@@ -449,6 +464,8 @@ const arrowTransform = computed(() => {
       :d="activePath ?? basePath"
       class="edge visible"
       :style="activePath ? activeStyle : baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     />
     <polygon
       v-if="arrowTransform"
@@ -456,6 +473,8 @@ const arrowTransform = computed(() => {
       points="0,-9.375 -9.375,9.375 9.375,9.375"
       class="arrow visible"
       :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     />
   </template>
 </template>

@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Float", name = ">=", description = "Comparison of numbers.")
 public abstract class GreaterOrEqualNode extends FloatNode {
 
-  abstract Object execute(double self, Object that);
+  abstract Object execute(double own, Object that);
 
   static GreaterOrEqualNode build() {
     return GreaterOrEqualNodeGen.create();

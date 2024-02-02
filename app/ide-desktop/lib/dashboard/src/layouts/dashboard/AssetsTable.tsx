@@ -1,48 +1,74 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
-import * as authProvider from '#/providers/AuthProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/assetQuery'
-import * as assetTreeNode from '#/utilities/assetTreeNode'
-import * as drag from '#/utilities/drag'
-import * as fileInfo from '#/utilities/fileInfo'
-import * as localStorageModule from '#/utilities/localStorage'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import PasteType from '#/utilities/PasteType'
-import * as permissions from '#/utilities/permissions'
-import * as set from '#/utilities/set'
-import * as shortcutsModule from '#/utilities/shortcuts'
-import * as sorting from '#/utilities/sorting'
-import * as string from '#/utilities/string'
-import Visibility from '#/utilities/visibility'
 
 import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
-import * as columnModule from '#/components/dashboard/column'
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
 import Spinner, * as spinner from '#/components/Spinner'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import * as array from '#/utilities/array'
+import type * as assetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as drag from '#/utilities/drag'
+import * as fileInfo from '#/utilities/fileInfo'
+import LocalStorage from '#/utilities/LocalStorage'
+import type * as pasteDataModule from '#/utilities/pasteData'
+import PasteType from '#/utilities/PasteType'
+import * as permissions from '#/utilities/permissions'
+import * as set from '#/utilities/set'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import SortDirection from '#/utilities/SortDirection'
+import * as string from '#/utilities/string'
+import Visibility from '#/utilities/visibility'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    extraColumns: columnUtils.ExtraColumn[]
+  }
+}
+
+LocalStorage.registerKey('extraColumns', {
+  tryParse: value => {
+    const possibleColumns = Array.isArray(value) ? value : []
+    const values = possibleColumns.filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
+    return values.length === 0 ? null : values
+  },
+})
 
 // =================
 // === Constants ===
@@ -140,18 +166,18 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
 /** Return a directory, with new children added into its list of children.
  * All children MUST have the same asset type. */
 function insertAssetTreeNodeChildren(
-  item: assetTreeNode.AssetTreeNode,
+  item: AssetTreeNode,
   children: backendModule.AnySmartAsset[],
   directoryKey: backendModule.AssetId,
   directory: backendModule.SmartDirectory
-): assetTreeNode.AssetTreeNode {
+): AssetTreeNode {
   const depth = item.depth + 1
   const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].value.type] : 0
   const nodes = (item.children ?? []).filter(
     node => node.item.value.type !== backendModule.AssetType.specialEmpty
   )
   const nodesToInsert = children.map(asset =>
-    assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
+    AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
   )
   const newNodes = array.splicedBefore(
     nodes,
@@ -164,12 +190,12 @@ function insertAssetTreeNodeChildren(
 /** Return a directory, with new children added into its list of children.
  * The children MAY be of different asset types. */
 function insertArbitraryAssetTreeNodeChildren(
-  item: assetTreeNode.AssetTreeNode,
+  item: AssetTreeNode,
   children: backendModule.AnySmartAsset[],
   directoryKey: backendModule.AssetId,
   directory: backendModule.SmartDirectory,
   getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
-): assetTreeNode.AssetTreeNode {
+): AssetTreeNode {
   const depth = item.depth + 1
   const nodes = (item.children ?? []).filter(
     node => node.item.value.type !== backendModule.AssetType.specialEmpty
@@ -191,7 +217,7 @@ function insertArbitraryAssetTreeNodeChildren(
     if (firstChild) {
       const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.value.type]
       const nodesToInsert = childrenOfSpecificType.map(asset =>
-        assetTreeNode.AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
+        AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
       )
       newNodes = array.splicedBefore(
         newNodes,
@@ -209,9 +235,7 @@ function insertArbitraryAssetTreeNodeChildren(
 
 const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
   [Category.recent]: null,
-  [Category.drafts]: null,
   [Category.home]: backendModule.FilterBy.active,
-  [Category.root]: null,
   [Category.trash]: backendModule.FilterBy.trashed,
 }
 
@@ -222,7 +246,7 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   isCloud: boolean
-  backend: backendModule.Backend
+  backend: Backend
   numberOfSelectedItems: number
   visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   category: Category
@@ -232,19 +256,17 @@ export interface AssetsTableState {
   setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   sortColumn: columnUtils.SortableColumn | null
   setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  sortDirection: sorting.SortDirection | null
-  setSortDirection: (sortDirection: sorting.SortDirection | null) => void
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+  sortDirection: SortDirection | null
+  setSortDirection: (sortDirection: SortDirection | null) => void
+  query: AssetQuery
+  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  nodeMap: Readonly<
-    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
-  >
+  nodeMap: Readonly<React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>>
   doToggleDirectoryExpansion: (
     directory: backendModule.SmartDirectory,
     key: backendModule.AssetId,
@@ -272,22 +294,12 @@ export interface AssetRowState {
   temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
-/** The default {@link AssetRowState} associated with a {@link AssetRow}. */
-const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
-  setVisibility: () => {
-    // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
-  },
-  isEditingName: false,
-  temporarilyAddedLabels: set.EMPTY,
-  temporarilyRemovedLabels: set.EMPTY,
-})
-
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  backend: backendModule.Backend
+  backend: Backend
   rootDirectory: backendModule.SmartDirectory
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+  query: AssetQuery
+  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   setCanDownloadFiles: (canDownloadFiles: boolean) => void
   category: Category
   allLabels: Map<backendModule.LabelName, backendModule.Label>
@@ -299,8 +311,8 @@ export interface AssetsTableProps {
   dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   assetEvents: assetEvent.AssetEvent[]
   dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
   doOpenEditor: (
     project: backendModule.SmartProject,
@@ -316,32 +328,27 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { backend, rootDirectory, query, setQuery, setCanDownloadFiles, category } = props
   const { allLabels, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor } = props
-  const { doCreateLabel, setSuggestions } = props
+  const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
+  const { setSuggestions } = props
 
   const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
   const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
-  const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
+  const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
   const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     Set<backendModule.AssetId>
   > | null>(null)
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
-  const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
+  const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
-    return assetTreeNode.AssetTreeNode.fromSmartAsset(
-      rootDirectory,
-      rootParentDirectoryId,
-      rootDirectory,
-      -1
-    )
+    return AssetTreeNode.fromSmartAsset(rootDirectory, rootParentDirectoryId, rootDirectory, -1)
   })
   const isCloud = backend.type === backendModule.BackendType.remote
   const placeholder =
@@ -352,19 +359,19 @@ export default function AssetsTable(props: AssetsTableProps) {
       : PLACEHOLDER
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-  const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode>(assetTree)
+  const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<Set<backendModule.AssetId>> | null>(
     null
   )
-  const nodeMapRef = React.useRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>(
-    new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>()
+  const nodeMapRef = React.useRef<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>(
+    new Map<backendModule.AssetId, AssetTreeNode>()
   )
   const filter = React.useMemo(() => {
     const globCache: Record<string, RegExp> = {}
     if (/^\s*$/.test(query.query)) {
       return null
     } else {
-      return (node: assetTreeNode.AssetTreeNode) => {
+      return (node: AssetTreeNode) => {
         const assetType =
           node.item.value.type === backendModule.AssetType.directory
             ? 'folder'
@@ -466,35 +473,58 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (sortColumn == null || sortDirection == null) {
       return assetTree.preorderTraversal()
     } else {
-      const sortDescendingMultiplier = -1
       const multiplier = {
-        [sorting.SortDirection.ascending]: 1,
-        [sorting.SortDirection.descending]: sortDescendingMultiplier,
+        [SortDirection.ascending]: 1,
+        [SortDirection.descending]: -1,
       }[sortDirection]
-      let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
+      let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
       switch (sortColumn) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
-            const aTitle = a.item.value.title
-            const bTitle = b.item.value.title
-            return multiplier * (aTitle > bTitle ? 1 : aTitle < bTitle ? -1 : 0)
+            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
+            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
+            const typeDelta = aTypeOrder - bTypeOrder
+            const aTitle = a.item.value.title.toLowerCase()
+            const bTitle = b.item.value.title.toLowerCase()
+            if (typeDelta !== 0) {
+              return typeDelta
+            } else if (aTitle === bTitle) {
+              const delta =
+                a.item.value.title > b.item.value.title
+                  ? 1
+                  : a.item.value.title < b.item.value.title
+                  ? -1
+                  : 0
+              return multiplier * delta
+            } else {
+              const delta = aTitle > bTitle ? 1 : aTitle < bTitle ? -1 : 0
+              return multiplier * delta
+            }
           }
-
           break
         }
         case columnUtils.Column.modified: {
-          compare = (a, b) =>
-            multiplier *
-            (Number(new Date(a.item.value.modifiedAt)) - Number(new Date(b.item.value.modifiedAt)))
+          compare = (a, b) => {
+            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
+            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
+            const typeDelta = aTypeOrder - bTypeOrder
+            if (typeDelta !== 0) {
+              return typeDelta
+            } else {
+              const aOrder = Number(new Date(a.item.value.modifiedAt))
+              const bOrder = Number(new Date(b.item.value.modifiedAt))
+              return multiplier * (aOrder - bOrder)
+            }
+          }
           break
         }
       }
-      return assetTree.preorderTraversal(tree => Array.from(tree).sort(compare))
+      return assetTree.preorderTraversal(tree => [...tree].sort(compare))
     }
   }, [assetTree, sortColumn, sortDirection])
   const visibilities = React.useMemo(() => {
     const map = new Map<backendModule.AssetId, Visibility>()
-    const processNode = (node: assetTreeNode.AssetTreeNode) => {
+    const processNode = (node: AssetTreeNode) => {
       let displayState = Visibility.hidden
       const visible = filter?.(node) ?? true
       for (const child of node.children ?? []) {
@@ -535,7 +565,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     const nodeToSuggestion = (
-      node: assetTreeNode.AssetTreeNode,
+      node: AssetTreeNode,
       key: assetQuery.AssetQueryKey = 'names'
     ): assetSearchBar.Suggestion => ({
       render: () => `${key === 'names' ? '' : '-:'}${node.item.value.title}`,
@@ -555,7 +585,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
     const allVisible = (negative = false) =>
       allVisibleNodes().map(node => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
-    const terms = assetQuery.AssetQuery.terms(query.query)
+    const terms = AssetQuery.terms(query.query)
     const term = terms.find(otherTerm => otherTerm.values.length === 0) ?? terms[terms.length - 1]
     const termValues = term?.values ?? []
     const shouldOmitNames = terms.some(otherTerm => otherTerm.tag === 'name')
@@ -602,7 +632,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               new Set(extensions),
               (extension): assetSearchBar.Suggestion => ({
                 render: () =>
-                  assetQuery.AssetQuery.termToString({
+                  AssetQuery.termToString({
                     tag: `${negative ? '-' : ''}extension`,
                     values: [extension],
                   }),
@@ -630,7 +660,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               new Set(['today', ...modifieds]),
               (modified): assetSearchBar.Suggestion => ({
                 render: () =>
-                  assetQuery.AssetQuery.termToString({
+                  AssetQuery.termToString({
                     tag: `${negative ? '-' : ''}modified`,
                     values: [modified],
                   }),
@@ -661,7 +691,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               new Set(owners),
               (owner): assetSearchBar.Suggestion => ({
                 render: () =>
-                  assetQuery.AssetQuery.termToString({
+                  AssetQuery.termToString({
                     tag: `${negative ? '-' : ''}owner`,
                     values: [owner],
                   }),
@@ -727,8 +757,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return shortcuts.registerKeyboardHandlers({
-      [shortcutsModule.KeyboardAction.cancelCut]: () => {
+    return shortcutManager.registerKeyboardHandlers({
+      [shortcutManagerModule.KeyboardAction.cancelCut]: () => {
         if (pasteDataRef.current == null) {
           return false
         } else {
@@ -741,7 +771,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       },
     })
-  }, [/* should never change */ shortcuts, /* should never change */ dispatchAssetEvent])
+  }, [/* should never change */ shortcutManager, /* should never change */ dispatchAssetEvent])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -780,19 +810,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
         setInitialized(true)
         const rootParentDirectoryId = backendModule.DirectoryId('')
-        const newRootNode = new assetTreeNode.AssetTreeNode(
+        const newRootNode = new AssetTreeNode(
           rootDirectory.value.id,
           rootDirectory,
           rootParentDirectoryId,
           // This is INCORRECT, but it should not ever need to be accessed.
           rootDirectory,
           newAssets.map(asset =>
-            assetTreeNode.AssetTreeNode.fromSmartAsset(
-              asset,
-              rootDirectory.value.id,
-              rootDirectory,
-              0
-            )
+            AssetTreeNode.fromSmartAsset(asset, rootDirectory.value.id, rootDirectory, 0)
           ),
           -1
         )
@@ -860,7 +885,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             backendModule.AssetId,
             backendModule.AnySmartAsset[]
           >()
-          const withChildren = (node: assetTreeNode.AssetTreeNode): assetTreeNode.AssetTreeNode => {
+          const withChildren = (node: AssetTreeNode): AssetTreeNode => {
             const queuedListing = queuedDirectoryListings.get(node.item.value.id)
             if (queuedListing == null || node.item.type !== backendModule.AssetType.directory) {
               return node
@@ -871,12 +896,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               return node.with({
                 children: queuedListing.map(asset =>
                   withChildren(
-                    assetTreeNode.AssetTreeNode.fromSmartAsset(
-                      asset,
-                      directoryAsset.id,
-                      directory,
-                      depth
-                    )
+                    AssetTreeNode.fromSmartAsset(asset, directoryAsset.id, directory, depth)
                   )
                 ),
               })
@@ -940,7 +960,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   React.useEffect(() => {
-    const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
+    const savedExtraColumns = localStorage.get('extraColumns')
     if (savedExtraColumns != null) {
       setExtraColumns(new Set(savedExtraColumns))
     }
@@ -984,15 +1004,15 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     if (initialized) {
-      localStorage.set(localStorageModule.LocalStorageKey.extraColumns, Array.from(extraColumns))
+      localStorage.set('extraColumns', Array.from(extraColumns))
     }
   }, [extraColumns, initialized, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (selectedKeys.size !== 1) {
-      setAssetSettingsPanelProps(null)
+      setAssetPanelProps(null)
     }
-  }, [selectedKeys.size, /* should never change */ setAssetSettingsPanelProps])
+  }, [selectedKeys.size, /* should never change */ setAssetPanelProps])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1023,7 +1043,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               ? item
               : item.with({
                   children: [
-                    assetTreeNode.AssetTreeNode.fromSmartAsset(
+                    AssetTreeNode.fromSmartAsset(
                       directory.createSpecialLoadingAsset(),
                       key,
                       directory,
@@ -1059,12 +1079,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }
                   }
                   const childAssetNodes = Array.from(childAssetsMap.values(), child =>
-                    assetTreeNode.AssetTreeNode.fromSmartAsset(
-                      child,
-                      key,
-                      directory,
-                      item.depth + 1
-                    )
+                    AssetTreeNode.fromSmartAsset(child, key, directory, item.depth + 1)
                   )
                   const specialEmptyAsset =
                     (initialChildren != null && initialChildren.length !== 0) ||
@@ -1074,7 +1089,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                   const children =
                     specialEmptyAsset != null
                       ? [
-                          assetTreeNode.AssetTreeNode.fromSmartAsset(
+                          AssetTreeNode.fromSmartAsset(
                             specialEmptyAsset,
                             key,
                             directory,
@@ -1083,9 +1098,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ]
                       : initialChildren == null || initialChildren.length === 0
                       ? childAssetNodes
-                      : [...initialChildren, ...childAssetNodes].sort(
-                          assetTreeNode.AssetTreeNode.compare
-                        )
+                      : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
                   return item.with({ children })
                 }
               })
@@ -1501,7 +1514,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       assetEvents,
       dispatchAssetEvent,
       dispatchAssetListEvent,
-      setAssetSettingsPanelProps,
+      setAssetPanelProps,
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
@@ -1533,7 +1546,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ setAssetSettingsPanelProps,
+      /* should never change */ setAssetPanelProps,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,
@@ -1575,8 +1588,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     const onDocumentClick = (event: MouseEvent) => {
       if (
-        !shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event) &&
-        !shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditionalRange, event) &&
+        !shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditional,
+          event
+        ) &&
+        !shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditionalRange,
+          event
+        ) &&
         selectedKeys.size !== 0
       ) {
         setSelectedKeys(new Set())
@@ -1586,7 +1605,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     return () => {
       document.removeEventListener('click', onDocumentClick)
     }
-  }, [selectedKeys, /* should never change */ setSelectedKeys, shortcuts])
+  }, [selectedKeys, /* should never change */ setSelectedKeys, shortcutManager])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1609,28 +1628,36 @@ export default function AssetsTable(props: AssetsTableProps) {
           return [key]
         } else {
           const index1 = displayItems.findIndex(
-            innerItem => assetTreeNode.AssetTreeNode.getKey(innerItem) === previouslySelectedKey
+            innerItem => AssetTreeNode.getKey(innerItem) === previouslySelectedKey
           )
           const index2 = displayItems.findIndex(
-            innerItem => assetTreeNode.AssetTreeNode.getKey(innerItem) === key
+            innerItem => AssetTreeNode.getKey(innerItem) === key
           )
           const selectedItems =
             index1 <= index2
               ? displayItems.slice(index1, index2 + 1)
               : displayItems.slice(index2, index1 + 1)
-          return selectedItems.map(assetTreeNode.AssetTreeNode.getKey)
+          return selectedItems.map(AssetTreeNode.getKey)
         }
       }
-      if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
+      if (
+        shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
+      ) {
         setSelectedKeys(new Set(getNewlySelectedKeys()))
       } else if (
-        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditionalRange, event)
+        shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditionalRange,
+          event
+        )
       ) {
         setSelectedKeys(
           oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
         )
       } else if (
-        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event)
+        shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditional,
+          event
+        )
       ) {
         setSelectedKeys(oldSelectedItems => {
           const newItems = new Set(oldSelectedItems)
@@ -1646,24 +1673,27 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       setPreviouslySelectedKey(key)
     },
-    [displayItems, previouslySelectedKey, shortcuts, /* should never change */ setSelectedKeys]
+    [
+      displayItems,
+      previouslySelectedKey,
+      shortcutManager,
+      /* should never change */ setSelectedKeys,
+    ]
   )
 
-  const columns = columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
-    id: column,
-    className: columnUtils.COLUMN_CSS_CLASS[column],
-    heading: columnHeading.COLUMN_HEADING[column],
-    render: columnModule.COLUMN_RENDERER[column],
-  }))
+  const columns = columnUtils.getColumnList(backend.type, extraColumns)
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-0">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
-        const Heading = column.heading
+        const Heading = columnHeading.COLUMN_HEADING[column]
         return (
-          <th key={column.id} className={`text-sm font-semibold ${column.className}`}>
+          <th
+            key={column}
+            className={`text-sm font-semibold ${columnUtils.COLUMN_CSS_CLASS[column]}`}
+          >
             <Heading state={state} />
           </th>
         )
@@ -1681,21 +1711,15 @@ export default function AssetsTable(props: AssetsTableProps) {
     </tr>
   ) : (
     displayItems.map(item => {
-      const key = assetTreeNode.AssetTreeNode.getKey(item)
+      const key = AssetTreeNode.getKey(item)
       const isSelected = selectedKeys.has(key)
       const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
       return (
         <AssetRow
-          columns={columns}
-          // The following two lines are safe; the type error occurs because a property
-          // with a conditional type is being destructured.
-          // eslint-disable-next-line no-restricted-syntax
-          state={state as never}
-          // eslint-disable-next-line no-restricted-syntax
-          initialRowState={INITIAL_ROW_STATE as never}
           key={key}
-          keyProp={key}
+          columns={columns}
           item={item}
+          state={state}
           hidden={visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
@@ -1712,13 +1736,11 @@ export default function AssetsTable(props: AssetsTableProps) {
               setSelectedKeys(new Set([key]))
             }
           }}
-          draggable={true}
           onDragStart={event => {
             if (!selectedKeys.has(key)) {
               setPreviouslySelectedKey(key)
               setSelectedKeys(new Set([key]))
             }
-
             setSelectedKeys(oldSelectedKeys => {
               const nodes = assetTree
                 .preorderTraversal()
@@ -1747,7 +1769,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // Default states.
                         isSoleSelectedItem={false}
                         selected={false}
-                        rowState={INITIAL_ROW_STATE}
+                        rowState={assetRowUtils.INITIAL_ROW_STATE}
                         // The drag placeholder cannot be interacted with.
                         setSelected={() => {}}
                         setItem={() => {}}
@@ -1767,6 +1789,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                 event.preventDefault()
                 event.stopPropagation()
                 const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
+                // Expand ids to include ids of children as well.
+                for (const node of assetTree.preorderTraversal()) {
+                  if (ids.has(node.key) && node.children != null) {
+                    for (const child of node.children) {
+                      ids.add(child.key)
+                    }
+                  }
+                }
                 let labelsPresent = 0
                 for (const selectedKey of ids) {
                   const labels = nodeMapRef.current.get(selectedKey)?.item.value.labels
@@ -1806,7 +1836,15 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDrop={event => {
             setSelectedKeys(oldSelectedKeys => {
-              const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
+              const ids = oldSelectedKeys.has(key) ? new Set(oldSelectedKeys) : new Set([key])
+              // Expand ids to include ids of children as well.
+              for (const node of assetTree.preorderTraversal()) {
+                if (ids.has(node.key) && node.children != null) {
+                  for (const child of node.children) {
+                    ids.add(child.key)
+                  }
+                }
+              }
               const payload = drag.LABELS.lookup(event)
               if (payload != null) {
                 event.preventDefault()
@@ -1936,6 +1974,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     key={column}
                     active={extraColumns.has(column)}
                     image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
+                    alt={`${extraColumns.has(column) ? 'Show' : 'Hide'} ${
+                      columnUtils.COLUMN_NAME[column]
+                    }`}
                     onClick={event => {
                       event.stopPropagation()
                       const newExtraColumns = new Set(extraColumns)

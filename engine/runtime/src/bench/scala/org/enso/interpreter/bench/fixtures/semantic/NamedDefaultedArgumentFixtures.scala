@@ -7,6 +7,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
 
   val sumTCOWithNamedArgumentsCode =
     """
+      |import Standard.Base.Data.Numbers
       |main = sumTo ->
       |    summator = acc -> current ->
       |        if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
@@ -18,6 +19,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
 
   val sumTCOWithDefaultedArgumentsCode =
     """
+      |import Standard.Base.Data.Numbers
       |main = sumTo ->
       |    summator = (acc = 0) -> current ->
       |        if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)

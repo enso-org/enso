@@ -4,14 +4,16 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as authProvider from '#/providers/AuthProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserMenu from '#/layouts/dashboard/UserMenu'
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
+
+import * as backendModule from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -79,7 +81,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex items-center rounded-full overflow-clip w-7.25 h-7.25"
+        className="flex items-center select-none rounded-full overflow-clip w-7.25 h-7.25"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>
@@ -98,14 +100,12 @@ export default function UserBar(props: UserBarProps) {
           alt="Open user menu"
           height={28}
           width={28}
-          onDragStart={event => {
-            event.preventDefault()
-          }}
         />
       </button>
       {/* Required for shortcuts to work. */}
       <div className="hidden">
         <UserMenu
+          hidden
           setPage={setPage}
           supportsLocalBackend={supportsLocalBackend}
           onSignOut={onSignOut}

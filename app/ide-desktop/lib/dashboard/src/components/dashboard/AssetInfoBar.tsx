@@ -8,9 +8,9 @@ import Button from '#/components/Button'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-  canToggleSettingsPanel: boolean
-  isSettingsPanelVisible: boolean
-  setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  canToggleAssetPanel: boolean
+  isAssetPanelVisible: boolean
+  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
   isCloud: boolean
 }
 
@@ -18,8 +18,8 @@ export interface AssetInfoBarProps {
 // This parameter will be used in the future.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
-  const { canToggleSettingsPanel, isSettingsPanelVisible, setIsSettingsPanelVisible } = props
-  const { isCloud } = props
+  const { canToggleAssetPanel, isAssetPanelVisible, setIsAssetPanelVisible, isCloud } = props
+
   return (
     <div
       className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto ${
@@ -39,12 +39,13 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         }}
       />
       <Button
-        active={canToggleSettingsPanel && isSettingsPanelVisible}
-        disabled={!canToggleSettingsPanel}
+        alt={isAssetPanelVisible ? 'Close Asset Panel' : 'Open Asset Panel'}
+        active={canToggleAssetPanel && isAssetPanelVisible}
+        disabled={!canToggleAssetPanel}
         image={SettingsIcon}
         error="Select exactly one asset to see its settings."
         onClick={() => {
-          setIsSettingsPanelVisible(oldIsSettingsPanelVisible => !oldIsSettingsPanelVisible)
+          setIsAssetPanelVisible(visible => !visible)
         }}
       />
     </div>

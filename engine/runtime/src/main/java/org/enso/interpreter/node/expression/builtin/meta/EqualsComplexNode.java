@@ -60,18 +60,13 @@ public abstract class EqualsComplexNode extends Node {
   }
 
   @Specialization
-  boolean equalsModuleScopes(
-      ModuleScope selfModuleScope,
-      ModuleScope otherModuleScope,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
+  boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope) {
+    return selfModuleScope == otherModuleScope;
   }
 
   @Specialization
-  @TruffleBoundary
-  boolean equalsModules(
-      Module selfModule, Module otherModule, @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
+  boolean equalsModules(Module selfModule, Module otherModule) {
+    return selfModule == otherModule;
   }
 
   @Specialization

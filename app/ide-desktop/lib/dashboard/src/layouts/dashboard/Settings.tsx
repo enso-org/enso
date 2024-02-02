@@ -1,12 +1,14 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import * as authProvider from '#/providers/AuthProvider'
+
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsTab'
 import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
 import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
-import * as authProvider from '#/providers/AuthProvider'
-import type * as backend from '#/services/backend'
+
+import type Backend from '#/services/Backend'
 
 // ================
 // === Settings ===
@@ -14,7 +16,7 @@ import type * as backend from '#/services/backend'
 
 /** Props for a {@link Settings}. */
 export interface SettingsProps {
-  backend: backend.Backend
+  backend: Backend
 }
 
 /** Settings screen. */

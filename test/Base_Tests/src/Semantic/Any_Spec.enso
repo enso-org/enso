@@ -1,44 +1,44 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 from project.Semantic.Definitions.Any_Types import all
 
-spec =
-    Test.group "Any.map_nothing" <|
-        Test.specify "should apply the function to a value" <|
+add_specs suite_builder =
+    suite_builder.group "Any.map_nothing" group_builder->
+        group_builder.specify "should apply the function to a value" <|
             10.map_nothing *2 . should_equal 20
 
-        Test.specify "should return `Nothing` unchanged" <|
+        group_builder.specify "should return `Nothing` unchanged" <|
             Nothing.map_nothing *2 . should_equal Nothing
 
-    Test.group "Callables" <|
-        Test.specify "should be able to be applied in a pipeline using |>" <|
+    suite_builder.group "Callables" group_builder->
+        group_builder.specify "should be able to be applied in a pipeline using |>" <|
             (1 |> *2) . should_equal 2
             (2 |> My_Type.Value) . should_equal (My_Type.Value 2)
             (2.3 |> .floor) . should_equal 2
 
-        Test.specify "should be able to be applied to an argument using <|" <|
+        group_builder.specify "should be able to be applied to an argument using <|" <|
             (*2 <| 1) . should_equal 2
             (My_Type.Value <| 2) . should_equal (My_Type.Value 2)
             (.floor <| 2.3) . should_equal 2
 
-        Test.specify "should be able to be composed backward using <<" <|
+        group_builder.specify "should be able to be composed backward using <<" <|
             (+1 << *2) 2 . should_equal 5
             (My_Type.Value << *2) 2 . should_equal <| My_Type.Value 4
             (.floor << *2.25) 2 . should_equal 4
 
-        Test.specify "should be able to be composed forward using >>" <|
+        group_builder.specify "should be able to be composed forward using >>" <|
             (+1 >> *2) 2 . should_equal 6
             (*2 >> My_Type.Value) 2 . should_equal <| My_Type.Value 4
             (*2 >> .floor) 2.75 . should_equal 5
 
-        Test.specify "should define generic inequality on values" <|
+        group_builder.specify "should define generic inequality on values" <|
             (1 != 2) . should_be_true
             (1 != 1) . should_be_false
 
-    Test.group "Any's methods" <|
-        Test.specify "should not be overridable when called statically" <|
+    suite_builder.group "Any's methods" group_builder->
+        group_builder.specify "should not be overridable when called statically" <|
             My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
             With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
@@ -58,7 +58,7 @@ spec =
             Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
             Date.to_display_text . should_equal "Date"
 
-        Test.specify "static method calls on Any should have defaulted self argument to Any" <|
+        group_builder.specify "static method calls on Any should have defaulted self argument to Any" <|
             # Any.== is a method that takes two arguments (self other)
             (Any.==) . should_be_a Function
             (Any.== self=Boolean) . should_be_a Function
@@ -96,7 +96,7 @@ spec =
             Date.spec_method Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
 
 
-        Test.specify "instance methods on different types should not have defaulted self argument" <|
+        group_builder.specify "instance methods on different types should not have defaulted self argument" <|
             # Vector.contains has two arguments (self elem)
             Vector.contains . to_text . contains "Vector.type.contains" . should_be_true
             (Vector.contains [42]) . to_text . contains "Vector.type.contains" . should_be_true
@@ -109,4 +109,8 @@ spec =
             Vector.is_empty [] . should_be_true
 
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

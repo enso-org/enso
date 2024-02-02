@@ -4,17 +4,20 @@ import * as React from 'react'
 import ConnectorIcon from 'enso-assets/connector.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+
+import type * as column from '#/components/dashboard/column'
+
+import * as backendModule from '#/services/Backend'
+
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =====================
 // === ConnectorName ===
@@ -30,7 +33,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, selected, rowState, setRowState } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
@@ -51,7 +54,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       onClick={event => {
         if (
           eventModule.isSingleClick(event) &&
-          (selected || shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+          (selected ||
+            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
@@ -73,19 +77,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       }}
     >
       <img src={ConnectorIcon} className="m-1" />
-      <EditableSpan
-        editable={false}
-        onSubmit={() => {
-          // Secrets cannot be renamed.
-          setRowState(object.merger({ isEditingName: false }))
-        }}
-        onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
-        }}
-        className="bg-transparent grow leading-170 h-6 py-px"
-      >
+      {/* Secrets cannot be renamed. */}
+      <span data-testid="asset-row-name" className="bg-transparent grow leading-170 h-6 py-px">
         {asset.title}
-      </EditableSpan>
+      </span>
     </div>
   )
 }

@@ -5,11 +5,13 @@ import isEmail from 'validator/es/lib/isEmail'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
 
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
 
 // ==============================
 // === ManagePermissionsModal ===

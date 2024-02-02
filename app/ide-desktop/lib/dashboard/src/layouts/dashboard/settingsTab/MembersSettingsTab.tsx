@@ -2,11 +2,14 @@
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
+
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backend from '#/services/backend'
+
+import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
+import type Backend from '#/services/Backend'
 
 // ==========================
 // === MembersSettingsTab ===
@@ -14,7 +17,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 
 /** Props for a {@link MembersSettingsTab}. */
 export interface MembersSettingsTabProps {
-  backend: backend.Backend
+  backend: Backend
 }
 
 /** Settings tab for viewing and editing organization members. */

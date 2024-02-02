@@ -4,8 +4,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
 from project.Util import all
 
@@ -16,11 +15,15 @@ polyglot java import java.lang.Long as Java_Long
 
 polyglot java import org.enso.table_test_helpers.PolyglotHelpers
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
 
-spec =
-    Test.group "[In-Memory] Column operation Integer Overflow handling" <|
-        Test.specify "64-bit integer column overflow" <|
+
+add_specs suite_builder =
+    suite_builder.group "[In-Memory] Column operation Integer Overflow handling" group_builder->
+        group_builder.specify "64-bit integer column overflow" <|
             min_value = Java_Long.MIN_VALUE
             max_value = Java_Long.MAX_VALUE
             value_type = Value_Type.Integer Bits.Bits_64
@@ -90,7 +93,7 @@ spec =
             c10.value_type . should_equal value_type
             Problems.expect_only_warning Arithmetic_Overflow c10
 
-        test_no_overflow value_type max_value min_value = Test.specify "operations on "+value_type.to_display_text+" will not overflow, because the result type is always 64-bit integer column" <|
+        test_no_overflow value_type max_value min_value = group_builder.specify "operations on "+value_type.to_display_text+" will not overflow, because the result type is always 64-bit integer column" <|
             t = Table.new [["X", [0, 1, max_value, 0]], ["Y", [0, -1, min_value, 0]], ["U", [1, 1, 1, 1]]]
             x = t.at "X" . cast value_type
             y = t.at "Y" . cast value_type
@@ -140,7 +143,7 @@ spec =
         test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
         test_no_overflow (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
 
-        Test.specify "if we cast to Decimal first, then the operations will not overflow" <|
+        group_builder.specify "if we cast to Decimal first, then the operations will not overflow" <|
             t0 = Table.new [["X", [0, 1, Java_Long.MAX_VALUE, 0]], ["U", [1, 1, 1, 1]]]
             t1 = t0.cast "X" (Value_Type.Decimal scale=0)
             x = t1.at "X"
@@ -162,7 +165,7 @@ spec =
             Problems.assume_no_problems c4
             c4.to_vector . should_equal [0, 1, Java_Long.MAX_VALUE*Java_Long.MAX_VALUE, 0]
 
-        Test.specify "mixed operations" <|
+        group_builder.specify "mixed operations" <|
             t = Table.new [["X", [Java_Short.MAX_VALUE]], ["Y", [1]]]
             x = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
             y = t.at "Y" . cast Value_Type.Byte
@@ -195,8 +198,8 @@ spec =
 
             (x%2).value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-    Test.group "[In-Memory] Handling of Big Integer values" <|
-        Test.specify "will create a BigInteger column if some values do not fit in long" <|
+    suite_builder.group "[In-Memory] Handling of Big Integer values" group_builder->
+        group_builder.specify "will create a BigInteger column if some values do not fit in long" <|
             c0 = Column.from_vector "X" [Java_Long.MAX_VALUE, 0, 1]
             Problems.assume_no_problems c0
             c0.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -220,12 +223,12 @@ spec =
             Problems.assume_no_problems t1
             t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
 
-        Test.specify "should fail if a big integer is provided for an Integer 64-bit column" <|
+        group_builder.specify "should fail if a big integer is provided for an Integer 64-bit column" <|
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100] value_type=Value_Type.Integer
             c1.should_fail_with Invalid_Value_Type
             c1.catch.to_display_text . should_contain "Decimal"
 
-        Test.specify "allows to construct a column from big integers coming from Java" <|
+        group_builder.specify "allows to construct a column from big integers coming from Java" <|
             big_integer_but_small = PolyglotHelpers.createSmallBigIntegerComingFromJava
             t1 = Table.new [["X", [big_integer_but_small]]]
             t1.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -239,12 +242,12 @@ spec =
             v2.at 0 . should_be_a Integer
             v2.at 0 . to_text . should_equal big_big_integer.to_text
 
-        Test.specify "will create a Mixed column if other types are present" <|
+        group_builder.specify "will create a Mixed column if other types are present" <|
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, "abc"]
             Problems.assume_no_problems c1
             c1.value_type . should_equal Value_Type.Mixed
 
-        Test.specify "should allow to create a Float column from a big integer, but warn about Loss_Of_Integer_Precision if relevant" <|
+        group_builder.specify "should allow to create a Float column from a big integer, but warn about Loss_Of_Integer_Precision if relevant" <|
             # 2^70 is not exactly representable as a Float.
             (2^70 + 0.0).truncate . should_not_equal (2^70)
 
@@ -268,7 +271,7 @@ spec =
             c4.to_vector . should_equal [2^70, 1]
             Problems.expect_only_warning Loss_Of_Integer_Precision c4
 
-        Test.specify "should use Decimal type if a mapping operation yields a numeric column with big integers" <|
+        group_builder.specify "should use Decimal type if a mapping operation yields a numeric column with big integers" <|
             c = Column.from_vector "X" [1, 2, 3]
 
             f1 x = if x == 2 then 2^70 else x
@@ -287,7 +290,7 @@ spec =
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Mixed
 
-        Test.specify "allows arithmetic on Decimal columns" <|
+        group_builder.specify "allows arithmetic on Decimal columns" <|
             t = Table.new [["X", [10^30, 2^70, Nothing, 3]], ["Y", [10^20, 2, 3, 4]]]
             x = t.at "X"
             y = t.at "Y"
@@ -324,7 +327,7 @@ spec =
             x.is_infinite . to_vector . should_equal [False, False, Nothing, False]
             x.is_in [3, 2^70] . to_vector . should_equal [False, True, Nothing, True]
 
-        Test.specify "allows arithmetic on Decimal columns and other numeric columns" <|
+        group_builder.specify "allows arithmetic on Decimal columns and other numeric columns" <|
             t = Table.new [["X", [10^30, 2^70, Nothing, 3]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.5, 3.5, 4.5]]]
             x = t.at "X"
             y = t.at "Y"
@@ -391,7 +394,7 @@ spec =
             r4.value_type . should_be_a (Value_Type.Decimal ...)
             r4.to_vector . should_equal [10^30, 2^70, 23, 3]
 
-        Test.specify "returns a Decimal column if the scalar argument is a big integer" <|
+        group_builder.specify "returns a Decimal column if the scalar argument is a big integer" <|
             c = Column.from_vector "X" [1, 2, Nothing, 3]
             c.value_type.should_equal Value_Type.Integer
             x = 2^70
@@ -430,7 +433,7 @@ spec =
             r7.value_type . should_be_a (Value_Type.Decimal ...)
             r7.to_vector . should_equal [1, 2, x, 3]
 
-        Test.specify "should work fine with typing edge cases" <|
+        group_builder.specify "should work fine with typing edge cases" <|
             c1 = Column.from_vector "X" [2^70, 100, Nothing, 200]
             c1.value_type . should_be_a (Value_Type.Decimal ...)
 

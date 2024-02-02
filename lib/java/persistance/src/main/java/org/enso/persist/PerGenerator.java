@@ -9,8 +9,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x03, 0x0f};
@@ -31,7 +30,7 @@ final class PerGenerator {
   }
 
   static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
-    var histogram = PerUtils.LOG.isLoggable(Level.FINE) ? new Histogram() : null;
+    var histogram = PerUtils.LOG.isDebugEnabled() ? new Histogram() : null;
 
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
@@ -140,16 +139,14 @@ final class PerGenerator {
             return a.getValue()[0] - b.getValue()[0];
           });
 
-      log.fine("==== Top Bytes & Counts of Classes =====");
+      log.debug("==== Top Bytes & Counts of Classes =====");
       for (var i = 0; i < list.size(); i++) {
         if (i == 30) {
           break;
         }
         var elem = list.get(list.size() - 1 - i);
-        log.log(
-            Level.FINE,
-            "  {0} {1} {2}",
-            new Object[] {elem.getValue()[0], elem.getValue()[1], elem.getKey().getName()});
+        log.debug(
+            "  " + elem.getValue()[0] + " " + elem.getValue()[1] + " " + elem.getKey().getName());
       }
     }
 

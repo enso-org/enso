@@ -38,7 +38,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props) => {
     if (
       props.input.value instanceof Ast.NumericLiteral ||
-      (props.input.value instanceof Ast.NegationOprApp &&
+      (props.input.value instanceof Ast.NegationApp &&
         props.input.value.argument instanceof Ast.NumericLiteral)
     )
       return Score.Perfect
@@ -48,7 +48,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       type === 'Standard.Base.Data.Numbers.Integer' ||
       type === 'Standard.Data.Numbers.Float'
     )
-      return Score.Perfect
+      return Score.Good
     return Score.Mismatch
   },
 })

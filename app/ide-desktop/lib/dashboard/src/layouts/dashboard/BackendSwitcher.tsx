@@ -6,7 +6,7 @@ import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
 import SvgMask from '#/components/SvgMask'
 
-import * as backendModule from '#/services/backend'
+import * as backendModule from '#/services/Backend'
 
 // =======================
 // === BackendSwitcher ===

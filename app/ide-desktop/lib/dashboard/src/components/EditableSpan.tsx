@@ -4,18 +4,20 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+
+import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ====================
 // === EditableSpan ===
 // ====================
 
-/** Props of an {@link EditableSpan} that are passed through to the base element. */
-type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.IntrinsicElements['span']
-
 /** Props for an {@link EditableSpan}. */
-export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'onSubmit'> {
+export interface EditableSpanProps {
+  // This matches the capitalization of `data-` attributes in React.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'data-testid'?: string
+  className?: string
   editable?: boolean
   checkSubmittable?: (value: string) => boolean
   onSubmit: (value: string) => void
@@ -27,17 +29,9 @@ export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'o
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 export default function EditableSpan(props: EditableSpanProps) {
-  const {
-    editable = false,
-    checkSubmittable,
-    children,
-    onSubmit,
-    onCancel,
-    inputPattern,
-    inputTitle,
-    ...passthrough
-  } = props
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { 'data-testid': dataTestId, className, editable = false, children } = props
+  const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
+  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const [isSubmittable, setIsSubmittable] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const cancelled = React.useRef(false)
@@ -50,8 +44,8 @@ export default function EditableSpan(props: EditableSpanProps) {
 
   React.useEffect(() => {
     if (editable) {
-      return shortcuts.registerKeyboardHandlers({
-        [shortcutsModule.KeyboardAction.cancelEditName]: () => {
+      return shortcutManager.registerKeyboardHandlers({
+        [shortcutManagerModule.KeyboardAction.cancelEditName]: () => {
           onCancel()
           cancelled.current = true
           inputRef.current?.blur()
@@ -60,7 +54,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, shortcuts, onCancel])
+  }, [editable, shortcutManager, onCancel])
 
   React.useEffect(() => {
     cancelled.current = false
@@ -80,19 +74,19 @@ export default function EditableSpan(props: EditableSpanProps) {
         }}
       >
         <input
+          data-testid={dataTestId}
+          className={className}
           ref={inputRef}
           autoFocus
           type="text"
           size={1}
           defaultValue={children}
           onBlur={event => {
-            passthrough.onBlur?.(event)
             if (!cancelled.current) {
               event.currentTarget.form?.requestSubmit()
             }
           }}
           onKeyDown={event => {
-            passthrough.onKeyDown?.(event)
             if (
               !event.isPropagationStopped() &&
               ((event.ctrlKey &&
@@ -119,26 +113,35 @@ export default function EditableSpan(props: EditableSpanProps) {
                   setIsSubmittable(checkSubmittable(event.currentTarget.value))
                 },
               })}
-          {...passthrough}
         />
         {isSubmittable && (
           <button type="submit" className="mx-0.5">
-            <img src={TickIcon} />
+            <img src={TickIcon} alt="Confirm Edit" />
           </button>
         )}
         <button
           type="button"
           className="mx-0.5"
+          onMouseDown={() => {
+            cancelled.current = true
+          }}
           onClick={event => {
             event.stopPropagation()
             onCancel()
+            window.setTimeout(() => {
+              cancelled.current = false
+            })
           }}
         >
-          <img src={CrossIcon} />
+          <img src={CrossIcon} alt="Cancel Edit" />
         </button>
       </form>
     )
   } else {
-    return <span {...passthrough}>{children}</span>
+    return (
+      <span data-testid={dataTestId} className={className}>
+        {children}
+      </span>
+    )
   }
 }

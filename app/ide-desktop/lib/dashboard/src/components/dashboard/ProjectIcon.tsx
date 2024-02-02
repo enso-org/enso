@@ -7,22 +7,27 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as remoteBackendModule from '#/services/remoteBackend'
-import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as object from '#/utilities/object'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+import * as remoteBackend from '#/services/RemoteBackend'
+
+import * as errorModule from '#/utilities/error'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -67,7 +72,7 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 export interface ProjectIconProps {
   smartAsset: backendModule.SmartProject
   setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  backend: backendModule.Backend
+  backend: Backend
   assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -147,7 +152,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           const abortController = new AbortController()
           setOpenProjectAbortController(abortController)
           // FIXME: try refactor to become `smartProject.waitUntilReady`
-          await remoteBackendModule.waitUntilProjectIsReady(
+          await remoteBackend.waitUntilProjectIsReady(
             backend,
             smartAsset.value.id,
             smartAsset.value.title,
@@ -297,7 +302,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
       onClose()
-      localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+      localStorage.delete('projectStartupInfo')
     }
     setToastId(null)
     setShouldOpenWhenReady(false)
