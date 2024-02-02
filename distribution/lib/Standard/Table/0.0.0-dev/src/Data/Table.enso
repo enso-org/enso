@@ -1669,6 +1669,13 @@ type Table
             Warning.set result []
 
     ## PRIVATE
+       A helper that creates a two-column table from a Map.
+    make_table_from_map  : Map Any Any -> Text -> Text -> Table
+    make_table_from_map self map key_column value_column =
+        keys_and_values = map.to_vector
+        Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
+
+    ## PRIVATE
 
        Create a constant column from a value.
     make_constant_column : Any -> Column
@@ -2782,13 +2789,6 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         Column.from_storage column_set.name sealed_storage
-
-## PRIVATE
-   A helper that creates a two-column table from a map.
-map_to_lookup_table : Map Any Any -> Text -> Text -> Table
-map_to_lookup_table map key_column value_column =
-    keys_and_values = map.to_vector
-    Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
 
 ## PRIVATE
    Conversion method to a Table from a Column.
