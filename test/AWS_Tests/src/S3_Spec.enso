@@ -286,6 +286,12 @@ spec =
             r.catch.should_be_a File_Error.Unsupported_Type
             r.catch.to_display_text . should_contain ".unknown"
 
+        Test.specify "should be able to write and then read custom types, like Table, in various format, like Excel" <|
+            file = my_writable_dir / "table.xlsx"
+            table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
+            table.write file . should_succeed
+            file.read . should_equal table
+
         Test.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
             "Hello".write new_file . should_succeed
