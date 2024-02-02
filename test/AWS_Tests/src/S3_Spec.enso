@@ -67,7 +67,7 @@ spec =
                     r2.should_be_a Vector
 
     ## Rest of tests need a functional S3 connection
-    pending = if buckets.is_error then "S3 Access Failed." else if buckets.contains bucket_name then Nothing else "S3 Bucket "+bucket_name+" Not Found."
+    pending = if buckets.is_error then "S3 Access Failed: "+buckets.catch.to_display_text else if buckets.contains bucket_name then Nothing else "S3 Bucket "+bucket_name+" Not Found."
 
     Test.group "S3.head (bucket)" pending=pending <|
         Test.specify "should be able to head a bucket" <|
