@@ -14,7 +14,6 @@ import UserBar from '#/layouts/dashboard/UserBar'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
@@ -59,7 +58,7 @@ export interface AssetPanelRequiredProps {
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   supportsLocalBackend: boolean
-  backend: Backend
+  isCloud: boolean
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
   category: Category
@@ -75,7 +74,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { supportsLocalBackend, backend, item, setItem, page, setPage, category } = props
+  const { supportsLocalBackend, isCloud, item, setItem, page, setPage, category } = props
   const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
   const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
@@ -93,7 +92,6 @@ export default function AssetPanel(props: AssetPanelProps) {
       return savedTab
     }
   })
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   React.useEffect(() => {
     // This prevents secrets and directories always setting the tab to `properties`
@@ -146,7 +144,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
-            backend={backend}
+            isCloud={isCloud}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             onSignOut={onSignOut}

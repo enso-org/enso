@@ -18,9 +18,6 @@ import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
 
-import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
-
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ================
@@ -30,7 +27,7 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
   category: Category
-  backend: Backend
+  isCloud: boolean
   canDownloadFiles: boolean
   doCreateProject: () => void
   doCreateDirectory: () => void
@@ -42,17 +39,16 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, backend, canDownloadFiles, doCreateProject, doCreateDirectory } = props
+  const { category, isCloud, canDownloadFiles, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = backend.type === backendModule.BackendType.remote
-  const isHomeCategory = category === Category.home || !isCloud
+  const isHomeCategory = !isCloud || category === Category.home
 
   React.useEffect(() => {
     return shortcutManager.registerKeyboardHandlers({
-      ...(backend.type !== backendModule.BackendType.local
+      ...(isCloud
         ? {
             [shortcutManagerModule.KeyboardAction.newFolder]: () => {
               doCreateDirectory()
@@ -66,7 +62,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcutManager])
+  }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ shortcutManager])
 
   return (
     <div className="flex h-8 py-0.5">
@@ -93,7 +89,7 @@ export default function DriveBar(props: DriveBarProps) {
           </span>
         </button>
         <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
-          {backend.type !== backendModule.BackendType.local && (
+          {isCloud && (
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
@@ -107,7 +103,7 @@ export default function DriveBar(props: DriveBarProps) {
               }}
             />
           )}
-          {backend.type !== backendModule.BackendType.local && (
+          {isCloud && (
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
@@ -127,9 +123,7 @@ export default function DriveBar(props: DriveBarProps) {
             multiple
             id="upload_files_input"
             name="upload_files_input"
-            {...(backend.type !== backendModule.BackendType.local
-              ? {}
-              : { accept: '.enso-project' })}
+            {...(isCloud ? {} : { accept: '.enso-project' })}
             className="hidden"
             onInput={event => {
               if (event.currentTarget.files != null) {

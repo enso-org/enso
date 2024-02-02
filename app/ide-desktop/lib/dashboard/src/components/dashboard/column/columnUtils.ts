@@ -6,8 +6,6 @@ import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 
-import * as backend from '#/services/Backend'
-
 import SortDirection from '#/utilities/SortDirection'
 
 // =============
@@ -97,20 +95,15 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(backendType: backend.BackendType, extraColumns: Set<ExtraColumn>) {
-  switch (backendType) {
-    case backend.BackendType.local: {
-      return [Column.name, Column.modified]
-    }
-    case backend.BackendType.remote: {
-      return [
+export function getColumnList(isCloud: boolean, extraColumns: Set<ExtraColumn>) {
+  return !isCloud
+    ? [Column.name, Column.modified]
+    : [
         Column.name,
         Column.modified,
         Column.sharedWith,
         ...EXTRA_COLUMNS.filter(column => extraColumns.has(column)),
       ]
-    }
-  }
 }
 
 // =================

@@ -32,7 +32,6 @@ import DragModal from '#/components/DragModal'
 import Spinner, * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
@@ -222,7 +221,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  backend: Backend
+  isCloud: boolean
   rootDirectory: backendModule.SmartDirectory
   query: AssetQuery
   setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -251,7 +250,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { backend, rootDirectory, query, setQuery, setCanDownloadFiles, category } = props
+  const { isCloud, rootDirectory, query, setQuery, setCanDownloadFiles, category } = props
   const { allLabels, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
@@ -274,7 +273,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     return AssetTreeNode.fromSmartAsset(rootDirectory, rootParentDirectoryId, rootDirectory, -1)
   })
-  const isCloud = backend.type === backendModule.BackendType.remote
   const placeholder =
     category === Category.trash
       ? TRASH_PLACEHOLDER
@@ -567,7 +565,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     setIsLoading(true)
-  }, [backend, category])
+  }, [rootDirectory, category])
 
   React.useEffect(() => {
     const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
@@ -677,15 +675,80 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (initialized) {
       overwriteNodes([])
     }
-    // `overwriteAssets` is a callback, not a dependency.
+    // `overwriteNodes` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backend, category])
+  }, [rootDirectory, category])
 
   asyncEffectHooks.useAsyncEffect(
     null,
     async signal => {
-      switch (backend.type) {
-        case backendModule.BackendType.local: {
+      if (!isCloud) {
+        const newAssets = await rootDirectory.list({
+          filterBy: CATEGORY_TO_FILTER_BY[category],
+          recentProjects: category === Category.recent,
+          labels: null,
+        })
+        if (!signal.aborted) {
+          setIsLoading(false)
+          overwriteNodes(newAssets)
+        }
+      } else {
+        const queuedDirectoryListings = new Map<
+          backendModule.AssetId,
+          backendModule.AnySmartAsset[]
+        >()
+        const withChildren = (node: AssetTreeNode): AssetTreeNode => {
+          const queuedListing = queuedDirectoryListings.get(node.item.value.id)
+          if (queuedListing == null || node.item.type !== backendModule.AssetType.directory) {
+            return node
+          } else {
+            const directory = node.item
+            const directoryAsset = node.item.value
+            const depth = node.depth + 1
+            return node.with({
+              children: queuedListing.map(asset =>
+                withChildren(
+                  AssetTreeNode.fromSmartAsset(asset, directoryAsset.id, directory, depth)
+                )
+              ),
+            })
+          }
+        }
+        for (const entry of nodeMapRef.current.values()) {
+          if (entry.item.type === backendModule.AssetType.directory && entry.children != null) {
+            void entry.item
+              .list({
+                filterBy: CATEGORY_TO_FILTER_BY[category],
+                recentProjects: category === Category.recent,
+                labels: null,
+              })
+              .then(
+                assets => {
+                  setAssetTree(oldTree => {
+                    let found = signal.aborted
+                    const newTree = signal.aborted
+                      ? oldTree
+                      : oldTree.map(oldAsset => {
+                          if (oldAsset.key === entry.key) {
+                            found = true
+                            return withChildren(oldAsset)
+                          } else {
+                            return oldAsset
+                          }
+                        })
+                    if (!found) {
+                      queuedDirectoryListings.set(entry.key, assets)
+                    }
+                    return newTree
+                  })
+                },
+                error => {
+                  toastAndLog(null, error)
+                }
+              )
+          }
+        }
+        try {
           const newAssets = await rootDirectory.list({
             filterBy: CATEGORY_TO_FILTER_BY[category],
             recentProjects: category === Category.recent,
@@ -695,85 +758,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             setIsLoading(false)
             overwriteNodes(newAssets)
           }
-          break
-        }
-        case backendModule.BackendType.remote: {
-          const queuedDirectoryListings = new Map<
-            backendModule.AssetId,
-            backendModule.AnySmartAsset[]
-          >()
-          const withChildren = (node: AssetTreeNode): AssetTreeNode => {
-            const queuedListing = queuedDirectoryListings.get(node.item.value.id)
-            if (queuedListing == null || node.item.type !== backendModule.AssetType.directory) {
-              return node
-            } else {
-              const directory = node.item
-              const directoryAsset = node.item.value
-              const depth = node.depth + 1
-              return node.with({
-                children: queuedListing.map(asset =>
-                  withChildren(
-                    AssetTreeNode.fromSmartAsset(asset, directoryAsset.id, directory, depth)
-                  )
-                ),
-              })
-            }
+        } catch (error) {
+          if (!signal.aborted) {
+            setIsLoading(false)
+            toastAndLog(null, error)
           }
-          for (const entry of nodeMapRef.current.values()) {
-            if (entry.item.type === backendModule.AssetType.directory && entry.children != null) {
-              void entry.item
-                .list({
-                  filterBy: CATEGORY_TO_FILTER_BY[category],
-                  recentProjects: category === Category.recent,
-                  labels: null,
-                })
-                .then(
-                  assets => {
-                    setAssetTree(oldTree => {
-                      let found = signal.aborted
-                      const newTree = signal.aborted
-                        ? oldTree
-                        : oldTree.map(oldAsset => {
-                            if (oldAsset.key === entry.key) {
-                              found = true
-                              return withChildren(oldAsset)
-                            } else {
-                              return oldAsset
-                            }
-                          })
-                      if (!found) {
-                        queuedDirectoryListings.set(entry.key, assets)
-                      }
-                      return newTree
-                    })
-                  },
-                  error => {
-                    toastAndLog(null, error)
-                  }
-                )
-            }
-          }
-          try {
-            const newAssets = await rootDirectory.list({
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            })
-            if (!signal.aborted) {
-              setIsLoading(false)
-              overwriteNodes(newAssets)
-            }
-          } catch (error) {
-            if (!signal.aborted) {
-              setIsLoading(false)
-              toastAndLog(null, error)
-            }
-          }
-          break
         }
       }
     },
-    [category, accessToken, organization, backend]
+    [rootDirectory, category, accessToken, organization]
   )
 
   React.useEffect(() => {
@@ -787,11 +780,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     const headerRow = headerRowRef.current
     const scrollContainer = scrollContainerRef.current
-    if (
-      backend.type === backendModule.BackendType.remote &&
-      headerRow != null &&
-      scrollContainer != null
-    ) {
+    if (isCloud && headerRow != null && scrollContainer != null) {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
         isClipPathUpdateQueued = false
@@ -817,7 +806,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else {
       return
     }
-  }, [backend.type])
+  }, [isCloud])
 
   React.useEffect(() => {
     if (initialized) {
@@ -1443,7 +1432,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const columns = columnUtils.getColumnList(backend.type, extraColumns)
+  const columns = columnUtils.getColumnList(isCloud, extraColumns)
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-0">
@@ -1715,7 +1704,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-auto">
       <div className="flex flex-col w-min min-w-full h-full">
-        {backend.type !== backendModule.BackendType.local && (
+        {isCloud && (
           <div className="sticky top-0 h-0">
             <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
               <div className="inline-flex gap-3">

@@ -422,7 +422,7 @@ export default function Dashboard(props: DashboardProps) {
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            backend={backend}
+            backendType={backend.type}
             setBackendType={setBackendType}
             query={query}
             setQuery={setQuery}
@@ -495,7 +495,7 @@ export default function Dashboard(props: DashboardProps) {
             <AssetPanel
               key={assetPanelProps.item.item.value.id}
               {...assetPanelProps}
-              backend={backend}
+              isCloud={isCloud}
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}

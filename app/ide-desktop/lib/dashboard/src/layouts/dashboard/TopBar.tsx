@@ -10,7 +10,6 @@ import UserBar from '#/layouts/dashboard/UserBar'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 
@@ -28,7 +27,7 @@ export interface TopBarProps {
   setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   isCloud: boolean
   isEditorDisabled: boolean
-  backend: Backend
+  backendType: backendModule.BackendType
   setBackendType: (backendType: backendModule.BackendType) => void
   isHelpChatOpen: boolean
   setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
@@ -47,10 +46,10 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, backend, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { isEditorDisabled, backendType, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
   const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = backendType === backendModule.BackendType.remote
 
   return (
     <div
@@ -60,7 +59,7 @@ export default function TopBar(props: TopBarProps) {
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
-        <BackendSwitcher backendType={backend.type} setBackendType={setBackendType} />
+        <BackendSwitcher backendType={backendType} setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
@@ -84,7 +83,7 @@ export default function TopBar(props: TopBarProps) {
           />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
-            backend={backend}
+            isCloud={isCloud}
             page={page}
             setPage={setPage}
             isHelpChatOpen={isHelpChatOpen}

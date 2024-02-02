@@ -392,7 +392,7 @@ export default function Drive(props: DriveProps) {
             </h1>
             <DriveBar
               category={category}
-              backend={backend}
+              isCloud={isCloud}
               canDownloadFiles={canDownloadFiles}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -422,7 +422,7 @@ export default function Drive(props: DriveProps) {
             )}
             {rootDirectory != null && (
               <AssetsTable
-                backend={backend}
+                isCloud={isCloud}
                 rootDirectory={rootDirectory}
                 query={query}
                 setQuery={setQuery}

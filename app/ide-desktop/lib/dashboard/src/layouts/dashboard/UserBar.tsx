@@ -13,8 +13,7 @@ import UserMenu from '#/layouts/dashboard/UserMenu'
 
 import Button from '#/components/Button'
 
-import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -23,7 +22,7 @@ import type Backend from '#/services/Backend'
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
   supportsLocalBackend: boolean
-  backend: Backend
+  isCloud: boolean
   page: pageSwitcher.Page
   setPage: (page: pageSwitcher.Page) => void
   isHelpChatOpen: boolean
@@ -36,7 +35,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, backend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, isCloud, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
@@ -47,7 +46,7 @@ export default function UserBar(props: UserBarProps) {
         ) ?? null
       : null
   const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
+    isCloud &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
