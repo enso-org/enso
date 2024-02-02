@@ -2433,6 +2433,10 @@ lazy val editions = project
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(
     frgaalJavaCompilerSetting,
+    // Fork the tests to make sure that the withDebug command works (we can
+    // attach debugger to the subprocess)
+    (Test / fork) := true,
+    commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
@@ -2494,6 +2498,7 @@ lazy val `library-manager-test` = project
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
