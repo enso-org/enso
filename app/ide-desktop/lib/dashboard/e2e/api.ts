@@ -334,10 +334,7 @@ export async function mockApi({ page }: MockParams) {
               opened_by: defaultEmail,
             },
             packageName: 'Project_root',
-            ide_version: {
-              value: '2023.2.1-nightly.2023.9.29',
-              lifecycle: backend.VersionLifecycle.development,
-            },
+            ide_version: null,
             engine_version: {
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,

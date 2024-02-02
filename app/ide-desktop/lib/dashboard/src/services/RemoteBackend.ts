@@ -123,7 +123,7 @@ async function listVersions(
     default: String(params.default),
   }).toString()
   const path = remoteBackendPaths.LIST_VERSIONS_PATH + '?' + paramsString
-  const response = await client.get<ResponseBody>(path)
+  const response = await client.get<ResponseBody>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
   if (!responseIsSuccessful(response)) {
     throw new Error(`Could not list versions of type '${params.versionType}'.`)
   } else {
