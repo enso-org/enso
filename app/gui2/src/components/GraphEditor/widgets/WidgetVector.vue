@@ -36,9 +36,7 @@ const value = computed({
   set(value) {
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    const edit = graph.astModule.edit()
     props.onUpdate({
-      edit,
       portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
     })
   },

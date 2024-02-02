@@ -31,11 +31,9 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(update: WidgetUpdate) {
+  const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
-    const {
-      edit,
-      portUpdate: { value, origin },
-    } = update
+    const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
         value instanceof Ast.Ast
@@ -48,7 +46,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
     }
   }
-  graph.commitEdit(update.edit)
+  graph.commitEdit(edit)
   // This handler is guaranteed to be the last handler in the chain.
   return true
 }
