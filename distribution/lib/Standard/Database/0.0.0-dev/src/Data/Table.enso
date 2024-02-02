@@ -927,6 +927,32 @@ type Table
             Warning.set result []
 
     ## PRIVATE
+       A helper that creates a two-column table from a Map.
+    make_table_from_map  : Map Any Any -> Text -> Text -> Table
+    make_table_from_map self map key_column_name _value_column_name =
+        type_mapping = self.connection.dialect.get_type_mapping
+        values_to_type_ref values =
+            value_type = Value_Type_Helpers.find_common_type_for_arguments (map.keys.to_vector)
+            IO.println 'AAA'
+            IO.println values
+            IO.println value_type
+            sql_type = case value_type of
+                Nothing -> SQL_Type.null
+                _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+            SQL_Type_Reference.from_constant sql_type
+        keys_type_ref = values_to_type_ref map.keys.to_vector
+        IO.println keys_type_ref
+
+        expr = SQL_Expression.Constant Nothing
+        column = Column.Value key_column_name self.connection keys_type_ref expr self.context
+        IO.println column
+        contents = column.read
+        IO.println 'AAA2'
+        IO.println contents
+        IO.println contents.to_vector
+        Nothing
+
+    ## PRIVATE
 
        Create a constant column from a value.
     make_constant_column : Any -> Column ! Illegal_Argument

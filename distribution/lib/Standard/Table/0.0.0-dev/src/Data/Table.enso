@@ -1671,9 +1671,9 @@ type Table
     ## PRIVATE
        A helper that creates a two-column table from a Map.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
-    make_table_from_map self map key_column value_column =
+    make_table_from_map self map key_column_name value_column_name =
         keys_and_values = map.to_vector
-        Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
+        Table.new [[key_column_name, keys_and_values.map .first], [value_column_name, keys_and_values.map .second]]
 
     ## PRIVATE
 
