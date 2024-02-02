@@ -9,6 +9,9 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.AWS import S3, S3_File, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found, S3_Key_Not_Found
 
+# Needed for custom formats test
+from Standard.Table import Table
+
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
