@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket.json
 
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
@@ -20,6 +21,7 @@ import org.enso.languageserver.boot.{
 }
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
+  InitializationComponent,
   RepoInitialization,
   SequentialResourcesInitialization,
   ZioRuntimeInitialization
@@ -227,7 +229,7 @@ abstract class BaseServerTest
     rootDir
   }
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def clientControllerFactory(): ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
 
@@ -398,10 +400,11 @@ abstract class BaseServerTest
       )
     )
 
-    new JsonConnectionControllerFactory(
+    new TestJsonConnectionControllerFactory(
       mainComponent          = initializationComponent,
       bufferRegistry         = bufferRegistry,
       capabilityRouter       = capabilityRouter,
+      fileEventRegistry      = fileEventRegistry,
       fileManager            = fileManager,
       vcsManager             = vcsManager,
       contentRootManager     = contentRootManagerActor,
@@ -519,6 +522,51 @@ abstract class BaseServerTest
         receiveAndReplyToOpenFile(fileName)
       case msg =>
         fail("expected OpenFile notification got " + msg)
+    }
+  }
+
+  class TestJsonConnectionControllerFactory(
+    mainComponent: InitializationComponent,
+    bufferRegistry: ActorRef,
+    capabilityRouter: ActorRef,
+    fileEventRegistry: ActorRef,
+    fileManager: ActorRef,
+    vcsManager: ActorRef,
+    contentRootManager: ActorRef,
+    contextRegistry: ActorRef,
+    suggestionsHandler: ActorRef,
+    stdOutController: ActorRef,
+    stdErrController: ActorRef,
+    stdInController: ActorRef,
+    runtimeConnector: ActorRef,
+    idlenessMonitor: ActorRef,
+    projectSettingsManager: ActorRef,
+    profilingManager: ActorRef,
+    libraryConfig: LibraryConfig,
+    config: Config
+  )(implicit system: ActorSystem)
+      extends JsonConnectionControllerFactory(
+        mainComponent,
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        vcsManager,
+        contentRootManager,
+        contextRegistry,
+        suggestionsHandler,
+        stdOutController,
+        stdErrController,
+        stdInController,
+        runtimeConnector,
+        idlenessMonitor,
+        projectSettingsManager,
+        profilingManager,
+        libraryConfig,
+        config
+      )(system) {
+    override def shutdown(): Unit = {
+      fileEventRegistry ! ReceivesTreeUpdatesHandler.Stop
+      super.shutdown()
     }
   }
 }
