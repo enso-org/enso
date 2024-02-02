@@ -40,6 +40,27 @@ function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
 }
 
+// ============================
+// === overwriteMaterialize ===
+// ============================
+
+/** Any object that has a `materialize()` method that accepts no arguments. */
+interface HasMaterialize<T> {
+  materialize: () => Promise<T>
+}
+
+/** Overwrites `materialize` so that it does not. */
+function overwriteMaterialize<T>(
+  smartAsset: HasMaterialize<T>,
+  materialize: () => Promise<T>
+): () => Promise<T> {
+  return () => {
+    const promise = materialize()
+    smartAsset.materialize = () => promise
+    return promise
+  }
+}
+
 // ===============================
 // === waitUntilProjectIsReady ===
 // ===============================
@@ -537,7 +558,7 @@ class SmartDirectory
       labels: [],
       description: null,
     })
-    result.materialize = async (): Promise<SmartDirectory> => {
+    result.materialize = overwriteMaterialize(result, async (): Promise<SmartDirectory> => {
       /** HTTP request body for this endpoint. */
       interface Body {
         title: string
@@ -558,7 +579,7 @@ class SmartDirectory
         const reponseBody = await response.json()
         return result.withValue(object.merge(this.value, reponseBody))
       }
-    }
+    })
     return result
   }
 
@@ -594,7 +615,7 @@ class SmartDirectory
       packageName: string
     }
     if (fileOrTemplateName instanceof File) {
-      result.materialize = async () => {
+      result.materialize = overwriteMaterialize(result, async () => {
         /** HTTP response body for this endpoint. */
         interface ResponseBody {
           path: string
@@ -634,9 +655,9 @@ class SmartDirectory
             )
           }
         }
-      }
+      })
     } else {
-      result.materialize = async () => {
+      result.materialize = overwriteMaterialize(result, async () => {
         /** HTTP request body for this endpoint. */
         interface Body {
           projectName: string
@@ -664,7 +685,7 @@ class SmartDirectory
             })
           )
         }
-      }
+      })
     }
     return result
   }
@@ -686,7 +707,7 @@ class SmartDirectory
       labels: [],
       description: null,
     })
-    result.materialize = async () => {
+    result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
         path: string
@@ -716,7 +737,7 @@ class SmartDirectory
         const responseBody = await response.json()
         return result.withValue(object.merge(result.value, { id: responseBody.id }))
       }
-    }
+    })
     return result
   }
 
@@ -739,7 +760,7 @@ class SmartDirectory
       labels: [],
       description: null,
     })
-    result.materialize = async () => {
+    result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP request body for this endpoint. */
       interface Body {
         name: string
@@ -755,7 +776,7 @@ class SmartDirectory
         const id = await response.json()
         return result.withValue(object.merge(result.value, { id }))
       }
-    }
+    })
     return result
   }
 }
