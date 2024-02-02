@@ -107,13 +107,13 @@ export class Server {
                         // is tracked in https://github.com/enso-org/enso/issues/8931
                         const assets = path.join(paths.ASSETS_PATH, 'assets')
                         const bundledFiles = fs.existsSync(assets) ? fs.readdirSync(assets) : []
-                        const rust_ffi_wasm = bundledFiles.find(name =>
+                        const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
-                        if (httpServer && rust_ffi_wasm) {
+                        if (httpServer && rustFFIWasm != null) {
                             await ydocServer.createGatewayServer(
                                 httpServer,
-                                path.join(assets, rust_ffi_wasm)
+                                path.join(assets, rustFFIWasm)
                             )
                         } else {
                             logger.warn('YDocs server is not run, new GUI may not work properly!')
