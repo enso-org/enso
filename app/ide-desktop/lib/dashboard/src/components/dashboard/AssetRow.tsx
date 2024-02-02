@@ -117,6 +117,18 @@ export default function AssetRow(props: AssetRowProps) {
         const materialized = await smartAsset.materialize()
         rowState.setVisibility(Visibility.visible)
         setAsset(materialized.value)
+        if (
+          backendModule.assetIsProject(asset) &&
+          asset.projectState.type === backendModule.ProjectState.placeholder &&
+          backendModule.assetIsProject(materialized.value)
+        ) {
+          dispatchAssetEvent({
+            type: AssetEventType.openProject,
+            id: materialized.value.id,
+            shouldAutomaticallySwitchPage: true,
+            runInBackground: false,
+          })
+        }
       } catch (error) {
         rowState.setVisibility(Visibility.visible)
       }

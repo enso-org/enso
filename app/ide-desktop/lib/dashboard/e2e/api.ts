@@ -230,7 +230,7 @@ export async function mockApi({ page }: MockParams) {
     await page.route(
       BASE_URL + remoteBackendPaths.LIST_DIRECTORY_PATH + '*',
       async (route, request) => {
-        /** The type for the search query for this endpoint. */
+        /** The search query for this endpoint. */
         interface Query {
           /* eslint-disable @typescript-eslint/naming-convention */
           parent_id?: string
@@ -241,14 +241,14 @@ export async function mockApi({ page }: MockParams) {
         }
         // The type of the body sent by this app is statically known.
         // eslint-disable-next-line no-restricted-syntax
-        const body = Object.fromEntries(
+        const query = Object.fromEntries(
           new URL(request.url()).searchParams.entries()
         ) as unknown as Query
-        const parentId = body.parent_id ?? defaultDirectoryId
+        const parentId = query.parent_id ?? defaultDirectoryId
         let filteredAssets = assets.filter(asset => asset.parentId === parentId)
         // This lint rule is broken; there is clearly a case for `undefined` below.
         // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-        switch (body.filter_by) {
+        switch (query.filter_by) {
           case backend.FilterBy.active: {
             filteredAssets = filteredAssets.filter(asset => !deletedAssets.has(asset.id))
             break
@@ -334,7 +334,10 @@ export async function mockApi({ page }: MockParams) {
               opened_by: defaultEmail,
             },
             packageName: 'Project_root',
-            ide_version: null,
+            ide_version: {
+              value: '2023.2.1-nightly.2023.9.29',
+              lifecycle: backend.VersionLifecycle.development,
+            },
             engine_version: {
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
@@ -558,16 +561,70 @@ export async function mockApi({ page }: MockParams) {
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.USERS_ME_PATH + '*', async route => {
-      await route.fulfill({
-        json: currentUser,
-      })
+      if (currentUser != null) {
+        await route.fulfill({ json: currentUser })
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        await route.fulfill({ status: 400 })
+      }
+    })
+    await page.route(
+      BASE_URL + remoteBackendPaths.UPLOAD_FILE_PATH + '*',
+      async (route, request) => {
+        /** The search query for this endpoint. */
+        interface Query {
+          /* eslint-disable @typescript-eslint/naming-convention */
+          file_name: string
+          file_id?: backend.FileId | null
+          parent_directory_id?: backend.DirectoryId | null
+          /* eslint-enable @typescript-eslint/naming-convention */
+        }
+        /** HTTP response body for this endpoint. */
+        interface ResponseBody {
+          path: string
+          id: backend.FileId
+          project: NonNullable<unknown> | null
+        }
+        if (route.request().method() === 'POST') {
+          // The type of the body sent by this app is statically known.
+          // eslint-disable-next-line no-restricted-syntax
+          const query = Object.fromEntries(
+            new URL(request.url()).searchParams.entries()
+          ) as unknown as Query
+          const id = query.file_id ?? addFile(query.file_name).id
+          await route.fulfill({
+            json: { path: 's3://foo/bar', id, project: null } satisfies ResponseBody,
+          })
+        } else {
+          await route.fallback()
+        }
+      }
+    )
+    await page.route(BASE_URL + remoteBackendPaths.CREATE_SECRET_PATH + '*', async route => {
+      if (route.request().method() === 'POST') {
+        /** HTTP request body for this endpoint. */
+        interface Body {
+          name: string
+          value: string
+          parentDirectoryId: backend.DirectoryId | null
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const body: Body = route.request().postDataJSON()
+        const asset = addSecret(
+          body.value,
+          body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }
+        )
+        await route.fulfill({ json: asset.id })
+      } else {
+        await route.fallback()
+      }
     })
     await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
       if (route.request().method() === 'POST') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const body: backend.CreateTagRequestBody = route.request().postDataJSON()
         const json: backend.Label = {
-          id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
+          id: backend.TagId(`tag-backend${uniqueString.uniqueString()}`),
           value: backend.LabelName(body.value),
           color: body.color,
         }
@@ -589,10 +646,10 @@ export async function mockApi({ page }: MockParams) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: Body = request.postDataJSON()
           const title = body.projectName
-          const id = backend.ProjectId(`project-${uniqueString.uniqueString()}`)
+          const id = backend.ProjectId(`project-backend${uniqueString.uniqueString()}`)
           const parentId =
             body.parentDirectoryId ??
-            backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+            backend.DirectoryId(`directory-backend${uniqueString.uniqueString()}`)
           // eslint-disable-next-line @typescript-eslint/naming-convention
           const projectState = { type: backend.ProjectState.opened, volume_id: '' }
           addProject(title, {
@@ -642,9 +699,9 @@ export async function mockApi({ page }: MockParams) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: Body = request.postDataJSON()
           const title = body.title
-          const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+          const id = backend.DirectoryId(`directory-backend${uniqueString.uniqueString()}`)
           const parentId =
-            body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+            body.parentId ?? backend.DirectoryId(`directory-backend${uniqueString.uniqueString()}`)
           addDirectory(title, {
             description: null,
             id,
