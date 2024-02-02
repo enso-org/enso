@@ -4,10 +4,10 @@ import * as React from 'react'
 import * as backendModule from '#/services/backend'
 
 import type * as column from '#/components/dashboard/column'
-import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
-import FileNameColumn from '#/components/dashboard/FileNameColumn'
-import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
-import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
+import DirectoryNameColumn from '#/components/dashboard/column/DirectoryNameColumn'
+import FileNameColumn from '#/components/dashboard/column/FileNameColumn'
+import ProjectNameColumn from '#/components/dashboard/column/ProjectNameColumn'
+import SecretNameColumn from '#/components/dashboard/column/SecretNameColumn'
 
 // =================
 // === AssetName ===
