@@ -26,6 +26,13 @@ add_specs suite_builder =
         empty_column = Column.from_vector "Test" []
 
         group_builder.specify "should allow getting specific elements" <|
+            test_column.get 0 . should_equal 1
+            test_column.get 2 . should_equal 5
+            test_column.get 5 . should_equal 6
+            test_column.get 6 . should_equal Nothing
+            empty_column.get 0 -1 . should_equal -1
+
+        group_builder.specify "should allow getting specific elements (with at)" <|
             test_column.at 0 . should_equal 1
             test_column.at 2 . should_equal 5
             test_column.at 5 . should_equal 6
