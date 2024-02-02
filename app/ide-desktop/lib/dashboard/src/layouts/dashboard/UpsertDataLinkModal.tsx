@@ -33,7 +33,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
-  const [state, setState] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
+  const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
   const [isValueSubmittable, setIsValueSubmittable] = React.useState(false)
   const isSubmittable = name !== '' && isValueSubmittable
 
@@ -52,7 +52,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         onSubmit={event => {
           event.preventDefault()
           unsetModal()
-          doCreate(name, state)
+          doCreate(name, value)
         }}
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
@@ -71,8 +71,8 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         <div className="relative">
           <DataLinkInput
             dropdownTitle="Type"
-            value={state}
-            setValue={setState}
+            value={value}
+            setValue={setValue}
             setIsSubmittable={setIsValueSubmittable}
           />
         </div>

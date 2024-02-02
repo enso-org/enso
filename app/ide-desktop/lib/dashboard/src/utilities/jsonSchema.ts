@@ -128,11 +128,14 @@ function constantValueHelper(
       case 'object': {
         const propertiesObject =
           'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
+        const required = new Set(
+          'required' in schema && Array.isArray(schema.required) ? schema.required.map(String) : []
+        )
         const object: Record<string, unknown> = {}
         result = [object]
         for (const [key, child] of Object.entries(propertiesObject)) {
           const childSchema = objectModule.asObject(child)
-          if (childSchema == null) {
+          if (childSchema == null || (partial && !required.has(key))) {
             continue
           }
           const value = constantValue(defs, childSchema, partial)
@@ -383,15 +386,21 @@ export function isMatch(
           const valueObject = value as Record<string, unknown>
           const propertiesObject =
             'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
+          const required = new Set(
+            'required' in schema && Array.isArray(schema.required)
+              ? schema.required.map(String)
+              : []
+          )
           result = Object.entries(propertiesObject).every(kv => {
             // This is SAFE, as it is safely converted to an `object` on the next line.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const [key, childSchema] = kv
             const childSchemaObject = objectModule.asObject(childSchema)
             return (
-              key in valueObject &&
-              childSchemaObject != null &&
-              isMatch(defs, childSchemaObject, valueObject[key], options)
+              (key in valueObject &&
+                childSchemaObject != null &&
+                isMatch(defs, childSchemaObject, valueObject[key], options)) ||
+              (!(key in valueObject) && !required.has(key))
             )
           })
         }

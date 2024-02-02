@@ -237,14 +237,14 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               .map(childSchema => ({ key: k, schema: childSchema }))
           }
         )
-        const stateAsObject: Record<string, NonNullable<unknown> | null> =
-          // This is SAFE, as `state` is an untyped object.
-          // eslint-disable-next-line no-restricted-syntax
-          (object.asObject(value) ?? {}) as Record<string, NonNullable<unknown> | null>
         if (childSubmittability == null) {
+          const valueAsObject: Record<string, NonNullable<unknown> | null> =
+            // This is SAFE, as `value` is an untyped object.
+            // eslint-disable-next-line no-restricted-syntax
+            (object.asObject(value) ?? {}) as Record<string, NonNullable<unknown> | null>
           setChildSubmittability(
             Array.from(propertyDefinitions, childDefinition =>
-              jsonSchema.isMatch(DEFS, childDefinition.schema, stateAsObject[childDefinition.key])
+              jsonSchema.isMatch(DEFS, childDefinition.schema, valueAsObject[childDefinition.key])
             )
           )
         }
@@ -252,38 +252,65 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
             {propertyDefinitions.map((definition, i) => {
               const { key, schema: childSchema } = definition
+              const isOptional = !requiredProperties.includes(key)
               return constantValue(childSchema).length === 1 ? null : (
                 <div key={key} className="flex flex-wrap items-center">
-                  <div className="inline-block w-28 whitespace-nowrap">
+                  <div
+                    className={`inline-block h-6 leading-170 py-px w-28 whitespace-nowrap ${
+                      isOptional ? 'cursor-pointer' : ''
+                    } ${value != null && key in value ? '' : 'opacity-50'}`}
+                    onClick={() => {
+                      if (isOptional) {
+                        setValue(oldValue => {
+                          if (oldValue != null && key in oldValue) {
+                            // This is SAFE, as `value` is an untyped object.
+                            // The removed key is intentionally unused.
+                            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+                            const { [key]: removed, ...newValue } = oldValue as Record<
+                              string,
+                              NonNullable<unknown> | null
+                            >
+                            return newValue
+                          } else {
+                            return { ...oldValue, [key]: constantValue(childSchema, true)[0] }
+                          }
+                        })
+                      }
+                    }}
+                  >
                     {'title' in childSchema ? String(childSchema.title) : key}
                   </div>
-                  <DataLinkInput
-                    readOnly={readOnly}
-                    schema={childSchema}
-                    value={stateAsObject[key] ?? null}
-                    setValue={newValue => {
-                      setValue(oldState =>
-                        typeof oldState === 'object' &&
-                        oldState != null &&
-                        // This is SAFE; but there is no way to tell TypeScript that an object
-                        // has an index signature.
-                        // eslint-disable-next-line no-restricted-syntax
-                        (oldState as Record<string, unknown>)[key] === newValue
-                          ? oldState
-                          : { ...oldState, [key]: newValue }
-                      )
-                    }}
-                    setIsSubmittable={isChildSubmittable => {
-                      setChildSubmittability(oldSubmittability =>
-                        Array.from(propertyDefinitions, (childDefinition, j) =>
-                          j === i
-                            ? isChildSubmittable || !requiredProperties.includes(key)
-                            : oldSubmittability?.[j] ??
-                              constantValue(childDefinition.schema).length === 1
+                  {value != null && key in value && (
+                    <DataLinkInput
+                      readOnly={readOnly}
+                      schema={childSchema}
+                      // This is SAFE, as `value` is an untyped object.
+                      // eslint-disable-next-line no-restricted-syntax
+                      value={(value as Record<string, unknown>)[key] ?? null}
+                      setValue={newValue => {
+                        setValue(oldValue =>
+                          typeof oldValue === 'object' &&
+                          oldValue != null &&
+                          // This is SAFE; but there is no way to tell TypeScript that an object
+                          // has an index signature.
+                          // eslint-disable-next-line no-restricted-syntax
+                          (oldValue as Record<string, unknown>)[key] === newValue
+                            ? oldValue
+                            : { ...oldValue, [key]: newValue }
                         )
-                      )
-                    }}
-                  />
+                      }}
+                      setIsSubmittable={isChildSubmittable => {
+                        setChildSubmittability(oldSubmittability =>
+                          Array.from(propertyDefinitions, (childDefinition, j) =>
+                            j === i
+                              ? isChildSubmittable || isOptional
+                              : oldSubmittability?.[j] ??
+                                constantValue(childDefinition.schema).length === 1
+                          )
+                        )
+                      }}
+                    />
+                  )}
                 </div>
               )
             })}
