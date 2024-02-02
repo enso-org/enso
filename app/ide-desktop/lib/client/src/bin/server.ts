@@ -117,7 +117,7 @@ export class Server {
                         )
                         resolve()
                     })()
-		}
+                }
             )
         })
     }
