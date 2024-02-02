@@ -141,16 +141,6 @@ export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean
   [ProjectState.closing]: false,
 }
 
-/** A `Project` returned by `updateProject`. */
-export interface UpdatedProject {
-  organizationId: string
-  projectId: ProjectId
-  name: string
-  ami: Ami | null
-  ideVersion: VersionNumber | null
-  engineVersion: VersionNumber | null
-}
-
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project {
   organizationId: string
@@ -288,13 +278,6 @@ export interface SimpleUser {
 export interface UserPermission {
   user: User
   permission: permissions.PermissionAction
-}
-
-/** The type returned from the "update directory" endpoint. */
-export interface UpdatedDirectory {
-  id: DirectoryId
-  parentId: DirectoryId
-  title: string
 }
 
 /** The type returned from the "create directory" endpoint. */

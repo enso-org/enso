@@ -340,7 +340,16 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
     return super.withValue(value)
   }
 
-  async listVersions(): Promise<backendModule.AssetVersions> {}
+  /** List all versions of this asset. Only works for projects and files. */
+  async listVersions(): Promise<backendModule.AssetVersions> {
+    const path = remoteBackendPaths.listAssetVersionsPath(this.value.id)
+    const response = await this.httpGet<backendModule.AssetVersions>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not list versions for '${this.value.title}'.`)
+    } else {
+      return await response.json()
+    }
+  }
 
   /** Set permissions for a user. */
   async setPermissions(body: backendModule.CreatePermissionRequestBody): Promise<void> {
@@ -363,10 +372,10 @@ function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger) {
   return (asset: backendModule.AnyAsset): backendModule.AnySmartAsset => {
     switch (asset.type) {
       case backendModule.AssetType.project: {
-        throw new Error('Not implemented yet: AssetType.project case')
+        return new SmartProject(client, logger, asset)
       }
       case backendModule.AssetType.file: {
-        throw new Error('Not implemented yet: AssetType.file case')
+        return new SmartFile(client, logger, asset)
       }
       case backendModule.AssetType.secret: {
         return new SmartSecret(client, logger, asset)
@@ -429,20 +438,24 @@ class SmartDirectory
     }
   }
 
-  /** Change the name or description of a directory. */
+  /** Change the name, description or parent of a directory. */
   override async update(body: backendModule.UpdateAssetOrDirectoryRequestBody): Promise<this> {
-    const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      id: backendModule.DirectoryId
+      parentId: backendModule.DirectoryId
+      title: string
+    }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
-        ? Promise.resolve(null)
+        ? null
         : super.update({
             description: body.description ?? null,
             parentDirectoryId: body.parentDirectoryId ?? null,
           })
+    const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
     const updateDirectoryRequest =
-      body.title == null
-        ? Promise.resolve(null)
-        : this.httpPut<backendModule.UpdatedDirectory>(path, { title: body.title })
+      body.title == null ? null : this.httpPut<ResponseBody>(path, { title: body.title })
     const [updateAssetResponse, updateDirectoryResponse] = await Promise.allSettled([
       updateAssetRequest,
       updateDirectoryRequest,
@@ -807,7 +820,60 @@ class SmartProject
     }
   }
 
-  override async update(body: backendModule.UpdateAssetOrProjectRequestBody): Promise<this> {}
+  /** Change the name, description, AMI, or parent of a project. */
+  override async update(body: backendModule.UpdateAssetOrProjectRequestBody): Promise<this> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      organizationId: string
+      projectId: backendModule.ProjectId
+      name: string
+      ami: backendModule.Ami | null
+      ideVersion: backendModule.VersionNumber | null
+      engineVersion: backendModule.VersionNumber | null
+    }
+    const updateAssetRequest =
+      body.description == null && body.parentDirectoryId == null
+        ? null
+        : super.update({
+            description: body.description ?? null,
+            parentDirectoryId: body.parentDirectoryId ?? null,
+          })
+    const path = remoteBackendPaths.projectUpdatePath(this.value.id)
+    const updateProjectRequest =
+      body.projectName == null && body.ami == null && body.ideVersion == null
+        ? null
+        : this.httpPut<ResponseBody>(path, {
+            projectName: body.projectName ?? null,
+            ami: body.ami ?? null,
+            ideVersion: body.ideVersion ?? null,
+          })
+    const [updateAssetResponse, updateProjectResponse] = await Promise.allSettled([
+      updateAssetRequest,
+      updateProjectRequest,
+    ])
+    if (
+      updateAssetResponse.status === 'rejected' ||
+      updateProjectResponse.status === 'rejected' ||
+      (updateProjectResponse.value != null && !responseIsSuccessful(updateProjectResponse.value))
+    ) {
+      return this.throw(`Could not update folder '${this.value.title}'.`)
+    } else {
+      let newValue = this.value
+      if (updateProjectResponse.value != null) {
+        const responseBody = await updateProjectResponse.value.json()
+        if (responseBody.name !== newValue.title) {
+          newValue = object.merge(newValue, { title: responseBody.name })
+        }
+      }
+      if (body.description != null || body.parentDirectoryId != null) {
+        newValue = object.merge(newValue, {
+          ...(body.description == null ? {} : { description: body.description }),
+          ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+        })
+      }
+      return newValue === this.value ? this : this.withValue(newValue)
+    }
+  }
 
   /** Close a project. */
   async close(): Promise<void> {
@@ -823,7 +889,42 @@ class SmartProject
 
 /** A smart wrapper around a {@link backendModule.FileAsset}. */
 class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendModule.SmartFile {
-  override update(body: backendModule.UpdateAssetRequestBody): Promise<this> {}
+  /** Change the name or description of a file. */
+  override async update(body: backendModule.UpdateAssetOrFileRequestBody): Promise<this> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      path: string
+      id: backendModule.FileId
+    }
+    const updateAssetRequest =
+      body.description == null && body.parentDirectoryId == null
+        ? null
+        : super.update({
+            description: body.description ?? null,
+            parentDirectoryId: body.parentDirectoryId ?? null,
+          })
+    const paramsString =
+      body.file == null
+        ? ''
+        : // eslint-disable-next-line @typescript-eslint/naming-convention
+          new URLSearchParams({ file_name: body.file.name, file_id: this.value.id }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+    const updateFileRequest =
+      body.file == null ? null : this.httpPostBinary<ResponseBody>(path, body.file)
+    const [updateAssetResponse, updateFileResponse] = await Promise.allSettled([
+      updateAssetRequest,
+      updateFileRequest,
+    ])
+    if (
+      updateAssetResponse.status === 'rejected' ||
+      updateFileResponse.status === 'rejected' ||
+      (updateFileResponse.value != null && !responseIsSuccessful(updateFileResponse.value))
+    ) {
+      return this.throw(`Could not update folder '${this.value.title}'.`)
+    } else {
+      return updateAssetResponse.value == null ? this : updateAssetResponse.value
+    }
+  }
 
   /** Return file details. */
   async getDetails(): Promise<backendModule.FileDetails> {
@@ -855,16 +956,16 @@ class SmartSecret
 
   /** Change the value or description of a secret environment variable. */
   override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<this> {
-    const path = remoteBackendPaths.updateSecretPath(this.value.id)
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
-        ? Promise.resolve(null)
+        ? null
         : super.update({
             description: body.description ?? null,
             parentDirectoryId: body.parentDirectoryId ?? null,
           })
+    const path = remoteBackendPaths.updateSecretPath(this.value.id)
     const updateSecretRequest =
-      body.value == null ? Promise.resolve(null) : this.httpPut(path, { value: body.value })
+      body.value == null ? null : this.httpPut(path, { value: body.value })
     const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
       updateAssetRequest,
       updateSecretRequest,
