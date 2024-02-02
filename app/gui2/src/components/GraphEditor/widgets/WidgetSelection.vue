@@ -89,10 +89,10 @@ const selectedTag = computed(() => {
     const currentExpression = removeSurroundingParens(WidgetInput.valueRepr(props.input))
     if (!currentExpression) return undefined
     // We need to find the tag that matches the (beginning of) current expression.
-    // We sort tags to avoid matching partial prefixes.
+    // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }
