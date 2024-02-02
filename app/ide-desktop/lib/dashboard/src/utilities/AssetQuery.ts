@@ -1,9 +1,19 @@
 /** @file Parsing and representation of the search query. */
+import * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as fileInfo from '#/utilities/fileInfo'
+import * as permissions from '#/utilities/permissions'
+import * as string from '#/utilities/string'
+
 import * as array from './array'
 
 // =====================
 // === Regex Helpers ===
 // =====================
+
+/** A cache of {@link RegExp}s constructed from globs. */
+const GLOB_CACHE: Record<string, RegExp> = {}
 
 // Control characters must be handled, in order to follow the JSON spec.
 // eslint-disable-next-line no-control-regex
@@ -461,7 +471,109 @@ export default class AssetQuery {
     }
     return segments.join(' ')
   }
+
+  /** Return whether the given {@link AssetTreeNode} matches this query. */
+  isMatch(node: AssetTreeNode) {
+    const assetType =
+      node.item.value.type === backendModule.AssetType.directory
+        ? 'folder'
+        : node.item.value.type === backendModule.AssetType.secret
+        ? 'connector'
+        : String(node.item.value.type)
+    const assetExtension =
+      node.item.value.type !== backendModule.AssetType.file
+        ? null
+        : fileInfo.fileExtension(node.item.value.title).toLowerCase()
+    const assetModifiedAt = new Date(node.item.value.modifiedAt)
+    const labels: string[] = node.item.value.labels ?? []
+    const lowercaseName = node.item.value.title.toLowerCase()
+    const lowercaseDescription = node.item.value.description?.toLowerCase() ?? ''
+    const owners =
+      node.item.value.permissions
+        ?.filter(permission => permission.permission === permissions.PermissionAction.own)
+        .map(owner => owner.user.user_name) ?? []
+    const globMatch = (glob: string, match: string) => {
+      const regex = (GLOB_CACHE[glob] =
+        GLOB_CACHE[glob] ??
+        new RegExp('^' + string.regexEscape(glob).replace(/(?:\\\*)+/g, '.*') + '$', 'i'))
+      return regex.test(match)
+    }
+    const isAbsent = (type: string) => {
+      switch (type) {
+        case 'label':
+        case 'labels': {
+          return labels.length === 0
+        }
+        case 'name': {
+          // Should never be true, but handle it just in case.
+          return lowercaseName === ''
+        }
+        case 'description': {
+          return lowercaseDescription === ''
+        }
+        case 'extension': {
+          // Should never be true, but handle it just in case.
+          return assetExtension === ''
+        }
+      }
+      // Things like `no:name` and `no:owner` are never true.
+      return false
+    }
+    const parseDate = (date: string) => {
+      const lowercase = date.toLowerCase()
+      switch (lowercase) {
+        case 'today': {
+          return new Date()
+        }
+      }
+      return new Date(date)
+    }
+    const matchesDate = (date: string) => {
+      const parsed = parseDate(date)
+      return (
+        parsed.getFullYear() === assetModifiedAt.getFullYear() &&
+        parsed.getMonth() === assetModifiedAt.getMonth() &&
+        parsed.getDate() === assetModifiedAt.getDate()
+      )
+    }
+    const isEmpty = (values: string[]) =>
+      values.length === 0 || (values.length === 1 && values[0] === '')
+    const filterTag = (
+      positive: string[][],
+      negative: string[][],
+      predicate: (value: string) => boolean
+    ) =>
+      positive.every(values => isEmpty(values) || values.some(predicate)) &&
+      negative.every(values => !values.some(predicate))
+    return (
+      filterTag(this.nos, this.negativeNos, no => isAbsent(no.toLowerCase())) &&
+      filterTag(this.keywords, this.negativeKeywords, keyword =>
+        lowercaseName.includes(keyword.toLowerCase())
+      ) &&
+      filterTag(this.names, this.negativeNames, name => globMatch(name, lowercaseName)) &&
+      filterTag(this.labels, this.negativeLabels, label =>
+        labels.some(assetLabel => globMatch(label, assetLabel))
+      ) &&
+      filterTag(this.types, this.negativeTypes, type => type === assetType) &&
+      filterTag(
+        this.extensions,
+        this.negativeExtensions,
+        extension => extension.toLowerCase() === assetExtension
+      ) &&
+      filterTag(this.descriptions, this.negativeDescriptions, description =>
+        lowercaseDescription.includes(description.toLowerCase())
+      ) &&
+      filterTag(this.modifieds, this.negativeModifieds, matchesDate) &&
+      filterTag(this.owners, this.negativeOwners, owner =>
+        owners.some(assetOwner => globMatch(owner, assetOwner))
+      )
+    )
+  }
 }
+
+// ===================
+// === toggleLabel ===
+// ===================
 
 /** Tries to cycle the label between:
  * - not present

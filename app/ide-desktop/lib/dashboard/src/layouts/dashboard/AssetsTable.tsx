@@ -48,7 +48,6 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import SortDirection from '#/utilities/SortDirection'
-import * as string from '#/utilities/string'
 import Visibility from '#/utilities/visibility'
 
 // ============================
@@ -291,109 +290,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   const nodeMapRef = React.useRef<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>(
     new Map<backendModule.AssetId, AssetTreeNode>()
   )
-  const filter = React.useMemo(() => {
-    const globCache: Record<string, RegExp> = {}
-    if (/^\s*$/.test(query.query)) {
-      return null
-    } else {
-      return (node: AssetTreeNode) => {
-        const assetType =
-          node.item.value.type === backendModule.AssetType.directory
-            ? 'folder'
-            : node.item.value.type === backendModule.AssetType.secret
-            ? 'connector'
-            : String(node.item.value.type)
-        const assetExtension =
-          node.item.value.type !== backendModule.AssetType.file
-            ? null
-            : fileInfo.fileExtension(node.item.value.title).toLowerCase()
-        const assetModifiedAt = new Date(node.item.value.modifiedAt)
-        const labels: string[] = node.item.value.labels ?? []
-        const lowercaseName = node.item.value.title.toLowerCase()
-        const lowercaseDescription = node.item.value.description?.toLowerCase() ?? ''
-        const owners =
-          node.item.value.permissions
-            ?.filter(permission => permission.permission === permissions.PermissionAction.own)
-            .map(owner => owner.user.user_name) ?? []
-        const globMatch = (glob: string, match: string) => {
-          const regex = (globCache[glob] =
-            globCache[glob] ??
-            new RegExp('^' + string.regexEscape(glob).replace(/(?:\\\*)+/g, '.*') + '$', 'i'))
-          return regex.test(match)
-        }
-        const isAbsent = (type: string) => {
-          switch (type) {
-            case 'label':
-            case 'labels': {
-              return labels.length === 0
-            }
-            case 'name': {
-              // Should never be true, but handle it just in case.
-              return lowercaseName === ''
-            }
-            case 'description': {
-              return lowercaseDescription === ''
-            }
-            case 'extension': {
-              // Should never be true, but handle it just in case.
-              return assetExtension === ''
-            }
-          }
-          // Things like `no:name` and `no:owner` are never true.
-          return false
-        }
-        const parseDate = (date: string) => {
-          const lowercase = date.toLowerCase()
-          switch (lowercase) {
-            case 'today': {
-              return new Date()
-            }
-          }
-          return new Date(date)
-        }
-        const matchesDate = (date: string) => {
-          const parsed = parseDate(date)
-          return (
-            parsed.getFullYear() === assetModifiedAt.getFullYear() &&
-            parsed.getMonth() === assetModifiedAt.getMonth() &&
-            parsed.getDate() === assetModifiedAt.getDate()
-          )
-        }
-        const isEmpty = (values: string[]) =>
-          values.length === 0 || (values.length === 1 && values[0] === '')
-        const filterTag = (
-          positive: string[][],
-          negative: string[][],
-          predicate: (value: string) => boolean
-        ) =>
-          positive.every(values => isEmpty(values) || values.some(predicate)) &&
-          negative.every(values => !values.some(predicate))
-        return (
-          filterTag(query.nos, query.negativeNos, no => isAbsent(no.toLowerCase())) &&
-          filterTag(query.keywords, query.negativeKeywords, keyword =>
-            lowercaseName.includes(keyword.toLowerCase())
-          ) &&
-          filterTag(query.names, query.negativeNames, name => globMatch(name, lowercaseName)) &&
-          filterTag(query.labels, query.negativeLabels, label =>
-            labels.some(assetLabel => globMatch(label, assetLabel))
-          ) &&
-          filterTag(query.types, query.negativeTypes, type => type === assetType) &&
-          filterTag(
-            query.extensions,
-            query.negativeExtensions,
-            extension => extension.toLowerCase() === assetExtension
-          ) &&
-          filterTag(query.descriptions, query.negativeDescriptions, description =>
-            lowercaseDescription.includes(description.toLowerCase())
-          ) &&
-          filterTag(query.modifieds, query.negativeModifieds, matchesDate) &&
-          filterTag(query.owners, query.negativeOwners, owner =>
-            owners.some(assetOwner => globMatch(owner, assetOwner))
-          )
-        )
-      }
-    }
-  }, [query])
+  const filter = React.useMemo(
+    () => (/^\s*$/.test(query.query) ? null : query.isMatch.bind(query)),
+    [query]
+  )
   const displayItems = React.useMemo(() => {
     if (sortColumn == null || sortDirection == null) {
       return assetTree.preorderTraversal()
