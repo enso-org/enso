@@ -119,7 +119,6 @@ const interactionBindingsHandler = interactionBindings.handler({
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<NodeId>): Environment {
   const nodeRects = graphStore.visibleNodeAreas
-  console.log(nodeRects)
   const selectedNodeRects = [...nodeIds]
     .map((id) => graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
@@ -425,7 +424,6 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
         metadata,
         requiredImports,
       )
-      console.log(createdNode)
       if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
