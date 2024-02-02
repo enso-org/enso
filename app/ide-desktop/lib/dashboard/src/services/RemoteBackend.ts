@@ -27,6 +27,8 @@ const STATUS_SUCCESS_FIRST = 200
 const STATUS_SUCCESS_LAST = 299
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
+/** The interval between requests checking whether the IDE is ready. */
+const CHECK_STATUS_INTERVAL_MS = 5000
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
@@ -58,43 +60,6 @@ function overwriteMaterialize<T>(
     const promise = materialize()
     smartAsset.materialize = () => promise
     return promise
-  }
-}
-
-// ===============================
-// === waitUntilProjectIsReady ===
-// ===============================
-
-/** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL_MS = 5000
-
-// FIXME: move to `SmartProject`
-/** Return a {@link Promise} that resolves only when a project is ready to open. */
-export async function waitUntilProjectIsReady(
-  backend: Backend,
-  id: backendModule.ProjectId,
-  title: string,
-  abortController: AbortController = new AbortController()
-) {
-  if (!(backend instanceof RemoteBackend)) {
-    // Ignored.
-  } else {
-    let project = await backend.getProjectDetails(id, title)
-    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
-      await backend.openProject(id, null, title)
-    }
-    let nextCheckTimestamp = 0
-    while (
-      !abortController.signal.aborted &&
-      project.state.type !== backendModule.ProjectState.opened
-    ) {
-      await new Promise<void>(resolve => {
-        const delayMs = nextCheckTimestamp - Number(new Date())
-        setTimeout(resolve, Math.max(0, delayMs))
-      })
-      nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-      project = await backend.getProjectDetails(id, title)
-    }
   }
 }
 
