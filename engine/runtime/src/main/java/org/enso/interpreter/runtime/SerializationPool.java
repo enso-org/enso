@@ -30,8 +30,7 @@ final class SerializationPool {
    *
    * <p>This map is accessed concurrently.
    */
-  private final Map<QualifiedName, Future<scala.Boolean>> isWaitingForSerialization =
-      new ConcurrentHashMap<>();
+  private final Map<QualifiedName, Future<?>> isWaitingForSerialization = new ConcurrentHashMap<>();
 
   /** The thread pool that handles serialization. */
   private final ExecutorService pool;
@@ -144,8 +143,7 @@ final class SerializationPool {
     }
   }
 
-  Future<scala.Boolean> submitTask(
-      Callable<scala.Boolean> task, boolean useThreadPool, QualifiedName key) {
+  <T> Future<T> submitTask(Callable<T> task, boolean useThreadPool, QualifiedName key) {
     if (useThreadPool) {
       synchronized (isWaitingForSerialization) {
         var future = pool.submit(task);

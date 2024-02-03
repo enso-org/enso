@@ -1,15 +1,12 @@
 package org.enso.interpreter.runtime
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.Compiler
-import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.CompilationStage
 import org.enso.interpreter.caches.Cache
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.caches.ModuleCache
@@ -286,65 +283,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
           )
           None
       }
-    }
-  }
-
-  /** Create the task that serializes the provided module IR when it is run.
-    *
-    * @param cache the cache manager for the module being serialized
-    * @param ir the IR for the module being serialized
-    * @param stage the compilation stage of the module
-    * @param name the name of the module being serialized
-    * @param source the source of the module being serialized
-    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
-    * @return the task that serialies the provided `ir`
-    */
-  def doSerializeModule(
-    cache: Cache[ModuleCache.CachedModule, ModuleCache.Metadata],
-    ir: IRModule,
-    stage: CompilationStage,
-    name: QualifiedName,
-    source: Source,
-    useGlobalCacheLocations: Boolean
-  ): Callable[Boolean] = { () =>
-    pool.waitWhileSerializing(name)
-
-    context.logSerializationManager(
-      debugLogLevel,
-      "Running serialization for module [{0}].",
-      name
-    )
-    pool.startSerializing(name)
-    try {
-      val fixedStage =
-        if (stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)) {
-          CompilationStage.AFTER_STATIC_PASSES
-        } else stage
-      context
-        .saveCache(
-          cache,
-          new ModuleCache.CachedModule(ir, fixedStage, source),
-          useGlobalCacheLocations
-        )
-        .map(_ => true)
-        .orElse(false)
-    } catch {
-      case e: NotSerializableException =>
-        context.logSerializationManager(
-          Level.SEVERE,
-          s"Could not serialize module [$name].",
-          e
-        )
-        throw e
-      case e: Throwable =>
-        context.logSerializationManager(
-          Level.SEVERE,
-          s"Serialization of module `$name` failed: ${e.getMessage}`",
-          e
-        )
-        throw e
-    } finally {
-      pool.finishSerializing(name)
     }
   }
 

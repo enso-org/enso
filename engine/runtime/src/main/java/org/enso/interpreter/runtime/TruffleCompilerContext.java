@@ -298,16 +298,61 @@ final class TruffleCompilerContext implements CompilerContext {
       return CompletableFuture.failedFuture(ex);
     }
     var task =
-        (Callable)
-            serializationManager.doSerializeModule(
-                ((Module) module).getCache(),
-                duplicatedIr,
-                module.getCompilationStage(),
-                module.getName(),
-                src,
+        doSerializeModule(
+            ((Module) module).getCache(),
+            duplicatedIr,
+            module.getCompilationStage(),
+            module.getName(),
+            src,
+            useGlobalCacheLocations);
+    return serializationManager.getPool().submitTask(task, useThreadPool, module.getName());
+  }
+
+  /**
+   * Create the task that serializes the provided module IR when it is run.
+   *
+   * @param cache the cache manager for the module being serialized
+   * @param ir the IR for the module being serialized
+   * @param stage the compilation stage of the module
+   * @param name the name of the module being serialized
+   * @param source the source of the module being serialized
+   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+   * @return the task that serialies the provided `ir`
+   */
+  private Callable<Boolean> doSerializeModule(
+      Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache,
+      org.enso.compiler.core.ir.Module ir,
+      CompilationStage stage,
+      QualifiedName name,
+      Source source,
+      boolean useGlobalCacheLocations) {
+    return () -> {
+      var pool = serializationManager.getPool();
+      pool.waitWhileSerializing(name);
+
+      logSerializationManager(Level.FINE, "Running serialization for module [{0}].", name);
+      pool.startSerializing(name);
+      try {
+        var fixedStage =
+            stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)
+                ? CompilationStage.AFTER_STATIC_PASSES
+                : stage;
+        var optionallySaved =
+            saveCache(
+                cache,
+                new ModuleCache.CachedModule(ir, fixedStage, source),
                 useGlobalCacheLocations);
-    return (Future<Boolean>)
-        serializationManager.getPool().submitTask(task, useThreadPool, module.getName());
+        return optionallySaved.isPresent();
+      } catch (Throwable e) {
+        logSerializationManager(
+            Level.SEVERE,
+            "Serialization of module `" + name + "` failed: " + e.getMessage() + "`",
+            e);
+        throw e;
+      } finally {
+        pool.finishSerializing(name);
+      }
+    };
   }
 
   private final Map<LibraryName, MapToBindings> known = new HashMap<>();
