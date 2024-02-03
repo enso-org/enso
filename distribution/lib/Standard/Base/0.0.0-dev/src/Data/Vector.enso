@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -26,7 +25,7 @@ import project.Panic.Panic
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
+from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 
@@ -364,10 +363,7 @@ type Vector a
              ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition start=0 =
-        self_len = self.length
-        check_start_valid start self_len used_start->
-            predicate = unify_condition_predicate_or_element condition
-            used_start.up_to self.length . find if_missing=Nothing (i-> predicate (self.at i))
+        Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
        Returns the last index of an element in the vector.
@@ -830,14 +826,10 @@ type Vector a
             ['a', 'b', 'c'].insert item='X' == ['a', 'b', 'c', 'X']
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing =
-        self_len = self.length
-        used_index = if at < 0 then self_len + at else at
-        if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
-            if used_index == self_len then self + [item] else
-                if used_index == 0 then [item] + self else
-                    Vector.insert_builtin self used_index [item]
+        Array_Like_Helpers.insert self at item
 
     ## PRIVATE
+       TODO move to Array_Like_Helpers
     insert_builtin vec at values = @Builtin_Method("Vector.insert_builtin")
 
     ## GROUP Selections
@@ -849,12 +841,10 @@ type Vector a
          end.
     remove : Integer -> Vector
     remove self at=-1 =
-        self_len = self.length
-        used_index = if at < 0 then self_len + at else at
-        if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
-            Vector.remove_builtin self used_index
+        Array_Like_Helpers.remove self at
 
     ## PRIVATE
+       TODO I think this shall be moved to Array_Like_Helpers
     remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
     ## GROUP Calculations
@@ -905,16 +895,8 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) = case range of
-        ## We are using a specialized implementation for `take Sample`, because
-           the default implementation (which needs to be generic for any
-           collection) generates a random set of indices and then selects these
-           indices, but we can sample the vector directly.
-        Index_Sub_Range.Sample count seed ->
-            rng = Random.new_generator seed
-            rng.items self count
-        _ ->
-            take_helper self.length (self.at _) self.slice (slice_ranges self) range
+    take self range=(Index_Sub_Range.First 1) =
+        Array_Like_Helpers.take self range
 
     ## ALIAS skip
        GROUP Selections
@@ -929,7 +911,7 @@ type Vector a
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) =
-        drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+        Array_Like_Helpers.drop self range
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
@@ -1123,11 +1105,7 @@ type Vector a
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
-        comps = case on == Nothing of
-            True -> self.map it-> Comparable.from it
-            False -> self.map it-> Comparable.from (on it)
-        compare_funcs = comps.map (it-> it.compare)
-        self.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
+        Array_Like_Helpers.sort self order on by on_incomparable
 
     ## GROUP Selections
        ICON preparation
@@ -1154,14 +1132,7 @@ type Vector a
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) =
-        builder = Vector.new_builder
-        result = self.fold Map.empty existing->
-            item->
-                key = on item
-                if (existing.get key False) then existing else
-                    builder.append item
-                    existing.insert key True
-        if result.is_error then result else builder.to_vector
+        Array_Like_Helpers.distinct self on
 
     ## Returns the vector as a `Vector`.
     to_vector : Vector
@@ -1400,39 +1371,6 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The vector is empty."
-
-## PRIVATE
-   Creates a new vector where for each range, a corresponding section of the
-   source vector is added to the result.
-
-   Assumes that the ranges have been already bounds-checked (for example by
-   passing them through `resolve_ranges`).
-slice_ranges vector ranges =
-    if ranges.length == 0 then [] else
-        if ranges.length != 1 then slice_many_ranges vector ranges else
-            case ranges.first of
-                _ : Integer -> [vector.at ranges.first]
-                Range.Between start end step -> case step == 1 of
-                    True -> vector.slice start end
-                    False -> slice_many_ranges vector ranges
-
-## PRIVATE
-   See `slice_ranges`.
-slice_many_ranges vector ranges =
-    new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
-        _ : Integer -> acc+1
-        _ : Range -> acc+descriptor.length
-    builder = Vector.new_builder new_length
-    ranges.each descriptor-> case descriptor of
-        _ : Integer ->
-            builder.append (vector.at descriptor)
-        Range.Between start end step -> case step == 1 of
-            True ->
-                builder.append_vector_range vector start end
-            False ->
-                descriptor.each ix->
-                    builder.append (vector.at ix)
-    builder.to_vector
 
 ## PRIVATE
 check_start_valid start length function =
