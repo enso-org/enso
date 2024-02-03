@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime;
 
+import static org.enso.interpreter.util.ScalaConversions.cons;
+import static org.enso.interpreter.util.ScalaConversions.nil;
+
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
@@ -237,9 +240,16 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
-    Object res =
-        serializationManager.serializeLibrary(compiler, libraryName, useGlobalCacheLocations);
-    return (Future<Boolean>) res;
+    logSerializationManager(Level.INFO, "Requesting serialization for library [{0}].", libraryName);
+
+    var task =
+        (Callable)
+            serializationManager.doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+
+    return (Future<Boolean>)
+        serializationManager
+            .getPool()
+            .submitTask(task, isCreateThreadAllowed(), toQualifiedName(libraryName));
   }
 
   /**
@@ -535,4 +545,9 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   private static void emitIOException() throws IOException {}
+
+  private static QualifiedName toQualifiedName(LibraryName libraryName) {
+    var namespace = cons(libraryName.namespace(), nil());
+    return new QualifiedName(namespace, libraryName.name());
+  }
 }

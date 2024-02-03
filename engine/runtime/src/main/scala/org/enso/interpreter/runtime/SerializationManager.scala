@@ -17,7 +17,7 @@ import org.enso.interpreter.caches.SuggestionsCache
 
 import java.io.NotSerializableException
 import java.util
-import java.util.concurrent.{Callable, Future}
+import java.util.concurrent.Callable
 import java.util.logging.Level
 
 import scala.jdk.OptionConverters.RichOptional
@@ -46,28 +46,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 
   // === Interface ============================================================
 
-  def serializeLibrary(
-    compiler: Compiler,
-    libraryName: LibraryName,
-    useGlobalCacheLocations: Boolean
-  ): Future[Boolean] = {
-    context.logSerializationManager(
-      Level.INFO,
-      "Requesting serialization for library [{0}].",
-      libraryName
-    )
-
-    val task: Callable[Boolean] =
-      doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations)
-
-    pool.submitTask(
-      task,
-      context.isCreateThreadAllowed,
-      libraryName.toQualifiedName
-    )
-  }
-
-  private def doSerializeLibrary(
+  def doSerializeLibrary(
     compiler: Compiler,
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
