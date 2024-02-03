@@ -17,18 +17,9 @@ import org.enso.interpreter.caches.SuggestionsCache
 
 import java.io.NotSerializableException
 import java.util
-import java.util.concurrent.{
-  Callable,
-  CompletableFuture,
-  ConcurrentHashMap,
-  Future,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
-  TimeUnit
-}
+import java.util.concurrent.{Callable, Future}
 import java.util.logging.Level
 
-import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 import scala.jdk.CollectionConverters._
 
@@ -43,32 +34,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   /** The debug logging level. */
   private val debugLogLevel = Level.FINE
 
-  /** A set of the modules that are currently being serialized.
-    *
-    * This set is accessed concurrently. This is safe as it is backed by a
-    * [[ConcurrentHashMap]] and is wrapped with the scala [[mutable.Set]]
-    * interface.
-    */
-  private val isSerializing: mutable.Set[QualifiedName] = buildConcurrentHashSet
-
-  /** A map of the modules awaiting serialization to their associated tasks
-    *
-    * This map is accessed concurrently.
-    */
-  private val isWaitingForSerialization =
-    collection.concurrent.TrieMap[QualifiedName, Future[Boolean]]()
-
-  /** The thread pool that handles serialization. */
-  private val pool: ThreadPoolExecutor = new ThreadPoolExecutor(
-    SerializationManager.startingThreadCount,
-    SerializationManager.maximumThreadCount,
-    SerializationManager.threadKeepalive,
-    TimeUnit.SECONDS,
-    new LinkedBlockingDeque[Runnable](),
-    (runnable: Runnable) => {
-      context.createSystemThread(runnable)
-    }
-  )
+  private val pool = new SerializationPool(context)
 
   // Make sure it is started to avoid races with language shutdown with low job
   // count.
@@ -127,25 +93,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       module.getSource,
       useGlobalCacheLocations
     )
-    if (useThreadPool) {
-      isWaitingForSerialization.synchronized {
-        val future = pool.submit(task)
-        isWaitingForSerialization.put(module.getName, future)
-        future
-      }
-    } else {
-      try {
-        CompletableFuture.completedFuture(task.call())
-      } catch {
-        case e: Throwable =>
-          context.logSerializationManager(
-            debugLogLevel,
-            s"Serialization task failed in module [${module.getName}].",
-            e
-          )
-          CompletableFuture.completedFuture(false)
-      }
-    }
+    pool.submitTask(task, useThreadPool, module.getName)
   }
 
   def serializeLibrary(
@@ -161,25 +109,12 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 
     val task: Callable[Boolean] =
       doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations)
-    if (context.isCreateThreadAllowed) {
-      isWaitingForSerialization.synchronized {
-        val future = pool.submit(task)
-        isWaitingForSerialization.put(libraryName.toQualifiedName, future)
-        future
-      }
-    } else {
-      try {
-        CompletableFuture.completedFuture(task.call())
-      } catch {
-        case e: Throwable =>
-          context.logSerializationManager(
-            debugLogLevel,
-            s"Serialization task failed for library [$libraryName].",
-            e
-          )
-          CompletableFuture.completedFuture(false)
-      }
-    }
+
+    pool.submitTask(
+      task,
+      context.isCreateThreadAllowed,
+      libraryName.toQualifiedName
+    )
   }
 
   private def doSerializeLibrary(
@@ -187,16 +122,14 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = () => {
-    while (isSerializingLibrary(libraryName)) {
-      Thread.sleep(100)
-    }
+    pool.waitWhileSerializing(libraryName.toQualifiedName)
 
     context.logSerializationManager(
       debugLogLevel,
       "Running serialization for bindings [{0}].",
       libraryName
     )
-    startSerializing(libraryName.toQualifiedName)
+    pool.startSerializing(libraryName.toQualifiedName)
     val bindingsCache = new ImportExportCache.CachedBindings(
       libraryName,
       new ImportExportCache.MapToBindings(
@@ -253,7 +186,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 
       result
     } finally {
-      finishSerializing(libraryName.toQualifiedName)
+      pool.finishSerializing(libraryName.toQualifiedName)
     }
   }
 
@@ -321,13 +254,11 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   def deserializeSuggestions(
     libraryName: LibraryName
   ): Option[SuggestionsCache.CachedSuggestions] = {
-    if (isWaitingForSerialization(libraryName)) {
-      abort(libraryName)
+    if (pool.isWaitingForSerialization(libraryName.toQualifiedName)) {
+      pool.abort(libraryName.toQualifiedName)
       None
     } else {
-      while (isSerializingLibrary(libraryName)) {
-        Thread.sleep(100)
-      }
+      pool.waitWhileSerializing(libraryName.toQualifiedName)
       val cache = SuggestionsCache.create(libraryName)
       context.loadCache(cache).toScala match {
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
@@ -351,13 +282,11 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   def deserializeLibraryBindings(
     libraryName: LibraryName
   ): Option[ImportExportCache.CachedBindings] = {
-    if (isWaitingForSerialization(libraryName)) {
-      abort(libraryName)
+    if (pool.isWaitingForSerialization(libraryName.toQualifiedName)) {
+      pool.abort(libraryName.toQualifiedName)
       None
     } else {
-      while (isSerializingLibrary(libraryName)) {
-        Thread.sleep(100)
-      }
+      pool.waitWhileSerializing(libraryName.toQualifiedName)
       val cache = ImportExportCache.create(libraryName)
       context.loadCache(cache).toScala match {
         case result @ Some(_: ImportExportCache.CachedBindings) =>
@@ -396,13 +325,11 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     module: Module
   ): Option[Boolean] = {
     compiler.getClass()
-    if (isWaitingForSerialization(module)) {
-      abort(module)
+    if (pool.isWaitingForSerialization(module.getName)) {
+      pool.abort(module)
       None
     } else {
-      while (isSerializingModule(module.getName)) {
-        Thread.sleep(100)
-      }
+      pool.waitWhileSerializing(module.getName)
 
       context.loadCache(getCache(module)).toScala match {
         case Some(loadedCache) =>
@@ -432,140 +359,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     }
   }
 
-  /** Checks if the provided module is in the process of being serialized.
-    *
-    * @param module the module to check
-    * @return `true` if `module` is currently being serialized, `false`
-    *         otherwise
-    */
-  private def isSerializingModule(module: QualifiedName): Boolean = {
-    isSerializing.contains(module)
-  }
-
-  private def isSerializingLibrary(library: LibraryName): Boolean = {
-    isSerializing.contains(library.toQualifiedName)
-  }
-
-  private def isWaitingForSerialization(name: QualifiedName): Boolean = {
-    isWaitingForSerialization.synchronized {
-      isWaitingForSerialization.contains(name)
-    }
-  }
-
-  /** Checks if the provided module is waiting for serialization.
-    *
-    * @param module the module to check
-    * @return `true` if `module` is waiting for serialization, `false` otherwise
-    */
-  private def isWaitingForSerialization(
-    module: Module
-  ): Boolean = {
-    isWaitingForSerialization(module.getName)
-  }
-
-  /** Checks if the provided library's bindings are waiting for serialization.
-    *
-    * @param library the library to check
-    * @return `true` if `library` is waiting for serialization, `false` otherwise
-    */
-  private def isWaitingForSerialization(library: LibraryName): Boolean = {
-    isWaitingForSerialization(library.toQualifiedName)
-  }
-
-  private def abort(name: QualifiedName): Boolean = {
-    isWaitingForSerialization.synchronized {
-      if (isWaitingForSerialization(name)) {
-        isWaitingForSerialization
-          .remove(name)
-          .map(_.cancel(false))
-          .getOrElse(false)
-      } else false
-    }
-  }
-
-  /** Requests that serialization of `module` be aborted.
-    *
-    * If the module is already in the process of serialization it will not be
-    * aborted.
-    *
-    * @param module the module for which to abort serialization
-    * @return `true` if serialization for `module` was aborted, `false`
-    *         otherwise
-    */
-  private def abort(module: Module): Boolean = {
-    abort(module.getName)
-  }
-
-  /** Requests that serialization of library's bindings be aborted.
-    *
-    * If the library is already in the process of serialization it will not be
-    * aborted.
-    *
-    * @param library the library for which to abort serialization
-    * @return `true` if serialization for `library` was aborted, `false`
-    *         otherwise
-    */
-  private def abort(library: LibraryName): Boolean = {
-    abort(library.toQualifiedName)
-  }
-
-  /** Performs shutdown actions for the serialization manager.
-    *
-    * @param waitForPendingJobCompletion whether or not shutdown should wait for
-    *                                    pending serialization jobs
-    */
-  def shutdown(waitForPendingJobCompletion: Boolean = false): Unit = {
-    if (!pool.isShutdown) {
-      if (waitForPendingJobCompletion && this.hasJobsRemaining) {
-        val waitingCount = isWaitingForSerialization.synchronized {
-          isWaitingForSerialization.size
-        }
-        val jobCount = waitingCount + isSerializing.size
-        context.logSerializationManager(
-          debugLogLevel,
-          "Waiting for #{0} serialization jobs to complete.",
-          jobCount
-        )
-
-        // Bound the waiting loop
-        val maxCount = 60
-        var counter  = 0
-        while (this.hasJobsRemaining && counter < maxCount) {
-          counter += 1
-          Thread.sleep(1 * 1000)
-        }
-      }
-
-      pool.shutdown()
-
-      // Bound the waiting loop
-      val maxCount = 10
-      var counter  = 0
-      while (!pool.isTerminated && counter < maxCount) {
-        pool.awaitTermination(500, TimeUnit.MILLISECONDS)
-        counter += 1
-      }
-
-      pool.shutdownNow()
-      Thread.sleep(100)
-      context.logSerializationManager(
-        debugLogLevel,
-        "Serialization manager has been shut down."
-      )
-    }
-  }
-
-  // === Internals ============================================================
-
-  /** @return `true` if there are remaining serialization jobs, `false`
-    *         otherwise
-    */
-  private def hasJobsRemaining: Boolean = {
-    isWaitingForSerialization.synchronized {
-      isWaitingForSerialization.nonEmpty || isSerializing.nonEmpty
-    }
-  }
-
   /** Create the task that serializes the provided module IR when it is run.
     *
     * @param cache the cache manager for the module being serialized
@@ -584,16 +377,14 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     source: Source,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = { () =>
-    while (isSerializingModule(name)) {
-      Thread.sleep(100)
-    }
+    pool.waitWhileSerializing(name)
 
     context.logSerializationManager(
       debugLogLevel,
       "Running serialization for module [{0}].",
       name
     )
-    startSerializing(name)
+    pool.startSerializing(name)
     try {
       val fixedStage =
         if (stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)) {
@@ -623,43 +414,12 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
         )
         throw e
     } finally {
-      finishSerializing(name)
+      pool.finishSerializing(name)
     }
   }
 
-  /** Sets the module described by `name` as serializing.
-    *
-    * @param name the name of the module to set as serializing
-    */
-  private def startSerializing(name: QualifiedName): Unit = {
-    isWaitingForSerialization.synchronized {
-      isWaitingForSerialization.remove(name)
-    }
-    isSerializing.add(name)
-  }
-
-  /** Sets the module described by `name` as finished with serialization.
-    *
-    * @param name the name of the module to set as having finished serialization
-    */
-  private def finishSerializing(name: QualifiedName): Unit = {
-    isSerializing.remove(name)
-  }
-
-  /** Builds a [[mutable.Set]] that is backed by a [[ConcurrentHashMap]] and is
-    * hence safe for concurrent access.
-    *
-    * @tparam T the type of the set elements
-    * @return a concurrent [[mutable.Set]]
-    */
-  private def buildConcurrentHashSet[T]: mutable.Set[T] = {
-    import scala.jdk.CollectionConverters._
-    java.util.Collections
-      .newSetFromMap(
-        new ConcurrentHashMap[T, java.lang.Boolean]()
-      )
-      .asScala
-  }
+  def shutdown(waitForPendingJobCompletion: Boolean = false): Unit =
+    pool.shutdown(waitForPendingJobCompletion)
 
   private def getCache(
     module: Module
@@ -669,15 +429,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 }
 
 object SerializationManager {
-
-  /** The maximum number of serialization threads allowed. */
-  val maximumThreadCount: Integer = 2
-
-  /** The number of threads at compiler start. */
-  val startingThreadCount: Integer = maximumThreadCount
-
-  /** The thread keep-alive time in seconds. */
-  val threadKeepalive: Long = 3
 
   implicit private class LibraryOps(val libraryName: LibraryName)
       extends AnyVal {
