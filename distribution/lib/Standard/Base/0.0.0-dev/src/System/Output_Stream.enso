@@ -60,9 +60,7 @@ type Output_Stream
         self.stream_resource . with java_output_stream->
             self.error_handler <|
                 input_stream.with_java_stream java_input_stream->
-                    b = java_input_stream.transferTo java_output_stream
-                    Standard.Base.IO.println "Wrote "+b.to_text+" bytes at:"
-                    Standard.Base.Runtime.get_stack_trace.map l-> Standard.Base.IO.println l.to_display_text
+                    java_input_stream.transferTo java_output_stream
                     java_output_stream.flush
                     Nothing
 

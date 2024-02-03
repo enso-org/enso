@@ -43,6 +43,10 @@ type Writable_File
         self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
 
     ## PRIVATE
+    with_output_stream self (open_options : Vector) action =
+        self.file.with_output_stream open_options action
+
+    ## PRIVATE
     to_text self -> Text =
         "(Writable_File " + self.file.to_text + ")"
 

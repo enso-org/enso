@@ -82,7 +82,7 @@ write_remote_file (file : Writable_File) table on_existing_file section headers 
             write_local_file temp_file table effective_file_behavior section headers match_columns xls_format . if_not_error <|
                 ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
                 copy_success = file.write on_existing_file output_stream->
-                    temp_file.with_input_stream input_stream->
+                    temp_file.with_input_stream [File_Access.Read] input_stream->
                         output_stream.write_stream input_stream
                 copy_success.if_not_error <|
                     file.file

@@ -191,9 +191,9 @@ type S3_File
             if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Copying an S3_File is forbidden as the Output context is disabled.") else
                 case destination.file of
                     # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
-                    _ : S3_File ->
-                        if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination) else
-                            translate_file_errors <| S3.copy_object self.bucket self.prefix destination.bucket destination.prefix self.credentials . if_not_error <| destination
+                    s3_destination : S3_File ->
+                        if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
+                            translate_file_errors <| S3.copy_object self.bucket self.prefix s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
 
                     # Generic implementation using streams
                     _ ->
