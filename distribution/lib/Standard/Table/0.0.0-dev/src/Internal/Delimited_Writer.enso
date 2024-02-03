@@ -96,7 +96,7 @@ append_to_local_file table format (file : File) match_columns on_problems =
             False -> format.without_headers
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
-        file.write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
+        (file : Writable_File).write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
             r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
             r.if_not_error effective_file
 
