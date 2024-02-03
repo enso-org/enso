@@ -22,19 +22,25 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.ExportsBuilder;
+import org.enso.compiler.context.ExportsMap;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.context.SuggestionBuilder;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
+import org.enso.interpreter.caches.SuggestionsCache;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -242,14 +248,11 @@ final class TruffleCompilerContext implements CompilerContext {
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
     logSerializationManager(Level.INFO, "Requesting serialization for library [{0}].", libraryName);
 
-    var task =
-        (Callable)
-            serializationManager.doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+    var task = doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
 
-    return (Future<Boolean>)
-        serializationManager
-            .getPool()
-            .submitTask(task, isCreateThreadAllowed(), toQualifiedName(libraryName));
+    return serializationManager
+        .getPool()
+        .submitTask(task, isCreateThreadAllowed(), toQualifiedName(libraryName));
   }
 
   /**
@@ -441,6 +444,103 @@ final class TruffleCompilerContext implements CompilerContext {
             Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
         return false;
       }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  Callable<Boolean> doSerializeLibrary(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+    return () -> {
+      var pool = serializationManager.getPool();
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+
+      logSerializationManager(Level.FINE, "Running serialization for bindings [{0}].", libraryName);
+      pool.startSerializing(toQualifiedName(libraryName));
+      var map = new HashMap<QualifiedName, org.enso.compiler.core.ir.Module>();
+      var it = context.getPackageRepository().getModulesForLibrary(libraryName);
+      while (it.nonEmpty()) {
+        var module = it.head();
+        map.put(module.getName(), module.getIr());
+        it =
+            (scala.collection.immutable.List<org.enso.compiler.context.CompilerContext.Module>)
+                it.tail();
+      }
+      var snd =
+          context
+              .getPackageRepository()
+              .getPackageForLibraryJava(libraryName)
+              .map(x -> x.listSourcesJava());
+
+      var bindingsCache =
+          new ImportExportCache.CachedBindings(
+              libraryName, new ImportExportCache.MapToBindings(map), snd);
+      try {
+        boolean result;
+        try {
+          var cache = ImportExportCache.create(libraryName);
+          var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
+          result = file.isPresent();
+        } catch (Throwable e) {
+          logSerializationManager(
+              Level.SEVERE,
+              "Serialization of bindings `" + libraryName + "` failed: " + e.getMessage() + "`",
+              e);
+          throw e;
+        }
+
+        doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
+
+        return result;
+      } finally {
+        pool.finishSerializing(toQualifiedName(libraryName));
+      }
+    };
+  }
+
+  private boolean doSerializeLibrarySuggestions(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+    var exportsBuilder = new ExportsBuilder();
+    var exportsMap = new ExportsMap();
+    var suggestions = new java.util.ArrayList<Suggestion>();
+
+    try {
+      var libraryModules = context.getPackageRepository().getModulesForLibrary(libraryName);
+      libraryModules
+          .flatMap(
+              module -> {
+                var sug =
+                    SuggestionBuilder.apply(module, compiler)
+                        .build(module.getName(), module.getIr())
+                        .toVector()
+                        .filter(Suggestion::isGlobal);
+                var exports = exportsBuilder.build(module.getName(), module.getIr());
+                exportsMap.addAll(module.getName(), exports);
+                return sug;
+              })
+          .map(
+              suggestion -> {
+                var reexport = exportsMap.get(suggestion).map(s -> s.toString());
+                return suggestion.withReexport(reexport);
+              })
+          .foreach(suggestions::add);
+
+      var cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+              libraryName,
+              new SuggestionsCache.Suggestions(suggestions),
+              context
+                  .getPackageRepository()
+                  .getPackageForLibraryJava(libraryName)
+                  .map(p -> p.listSourcesJava()));
+      var cache = SuggestionsCache.create(libraryName);
+      var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
+      return file.isPresent();
+    } catch (Throwable e) {
+      logSerializationManager(
+          Level.SEVERE,
+          "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
+          e);
+      throw e;
     }
   }
 

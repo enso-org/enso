@@ -1,21 +1,15 @@
 package org.enso.interpreter.runtime
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.context.CompilerContext
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.Suggestion
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.caches.SuggestionsCache
 
-import java.io.NotSerializableException
-import java.util
-import java.util.concurrent.Callable
 import java.util.logging.Level
 
 import scala.jdk.OptionConverters.RichOptional
-import scala.jdk.CollectionConverters._
 
 final class SerializationManager(private val context: TruffleCompilerContext) {
 
@@ -24,9 +18,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   }
 
   import SerializationManager._
-
-  /** The debug logging level. */
-  private val debugLogLevel = Level.FINE
 
   private val pool = new SerializationPool(context)
 
@@ -39,140 +30,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   }
 
   // === Interface ============================================================
-
-  def doSerializeLibrary(
-    compiler: Compiler,
-    libraryName: LibraryName,
-    useGlobalCacheLocations: Boolean
-  ): Callable[Boolean] = () => {
-    pool.waitWhileSerializing(libraryName.toQualifiedName)
-
-    context.logSerializationManager(
-      debugLogLevel,
-      "Running serialization for bindings [{0}].",
-      libraryName
-    )
-    pool.startSerializing(libraryName.toQualifiedName)
-    val bindingsCache = new ImportExportCache.CachedBindings(
-      libraryName,
-      new ImportExportCache.MapToBindings(
-        context
-          .getPackageRepository()
-          .getModulesForLibrary(libraryName)
-          .map { module =>
-            val ir = module.getIr
-            (
-              module.getName,
-              ir
-            )
-          }
-          .toMap
-          .asJava
-      ),
-      context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(_.listSourcesJava())
-    )
-    try {
-      val result =
-        try {
-          val cache = ImportExportCache.create(libraryName)
-          val file = context.saveCache(
-            cache,
-            bindingsCache,
-            useGlobalCacheLocations
-          )
-          file.isPresent
-        } catch {
-          case e: NotSerializableException =>
-            context.logSerializationManager(
-              Level.SEVERE,
-              s"Could not serialize bindings [$libraryName].",
-              e
-            )
-            throw e
-          case e: Throwable =>
-            context.logSerializationManager(
-              Level.SEVERE,
-              s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
-              e
-            )
-            throw e
-        }
-
-      doSerializeLibrarySuggestions(
-        compiler,
-        libraryName,
-        useGlobalCacheLocations
-      )
-
-      result
-    } finally {
-      pool.finishSerializing(libraryName.toQualifiedName)
-    }
-  }
-
-  private def doSerializeLibrarySuggestions(
-    compiler: Compiler,
-    libraryName: LibraryName,
-    useGlobalCacheLocations: Boolean
-  ): Boolean = {
-    val exportsBuilder = new ExportsBuilder
-    val exportsMap     = new ExportsMap
-    val suggestions    = new util.ArrayList[Suggestion]()
-
-    try {
-      val libraryModules =
-        context.getPackageRepository().getModulesForLibrary(libraryName)
-      libraryModules
-        .flatMap { module =>
-          val suggestions = SuggestionBuilder(module, compiler)
-            .build(module.getName, module.getIr)
-            .toVector
-            .filter(Suggestion.isGlobal)
-          val exports = exportsBuilder.build(module.getName, module.getIr)
-          exportsMap.addAll(module.getName, exports)
-          suggestions
-        }
-        .map { suggestion =>
-          val reexport = exportsMap.get(suggestion).map(_.toString)
-          suggestion.withReexport(reexport)
-        }
-        .foreach(suggestions.add)
-      val cachedSuggestions =
-        new SuggestionsCache.CachedSuggestions(
-          libraryName,
-          new SuggestionsCache.Suggestions(suggestions),
-          context
-            .getPackageRepository()
-            .getPackageForLibraryJava(libraryName)
-            .map(_.listSourcesJava())
-        )
-      val cache = SuggestionsCache.create(libraryName)
-      val file = context.saveCache(
-        cache,
-        cachedSuggestions,
-        useGlobalCacheLocations
-      )
-      file.isPresent
-    } catch {
-      case e: NotSerializableException =>
-        context.logSerializationManager(
-          Level.SEVERE,
-          s"Could not serialize suggestions [$libraryName].",
-          e
-        )
-        throw e
-      case e: Throwable =>
-        context.logSerializationManager(
-          Level.SEVERE,
-          s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
-          e
-        )
-        throw e
-    }
-  }
 
   def deserializeSuggestions(
     libraryName: LibraryName
