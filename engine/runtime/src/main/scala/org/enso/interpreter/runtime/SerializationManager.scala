@@ -326,7 +326,8 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   ): Option[Boolean] = {
     compiler.getClass()
     if (pool.isWaitingForSerialization(module.getName)) {
-      pool.abort(module)
+      pool.abort(module.getName)
+
       None
     } else {
       pool.waitWhileSerializing(module.getName)

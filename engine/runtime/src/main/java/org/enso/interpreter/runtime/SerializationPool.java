@@ -1,8 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import static org.enso.interpreter.util.ScalaConversions.cons;
-import static org.enso.interpreter.util.ScalaConversions.nil;
-
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -12,8 +9,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.enso.compiler.context.CompilerContext.Module;
-import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 
 final class SerializationPool {
@@ -125,31 +120,17 @@ final class SerializationPool {
   /**
    * Checks if the provided module is in the process of being serialized.
    *
-   * @param module the module to check
+   * @param key the module to check
    * @return `true` if `module` is currently being serialized, `false` otherwise
    */
-  boolean isSerializingModule(QualifiedName module) {
-    return isSerializing.containsKey(module);
+  boolean isSerializing(QualifiedName key) {
+    return isSerializing.containsKey(key);
   }
 
-  boolean isSerializingLibrary(LibraryName library) {
-    return isSerializing.containsKey(toQualifiedName(library));
-  }
-
-  boolean isWaitingForSerialization(QualifiedName name) {
+  boolean isWaitingForSerialization(QualifiedName key) {
     synchronized (isWaitingForSerialization) {
-      return isWaitingForSerialization.containsKey(name);
+      return isWaitingForSerialization.containsKey(key);
     }
-  }
-
-  /**
-   * Checks if the provided module is waiting for serialization.
-   *
-   * @param module the module to check
-   * @return `true` if `module` is waiting for serialization, `false` otherwise
-   */
-  private boolean isWaitingForSerialization(Module module) {
-    return isWaitingForSerialization(module.getName());
   }
 
   /**
@@ -158,10 +139,10 @@ final class SerializationPool {
    * @param library the library to check
    * @return `true` if `library` is waiting for serialization, `false` otherwise
    */
-  boolean abort(QualifiedName name) {
+  boolean abort(QualifiedName key) {
     synchronized (isWaitingForSerialization) {
-      if (isWaitingForSerialization(name)) {
-        var prev = isWaitingForSerialization.remove(name);
+      if (isWaitingForSerialization(key)) {
+        var prev = isWaitingForSerialization.remove(key);
         if (prev != null) {
           return prev.cancel(false);
         } else {
@@ -171,18 +152,6 @@ final class SerializationPool {
         return false;
       }
     }
-  }
-
-  /**
-   * Requests that serialization of `module` be aborted.
-   *
-   * <p>If the module is already in the process of serialization it will not be aborted.
-   *
-   * @param module the module for which to abort serialization
-   * @return `true` if serialization for `module` was aborted, `false` otherwise
-   */
-  boolean abort(Module module) {
-    return abort(module.getName());
   }
 
   void startSerializing(QualifiedName name) {
@@ -224,10 +193,5 @@ final class SerializationPool {
     while (isSerializing.containsKey(name)) {
       Thread.sleep(100);
     }
-  }
-
-  private static QualifiedName toQualifiedName(LibraryName libraryName) {
-    var namespace = cons(libraryName.namespace(), nil());
-    return new QualifiedName(namespace, libraryName.name());
   }
 }
