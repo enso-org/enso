@@ -3,13 +3,10 @@ package org.enso.interpreter.runtime
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.context.CompilerContext.Module
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
-import org.enso.interpreter.caches.Cache
 import org.enso.interpreter.caches.ImportExportCache
-import org.enso.interpreter.caches.ModuleCache
 import org.enso.interpreter.caches.SuggestionsCache
 
 import java.io.NotSerializableException
@@ -234,66 +231,8 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     }
   }
 
-  /** Deserializes the requested module from the cache if possible.
-    *
-    * If the requested module is currently being serialized it will wait for
-    * completion before loading. If the module is queued for serialization it
-    * will evict it and not load from the cache (this is usually indicative of a
-    * programming bug).
-    *
-    * @param module the module to deserialize from the cache.
-    * @return [[Some]] when deserialization was successful, with `true` for
-    *         relinking being successful and `false` otherwise. [[None]] if the
-    *         cache could not be deserialized.
-    */
-  def deserialize(
-    compiler: Compiler,
-    module: Module
-  ): Option[Boolean] = {
-    compiler.getClass()
-    if (pool.isWaitingForSerialization(module.getName)) {
-      pool.abort(module.getName)
-
-      None
-    } else {
-      pool.waitWhileSerializing(module.getName)
-
-      context.loadCache(getCache(module)).toScala match {
-        case Some(loadedCache) =>
-          context.updateModule(
-            module,
-            { u =>
-              u.ir(loadedCache.moduleIR)
-              u.compilationStage(loadedCache.compilationStage)
-              u.loadedFromCache(true)
-            }
-          )
-          context.logSerializationManager(
-            debugLogLevel,
-            "Restored IR from cache for module [{0}] at stage [{1}].",
-            module.getName,
-            loadedCache.compilationStage
-          )
-          Some(true)
-        case None =>
-          context.logSerializationManager(
-            debugLogLevel,
-            "Unable to load a cache for module [{0}].",
-            module.getName
-          )
-          None
-      }
-    }
-  }
-
   def shutdown(waitForPendingJobCompletion: Boolean = false): Unit =
     pool.shutdown(waitForPendingJobCompletion)
-
-  private def getCache(
-    module: Module
-  ): Cache[ModuleCache.CachedModule, ModuleCache.Metadata] = {
-    module.asInstanceOf[TruffleCompilerContext.Module].getCache
-  }
 }
 
 object SerializationManager {

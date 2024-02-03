@@ -390,10 +390,58 @@ final class TruffleCompilerContext implements CompilerContext {
       }
       level = "Standard".equals(library.namespace()) ? Level.WARNING : Level.FINE;
     }
-    var result = serializationManager.deserialize(compiler, module);
-    loggerSerializationManager.log(
-        level, "Deserializing module " + module.getName() + " from IR file: " + result.nonEmpty());
-    return result.nonEmpty();
+    try {
+      var result = deserializeModuleDirect(module);
+      loggerSerializationManager.log(
+          level, "Deserializing module " + module.getName() + " from IR file: " + result);
+      return result;
+    } catch (InterruptedException e) {
+      loggerSerializationManager.log(
+          Level.WARNING, "Deserializing module " + module.getName() + " from IR file", e);
+      return false;
+    }
+  }
+
+  /**
+   * Deserializes the requested module from the cache if possible.
+   *
+   * <p>If the requested module is currently being serialized it will wait for completion before
+   * loading. If the module is queued for serialization it will evict it and not load from the cache
+   * (this is usually indicative of a programming bug).
+   *
+   * @param module the module to deserialize from the cache.
+   * @return {@code true} if the deserialization succeeded
+   */
+  private boolean deserializeModuleDirect(CompilerContext.Module module)
+      throws InterruptedException {
+    var pool = serializationManager.getPool();
+    if (pool.isWaitingForSerialization(module.getName())) {
+      pool.abort(module.getName());
+      return false;
+    } else {
+      pool.waitWhileSerializing(module.getName());
+
+      var loaded = loadCache(((Module) module).getCache());
+      if (loaded.isPresent()) {
+        updateModule(
+            module,
+            (u) -> {
+              u.ir(loaded.get().moduleIR());
+              u.compilationStage(loaded.get().compilationStage());
+              u.loadedFromCache(true);
+            });
+        logSerializationManager(
+            Level.FINE,
+            "Restored IR from cache for module [{0}] at stage [{1}].",
+            module.getName(),
+            loaded.get().compilationStage());
+        return true;
+      } else {
+        logSerializationManager(
+            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        return false;
+      }
+    }
   }
 
   @Override

@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,8 +63,8 @@ public class SerializerTest {
     var future = compiler.context().serializeModule(compiler, module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);
-    var deserialized = serializationManager.deserialize(compiler, module);
-    assertEquals(deserialized.isDefined() && (Boolean) deserialized.get(), true);
+    var deserialized = compiler.context().deserializeModule(compiler, module);
+    assertTrue("Deserialized", deserialized);
     serializationManager.shutdown(true);
     ctx.leave();
     ctx.close();
