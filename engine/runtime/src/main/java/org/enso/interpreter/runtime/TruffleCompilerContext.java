@@ -49,13 +49,13 @@ final class TruffleCompilerContext implements CompilerContext {
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
-  private final SerializationManager serializationManager;
+  private final SerializationPool serializationPool;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    this.loggerSerializationManager = context.getLogger(SerializationManager.class);
-    this.serializationManager = new SerializationManager(this);
+    this.loggerSerializationManager = context.getLogger(SerializationPool.class);
+    this.serializationPool = new SerializationPool(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
@@ -82,10 +82,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public PackageRepository getPackageRepository() {
     return context.getPackageRepository();
-  }
-
-  final SerializationManager getSerializationManager() {
-    return serializationManager;
   }
 
   @Override
@@ -250,9 +246,8 @@ final class TruffleCompilerContext implements CompilerContext {
 
     var task = doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
 
-    return serializationManager
-        .getPool()
-        .submitTask(task, isCreateThreadAllowed(), toQualifiedName(libraryName));
+    return serializationPool.submitTask(
+        task, isCreateThreadAllowed(), toQualifiedName(libraryName));
   }
 
   /**
@@ -308,7 +303,7 @@ final class TruffleCompilerContext implements CompilerContext {
             module.getName(),
             src,
             useGlobalCacheLocations);
-    return serializationManager.getPool().submitTask(task, useThreadPool, module.getName());
+    return serializationPool.submitTask(task, useThreadPool, module.getName());
   }
 
   /**
@@ -330,7 +325,7 @@ final class TruffleCompilerContext implements CompilerContext {
       Source source,
       boolean useGlobalCacheLocations) {
     return () -> {
-      var pool = serializationManager.getPool();
+      var pool = serializationPool;
       pool.waitWhileSerializing(name);
 
       logSerializationManager(Level.FINE, "Running serialization for module [{0}].", name);
@@ -421,7 +416,7 @@ final class TruffleCompilerContext implements CompilerContext {
    */
   private boolean deserializeModuleDirect(CompilerContext.Module module)
       throws InterruptedException {
-    var pool = serializationManager.getPool();
+    var pool = serializationPool;
     if (pool.isWaitingForSerialization(module.getName())) {
       pool.abort(module.getName());
       return false;
@@ -455,7 +450,7 @@ final class TruffleCompilerContext implements CompilerContext {
   Callable<Boolean> doSerializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
     return () -> {
-      var pool = serializationManager.getPool();
+      var pool = serializationPool;
       pool.waitWhileSerializing(toQualifiedName(libraryName));
 
       logSerializationManager(Level.FINE, "Running serialization for bindings [{0}].", libraryName);
@@ -556,7 +551,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
       LibraryName libraryName) throws InterruptedException {
-    var pool = serializationManager.getPool();
+    var pool = serializationPool;
     if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
       pool.abort(toQualifiedName(libraryName));
       return scala.Option.empty();
@@ -577,7 +572,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   scala.Option<ImportExportCache.CachedBindings> deserializeLibraryBindings(LibraryName libraryName)
       throws InterruptedException {
-    var pool = serializationManager.getPool();
+    var pool = serializationPool;
     if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
       pool.abort(toQualifiedName(libraryName));
       return scala.Option.empty();
@@ -598,7 +593,11 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void shutdown(boolean waitForPendingJobCompletion) {
-    serializationManager.shutdown(waitForPendingJobCompletion);
+    try {
+      serializationPool.shutdown(waitForPendingJobCompletion);
+    } catch (InterruptedException ex) {
+      logSerializationManager(Level.WARNING, ex.getMessage(), ex);
+    }
   }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
