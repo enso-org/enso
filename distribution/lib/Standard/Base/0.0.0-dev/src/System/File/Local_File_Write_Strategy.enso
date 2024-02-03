@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Caught_Panic
 import project.Panic.Panic
@@ -12,7 +13,7 @@ from project.System.File.Generic.File_Write_Strategy import File_Write_Strategy,
 
 ## PRIVATE
 instance =
-    File_Write_Strategy.Value default_overwrite default_append default_raise_error moving_backup create_dry_run_file
+    File_Write_Strategy.Value default_overwrite default_append default_raise_error moving_backup create_dry_run_file write_with_local_file
 
 ## PRIVATE
 create_dry_run_file file copy_original =
@@ -110,6 +111,10 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
         if file.is_writable.not then File_Error.access_denied file else
             go 0
 
+## PRIVATE
+write_with_local_file file existing_file_behavior action =
+    _ = [file, existing_file_behavior, action]
+    Panic.throw (Illegal_State.Error "`write_requiring_local_file` should not be used with local files, instead the file should be written directly. This is a bug in an implementation of a write strategy.")
 
 type Internal_Write_Operation_Panicked
     ## PRIVATE

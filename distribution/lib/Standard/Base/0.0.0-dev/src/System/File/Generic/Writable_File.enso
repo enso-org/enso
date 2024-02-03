@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Meta
 import project.Nothing.Nothing
 import project.System.Input_Stream.Input_Stream
 import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
@@ -41,6 +42,17 @@ type Writable_File
     ## PRIVATE
     write_handling_dry_run self (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) -> Any =
         self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
+
+    ## PRIVATE
+    is_local self -> Boolean = self.file.is_a File
+
+    ## PRIVATE
+       This helper method may be used if the logic for writing the file requires a local filesystem file
+       (e.g. using some external libraries that prefer to work with a Java File).
+       It downloads a remote file to a local temporary location, runs the action
+       and then uploads the resulting file back to the remote backend.
+    write_requiring_local_file self (existing_file_behavior : Existing_File_Behavior) (action : File -> Any) -> Any =
+        self.write_strategy.write_with_local_file self.file existing_file_behavior action
 
     ## PRIVATE
     with_output_stream self (open_options : Vector) action =

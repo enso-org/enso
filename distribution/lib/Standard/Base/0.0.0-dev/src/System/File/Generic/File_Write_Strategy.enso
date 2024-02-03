@@ -1,18 +1,22 @@
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
+import project.Panic.Panic
 import project.Runtime.Context
+import project.System.File.File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
    Specifies the logic for handling writing files with options like `Existing_File_Behavior` and dry run.
 type File_Write_Strategy
     ## PRIVATE
-       Each of the `write_` strategies takes the file as a first argument, an
-       action taking an `Output_Stream` as a second argument and should run this
-       action against the output stream opened for the file and return its
-       result.
+       Each of the `write_` strategies takes the file as the first argument,
+       `Existing_File_Behavior` as second argument, and an action taking an
+       `Output_Stream` as the third argument and should run this action against
+       the output stream opened for the file and return its result.
 
        The `create_dry_run_file` takes a destination file and a boolean flag
        stating if it needs to copy the original file as part of preparation. It
@@ -21,7 +25,13 @@ type File_Write_Strategy
        that currently there is no mechanism for managing cleanup of the dry run
        files, so they only should be created if a 'temporary directory' is
        available.
-    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file
+
+       The `write_with_local_file` action takes the file, the
+       `Existing_File_Behavior` and an action.
+       A remote file is downloaded to a temporary file and the provided action
+       is called with that local temporary file. Then that file is uploaded to
+       replace the remote file.
+    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file
 
     ## PRIVATE
        Writes to a file according to the provided existing file behaviour.
@@ -61,6 +71,35 @@ default_append file action =
 ## PRIVATE
 default_raise_error file action =
     file.with_output_stream [File_Access.Write, File_Access.Create_New] action
+
+## PRIVATE
+generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
+    if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing to remote file backends is not allowed in dry-run mode.") else
+        temp_file = File.create_temporary_file prefix="remote-write-"
+        Panic.with_finalizer temp_file.delete <|
+            tmp_synchronized = case file.exists of
+                ## Copy the file to a local temporary file.
+                   The copy is needed because we may be appending new sheets, so existing data must also be taken into account.
+                True -> file.copy_to temp_file replace_existing=True
+                # The temporarily created empty file should not exist to reflect that the original destination did not exist.
+                False -> temp_file.delete_if_exists
+
+            ## The behavior to apply when uploading the written temporary file back to the remote backend.
+               In case the strategy was `Append`, we need to change it to `Overwrite` for upload,
+               as the `Append` logic should have been handled by the `action` itself, and now we are replacing the _full_ file.
+            effective_file_behavior = case existing_file_behavior of
+                Existing_File_Behavior.Append -> Existing_File_Behavior.Overwrite
+                _ -> existing_file_behavior
+
+            tmp_synchronized.if_not_error <|
+                result = action temp_file
+                result.if_not_error <|
+                    ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
+                    copy_success = file.write existing_file_behavior output_stream->
+                        temp_file.with_input_stream [File_Access.Read] input_stream->
+                            output_stream.write_stream input_stream
+                    copy_success.if_not_error <|
+                        result
 
 ## PRIVATE
 type Dry_Run_File_Settings

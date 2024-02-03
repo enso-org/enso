@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -58,34 +57,12 @@ write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_F
     _ = on_problems
     # TODO if file is not a File, create a temporary local file, write to it and then transfer its input stream to the output stream of the actual backend
     if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
-        is_local_filesystem_file = file.file.is_a File
-        if is_local_filesystem_file then write_local_file file.file table on_existing_file section headers match_columns xls_format else
-            if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing to remote file backends is not allowed in dry-run mode.") else
-                write_remote_file file table on_existing_file section headers match_columns xls_format
-
-## PRIVATE
-write_remote_file (file : Writable_File) table on_existing_file section headers match_columns xls_format =
-    temp_file = File.create_temporary_file prefix="excel-remote-write-"
-    Panic.with_finalizer temp_file.delete <|
-        tmp_synchronized = case file.exists of
-            ## Copy the file to a local temporary file.
-               The copy is needed because we may be appending new sheets, so existing data must also be taken into account.
-            True -> file.copy_to temp_file replace_existing=True
-            # The temporarily created empty file should not exist to reflect that the original destination did not exist.
-            False -> temp_file.delete_if_exists
-
-        tmp_synchronized.if_not_error <|
-            effective_file_behavior = case on_existing_file of
-                Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
-                _ -> on_existing_file
-
-            write_local_file temp_file table effective_file_behavior section headers match_columns xls_format . if_not_error <|
-                ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
-                copy_success = file.write on_existing_file output_stream->
-                    temp_file.with_input_stream [File_Access.Read] input_stream->
-                        output_stream.write_stream input_stream
-                copy_success.if_not_error <|
-                    file.file
+        if file.is_local then write_local_file file.file table on_existing_file section headers match_columns xls_format else
+            file.write_requiring_local_file on_existing_file local_temp_file->
+                effective_file_behavior = case on_existing_file of
+                    Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
+                    _ -> on_existing_file
+                write_local_file local_temp_file table effective_file_behavior section headers match_columns xls_format . if_not_error <| file.file
 
 ## PRIVATE
 write_local_file (file:File) table on_existing_file section headers match_columns xls_format =
