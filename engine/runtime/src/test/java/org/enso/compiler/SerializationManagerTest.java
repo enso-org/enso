@@ -10,9 +10,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.caches.SuggestionsCache;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
 import org.enso.pkg.Package;
@@ -78,7 +76,6 @@ public class SerializationManagerTest {
   @Test
   public void serializeLibrarySuggestions()
       throws ExecutionException, InterruptedException, TimeoutException {
-    SerializationManager serializationManager = new SerializationManager(ensoContext.getCompiler());
     LibraryName standardBaseLibrary = new LibraryName("Standard", "Base");
     Package<TruffleFile> standardBasePackage = getLibraryPackage(standardBaseLibrary);
     ensoContext
@@ -92,13 +89,13 @@ public class SerializationManagerTest {
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 
-    SuggestionsCache.CachedSuggestions cachedSuggestions =
-        serializationManager.deserializeSuggestions(standardBaseLibrary).get();
-    Assert.assertEquals(standardBaseLibrary, cachedSuggestions.getLibraryName());
+    var cachedSuggestions =
+        ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
+    // Assert.assertEquals(standardBaseLibrary, cachedSuggestions.getLibraryName());
 
     Supplier<Stream<Suggestion.Constructor>> cachedConstructorSuggestions =
         () ->
-            cachedSuggestions.getSuggestions().stream()
+            cachedSuggestions.stream()
                 .flatMap(
                     suggestion -> {
                       if (suggestion instanceof Suggestion.Constructor constructor) {

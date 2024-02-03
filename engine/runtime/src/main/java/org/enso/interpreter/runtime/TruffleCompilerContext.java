@@ -367,10 +367,14 @@ final class TruffleCompilerContext implements CompilerContext {
       var library = module.getPackage().libraryName();
       var bindings = known.get(library);
       if (bindings == null) {
-        var cached = serializationManager.deserializeLibraryBindings(library);
-        if (cached.isDefined()) {
-          bindings = cached.get().bindings();
-          known.put(library, bindings);
+        try {
+          var cached = deserializeLibraryBindings(library);
+          if (cached.isDefined()) {
+            bindings = cached.get().bindings();
+            known.put(library, bindings);
+          }
+        } catch (InterruptedException ex) {
+          // proceed
         }
       }
       if (bindings != null) {
@@ -541,6 +545,54 @@ final class TruffleCompilerContext implements CompilerContext {
           "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
           e);
       throw e;
+    }
+  }
+
+  public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
+      LibraryName libraryName) throws InterruptedException {
+    var option = deserializeSuggestionsImpl(libraryName);
+    return option.map(s -> s.getSuggestions());
+  }
+
+  private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
+      LibraryName libraryName) throws InterruptedException {
+    var pool = serializationManager.getPool();
+    if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
+      pool.abort(toQualifiedName(libraryName));
+      return scala.Option.empty();
+    } else {
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+      var cache = SuggestionsCache.create(libraryName);
+      var loaded = loadCache(cache);
+      if (loaded.isPresent()) {
+        logSerializationManager(Level.FINE, "Restored suggestions for library [{0}].", libraryName);
+        return scala.Option.apply(loaded.get());
+      } else {
+        logSerializationManager(
+            Level.FINE, "Unable to load suggestions for library [{0}].", libraryName);
+        return scala.Option.empty();
+      }
+    }
+  }
+
+  scala.Option<ImportExportCache.CachedBindings> deserializeLibraryBindings(LibraryName libraryName)
+      throws InterruptedException {
+    var pool = serializationManager.getPool();
+    if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
+      pool.abort(toQualifiedName(libraryName));
+      return scala.Option.empty();
+    } else {
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+      var cache = ImportExportCache.create(libraryName);
+      var loaded = loadCache(cache);
+      if (loaded.isPresent()) {
+        logSerializationManager(Level.FINE, "Restored bindings for library [{0}].", libraryName);
+        return scala.Option.apply(loaded.get());
+      } else {
+        logSerializationManager(
+            Level.FINEST, "Unable to load bindings for library [{0}].", libraryName);
+        return scala.Option.empty();
+      }
     }
   }
 

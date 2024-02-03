@@ -97,6 +97,9 @@ public interface CompilerContext extends CompilerStub {
 
   boolean deserializeModule(Compiler compiler, Module module);
 
+  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
+      throws InterruptedException;
+
   void shutdown(boolean waitForPendingJobCompletion);
 
   public static interface Updater {

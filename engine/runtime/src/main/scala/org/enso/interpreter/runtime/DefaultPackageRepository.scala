@@ -580,7 +580,6 @@ private class DefaultPackageRepository(
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
         val cachedBindingOption = context
           .asInstanceOf[TruffleCompilerContext]
-          .getSerializationManager()
           .deserializeLibraryBindings(libraryName)
         loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
