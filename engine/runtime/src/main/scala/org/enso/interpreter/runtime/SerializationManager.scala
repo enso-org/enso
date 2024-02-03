@@ -36,6 +36,8 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 
   private val pool = new SerializationPool(context)
 
+  def getPool(): SerializationPool = pool
+
   // Make sure it is started to avoid races with language shutdown with low job
   // count.
   if (context.isCreateThreadAllowed) {
@@ -43,58 +45,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
   }
 
   // === Interface ============================================================
-
-  /** Requests that `module` be serialized.
-    *
-    * This method will attempt to schedule the provided module and IR for
-    * serialization regardless of whether or not it is appropriate to do so. If
-    * there are preconditions needed for serialization, these should be checked
-    * before calling this method.
-    *
-    * In addition, this method handles breaking links between modules contained
-    * in the IR to ensure safe serialization.
-    *
-    * It is responsible for taking a "snapshot" of the relevant module state at
-    * the point at which serialization is requested. This is due to the fact
-    * that serialization happens in a separate thread and the module may be
-    * mutated beneath it.
-    *
-    * @param module the module to serialize
-    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
-    * @param useThreadPool if true, will perform serialization asynchronously
-    * @return Future referencing the serialization task. On completion Future will return
-    *         `true` if `module` has been successfully serialized, `false` otherwise
-    */
-  def serializeModule(
-    compiler: Compiler,
-    module: Module,
-    useGlobalCacheLocations: Boolean,
-    useThreadPool: Boolean = true
-  ): Future[Boolean] = {
-    if (module.isSynthetic) {
-      throw new IllegalStateException(
-        "Cannot serialize synthetic module [" + module.getName + "]"
-      );
-    }
-    context.logSerializationManager(
-      debugLogLevel,
-      "Requesting serialization for module [{0}].",
-      module.getName
-    )
-    val duplicatedIr = compiler.updateMetadata(
-      module.getIr,
-      module.getIr.duplicate(keepIdentifiers = true)
-    )
-    val task = doSerializeModule(
-      getCache(module),
-      duplicatedIr,
-      module.getCompilationStage,
-      module.getName,
-      module.getSource,
-      useGlobalCacheLocations
-    )
-    pool.submitTask(task, useThreadPool, module.getName)
-  }
 
   def serializeLibrary(
     compiler: Compiler,
@@ -370,7 +320,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
     * @return the task that serialies the provided `ir`
     */
-  private def doSerializeModule(
+  def doSerializeModule(
     cache: Cache[ModuleCache.CachedModule, ModuleCache.Metadata],
     ir: IRModule,
     stage: CompilationStage,

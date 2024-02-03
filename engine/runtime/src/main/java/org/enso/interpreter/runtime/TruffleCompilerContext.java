@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -215,7 +217,7 @@ final class TruffleCompilerContext implements CompilerContext {
       }
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
-        serializationManager.serializeModule(compiler, builtinsModule, true, true);
+        serializeModule(compiler, builtinsModule, true, true);
       }
     }
   }
@@ -240,16 +242,62 @@ final class TruffleCompilerContext implements CompilerContext {
     return (Future<Boolean>) res;
   }
 
+  /**
+   * Requests that `module` be serialized.
+   *
+   * <p>This method will attempt to schedule the provided module and IR for serialization regardless
+   * of whether or not it is appropriate to do so. If there are preconditions needed for
+   * serialization, these should be checked before calling this method.
+   *
+   * <p>In addition, this method handles breaking links between modules contained in the IR to
+   * ensure safe serialization.
+   *
+   * <p>It is responsible for taking a "snapshot" of the relevant module state at the point at which
+   * serialization is requested. This is due to the fact that serialization happens in a separate
+   * thread and the module may be mutated beneath it.
+   *
+   * @param module the module to serialize
+   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+   * @param useThreadPool if true, will perform serialization asynchronously
+   * @return Future referencing the serialization task. On completion Future will return `true` if
+   *     `module` has been successfully serialized, `false` otherwise
+   */
   @SuppressWarnings("unchecked")
   @Override
   public Future<Boolean> serializeModule(
       Compiler compiler,
       CompilerContext.Module module,
       boolean useGlobalCacheLocations,
-      boolean usePool) {
-    Object res =
-        serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
-    return (Future<Boolean>) res;
+      boolean useThreadPool) {
+    if (module.isSynthetic()) {
+      throw new IllegalStateException(
+          "Cannot serialize synthetic module [" + module.getName() + "]");
+    }
+    logSerializationManager(
+        Level.FINE, "Requesting serialization for module [{0}].", module.getName());
+    var ir = module.getIr();
+    var dupl =
+        ir.duplicate(
+            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
+    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    Source src;
+    try {
+      src = module.getSource();
+    } catch (IOException ex) {
+      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      return CompletableFuture.failedFuture(ex);
+    }
+    var task =
+        (Callable)
+            serializationManager.doSerializeModule(
+                ((Module) module).getCache(),
+                duplicatedIr,
+                module.getCompilationStage(),
+                module.getName(),
+                src,
+                useGlobalCacheLocations);
+    return (Future<Boolean>)
+        serializationManager.getPool().submitTask(task, useThreadPool, module.getName());
   }
 
   private final Map<LibraryName, MapToBindings> known = new HashMap<>();

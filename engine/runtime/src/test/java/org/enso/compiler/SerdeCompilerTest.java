@@ -68,7 +68,7 @@ public class SerdeCompilerTest {
           .filter((m) -> !m.isSynthetic())
           .foreach(
               (m) -> {
-                var future = serializationManager.serializeModule(compiler, m, true, true);
+                var future = compiler.context().serializeModule(compiler, m, true, true);
                 futures.add(future);
                 return null;
               });
