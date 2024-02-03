@@ -15,7 +15,7 @@ import org.enso.languageserver.data.{
   ProjectDirectoriesConfig,
   VcsManagerConfig
 }
-import org.enso.languageserver.effect.{TestRuntime, ZioExec}
+import org.enso.languageserver.effect.{ExecutionContextRuntime, ZioExec}
 import org.enso.languageserver.filemanager.{
   ContentRoot,
   ContentRootManager,
@@ -33,6 +33,8 @@ import org.enso.languageserver.websocket.binary.factory.{
   SessionInitFactory
 }
 
+import java.util.concurrent.{ExecutorService, Executors}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 abstract class BaseBinaryServerTest extends BinaryServerTestKit {
@@ -54,15 +56,30 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
     None
   )
 
+  var threadPool: ExecutorService = _
+
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
 
   @volatile
   protected var lastConnectionController: ActorRef = _
 
+  override def beforeEach(): Unit = {
+    threadPool = Executors.newWorkStealingPool(4)
+    super.beforeEach()
+  }
+
+  override def afterEach(): Unit = {
+    threadPool.close()
+    super.afterEach()
+  }
+
   override def connectionControllerFactory: ConnectionControllerFactory = {
     (clientIp: RemoteAddress.IP) =>
       {
-        val zioExec = ZioExec(new TestRuntime)
+        val testExecutor = ExecutionContext.fromExecutor(threadPool)
+        val zioRuntime   = new ExecutionContextRuntime(testExecutor)
+        zioRuntime.init()
+        val zioExec = ZioExec(zioRuntime)
 
         val contentRootManagerActor =
           system.actorOf(ContentRootManagerActor.props(config))
