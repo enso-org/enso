@@ -118,9 +118,9 @@ const interactionBindingsHandler = interactionBindings.handler({
 // used as the source of the placement. This means, for example, the selected nodes when creating from a selection
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<NodeId>): Environment {
-  const nodeRects = [...graphStore.nodeRects.values()]
+  const nodeRects = graphStore.visibleNodeAreas
   const selectedNodeRects = [...nodeIds]
-    .map((id) => graphStore.nodeRects.get(id))
+    .map((id) => graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = graphNavigator.viewport
   const mousePosition = graphNavigator.sceneMousePos
@@ -207,9 +207,9 @@ const graphBindingsHandler = graphBindings.handler({
     let right = -Infinity
     let bottom = -Infinity
     const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
+      nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
     for (const id of nodesToCenter) {
-      const rect = graphStore.nodeRects.get(id)
+      const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
       if (!rect) continue
       left = Math.min(left, rect.left)
       right = Math.max(right, rect.right)
@@ -418,7 +418,13 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     } else {
       // We finish creating a new node.
       const metadata = undefined
-      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+      const createdNode = graphStore.createNode(
+        componentBrowserNodePosition.value,
+        content,
+        metadata,
+        requiredImports,
+      )
+      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
   // Finish interaction. This should also hide component browser.

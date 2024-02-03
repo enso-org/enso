@@ -1,7 +1,7 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
@@ -19,6 +19,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
+import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
@@ -57,6 +58,11 @@ export const useGraphStore = defineStore('graph', () => {
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
+  // The currently visible nodes' areas (including visualization).
+  const visibleNodeAreas = computed(() => {
+    const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
+    return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -66,7 +72,6 @@ export const useGraphStore = defineStore('graph', () => {
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
-  const currentNodeIds = ref(new Set<NodeId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -138,7 +143,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (methodAst.value) {
       const rawFunc = moduleData.value.toRaw(methodAst.value.id)
       assert(rawFunc?.type === RawAst.Tree.Type.Function)
-      currentNodeIds.value = db.readFunctionAst(
+      db.readFunctionAst(
         methodAst.value,
         rawFunc,
         textContentLocal,
@@ -222,6 +227,7 @@ export const useGraphStore = defineStore('graph', () => {
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(assignment)
     commitEdit(edit)
+    return asNodeId(rhs.id)
   }
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
@@ -317,9 +323,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: [...nodeRects.entries()]
-          .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([id, rect]) => vizRects.get(id) ?? rect),
+        nodeRects: visibleNodeAreas.value,
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
@@ -530,10 +534,10 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
-    currentNodeIds,
     moduleCode,
     nodeRects,
     vizRects,
+    visibleNodeAreas,
     unregisterNodeRect,
     methodAst,
     astModule,
