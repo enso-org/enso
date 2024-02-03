@@ -442,6 +442,8 @@ export const useGraphStore = defineStore('graph', () => {
         Ast.repair(root, edit)
       }
     }, 'local')
+    if (!direct)
+      Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
     return result!
   }
 
