@@ -410,7 +410,7 @@ spec =
                 workbook2.sheet_names . should_equal ['EnsoSheet', 'MySheet2']
                 workbook2.read "MySheet2" . should_equal table2
                 # The old table is kept intact
-                workbook3.read "EnsoSheet" . should_equal expected_table
+                workbook2.read "EnsoSheet" . should_equal table
 
         Test.specify "should be able to write and then read custom types, like Table as CSV" <|
             file = my_writable_dir / "table.csv"
