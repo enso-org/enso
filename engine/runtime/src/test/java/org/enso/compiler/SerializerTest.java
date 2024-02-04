@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -58,14 +57,13 @@ public class SerializerTest {
     ctx.enter();
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
-    var serializationManager = new SerializationManager(ensoContext.getCompiler());
     var useThreadPool = compiler.context().isCreateThreadAllowed();
     var future = compiler.context().serializeModule(compiler, module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);
     var deserialized = compiler.context().deserializeModule(compiler, module);
     assertTrue("Deserialized", deserialized);
-    serializationManager.shutdown(true);
+    compiler.context().shutdown(true);
     ctx.leave();
     ctx.close();
   }
