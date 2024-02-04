@@ -437,7 +437,8 @@ final class TruffleCompilerContext implements CompilerContext {
     try {
       var result = deserializeModuleDirect(module);
       loggerSerializationManager.log(
-          result ? level : Level.FINE, "Deserializing module " + module.getName() + " from IR file: " + result);
+          result ? level : Level.FINE,
+          "Deserializing module " + module.getName() + " from IR file: " + result);
       return result;
     } catch (InterruptedException e) {
       loggerSerializationManager.log(

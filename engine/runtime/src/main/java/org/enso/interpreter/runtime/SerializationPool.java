@@ -1,6 +1,9 @@
 package org.enso.interpreter.runtime;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,9 +15,6 @@ import java.util.logging.Level;
 import org.enso.pkg.QualifiedName;
 
 final class SerializationPool {
-  /** The debug logging level. */
-  private static final Level debugLogLevel = Level.FINE;
-
   private final TruffleCompilerContext context;
 
   /**
@@ -35,9 +35,19 @@ final class SerializationPool {
   /** The thread pool that handles serialization. */
   private final ExecutorService pool;
 
+  /** all associated threads */
+  private final Set<Thread> threads = Collections.synchronizedSet(new HashSet<>());
+
   SerializationPool(TruffleCompilerContext context) {
     this.context = context;
-    this.pool = Executors.newSingleThreadExecutor(context::createSystemThread);
+    this.pool =
+        Executors.newSingleThreadExecutor(
+            (r) -> {
+              var t = context.createSystemThread(r);
+              t.setName("SerializationPool background thread");
+              threads.add(t);
+              return t;
+            });
   }
 
   void prestartAllCoreThreads() {}
@@ -67,7 +77,7 @@ final class SerializationPool {
           jobCount = waitingCount + isSerializing.size();
         }
         context.logSerializationManager(
-            debugLogLevel, "Waiting for #{0} serialization jobs to complete.", jobCount);
+            Level.FINE, "Waiting for #{0} serialization jobs to complete.", jobCount);
 
         // Bound the waiting loop
         int maxCount = 60;
@@ -91,7 +101,13 @@ final class SerializationPool {
       }
 
       pool.shutdownNow();
-      context.logSerializationManager(debugLogLevel, "Serialization manager has been shut down.");
+      context.logSerializationManager(Level.FINE, "Serialization manager shutdownNow.");
+
+      for (var t : threads.toArray(new Thread[0])) {
+        context.logSerializationManager(Level.FINEST, "Serialization manager has been shut down.");
+        t.join();
+      }
+      context.logSerializationManager(Level.FINE, "Serialization manager has been shut down.");
     }
   }
 
@@ -155,7 +171,7 @@ final class SerializationPool {
         return CompletableFuture.completedFuture(task.call());
       } catch (Throwable e) {
         context.logSerializationManager(
-            debugLogLevel, "Serialization task failed for [" + key + "].", e);
+            Level.WARNING, "Serialization task failed for [" + key + "].", e);
         return CompletableFuture.failedFuture(e);
       }
     }
