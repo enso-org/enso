@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -63,7 +64,14 @@ public final class SuggestionsCache
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException {
-    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data.array()))) {
+    class BufferInputStream extends InputStream {
+      @Override
+      public int read() throws IOException {
+        return data.get() & 0xff;
+      }
+    }
+
+    try (var stream = new ObjectInputStream(new BufferInputStream())) {
       if (stream.readObject() instanceof Suggestions suggestions) {
         return new CachedSuggestions(libraryName, suggestions, Optional.empty());
       } else {
