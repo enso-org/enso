@@ -39,7 +39,7 @@ class ProjectShutdownSpec
 
   var clientUUID: UUID = null
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def clientControllerFactory(): ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZAny, +*, +*]](
       system                          = system,
       projectService                  = projectService,

@@ -87,6 +87,7 @@ function blur() {
       v-model="editedValue"
       class="value"
       :style="inputStyle"
+      @keydown.enter.stop="($event.target as HTMLInputElement).blur()"
       @focus="focus"
       @blur="blur"
     />

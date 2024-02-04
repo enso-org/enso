@@ -53,4 +53,6 @@ class ManagerClientControllerFactory[
       s"manager-client-controller-$clientId"
     )
 
+  override def shutdown(): Unit = {}
+
 }

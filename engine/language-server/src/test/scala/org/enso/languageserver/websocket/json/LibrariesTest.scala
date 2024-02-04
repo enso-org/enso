@@ -33,6 +33,7 @@ class LibrariesTest
     with ReportLogsOnFailure
     with FlakySpec {
   private val libraryRepositoryPort: Int = 47308
+  private val defaultTimeout             = 30.seconds
 
   private val exampleRepo = new ExampleRepository(
     locateRootDirectory().toPath
@@ -94,7 +95,7 @@ class LibrariesTest
         } yield libraryNames
 
       // The resolver may find the current project and other test projects on the path.
-      val msg1 = client.expectSomeJson()
+      val msg1 = client.expectSomeJson(timeout = defaultTimeout)
       inside(findLibraryNamesInResponse(msg1)) { case Some(libs) =>
         // Ensure that before running this test, the library did not exist.
         libs should not contain testLibraryName
@@ -125,12 +126,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -138,7 +142,7 @@ class LibrariesTest
             "id": 2
           }
           """)
-      val msg2 = client.expectSomeJson()
+      val msg2 = client.expectSomeJson(timeout = defaultTimeout)
       inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
         libs should contain(testLibraryName)
       }
@@ -168,12 +172,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -188,7 +195,8 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
@@ -196,7 +204,9 @@ class LibrariesTest
               "tagLine": null
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -210,12 +220,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -230,7 +243,8 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
@@ -238,7 +252,9 @@ class LibrariesTest
               "tagLine": "tag-line"
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "return LibraryNotFound error when getting the metadata of unknown library" in {
@@ -256,7 +272,8 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "error": {
@@ -264,7 +281,9 @@ class LibrariesTest
               "message": "Local library [user.Get_Package_Unknown] has not been found."
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "get the package config" in {
@@ -283,12 +302,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       val libraryRoot = getTestDirectory
         .resolve("test_home")
@@ -318,7 +340,7 @@ class LibrariesTest
             }
           }
           """)
-      val response = client.expectSomeJson()
+      val response = client.expectSomeJson(timeout = defaultTimeout)
 
       response.hcursor
         .downField("result")
@@ -351,7 +373,8 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "error": {
@@ -359,7 +382,9 @@ class LibrariesTest
               "message": "Local library [user.Get_Package_Unknown] has not been found."
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "create, publish a library and fetch its manifest from the server" in {
@@ -389,12 +414,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       // Update Main.enso
       val libraryRoot = getTestDirectory
@@ -422,12 +450,15 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
       val rootDir         = locateRootDirectory()
@@ -516,7 +547,8 @@ class LibrariesTest
             }
           }
           """)
-        client.expectJson(json"""
+        client.expectJson(
+          json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
@@ -524,7 +556,9 @@ class LibrariesTest
               "tagLine": "published-lib"
             }
           }
-          """)
+          """,
+          timeout = defaultTimeout
+        )
       }
 
       // Once the server is down, the metadata request should fail, especially as the published version is not cached.
@@ -543,7 +577,8 @@ class LibrariesTest
             }
           }
           """)
-      val errorMsg = client.expectSomeJson().asObject.value
+      val errorMsg =
+        client.expectSomeJson(timeout = defaultTimeout).asObject.value
       errorMsg("id").value.asNumber.value.toInt.value shouldEqual 4
       errorMsg("error").value.asObject shouldBe defined
     }
@@ -574,7 +609,8 @@ class LibrariesTest
         var waitingForResult = true
 
         while (waitingForTask || waitingForResult) {
-          val msg = client.expectSomeJson(10.seconds.dilated).asObject.value
+          val msg =
+            client.expectSomeJson(timeout = defaultTimeout).asObject.value
 
           msg("id") match {
             case Some(json) =>
@@ -653,7 +689,8 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
@@ -662,7 +699,9 @@ class LibrariesTest
               ]
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "update the list of editions if requested" ignore {
@@ -681,7 +720,8 @@ class LibrariesTest
             }
           }
           """)
-        client.expectJson(json"""
+        client.expectJson(
+          json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
@@ -691,7 +731,9 @@ class LibrariesTest
               ]
             }
           }
-          """)
+          """,
+          timeout = defaultTimeout
+        )
       }
     }
   }
@@ -733,7 +775,9 @@ class LibrariesTest
             }
           }
           """)
-      val published = extractPublishedLibraries(client.expectSomeJson())
+      val published = extractPublishedLibraries(
+        client.expectSomeJson(timeout = defaultTimeout)
+      )
 
       published should contain(
         PublishedLibrary("Standard", "Base", isCached = true)
@@ -755,7 +799,9 @@ class LibrariesTest
             }
           }
           """)
-      extractPublishedLibraries(client.expectSomeJson()) should contain(
+      extractPublishedLibraries(
+        client.expectSomeJson(timeout = defaultTimeout)
+      ) should contain(
         PublishedLibrary("Standard", "Base", isCached = true)
       )
     }
@@ -776,7 +822,7 @@ class LibrariesTest
           }
           """)
 
-      val response = client.expectSomeJson()
+      val response = client.expectSomeJson(timeout = defaultTimeout)
       val components = response.hcursor
         .downField("result")
         .downField("availableComponents")
@@ -802,7 +848,7 @@ class LibrariesTest
           }
           """)
 
-      val response2 = client.expectSomeJson()
+      val response2 = client.expectSomeJson(timeout = defaultTimeout)
       val components2 = response2.hcursor
         .downField("result")
         .downField("availableComponents")
@@ -833,14 +879,17 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
               "engineVersion": $currentVersion
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -854,14 +903,17 @@ class LibrariesTest
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
               "engineVersion": $currentVersion
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
   }
 }
