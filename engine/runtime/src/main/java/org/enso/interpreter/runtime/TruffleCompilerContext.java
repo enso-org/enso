@@ -530,7 +530,7 @@ final class TruffleCompilerContext implements CompilerContext {
           throw e;
         }
 
-        doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
+        result &= doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
 
         return result;
       } finally {
