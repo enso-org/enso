@@ -28,13 +28,12 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
-import type { AstId } from '@/util/ast/abstract.ts'
+import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
-import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
@@ -119,9 +118,9 @@ const interactionBindingsHandler = interactionBindings.handler({
 // used as the source of the placement. This means, for example, the selected nodes when creating from a selection
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<NodeId>): Environment {
-  const nodeRects = [...graphStore.nodeRects.values()]
+  const nodeRects = graphStore.visibleNodeAreas
   const selectedNodeRects = [...nodeIds]
-    .map((id) => graphStore.nodeRects.get(id))
+    .map((id) => graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = graphNavigator.viewport
   const mousePosition = graphNavigator.sceneMousePos
@@ -208,9 +207,9 @@ const graphBindingsHandler = graphBindings.handler({
     let right = -Infinity
     let bottom = -Infinity
     const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
+      nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
     for (const id of nodesToCenter) {
-      const rect = graphStore.nodeRects.get(id)
+      const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
       if (!rect) continue
       left = Math.min(left, rect.left)
       right = Math.max(right, rect.right)
@@ -281,14 +280,19 @@ const graphBindingsHandler = graphBindings.handler({
       const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
       // For collapsed function, only selected nodes would affect placement of the output node.
       collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      const meta = new Map<AstId, Partial<NodeMetadata>>()
       const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
+      edit
+        .checkedGet(refactoredNodeId)
+        .mutableNodeMetadata()
+        .set('position', { x: position.x, y: position.y })
       if (outputNodeId != null) {
         const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
+        edit
+          .checkedGet(outputNodeId)
+          .mutableNodeMetadata()
+          .set('position', { x: position.x, y: position.y })
       }
-      graphStore.commitEdit(edit, meta)
+      graphStore.commitEdit(edit)
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -414,7 +418,13 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     } else {
       // We finish creating a new node.
       const metadata = undefined
-      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+      const createdNode = graphStore.createNode(
+        componentBrowserNodePosition.value,
+        content,
+        metadata,
+        requiredImports,
+      )
+      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
   // Finish interaction. This should also hide component browser.
@@ -489,7 +499,7 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
-  metadata: NodeMetadata | undefined
+  metadata: NodeMetadataFields | undefined
 }
 
 /** Copy the content of the selected node to the clipboard. */
@@ -498,7 +508,11 @@ function copyNodeContent() {
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
   const content = node.rootSpan.code()
-  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
+  const nodeMetadata = node.rootSpan.nodeMetadata
+  const metadata = {
+    position: nodeMetadata.get('position'),
+    visualization: nodeMetadata.get('visualization'),
+  }
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
   const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
