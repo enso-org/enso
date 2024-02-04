@@ -35,10 +35,6 @@ public final class ModuleCache
     return Cache.create(mc, Level.FINEST, module.getName().toString(), true, false);
   }
 
-  static ModuleCache find(Cache<?, ?> c) {
-    throw new IllegalStateException();
-  }
-
   @Override
   public String metadataSuffix() {
     return irCacheMetadataExtension;

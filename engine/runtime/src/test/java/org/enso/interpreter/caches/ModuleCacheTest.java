@@ -51,7 +51,7 @@ public class ModuleCacheTest extends TestBase {
     var ir = module.getIr().duplicate(true, true, true, true);
     var cm = new ModuleCache.CachedModule(ir, CompilationStage.AFTER_CODEGEN, module.getSource());
 
-    var mc = ModuleCache.find(module.getCache());
+    var mc = module.getCache().asSpi(ModuleCache.class);
     byte[] arr = mc.serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
@@ -81,7 +81,7 @@ public class ModuleCacheTest extends TestBase {
     var module = option.get();
     var ir = module.getIr().duplicate(true, true, true, true);
     var cm = new ModuleCache.CachedModule(ir, CompilationStage.AFTER_CODEGEN, module.getSource());
-    var mc = ModuleCache.find(module.getCache());
+    var mc = module.getCache().asSpi(ModuleCache.class);
     byte[] arr = mc.serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());

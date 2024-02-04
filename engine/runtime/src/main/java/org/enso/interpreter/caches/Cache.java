@@ -415,6 +415,10 @@ public final class Cache<T, M> {
     }
   }
 
+  final <T> T asSpi(Class<T> type) {
+    return type.cast(spi);
+  }
+
   /**
    * Roots encapsulates two possible locations where caches can be stored.
    *
