@@ -59,14 +59,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { doCreateLabel } = state
 
   const logger = loggerProvider.useLogger()
-  const { organization, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
-  const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.email
-  )
+  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -82,7 +80,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backend.type !== backendModule.BackendType.local &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
-    asset.projectState.opened_by !== organization?.email
+    asset.projectState.opened_by !== user?.email
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       if (typeof valueOrUpdater === 'function') {

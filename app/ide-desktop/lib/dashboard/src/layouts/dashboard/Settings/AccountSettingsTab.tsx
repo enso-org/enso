@@ -60,25 +60,25 @@ function InfoEntry(props: InternalInfoEntryProps) {
 /** Settings tab for viewing and editing account information. */
 export default function AccountSettingsTab() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setOrganization } = authProvider.useAuth()
+  const { setUser, signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const nameInputRef = React.useRef<HTMLInputElement>(null)
 
   const doUpdateName = async () => {
-    const oldName = organization?.name ?? ''
+    const oldName = user?.name ?? ''
     const newName = nameInputRef.current?.value ?? ''
     if (newName === oldName) {
       return
     } else {
       try {
         await backend.updateUser({ username: newName })
-        setOrganization(object.merger({ name: newName }))
+        setUser(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
         if (nameInputRef.current) {
-          nameInputRef.current.value = organization?.name ?? ''
+          nameInputRef.current.value = oldName
         }
       }
       return
@@ -92,7 +92,7 @@ export default function AccountSettingsTab() {
     } else {
       try {
         const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
-        setOrganization(newUser)
+        setUser(newUser)
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -114,16 +114,16 @@ export default function AccountSettingsTab() {
                 <input
                   ref={nameInputRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.name}
+                  key={user?.name}
                   type="text"
                   size={1}
-                  defaultValue={organization?.name ?? ''}
+                  defaultValue={user?.name ?? ''}
                   onBlur={doUpdateName}
                   onKeyDown={event => {
                     switch (event.key) {
                       case 'Escape': {
                         event.stopPropagation()
-                        event.currentTarget.value = organization?.name ?? ''
+                        event.currentTarget.value = user?.name ?? ''
                         event.currentTarget.blur()
                         break
                       }
@@ -143,7 +143,7 @@ export default function AccountSettingsTab() {
             </InfoEntry>
             <InfoEntry>
               <Name>Email</Name>
-              <Value>{organization?.email ?? ''}</Value>
+              <Value>{user?.email ?? ''}</Value>
             </InfoEntry>
           </div>
         </div>
@@ -154,7 +154,15 @@ export default function AccountSettingsTab() {
               className="rounded-full bg-danger text-inversed px-2 py-1"
               onClick={event => {
                 event.stopPropagation()
-                setModal(<ConfirmDeleteUserModal />)
+                setModal(
+                  <ConfirmDeleteUserModal
+                    description="user account"
+                    doDelete={async () => {
+                      await backend.deleteUser()
+                      await signOut()
+                    }}
+                  />
+                )
               }}
             >
               <span className="leading-5 h-6 py-px">Delete this user account</span>
@@ -169,7 +177,7 @@ export default function AccountSettingsTab() {
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
-          <img src={organization?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
+          <img src={user?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It

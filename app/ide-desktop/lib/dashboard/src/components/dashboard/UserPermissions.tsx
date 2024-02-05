@@ -18,7 +18,7 @@ export interface UserPermissionsProps {
   isOnlyOwner: boolean
   userPermission: backendModule.UserPermission
   setUserPermission: (userPermissions: backendModule.UserPermission) => void
-  doDelete: (user: backendModule.User) => void
+  doDelete: (user: backendModule.UserInfo) => void
 }
 
 /** A user and their permissions for a specific asset. */

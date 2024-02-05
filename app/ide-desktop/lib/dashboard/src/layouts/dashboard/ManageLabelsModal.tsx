@@ -39,7 +39,7 @@ export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -77,7 +77,7 @@ export default function ManageLabelsModal<
     [/* should never change */ setItem]
   )
 
-  if (backend.type === backendModule.BackendType.local || organization == null) {
+  if (backend.type === backendModule.BackendType.local || user == null) {
     // This should never happen - the local backend does not have the "labels" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.

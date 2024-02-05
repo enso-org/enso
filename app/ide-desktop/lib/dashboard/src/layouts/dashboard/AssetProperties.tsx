@@ -39,7 +39,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
@@ -49,9 +49,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ rawSetItem]
   )
-  const self = item.item.permissions?.find(
-    permission => permission.user.user_email === organization?.email
-  )
+  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
 
   React.useEffect(() => {

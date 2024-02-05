@@ -351,6 +351,26 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override getOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override updateOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override uploadOrganizationPicture() {
+    return this.invalidOperation()
+  }
+
   /** Do nothing. This function should never need to be called. */
   override inviteUser() {
     return Promise.resolve()

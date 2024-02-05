@@ -2,11 +2,12 @@
 import * as React from 'react'
 
 import BellIcon from 'enso-assets/bell.svg'
+import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
 
-import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
+import SettingsTab from '#/layouts/dashboard/Settings/SettingsTab'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -22,6 +23,12 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Account',
         settingsTab: SettingsTab.account,
         icon: SettingsIcon,
+        visible: true,
+      },
+      {
+        name: 'Organization',
+        settingsTab: SettingsTab.organization,
+        icon: PeopleSettingsIcon,
         visible: true,
       },
       {

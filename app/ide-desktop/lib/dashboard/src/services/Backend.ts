@@ -14,8 +14,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 /* eslint-disable @typescript-eslint/no-redeclare */
 
 /** Unique identifier for a user/organization. */
-export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
+export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
+export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -85,9 +85,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
-/** A user/organization in the application. These are the primary owners of a project. */
-export interface UserOrOrganization {
-  id: UserOrOrganizationId
+/** A user in the application. These are the primary owners of a project. */
+export interface User {
+  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves. */
+  id: OrganizationId
   name: string
   email: EmailAddress
   /** A URL. */
@@ -303,17 +305,26 @@ export interface ResourceUsage {
 }
 
 /** Metadata uniquely identifying a user. */
-export interface User {
+export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
   pk: Subject
   user_name: string
   user_email: EmailAddress
-  organization_id: UserOrOrganizationId
+  organization_id: OrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Metadata for an organization. */
+export interface OrganizationInfo {
+  name: string
+  email: EmailAddress
+  website: string
+  location: string
+  profilePicture: string | null
+}
+
 /** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link User}, but without `organization_id`. */
+ * This is similar to {@link UserInfo}, but without `organization_id`. */
 export interface SimpleUser {
   id: Subject
   name: string
@@ -322,7 +333,7 @@ export interface SimpleUser {
 
 /** User permission for a specific user. */
 export interface UserPermission {
-  user: User
+  user: UserInfo
   permission: permissions.PermissionAction
 }
 
@@ -551,7 +562,7 @@ export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
   assetPermissions: UserPermission[],
-  organization: UserOrOrganization | null
+  organization: User | null
 ): ProjectAsset {
   return {
     type: AssetType.project,
@@ -723,7 +734,7 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
 export interface CreateUserRequestBody {
   userName: string
   userEmail: EmailAddress
-  organizationId: UserOrOrganizationId | null
+  organizationId: OrganizationId | null
 }
 
 /** HTTP request body for the "update user" endpoint. */
@@ -731,9 +742,17 @@ export interface UpdateUserRequestBody {
   username: string | null
 }
 
+/** HTTP request body for the "update organization" endpoint. */
+export interface UpdateOrganizationRequestBody {
+  name?: string
+  email?: EmailAddress
+  website?: string
+  location?: string
+}
+
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
-  organizationId: UserOrOrganizationId
+  organizationId: OrganizationId
   userEmail: EmailAddress
 }
 
@@ -816,8 +835,8 @@ export interface UploadFileRequestParams {
   parentDirectoryId: DirectoryId | null
 }
 
-/** URL query string parameters for the "upload user profile picture" endpoint. */
-export interface UploadUserPictureRequestParams {
+/** URL query string parameters for the "upload profile picture" endpoint. */
+export interface UploadPictureRequestParams {
   fileName: string | null
 }
 
@@ -917,22 +936,30 @@ export default abstract class Backend {
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
-  abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+  abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
   abstract updateUser(body: UpdateUserRequestBody): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(
-    params: UploadUserPictureRequestParams,
-    file: Blob
-  ): Promise<UserOrOrganization>
+  abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
+  /** Get the details of the current organization. */
+  abstract getOrganization(): Promise<OrganizationInfo>
+  /** Change the details of the current organization. */
+  abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<void>
+  /** Delete the current organization. */
+  abstract deleteOrganization(): Promise<void>
+  /** Upload a new profile picture for the current organization. */
+  abstract uploadOrganizationPicture(
+    params: UploadPictureRequestParams,
+    file: Blob
+  ): Promise<OrganizationInfo>
   /** Adds a permission for a specific user on a specific asset. */
   abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
   /** Return user details for the current user. */
-  abstract usersMe(): Promise<UserOrOrganization | null>
+  abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
   abstract listDirectory(
     query: ListDirectoryRequestParams,
