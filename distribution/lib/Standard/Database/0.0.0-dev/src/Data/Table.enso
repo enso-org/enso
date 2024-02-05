@@ -934,23 +934,20 @@ type Table
         type_mapping = self.connection.dialect.get_type_mapping
         values_to_type_ref values =
             value_type = Value_Type_Helpers.find_common_type_for_arguments values
-            IO.println 'AAA'
-            IO.println values
-            IO.println value_type
             sql_type = case value_type of
                 Nothing -> SQL_Type.null
                 _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
             SQL_Type_Reference.from_constant sql_type
         keys_type_ref = values_to_type_ref map.keys.to_vector
-        IO.println keys_type_ref
 
-        expr = SQL_Expression.Constant Nothing
-        column = Column.Value key_column_name self.connection keys_type_ref expr self.context
-        IO.println column
-        contents = column.read
-        IO.println 'AAA2'
-        IO.println contents
-        IO.println contents.to_vector
+        ##
+            expr = SQL_Expression.Constant Nothing
+            column = Column.Value key_column_name self.connection keys_type_ref expr self.context
+            IO.println column
+            contents = column.read
+            IO.println 'AAA2'
+            IO.println contents
+            IO.println contents.to_vector
         IO.println "===="
         new_table_name = "lala"
         from_spec =
@@ -960,11 +957,11 @@ type Table
         sql_expression = SQL_Expression.Column new_table_name "column1" # key_column_name
         internal_column = Internal_Column.Value key_column_name keys_type_ref sql_expression
         t = Table.Value "lolo" self.connection [internal_column] context
-        IO.println "==== fin"
-        IO.println t
+        #IO.println "==== fin"
+        #IO.println t
         q = t.read
         IO.println "==== fin2"
-        IO.println q
+        #IO.println q
         IO.println q.display
         IO.println "==== fin3"
         #SQL_Expression.Column (origin : Text) (name : Text)
