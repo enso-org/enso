@@ -103,3 +103,10 @@ add_specs suite_builder setup =
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['x', [2, 1, Nothing, 3]], ['z', [20, 10, 40, 30]]]
             table.replace lookup_table 'x' . should_fail_with Null_Values_In_Key_Columns
+
+        group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            table.replace lookup_table 'x' from_column=8 . should_fail_with Illegal_Argument
+            table.replace lookup_table 'x' to_column=9 . should_fail_with Illegal_Argument
+            table.replace lookup_table 'x' from_column=8 to_column=9 . should_fail_with Illegal_Argument
