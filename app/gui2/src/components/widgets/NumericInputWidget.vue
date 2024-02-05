@@ -135,6 +135,7 @@ function focus() {
       v-model="editedValue"
       class="value"
       :style="inputStyle"
+      @keydown.enter.stop="($event.target as HTMLInputElement).blur()"
       @blur="blur"
       @focus="focus"
     />

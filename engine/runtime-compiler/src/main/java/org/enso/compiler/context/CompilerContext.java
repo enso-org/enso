@@ -12,6 +12,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
@@ -50,6 +51,16 @@ public interface CompilerContext extends CompilerStub {
   void notifySerializeModule(QualifiedName moduleName);
 
   Module findTopScopeModule(String name);
+
+  /**
+   * Format the given diagnostic into a string. The returned string might have ANSI colors.
+   *
+   * @param module May be null if inline diagnostics is required.
+   * @param diagnostic
+   * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
+   *     characters will be inside the returned string.
+   */
+  String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();

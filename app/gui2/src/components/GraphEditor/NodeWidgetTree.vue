@@ -7,8 +7,6 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, toRef } from 'vue'
 
-const DEBUG = false
-
 const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
@@ -33,7 +31,6 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  if (DEBUG) console.log('Widget Update: ', update)
   if (update.portUpdate) {
     const {
       edit,
