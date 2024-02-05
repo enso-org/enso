@@ -14,9 +14,6 @@ import project.System.File.File
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
-private
-
-
 ## PRIVATE
 cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
 

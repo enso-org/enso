@@ -219,4 +219,4 @@ for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) actio
 
     ## Now we can read the lines we need.
     if row_map.getOrLast start_at >= file_end then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else
-        FileLineReader.forEachLine java_file file_end row_map start_at (end_at.if_nothing -1) charset file.filter_func a
+        FileLineReader.forEachLine java_file file_end row_map start_at (end_at.if_nothing -1) charset file.filter_func action
