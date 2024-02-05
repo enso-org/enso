@@ -341,12 +341,25 @@ generate_from_part dialect from_spec = case from_spec of
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
         Builder.code raw_sql . paren ++ alias dialect as_name
-    From_Spec.Values vecs as_name ->
-        values = Builder.join ", " (vecs.map (vec-> Builder.join ", " (vec.map Builder.interpolation) . paren)) . paren
-        builder = Builder.code "VALUES " ++ values ++ alias dialect as_name
+    From_Spec.Values vecs column_names as_name ->
+        Runtime.assert (vecs.length == column_names.length)
+        #projection = column_names.map (cn-> as_name+"."+cn) . join ", "
+        transpose_vector_of_vectors vvs =
+            Runtime.assert (vvs.map .length . distinct . length == 1)
+            go vvs = if vvs.at 0 . is_empty then [] else
+                row = vvs.map .first
+                rest = vvs.map (x-> x.drop 1)
+                [row] + transpose_vector_of_vectors rest
+            go vvs
+        vecs_transposed = transpose_vector_of_vectors vecs
+        values = Builder.join ", " (vecs_transposed.map (vec-> Builder.join ", " (vec.map Builder.interpolation) . paren))
+        #builder = Builder.code "SELECT "+projection+" VALUES " ++ values ++ alias dialect as_name
+        builder = Builder.code "(VALUES " ++ values ++ ")" ++ alias dialect as_name
         sql = builder.build.unsafe_to_raw_sql
+        IO.println "BG"
         IO.println 'VALUES'
         IO.println sql
+        IO.println "BG2"
         builder
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec

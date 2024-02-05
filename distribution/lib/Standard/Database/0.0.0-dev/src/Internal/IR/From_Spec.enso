@@ -38,7 +38,7 @@ type From_Spec
          the same table.
     Query (raw_sql : Text) (alias : Text)
 
-    Values (column_vectors : Vector (Vector Any)) (alias : Text)
+    Values (column_vectors : Vector (Vector Any)) (column_names : Vector Text) (alias : Text)
 
     ## PRIVATE
 
