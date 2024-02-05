@@ -278,13 +278,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })
 
   React.useEffect(() => {
-    if (projectState === backendModule.ProjectState.opened) {
-      if (shouldOpenWhenReady) {
-        openEditor(shouldSwitchPage)
-        setShouldOpenWhenReady(false)
-      }
+    if (shouldOpenWhenReady && projectState === backendModule.ProjectState.opened) {
+      openEditor(shouldSwitchPage)
+      setShouldOpenWhenReady(false)
     }
-    // `openIde` is a callback, not a dependency.
+    // `openEditor` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, projectState])
 

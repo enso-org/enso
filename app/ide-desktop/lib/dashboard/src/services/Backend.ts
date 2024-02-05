@@ -784,8 +784,12 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
   /** This is required to exist so that {@link AnySmartAsset} is a discriminated union. */
   readonly type: T['type']
   /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
-   * the backend. Otherwise, return `this`. */
-  readonly materialize: () => Promise<this>
+   * the backend. Otherwise, return `this`, as a non-{@link Promise}.
+   *
+   * If returning `this` as a {@link Promise}, it causes a race condition when reopening the last
+   * opened project on application start, as it is opened on the first frame, but the project state
+   * is overwritten by the return value of this on the next render cycle. */
+  readonly materialize: () => Promise<this> | this
   /** Change the parent directory of an asset. */
   readonly update: (body: UpdateAssetRequestBody) => Promise<this>
   /** Move an arbitrary asset to the trash. */

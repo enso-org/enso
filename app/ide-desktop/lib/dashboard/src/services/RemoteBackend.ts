@@ -48,7 +48,7 @@ function responseIsSuccessful(response: Response) {
 
 /** Any object that has a `materialize()` method that accepts no arguments. */
 interface HasMaterialize<T> {
-  materialize: () => Promise<T>
+  materialize: () => Promise<T> | T
 }
 
 /** Overwrites `materialize` so that it does not. */
@@ -283,8 +283,8 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
 
   /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
    * the backend. Otherwise, return `this`. */
-  materialize(): Promise<this> {
-    return Promise.resolve(this)
+  materialize(): Promise<this> | this {
+    return this
   }
 
   /** Change the parent directory of an asset. */

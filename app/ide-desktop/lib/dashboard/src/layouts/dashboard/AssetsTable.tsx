@@ -268,7 +268,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
   const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
   const [hasPasteData, setHasPasteData] = React.useState(false)
-  const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+  const queuedProject = React.useRef(initialProjectName)
   const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     return AssetTreeNode.fromSmartAsset(rootDirectory, rootParentDirectoryId, rootDirectory, -1)
@@ -590,7 +590,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     if (isLoading) {
-      setNameOfProjectToImmediatelyOpen(initialProjectName)
+      queuedProject.current = initialProjectName
     } else {
       // The project name here might also be a string with project id, e.g. when opening
       // a project file from explorer on Windows.
@@ -620,52 +620,47 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnySmartAsset[]) => {
-      // This is required, otherwise we are using an outdated
-      // `nameOfProjectToImmediatelyOpen`.
-      setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
-        setInitialized(true)
-        const rootParentDirectoryId = backendModule.DirectoryId('')
-        const newRootNode = new AssetTreeNode(
-          rootDirectory.value.id,
-          rootDirectory,
-          rootParentDirectoryId,
-          // This is INCORRECT, but it should not ever need to be accessed.
-          rootDirectory,
-          newAssets.map(asset =>
-            AssetTreeNode.fromSmartAsset(asset, rootDirectory.value.id, rootDirectory, 0)
-          ),
-          -1
-        )
-        setAssetTree(newRootNode)
-        // The project name here might also be a string with project id, e.g.
-        // when opening a project file from explorer on Windows.
-        const isInitialProject = (asset: backendModule.AnyAsset) =>
-          asset.title === oldNameOfProjectToImmediatelyOpen ||
-          asset.id === oldNameOfProjectToImmediatelyOpen
-        if (oldNameOfProjectToImmediatelyOpen != null) {
-          const projectToLoad = newAssets
-            .map(smartAsset => smartAsset.value)
-            .filter(backendModule.assetIsProject)
-            .find(isInitialProject)
-          if (projectToLoad != null) {
-            window.setTimeout(() => {
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
-                id: projectToLoad.id,
-                shouldAutomaticallySwitchPage: true,
-                runInBackground: false,
-              })
+      setInitialized(true)
+      const rootParentDirectoryId = backendModule.DirectoryId('')
+      const newRootNode = new AssetTreeNode(
+        rootDirectory.value.id,
+        rootDirectory,
+        rootParentDirectoryId,
+        // This is INCORRECT, but it should not ever need to be accessed.
+        rootDirectory,
+        newAssets.map(asset =>
+          AssetTreeNode.fromSmartAsset(asset, rootDirectory.value.id, rootDirectory, 0)
+        ),
+        -1
+      )
+      setAssetTree(newRootNode)
+      // The project name here might also be a string with project id, e.g.
+      // when opening a project file from explorer on Windows.
+      const isInitialProject = (asset: backendModule.AnyAsset) =>
+        asset.title === queuedProject.current || asset.id === queuedProject.current
+      if (queuedProject.current != null) {
+        const projectToLoad = newAssets
+          .map(smartAsset => smartAsset.value)
+          .filter(backendModule.assetIsProject)
+          .find(isInitialProject)
+        if (projectToLoad != null) {
+          window.setTimeout(() => {
+            dispatchAssetEvent({
+              type: AssetEventType.openProject,
+              id: projectToLoad.id,
+              shouldAutomaticallySwitchPage: true,
+              runInBackground: false,
             })
-          } else {
-            toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
-          }
+          })
+        } else {
+          toastAndLog(`Could not find project '${queuedProject.current}'`)
         }
-        return null
-      })
+      }
+      return null
     },
     [
       rootDirectory,
-      /* should never change */ setNameOfProjectToImmediatelyOpen,
+      /* should never change */ queuedProject,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ toastAndLog,
     ]

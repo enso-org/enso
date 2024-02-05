@@ -109,28 +109,33 @@ export default function AssetRow(props: AssetRowProps) {
   // Materialize the asset on the backend. If it already exists, this will not send a request to
   // the backend.
   React.useEffect(() => {
-    rowState.setVisibility(Visibility.faded)
-    void (async () => {
-      try {
-        const materialized = await smartAsset.materialize()
-        rowState.setVisibility(Visibility.visible)
-        setAsset(materialized.value)
-        if (
-          backendModule.assetIsProject(asset) &&
-          asset.projectState.type === backendModule.ProjectState.placeholder &&
-          backendModule.assetIsProject(materialized.value)
-        ) {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: materialized.value.id,
-            shouldAutomaticallySwitchPage: true,
-            runInBackground: false,
-          })
+    const materializedOrPromise = smartAsset.materialize()
+    if (!(materializedOrPromise instanceof Promise)) {
+      setAsset(materializedOrPromise.value)
+    } else {
+      void (async () => {
+        try {
+          rowState.setVisibility(Visibility.faded)
+          const materialized = await materializedOrPromise
+          rowState.setVisibility(Visibility.visible)
+          setAsset(materialized.value)
+          if (
+            backendModule.assetIsProject(asset) &&
+            asset.projectState.type === backendModule.ProjectState.placeholder &&
+            backendModule.assetIsProject(materialized.value)
+          ) {
+            dispatchAssetEvent({
+              type: AssetEventType.openProject,
+              id: materialized.value.id,
+              shouldAutomaticallySwitchPage: true,
+              runInBackground: false,
+            })
+          }
+        } catch (error) {
+          rowState.setVisibility(Visibility.visible)
         }
-      } catch (error) {
-        rowState.setVisibility(Visibility.visible)
-      }
-    })()
+      })()
+    }
     // This MUST only run once, on initialization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
