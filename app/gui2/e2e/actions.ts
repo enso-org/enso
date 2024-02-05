@@ -9,7 +9,7 @@ import * as locate from './locate'
 /** Perform a successful login. */
 export async function goToGraph(page: Page) {
   await page.goto('/')
-  expect(page.locator('.App')).toBeVisible()
+  await expect(page.locator('.App')).toBeVisible()
   // Wait until nodes are loaded.
-  customExpect.toExist(locate.graphNode(page))
+  await customExpect.toExist(locate.graphNode(page))
 }
