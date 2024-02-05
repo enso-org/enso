@@ -928,14 +928,14 @@ type Table
             Warning.set result []
 
     ## PRIVATE
-       A helper that creates a two-column literal table from a Map.
+       A helper that creates a two-column literal table from a `Map`.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
         keys_and_values = map.to_vector
         self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE
-       A helper that creates a literal table from vectors.
+       A helper that creates a literal table from `Vector`s.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
     make_table_from_vectors self column_vectors column_names =
         Runtime.assert (column_vectors.length == column_names.length) "Vectors and column names must have the same length"
@@ -963,19 +963,7 @@ type Table
             sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
             Internal_Column.Value column_name type_ref sql_expression
 
-        t = Table.Value literal_table_name self.connection internal_columns context
-        #IO.println "==== fin"
-        #IO.println t
-        q = t.read
-        IO.println "==== fin2"
-        #IO.println q
-        IO.println q.display
-        IO.println "==== fin3"
-        #SQL_Expression.Column (origin : Text) (name : Text)
-        #ic.Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_Expression
-        #t.Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
-
-        t
+        Table.Value literal_table_name self.connection internal_columns context
 
     ## PRIVATE
 
