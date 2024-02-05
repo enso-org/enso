@@ -290,6 +290,7 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-tests`,
     `runtime-parser`,
     `runtime-compiler`,
     `runtime-language-epb`,
