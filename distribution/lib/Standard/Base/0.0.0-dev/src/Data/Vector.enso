@@ -231,9 +231,7 @@ type Vector a
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing =
-        len = self.length
-        if index < -len || index >= len then if_missing else
-            self.at index
+        Array_Like_Helpers.get self index if_missing
 
     ## ICON dataframe_map_column
        Combines all the elements of the vector, by iteratively applying the
@@ -271,8 +269,7 @@ type Vector a
              [0, 1, 2] . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function =
-        f = acc -> ix -> function acc ix (self.at ix)
-        0.up_to self.length . fold init f
+        Array_Like_Helpers.fold_with_index self init function
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
@@ -288,11 +285,7 @@ type Vector a
             [1, 2, 3].running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
-        wrapped builder value =
-            current = if builder.length == 0 then init else builder.last
-            builder.append (function current value)
-        built = self.fold (Vector.new_builder self.length) wrapped
-        built.to_vector
+        Array_Like_Helpers.running_fold self init function
 
     ## ICON dataframe_map_column
        Combines all the elements of a non-empty vector using a binary operation.
@@ -308,15 +301,7 @@ type Vector a
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
     reduce self function ~if_empty=(Error.throw Empty_Error) =
-        len = self.length
-        case len of
-            0 -> if_empty
-            1 -> self.at 0
-            _ ->
-                fold_function current idx =
-                    if idx == len then current else
-                        @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
-                fold_function (self.at 0) 1
+        Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Selections
        Returns the first element of the vector that satisfies the condition or
@@ -478,10 +463,7 @@ type Vector a
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter =
-        predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Array_Like_Helpers.filter self filter
 
     ## GROUP Selections
        ICON preparation
@@ -498,9 +480,7 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        builder = self.fold_with_index Vector.new_builder builder-> ix-> elem->
-            if predicate ix elem then builder.append elem else builder
-        builder.to_vector
+        Array_Like_Helpers.filter_with_index self predicate
 
     ## GROUP Selections
        ICON split_text
@@ -529,14 +509,7 @@ type Vector a
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
     partition self condition =
-        predicate = unify_condition_or_predicate condition
-        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-            case predicate elem of
-                True ->
-                    Pair.new (acc.first.append elem) acc.second
-                False ->
-                    Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        Array_Like_Helpers.partition self condition
 
     ## Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
@@ -558,11 +531,7 @@ type Vector a
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair.new Vector.new_builder Vector.new_builder) acc-> ix-> elem->
-            case predicate ix elem of
-                True -> Pair.new (acc.first.append elem) acc.second
-                False -> Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        Array_Like_Helpers.partition_with_index self predicate
 
     ## ICON dataframe_map_column
        Applies a function to each element of the vector, returning the `Vector` of
@@ -769,14 +738,8 @@ type Vector a
 
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
-    short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
-            prefix = self.take (Index_Sub_Range.First max_entries)
-            if prefix.length == self.length then self.to_text else
-                remaining_count = self.length - prefix.length
-                remaining_text = if remaining_count == 1 then "and 1 more element" else
-                    "and " + remaining_count.to_text + " more elements"
-                prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
+    short_display_text self (max_entries : Integer = 10) =
+        Array_Like_Helpers.short_display_text self max_entries
 
     ## ALIAS append, concatenate, union
        GROUP Operators
@@ -849,10 +812,8 @@ type Vector a
 
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text -> Text -> Text
-    join self separator="" prefix="" suffix="" =
-        if self.is_empty then prefix+suffix else
-            if self.length == 1 then prefix + self.at 0 + suffix else
-                prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
+    join self separator:Text="" prefix:Text="" suffix:Text="" =
+        Array_Like_Helpers.join self separator prefix suffix
 
     ## PRIVATE
        Creates a new vector with the skipping elements until `start` and then

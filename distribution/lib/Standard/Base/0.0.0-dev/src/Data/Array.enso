@@ -704,7 +704,7 @@ type Array
 
              ["foo", "bar", "baz"].to_array.join ", "
     join : Text -> Text -> Text -> Text
-    join self separator="" prefix="" suffix="" =
+    join self separator:Text="" prefix:Text="" suffix:Text="" =
         Array_Like_Helpers.join self separator prefix suffix
 
     ## PRIVATE
