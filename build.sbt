@@ -1733,7 +1733,7 @@ lazy val `runtime-tests` =
           Level.Warn
         ),
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
         "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % Test,
         "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % Test,
         "org.graalvm.truffle"  % "truffle-tck-tests"       % graalMavenPackagesVersion % Test,
@@ -1745,6 +1745,9 @@ lazy val `runtime-tests` =
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
         "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
       ),
+      Test / compile := (Test / compile)
+        .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+        .value,
       Test / fork := true,
       Test / parallelExecution := false,
       Test / logBuffered := false,
