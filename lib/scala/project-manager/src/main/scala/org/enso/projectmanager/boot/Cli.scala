@@ -14,6 +14,7 @@ object Cli {
   val VERSION_OPTION = "version"
   val PROFILING_PATH = "profiling-path"
   val PROFILING_TIME = "profiling-time"
+  val PROJECT_LIST   = "project-list"
 
   object option {
 
@@ -63,6 +64,14 @@ object Cli {
       .longOpt(PROFILING_TIME)
       .desc("The duration in seconds limiting the application profiling time.")
       .build()
+
+    val projectList: cli.Option = cli.Option.builder
+      .optionalArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(PROJECT_LIST)
+      .desc("The path to the projects directory.")
+      .build()
   }
 
   val options: cli.Options =
@@ -74,6 +83,7 @@ object Cli {
       .addOption(option.noLogMasking)
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
+      .addOption(option.projectList)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

@@ -69,11 +69,12 @@ class ProjectService[
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
+  import E._
+  import ProjectService._
+
   private lazy val logger = Logger[ProjectService[F]]
 
   private val listProjectsLock: Semaphore[F] = Semaphore.unsafeMake(1)
-
-  import E._
 
   /** @inheritdoc */
   override def createUserProject(
@@ -370,15 +371,6 @@ class ProjectService[
       .mapError(toServiceFailure)
       .map(_.map(toProjectMetadata))
 
-  private def toProjectMetadata(project: Project): ProjectMetadata =
-    ProjectMetadata(
-      name       = project.name,
-      namespace  = project.namespace,
-      id         = project.id,
-      created    = project.created,
-      lastOpened = project.lastOpened
-    )
-
   private def getUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Project] =
@@ -412,18 +404,6 @@ class ProjectService[
           repo
         )
       }
-
-  private val toServiceFailure
-    : ProjectRepositoryFailure => ProjectServiceFailure = {
-    case CannotLoadIndex(msg) =>
-      DataStoreFailure(s"Cannot load project index [$msg].")
-    case StorageFailure(msg) =>
-      DataStoreFailure(s"Storage failure [$msg].")
-    case ProjectNotFoundInIndex =>
-      ProjectNotFound
-    case InconsistentStorage(msg) =>
-      DataStoreFailure(s"Project repository inconsistency detected [$msg].")
-  }
 
   private def validateProjectName(
     name: String
@@ -520,4 +500,27 @@ class ProjectService[
       .map(e => LanguageServerStatus(e._1, e._2))
       .mapError(_ => LanguageServerFailure("failed to retrieve project state"))
   }
+}
+
+object ProjectService {
+
+  val toServiceFailure: ProjectRepositoryFailure => ProjectServiceFailure = {
+    case CannotLoadIndex(msg) =>
+      DataStoreFailure(s"Cannot load project index [$msg].")
+    case StorageFailure(msg) =>
+      DataStoreFailure(s"Storage failure [$msg].")
+    case ProjectNotFoundInIndex =>
+      ProjectNotFound
+    case InconsistentStorage(msg) =>
+      DataStoreFailure(s"Project repository inconsistency detected [$msg].")
+  }
+
+  def toProjectMetadata(project: Project): ProjectMetadata =
+    ProjectMetadata(
+      name       = project.name,
+      namespace  = project.namespace,
+      id         = project.id,
+      created    = project.created,
+      lastOpened = project.lastOpened
+    )
 }

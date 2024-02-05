@@ -8,7 +8,6 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure

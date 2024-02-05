@@ -8,7 +8,6 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
