@@ -39,7 +39,6 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   ...(process.env.CI ? { workers: 1 } : {}),
-  reporter: 'line',
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
