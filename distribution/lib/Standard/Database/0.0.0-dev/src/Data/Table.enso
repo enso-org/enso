@@ -927,12 +927,18 @@ type Table
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
+    # Size in number of elements.
+    MAX_LITERAL_SIZE = 256
+
     ## PRIVATE
        A helper that creates a two-column literal table from a `Map`.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
-        keys_and_values = map.to_vector
-        self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+        total_size = map.size * 2
+
+        if total_size > MAX_LITERAL_SIZE then Error.throw (Illegal_Argument.new "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else 
+            keys_and_values = map.to_vector
+            self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE
        A helper that creates a literal table from `Vector`s.
@@ -940,30 +946,35 @@ type Table
     make_table_from_vectors self column_vectors column_names =
         Runtime.assert (column_vectors.length == column_names.length) "Vectors and column names must have the same length"
 
-        type_mapping = self.connection.dialect.get_type_mapping
+        # Assume the columns are all the same length; if not, it will be an error anyway.
+        total_size = if column_vectors.is_empty && column_vectors.at 0 . is_empty then 0 else
+            column_vectors.length * (column_vectors.at 0 . length)
 
-        values_to_type_ref column_vector =
-            value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
-            sql_type = case value_type of
-                Nothing -> SQL_Type.null
-                _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-            SQL_Type_Reference.from_constant sql_type
+        if total_size > MAX_LITERAL_SIZE then Error.throw (Illegal_Argument.new "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else 
+            type_mapping = self.connection.dialect.get_type_mapping
 
-        literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+            values_to_type_ref column_vector =
+                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
+                sql_type = case value_type of
+                    Nothing -> SQL_Type.null
+                    _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+                SQL_Type_Reference.from_constant sql_type
 
-        from_spec = From_Spec.Values column_vectors column_names literal_table_name
-        context = Context.for_subquery from_spec
+            literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
 
-        internal_columns = 0.up_to column_vectors.length . map i->
-            column_vector = column_vectors.at i
-            column_name = column_names.at i
+            from_spec = From_Spec.Values column_vectors column_names literal_table_name
+            context = Context.for_subquery from_spec
 
-            type_ref = values_to_type_ref column_vector.to_vector
-            generated_literal_column_name = "column"+(i+1).to_text
-            sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
-            Internal_Column.Value column_name type_ref sql_expression
+            internal_columns = 0.up_to column_vectors.length . map i->
+                column_vector = column_vectors.at i
+                column_name = column_names.at i
 
-        Table.Value literal_table_name self.connection internal_columns context
+                type_ref = values_to_type_ref column_vector.to_vector
+                generated_literal_column_name = "column"+(i+1).to_text
+                sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
+                Internal_Column.Value column_name type_ref sql_expression
+
+            Table.Value literal_table_name self.connection internal_columns context
 
     ## PRIVATE
 

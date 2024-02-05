@@ -1673,7 +1673,14 @@ type Table
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
         keys_and_values = map.to_vector
-        Table.new [[key_column_name, keys_and_values.map .first], [value_column_name, keys_and_values.map .second]]
+        self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+
+    ## PRIVATE
+       A helper that creates a literal table from `Vector`s.
+    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
+    make_table_from_vectors self column_vectors column_names =
+        Runtime.assert (column_vectors.length == column_names.length) "Vectors and column names must have the same length"
+        Table.new (column_vectors.zip column_names (v-> n-> Column.from_vector n v))
 
     ## PRIVATE
 
