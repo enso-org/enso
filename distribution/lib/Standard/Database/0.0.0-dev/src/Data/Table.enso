@@ -927,36 +927,42 @@ type Table
             Warning.set result []
 
     ## PRIVATE
-       A helper that creates a two-column table from a Map.
+       A helper that creates a two-column literal table from a Map.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
-        _ = [value_column_name]
+        keys_and_values = map.to_vector
+        self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+
+    ## PRIVATE
+       A helper that creates a literal table from vectors.
+    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
+    make_table_from_vectors self column_vectors column_names =
+        Runtime.assert (column_vectors.length == column_names.length) "Vectors and column names must have the same length"
+
         type_mapping = self.connection.dialect.get_type_mapping
-        values_to_type_ref values =
-            value_type = Value_Type_Helpers.find_common_type_for_arguments values
+
+        values_to_type_ref column_vector =
+            value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector
             sql_type = case value_type of
                 Nothing -> SQL_Type.null
                 _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
             SQL_Type_Reference.from_constant sql_type
-        keys_type_ref = values_to_type_ref map.keys.to_vector
 
-        ##
-            expr = SQL_Expression.Constant Nothing
-            column = Column.Value key_column_name self.connection keys_type_ref expr self.context
-            IO.println column
-            contents = column.read
-            IO.println 'AAA2'
-            IO.println contents
-            IO.println contents.to_vector
-        IO.println "===="
-        new_table_name = "lala"
-        from_spec =
-            keys_and_values = map.to_vector
-            From_Spec.Values [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name] new_table_name
+        literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+
+        from_spec = From_Spec.Values column_vectors column_names literal_table_name
         context = Context.for_subquery from_spec
-        sql_expression = SQL_Expression.Column new_table_name "column1" # key_column_name
-        internal_column = Internal_Column.Value key_column_name keys_type_ref sql_expression
-        t = Table.Value "lolo" self.connection [internal_column] context
+
+        internal_columns = 0.up_to column_vectors.length . map i->
+            column_vector = column_vectors.at i
+            column_name = column_names.at i
+
+            type_ref = values_to_type_ref column_vector.to_vector
+            generated_literal_column_name = "column"+(i+1).to_text
+            sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
+            Internal_Column.Value column_name type_ref sql_expression
+
+        t = Table.Value literal_table_name self.connection internal_columns context
         #IO.println "==== fin"
         #IO.println t
         q = t.read
@@ -968,7 +974,7 @@ type Table
         #ic.Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_Expression
         #t.Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
 
-        Nothing
+        t
 
     ## PRIVATE
 
