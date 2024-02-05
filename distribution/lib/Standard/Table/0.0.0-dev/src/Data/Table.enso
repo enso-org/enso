@@ -1910,7 +1910,7 @@ type Table
          In the Database backend, there are no guarantees related to ordering of
          results.
 
-       ? Error Conditions
+       ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
@@ -1995,7 +1995,7 @@ type Table
          In the Database backend, there are no guarantees related to ordering of
          results.
 
-       ? Error Conditions
+       ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
            specified by `from_column`, `to_column`, or `column`, a
