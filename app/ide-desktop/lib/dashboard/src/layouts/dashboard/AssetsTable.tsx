@@ -643,6 +643,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           .map(smartAsset => smartAsset.value)
           .filter(backendModule.assetIsProject)
           .find(isInitialProject)
+        queuedProject.current = null
         if (projectToLoad != null) {
           window.setTimeout(() => {
             dispatchAssetEvent({
@@ -656,7 +657,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           toastAndLog(`Could not find project '${queuedProject.current}'`)
         }
       }
-      return null
     },
     [
       rootDirectory,
