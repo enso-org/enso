@@ -362,7 +362,7 @@ export class App extends Ast {
   ) {
     return App.concrete(
       module,
-      unspaced(func),
+      autospaced(func),
       undefined,
       nameSpecification(argumentName),
       autospaced(argument),
@@ -381,15 +381,16 @@ export class App extends Ast {
 
   *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
     const { function: function_, parens, nameSpecification, argument } = getAll(this.fields)
-    yield function_
-    if (parens) yield parens.open
-    const spacedEquals = !!parens && !!nameSpecification?.equals.whitespace
+    yield ensureUnspaced(function_, verbatim)
+    const useParens = !!(parens && (nameSpecification || verbatim))
+    const spacedEquals = useParens && !!nameSpecification?.equals.whitespace
+    if (useParens) yield ensureSpaced(parens.open, verbatim)
     if (nameSpecification) {
-      yield ensureSpacedIf(nameSpecification.name, !parens, verbatim)
+      yield ensureSpacedIf(nameSpecification.name, !useParens, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
-    if (parens) yield parens.close
+    if (useParens) yield preferUnspaced(parens.close)
   }
 
   printSubtree(
@@ -424,6 +425,9 @@ function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): No
 function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
   if (verbatim && child.whitespace != null) return child
   return child.whitespace === '' ? child : { whitespace: '', ...child }
+}
+function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
+  return child.whitespace === undefined ? { whitespace: '', ...child } : child
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
