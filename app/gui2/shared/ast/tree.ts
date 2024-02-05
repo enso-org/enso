@@ -24,6 +24,7 @@ import {
   print,
   printAst,
   printBlock,
+  syncToCode,
 } from '.'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
@@ -54,6 +55,15 @@ export interface AstFields {
   parent: AstId | undefined
   metadata: FixedMap<MetadataFields>
 }
+function allKeys<T>(keys: Record<keyof T, any>): (keyof T)[] {
+  return Object.keys(keys) as any
+}
+const astFieldKeys = allKeys<AstFields>({
+  id: null,
+  type: null,
+  parent: null,
+  metadata: null,
+})
 export abstract class Ast {
   readonly module: Module
   /** @internal */
@@ -281,6 +291,11 @@ export abstract class MutableAst extends Ast {
     return this.module.checkedGet(parentId)
   }
 
+  /** Modify this tree to represent the given code, while minimizing changes from the current set of `Ast`s. */
+  syncToCode(code: string) {
+    syncToCode(this, code)
+  }
+
   ///////////////////
 
   /** @internal */
@@ -448,6 +463,8 @@ export class MutableApp extends App implements MutableAst {
       this.setFunction(replacement)
     } else if (this.fields.get('argument').node === target) {
       this.setArgument(replacement)
+    } else {
+      bail(`Child not found: this.id=${this.id} target=${target}`)
     }
   }
 }

@@ -263,7 +263,7 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).replaceValue(Ast.parse(content, edit))
+      edit.getVersion(node.rootSpan).syncToCode(content)
     })
   }
 

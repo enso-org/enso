@@ -3,6 +3,7 @@ import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
 
@@ -492,10 +493,10 @@ test('Construct app', () => {
   const namedApp = Ast.App.new(
     edit,
     Ast.Ident.new(edit, 'func' as Identifier),
-    'argName' as Identifier,
+    'name' as Identifier,
     Ast.Ident.new(edit, 'arg' as Identifier),
   )
-  expect(namedApp.code()).toBe('func argName=arg')
+  expect(namedApp.code()).toBe('func name=arg')
 })
 
 test.each([
@@ -534,34 +535,216 @@ test('Automatic parenthesis', () => {
   expect(block.code()).toBe(correctCode)
 })
 
-test('Resync', () => {
-  const root = Ast.parseBlock('main = func arg1 arg2')
-  const module = root.module
-  module.replaceRoot(root)
-  const arg1 = 'arg1' as Identifier
-  const func = Ast.Function.fromStatements(
-    module,
-    'func' as Identifier,
-    [arg1],
-    [Ast.Ident.new(module, arg1)],
-  )
+test('Tree repair: Non-canonical block line attribution', () => {
+  const beforeCase = testCase({
+    'func a b =': Ast.Function,
+    '    c = a + b': Ast.Assignment,
+    'main =': Ast.Function,
+    '    func arg1 arg2': Ast.App,
+  })
+  const before = beforeCase.statements
+
+  const edit = beforeCase.module.edit()
   // Add a trailing line to the function's block. This is syntactically non-canonical; it should belong to the parent.
-  func.bodyAsBlock().insert(1, undefined)
-  expect(func.bodyAsBlock().lines.length).toBe(2)
-  root.insert(0, func)
-  const codeBeforeRepair = root.code()
-  const rootExternalIdBeforeRepair = root.externalId
-  const funcExternalIdBeforeRepair = func.externalId
-  Ast.repair(root, module)
-  const repairedRoot = module.root()
-  assert(repairedRoot instanceof Ast.BodyBlock)
-  const repairedFunc = repairedRoot.statements().next().value
-  assert(repairedFunc instanceof Ast.Function)
+  edit.getVersion(before['func a b =']).bodyAsBlock().insert(1, undefined)
+  const editedRoot = edit.root()
+  assert(editedRoot instanceof Ast.BodyBlock)
+  const editedCode = editedRoot.code()
+  expect(editedCode).toContain('\n\n')
+
+  const repair = edit.edit()
+  Ast.repair(editedRoot, repair)
+  const afterRepair = findExpressions(repair.root()!, {
+    'func a b =': Ast.Function,
+    'c = a + b': Ast.Assignment,
+    'main =': Ast.Function,
+    'func arg1 arg2': Ast.App,
+  })
+  const repairedFunc = afterRepair['func a b =']
   assert(repairedFunc.body instanceof Ast.BodyBlock)
   // The function's body has been corrected.
   expect(repairedFunc.body.lines.length).toBe(1)
-  expect(repairedRoot.code()).toBe(codeBeforeRepair)
-  expect(repairedRoot.externalId).toBe(rootExternalIdBeforeRepair)
-  // The resync operation loses metadata within the non-canonical subtree.
-  expect(repairedFunc.body?.externalId).not.toBe(funcExternalIdBeforeRepair)
+  expect(repair.root()?.code()).toBe(editedCode)
+  // The repair maintains identities in all nodes.
+  expect(afterRepair['c = a + b'].id).toBe(before['    c = a + b'].id)
+  expect(afterRepair['func arg1 arg2'].id).toBe(before['    func arg1 arg2'].id)
+  // The repair maintains identities of other functions.
+  expect(afterRepair['main ='].id).toBe(before['main ='].id)
+  // TODO(#8238): The repaired function should maintain its sync identity.
+  //expect(afterRepair['func a b ='].id).toBe(before['func a b ='].id)
+})
+
+test('Code edit: Change argument type', () => {
+  const beforeRoot = Ast.parse('func arg1 arg2')
+  beforeRoot.module.replaceRoot(beforeRoot)
+  const before = findExpressions(beforeRoot, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func arg1': Ast.App,
+    'func arg1 arg2': Ast.App,
+  })
+  const edit = beforeRoot.module.edit()
+  const newCode = 'func 123 arg2'
+  edit.getVersion(beforeRoot).syncToCode(newCode)
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe(newCode)
+  // Ensure the identities of all the original nodes were maintained.
+  const after = findExpressions(edit.root()!, {
+    func: Ast.Ident,
+    '123': Ast.NumericLiteral,
+    arg2: Ast.Ident,
+    'func 123': Ast.App,
+    'func 123 arg2': Ast.App,
+  })
+  expect(after.func.id).toBe(before.func.id)
+  expect(after.arg2.id).toBe(before.arg2.id)
+  // TODO(#8238): Both `App` nodes should maintain their sync identities.
+  //expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
+  //expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+})
+
+test('Code edit: Insert argument names', () => {
+  const beforeRoot = Ast.parse('func arg1 arg2')
+  beforeRoot.module.replaceRoot(beforeRoot)
+  const before = findExpressions(beforeRoot, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func arg1': Ast.App,
+    'func arg1 arg2': Ast.App,
+  })
+  const edit = beforeRoot.module.edit()
+  const newCode = 'func name1=arg1 name2=arg2'
+  edit.getVersion(beforeRoot).syncToCode(newCode)
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe(newCode)
+  // Ensure the identities of all the original nodes were maintained.
+  const after = findExpressions(edit.root()!, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func name1=arg1': Ast.App,
+    'func name1=arg1 name2=arg2': Ast.App,
+  })
+  expect(after.func.id).toBe(before.func.id)
+  expect(after.arg1.id).toBe(before.arg1.id)
+  expect(after.arg2.id).toBe(before.arg2.id)
+  // TODO(#8238): Both `App` nodes should maintain their sync identities.
+  //expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
+  //expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+})
+
+test('Code edit: Remove argument names', () => {
+  const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
+  beforeRoot.module.replaceRoot(beforeRoot)
+  const before = findExpressions(beforeRoot, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func name1=arg1': Ast.App,
+    'func name1=arg1 name2=arg2': Ast.App,
+  })
+  const edit = beforeRoot.module.edit()
+  const newCode = 'func arg1 arg2'
+  edit.getVersion(beforeRoot).syncToCode(newCode)
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe(newCode)
+  // Ensure the identities of all the original nodes were maintained.
+  const after = findExpressions(edit.root()!, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func arg1': Ast.App,
+    'func arg1 arg2': Ast.App,
+  })
+  expect(after.func.id).toBe(before.func.id)
+  expect(after.arg1.id).toBe(before.arg1.id)
+  expect(after.arg2.id).toBe(before.arg2.id)
+  // TODO(#8238): Both `App` nodes should maintain their sync identities.
+  //expect(after['func arg1 arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+  //expect(after['func arg1'].id).toBe(before['func name1=arg1'].id)
+})
+
+test('Code edit: Rearrange block', () => {
+  const beforeCase = testCase({
+    'main =': Ast.Function,
+    '    call_result = func sum 12': Ast.Assignment,
+    '    sum = value + 23': Ast.Assignment,
+    '    value = 42': Ast.Assignment,
+  })
+  const before = beforeCase.statements
+
+  const edit = beforeCase.module.edit()
+  const newCode = [
+    'main =',
+    '\n    value = 42',
+    '\n    sum = value + 23',
+    '\n    call_result = func sum 12',
+  ].join('')
+  edit.root()!.syncToCode(newCode)
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe(newCode)
+  // Ensure the identities of all the original nodes were maintained.
+  const after = tryFindExpressions(edit.root()!, {
+    'call_result = func sum 12': Ast.Assignment,
+    'sum = value + 23': Ast.Assignment,
+    'value = 42': Ast.Assignment,
+  })
+  expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
+  expect(after['sum = value + 23']?.id).toBe(before['    sum = value + 23'].id)
+  expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
+  // TODO(#8238): The function definition should maintain its identity.
+  //expect(after['main ='].id).toBe(before['main ='].id)
+})
+
+test('Code edit: Inline expression change', () => {
+  const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
+  beforeRoot.module.replaceRoot(beforeRoot)
+  const before = findExpressions(beforeRoot, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'func name1=arg1': Ast.App,
+    'func name1=arg1 name2=arg2': Ast.App,
+  })
+  const edit = beforeRoot.module.edit()
+  const newArg1Code = 'arg1+1'
+  edit.getVersion(before['arg1']).syncToCode(newArg1Code)
+  //edit.getVersion(before['arg1']).replaceValue(Ast.parse(newArg1Code, edit))
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe('func name1=arg1+1 name2=arg2')
+  // Ensure the identities of all the original nodes were maintained.
+  const after = findExpressions(edit.root()!, {
+    func: Ast.Ident,
+    arg1: Ast.Ident,
+    arg2: Ast.Ident,
+    'arg1+1': Ast.OprApp,
+    'func name1=arg1+1': Ast.App,
+    'func name1=arg1+1 name2=arg2': Ast.App,
+  })
+  expect(after.func.id).toBe(before.func.id)
+  expect(after.arg1.id).toBe(before.arg1.id)
+  expect(after.arg2.id).toBe(before.arg2.id)
+  // TODO(#8238): Both `App` nodes should maintain their sync identities.
+  //expect(after['func name1=arg1+1 name1=arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+  //expect(after['func name1=arg1+1'].id).toBe(before['func name1=arg1'].id)
+})
+
+test('Code edit: No-op inline expression change', () => {
+  const code = 'a = 1'
+  const expression = Ast.parse(code)
+  const module = expression.module
+  module.replaceRoot(expression)
+  expression.syncToCode(code)
+  expect(module.root()?.code()).toBe(code)
+})
+
+test('Code edit: No-op block change', () => {
+  const code = 'a = 1\nb = 2\n'
+  const block = Ast.parseBlock(code)
+  const module = block.module
+  module.replaceRoot(block)
+  block.syncToCode(code)
+  expect(module.root()?.code()).toBe(code)
 })
