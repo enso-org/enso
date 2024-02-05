@@ -419,9 +419,12 @@ spec =
             delete_afterwards file <|
                 file.read . should_equal table
 
-                # Append is not allowed though
+                # Append works through download and re-upload:
                 table2 = Table.new [["X", [5, 6, 7, 8]], ["Y", ["e", "f", "g", "h"]]]
-                table2.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with S3_Error
+                table2.write file on_existing_file=Existing_File_Behavior.Append . should_equal file
+
+                expected_table = Table.new [["X", [1, 2, 3, 4, 5, 6, 7, 8]], ["Y", ["a", "b", "c", "d", "e", "f", "g", "h"]]]
+                file.read . should_equal expected_table
 
         Test.specify "should fail to write a file if permissions are lacking" <|
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
