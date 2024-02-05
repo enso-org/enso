@@ -14,11 +14,11 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Logging import all
 
+polyglot java import java.io.File as Java_File
+polyglot java import java.nio.charset.Charset
 polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.arrays.LongArrayList
 polyglot java import org.enso.base.FileLineReader
-polyglot java import java.io.File as Java_File
-polyglot java import java.nio.charset.Charset
 
 type File_By_Line
     ## Creates a new File_By_Line object.
@@ -27,7 +27,7 @@ type File_By_Line
        - file: The file to read.
        - encoding: The encoding to use when reading the file (defaults to UTF 8).
        - offset: The position within the file to read from (defaults to first byte).
-    new : File->Encoding->File_By_Line
+    new : File -> Encoding -> Integer -> File_By_Line
     new file:File encoding:Encoding=Encoding.utf_8 offset:Integer=0 =
         create_row_map =
             row_map = LongArrayList.new
@@ -52,7 +52,7 @@ type File_By_Line
 
        Arguments
        - line: The line to read (0 indexed).
-    get : Integer->Text
+    get : Integer -> Text
     get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
         read_line self line
 
@@ -201,13 +201,13 @@ type File_By_Line
 
 ## PRIVATE
    Reads a specific line from the file.
-read_line : File_By_Line->Integer->Any->Any
+read_line : File_By_Line -> Integer -> Any -> Any
 read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
     FileLineReader.readSingleLine file.java_file file.file_end file.row_map line file.charset file.filter_func . if_nothing default
 
 ## PRIVATE
    Performs an action on each line in the file.
-for_each_lines : File_By_Line->Integer->(Integer|Nothing)->Any->Any
+for_each_lines : File_By_Line -> Integer -> (Integer|Nothing) -> Any -> Any
 for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) action = File_Error.handle_java_exceptions file.file <|
     java_file = file.java_file
     row_map = file.row_map
@@ -219,4 +219,4 @@ for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) actio
 
     ## Now we can read the lines we need.
     if row_map.getOrLast start_at >= file_end then Error.throw (Index_Out_Of_Bounds.Error start_at row_map.getSize) else
-        FileLineReader.forEachLine java_file file_end row_map start_at (end_at.if_nothing -1) charset file.filter_func action
+        FileLineReader.forEachLine java_file file_end row_map start_at (end_at.if_nothing -1) charset file.filter_func a

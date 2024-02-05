@@ -5,13 +5,17 @@ from Standard.Base.Runtime import State
 
 import project.Clue.Clue
 import project.Group.Group
-import project.Spec_Result.Spec_Result
 import project.Spec.Spec
+import project.Spec_Result.Spec_Result
 import project.Suite.Suite
 import project.Suite_Config.Suite_Config
-import project.Test_Result.Test_Result
-import project.Test_Reporter
 import project.Test.Test
+import project.Test_Reporter
+import project.Test_Result.Test_Result
+
+private
+
+
 
 run_group_with_filter : Group -> (Regex|Text|Nothing) -> Vector Test_Result
 run_group_with_filter (group : Group) (spec_filter : (Regex|Text|Nothing)) =
@@ -28,7 +32,7 @@ run_group (group : Group) =
     run_specs_from_group group.specs group
 
 
-run_specs_from_group : Vector Spec -> Text -> Vector Test_Result
+run_specs_from_group : Vector Spec -> Group -> Vector Test_Result
 run_specs_from_group (specs : Vector Spec) (group : Group) =
     case specs.is_empty of
         True -> []

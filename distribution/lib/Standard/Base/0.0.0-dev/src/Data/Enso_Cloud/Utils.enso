@@ -1,6 +1,7 @@
 private
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+
 import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Errors.Not_Logged_In
 import project.Data.Pair.Pair
 import project.Data.Text.Text
@@ -12,6 +13,9 @@ import project.System.Environment
 import project.System.File.File
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
+private
+
 
 ## PRIVATE
 cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI

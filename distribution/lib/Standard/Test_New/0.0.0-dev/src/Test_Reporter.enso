@@ -1,15 +1,20 @@
 private
 
 from Standard.Base import all
-from Standard.Base.Runtime import assert
 import Standard.Base.Runtime.Context
+from Standard.Base.Runtime import assert
 
-import project.Suite_Config.Suite_Config
 import project.Spec_Result.Spec_Result
+import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
+
+private
+
+
+
 
 ## PRIVATE
    Write the JUnit XML header.
@@ -74,7 +79,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                    groups.
    - builder: StringBuilder or Nothing. If StringBuilder, then a jUnit XML format is appended to
               that StringBuilder.
-print_report : Vector Test_Result -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
 print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
     distinct_group_names = test_results.map (_.group_name) . distinct
     results_per_group = distinct_group_names.fold Map.empty acc-> group_name->
