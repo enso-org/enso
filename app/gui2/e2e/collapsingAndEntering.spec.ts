@@ -92,7 +92,7 @@ test('Collapsing nodes', async ({ page }) => {
 })
 
 async function expectInsideMain(page: Page) {
-  await expect(locate.graphNode(page)).toHaveCount(9)
+  await expect(locate.graphNode(page)).toHaveCount(10)
   await customExpect.toExist(locate.graphNodeByBinding(page, 'five'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))

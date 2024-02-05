@@ -58,6 +58,7 @@ main =
     prod = sum * 3
     final = Main.func1 prod
     list = []
+    text = 'test'
     
     # Widget tests
     data = Data.read
