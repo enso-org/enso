@@ -436,7 +436,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
-  dataLink = 'dataLink',
+  dataLink = 'connector',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
