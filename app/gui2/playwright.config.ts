@@ -109,7 +109,10 @@ export default defineConfig({
     env: {
       E2E: 'true',
     },
-    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
+    command:
+      process.env.CI || process.env.PROD
+        ? `npx vite build && npx vite preview --port ${PORT} --strictPort`
+        : `npx vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
     timeout: 120 * 1000,
     port: PORT,
