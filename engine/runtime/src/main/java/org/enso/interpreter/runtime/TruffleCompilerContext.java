@@ -16,6 +16,8 @@ import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
@@ -23,6 +25,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -230,6 +233,45 @@ final class TruffleCompilerContext implements CompilerContext {
   public CompilerContext.Module findTopScopeModule(String name) {
     var option = context.getTopScope().getModule(name);
     return option.isEmpty() ? null : option.get().asCompilerModule();
+  }
+
+  /**
+   * Return true if the given location is inside module. More specifically, if the location's bounds
+   * point inside the character bounds of the module.
+   *
+   * <p>Note that it is possible that a {@link Diagnostic}'s location has a bigger size than the
+   * size of the module.
+   */
+  private static boolean isLocationInsideModule(
+      CompilerContext.Module module, IdentifiedLocation location) {
+    try {
+      return location.end() <= module.getSource().getLength();
+    } catch (IOException e) {
+      throw new AssertionError("Unreachable", e);
+    }
+  }
+
+  @Override
+  public String formatDiagnostic(
+      CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
+    DiagnosticFormatter diagnosticFormatter;
+    if (module != null && diagnostic.location().isDefined()) {
+      var location = diagnostic.location().get();
+      if (isLocationInsideModule(module, location)) {
+        Source source;
+        try {
+          source = module.getSource();
+        } catch (IOException e) {
+          throw new AssertionError(e);
+        }
+        assert source != null;
+        diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+        return diagnosticFormatter.format();
+      }
+    }
+    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
+    return diagnosticFormatter.format();
   }
 
   @SuppressWarnings("unchecked")

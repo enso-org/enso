@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import assert from 'assert'
 import os from 'os'
 import * as actions from './actions'
@@ -6,6 +6,11 @@ import * as customExpect from './customExpect'
 import * as locate from './locate'
 
 const ACCEPT_SUGGESTION_SHORTCUT = os.platform() === 'darwin' ? 'Meta+Enter' : 'Control+Enter'
+
+async function deselectAllNodes(page: Page) {
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.GraphNode.selected')).toHaveCount(0)
+}
 
 test('Different ways of opening Component Browser', async ({ page }) => {
   await actions.goToGraph(page)
@@ -73,9 +78,11 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read_text',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 
   // Clicking at highlighted entry
   nodeCount = await locate.graphNode(page).count()
+  await deselectAllNodes(page)
   await locate.addNewNodeButton(page).click()
   await locate.componentBrowserSelectedEntry(page).first().click()
   await expect(locate.componentBrowser(page)).not.toBeVisible()
@@ -85,9 +92,11 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 
   // Accepting with Enter
   nodeCount = await locate.graphNode(page).count()
+  await deselectAllNodes(page)
   await locate.addNewNodeButton(page).click()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
@@ -97,6 +106,7 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
+  await customExpect.toBeSelected(locate.graphNode(page).last())
 })
 
 test('Accepting any written input', async ({ page }) => {
