@@ -85,7 +85,8 @@ make_column_name_vector_selector table display=Display.Always =
 make_column_ref_by_name_selector : Table -> Display -> Widget
 make_column_ref_by_name_selector table display=Display.Always =
     col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    Single_Choice values=col_names_options display=display
+    expression_option = Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"
+    Single_Choice values=(col_names_options+[expression_option]) display=display
 
 ## PRIVATE
    Same as `make_column_ref_by_name_selector` but also highlights an option for
@@ -94,7 +95,8 @@ make_column_ref_or_text_value_selector : Table -> Display -> Widget
 make_column_ref_or_text_value_selector table display=Display.Always =
     col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
     custom_text_option = Option "'custom text'" "''"
-    Single_Choice values=(col_names_options+[custom_text_option]) display=display
+    expression_option = Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"
+    Single_Choice values=(col_names_options+[custom_text_option, expression_option]) display=display
 
 ## PRIVATE
    If `column_source` is Nothing, `Column_Ref` options will not be added.
@@ -104,7 +106,9 @@ make_fill_default_value_selector column_source=Nothing include_custom_text=False
         column_source.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
     custom_text_option = if include_custom_text then [Option "'custom text'" "''"] else []
     previous_value_option = [Option 'Previous Value' 'Previous_Value']
-    Single_Choice values=(previous_value_option+col_names_options+custom_text_option) display=display
+    default_column = if column_source.is_nothing then '""' else column_source.name.pretty
+    expression_option = Option "<Expression>" '(Column_Ref.Expression \''+default_column+'\')'
+    Single_Choice values=(previous_value_option+col_names_options+custom_text_option+expression_option) display=display
 
 ## PRIVATE
    Make a filter condition selector.

@@ -7,3 +7,6 @@ type Column_Ref
 
     ## Reference to a column by index in a table.
     Index index:Integer
+
+    ## Reference to an expression in a table.
+    Expression expression:Text

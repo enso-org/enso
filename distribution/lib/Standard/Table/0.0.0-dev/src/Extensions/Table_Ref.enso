@@ -7,7 +7,7 @@ import project.Data.Column_Ref.Column_Ref
 import project.Data.Expression.Expression_Error
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
-from project.Errors import Existing_Column, Missing_Column, No_Such_Column
+from project.Errors import Existing_Column, Invalid_Value_Type, Missing_Column, No_Such_Column
 
 ## PRIVATE
    A helper type allowing to resolve column references in a context of an underlying table.
@@ -24,11 +24,23 @@ type Table_Ref
     at self selector=0 = self.underlying.at selector
 
     ## PRIVATE
+       Given an expression, create a derived column where each value is the
+       result of evaluating the expression for the row.
+
+       Arguments:
+       - expression: The expression to evaluate.
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
+    evaluate_expression : Text -> Problem_Behavior -> Any ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self expression on_problems=Report_Warning = self.underlying.evaluate_expression expression on_problems=on_problems
+
+    ## PRIVATE
        Resolve a Column_Ref to a Column, keeping any other values as-is.
     resolve : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
     resolve self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
+        Column_Ref.Expression expression -> self.evaluate_expression expression
         _ -> value
 
     ## PRIVATE
@@ -38,6 +50,7 @@ type Table_Ref
     resolve_as_column self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
+        Column_Ref.Expression expression -> self.evaluate_expression expression
         _ -> self.underlying.make_constant_column value
 
     ## PRIVATE
