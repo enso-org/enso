@@ -65,18 +65,16 @@ type Image
        > Example
          Read the image and convert it to grayscale.
              Image.read "image.png" Read_Flag.Grayscale
-    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File_Error
-    read location flags=[] =
-        path = case location of
-            _ : File -> location.path
-            _ -> location
+    read : File -> (Read_Flag | Vector) -> Image ! File_Error
+    read (location:File) flags=[] =
+        path = location.path
         read_flags = case flags of
             _ : Vector ->
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
         Panic.catch JException (Image.Value (Java_Codecs.read path read_flags)) _->
-            Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
+            Error.throw (File_Error.IO_Error location 'Failed to read the file')
 
     ## UNSTABLE
        ICON data_output

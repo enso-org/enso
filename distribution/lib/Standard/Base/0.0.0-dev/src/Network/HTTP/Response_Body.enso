@@ -20,6 +20,7 @@ import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
@@ -193,12 +194,12 @@ type Response_Body
 
              example_to_file =
                 Examples.get_geo_data.to_file Examples.scratch_file
-    to_file : File -> Existing_File_Behavior -> File
-    to_file self file:File on_existing_file=Existing_File_Behavior.Backup =
+    to_file : Writable_File -> Existing_File_Behavior -> File
+    to_file self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
-            r = on_existing_file.write file output_stream->
-                output_stream.write_stream body_stream
-            r.if_not_error file
+            file.write on_existing_file output_stream->
+                r = output_stream.write_stream body_stream
+                r.if_not_error file
 
 ## PRIVATE
 can_decode : File_Format -> Boolean
