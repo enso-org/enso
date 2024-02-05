@@ -7,7 +7,7 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-import Backend, * as backendModule from '#/services/Backend'
+import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import * as config from '#/utilities/config'
@@ -69,7 +69,7 @@ function overwriteMaterialize<T>(
 
 /** URL query string parameters for the "list versions" endpoint. */
 export interface ListVersionsRequestParams {
-  versionType: backendModule.VersionType
+  versionType: backend.VersionType
   default: boolean
 }
 
@@ -78,10 +78,10 @@ export interface ListVersionsRequestParams {
 async function listVersions(
   client: HttpClient,
   params: ListVersionsRequestParams
-): Promise<backendModule.Version[]> {
+): Promise<backend.Version[]> {
   /** HTTP response body for this endpoint. */
   interface ResponseBody {
-    versions: [backendModule.Version, ...backendModule.Version[]]
+    versions: [backend.Version, ...backend.Version[]]
   }
   const paramsString = new URLSearchParams({
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -101,10 +101,10 @@ async function listVersions(
 // === getDefaultVersion ===
 // =========================
 
-const DEFAULT_VERSIONS: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
+const DEFAULT_VERSIONS: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
 
 /** Get the default version given the type of version (IDE or backend). */
-async function getDefaultVersion(client: HttpClient, versionType: backendModule.VersionType) {
+async function getDefaultVersion(client: HttpClient, versionType: backend.VersionType) {
   const cached = DEFAULT_VERSIONS[versionType]
   const nowEpochMs = Number(new Date())
   if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
@@ -127,10 +127,10 @@ async function getDefaultVersion(client: HttpClient, versionType: backendModule.
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-  fileId: backendModule.AssetId | null
+  fileId: backend.AssetId | null
   // Marked as optional in the data type, however it is required by the actual route handler.
   fileName: string
-  parentDirectoryId: backendModule.DirectoryId | null
+  parentDirectoryId: backend.DirectoryId | null
 }
 
 // =====================
@@ -138,7 +138,7 @@ export interface UploadFileRequestParams {
 // =====================
 
 /** A wrapper around a subset of the API endpoints. */
-class SmartObject<T> implements backendModule.SmartObject<T> {
+class SmartObject<T> implements backend.SmartObject<T> {
   /** Create a {@link SmartObject}. */
   constructor(
     protected readonly client: HttpClient,
@@ -192,13 +192,10 @@ class SmartObject<T> implements backendModule.SmartObject<T> {
   }
 }
 
-/** A smart wrapper around a {@link backendModule.UserOrOrganization}. */
-class SmartUser
-  extends SmartObject<backendModule.UserOrOrganization>
-  implements backendModule.SmartUser
-{
+/** A smart wrapper around a {@link backend.UserOrOrganization}. */
+class SmartUser extends SmartObject<backend.UserOrOrganization> implements backend.SmartUser {
   /** Change the username of the current user. */
-  async update(body: backendModule.UpdateUserRequestBody): Promise<void> {
+  async update(body: backend.UpdateUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
     const response = await this.httpPut(path, body)
     if (!responseIsSuccessful(response)) {
@@ -224,16 +221,16 @@ class SmartUser
 
   /** Upload a new profile picture for the current user. */
   async uploadPicture(
-    params: backendModule.UploadUserPictureRequestParams,
+    params: backend.UploadUserPictureRequestParams,
     file: Blob
-  ): Promise<backendModule.UserOrOrganization> {
+  ): Promise<backend.UserOrOrganization> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.httpPostBinary<backendModule.UserOrOrganization>(path, file)
+    const response = await this.httpPostBinary<backend.UserOrOrganization>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not upload user profile picture.')
     } else {
@@ -242,13 +239,13 @@ class SmartUser
   }
 
   /** Get the root directory for this user. */
-  rootDirectory(): backendModule.SmartDirectory {
-    const rootDirectory = backendModule.createRootDirectoryAsset(this.value.rootDirectoryId)
+  rootDirectory(): backend.SmartDirectory {
+    const rootDirectory = backend.createRootDirectoryAsset(this.value.rootDirectoryId)
     return new SmartDirectory(this.client, this.logger, rootDirectory)
   }
 
   /** Invite a new user to the organization by email. */
-  async invite(body: backendModule.InviteUserRequestBody): Promise<void> {
+  async invite(body: backend.InviteUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
     const response = await this.httpPost(path, body)
     if (!responseIsSuccessful(response)) {
@@ -259,10 +256,10 @@ class SmartUser
   }
 
   /** Return a list of all users in the same organization. */
-  async listUsers(): Promise<backendModule.SimpleUser[]> {
+  async listUsers(): Promise<backend.SimpleUser[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      users: backendModule.SimpleUser[]
+      users: backend.SimpleUser[]
     }
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.httpGet<ResponseBody>(path)
@@ -274,10 +271,10 @@ class SmartUser
   }
 }
 
-/** A smart wrapper around a {@link backendModule.AnyAsset}. */
-class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
+/** A smart wrapper around a {@link backend.AnyAsset}. */
+class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   extends SmartObject<T>
-  implements backendModule.SmartAsset
+  implements backend.SmartAsset
 {
   /** The type of the wrapped value. */
   get type(): T['type'] {
@@ -291,7 +288,7 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   }
 
   /** Change the parent directory of an asset. */
-  async update(body: backendModule.UpdateAssetRequestBody): Promise<this> {
+  async update(body: backend.UpdateAssetRequestBody): Promise<this> {
     const path = remoteBackendPaths.updateAssetPath(this.value.id)
     const response = await this.httpPatch(path, body)
     if (!responseIsSuccessful(response)) {
@@ -333,11 +330,11 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
 
   /** Copy an arbitrary asset to another directory. */
   async copy(
-    parentDirectoryId: backendModule.DirectoryId,
+    parentDirectoryId: backend.DirectoryId,
     parentDirectoryTitle: string
-  ): Promise<backendModule.CopyAssetResponse> {
+  ): Promise<backend.CopyAssetResponse> {
     const path = remoteBackendPaths.copyAssetPath(this.value.id)
-    const response = await this.httpPost<backendModule.CopyAssetResponse>(path, {
+    const response = await this.httpPost<backend.CopyAssetResponse>(path, {
       parentDirectoryId,
     })
     if (!responseIsSuccessful(response)) {
@@ -354,9 +351,9 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   }
 
   /** List all versions of this asset. Only works for projects and files. */
-  async listVersions(): Promise<backendModule.AssetVersions> {
+  async listVersions(): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(this.value.id)
-    const response = await this.httpGet<backendModule.AssetVersions>(path)
+    const response = await this.httpGet<backend.AssetVersions>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not list versions for '${this.value.title}'.`)
     } else {
@@ -365,9 +362,9 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   }
 
   /** Set permissions for a user. */
-  async setPermissions(body: backendModule.CreatePermissionRequestBody): Promise<void> {
+  async setPermissions(body: backend.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.httpPost<backendModule.UserOrOrganization>(path, {
+    const response = await this.httpPost<backend.UserOrOrganization>(path, {
       ...body,
       resourceId: this.value.id,
     })
@@ -380,7 +377,7 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
 
   /** Set the full list of labels for a specific asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  async setTags(labels: backendModule.LabelName[]) {
+  async setTags(labels: backend.LabelName[]) {
     const path = remoteBackendPaths.associateTagPath(this.value.id)
     const response = await this.httpPatch(path, { labels })
     if (!responseIsSuccessful(response)) {
@@ -391,25 +388,25 @@ class SmartAsset<T extends backendModule.AnyAsset = backendModule.AnyAsset>
   }
 }
 
-/** Converts an {@link backendModule.AnyAsset} into its corresponding
- * {@link backendModule.AnySmartAsset}. */
+/** Converts an {@link backend.AnyAsset} into its corresponding
+ * {@link backend.AnySmartAsset}. */
 function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger) {
-  return (asset: backendModule.AnyAsset): backendModule.AnySmartAsset => {
+  return (asset: backend.AnyAsset): backend.AnySmartAsset => {
     switch (asset.type) {
-      case backendModule.AssetType.project: {
+      case backend.AssetType.project: {
         return new SmartProject(client, logger, asset)
       }
-      case backendModule.AssetType.file: {
+      case backend.AssetType.file: {
         return new SmartFile(client, logger, asset)
       }
-      case backendModule.AssetType.secret: {
+      case backend.AssetType.secret: {
         return new SmartSecret(client, logger, asset)
       }
-      case backendModule.AssetType.directory: {
+      case backend.AssetType.directory: {
         return new SmartDirectory(client, logger, asset)
       }
-      case backendModule.AssetType.specialLoading:
-      case backendModule.AssetType.specialEmpty: {
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty: {
         throw new Error(
           `'${asset.type}' is a special asset type that should never be returned by the backend.`
         )
@@ -418,18 +415,13 @@ function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger) {
   }
 }
 
-/** A smart wrapper around a {@link backendModule.DirectoryAsset}. */
-class SmartDirectory
-  extends SmartAsset<backendModule.DirectoryAsset>
-  implements backendModule.SmartDirectory
-{
+/** A smart wrapper around a {@link backend.DirectoryAsset}. */
+class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backend.SmartDirectory {
   /** Return a list of assets in a directory. */
-  async list(
-    query: backendModule.ListDirectoryRequestParams
-  ): Promise<backendModule.AnySmartAsset[]> {
+  async list(query: backend.ListDirectoryRequestParams): Promise<backend.AnySmartAsset[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      assets: backendModule.AnyAsset[]
+      assets: backend.AnyAsset[]
     }
     const paramsString = new URLSearchParams([
       ['parent_id', this.value.id],
@@ -451,12 +443,12 @@ class SmartDirectory
         .map(asset =>
           object.merge(asset, {
             // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
+            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
           })
         )
         .map(asset =>
           object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
+            permissions: [...(asset.permissions ?? [])].sort(backend.compareUserPermissions),
           })
         )
       // FIXME [sb]: This is TEMPORARY, until support for connectors is merged in.
@@ -466,11 +458,11 @@ class SmartDirectory
   }
 
   /** Change the name, description or parent of a directory. */
-  override async update(body: backendModule.UpdateAssetOrDirectoryRequestBody): Promise<this> {
+  override async update(body: backend.UpdateAssetOrDirectoryRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      id: backendModule.DirectoryId
-      parentId: backendModule.DirectoryId
+      id: backend.DirectoryId
+      parentId: backend.DirectoryId
       title: string
     }
     const updateAssetRequest =
@@ -510,13 +502,13 @@ class SmartDirectory
     }
   }
 
-  /** Create a {@link backendModule.SpecialLoadingAsset}. */
-  createSpecialLoadingAsset(): backendModule.SmartSpecialLoadingAsset {
-    return new SmartAsset<backendModule.SpecialLoadingAsset>(this.client, this.logger, {
-      type: backendModule.AssetType.specialLoading,
+  /** Create a {@link backend.SpecialLoadingAsset}. */
+  createSpecialLoadingAsset(): backend.SmartSpecialLoadingAsset {
+    return new SmartAsset<backend.SpecialLoadingAsset>(this.client, this.logger, {
+      type: backend.AssetType.specialLoading,
       title: '',
-      id: backendModule.LoadingAssetId(
-        `${backendModule.AssetType.specialLoading}-${uniqueString.uniqueString()}`
+      id: backend.LoadingAssetId(
+        `${backend.AssetType.specialLoading}-${uniqueString.uniqueString()}`
       ),
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
@@ -527,14 +519,12 @@ class SmartDirectory
     })
   }
 
-  /** Create a {@link backendModule.SpecialEmptyAsset}. */
-  createSpecialEmptyAsset(): backendModule.SmartSpecialEmptyAsset {
-    return new SmartAsset<backendModule.SpecialEmptyAsset>(this.client, this.logger, {
-      type: backendModule.AssetType.specialEmpty,
+  /** Create a {@link backend.SpecialEmptyAsset}. */
+  createSpecialEmptyAsset(): backend.SmartSpecialEmptyAsset {
+    return new SmartAsset<backend.SpecialEmptyAsset>(this.client, this.logger, {
+      type: backend.AssetType.specialEmpty,
       title: '',
-      id: backendModule.EmptyAssetId(
-        `${backendModule.AssetType.specialEmpty}-${uniqueString.uniqueString()}`
-      ),
+      id: backend.EmptyAssetId(`${backend.AssetType.specialEmpty}-${uniqueString.uniqueString()}`),
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions: [],
@@ -547,13 +537,11 @@ class SmartDirectory
   /** Create a {@link SmartDirectory} that is to be uploaded on the backend via `.materialize()` */
   createPlaceholderDirectory(
     title: string,
-    permissions: backendModule.UserPermission[]
-  ): backendModule.SmartDirectory {
+    permissions: backend.UserPermission[]
+  ): backend.SmartDirectory {
     const result = new SmartDirectory(this.client, this.logger, {
-      type: backendModule.AssetType.directory,
-      id: backendModule.DirectoryId(
-        `${backendModule.AssetType.directory}-${uniqueString.uniqueString()}`
-      ),
+      type: backend.AssetType.directory,
+      id: backend.DirectoryId(`${backend.AssetType.directory}-${uniqueString.uniqueString()}`),
       title,
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
@@ -566,12 +554,12 @@ class SmartDirectory
       /** HTTP request body for this endpoint. */
       interface Body {
         title: string
-        parentId: backendModule.DirectoryId | null
+        parentId: backend.DirectoryId | null
       }
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
-        id: backendModule.DirectoryId
-        parentId: backendModule.DirectoryId
+        id: backend.DirectoryId
+        parentId: backend.DirectoryId
         title: string
       }
       const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
@@ -591,19 +579,17 @@ class SmartDirectory
   createPlaceholderProject(
     title: string,
     fileOrTemplateName: File | string | null,
-    permissions: backendModule.UserPermission[]
-  ): backendModule.SmartProject {
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
     const result = new SmartProject(this.client, this.logger, {
-      type: backendModule.AssetType.project,
-      id: backendModule.ProjectId(
-        `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
-      ),
+      type: backend.AssetType.project,
+      id: backend.ProjectId(`${backend.AssetType.project}-${uniqueString.uniqueString()}`),
       title,
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions,
       projectState: {
-        type: backendModule.ProjectState.placeholder,
+        type: backend.ProjectState.placeholder,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         volume_id: '',
       },
@@ -613,9 +599,9 @@ class SmartDirectory
     /** A project returned by the endpoints. */
     interface CreatedProject {
       organizationId: string
-      projectId: backendModule.ProjectId
+      projectId: backend.ProjectId
       name: string
-      state: backendModule.ProjectStateType
+      state: backend.ProjectStateType
       packageName: string
     }
     if (fileOrTemplateName instanceof File) {
@@ -623,7 +609,7 @@ class SmartDirectory
         /** HTTP response body for this endpoint. */
         interface ResponseBody {
           path: string
-          id: backendModule.FileId
+          id: backend.FileId
           project: CreatedProject | null
         }
         const paramsString = new URLSearchParams({
@@ -666,7 +652,7 @@ class SmartDirectory
         interface Body {
           projectName: string
           projectTemplateName: string | null
-          parentDirectoryId: backendModule.DirectoryId | null
+          parentDirectoryId: backend.DirectoryId | null
         }
         /** HTTP response body for this endpoint. */
         interface ResponseBody extends CreatedProject {}
@@ -698,11 +684,11 @@ class SmartDirectory
   createPlaceholderFile(
     title: string,
     file: File,
-    permissions: backendModule.UserPermission[]
-  ): backendModule.SmartFile {
+    permissions: backend.UserPermission[]
+  ): backend.SmartFile {
     const result = new SmartFile(this.client, this.logger, {
-      type: backendModule.AssetType.file,
-      id: backendModule.FileId(`${backendModule.AssetType.file}-${uniqueString.uniqueString()}`),
+      type: backend.AssetType.file,
+      id: backend.FileId(`${backend.AssetType.file}-${uniqueString.uniqueString()}`),
       title,
       parentId: this.value.id,
       permissions,
@@ -715,7 +701,7 @@ class SmartDirectory
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
         path: string
-        id: backendModule.FileId
+        id: backend.FileId
         project: NonNullable<unknown> | null
       }
       const paramsString = new URLSearchParams({
@@ -749,13 +735,11 @@ class SmartDirectory
   createPlaceholderSecret(
     title: string,
     value: string,
-    permissions: backendModule.UserPermission[]
-  ): backendModule.SmartSecret {
+    permissions: backend.UserPermission[]
+  ): backend.SmartSecret {
     const result = new SmartSecret(this.client, this.logger, {
-      type: backendModule.AssetType.secret,
-      id: backendModule.SecretId(
-        `${backendModule.AssetType.secret}-${uniqueString.uniqueString()}`
-      ),
+      type: backend.AssetType.secret,
+      id: backend.SecretId(`${backend.AssetType.secret}-${uniqueString.uniqueString()}`),
       title,
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
@@ -769,11 +753,11 @@ class SmartDirectory
       interface Body {
         name: string
         value: string
-        parentDirectoryId: backendModule.DirectoryId | null
+        parentDirectoryId: backend.DirectoryId | null
       }
       const path = remoteBackendPaths.CREATE_SECRET_PATH
       const body: Body = { parentDirectoryId: this.value.id, name: title, value }
-      const response = await this.httpPost<backendModule.SecretId>(path, body)
+      const response = await this.httpPost<backend.SecretId>(path, body)
       if (!responseIsSuccessful(response)) {
         return this.throw(`Could not create secret with name '${body.name}'.`)
       } else {
@@ -785,13 +769,10 @@ class SmartDirectory
   }
 }
 
-/** A smart wrapper around a {@link backendModule.ProjectAsset}. */
-class SmartProject
-  extends SmartAsset<backendModule.ProjectAsset>
-  implements backendModule.SmartProject
-{
+/** A smart wrapper around a {@link backend.ProjectAsset}. */
+class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.SmartProject {
   /** Set a project to an open state. */
-  async open(body?: backendModule.OpenProjectRequestBody): Promise<void> {
+  async open(body?: backend.OpenProjectRequestBody): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(this.value.id)
     const response = await this.httpPost(path, body ?? { forceCreate: false, executeAsync: false })
     if (!responseIsSuccessful(response)) {
@@ -802,19 +783,19 @@ class SmartProject
   }
 
   /** Return project details. */
-  async getDetails(): Promise<backendModule.Project> {
+  async getDetails(): Promise<backend.Project> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
       organizationId: string
-      projectId: backendModule.ProjectId
+      projectId: backend.ProjectId
       name: string
-      state: backendModule.ProjectStateType
+      state: backend.ProjectStateType
       packageName: string
-      address?: backendModule.Address
+      address?: backend.Address
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      ide_version: backendModule.VersionNumber | null
+      ide_version: backend.VersionNumber | null
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      engine_version: backendModule.VersionNumber | null
+      engine_version: backend.VersionNumber | null
     }
     const path = remoteBackendPaths.getProjectDetailsPath(this.value.id)
     const response = await this.httpGet<ResponseBody>(path)
@@ -823,23 +804,21 @@ class SmartProject
     } else {
       const project = await response.json()
       const ideVersion =
-        project.ide_version ?? (await getDefaultVersion(this.client, backendModule.VersionType.ide))
+        project.ide_version ?? (await getDefaultVersion(this.client, backend.VersionType.ide))
       return {
         ...project,
         ideVersion,
         engineVersion: project.engine_version,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
+        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
       }
     }
   }
 
   /** Return project memory, processor and storage usage. */
-  async getResourceUsage(): Promise<backendModule.ResourceUsage> {
+  async getResourceUsage(): Promise<backend.ResourceUsage> {
     const path = remoteBackendPaths.checkResourcesPath(this.value.id)
-    const response = await this.httpGet<backendModule.ResourceUsage>(path)
+    const response = await this.httpGet<backend.ResourceUsage>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not get resource usage for project '${this.value.title}'.`)
     } else {
@@ -848,15 +827,15 @@ class SmartProject
   }
 
   /** Change the name, description, AMI, or parent of a project. */
-  override async update(body: backendModule.UpdateAssetOrProjectRequestBody): Promise<this> {
+  override async update(body: backend.UpdateAssetOrProjectRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
       organizationId: string
-      projectId: backendModule.ProjectId
+      projectId: backend.ProjectId
       name: string
-      ami: backendModule.Ami | null
-      ideVersion: backendModule.VersionNumber | null
-      engineVersion: backendModule.VersionNumber | null
+      ami: backend.Ami | null
+      ideVersion: backend.VersionNumber | null
+      engineVersion: backend.VersionNumber | null
     }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -916,14 +895,11 @@ class SmartProject
   /** Resolve only when the project is ready to be opened. */
   async waitUntilReady(abortController: AbortController = new AbortController()) {
     let project = await this.getDetails()
-    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
+    if (!backend.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
       await this.open()
     }
     let nextCheckTimestamp = 0
-    while (
-      !abortController.signal.aborted &&
-      project.state.type !== backendModule.ProjectState.opened
-    ) {
+    while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
       await new Promise<void>(resolve => {
         const delayMs = nextCheckTimestamp - Number(new Date())
         setTimeout(resolve, Math.max(0, delayMs))
@@ -934,14 +910,14 @@ class SmartProject
   }
 }
 
-/** A smart wrapper around a {@link backendModule.FileAsset}. */
-class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendModule.SmartFile {
+/** A smart wrapper around a {@link backend.FileAsset}. */
+class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFile {
   /** Change the name or description of a file. */
-  override async update(body: backendModule.UpdateAssetOrFileRequestBody): Promise<this> {
+  override async update(body: backend.UpdateAssetOrFileRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
       path: string
-      id: backendModule.FileId
+      id: backend.FileId
     }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -974,9 +950,9 @@ class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendMo
   }
 
   /** Return file details. */
-  async getDetails(): Promise<backendModule.FileDetails> {
+  async getDetails(): Promise<backend.FileDetails> {
     const path = remoteBackendPaths.getFileDetailsPath(this.value.id)
-    const response = await this.httpGet<backendModule.FileDetails>(path)
+    const response = await this.httpGet<backend.FileDetails>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not get details of project '${this.value.title}'.`)
     } else {
@@ -985,15 +961,12 @@ class SmartFile extends SmartAsset<backendModule.FileAsset> implements backendMo
   }
 }
 
-/** A smart wrapper around a {@link backendModule.SecretAsset}. */
-class SmartSecret
-  extends SmartAsset<backendModule.SecretAsset>
-  implements backendModule.SmartSecret
-{
+/** A smart wrapper around a {@link backend.SecretAsset}. */
+class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.SmartSecret {
   /** Return a secret environment variable. */
-  async getValue(): Promise<backendModule.Secret> {
+  async getValue(): Promise<backend.Secret> {
     const path = remoteBackendPaths.getSecretPath(this.value.id)
-    const response = await this.httpGet<backendModule.Secret>(path)
+    const response = await this.httpGet<backend.Secret>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not get secret '${this.value.title}'.`)
     } else {
@@ -1002,7 +975,7 @@ class SmartSecret
   }
 
   /** Change the value or description of a secret environment variable. */
-  override async update(body: backendModule.UpdateAssetOrSecretRequestBody): Promise<this> {
+  override async update(body: backend.UpdateAssetOrSecretRequestBody): Promise<this> {
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
         ? null
@@ -1042,13 +1015,13 @@ class SmartSecret
 
 /** Information for a cached default version. */
 interface DefaultVersionInfo {
-  version: backendModule.VersionNumber
+  version: backend.VersionNumber
   lastUpdatedEpochMs: number
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
-  readonly type = backendModule.BackendType.remote
+  readonly type = backend.BackendType.remote
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
@@ -1073,10 +1046,10 @@ export default class RemoteBackend extends Backend {
 
   /** Set the username and parent organization of the current user. */
   override async createUser(
-    body: backendModule.CreateUserRequestBody
-  ): Promise<backendModule.UserOrOrganization> {
+    body: backend.CreateUserRequestBody
+  ): Promise<backend.UserOrOrganization> {
     const path = remoteBackendPaths.CREATE_USER_PATH
-    const response = await this.post<backendModule.UserOrOrganization>(path, body)
+    const response = await this.post<backend.UserOrOrganization>(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not create user.')
     } else {
@@ -1084,11 +1057,11 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return organization info for the current user.
+  /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async self(): Promise<SmartUser | null> {
     const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backendModule.UserOrOrganization>(path)
+    const response = await this.get<backend.UserOrOrganization>(path)
     if (!responseIsSuccessful(response)) {
       // This user has probably not finished registering.
       return null
@@ -1100,9 +1073,9 @@ export default class RemoteBackend extends Backend {
 
   /** Create a label used for categorizing assets.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createTag(body: backendModule.CreateTagRequestBody): Promise<backendModule.Label> {
+  override async createTag(body: backend.CreateTagRequestBody): Promise<backend.Label> {
     const path = remoteBackendPaths.CREATE_TAG_PATH
-    const response = await this.post<backendModule.Label>(path, body)
+    const response = await this.post<backend.Label>(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Could not create label '${body.value}'.`)
     } else {
@@ -1112,10 +1085,10 @@ export default class RemoteBackend extends Backend {
 
   /** Return all labels accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listTags(): Promise<backendModule.Label[]> {
+  override async listTags(): Promise<backend.Label[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      tags: backendModule.Label[]
+      tags: backend.Label[]
     }
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ResponseBody>(path)
@@ -1128,10 +1101,7 @@ export default class RemoteBackend extends Backend {
 
   /** Delete a label.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteTag(
-    tagId: backendModule.TagId,
-    value: backendModule.LabelName
-  ): Promise<void> {
+  override async deleteTag(tagId: backend.TagId, value: backend.LabelName): Promise<void> {
     const path = remoteBackendPaths.deleteTagPath(tagId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
@@ -1144,21 +1114,21 @@ export default class RemoteBackend extends Backend {
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   async getProjectDetails(
-    projectId: backendModule.ProjectId,
+    projectId: backend.ProjectId,
     title: string | null
-  ): Promise<backendModule.Project> {
+  ): Promise<backend.Project> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
       organizationId: string
-      projectId: backendModule.ProjectId
+      projectId: backend.ProjectId
       name: string
-      state: backendModule.ProjectStateType
+      state: backend.ProjectStateType
       packageName: string
-      address?: backendModule.Address
+      address?: backend.Address
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      ide_version: backendModule.VersionNumber | null
+      ide_version: backend.VersionNumber | null
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      engine_version: backendModule.VersionNumber | null
+      engine_version: backend.VersionNumber | null
     }
     const path = remoteBackendPaths.getProjectDetailsPath(projectId)
     const response = await this.get<ResponseBody>(path)
@@ -1171,15 +1141,13 @@ export default class RemoteBackend extends Backend {
     } else {
       const project = await response.json()
       const ideVersion =
-        project.ide_version ?? (await getDefaultVersion(this.client, backendModule.VersionType.ide))
+        project.ide_version ?? (await getDefaultVersion(this.client, backend.VersionType.ide))
       return {
         ...project,
         ideVersion,
         engineVersion: project.engine_version,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
+        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
       }
     }
   }
@@ -1187,8 +1155,8 @@ export default class RemoteBackend extends Backend {
   /** Prepare a project for execution.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   async openProject(
-    projectId: backendModule.ProjectId,
-    body: backendModule.OpenProjectRequestBody | null,
+    projectId: backend.ProjectId,
+    body: backend.OpenProjectRequestBody | null,
     title: string | null
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)

@@ -565,7 +565,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     setIsLoading(true)
-  }, [rootDirectory, category])
+  }, [isCloud, rootDirectory, category])
 
   React.useEffect(() => {
     const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))

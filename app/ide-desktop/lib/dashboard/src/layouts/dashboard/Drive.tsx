@@ -81,6 +81,7 @@ export interface DriveProps {
   supportsLocalBackend: boolean
   hidden: boolean
   backend: Backend
+  rootDirectory: backendModule.SmartDirectory | null
   initialProjectName: string | null
   assetListEvents: assetListEvent.AssetListEvent[]
   dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
@@ -106,8 +107,8 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, backend, hidden, initialProjectName, query, setQuery } = props
-  const { labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { supportsLocalBackend, backend, rootDirectory, hidden, initialProjectName } = props
+  const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
 
@@ -130,7 +131,6 @@ export default function Drive(props: DriveProps) {
     () => new Map(labels.map(label => [label.value, label])),
     [labels]
   )
-  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
   const isCloud = backend.type === backendModule.BackendType.remote
   const isEnabled = organization?.value.isEnabled ?? false
   const status =

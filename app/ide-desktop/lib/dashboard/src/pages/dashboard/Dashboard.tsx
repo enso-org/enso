@@ -2,6 +2,7 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -34,7 +35,7 @@ import type * as spinner from '#/components/Spinner'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
+import RemoteBackend from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -137,7 +138,8 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
+  const self = asyncEffectHooks.useAsyncEffect(organization, () => backend.self(), [backend])
+  const rootDirectory = React.useMemo(() => self?.rootDirectory() ?? null, [self])
 
   React.useEffect(() => {
     setInitialized(true)
@@ -188,12 +190,7 @@ export default function Dashboard(props: DashboardProps) {
                 projectAsset.value.title
               )
               if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
-                await remoteBackendModule.waitUntilProjectIsReady(
-                  remoteBackend,
-                  projectAsset.value.id,
-                  projectAsset.value.title,
-                  abortController
-                )
+                await projectAsset.waitUntilReady()
                 if (!abortController.signal.aborted) {
                   const project = await remoteBackend.getProjectDetails(
                     projectAsset.value.id,
@@ -313,9 +310,10 @@ export default function Dashboard(props: DashboardProps) {
     (newBackendType: backendModule.BackendType) => {
       if (newBackendType !== backend.type) {
         switch (newBackendType) {
-          case backendModule.BackendType.local:
+          case backendModule.BackendType.local: {
             setBackend(new LocalBackend(projectManagerUrl))
             break
+          }
           case backendModule.BackendType.remote: {
             const client = new HttpClient([['Authorization', `Bearer ${accessToken ?? ''}`]])
             setBackend(new RemoteBackend(client, logger))
@@ -444,6 +442,7 @@ export default function Dashboard(props: DashboardProps) {
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             backend={backend}
+            rootDirectory={rootDirectory}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
