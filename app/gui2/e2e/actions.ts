@@ -1,4 +1,6 @@
-import { type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import * as customExpect from './customExpect'
+import * as locate from './locate'
 
 // =================
 // === goToGraph ===
@@ -7,5 +9,7 @@ import { type Page } from '@playwright/test'
 /** Perform a successful login. */
 export async function goToGraph(page: Page) {
   await page.goto('/')
-  // Originally this clicked the play button but for now that is out of scope.
+  await expect(page.locator('.App')).toBeVisible()
+  // Wait until nodes are loaded.
+  await customExpect.toExist(locate.graphNode(page))
 }

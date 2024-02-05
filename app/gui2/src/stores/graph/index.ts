@@ -384,7 +384,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function getPortNodeId(id: PortId): NodeId | undefined {
-    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as Ast.AstId)
+    return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
 
   /**
