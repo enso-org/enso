@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorRef, Props, Stash, Terminated}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props, Stash, Terminated}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.filewatcher.WatcherFactory
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -166,6 +166,11 @@ final class ReceivesTreeUpdatesHandler(
 
     case Terminated(watcher) =>
       context.become(withStore(store.removeWatcher(watcher)))
+
+    case Stop =>
+      store.watchers.foreach { case (_, watcher) =>
+        watcher ! PoisonPill
+      }
   }
 }
 
@@ -210,6 +215,9 @@ object ReceivesTreeUpdatesHandler {
     def apply(): Store =
       new Store(Map())
   }
+
+  // A message sent to the handler to stop all watchers and the handler itself
+  case object Stop
 
   /** Creates a configuration object used to create a
     * [[ReceivesTreeUpdatesHandler]].

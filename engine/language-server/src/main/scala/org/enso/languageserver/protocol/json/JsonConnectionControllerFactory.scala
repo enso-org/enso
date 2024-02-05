@@ -75,4 +75,7 @@ class JsonConnectionControllerFactory(
       ),
       s"json-connection-controller-$clientId"
     )
+
+  def shutdown(): Unit = {}
+
 }

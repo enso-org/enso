@@ -1,9 +1,10 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
-import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as dashboard from 'enso-dashboard'
 import 'enso-dashboard/src/tailwind.css'
+import { initializeFFI } from 'shared/ast/ffi'
+import { isDevMode } from 'shared/util/detect'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
@@ -50,6 +51,7 @@ export interface StringConfig {
 }
 
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
+  await initializeFFI()
   running = true
   const { mountProjectApp } = await import('./createApp')
   if (!running) return

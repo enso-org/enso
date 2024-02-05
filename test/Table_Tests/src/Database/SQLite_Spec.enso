@@ -41,7 +41,7 @@ type Metadata_Data
     tinfo self = self.data.at 1
     t self = self.data.at 2
 
-    setup create_connection_func =
+    setup create_connection_func = Metadata_Data.Value <|
         connection = create_connection_func Nothing
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
@@ -51,10 +51,11 @@ type Metadata_Data
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
             t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
-        Metadata_Data.Value [connection, tinfo, t]
+        [connection, tinfo, t]
 
     teardown self =
         self.connection.drop_table self.t.name
+        self.connection.drop_table self.tinfo
         self.connection.close
 
 
@@ -80,6 +81,9 @@ type Tables_And_Table_Types_Data
         [connection, tinfo, vinfo, temporary_table]
 
     teardown self =
+        self.connection.drop_table self.tinfo
+        self.connection.drop_table self.vinfo
+        self.connection.drop_table self.temporary_table
         self.connection.close
 
 
@@ -355,32 +359,35 @@ supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     Set.from_vector e
 
-backing_file =
-    transient_dir = enso_project.data / "transient"
-    assert transient_dir.exists ("There should be .gitignore file in the " + transient_dir.path + " directory")
-    transient_dir / "sqlite_test.db"
+## Reference to the database file that ensures the first test that uses it will
+   clean any leftover files from earlier runs.
+type Database_File
+    Value ~file
 
+    create = Database_File.Value <|
+        transient_dir = enso_project.data / "transient"
+        assert transient_dir.exists ("The directory " + transient_dir.path + " should exist (ensured by containing a `.gitignore` file).")
+        f = transient_dir / "sqlite_test.db"
+        f.delete_if_exists
+        f
 
 create_inmem_connection =
     Database.connect (SQLite In_Memory)
-
 
 create_file_connection file =
     connection = Database.connect (SQLite file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
 
-
 type File_Connection
     Value ~file
 
-    setup = File_Connection.Value <|
-        tmp_file = backing_file
-        con = create_file_connection backing_file
+    setup db_file:Database_File = File_Connection.Value <|
+        tmp_file = db_file.file
+        con = create_file_connection tmp_file
         con.close
         assert tmp_file.exists
         tmp_file
-
 
     teardown self =
         assert self.file.exists
@@ -389,10 +396,11 @@ type File_Connection
 
 add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
+    database_file = Database_File.create
 
-    sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection backing_file)
-    Transaction_Spec.add_specs suite_builder (_ -> create_file_connection backing_file) in_file_prefix
-    Upload_Spec.add_specs suite_builder (_ -> create_file_connection backing_file) in_file_prefix
+    sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file)
+    Transaction_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
+    Upload_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
 
     in_memory_prefix = "[SQLite In-Memory] "
     sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
@@ -402,7 +410,7 @@ add_specs suite_builder =
     SQLite_Type_Mapping_Spec.add_specs suite_builder
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
-        data = File_Connection.setup
+        data = File_Connection.setup database_file
 
         group_builder.teardown <|
             data.teardown

@@ -7,3 +7,7 @@ export function toExist(locator: Locator) {
   // https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-be-visible
   return expect(locator.first()).toBeVisible()
 }
+
+export function toBeSelected(locator: Locator) {
+  return expect(locator).toHaveClass(/(?<=^| )selected(?=$| )/)
+}

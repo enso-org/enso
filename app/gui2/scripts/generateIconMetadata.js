@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 
 console.info('Reading icons from "./src/assets/icons.svg"...')
 const icons = await fs.readFile('./src/assets/icons.svg', { encoding: 'utf-8' })
-const iconNames = icons.match(/(?<=^ {4}<g id=")[^"]+/gm) ?? []
+const iconNames = icons.match(/(?<=<symbol id=")[^"]+/gm) ?? []
 
 // All generated files MUST follow Prettier formatting.
 console.info('Writing icon names to "./src/util/iconList.json"...')

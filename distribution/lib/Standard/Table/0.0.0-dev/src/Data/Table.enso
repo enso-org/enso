@@ -1975,8 +1975,8 @@ type Table
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values. A
-         `Map` can also be used here (in which case `from_column` and
-         `to_column` are ignored).
+         `Map` can also be used here (in which case passing `from_column` or
+         `to_column` is disallowed and will throw an `Illegal_Argument` error.
        - column: the column within `self` to perform the replace on.
        - from_column: the column within `lookup_table` to match against `column`
          in `self`.
@@ -2044,8 +2044,8 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @from_column Widget_Helpers.make_column_name_selector
     @to_column Widget_Helpers.make_column_name_selector
-    replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
