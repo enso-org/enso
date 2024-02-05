@@ -163,12 +163,21 @@ export interface BackendProject extends Project {
 }
 
 /** Information required to open a project. */
+export interface SavedProjectStartupInfo {
+  backendType: BackendType
+  parentId: DirectoryId
+  id: ProjectId
+  title: string
+  accessToken: string | null
+}
+
+/** Information related to the currently open project. */
 export interface ProjectStartupInfo {
-  project: Project
-  // FIXME: Avoid putting all this info in `localStorage` to avoid these issues -
-  // instead store only the id of the last opened project.
+  details: Project
   projectAsset: SmartProject
-  // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+  // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`,
+  // and cannot be reconstructed. It is mainly used for updating the row when editing the asset
+  // using the "Share" button on the top right.
   setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   backendType: BackendType
   accessToken: string | null
@@ -302,6 +311,19 @@ export enum FilterBy {
   active = 'Active',
   recent = 'Recent',
   trashed = 'Trashed',
+}
+
+// ===================================
+// === serailizeProjectStartupInfo ===
+// ===================================
+
+/** Convert a {@link ProjectStartupInfo} into a serializable form. */
+export function serailizeProjectStartupInfo(
+  projectStartupInfo: ProjectStartupInfo
+): SavedProjectStartupInfo {
+  const { backendType, accessToken, projectAsset } = projectStartupInfo
+  const { id, parentId, title } = projectAsset.value
+  return { backendType, accessToken, id, parentId, title }
 }
 
 // =================

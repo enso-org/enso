@@ -470,73 +470,21 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Close the project identified by the given project ID.
+  /** Get the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
-  async getProjectDetails(
-    projectId: backend.ProjectId,
-    title: string | null
-  ): Promise<backend.Project> {
-    const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
-    if (cachedProject == null) {
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
-      if (project == null) {
-        throw new Error(
-          `Could not get details of project ${
-            title != null ? `'${title}'` : `with ID '${projectId}'`
-          }.`
-        )
-      } else {
-        const version =
-          project.engineVersion == null
-            ? null
-            : {
-                lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-                value: project.engineVersion,
-              }
-        return {
-          name: project.name,
-          engineVersion: version,
-          ideVersion: version,
-          jsonAddress: null,
-          binaryAddress: null,
-          organizationId: '',
-          packageName: project.name,
-          projectId,
-          state: {
-            type:
-              projectId === LocalBackend.currentlyOpeningProjectId
-                ? backend.ProjectState.openInProgress
-                : project.lastOpened != null
-                ? backend.ProjectState.closed
-                : backend.ProjectState.created,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
-          },
-        }
-      }
+  async getProject(projectId: backend.ProjectId, title: string): Promise<backend.SmartProject> {
+    const self = await this.self()
+    const rootDirectory = self.rootDirectory()
+    const children = await rootDirectory.list({
+      filterBy: backend.FilterBy.active,
+      labels: null,
+      recentProjects: false,
+    })
+    const project = children.find(child => child.value.id === projectId)
+    if (project?.type !== backend.AssetType.project) {
+      throw new Error(`The project '${title}' was not found.`)
     } else {
-      return {
-        name: cachedProject.projectName,
-        engineVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        ideVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
-        binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        organizationId: '',
-        packageName: cachedProject.projectNormalizedName,
-        projectId,
-        state: {
-          type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
-        },
-      }
+      return project
     }
   }
 
@@ -583,7 +531,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Return details for the current user. */
-  override self() {
+  override self(): Promise<SmartUser> {
     return Promise.resolve(
       new SmartUser(this.projectManager, {
         email: backend.EmailAddress(''),

@@ -291,7 +291,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
       onClose()
-      localStorage.delete('projectStartupInfo')
+      localStorage.delete('project')
     }
     setToastId(null)
     setShouldOpenWhenReady(false)

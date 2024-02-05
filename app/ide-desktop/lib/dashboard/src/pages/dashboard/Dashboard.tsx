@@ -41,7 +41,6 @@ import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // ============================
@@ -53,7 +52,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     isAssetPanelVisible: boolean
     page: pageSwitcher.Page
-    projectStartupInfo: backendModule.ProjectStartupInfo
+    project: backendModule.SavedProjectStartupInfo
   }
 }
 
@@ -67,27 +66,32 @@ LocalStorage.registerKey('page', {
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
-LocalStorage.registerKey('projectStartupInfo', {
+LocalStorage.registerKey('project', {
   isUserSpecific: true,
   tryParse: value => {
     if (typeof value !== 'object' || value == null) {
       return null
-    } else if (!('accessToken' in value) || typeof value.accessToken !== 'string') {
-      return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
+    } else if (!('parentId' in value) || typeof value.parentId !== 'string') {
+      return null
+    } else if (!('id' in value) || typeof value.id !== 'string') {
+      return null
+    } else if (!('title' in value) || typeof value.title !== 'string') {
+      return null
+    } else if (
+      !('accessToken' in value) ||
+      (typeof value.accessToken !== 'string' && value.accessToken != null)
+    ) {
       return null
     } else {
+      const { backendType, parentId, id, title, accessToken = null } = value
       return {
-        // These type assertions are UNSAFE, however correctly type-checking these
-        // would be very complicated.
-        // eslint-disable-next-line no-restricted-syntax
-        project: value.project as backendModule.Project,
-        // eslint-disable-next-line no-restricted-syntax
-        projectAsset: value.projectAsset as backendModule.SmartProject,
-        backendType: value.backendType,
-        accessToken: value.accessToken,
+        backendType,
+        parentId: backendModule.DirectoryId(parentId),
+        id: backendModule.ProjectId(id),
+        title,
+        accessToken,
       }
     }
   },
@@ -167,13 +171,13 @@ export default function Dashboard(props: DashboardProps) {
       currentBackend = new LocalBackend(projectManagerUrl)
       setBackend(currentBackend)
     }
-    const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
+    const lastOpenedProject = localStorage.get('project')
     if (rawInitialProjectName != null) {
       if (page === pageSwitcher.Page.editor) {
         setPage(pageSwitcher.Page.drive)
       }
-    } else if (savedProjectStartupInfo != null) {
-      if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
+    } else if (lastOpenedProject != null) {
+      if (lastOpenedProject.backendType === backendModule.BackendType.remote) {
         if (accessToken != null) {
           setPage(pageSwitcher.Page.drive)
           const httpClient = new HttpClient(
@@ -183,20 +187,29 @@ export default function Dashboard(props: DashboardProps) {
           void (async () => {
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
-            const projectAsset = savedProjectStartupInfo.projectAsset
             try {
-              const oldProject = await remoteBackend.getProjectDetails(
-                projectAsset.value.id,
-                projectAsset.value.title
+              const project = await remoteBackend.getProject(
+                lastOpenedProject.parentId,
+                lastOpenedProject.id,
+                lastOpenedProject.title
               )
-              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
-                await projectAsset.waitUntilReady()
+              if (
+                backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.value.projectState.type]
+              ) {
+                await project.waitUntilReady()
                 if (!abortController.signal.aborted) {
-                  const project = await remoteBackend.getProjectDetails(
-                    projectAsset.value.id,
-                    projectAsset.value.title
+                  const projectAsset = await remoteBackend.getProject(
+                    lastOpenedProject.parentId,
+                    lastOpenedProject.id,
+                    lastOpenedProject.title
                   )
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                  const details = await projectAsset.getDetails()
+                  setProjectStartupInfo({
+                    details,
+                    projectAsset,
+                    backendType: remoteBackend.type,
+                    accessToken,
+                  })
                   if (page === pageSwitcher.Page.editor) {
                     setPage(page)
                   }
@@ -208,16 +221,22 @@ export default function Dashboard(props: DashboardProps) {
           })()
         }
       } else {
-        const projectId = savedProjectStartupInfo.projectAsset.value.id
-        const projectTitle = savedProjectStartupInfo.projectAsset.value.title
+        const projectId = lastOpenedProject.id
+        const projectTitle = lastOpenedProject.title
         if (currentBackend.type === backendModule.BackendType.local) {
           setInitialProjectName(projectId)
         } else {
           const localBackend = new LocalBackend(projectManagerUrl)
           void (async () => {
             await localBackend.openProject(projectId, null, projectTitle)
-            const project = await localBackend.getProjectDetails(projectId, projectTitle)
-            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+            const projectAsset = await localBackend.getProject(projectId, projectTitle)
+            const details = await projectAsset.getDetails()
+            setProjectStartupInfo({
+              details,
+              projectAsset,
+              backendType: localBackend.type,
+              accessToken: null,
+            })
           })()
         }
       }
@@ -243,9 +262,9 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initialized) {
       if (projectStartupInfo != null) {
-        localStorage.set('projectStartupInfo', projectStartupInfo)
+        localStorage.set('project', backendModule.serailizeProjectStartupInfo(projectStartupInfo))
       } else {
-        localStorage.delete('projectStartupInfo')
+        localStorage.delete('project')
       }
     }
     // `initialized` is NOT a dependency.
@@ -360,9 +379,9 @@ export default function Dashboard(props: DashboardProps) {
       if (switchPage) {
         setPage(pageSwitcher.Page.editor)
       }
-      if (projectStartupInfo?.project.projectId !== projectAsset.value.id) {
+      if (projectStartupInfo?.details.projectId !== projectAsset.value.id) {
         setProjectStartupInfo({
-          project: await projectAsset.getDetails(),
+          details: await projectAsset.getDetails(),
           projectAsset,
           setProjectAsset,
           backendType: backend.type,
@@ -370,7 +389,7 @@ export default function Dashboard(props: DashboardProps) {
         })
       }
     },
-    [backend, projectStartupInfo?.project.projectId, accessToken]
+    [backend, projectStartupInfo?.details.projectId, accessToken]
   )
 
   const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {

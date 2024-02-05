@@ -1113,41 +1113,29 @@ export default class RemoteBackend extends Backend {
 
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  async getProjectDetails(
+  async getProject(
+    parentId: backend.DirectoryId,
     projectId: backend.ProjectId,
-    title: string | null
-  ): Promise<backend.Project> {
-    /** HTTP response body for this endpoint. */
-    interface ResponseBody {
-      organizationId: string
-      projectId: backend.ProjectId
-      name: string
-      state: backend.ProjectStateType
-      packageName: string
-      address?: backend.Address
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      ide_version: backend.VersionNumber | null
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      engine_version: backend.VersionNumber | null
-    }
-    const path = remoteBackendPaths.getProjectDetailsPath(projectId)
-    const response = await this.get<ResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(
-        `Could not get details of project ${
-          title != null ? `'${title}'` : `with ID '${projectId}'`
-        }.`
-      )
+    title: string
+  ): Promise<backend.SmartProject> {
+    const self = await this.self()
+    if (self == null) {
+      return this.throw(`Could not get project '${title}' because you are not logged in.`)
     } else {
-      const project = await response.json()
-      const ideVersion =
-        project.ide_version ?? (await getDefaultVersion(this.client, backend.VersionType.ide))
-      return {
-        ...project,
-        ideVersion,
-        engineVersion: project.engine_version,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
+      const rootDirectory = self.rootDirectory()
+      // The rest of the values will be incorrect. This is fine, because this directory
+      // is only being used to fetch the child project.
+      const directory = rootDirectory.withValue(object.merge(rootDirectory.value, { id: parentId }))
+      const children = await directory.list({
+        filterBy: backend.FilterBy.active,
+        labels: null,
+        recentProjects: false,
+      })
+      const project = children.find(child => child.value.id === projectId)
+      if (project?.type !== backend.AssetType.project) {
+        return this.throw(`The project '${title}' was not found in its parent folder.`)
+      } else {
+        return project
       }
     }
   }
