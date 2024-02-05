@@ -9,12 +9,17 @@ import project.Errors.S3_Error
 
 ## PRIVATE
 instance =
-    File_Write_Strategy.Value default_overwrite default_append default_raise_error s3_backup create_dry_run_file generic_remote_write_with_local_file
+    File_Write_Strategy.Value default_overwrite default_append default_raise_error s3_backup create_dry_run_file remote_write_with_local_file
 
 ## PRIVATE
 create_dry_run_file file copy_original =
     _ = [file, copy_original]
     Error.throw (Forbidden_Operation.Error "Currently dry-run is not supported for S3_File, so writing to an S3_File is forbidden if the Output context is disabled.")
+
+## PRIVATE
+remote_write_with_local_file file existing_file_behavior action =
+    if existing_file_behavior == Existing_File_Behavior.Append then Error.throw (S3_Error.Error "S3 does not support appending to a file. Instead you may read it, modify and then write the new contents." Nothing) else
+        generic_remote_write_with_local_file file existing_file_behavior action
 
 ## PRIVATE
    A backup strategy tailored for S3.
