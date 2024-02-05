@@ -1572,7 +1572,6 @@ lazy val `runtime-test-instruments` =
     )
 
 lazy val runtime = (project in file("engine/runtime"))
-  .configs(Benchmark)
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
@@ -1585,28 +1584,6 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    // Explicitly provide javafmt task for the custom Benchmark configuration.
-    // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
-    // is not able to register this task on its own.
-    Benchmark / javafmt := {
-      val streamz = streams.value
-      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
-      val iF      = (Benchmark / javafmt / includeFilter).value
-      val eF      = (Benchmark / javafmt / excludeFilter).value
-      val cache   = streamz.cacheStoreFactory
-      val options = (Compile / javafmtOptions).value
-      JavaFormatter(sD, iF, eF, streamz, cache, options)
-    },
-    Benchmark / javafmtCheck := {
-      val streamz = streams.value
-      val baseDir = (ThisBuild / baseDirectory).value
-      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
-      val iF      = (Benchmark / javafmt / includeFilter).value
-      val eF      = (Benchmark / javafmt / excludeFilter).value
-      val cache   = (javafmt / streams).value.cacheStoreFactory
-      val options = (Compile / javafmtOptions).value
-      JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
-    },
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
@@ -1621,11 +1598,9 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
       "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
-      "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
       "junit"                % "junit"                   % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-      "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
@@ -1664,50 +1639,6 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
       .value
-  )
-  /** Benchmark settings */
-  .settings(
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / javacOptions --= Seq(
-      "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    ),
-    (Benchmark / javaOptions) :=
-      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
-    (Benchmark / javaOptions) ++= benchOnlyOptions,
-    Benchmark / fork := true,
-    Benchmark / parallelExecution := false,
-    // This ensures that the full class-path of runtime-fat-jar is put on
-    // class-path of the Java compiler (and thus the benchmark annotation processor).
-    (Benchmark / compile / unmanagedClasspath) ++=
-      (LocalProject(
-        "runtime-fat-jar"
-      ) / Compile / fullClasspath).value,
-    bench := (Benchmark / test)
-      .tag(Exclusive)
-      .dependsOn(
-        // runtime.jar fat jar needs to be assembled as it is used in the
-        // benchmarks. This dependency is here so that `runtime/bench` works
-        // after clean build.
-        LocalProject("runtime-fat-jar") / assembly
-      )
-      .value,
-    (Benchmark / testOnly) := (Benchmark / testOnly)
-      .dependsOn(
-        LocalProject("runtime-fat-jar") / assembly
-      )
-      .evaluated,
-    benchOnly := Def.inputTaskDyn {
-      import complete.Parsers.spaceDelimited
-      val name = spaceDelimited("<name>").parsed match {
-        case List(name) => name
-        case _          => throw new IllegalArgumentException("Expected one argument.")
-      }
-      Def.task {
-        (Benchmark / testOnly).toTask(" -- -z " + name).value
-      }
-    }.evaluated
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
@@ -1852,6 +1783,84 @@ lazy val `runtime-tests` =
   .dependsOn(`runtime-test-instruments`)
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(testkit % Test)
+
+
+lazy val `runtime-benchmarks` =
+  (project in file("engine/runtime-benchmarks"))
+    .configs(Benchmark)
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Benchmark)(Defaults.testSettings),
+      libraryDependencies ++= jmh ++ GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
+        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
+        "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Benchmark,
+        "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
+      ),
+      // Explicitly provide javafmt task for the custom Benchmark configuration.
+      // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
+      // is not able to register this task on its own.
+      Benchmark / javafmt := {
+        val streamz = streams.value
+        val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+        val iF      = (Benchmark / javafmt / includeFilter).value
+        val eF      = (Benchmark / javafmt / excludeFilter).value
+        val cache   = streamz.cacheStoreFactory
+        val options = (Compile / javafmtOptions).value
+        JavaFormatter(sD, iF, eF, streamz, cache, options)
+      },
+      Benchmark / javafmtCheck := {
+        val streamz = streams.value
+        val baseDir = (ThisBuild / baseDirectory).value
+        val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+        val iF      = (Benchmark / javafmt / includeFilter).value
+        val eF      = (Benchmark / javafmt / excludeFilter).value
+        val cache   = (javafmt / streams).value.cacheStoreFactory
+        val options = (Compile / javafmtOptions).value
+        JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
+      },
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      (Benchmark / javaOptions) :=
+        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+      (Benchmark / javaOptions) ++= benchOnlyOptions,
+      Benchmark / fork := true,
+      Benchmark / parallelExecution := false,
+      // This ensures that the full class-path of runtime-fat-jar is put on
+      // class-path of the Java compiler (and thus the benchmark annotation processor).
+      (Benchmark / compile / unmanagedClasspath) ++=
+        (LocalProject(
+          "runtime-fat-jar"
+        ) / Compile / fullClasspath).value,
+      bench := (Benchmark / test)
+        .tag(Exclusive)
+        .dependsOn(
+          // runtime.jar fat jar needs to be assembled as it is used in the
+          // benchmarks. This dependency is here so that `runtime/bench` works
+          // after clean build.
+          LocalProject("runtime-fat-jar") / assembly
+        )
+        .value,
+      (Benchmark / testOnly) := (Benchmark / testOnly)
+        .dependsOn(
+          LocalProject("runtime-fat-jar") / assembly
+        )
+        .evaluated,
+      benchOnly := Def.inputTaskDyn {
+        import complete.Parsers.spaceDelimited
+        val name = spaceDelimited("<name>").parsed match {
+          case List(name) => name
+          case _          => throw new IllegalArgumentException("Expected one argument.")
+        }
+        Def.task {
+          (Benchmark / testOnly).toTask(" -- -z " + name).value
+        }
+      }.evaluated
+    )
+  .dependsOn(`runtime-fat-jar`)
 
 
 lazy val `runtime-parser` =
