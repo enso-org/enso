@@ -95,7 +95,7 @@ generic_remote_write_with_local_file (file : Writable_File) existing_file_behavi
                 result = action temp_file
                 result.if_not_error <|
                     ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
-                    copy_success = file.write existing_file_behavior output_stream->
+                    copy_success = file.write effective_file_behavior output_stream->
                         temp_file.with_input_stream [File_Access.Read] input_stream->
                             output_stream.write_stream input_stream
                     copy_success.if_not_error <|
