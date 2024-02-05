@@ -1428,8 +1428,8 @@ type Table
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values. A
-         `Map` can also be used here (in which case `from_column` and
-         `to_column` are ignored).
+         `Map` can also be used here (in which case passing `from_column` or
+         `to_column` is disallowed and will throw an `Illegal_Argument` error.
        - column: the column within `self` to perform the replace on.
        - from_column: the column within `lookup_table` to match against `column`
          in `self`.
