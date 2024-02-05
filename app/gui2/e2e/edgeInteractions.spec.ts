@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import * as actions from './actions'
-import { edgesToNodeWithBinding } from './edgeRendering.spec'
-import { graphNodeByBinding } from './locate'
+import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
 
 test('Disconnect an edge from a port', async ({ page }) => {
   await actions.goToGraph(page)

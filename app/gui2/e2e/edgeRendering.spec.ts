@@ -1,17 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import * as actions from './actions'
-import * as locate from './locate'
-
-export async function edgesFromNodeWithBinding(page: Page, binding: string) {
-  const node = locate.graphNodeByBinding(page, binding).first()
-  const nodeId = await node.getAttribute('data-node-id')
-  return page.locator(`[data-source-node-id="${nodeId}"]`)
-}
-export async function edgesToNodeWithBinding(page: Page, binding: string) {
-  const node = locate.graphNodeByBinding(page, binding).first()
-  const nodeId = await node.getAttribute('data-node-id')
-  return page.locator(`[data-target-node-id="${nodeId}"]`)
-}
+import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
 const EDGE_PARTS = 2
