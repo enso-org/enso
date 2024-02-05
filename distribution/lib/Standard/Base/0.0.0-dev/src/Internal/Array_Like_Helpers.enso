@@ -25,27 +25,21 @@ from project.Data.Index_Sub_Range import Index_Sub_Range, drop_helper, take_help
 from project.Data.Ordering import Comparable
 from project.Data.Range.Extensions import all
 
-## PRIVATE
 new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
 new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"
 
-## PRIVATE
 new_vector_builder : Integer -> Any
 new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
 
-## PRIVATE
 length : (Array | Vector) -> Integer
 length array_like = @Builtin_Method "Array_Like_Helpers.length"
 
-## PRIVATE
 at : (Array | Vector) -> Integer -> Any
 at array_like index = @Builtin_Method "Array_Like_Helpers.at"
 
-## PRIVATE
 vector_to_array : (Vector | Array) -> Array
 vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array"
 
-## PRIVATE
 vector_from_function_primitive : Integer -> (Integer -> Any) -> Vector Any
 vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
@@ -134,13 +128,11 @@ slice_many_ranges vector ranges =
                     builder.append (vector.at ix)
     builder.to_vector
 
-## PRIVATE
 check_start_valid start length function =
     used_start = if start < 0 then start + length else start
     if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
         function used_start
 
-## PRIVATE
 sort vector order on by on_incomparable =
     comps = case on == Nothing of
         True -> vector.map it-> Comparable.from it
@@ -148,7 +140,6 @@ sort vector order on by on_incomparable =
     compare_funcs = comps.map (it-> it.compare)
     vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
 
-## PRIVATE
 distinct vector on =
     builder = Vector.new_builder
     result = vector.fold Map.empty existing->
@@ -159,7 +150,6 @@ distinct vector on =
                 existing.insert key True
     if result.is_error then result else builder.to_vector
 
-## PRIVATE
 take vector range = case range of
     ## We are using a specialized implementation for `take Sample`, because
        the default implementation (which needs to be generic for any
@@ -171,11 +161,9 @@ take vector range = case range of
     _ ->
         take_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
 
-## PRIVATE
 drop vector range =
     drop_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
 
-## PRIVATE
 insert vector at item =
     self_len = vector.length
     used_index = if at < 0 then self_len + at else at
@@ -184,21 +172,18 @@ insert vector at item =
             if used_index == 0 then [item] + vector else
                 Vector.insert_builtin vector used_index [item]
 
-## PRIVATE
 remove vector at =
     self_len = vector.length
     used_index = if at < 0 then self_len + at else at
     if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
         Vector.remove_builtin vector used_index
 
-## PRIVATE
 index_of vector condition start =
     self_len = vector.length
     check_start_valid start self_len used_start->
         predicate = unify_condition_predicate_or_element condition
         used_start.up_to vector.length . find if_missing=Nothing (i-> predicate (vector.at i))
 
-## PRIVATE
 last_index_of vector condition start =
     self_len = vector.length
     if self_len == 0 && (start==0 || start==-1) then Nothing else
@@ -206,22 +191,18 @@ last_index_of vector condition start =
             predicate = unify_condition_predicate_or_element condition
             used_start.down_to -1 . find if_missing=Nothing (i-> predicate (vector.at i))
 
-## PRIVATE
 any vector condition =
     predicate = unify_condition_or_predicate condition
     0.up_to vector.length . any (idx -> (predicate (vector.at idx)))
 
-## PRIVATE
 all vector condition =
     predicate = unify_condition_or_predicate condition
     vector.any (predicate >> .not) . not
 
-## PRIVATE
 plus vector that:(Vector | Array) = case that of
     _ : Vector -> Vector.insert_builtin vector vector.length that
     _ : Array -> plus vector (Vector.from_polyglot_array that)
 
-## PRIVATE
 find vector condition start ~if_missing =
     predicate = unify_condition_or_predicate condition
     self_len = vector.length
@@ -229,15 +210,36 @@ find vector condition start ~if_missing =
         found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx)))
         if found.is_nothing then if_missing else vector.at found
 
-## PRIVATE
 map vector function on_problems =
     vector_from_function vector.length (function << vector.at) on_problems
 
-## PRIVATE
+map_with_index vector function on_problems =
+    vector_from_function vector.length (i-> function i (vector.at i)) on_problems
+
 flat_map vector function on_problems =
     vector.map function on_problems . flatten
 
-## PRIVATE
 flatten vector =
     # TODO move?
     Vector.flatten vector
+
+fold vector init function =
+    f = acc -> ix -> function acc (vector.at ix)
+    0.up_to vector.length . fold init f
+
+pad vector n elem =
+    if vector.length >= n then vector else
+        vector + (Vector.fill n-vector.length elem)
+
+each vector f =
+    0.up_to vector.length . each ix->
+        f (vector.at ix)
+
+each_with_index vector f =
+    0.up_to vector.length . each ix->
+        f ix (vector.at ix)
+
+reverse vector = Vector.new vector.length (i -> vector.at (vector.length - (1 + i)))
+
+to_list vector =
+    vector.reverse.fold List.Nil acc-> elem-> List.Cons elem acc

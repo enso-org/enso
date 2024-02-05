@@ -627,7 +627,7 @@ type Array
              [1, 2, 3, 4, 5, 6, 7, 8].to_array.slice 2 5 == [3, 4, 5].to_array
     slice : Integer -> Integer -> Vector Any
     slice self start end =
-        Array_Like_Helpers.slice self start end
+        Vector.slice self start end
 
     ## GROUP Selections
        Returns the first element of the array that satisfies the condition or
