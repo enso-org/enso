@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
@@ -96,18 +97,19 @@ type Image
        > Example
          Write the image with applying several flags.
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
-    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File_Error
-    write self location flags=[] =
+    write : Writable_File  -> (Write_Flag | Vector) -> Nothing ! File_Error
+    write self location:Writable_File flags=[] =
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing the image to a file is forbidden as the Output context is disabled.") else
-            path = case location of
-                _ : File -> location.path
-                _ -> location
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]
             int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
-            Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
-                Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
+            write_to_local_file file:File =
+                Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
+                     Error.throw (File_Error.IO_Error location.file 'Failed to write to the file')
+            if location.is_local then write_to_local_file location else
+                location.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
+
 
     ## PRIVATE
 
