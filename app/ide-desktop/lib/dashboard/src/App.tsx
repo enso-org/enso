@@ -287,7 +287,7 @@ function AppRouter(props: AppProps) {
       {result}
     </AuthProvider>
   )
-  result = <LocalStorageProvider>{result}</LocalStorageProvider>
+  result = <LocalStorageProvider localStorage={localStorage}>{result}</LocalStorageProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

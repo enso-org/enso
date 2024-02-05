@@ -204,12 +204,8 @@ export default function Dashboard(props: DashboardProps) {
                     lastOpenedProject.title
                   )
                   const details = await projectAsset.getDetails()
-                  setProjectStartupInfo({
-                    details,
-                    projectAsset,
-                    backendType: remoteBackend.type,
-                    accessToken,
-                  })
+                  const backendType = remoteBackend.type
+                  setProjectStartupInfo({ details, projectAsset, backendType, accessToken })
                   if (page === pageSwitcher.Page.editor) {
                     setPage(page)
                   }
@@ -231,12 +227,8 @@ export default function Dashboard(props: DashboardProps) {
             await localBackend.openProject(projectId, null, projectTitle)
             const projectAsset = await localBackend.getProject(projectId, projectTitle)
             const details = await projectAsset.getDetails()
-            setProjectStartupInfo({
-              details,
-              projectAsset,
-              backendType: localBackend.type,
-              accessToken: null,
-            })
+            const backendType = localBackend.type
+            setProjectStartupInfo({ details, projectAsset, backendType, accessToken: null })
           })()
         }
       }
@@ -262,7 +254,7 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initialized) {
       if (projectStartupInfo != null) {
-        localStorage.set('project', backendModule.serailizeProjectStartupInfo(projectStartupInfo))
+        localStorage.set('project', backendModule.serializeProjectStartupInfo(projectStartupInfo))
       } else {
         localStorage.delete('project')
       }

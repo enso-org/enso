@@ -314,11 +314,11 @@ export enum FilterBy {
 }
 
 // ===================================
-// === serailizeProjectStartupInfo ===
+// === serializeProjectStartupInfo ===
 // ===================================
 
 /** Convert a {@link ProjectStartupInfo} into a serializable form. */
-export function serailizeProjectStartupInfo(
+export function serializeProjectStartupInfo(
   projectStartupInfo: ProjectStartupInfo
 ): SavedProjectStartupInfo {
   const { backendType, accessToken, projectAsset } = projectStartupInfo

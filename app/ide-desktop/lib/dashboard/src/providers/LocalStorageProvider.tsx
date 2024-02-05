@@ -18,7 +18,9 @@ export interface LocalStorageContextType {
 const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
 
 /** Props for a {@link LocalStorageProvider}. */
-export interface LocalStorageProviderProps extends React.PropsWithChildren<object> {}
+export interface LocalStorageProviderProps extends React.PropsWithChildren {
+  localStorage?: LocalStorage
+}
 
 // ============================
 // === LocalStorageProvider ===
@@ -26,8 +28,8 @@ export interface LocalStorageProviderProps extends React.PropsWithChildren<objec
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
-  const { children } = props
-  const [localStorage] = React.useState(() => new LocalStorage())
+  const { localStorage: localStorageRaw, children } = props
+  const [localStorage] = React.useState(() => localStorageRaw ?? new LocalStorage())
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
