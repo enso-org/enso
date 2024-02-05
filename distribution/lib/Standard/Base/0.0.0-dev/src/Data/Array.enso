@@ -265,7 +265,7 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
+    index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
@@ -288,7 +288,7 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
+    last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical
@@ -645,7 +645,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.find (> 3)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
     ## ICON select_row
@@ -904,4 +904,4 @@ type Array
 
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
-    + self that = Array_Like_Helpers.+ self that
+    + self that = Array_Like_Helpers.plus self that

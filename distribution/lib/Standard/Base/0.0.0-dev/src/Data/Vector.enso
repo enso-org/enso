@@ -335,12 +335,8 @@ type Vector a
 
              [1, 2, 3, 4, 5].find (> 3)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
-        predicate = unify_condition_or_predicate condition
-        self_len = self.length
-        check_start_valid start self_len used_start->
-            found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
-            if found.is_nothing then if_missing else self.at found
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+        Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
        Returns the index of an element in the vector.
@@ -362,7 +358,7 @@ type Vector a
 
              ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
+    index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
@@ -385,12 +381,8 @@ type Vector a
 
              ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
-        self_len = self.length
-        if self_len == 0 && (start==0 || start==-1) then Nothing else
-            check_start_valid start self_len used_start->
-                predicate = unify_condition_predicate_or_element condition
-                used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
+    last_index_of self condition (start : Integer = -1) =
+        Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical
        ICON preparation
@@ -411,8 +403,7 @@ type Vector a
              [1, 2, 3, 4, 5].any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self condition =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.at idx)))
+        Array_Like_Helpers.any self condition
 
     ## GROUP Logical
        ICON preparation
@@ -433,8 +424,7 @@ type Vector a
              [-1, 1, 5, 8].all (x-> x%2 == 0)
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
     all self condition =
-        predicate = unify_condition_or_predicate condition
-        self.any (predicate >> .not) . not
+        Array_Like_Helpers.all self condition
 
     ## GROUP Logical
        ICON preparation
@@ -612,7 +602,7 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
-        Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
+        Array_Like_Helpers.map self function on_problems
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
@@ -650,7 +640,7 @@ type Vector a
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
     flat_map self function on_problems=Problem_Behavior.Report_Error =
-        self.map function on_problems . flatten
+        Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
        Transforms a vector of vectors into a `Vector` of inner elements - removes
@@ -804,9 +794,8 @@ type Vector a
 
              [1] + [2]
     + : Vector Any | Array -> Vector Any
-    + self that:(Vector | Array) = case that of
-        _ : Vector -> Vector.insert_builtin self self.length that
-        _ : Array -> self + Vector.from_polyglot_array that
+    + self that:(Vector | Array) =
+        Array_Like_Helpers.plus self that
 
     ## GROUP Calculations
        Inserts the given item into the vector at the given index.
@@ -1240,7 +1229,7 @@ type Builder
              builder = Vector.new_builder
              builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector start=0 end=vector.length =
+    append_vector_range self vector (start : Integer = 0) end=vector.length =
         subrange = vector.slice start end
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
@@ -1371,9 +1360,3 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The vector is empty."
-
-## PRIVATE
-check_start_valid start length function =
-    used_start = if start < 0 then start + length else start
-    if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
-        function used_start
