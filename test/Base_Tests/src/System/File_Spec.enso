@@ -260,7 +260,7 @@ add_specs suite_builder =
                 r1 = f.read
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Access_Denied
-                r1.catch.file . should_equal f
+                r1.catch.file.path . should_equal f.path
                 r1.catch.to_display_text.should_contain "Insufficient permissions"
 
                 Process.run "chmod" ["0744", f.absolute.path] . exit_code . should_equal Exit_Code.Success
