@@ -180,8 +180,8 @@ export default function AccountSettingsTab() {
           <img src={user?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
         </label>
         <span className="py-1 w-64">
-          Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
-          should not be a default image provided by Enso.
+          Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
+          default image provided by Enso.
         </span>
       </div>
     </div>
