@@ -23,12 +23,15 @@ import java.io.File
 
 final class ProjectListCommand[
   F[+_, +_]: ErrorChannel: CovariantFlatMap
-](repo: ProjectRepository[F]) {
+](repo: ProjectRepository[F], limitOpt: Option[Int]) {
 
   def run: F[ProjectServiceFailure, ProjectList.Result] =
     repo
       .getAll()
-      .map(_.sorted(RecentlyUsedProjectsOrdering))
+      .map(
+        _.sorted(RecentlyUsedProjectsOrdering)
+          .take(limitOpt.getOrElse(Int.MaxValue))
+      )
       .mapError(ProjectService.toServiceFailure)
       .map(_.map(ProjectService.toProjectMetadata))
       .map(ProjectList.Result)
@@ -38,7 +41,8 @@ object ProjectListCommand {
 
   def apply[F[+_, +_]: Applicative: Sync: ErrorChannel: CovariantFlatMap](
     config: ProjectManagerConfig,
-    projectsPath: Option[File]
+    projectsPath: Option[File],
+    limitOpt: Option[Int]
   ): ProjectListCommand[F] = {
     val clock      = new RealClock[F]
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
@@ -55,6 +59,6 @@ object ProjectListCommand {
         gen
       )
 
-    new ProjectListCommand[F](projectRepository)
+    new ProjectListCommand[F](projectRepository, limitOpt)
   }
 }

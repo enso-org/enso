@@ -210,10 +210,14 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
-      val projectsPath = Option(options.getOptionValue(Cli.PROJECT_LIST))
+      val projectsPathOpt = Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))
         .map(Paths.get(_).toFile)
+      val limitOpt = Option(
+        options.getParsedOptionValue(Cli.PROJECT_LIST).asInstanceOf[java.lang.Number]
+      )
+        .map(_.intValue())
       val projectListCommand =
-        ProjectListCommand[ZIO[ZAny, +*, +*]](config, projectsPath)
+        ProjectListCommand[ZIO[ZAny, +*, +*]](config, projectsPathOpt, limitOpt)
       commandHandler.printJson(projectListCommand.run)
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)

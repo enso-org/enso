@@ -7,14 +7,15 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION    = "json"
-  val HELP_OPTION    = "help"
-  val NO_LOG_MASKING = "no-log-masking"
-  val VERBOSE_OPTION = "verbose"
-  val VERSION_OPTION = "version"
-  val PROFILING_PATH = "profiling-path"
-  val PROFILING_TIME = "profiling-time"
-  val PROJECT_LIST   = "project-list"
+  val JSON_OPTION        = "json"
+  val HELP_OPTION        = "help"
+  val NO_LOG_MASKING     = "no-log-masking"
+  val VERBOSE_OPTION     = "verbose"
+  val VERSION_OPTION     = "version"
+  val PROFILING_PATH     = "profiling-path"
+  val PROFILING_TIME     = "profiling-time"
+  val PROJECTS_DIRECTORY = "projects-directory"
+  val PROJECT_LIST       = "project-list"
 
   object option {
 
@@ -65,12 +66,21 @@ object Cli {
       .desc("The duration in seconds limiting the application profiling time.")
       .build()
 
+    val projectsDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(PROJECTS_DIRECTORY)
+      .desc("The path to the projects directory.")
+      .build()
+
     val projectList: cli.Option = cli.Option.builder
       .optionalArg(true)
       .numberOfArgs(1)
-      .argName("path")
+      .`type`(classOf[java.lang.Number])
+      .argName("limit")
       .longOpt(PROJECT_LIST)
-      .desc("The path to the projects directory.")
+      .desc("List user projects.")
       .build()
   }
 
@@ -83,6 +93,7 @@ object Cli {
       .addOption(option.noLogMasking)
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
+      .addOption(option.projectsDirectory)
       .addOption(option.projectList)
 
   /** Parse the command line options. */
