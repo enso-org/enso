@@ -63,6 +63,9 @@ type Writable_File
         "(Writable_File " + self.file.to_text + ")"
 
     ## PRIVATE
+    pretty self -> Text = self.to_text
+
+    ## PRIVATE
     to_display_text self -> Text = self.file.to_display_text
 
 ## PRIVATE
@@ -73,6 +76,7 @@ Writable_File.from (that : Text) =
 
 ## PRIVATE
    If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.
+   Every `Writable_File` should be able to provide its file format metadata.
 File_Format_Metadata.from (that : Writable_File) = File_Format_Metadata.from that.file
 
 ## PRIVATE

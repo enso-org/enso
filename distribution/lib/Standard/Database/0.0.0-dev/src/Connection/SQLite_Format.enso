@@ -30,8 +30,8 @@ type SQLite_Format
     ## PRIVATE
        If the File_Format supports writing to the file, return a configured instance.
     for_file_write : Writable_File -> SQLite_Format | Nothing
-    for_file_write file =
-        case file.extension of
+    for_file_write file:Writable_File =
+        case (file:File_Format_Metadata).extension of
             ".db" -> SQLite_Format.For_File
             ".sqlite" -> SQLite_Format.For_File
             _ -> Nothing
