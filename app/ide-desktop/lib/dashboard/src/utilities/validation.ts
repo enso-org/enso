@@ -1,5 +1,9 @@
 /** @file Validation patterns for text inputs. */
 
+// ==================
+// === Validation ===
+// ==================
+
 /** Regex pattern for valid AWS Cognito passwords.
  * A fully correct regex is here: https://stackoverflow.com/a/58767981/3323231.
  * Official documentation is here: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-policies.html.
@@ -13,11 +17,11 @@
  * - an ASCII symbol.
  */
 export const PASSWORD_PATTERN =
-    '(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[ ^$*.\\[\\]\\{\\}\\(\\)?"!@#%&\\/,><\':;\\|_~`=+\\-]).{6,256}'
+  '(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[ ^$*.\\[\\]\\{\\}\\(\\)?"!@#%&\\/,><\':;\\|_~`=+\\-]).{6,256}'
 /** Human readable explanation of password requirements. */
 export const PASSWORD_ERROR =
-    'Your password must include numbers, letters (both lowercase and uppercase) and symbols, ' +
-    'and must be between 6 and 256 characters long.'
+  'Your password must include numbers, letters (both lowercase and uppercase) and symbols, ' +
+  'and must be between 6 and 256 characters long.'
 
 export const CONFIRM_PASSWORD_ERROR = 'Passwords must match.'
 

@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { getTextWidth } from '@/util/measurement'
+import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
@@ -222,11 +222,13 @@ const xLabelLeft = computed(
   () =>
     margin.value.left +
     boxWidth.value / 2 -
-    getTextWidth(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
+    getTextWidthBySizeAndFamily(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(
-  () => -boxHeight.value / 2 + getTextWidth(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
+  () =>
+    -boxHeight.value / 2 +
+    getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 

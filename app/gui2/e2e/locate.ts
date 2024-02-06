@@ -137,6 +137,7 @@ export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
+export const nodeOutputPort = componentLocator('outputPortHoverArea')
 
 export function componentBrowserEntry(
   page: Locator | Page,

@@ -4,51 +4,72 @@ from Standard.Table import Table, Column, Delimited, Data_Formatter
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 from project.Util import all
 
-spec =
-    c_number = ["Number", [71, 72, 73, 74, 75, 76, 77]]
-    c_party = ["Party", ["Conservative", "Conservative", "Labour", "Labour", "Conservative", "Conservative", "Conservative"]]
-    c_name = ["Title", ["Margaret Thatcher", "John Major", "Tony Blair", "Gordon Brown", "David Cameron", "Theresa May", "Boris Johnson"]]
-    c_from = ["From", [Date.new 1979 05 04, Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24]]
-    c_to = ["To", [Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24, Date.new 2022 07 07]]
-    expected = Table.new [c_number, c_party, c_name, c_from, c_to]
 
-    Test.group "File.read (Delimited) should work with Dates" <|
+type Data
+    Value ~data
+
+    c_number self = self.data.at 0
+    c_party self = self.data.at 1
+    c_name self = self.data.at 2
+    c_from self = self.data.at 3
+    c_to self = self.data.at 4
+    expected self = self.data.at 5
+    table self = self.data.at 6
+
+    setup = Data.Value <|
+        c_number = ["Number", [71, 72, 73, 74, 75, 76, 77]]
+        c_party = ["Party", ["Conservative", "Conservative", "Labour", "Labour", "Conservative", "Conservative", "Conservative"]]
+        c_name = ["Title", ["Margaret Thatcher", "John Major", "Tony Blair", "Gordon Brown", "David Cameron", "Theresa May", "Boris Johnson"]]
+        c_from = ["From", [Date.new 1979 05 04, Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24]]
+        c_to = ["To", [Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24, Date.new 2022 07 07]]
+        expected = Table.new [c_number, c_party, c_name, c_from, c_to]
         table = (enso_project.data / "prime_ministers.csv").read
-        Test.specify "should be able to read in a table with dates" <|
-            table.column_count.should_equal 5
-            table.row_count.should_equal 7
-            table.info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
-            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Char, Value_Type.Char, Value_Type.Date, Value_Type.Date]
+        [c_number, c_party, c_name, c_from, c_to, expected, table]
 
-        Test.specify "should be able to treat a single value as a Date" <|
-            from_column = table.at 'From'
+
+add_specs suite_builder =
+    data = Data.setup
+
+    suite_builder.group "File.read (Delimited) should work with Dates" group_builder->
+        group_builder.specify "should be able to read in a table with dates" <|
+            data.table.column_count.should_equal 5
+            data.table.row_count.should_equal 7
+            data.table.info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
+            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Char, Value_Type.Char, Value_Type.Date, Value_Type.Date]
+
+        group_builder.specify "should be able to treat a single value as a Date" <|
+            from_column = data.table.at 'From'
             from_column.at 6 . year . should_equal 2019
             from_column.at 6 . should_equal (Date.new 2019 7 24)
 
-        Test.specify "should be able to compare columns and table" <|
-            table.at 'Number' . should_equal (Column.from_vector c_number.first c_number.second)
-            table.at 'Party' . should_equal (Column.from_vector c_party.first c_party.second)
-            table.at 'Title' . should_equal (Column.from_vector c_name.first c_name.second)
-            table.at 'From' . should_equal (Column.from_vector c_from.first c_from.second)
-            table.at 'To' . should_equal (Column.from_vector c_to.first c_to.second)
-            table.should_equal expected
+        group_builder.specify "should be able to compare columns and data.table" <|
+            data.table.at 'Number' . should_equal (Column.from_vector data.c_number.first data.c_number.second)
+            data.table.at 'Party' . should_equal (Column.from_vector data.c_party.first data.c_party.second)
+            data.table.at 'Title' . should_equal (Column.from_vector data.c_name.first data.c_name.second)
+            data.table.at 'From' . should_equal (Column.from_vector data.c_from.first data.c_from.second)
+            data.table.at 'To' . should_equal (Column.from_vector data.c_to.first data.c_to.second)
+            data.table.should_equal data.expected
 
-    Test.group "Should be able to serialise a table with Dates to Text" <|
-        Test.specify "should serialise back to input" <|
+    suite_builder.group "Should be able to serialise a table with Dates to Text" group_builder->
+        group_builder.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "prime_ministers.csv").read_text
-            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from data.expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-        Test.specify "should serialise dates with format" <|
-            test_table = Table.new [c_from]
+        group_builder.specify "should serialise dates with format" <|
+            test_table = Table.new [data.c_from]
             expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n'
             data_formatter = Data_Formatter.Value.with_datetime_formats date_formats=["dd.MM.yyyy"]
             delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

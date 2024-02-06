@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Test import all
+from Standard.Test_New import all
 
 fib n b=1 = if n <= 1 then b else
     a = fib n-1
@@ -12,11 +12,11 @@ fib2 n f=1 s=1 =
 
     acc f s 1
 
-spec =
-    Test.group "Instrument fibonacci" <|
+add_specs suite_builder =
+    suite_builder.group "Instrument fibonacci" group_builder->
         a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
 
-        Test.specify "collect and filter on return updates" <|
+        group_builder.specify "collect and filter on return updates" <|
             b = Vector.new_builder
 
             collect uuid:Text result =
@@ -45,7 +45,7 @@ spec =
             # no more instrumenting after finalize
             b.to_vector.length . should_equal 1
 
-        Test.specify "access local variables " <|
+        group_builder.specify "access local variables " <|
             b = Vector.new_builder
 
             collect uuid:Text ~result =
@@ -77,7 +77,7 @@ spec =
             # no more instrumenting after finalize
             b.to_vector.length . should_equal 3
 
-        Test.specify "replay with caches and specify different result" <|
+        group_builder.specify "replay with caches and specify different result" <|
             replay uuid:Text = case uuid of
                 "00000000-ffff-bbbb-0000-000000000000" -> 42
                 _ -> Nothing
@@ -93,13 +93,13 @@ spec =
             result = fib 10
             result . should_equal 89
 
-    Test.group "Instrument @Tail_Call fibonacci" <|
-        Test.specify "check fib & fib2 are the same" <|
+    suite_builder.group "Instrument @Tail_Call fibonacci" group_builder->
+        group_builder.specify "check fib & fib2 are the same" <|
             r1 = -10.up_to 10 . map fib
             r2 = -10.up_to 10 . map fib2
             r1 . should_equal r2
 
-        Test.specify "call and collect on return updates" <|
+        group_builder.specify "call and collect on return updates" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
             b = Vector.new_builder
 
@@ -136,7 +136,7 @@ spec =
             # no more instrumenting after finalize
             b.to_vector.length . should_equal 10
 
-        Test.specify "* instead of + on return updates" <|
+        group_builder.specify "* instead of + on return updates" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
 
             call_fn uuid:Text fn:Function (args : Vector Any) =
@@ -162,7 +162,7 @@ spec =
             result3 = fib2 10
             result3 . should_equal 89
 
-        Test.specify "Caching in on_enter prevents on_call" <|
+        group_builder.specify "Caching in on_enter prevents on_call" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
 
             ninety uuid:Text =
@@ -188,7 +188,7 @@ spec =
             result3 . should_equal 89
 
 
-        Test.specify "Access (even default) arguments of calls" <|
+        group_builder.specify "Access (even default) arguments of calls" <|
             b = Vector.new_builder
 
             call_fn uuid:Text fn:Function args:Any =
@@ -225,7 +225,7 @@ spec =
             # no change to the value
             b.to_vector.to_text . should_equal "[8]"
 
-        Test.specify "GC disables Instrumentor" <|
+        group_builder.specify "GC disables Instrumentor" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
 
             enable_instrumentor value:Integer =
@@ -254,9 +254,13 @@ spec =
             result3 = fib2 10
             result3 . should_equal 89
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
 
 
 
 #### METADATA ####
-[[{"index":{"value":131},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":73},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":226},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":119},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
+[[{"index":{"value":135},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":77},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":230},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":123},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]

@@ -2,11 +2,11 @@ from Standard.Base import all
 
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Refs" <|
-    Test.specify "should be able to store and retrieve value in references" <|
+
+add_specs suite_builder = suite_builder.group "Refs" group_builder->
+    group_builder.specify "should be able to store and retrieve value in references" <|
         r = Ref.new 'foo'
         r.get . should_equal 'foo'
         r.put 'bar'
@@ -18,7 +18,11 @@ spec = Test.group "Refs" <|
         vec.at 0 . put 123
         vec.at 1 . get . should_equal 123
 
-    Test.specify "Example" <|
+    group_builder.specify "Example" <|
         (Ref.new 10) . modify (_+1) . should_equal 10
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

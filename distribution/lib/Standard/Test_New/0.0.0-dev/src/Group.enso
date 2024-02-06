@@ -1,0 +1,50 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+import project.Spec.Spec
+polyglot java import java.lang.StringBuilder
+
+type Group_Builder
+    ## PRIVATE
+
+       Arguments:
+       - teardown_ref: A reference to a teardown method.
+    Impl (builder = Vector.new_builder) (teardown_ref = Ref.new (_ -> Nothing))
+
+    ## Specifies a single test.
+
+       Arguments:
+       - name: The name of the test spec. Should be unique within the group.
+       - code: A thunk that takes no arguments.
+       - pending: Contains a reason for why the test should be ignored. If Nothing, the test
+                  is not ignored.
+    specify self (name : Text) (~code : Any) (pending : (Text | Nothing) = Nothing) =
+        case pending of
+            Nothing ->
+                self.builder.append <| Spec.Impl name (_ -> code) pending
+            pend_reason : Text ->
+                self.builder.append <| Spec.Impl name (_ -> Nothing) pend_reason
+
+
+    ## Provide a teardown of a group - a method that will be called once all the tests from the
+       group are finished.
+
+       Arguments:
+       - code: A function that does the teardown of a group. This function does not take any arguments,
+               and its return value is ignored.
+    teardown self (~code : Any) =
+        self.teardown_ref.put (_ -> code)
+
+
+type Group
+    Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (pending : (Text | Nothing) = Nothing)
+
+    to_text self =
+        sb = StringBuilder.new
+        sb.append ("Group '" + self.name + "' specs=[")
+        self.specs.each spec->
+            sb.append (spec.to_text + ", ")
+        sb.append "]"
+        sb.toString
+

@@ -9,7 +9,7 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 const conf = [
   {
-    ignores: ['rust-ffi/pkg', 'dist', 'src/generated', 'templates'],
+    ignores: ['rust-ffi/pkg', 'rust-ffi/node-pkg', 'dist', 'src/generated', 'templates'],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
   eslintJs.configs.recommended,

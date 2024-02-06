@@ -27,14 +27,14 @@ class AttachVisualizationCmd(
     ctx.executionService.getLogger.log(
       Level.FINE,
       "Attach visualization cmd for request id [{0}] and visualization id [{1}]",
-      Array(maybeRequestId, request.visualizationId)
+      Array[Object](maybeRequestId.toString, request.visualizationId)
     )
     ctx.endpoint.sendToClient(
       Api.Response(maybeRequestId, Api.VisualizationAttached())
     )
     val maybeFutureExecutable =
       ctx.jobProcessor.run(
-        new UpsertVisualizationJob(
+        upsertVisualization(
           maybeRequestId,
           request.visualizationId,
           request.expressionId,
@@ -46,6 +46,20 @@ class AttachVisualizationCmd(
       case None             => Future.successful(())
       case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
     }
+  }
+
+  def upsertVisualization(
+    maybeRequestId: Option[Api.RequestId],
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
+    config: Api.VisualizationConfiguration
+  ): UpsertVisualizationJob = {
+    new UpsertVisualizationJob(
+      maybeRequestId,
+      visualizationId,
+      expressionId,
+      config
+    )
   }
 
   override def toString: String = {

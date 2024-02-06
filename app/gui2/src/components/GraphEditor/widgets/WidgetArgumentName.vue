@@ -15,7 +15,7 @@ const showArgumentValue = computed(() => {
     !WidgetInput.isAst(props.input) ||
     portInfo == null ||
     !portInfo.connected ||
-    (portInfo.portId as string) !== (props.input.value.exprId as string)
+    (portInfo.portId as string) !== (props.input.value.id as string)
   )
 })
 
@@ -32,7 +32,7 @@ function hasKnownArgumentName(input: WidgetInput): input is WidgetInput & {
 }
 
 export const widgetDefinition = defineWidget(hasKnownArgumentName, {
-  priority: 1000,
+  priority: 100,
   score: (props) => {
     const isPlaceholder = !(props.input.value instanceof Ast.Ast)
     const isTopArg =

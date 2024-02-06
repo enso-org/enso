@@ -485,6 +485,26 @@ public final class EnsoContext {
   }
 
   /**
+   * Returns true if the output is a terminal that supports ANSI colors. {@see
+   * https://github.com/termstandard/colors/} {@see https://no-color.org/}
+   */
+  public boolean isColorTerminalOutput() {
+    var envVars = environment.getEnvironment();
+    if (envVars.get("NO_COLOR") != null) {
+      return false;
+    }
+    if (envVars.get("COLORTERM") != null) {
+      return true;
+    }
+    if (envVars.get("TERM") != null) {
+      var termEnv = envVars.get("TERM").toLowerCase();
+      return Arrays.stream(termEnv.split("-"))
+          .anyMatch(str -> str.equals("color") || str.equals("256color"));
+    }
+    return false;
+  }
+
+  /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
@@ -522,10 +542,15 @@ public final class EnsoContext {
 
   private Object lookupHostSymbol(String pkgName, String curClassName)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    if (findGuestJava() == null) {
-      return environment.asHostSymbol(hostClassLoader.loadClass(pkgName + "." + curClassName));
-    } else {
-      return InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
+    var fqn = pkgName + "." + curClassName;
+    try {
+      if (findGuestJava() == null) {
+        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
+      } else {
+        return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
+      }
+    } catch (Error e) {
+      throw new ClassNotFoundException("Error loading " + fqn, e);
     }
   }
 
@@ -663,6 +688,15 @@ public final class EnsoContext {
    */
   public boolean isInterpreterSequentialCommandExection() {
     return getOption(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY);
+  }
+
+  /**
+   * Checks value of {@link RuntimeOptions#INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY}.
+   *
+   * @return the value of the option
+   */
+  public boolean isRandomDelayedCommandExecution() {
+    return getOption(RuntimeOptions.INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY);
   }
 
   /**

@@ -94,4 +94,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     return new EnsoHttpResponse(
         renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
+
+  public static void deleteSecretFromCache(String secretId) {
+    EnsoSecretReader.removeFromCache(secretId);
+  }
 }

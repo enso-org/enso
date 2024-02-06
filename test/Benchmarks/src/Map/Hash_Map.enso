@@ -15,7 +15,7 @@ type Data
     create n =
         create_ints =
             Vector.new n _->
-                Random.integer 0 (n.div 100)
+                Random.integer 0 ((n.div 100) - 1)
         Data.Value create_ints
 
 type Scenario

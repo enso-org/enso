@@ -4,8 +4,8 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type Proxy_Object
     Value length
@@ -13,9 +13,9 @@ type Proxy_Object
     at : Integer -> Integer
     at self ix = ix * 10
 
-spec =
-    Test.group "Array_Proxy" <|
-        Test.specify "should correctly delegate to the callback" <|
+add_specs suite_builder =
+    suite_builder.group "Array_Proxy" group_builder->
+        group_builder.specify "should correctly delegate to the callback" <|
             arr = Array_Proxy.new 3 (ix -> ix + 10)
             arr.length . should_equal 3
             arr.at 0 . should_equal 10
@@ -23,7 +23,7 @@ spec =
             arr.at 2 . should_equal 12
             arr.at 3 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should be able to be used to construct a Vector" <|
+        group_builder.specify "should be able to be used to construct a Vector" <|
             v1 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> ix + 10))
             v1.length . should_equal 3
             v1 . should_equal [10, 11, 12]
@@ -34,18 +34,18 @@ spec =
             v2.should_equal [12, 11, 10]
             v2.sort . should_equal [10, 11, 12]
 
-        Test.specify "should be able to construct a Vector from a proxy object" <|
+        group_builder.specify "should be able to construct a Vector from a proxy object" <|
             v1 = Vector.from_polyglot_array (Array_Proxy.from_proxy_object [4, 3, 2])
             v1.should_equal [4, 3, 2]
 
             v2 = Vector.from_polyglot_array (Array_Proxy.from_proxy_object (Proxy_Object.Value 5))
             v2.should_equal [0, 10, 20, 30, 40]
 
-        Test.specify "should check validity at construction" <|
+        group_builder.specify "should check validity at construction" <|
             Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error
             Test.expect_panic_with (Array_Proxy.new -1 (x->x)) Illegal_Argument
 
-        Test.specify "should pretend to just be an Array" <|
+        group_builder.specify "should pretend to just be an Array" <|
             proxy = Array_Proxy.new 3 (ix -> ix + 10)
             ok_match = case proxy of
                 _ : Vector -> "Vector"
@@ -55,4 +55,8 @@ spec =
             Meta.get_qualified_type_name proxy . should_equal "Standard.Base.Data.Array.Array"
             Meta.get_simple_type_name proxy . should_equal "Array"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

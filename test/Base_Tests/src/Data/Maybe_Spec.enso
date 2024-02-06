@@ -1,21 +1,25 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Maybe" <|
-    Test.specify "should have a None variant" <|
+
+add_specs suite_builder = suite_builder.group "Maybe" group_builder->
+    group_builder.specify "should have a None variant" <|
         Maybe.None . should_equal Maybe.None
-    Test.specify "should have a Some variant" <|
+    group_builder.specify "should have a Some variant" <|
         (Maybe.Some 2).value . should_equal 2
-    Test.specify "should provide the `maybe` function" <|
+    group_builder.specify "should provide the `maybe` function" <|
         Maybe.None.maybe 2 x->x . should_equal 2
         (Maybe.Some 7).maybe 2 (*2) . should_equal 14
-    Test.specify "should provide `is_some`" <|
+    group_builder.specify "should provide `is_some`" <|
         Maybe.None.is_some . should_be_false
         Maybe.Some 2 . is_some . should_be_true
-    Test.specify "should provide `is_none`" <|
+    group_builder.specify "should provide `is_none`" <|
         Maybe.None.is_none . should_be_true
         Maybe.Some 2 . is_none . should_be_false
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

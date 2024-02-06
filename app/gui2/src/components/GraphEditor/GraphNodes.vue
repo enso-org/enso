@@ -5,11 +5,11 @@ import { useDragging } from '@/components/GraphEditor/dragging'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
+import type { AstId } from '@/util/ast/abstract.ts'
 import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
-import type { ExprId } from 'shared/yjsModel'
 import { computed, toRaw } from 'vue'
 
 const projectStore = useProjectStore()
@@ -19,16 +19,16 @@ const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
-  nodeOutputPortDoubleClick: [portId: ExprId]
-  nodeDoubleClick: [nodeId: ExprId]
+  nodeOutputPortDoubleClick: [portId: AstId]
+  nodeDoubleClick: [nodeId: NodeId]
 }>()
 
-function nodeIsDragged(movedId: ExprId, offset: Vec2) {
+function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
   dragging.startOrUpdate(movedId, scaledOffset)
 }
 
-function hoverNode(id: ExprId | undefined) {
+function hoverNode(id: NodeId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
 

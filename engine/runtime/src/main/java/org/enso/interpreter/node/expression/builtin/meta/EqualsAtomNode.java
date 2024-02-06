@@ -95,7 +95,25 @@ public abstract class EqualsAtomNode extends Node {
     var ctx = EnsoContext.get(this);
     var args = new Object[] {cachedComparator, self, other};
     var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
+    assert orderingOrNull(this, ctx, result, compareFn);
     return ctx.getBuiltins().ordering().newEqual() == result;
+  }
+
+  @TruffleBoundary
+  private static boolean orderingOrNull(Node where, EnsoContext ctx, Object obj, Function fn) {
+    var type = TypeOfNode.getUncached().execute(obj);
+    if (type == ctx.getBuiltins().ordering().getType() || type == ctx.getBuiltins().nothing()) {
+      return true;
+    } else {
+      var msg =
+          "Expecting Ordering or Nothing, but got: "
+              + obj
+              + " with type "
+              + type
+              + " calling "
+              + fn;
+      throw ctx.raiseAssertionPanic(where, msg, null);
+    }
   }
 
   @CompilerDirectives.TruffleBoundary

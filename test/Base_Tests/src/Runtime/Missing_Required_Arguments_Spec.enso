@@ -4,8 +4,8 @@ import Standard.Base.Errors.Common.Not_Invokable
 
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 my_function (xyz : Integer = Missing_Required_Argument.ensure_present "xyz") (y : Integer = 100) =
     xyz + y
@@ -19,8 +19,8 @@ type Foo
     member self (txt : Text = Missing_Required_Argument.ensure_present "txt") =
         "Foo(" + self.x.to_text + ", " + self.y.to_text + "): " + txt
 
-spec = Test.group "Missing_Required_Argument" <|
-    Test.specify "should do nothing if the argument is provided" <|
+add_specs suite_builder = suite_builder.group "Missing_Required_Argument" group_builder->
+    group_builder.specify "should do nothing if the argument is provided" <|
         r1 = my_function 23
         r1.should_equal 123
 
@@ -37,7 +37,7 @@ spec = Test.group "Missing_Required_Argument" <|
         r5 = Foo.Ctor 44 . member "Hello"
         r5 . should_equal "Foo(44, 100): Hello"
 
-    Test.specify "should raise an error if a required argument is not specified" <|
+    group_builder.specify "should raise an error if a required argument is not specified" <|
         r1 = my_function
         r1.should_fail_with Missing_Required_Argument
         r1.catch.argument_name . should_equal "xyz"
@@ -58,7 +58,7 @@ spec = Test.group "Missing_Required_Argument" <|
         r4.catch.function_name . should_equal "Foo.member"
         r4.catch.to_display_text . should_equal "Missing required argument `txt` in function `Foo.member`."
 
-    Test.specify "but will still allow suspending the argument explicitly" <|
+    group_builder.specify "but will still allow suspending the argument explicitly" <|
         f1 = my_function _
         f1.should_be_a Function
 
@@ -84,4 +84,8 @@ spec = Test.group "Missing_Required_Argument" <|
         mf4.should_be_a Function
         (mf4 "Hello") . should_equal "Foo(44, 100): Hello"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

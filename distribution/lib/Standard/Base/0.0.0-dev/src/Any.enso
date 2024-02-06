@@ -309,7 +309,8 @@ type Any
     if_nothing self ~other =
         const self other
 
-    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+    ## GROUP Logical
+       If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 
        > Example

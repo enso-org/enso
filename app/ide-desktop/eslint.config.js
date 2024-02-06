@@ -30,7 +30,7 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|validator.+'
+    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
@@ -456,7 +456,7 @@ export default [
                 'error',
                 ...RESTRICTED_SYNTAXES,
                 {
-                    selector: '[declare=true]',
+                    selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
                 },
                 {
@@ -492,22 +492,18 @@ export default [
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugState',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugEffect',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugMemo',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {
-                    object: 'hooks',
                     property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
@@ -516,12 +512,12 @@ export default [
     },
     {
         files: [
-            'lib/dashboard/test*/**/*.ts',
-            'lib/dashboard/test*/**/*.mts',
-            'lib/dashboard/test*/**/*.cts',
-            'lib/dashboard/test*/**/*.tsx',
-            'lib/dashboard/test*/**/*.mtsx',
-            'lib/dashboard/test*/**/*.ctsx',
+            'lib/dashboard/e2e/**/*.ts',
+            'lib/dashboard/e2e/**/*.mts',
+            'lib/dashboard/e2e/**/*.cts',
+            'lib/dashboard/e2e/**/*.tsx',
+            'lib/dashboard/e2e/**/*.mtsx',
+            'lib/dashboard/e2e/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [

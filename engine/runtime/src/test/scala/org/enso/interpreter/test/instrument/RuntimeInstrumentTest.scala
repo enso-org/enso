@@ -259,11 +259,11 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val mainBody    = metadata.addItem(37, 52)
-    val xExpr       = metadata.addItem(46, 2)
-    val yExpr       = metadata.addItem(57, 5)
-    val zExpr       = metadata.addItem(71, 1)
-    val mainResExpr = metadata.addItem(77, 12)
+    val mainBody    = metadata.addItem(37, 52, "aaaa")
+    val xExpr       = metadata.addItem(46, 2, "bbbb")
+    val yExpr       = metadata.addItem(57, 5, "cccc")
+    val zExpr       = metadata.addItem(71, 1, "dddd")
+    val mainResExpr = metadata.addItem(77, 12, "eeee")
 
     val code =
       """from Standard.Base import all
@@ -276,6 +276,9 @@ class RuntimeInstrumentTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xExpr, code, "42")
+    metadata.assertInCode(mainResExpr, code, "IO.println z")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -310,7 +313,18 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        yExpr,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
@@ -384,11 +398,11 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata     = new Metadata
-    val mainBody     = metadata.addItem(37, 42)
-    val xExpr        = metadata.addItem(46, 2)
-    val yExpr        = metadata.addItem(57, 5)
-    val mainResExpr  = metadata.addItem(67, 12)
-    val mainRes1Expr = metadata.addItem(78, 1)
+    val mainBody     = metadata.addItem(37, 42, "aaaa")
+    val xExpr        = metadata.addItem(46, 2, "bbbb")
+    val yExpr        = metadata.addItem(57, 5, "cccc")
+    val mainResExpr  = metadata.addItem(67, 12, "dddd")
+    val mainRes1Expr = metadata.addItem(78, 1, "eeee")
 
     val code =
       """from Standard.Base import all
@@ -400,6 +414,9 @@ class RuntimeInstrumentTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xExpr, code, "42")
+    metadata.assertInCode(mainResExpr, code, "IO.println y")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -434,7 +451,18 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        yExpr,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainRes1Expr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
@@ -448,19 +476,22 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val mainBody = metadata.addItem(6, 28)
-    val fExpr    = metadata.addItem(15, 10)
+    val mainBody = metadata.addItem(40, 28, "aaaa")
+    val fExpr    = metadata.addItem(49, 10, "bbbb")
     // f body
-    metadata.addItem(20, 5)
-    val mainResExpr = metadata.addItem(30, 4)
+    metadata.addItem(54, 5, "cccc")
+    val mainResExpr = metadata.addItem(64, 4, "dddd")
 
     val code =
-      """main =
+      """import Standard.Base.Data.Numbers
+        |main =
         |    f = x -> x + 1
         |    f 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(mainResExpr, code, "f 42")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -495,8 +526,8 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -562,13 +593,13 @@ class RuntimeInstrumentTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata   = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
     // f expression
-    metadata.addItem(7, 5)
-    val xExpr    = metadata.addItem(29, 3)
-    val mainRes  = metadata.addItem(37, 1)
-    val mainExpr = metadata.addItem(20, 18)
+    metadata.addItem(7, 5, "ffff")
+    val xExpr    = metadata.addItem(29, 3, "aaaa")
+    val mainRes  = metadata.addItem(37, 1, "cccc")
+    val mainExpr = metadata.addItem(20, 18, "dddd")
 
     val code =
       """
@@ -580,6 +611,9 @@ class RuntimeInstrumentTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xExpr, code, "f 1")
+    metadata.assertInCode(mainRes, code, "x")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -617,13 +651,13 @@ class RuntimeInstrumentTest
         .update(
           contextId,
           xExpr,
-          ConstantsGen.INTEGER_BUILTIN,
+          ConstantsGen.INTEGER,
           Api.MethodCall(
             Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
           )
         ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }

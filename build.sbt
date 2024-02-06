@@ -1105,6 +1105,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
@@ -1618,6 +1619,7 @@ lazy val runtime = (project in file("engine/runtime"))
     libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
+      "com.lihaoyi"         %% "fansi"                   % fansiVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
@@ -1707,7 +1709,12 @@ lazy val runtime = (project in file("engine/runtime"))
         (LocalProject(
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
-        (LocalProject("refactoring-utils") / Compile / productDirectories).value
+        (LocalProject(
+          "refactoring-utils"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Test / productDirectories).value
       // Patch test-classes into the runtime module. This is standard way to deal with the
       // split package problem in unit tests. For example, Maven's surefire plugin does this.
       val testClassesDir = (Test / productDirectories).value.head
@@ -1727,7 +1734,8 @@ lazy val runtime = (project in file("engine/runtime"))
         runtimeModName -> Seq(
           "ALL-UNNAMED",
           testInstrumentsModName,
-          "truffle.tck.tests"
+          "truffle.tck.tests",
+          "org.openide.util.lookup.RELEASE180"
         ),
         testInstrumentsModName -> Seq(runtimeModName)
       )
@@ -1740,9 +1748,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
       "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
     ),
-    Test / compile := (Test / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value
+    Test / compile := {
+      (LocalProject("runtime-instrument-common") / Test / compile).value
+      (Test / compile).value
+    }
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1863,8 +1872,7 @@ lazy val `runtime-compiler` =
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-        "com.lihaoyi"     %% "fansi"                   % fansiVersion
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
     .dependsOn(`runtime-parser`)
@@ -1891,13 +1899,18 @@ lazy val `runtime-instrument-common` =
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
     .dependsOn(`refactoring-utils`)
     .dependsOn(
       LocalProject(
         "runtime"
-      ) % "compile->compile;test->test;runtime->runtime;bench->bench"
+      ) % "compile->compile;runtime->runtime;bench->bench"
     )
 
 lazy val `runtime-instrument-id-execution` =
@@ -1926,7 +1939,7 @@ lazy val `runtime-instrument-runtime-server` =
       instrumentationSettings
     )
     .dependsOn(LocalProject("runtime"))
-    .dependsOn(`runtime-instrument-common`)
+    .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
 
 /** A "meta" project that exists solely to provide logic for assembling the `runtime.jar` fat Jar.
   * We do not want to put this task into any other existing project, as it internally copies some
@@ -2005,8 +2018,10 @@ lazy val `runtime-fat-jar` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
-        case PathList(xs @ _*) if xs.last.contains("module-info") =>
-          JPMSUtils.removeAllModuleInfoExcept("runtime")
+        case PathList("module-info.class") =>
+          MergeStrategy.preferProject
+        case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
+          MergeStrategy.discard
         case _ => MergeStrategy.first
       }
     )
@@ -2585,8 +2600,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
