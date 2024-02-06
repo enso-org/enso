@@ -109,9 +109,6 @@ case object MethodDefinitions extends IRPass {
               None
             )
 
-            // Technically we could use SelfType here, but it is not being resolved, so we just use a simple Name of the type, knowing that in this context it should point to that type.
-            val selfType = Name.Literal(tp.name, isMethod = false, None)
-
             // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
             // This is the argument that will hold the actual instance of the object we are calling on, e.g. `My_Type.method instance`.
             // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
@@ -120,7 +117,7 @@ case object MethodDefinitions extends IRPass {
                 // This is the synthetic Self argument that gets the static module
                 List(syntheticModuleSelfArg),
                 // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body, selfType),
+                addTypeAscriptionToSelfArgument(dup.body, tp.name),
                 None
               )
             )
@@ -137,7 +134,7 @@ case object MethodDefinitions extends IRPass {
 
   private def addTypeAscriptionToSelfArgument(
     methodBody: Expression,
-    typ: Expression
+    typeName: String
   ): Expression = methodBody match {
     case lambda: Function.Lambda =>
       val newArguments = lambda.arguments match {
@@ -150,7 +147,8 @@ case object MethodDefinitions extends IRPass {
               _,
               _
             )) :: rest =>
-          selfArg.copy(ascribedType = Some(typ)) :: rest
+          val selfType = Name.Literal(typeName, isMethod = false, location = selfArg.location)
+          selfArg.copy(ascribedType = Some(selfType)) :: rest
         case other :: _ =>
           throw new CompilerError(
             s"MethodDefinitions pass: expected the first argument to be `self`, but got $other"
