@@ -1,15 +1,18 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.test.TestBase;
+import java.util.logging.Level;
 import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -29,7 +32,7 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 @Measurement(iterations = 3, time = 3)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class WarningBenchmarks extends TestBase {
+public class WarningBenchmarks {
   private static final int INPUT_VEC_SIZE = 10_000;
   private static final int INPUT_DIFF_VEC_SIZE = 10_000;
   private Context ctx;
@@ -68,7 +71,17 @@ public class WarningBenchmarks extends TestBase {
 
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
-    ctx = createDefaultContext();
+    this.ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
     var random = new Random(42);
 
     benchmarkName = SrcUtil.findName(params);

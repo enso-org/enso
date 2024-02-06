@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -34,7 +33,7 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 @Measurement(iterations = 3, time = 3)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class IfVsCaseBenchmarks extends TestBase {
+public class IfVsCaseBenchmarks {
   private static final int INPUT_VEC_SIZE = 100_000;
   private Context ctx;
   private Value ifBench3;

@@ -1,10 +1,10 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Objects;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
@@ -28,7 +28,7 @@ final class SrcUtil {
   static Source read(String benchmarkName) throws IOException {
     String resource = benchmarkName + ".enso";
     var url = SrcUtil.class.getResource(resource);
-    assertNotNull("Searching for " + resource, url);
+    Objects.requireNonNull(url, "Searching for " + resource);
     return Source.newBuilder("enso", url).name(resource).build();
   }
 }

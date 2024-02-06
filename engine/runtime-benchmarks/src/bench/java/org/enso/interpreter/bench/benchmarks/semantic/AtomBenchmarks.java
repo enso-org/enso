@@ -1,77 +1,302 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.bench.fixtures.semantic.AtomFixtures;
-import org.enso.interpreter.test.DefaultInterpreterRunner;
+import java.util.logging.Level;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.BenchmarkParams;
+import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
 @Warmup(iterations = 5)
 @Measurement(iterations = 5)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
+@State(Scope.Benchmark)
 public class AtomBenchmarks {
-  private static AtomFixtures fixtures = new AtomFixtures();
 
-  @Benchmark
-  public void benchGenerateList() {
-    DefaultInterpreterRunner.MainMethod main = fixtures.generateList();
-    main.mainFunction().value().execute(fixtures.million());
+  private static final Long million = 1_000_000L;
+  private static final String MILLION_ELEMENT_LIST = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main =
+          generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+          res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
+          res
+      """.replace("$million", million.toString());
+
+  private static final String GENERATE_LIST_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = length ->
+          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+
+          res = generator List.Nil length
+          res
+      """;
+  private static final String GENERATE_LIST_QUALIFIED_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = length ->
+          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+
+          res = generator List.Nil length
+          res
+      """;
+  private static final String REVERSE_LIST_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = list ->
+          reverser = acc -> list -> case list of
+              List.Cons h t -> @Tail_Call reverser (List.Cons h acc) t
+              List.Nil -> acc
+
+         res = reverser List.Nil list
+         res
+      """;
+  private static final String REVERSE_LIST_METHODS_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      List.rev self acc = case self of
+          List.Cons h t -> @Tail_Call t.rev (List.Cons h acc)
+          _ -> acc
+
+      main = list ->
+          res = list.rev List.Nil
+          res
+      """;
+  private static final String SUM_LIST_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = list ->
+          summator = acc -> list -> case list of
+              List.Cons h t -> @Tail_Call summator acc+h t
+              List.Nil -> acc
+
+         res = summator 0 list
+         res
+      """;
+  public static final String SUM_LIST_LEFT_FOLD_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = list ->
+          fold = f -> acc -> list -> case list of
+              List.Cons h t -> @Tail_Call fold f (f acc h) t
+              _ -> acc
+
+          res = fold (x -> y -> x + y) 0 list
+          res
+      """;
+  public static final String SUM_LIST_FALLBACK_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      main = list ->
+          summator = acc -> list -> case list of
+              List.Cons h t -> @Tail_Call summator acc+h t
+              _ -> acc
+
+          res = summator 0 list
+          res
+      """;
+  public static final String SUM_LIST_METHODS_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      List.sum self acc = case self of
+          List.Cons h t -> @Tail_Call t.sum h+acc
+          _ -> acc
+
+      main = list ->
+          res = list.sum 0
+          res
+      """;
+  public static final String MAP_REVERSE_LIST_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      List.mapReverse self f acc = case self of
+          List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
+          _ -> acc
+
+      main = list ->
+          res = list.mapReverse (x -> x + 1) List.Nil
+          res
+      """;
+  public static final String MAP_REVERSE_LIST_CURRY_CODE = """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+
+      List.mapReverse self f acc = case self of
+          List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
+          _ -> acc
+
+      main = list ->
+          adder = x -> y -> x + y
+          res = list.mapReverse (adder 1) List.Nil
+          res
+      """;
+
+  private Context context;
+  private Value millionElementsList;
+  private Value generateList;
+  private Value generateListQualified;
+  private Value reverseList;
+  private Value reverseListMethods;
+  private Value sumList;
+  private Value sumListLeftFold;
+  private Value sumListFallback;
+  private Value sumListMethods;
+  private Value mapReverseList;
+  private Value mapReverseListCurry;
+
+  @Setup
+  public void initializeBenchmarks(BenchmarkParams params) {
+    this.context =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
+
+    this.millionElementsList = getMainMethod(MILLION_ELEMENT_LIST);
+    this.generateList = getMainMethod(GENERATE_LIST_CODE);
+    this.generateListQualified = getMainMethod(GENERATE_LIST_QUALIFIED_CODE);
+    this.reverseList = getMainMethod(REVERSE_LIST_CODE);
+    this.reverseListMethods = getMainMethod(REVERSE_LIST_METHODS_CODE);
+    this.sumList = getMainMethod(SUM_LIST_CODE);
+    this.sumListLeftFold = getMainMethod(SUM_LIST_LEFT_FOLD_CODE);
+    this.sumListFallback = getMainMethod(SUM_LIST_FALLBACK_CODE);
+    this.sumListMethods = getMainMethod(SUM_LIST_METHODS_CODE);
+    this.mapReverseList = getMainMethod(MAP_REVERSE_LIST_CODE);
+    this.mapReverseListCurry = getMainMethod(MAP_REVERSE_LIST_CURRY_CODE);
+  }
+
+  private Value getMainMethod(String code) {
+    var src = Source.create(LanguageInfo.ID, code);
+    var module = context.eval(src);
+    var mainMethod = module.invokeMember(Module.EVAL_EXPRESSION, "main");
+    Objects.requireNonNull(mainMethod);
+    return mainMethod;
   }
 
   @Benchmark
-  public void benchGenerateListQualified() {
-    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
-    main.mainFunction().value().execute(fixtures.million());
-  }
-
-  private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
-    main.mainFunction().value().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void benchReverseList() {
-    benchOnList(fixtures.reverseList());
+  public void benchGenerateList(Blackhole bh) {
+    var res = generateList.execute(million);
+    if (!res.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(res);
   }
 
   @Benchmark
-  public void benchReverseListMethods() {
-    benchOnList(fixtures.reverseListMethods());
+  public void benchGenerateListQualified(Blackhole bh) {
+    var res = generateListQualified.execute(million);
+    if (!res.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(res);
   }
 
   @Benchmark
-  public void benchSumList() {
-    benchOnList(fixtures.sumList());
+  public void benchReverseList(Blackhole bh) {
+    var reversedList = reverseList.execute(millionElementsList);
+    if (!reversedList.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(reversedList);
   }
 
   @Benchmark
-  public void sumListLeftFold() {
-    benchOnList(fixtures.sumListLeftFold());
+  public void benchReverseListMethods(Blackhole bh) {
+    var reversedList = reverseListMethods.execute(millionElementsList);
+    if (!reversedList.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(reversedList);
   }
 
   @Benchmark
-  public void benchSumListFallback() {
-    benchOnList(fixtures.sumListFallback());
+  public void benchSumList(Blackhole bh) {
+    var res = sumList.execute(millionElementsList);
+    if (!res.fitsInLong()) {
+      throw new AssertionError("Should return a number");
+    }
+    bh.consume(res);
   }
 
   @Benchmark
-  public void benchSumListMethods() {
-    benchOnList(fixtures.sumListMethods());
+  public void sumListLeftFold(Blackhole bh) {
+    var res = sumListLeftFold.execute(millionElementsList);
+    if (!res.fitsInLong()) {
+      throw new AssertionError("Should return a number");
+    }
+    bh.consume(res);
   }
 
   @Benchmark
-  public void benchMapReverseList() {
-    benchOnList(fixtures.mapReverseList());
+  public void benchSumListFallback(Blackhole bh) {
+    var res = sumListFallback.execute(millionElementsList);
+    if (!res.fitsInLong()) {
+      throw new AssertionError("Should return a number");
+    }
+    bh.consume(res);
   }
 
   @Benchmark
-  public void benchMapReverseCurryList() {
-    benchOnList(fixtures.mapReverseListCurry());
+  public void benchSumListMethods(Blackhole bh) {
+    var res = sumListMethods.execute(millionElementsList);
+    if (!res.fitsInLong()) {
+      throw new AssertionError("Should return a number");
+    }
+    bh.consume(res);
+  }
+
+  @Benchmark
+  public void benchMapReverseList(Blackhole bh) {
+    var res = mapReverseList.execute(millionElementsList);
+    if (!res.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(res);
+  }
+
+  @Benchmark
+  public void benchMapReverseCurryList(Blackhole bh) {
+    var res = mapReverseListCurry.execute(millionElementsList);
+    if (!res.hasArrayElements()) {
+      throw new AssertionError("Should return a list");
+    }
+    bh.consume(res);
   }
 }
