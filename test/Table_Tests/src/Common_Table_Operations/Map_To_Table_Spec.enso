@@ -29,12 +29,9 @@ add_specs suite_builder setup =
         group_builder.teardown <|
             data.teardown
 
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should be able to create a literal table" <|
             vecs = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-            t = dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
             t.at 'x' . to_vector . should_equal [0, 1, 2]
             t.at 'y' . to_vector . should_equal [3, 4, 5]
             t.at 'z' . to_vector . should_equal [6, 7, 8]
