@@ -927,7 +927,7 @@ type Table
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
-    # Size in number of elements.
+    ## Size in number of elements.
     MAX_LITERAL_SIZE = 256
 
     ## PRIVATE
