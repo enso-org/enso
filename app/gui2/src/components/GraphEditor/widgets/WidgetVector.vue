@@ -54,9 +54,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
     else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
-    else if (props.input.value instanceof Ast.Ast)
-      return props.input.value.children().next().value.code === '[' ? Score.Perfect : Score.Mismatch
-    else return Score.Mismatch
+    else if (props.input.value instanceof Ast.Ast) {
+      return props.input.value.children().next().value.code() === '['
+        ? Score.Perfect
+        : Score.Mismatch
+    } else return Score.Mismatch
   },
 })
 </script>
