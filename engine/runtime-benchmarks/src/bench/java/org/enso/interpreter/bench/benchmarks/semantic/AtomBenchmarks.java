@@ -4,8 +4,8 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.enso.interpreter.bench.Utils;
 import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -33,7 +33,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Benchmark)
 public class AtomBenchmarks {
 
-  private static final Long million = 1_000_000L;
+  private static final Long MILLION = 1_000_000L;
   private static final String MILLION_ELEMENT_LIST = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
@@ -42,7 +42,7 @@ public class AtomBenchmarks {
           generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
           res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
           res
-      """.replace("$million", million.toString());
+      """.replace("$million", MILLION.toString());
 
   private static final String GENERATE_LIST_CODE = """
       import Standard.Base.Data.List.List
@@ -100,7 +100,7 @@ public class AtomBenchmarks {
          res = summator 0 list
          res
       """;
-  public static final String SUM_LIST_LEFT_FOLD_CODE = """
+  private static final String SUM_LIST_LEFT_FOLD_CODE = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -112,7 +112,7 @@ public class AtomBenchmarks {
           res = fold (x -> y -> x + y) 0 list
           res
       """;
-  public static final String SUM_LIST_FALLBACK_CODE = """
+  private static final String SUM_LIST_FALLBACK_CODE = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -124,7 +124,7 @@ public class AtomBenchmarks {
           res = summator 0 list
           res
       """;
-  public static final String SUM_LIST_METHODS_CODE = """
+  private static final String SUM_LIST_METHODS_CODE = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -136,7 +136,7 @@ public class AtomBenchmarks {
           res = list.sum 0
           res
       """;
-  public static final String MAP_REVERSE_LIST_CODE = """
+  private static final String MAP_REVERSE_LIST_CODE = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -148,7 +148,7 @@ public class AtomBenchmarks {
           res = list.mapReverse (x -> x + 1) List.Nil
           res
       """;
-  public static final String MAP_REVERSE_LIST_CURRY_CODE = """
+  private static final String MAP_REVERSE_LIST_CURRY_CODE = """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -189,60 +189,41 @@ public class AtomBenchmarks {
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
 
-    this.millionElementsList = getMainMethod(MILLION_ELEMENT_LIST);
-    this.generateList = getMainMethod(GENERATE_LIST_CODE);
-    this.generateListQualified = getMainMethod(GENERATE_LIST_QUALIFIED_CODE);
-    this.reverseList = getMainMethod(REVERSE_LIST_CODE);
-    this.reverseListMethods = getMainMethod(REVERSE_LIST_METHODS_CODE);
-    this.sumList = getMainMethod(SUM_LIST_CODE);
-    this.sumListLeftFold = getMainMethod(SUM_LIST_LEFT_FOLD_CODE);
-    this.sumListFallback = getMainMethod(SUM_LIST_FALLBACK_CODE);
-    this.sumListMethods = getMainMethod(SUM_LIST_METHODS_CODE);
-    this.mapReverseList = getMainMethod(MAP_REVERSE_LIST_CODE);
-    this.mapReverseListCurry = getMainMethod(MAP_REVERSE_LIST_CURRY_CODE);
-  }
-
-  private Value getMainMethod(String code) {
-    var src = Source.create(LanguageInfo.ID, code);
-    var module = context.eval(src);
-    var mainMethod = module.invokeMember(Module.EVAL_EXPRESSION, "main");
-    Objects.requireNonNull(mainMethod);
-    return mainMethod;
+    var millionElemListMethod = Utils.getMainMethod(context, MILLION_ELEMENT_LIST);
+    this.millionElementsList = millionElemListMethod.execute();
+    this.generateList = Utils.getMainMethod(context, GENERATE_LIST_CODE);
+    this.generateListQualified = Utils.getMainMethod(context, GENERATE_LIST_QUALIFIED_CODE);
+    this.reverseList = Utils.getMainMethod(context, REVERSE_LIST_CODE);
+    this.reverseListMethods = Utils.getMainMethod(context, REVERSE_LIST_METHODS_CODE);
+    this.sumList = Utils.getMainMethod(context, SUM_LIST_CODE);
+    this.sumListLeftFold = Utils.getMainMethod(context, SUM_LIST_LEFT_FOLD_CODE);
+    this.sumListFallback = Utils.getMainMethod(context, SUM_LIST_FALLBACK_CODE);
+    this.sumListMethods = Utils.getMainMethod(context, SUM_LIST_METHODS_CODE);
+    this.mapReverseList = Utils.getMainMethod(context, MAP_REVERSE_LIST_CODE);
+    this.mapReverseListCurry = Utils.getMainMethod(context, MAP_REVERSE_LIST_CURRY_CODE);
   }
 
   @Benchmark
   public void benchGenerateList(Blackhole bh) {
-    var res = generateList.execute(million);
-    if (!res.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
+    var res = generateList.execute(MILLION);
     bh.consume(res);
   }
 
   @Benchmark
   public void benchGenerateListQualified(Blackhole bh) {
-    var res = generateListQualified.execute(million);
-    if (!res.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
+    var res = generateListQualified.execute(MILLION);
     bh.consume(res);
   }
 
   @Benchmark
   public void benchReverseList(Blackhole bh) {
     var reversedList = reverseList.execute(millionElementsList);
-    if (!reversedList.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
     bh.consume(reversedList);
   }
 
   @Benchmark
   public void benchReverseListMethods(Blackhole bh) {
     var reversedList = reverseListMethods.execute(millionElementsList);
-    if (!reversedList.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
     bh.consume(reversedList);
   }
 
@@ -285,18 +266,12 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchMapReverseList(Blackhole bh) {
     var res = mapReverseList.execute(millionElementsList);
-    if (!res.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
     bh.consume(res);
   }
 
   @Benchmark
   public void benchMapReverseCurryList(Blackhole bh) {
     var res = mapReverseListCurry.execute(millionElementsList);
-    if (!res.hasArrayElements()) {
-      throw new AssertionError("Should return a list");
-    }
     bh.consume(res);
   }
 }

@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.enso.interpreter.bench.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
@@ -122,21 +123,13 @@ main = n ->
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
 
-    this.sumTCO = getMainMethod(SUM_TCO_CODE);
-    this.sumTCOWithEval = getMainMethod(SUM_TCO_WITH_EVAL_CODE);
-    this.sumTCOFoldLike = getMainMethod(SUM_TCO_FOLD_LIKE_CODE);
-    this.sumRecursive = getMainMethod(SUM_RECURSIVE_CODE);
-    this.oversaturatedRecursiveCall = getMainMethod(OVERSATURATED_RECURSIVE_CALL_TCO_CODE);
-    this.sumStateTCO = getMainMethod(SUM_STATE_TCO_CODE);
-    this.nestedThunkSum = getMainMethod(NESTED_THUNK_SUM_CODE);
-  }
-
-  private Value getMainMethod(String code) {
-    var src = Source.create(LanguageInfo.ID, code);
-    var module = context.eval(src);
-    var mainMethod = module.invokeMember(Module.EVAL_EXPRESSION, "main");
-    Objects.requireNonNull(mainMethod);
-    return mainMethod;
+    this.sumTCO = Utils.getMainMethod(context, SUM_TCO_CODE);
+    this.sumTCOWithEval = Utils.getMainMethod(context, SUM_TCO_WITH_EVAL_CODE);
+    this.sumTCOFoldLike = Utils.getMainMethod(context, SUM_TCO_FOLD_LIKE_CODE);
+    this.sumRecursive = Utils.getMainMethod(context, SUM_RECURSIVE_CODE);
+    this.oversaturatedRecursiveCall = Utils.getMainMethod(context, OVERSATURATED_RECURSIVE_CALL_TCO_CODE);
+    this.sumStateTCO = Utils.getMainMethod(context, SUM_STATE_TCO_CODE);
+    this.nestedThunkSum = Utils.getMainMethod(context, NESTED_THUNK_SUM_CODE);
   }
 
   private Value runOnHundredMillion(Value function) {

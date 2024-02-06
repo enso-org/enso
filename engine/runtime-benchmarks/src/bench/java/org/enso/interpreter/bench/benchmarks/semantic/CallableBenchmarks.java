@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.enso.interpreter.bench.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
@@ -92,18 +93,10 @@ main = sumTo ->
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
 
-    this.sumTCOfromCall = getMainMethod(SUM_TCO_FROM_CALL_CODE);
-    this.sumTCOmethodCall = getMainMethod(SUM_TCO_METHOD_CALL_CODE);
-    this.sumTCOmethodCallWithNamedArguments = getMainMethod(SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE);
-    this.sumTCOmethodCallWithDefaultedArguments = getMainMethod(SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE);
-  }
-
-  private Value getMainMethod(String code) {
-    var src = Source.create(LanguageInfo.ID, code);
-    var module = context.eval(src);
-    var mainMethod = module.invokeMember(Module.EVAL_EXPRESSION, "main");
-    Objects.requireNonNull(mainMethod);
-    return mainMethod;
+    this.sumTCOfromCall = Utils.getMainMethod(context, SUM_TCO_FROM_CALL_CODE);
+    this.sumTCOmethodCall = Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_CODE);
+    this.sumTCOmethodCallWithNamedArguments = Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE);
+    this.sumTCOmethodCallWithDefaultedArguments = Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE);
   }
 
   @Benchmark

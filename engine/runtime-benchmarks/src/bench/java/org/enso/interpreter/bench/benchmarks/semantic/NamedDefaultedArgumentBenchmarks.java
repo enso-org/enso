@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.enso.interpreter.bench.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
@@ -70,16 +71,8 @@ main = sumTo ->
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
 
-    this.sumTCOWithNamedArguments = getMainMethod(SUM_TCO_WITH_NAMED_ARGUMENTS_CODE);
-    this.sumTCOWithDefaultedArguments = getMainMethod(SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE);
-  }
-
-  private Value getMainMethod(String code) {
-    var src = Source.create(LanguageInfo.ID, code);
-    var module = context.eval(src);
-    var mainMethod = module.invokeMember(Module.EVAL_EXPRESSION, "main");
-    Objects.requireNonNull(mainMethod);
-    return mainMethod;
+    this.sumTCOWithNamedArguments = Utils.getMainMethod(context, SUM_TCO_WITH_NAMED_ARGUMENTS_CODE);
+    this.sumTCOWithDefaultedArguments = Utils.getMainMethod(context, SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE);
   }
 
   @Benchmark
