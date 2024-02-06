@@ -1843,12 +1843,6 @@ lazy val `runtime-benchmarks` =
       (Benchmark / javaOptions) ++= benchOnlyOptions,
       Benchmark / fork := true,
       Benchmark / parallelExecution := false,
-      // This ensures that the full class-path of runtime-fat-jar is put on
-      // class-path of the Java compiler (and thus the benchmark annotation processor).
-      (Benchmark / compile / unmanagedClasspath) ++=
-        (LocalProject(
-          "runtime-fat-jar"
-        ) / Compile / fullClasspath).value,
       bench := (Benchmark / test)
         .tag(Exclusive)
         .dependsOn(
