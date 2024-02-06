@@ -86,7 +86,7 @@ main = sumTo ->
       """
 from Standard.Base.Data.Numbers import Number
 import Standard.Base.Runtime.State
-import Standard.Base.Nothing
+import Standard.Base.Nothing.Nothing
 
 doNTimes = n -> ~block ->
     block
@@ -185,7 +185,10 @@ main = n ->
 
   @Benchmark
   public void benchNestedThunkSum(Blackhole bh) {
-    var res = runOnHundredMillion(nestedThunkSum);
+    var res = nestedThunkSum.execute(HUNDRED_MILLION);
+    if (!res.isNull()) {
+      throw new AssertionError("Should return Nothing, but got " + res);
+    }
     bh.consume(res);
   }
 }
