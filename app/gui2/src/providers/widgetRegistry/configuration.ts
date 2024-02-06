@@ -67,6 +67,7 @@ export type WidgetConfiguration =
   | FolderBrowse
   | FileBrowse
   | FunctionCall
+  | OneOfFunctionCalls
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -110,9 +111,18 @@ export interface SingleChoice {
   values: Choice[]
 }
 
+/** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
+  * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
 export interface FunctionCall {
   kind: 'FunctionCall'
   parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
+}
+
+/** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget. 
+  * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+export interface OneOfFunctionCalls {
+  kind: 'OneOfFunctionCalls'
+  possibleFunctions: Map<string, FunctionCall>
 }
 
 export const widgetConfigurationSchema: z.ZodType<
@@ -164,5 +174,12 @@ export function functionCallConfiguration(parameters: ArgumentWidgetConfiguratio
   return {
     kind: 'FunctionCall',
     parameters: new Map(parameters),
+  }
+}
+
+export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+  return {
+    kind: 'OneOfFunctionCalls',
+    possibleFunctions: new Map(config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]))
   }
 }

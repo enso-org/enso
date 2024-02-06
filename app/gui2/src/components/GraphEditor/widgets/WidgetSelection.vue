@@ -3,8 +3,8 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
-  functionCallConfiguration,
   type ArgumentWidgetConfiguration,
+  singleChoiceConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
@@ -103,11 +103,10 @@ const selectedExpression = computed(() => {
   return selectedTag.value.expression
 })
 const innerWidgetInput = computed(() => {
-  if (selectedTag.value == null) return props.input
-  const parameters = selectedTag.value.parameters
-  if (!parameters) return props.input
-  const config = functionCallConfiguration(parameters)
-  return { ...props.input, dynamicConfig: config }
+  if (props.input.dynamicConfig == null) return props.input
+  const config = props.input.dynamicConfig
+  if (config.kind !== 'Single_Choice') return props.input
+  return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
 

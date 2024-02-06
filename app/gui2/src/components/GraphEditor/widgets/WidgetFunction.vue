@@ -14,6 +14,7 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
@@ -121,7 +122,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
-  const info = graph.db.getMethodCallInfo(astId)
+  const info = methodCallInfo.value
   if (!info) return null
   const args = info.suggestion.annotations
   if (args.length === 0) return null
@@ -141,6 +142,16 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
+  if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
+    const cfg = props.input.dynamicConfig
+    const info = methodCallInfo.value
+    const name = entryQn(info?.suggestion)
+    const usedFunctionConfig = cfg.possibleFunctions.get(name)
+    if (!usedFunctionConfig) {
+      console.error(`Expecting one of ${cfg.possibleFunctions}, found ${name}.`)
+    }
+    return usedFunctionConfig
+  }
   const data = visualizationData.value
   if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
