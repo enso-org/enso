@@ -56,7 +56,7 @@ const editingEdge: Interaction = {
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
-  graph.commitDirect((edit) => {
+  graph.edit((edit) => {
     if (!graph.updatePortValue(edit, target, undefined)) {
       if (isAstId(target)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
@@ -79,7 +79,7 @@ function createEdge(source: AstId, target: PortId) {
     return console.error(`Failed to connect edge, source or target node not found.`)
   }
 
-  const edit = graph.astModule.edit()
+  const edit = graph.startEdit()
   const reorderResult = graph.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
   if (reorderResult === 'circular') {
     // Creating this edge would create a circular dependency. Prevent that and display error.
