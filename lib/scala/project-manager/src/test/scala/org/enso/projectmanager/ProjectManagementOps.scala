@@ -68,7 +68,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
       projectsDirectory
         .map(d => "projectsDirectory" -> d.toString.asJson)
         .toSeq
-    val params  = Json.obj(fields: _*)
+    val params = Json.obj(fields: _*)
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
@@ -153,7 +153,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
       projectsDirectory
         .map(d => "projectsDirectory" -> d.toString.asJson)
         .toSeq
-    val params  = Json.obj(fields: _*)
+    val params = Json.obj(fields: _*)
 
     client.send(json"""
             { "jsonrpc": "2.0",
