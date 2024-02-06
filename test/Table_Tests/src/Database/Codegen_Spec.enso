@@ -94,7 +94,7 @@ add_specs suite_builder =
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [10, 20]]
 
             t2r = data.t1.filter "A" (Filter_Condition.Between 10 20 Filter_Action.Remove)
-            t2r.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" BETWEEN ? AND ?))', [10, 20]]
+            t2r.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT CAST(COALESCE(("T1"."A" BETWEEN ? AND ?), ?) AS BOOLEAN))', [10, 20, False]]
 
         group_builder.specify "should generate an IN expression" <|
             t2 = data.t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])

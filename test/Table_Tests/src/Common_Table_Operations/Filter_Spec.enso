@@ -120,11 +120,11 @@ add_specs suite_builder setup =
         group_builder.specify "Not_Equal test cases" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
-            t3 . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
-            t3 . at "ix" . to_vector . should_equal [2, 3, 4, 5]
-            t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
-            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
-            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Expression "[Y]")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
+            t3 . at "X" . to_vector . should_equal [3, 4, 12]
+            t3 . at "ix" . to_vector . should_equal [2, 4, 5]
+            t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, 12]
+            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3, 12]
+            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Expression "[Y]")) . at "X" . to_vector . should_equal [3, 12]
 
         group_builder.specify "by text comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]], ["Y", ["a", "b", "b", "c", "c"]]]
