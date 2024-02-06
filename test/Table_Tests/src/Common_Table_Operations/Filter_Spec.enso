@@ -271,13 +271,8 @@ add_specs suite_builder setup =
 
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt")) . at "X" . to_vector . should_equal ["a", "X"]
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["a", "X"]
-            t.filter "X" (Filter_Condition.Not_In (t1.at "txt")) . at "X" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Not_In (t2.at "txt")) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
-            t.filter "X" (Filter_Condition.Not_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Not_In (t2.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
             t.filter "X" (Filter_Condition.Is_In ["ccc"]) . at "X" . to_vector . should_equal ["ccc"]
             t.filter "X" (Filter_Condition.Is_In []) . at "X" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Not_In []) . at "X" . to_vector . should_equal ["a", "b", "ccc", "X", "f", "2"]
 
             if test_selection.allows_mixed_type_comparisons then
                 mixed = t.filter "X" (Filter_Condition.Is_In (t1.at "int")) . at "X" . to_vector
@@ -288,8 +283,6 @@ add_specs suite_builder setup =
             t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) . at "ix" . to_vector . should_equal [2, 5]
             t.filter "ix" (Filter_Condition.Is_In [2, 5, 4]) . at "ix" . to_vector . should_equal [2, 5]
             t.filter "ix" (Filter_Condition.Is_In [Nothing]) . at "ix" . to_vector . should_equal []
-            t.filter "ix" (Filter_Condition.Not_In [Nothing]) . at "ix" . to_vector . should_equal []
-            t.filter "ix" (Filter_Condition.Not_In [1, 3]) . at "ix" . to_vector . should_equal [2, 5, 6]
 
             v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
@@ -309,7 +302,7 @@ add_specs suite_builder setup =
             t3.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
             t3.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
 
-        group_builder.specify "does not allow Column_Ref in Is_In/Not_In because that would be confusing" <|
+        group_builder.specify "does not allow Column_Ref in Is_In because that would be confusing" <|
             ## Is In and Not In check if a value is contained anywhere in a provided collection (e.g. column),
                NOT on a row-by-row basis like all other operations. Column_Ref is used with row-by-row ops,
                so this would only cause confusion. Very rarely someone wants to filter a column by Is_In
@@ -439,7 +432,6 @@ add_specs suite_builder setup =
                 + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
                 + [Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
                 + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
-                + [Filter_Condition.Not_In [Nothing]]
                 + [Filter_Condition.Is_In [1, Nothing, 2]]
             fcs.map fc->
                 Test.with_clue fc.to_text <|

@@ -217,7 +217,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
         vec.filter (Filter_Condition.Is_In [7, 3, 2, 2, 2]) . should_equal [2, 3]
         vec.filter (Filter_Condition.Is_In []) . should_equal []
-        vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
 
         Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) Type_Error
         vec.filter Filter_Condition.Is_True . should_equal []

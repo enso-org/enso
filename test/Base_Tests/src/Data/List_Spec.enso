@@ -36,6 +36,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
 
         l.any (Filter_Condition.Greater 1) . should_be_true
         l.any (Filter_Condition.Less 0) . should_be_false
+        l.any (Filter_Condition.Equal_Or_Greater 1 Filter_Action.Remove) . should_be_false
 
         Test.expect_panic_with (l.any "invalid arg") Type_Error
 
@@ -47,6 +48,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
 
         l.all (Filter_Condition.Greater 0) . should_be_true
         l.all (Filter_Condition.Less 3) . should_be_false
+        l.any (Filter_Condition.Less 0 Filter_Action.Remove) . should_be_true
 
         Test.expect_panic_with (l.all "invalid arg") Type_Error
 
@@ -70,6 +72,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         empty.find (==1) if_missing=Nothing . should_equal Nothing
 
         l.find (Filter_Condition.Greater 1) . should_equal 2
+        l.find (Filter_Condition.Less 2 Filter_Action.Remove) . should_equal 2
 
         Test.expect_panic_with (l.find "invalid arg") Type_Error
 
@@ -90,6 +93,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         l.index_of 2 start=-4 . should_fail_with Index_Out_Of_Bounds
 
         l.index_of (Filter_Condition.Greater 1) . should_equal 1
+        l.index_of (Filter_Condition.Less 3 Filter_Action.Remove) . should_equal 2
         l.index_of "invalid arg" . should_equal Nothing
 
     group_builder.specify "should allow finding the last index of an element in the list with `.last_index_of`" <|
@@ -110,6 +114,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
 
         ll.last_index_of (Filter_Condition.Greater 1) . should_equal 5
         ll.last_index_of (Filter_Condition.Less 3) . should_equal 4
+        ll.last_index_of (Filter_Condition.Greater 2 Filter_Action.Remove) . should_equal 4
         ll.last_index_of "invalid arg" . should_equal Nothing
 
     group_builder.specify "should allow checking if the list is empty with `.is_empty`" <|
@@ -136,7 +141,6 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         list.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal List.Nil
         list.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4].to_list
         list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
-        list.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5].to_list
 
         Test.expect_panic Type_Error (list.filter (Filter_Condition.Starts_With "a"))
         list.filter Filter_Condition.Is_True . should_equal List.Nil

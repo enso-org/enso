@@ -77,9 +77,6 @@ make_filter_column source_column filter_condition on_problems =
         Is_In values _ ->
             warn_on_nothing_in_comparison_vector filter_condition values <|
                 source_column.is_in values
-        Not_In values _ ->
-            warn_on_nothing_in_comparison_vector filter_condition values <|
-                source_column.is_in values . not
     if filter_condition.action == Filter_Action.Keep then base_column else base_column.not
 
 ## Attach a warning if the provided value is `Nothing`.

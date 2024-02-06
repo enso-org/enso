@@ -142,20 +142,6 @@ type Filter_Condition
          will likely be faster than using the vector directly.
     Is_In values:Vector|Any action:Filter_Action=Filter_Action.Keep
 
-    ## Is the value not contained in `values`?
-
-       ? Table Operations
-         It accepts a `Vector` of values. In case of Table operations, it can
-         also accept another column - then it acts as if `column.to_vector` was
-         passed - i.e. every element of the original table's column is checked
-         if it is contained in the provided column. The columns can have
-         different lengths.
-
-         Using Columns can be particularly useful for Database operations, as
-         uploading a temporary table and using its column for an `Not_In` check
-         will likely be faster than using the vector directly.
-    Not_In values:(Vector | Any) action:Filter_Action=Filter_Action.Keep
-
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
@@ -207,9 +193,6 @@ type Filter_Condition
             Is_In values _ ->
                 set = Set.from_vector values
                 set.contains
-            Not_In values _ ->
-                set = Set.from_vector values
-                elem-> set.contains elem . not
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE
@@ -244,7 +227,6 @@ type Filter_Condition
             Not_Empty _ -> "is not Empty"
             Like sql_pattern _ -> "Like " + sql_pattern.to_display_text
             Is_In values _ -> "is in " + values.to_display_text
-            Not_In values _ -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
 
     ## PRIVATE
@@ -279,7 +261,6 @@ type Filter_Condition
             options_builder.append "Contains"
             options_builder.append "Like"
         options_builder.append "Is_In"
-        options_builder.append "Not_In"
 
         options = options_builder.to_vector.map constructor_name->
             name = constructor_name.replace "_" " "

@@ -70,7 +70,6 @@ type Table_Ref
         Filter_Condition.Contains prefix case_sensitivity action -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity action
         Filter_Condition.Like pattern action -> Filter_Condition.Like (self.resolve pattern) action
         Filter_Condition.Is_In values action -> Filter_Condition.Is_In (check_is_in_values "Is_In" values) action
-        Filter_Condition.Not_In values action -> Filter_Condition.Not_In (check_is_in_values "Not_In" values) action
         _ -> condition
 
     ## PRIVATE
