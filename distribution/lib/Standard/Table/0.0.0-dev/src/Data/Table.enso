@@ -2010,7 +2010,7 @@ type Table
        > Example
          Replace values in column 'x' using a lookup table.
 
-             table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
+             table = Table.new [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
              #      | x | y | z
              #   ---+---+---+---
              #    0 | 1 | a | e
@@ -2018,7 +2018,7 @@ type Table
              #    2 | 3 | c | g
              #    3 | 4 | d | h
 
-             lookup_table = table_builder [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
+             lookup_table = Table.new [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
              #      | old_x | new_x
              #   ---+-------+-------
              #    0 | 1     | 10
