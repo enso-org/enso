@@ -1586,7 +1586,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Compile)(truffleRunOptionsSettings),
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "com.lihaoyi"         %% "fansi"                   % fansiVersion,
@@ -1785,6 +1785,10 @@ lazy val `runtime-tests` =
   .dependsOn(testkit % Test)
 
 
+/**
+ * A project that holds only benchmarks for `runtime`. Unlike `runtime-tests`, its execution requires
+ * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
+ */
 lazy val `runtime-benchmarks` =
   (project in file("engine/runtime-benchmarks"))
     .configs(Benchmark)
@@ -1792,11 +1796,19 @@ lazy val `runtime-benchmarks` =
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Benchmark)(Defaults.testSettings),
-      libraryDependencies ++= jmh ++ GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
+      libraryDependencies ++= jmh ++ jaxb ++ GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
+        "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Benchmark,
+        "org.scalactic"       %% "scalactic"               % scalacticVersion          % Benchmark,
+        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Benchmark,
         "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Benchmark,
         "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
       ),
+      Compile / logManager :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        ),
       // Explicitly provide javafmt task for the custom Benchmark configuration.
       // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
       // is not able to register this task on its own.
