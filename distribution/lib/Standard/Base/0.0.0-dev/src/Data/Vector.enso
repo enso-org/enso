@@ -619,7 +619,7 @@ type Vector a
 
             [[1, 2, 3], [4, 10], [], [0], [0]] . flatten == [1, 2, 3, 4, 10, 0, 0]
     flatten : Vector Any
-    flatten self = @Builtin_Method "Vector.flatten"
+    flatten self = Array_Like_Helpers.flatten self
 
     ## Applies a function to each element of the vector, returning the `Vector`
        of results.
@@ -778,10 +778,6 @@ type Vector a
     insert self at=self.length item=Nothing =
         Array_Like_Helpers.insert self at item
 
-    ## PRIVATE
-       TODO move to Array_Like_Helpers
-    insert_builtin vec at values = @Builtin_Method("Vector.insert_builtin")
-
     ## GROUP Selections
        Removes the item at the given index from the vector.
 
@@ -792,10 +788,6 @@ type Vector a
     remove : Integer -> Vector
     remove self at=-1 =
         Array_Like_Helpers.remove self at
-
-    ## PRIVATE
-       TODO I think this shall be moved to Array_Like_Helpers
-    remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
     ## GROUP Calculations
        ICON join
@@ -828,7 +820,7 @@ type Vector a
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
-    slice self start end = @Builtin_Method "Vector.slice"
+    slice self start end = Array_Like_Helpers.slice self start end
 
     ## ALIAS first, last, sample, slice
        GROUP Selections

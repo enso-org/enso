@@ -46,6 +46,18 @@ vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array
 vector_from_function_primitive : Integer -> (Integer -> Any) -> Vector Any
 vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
+flatten : (Vector | Array) -> Vector
+flatten array_like = @Builtin_Method "Array_Like_Helpers.flatten"
+
+insert_builtin : (Vector | Array) -> Integer -> (Vector | Array) -> Vector
+insert_builtin vector at items = @Builtin_Method "Array_Like_Helpers.insert_builtin"
+
+remove_builtin : (Vector | Array) -> Integer -> Vector
+remove_builtin vector at = @Builtin_Method "Array_Like_Helpers.remove_builtin"
+
+slice : (Vector | Array) -> Integer -> Integer -> Vector
+slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
+
 ## PRIVATE
    Construct a Vector by mapping a function over 0..length-1.
 
@@ -178,13 +190,13 @@ insert vector at item =
     if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
         if used_index == self_len then vector + [item] else
             if used_index == 0 then [item] + vector else
-                Vector.insert_builtin vector used_index [item]
+                insert_builtin vector used_index [item]
 
 remove vector at =
     self_len = vector.length
     used_index = if at < 0 then self_len + at else at
     if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
-        Vector.remove_builtin vector used_index
+        remove_builtin vector used_index
 
 index_of vector condition start =
     self_len = vector.length
@@ -208,7 +220,7 @@ all vector condition =
     vector.any (predicate >> .not) . not
 
 plus vector that:(Vector | Array) = case that of
-    _ : Vector -> Vector.insert_builtin vector vector.length that
+    _ : Vector -> insert_builtin vector vector.length that
     _ : Array -> plus vector (Vector.from_polyglot_array that)
 
 find vector condition start ~if_missing =
@@ -226,10 +238,6 @@ map_with_index vector function on_problems =
 
 flat_map vector function on_problems =
     vector.map function on_problems . flatten
-
-flatten vector =
-    # TODO move?
-    Vector.flatten vector
 
 fold vector init function =
     f = acc -> ix -> function acc (vector.at ix)
