@@ -2,8 +2,8 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import type { AstId, Owned, SyncTokenId } from '.'
 import { Token, asOwned, isTokenId, newExternalId } from '.'
-import { assert, assertDefined } from '../util/assert'
-import type { ExternalId, SourceRange } from '../yjsModel'
+import { assert } from '../util/assert'
+import type { ExternalId } from '../yjsModel'
 import type { AstFields, FixedMap, Mutable } from './tree'
 import {
   Ast,
@@ -30,7 +30,6 @@ export interface Module {
   getToken(token: SyncTokenId | undefined): Token | undefined
   getAny(node: AstId | SyncTokenId): Ast | Token
   has(id: AstId): boolean
-  getSpan(id: AstId): SourceRange | undefined
 }
 
 export interface ModuleUpdate {
@@ -130,7 +129,16 @@ export class MutableModule implements Module {
   }
 
   observe(observer: (update: ModuleUpdate) => void) {
-    this.nodes.observeDeep((events) => observer(this.observeEvents(events)))
+    const handle = (events: Y.YEvent<any>[]) => observer(this.observeEvents(events))
+    // Attach the observer first, so that if an update hook causes changes in reaction to the initial state update, we
+    // won't miss them.
+    this.nodes.observeDeep(handle)
+    observer(this.getStateAsUpdate())
+    return handle
+  }
+
+  unobserve(handle: ReturnType<typeof this.observe>) {
+    this.nodes.unobserveDeep(handle)
   }
 
   getStateAsUpdate(): ModuleUpdate {
@@ -236,10 +244,6 @@ export class MutableModule implements Module {
   }
 
   /////////////////////////////////////////////
-
-  getSpan(id: AstId) {
-    return undefined
-  }
 
   constructor(doc: Y.Doc) {
     this.nodes = doc.getMap<YNode>('nodes')
