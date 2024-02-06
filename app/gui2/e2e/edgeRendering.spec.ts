@@ -4,6 +4,7 @@ import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
 const EDGE_PARTS = 2
+// For a split edge we expect an extra element for the split rendering.
 const SPLIT_EDGE_PARTS = EDGE_PARTS + 1
 
 test('Existence of edges between nodes', async ({ page }) => {

@@ -8,6 +8,7 @@ async function initGraph(page: Page) {
   await actions.dragNodeByBinding(page, 'sum', -400, 0)
 }
 
+// For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
 const EDGE_PARTS = 2
 
 /**
