@@ -5,8 +5,8 @@ import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
-  type ArgumentWidgetConfiguration,
   singleChoiceConfiguration,
+  type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'

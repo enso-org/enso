@@ -112,14 +112,14 @@ export interface SingleChoice {
 }
 
 /** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
-  * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
 export interface FunctionCall {
   kind: 'FunctionCall'
   parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
 }
 
-/** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget. 
-  * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+/** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget.
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
 export interface OneOfFunctionCalls {
   kind: 'OneOfFunctionCalls'
   possibleFunctions: Map<string, FunctionCall>
@@ -180,6 +180,8 @@ export function functionCallConfiguration(parameters: ArgumentWidgetConfiguratio
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
   return {
     kind: 'OneOfFunctionCalls',
-    possibleFunctions: new Map(config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]))
+    possibleFunctions: new Map(
+      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+    ),
   }
 }
