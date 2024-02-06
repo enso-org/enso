@@ -221,7 +221,7 @@ type Filter_Condition
             Not_Empty _ -> "is not Empty"
             Like sql_pattern _ -> "Like " + sql_pattern.to_display_text
             Is_In values _ -> "is in " + values.to_display_text
-        "Filter Condition: " + condition
+        "Filter Condition: " + condition + (if self.action == Filter_Action.Keep then "" else " (Remove)")
 
     ## PRIVATE
        Creates a Single_Choice Widget for delimiters.
