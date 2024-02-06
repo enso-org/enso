@@ -8,11 +8,12 @@ import project.Helpers
 import project.In_Memory
 import project.IO
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         In_Memory.Main.add_specs suite_builder
         IO.Main.add_specs suite_builder
         Formatting.Main.add_specs suite_builder
         Database.Main.add_specs suite_builder
         Helpers.Main.add_specs suite_builder
-    suite.run_with_filter
+
+    suite.run_with_filter filter

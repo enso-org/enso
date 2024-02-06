@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
 import * as actions from './actions'
 import { mockExpressionUpdate } from './expressionUpdates'

@@ -12,6 +12,7 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
@@ -119,9 +120,11 @@ function toggleDropdownWidget() {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  const edit = graph.astModule.edit()
-  if (selectedTag.value?.requiredImports)
+  let edit: Ast.MutableModule | undefined
+  if (selectedTag.value?.requiredImports) {
+    edit = graph.startEdit()
     graph.addMissingImports(edit, selectedTag.value.requiredImports)
+  }
   props.onUpdate({
     edit,
     portUpdate: {

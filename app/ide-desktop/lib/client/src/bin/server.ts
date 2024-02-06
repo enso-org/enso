@@ -102,14 +102,21 @@ export class Server {
                             reject(err)
                         }
                         // Prepare the YDoc server access point for the new Vue-based GUI.
-                        if (httpServer) {
+                        // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
+                        // working both in browser and in ydocs server. Doing it properly
+                        // is tracked in https://github.com/enso-org/enso/issues/8931
+                        const assets = path.join(paths.ASSETS_PATH, 'assets')
+                        const bundledFiles = fs.existsSync(assets) ? fs.readdirSync(assets) : []
+                        const rustFFIWasm = bundledFiles.find(name =>
+                            /rust_ffi_bg-.*\.wasm/.test(name)
+                        )
+                        if (httpServer && rustFFIWasm != null) {
                             await ydocServer.createGatewayServer(
                                 httpServer,
-                                // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
-                                // working both in browser and in ydocs server. Doing it properly
-                                // is tracked in https://github.com/enso-org/enso/issues/8931
-                                path.join(paths.ASSETS_PATH, 'assets', 'rust_ffi_bg-c353f976.wasm')
+                                path.join(assets, rustFFIWasm)
                             )
+                        } else {
+                            logger.warn('YDocs server is not run, new GUI may not work properly!')
                         }
                         logger.log(`Server started on port ${this.config.port}.`)
                         logger.log(

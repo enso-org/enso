@@ -1,7 +1,7 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   filterOutRedundantImports,
@@ -19,6 +19,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
+import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
@@ -57,6 +58,11 @@ export const useGraphStore = defineStore('graph', () => {
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
+  // The currently visible nodes' areas (including visualization).
+  const visibleNodeAreas = computed(() => {
+    const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
+    return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -66,7 +72,6 @@ export const useGraphStore = defineStore('graph', () => {
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
-  const currentNodeIds = ref(new Set<NodeId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -138,7 +143,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (methodAst.value) {
       const rawFunc = moduleData.value.toRaw(methodAst.value.id)
       assert(rawFunc?.type === RawAst.Tree.Type.Function)
-      currentNodeIds.value = db.readFunctionAst(
+      db.readFunctionAst(
         methodAst.value,
         rawFunc,
         textContentLocal,
@@ -207,21 +212,21 @@ export const useGraphStore = defineStore('graph', () => {
     const mod = proj.module
     if (!mod) return
     const ident = generateUniqueIdent()
-    const edit = astModule.value.edit()
-    if (withImports) addMissingImports(edit, withImports)
     const currentFunc = 'main'
     const method = Ast.findModuleMethod(topLevel.value!, currentFunc)
     if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
-    const functionBlock = edit.getVersion(method).bodyAsBlock()
-    const rhs = Ast.parse(expression, edit)
     metadata.position = { x: position.x, y: position.y }
-    rhs.setNodeMetadata(metadata)
-    const assignment = Ast.Assignment.new(edit, ident, rhs)
-    functionBlock.push(assignment)
-    commitEdit(edit)
+    return edit((edit) => {
+      if (withImports) addMissingImports(edit, withImports)
+      const rhs = Ast.parse(expression, edit)
+      rhs.setNodeMetadata(metadata)
+      const assignment = Ast.Assignment.new(edit, ident, rhs)
+      edit.getVersion(method).bodyAsBlock().push(assignment)
+      return asNodeId(rhs.id)
+    })
   }
 
   function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
@@ -238,21 +243,25 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNodes(ids: NodeId[]) {
-    commitDirect((edit) => {
-      for (const id of ids) {
-        const node = db.nodeIdToNode.get(id)
-        if (!node) return
-        const outerExpr = edit.get(node.outerExprId)
-        if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
-        nodeRects.delete(id)
-      }
-    }, true)
+    edit(
+      (edit) => {
+        for (const id of ids) {
+          const node = db.nodeIdToNode.get(id)
+          if (!node) continue
+          const outerExpr = edit.get(node.outerExprId)
+          if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
+          nodeRects.delete(id)
+        }
+      },
+      true,
+      true,
+    )
   }
 
   function setNodeContent(id: NodeId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    commitDirect((edit) => {
+    edit((edit) => {
       edit.getVersion(node.rootSpan).replaceValue(Ast.parse(content, edit))
     })
   }
@@ -270,12 +279,9 @@ export const useGraphStore = defineStore('graph', () => {
     if (!nodeAst) return
     const oldPos = nodeAst.nodeMetadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
-      commitDirect((edit) => {
-        edit
-          .getVersion(nodeAst)
-          .mutableNodeMetadata()
-          .set('position', { x: position.x, y: position.y })
-      }, true)
+      editNodeMetadata(nodeAst, (metadata) =>
+        metadata.set('position', { x: position.x, y: position.y }),
+      )
     }
   }
 
@@ -291,25 +297,23 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
     const nodeAst = astModule.value?.get(nodeId)
     if (!nodeAst) return
-    commitDirect((edit) => {
-      const metadata = edit.getVersion(nodeAst).mutableNodeMetadata()
+    editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
         'visualization',
         normalizeVisMetadata(vis, metadata.get('visualization')?.visible),
-      )
-    }, true)
+      ),
+    )
   }
 
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
     const nodeAst = astModule.value?.get(nodeId)
     if (!nodeAst) return
-    commitDirect((edit) => {
-      const metadata = edit.getVersion(nodeAst).mutableNodeMetadata()
+    editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
         'visualization',
         normalizeVisMetadata(metadata.get('visualization')?.identifier, visible),
-      )
-    }, true)
+      ),
+    )
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -317,20 +321,15 @@ export const useGraphStore = defineStore('graph', () => {
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: [...nodeRects.entries()]
-          .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([id, rect]) => vizRects.get(id) ?? rect),
+        nodeRects: visibleNodeAreas.value,
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
         mousePosition: Vec2.Zero,
       })
-      commitDirect((edit) => {
-        edit
-          .getVersion(nodeAst)
-          .mutableNodeMetadata()
-          .set('position', { x: position.x, y: position.y })
-      }, true)
+      editNodeMetadata(nodeAst, (metadata) =>
+        metadata.set('position', { x: position.x, y: position.y }),
+      )
       nodeRects.set(nodeId, new Rect(position, rect.size))
     } else {
       nodeRects.set(nodeId, rect)
@@ -384,7 +383,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function getPortNodeId(id: PortId): NodeId | undefined {
-    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as Ast.AstId)
+    return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
 
   /**
@@ -399,6 +398,10 @@ export const useGraphStore = defineStore('graph', () => {
     if (!update) return false
     update({ edit, portUpdate: { value, origin: id } })
     return true
+  }
+
+  function startEdit(): MutableModule {
+    return astModule.value.edit()
   }
 
   /** Apply the given `edit` to the state.
@@ -418,23 +421,34 @@ export const useGraphStore = defineStore('graph', () => {
     Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
   }
 
-  /** Run the given callback with direct access to the document module. Any edits to the module will be committed
-   *  unconditionally; use with caution to avoid committing partial edits.
+  /** Edit the AST module.
    *
-   *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
-   *  for better performance.
+   *  Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
+   *
+   *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
+   *  to `true` for better performance.
+   *  @param direct - Apply all changes directly to the synchronized module; they will be committed even if the callback
+   *  exits by throwing an exception.
    */
-  function commitDirect(f: (edit: MutableModule) => void, skipTreeRepair?: boolean) {
-    const edit = syncModule.value
+  function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean, direct?: boolean): T {
+    const edit = direct ? syncModule.value : syncModule.value?.edit()
     assert(edit != null)
+    let result
     edit.ydoc.transact(() => {
-      f(edit)
+      result = f(edit)
       if (!skipTreeRepair) {
         const root = edit.root()
         assert(root instanceof Ast.BodyBlock)
         Ast.repair(root, edit)
       }
     }, 'local')
+    if (!direct)
+      Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
+    return result!
+  }
+
+  function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
+    edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
   }
 
   function mockExpressionUpdate(
@@ -530,10 +544,10 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
-    currentNodeIds,
     moduleCode,
     nodeRects,
     vizRects,
+    visibleNodeAreas,
     unregisterNodeRect,
     methodAst,
     astModule,
@@ -560,8 +574,9 @@ export const useGraphStore = defineStore('graph', () => {
     updatePortValue,
     setEditedNode,
     updateState,
+    startEdit,
     commitEdit,
-    commitDirect,
+    edit,
     addMissingImports,
   }
 })
