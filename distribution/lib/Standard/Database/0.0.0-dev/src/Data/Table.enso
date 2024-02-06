@@ -927,16 +927,17 @@ type Table
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
-    ## Size in number of elements.
-    MAX_LITERAL_SIZE = 256
+    ## PRIVATE
+       The largest dataset that can be used to make a literal table, expressed in number of elements.
+    max_literal_size = 256
 
     ## PRIVATE
        A helper that creates a two-column literal table from a `Map`.
-    make_table_from_map  : Map Any Any -> Text -> Text -> Table
+    make_table_from_map : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
         total_size = map.size * 2
 
-        if total_size > MAX_LITERAL_SIZE then Error.throw (Illegal_Argument.new "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else 
+        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else 
             keys_and_values = map.to_vector
             self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
@@ -950,7 +951,7 @@ type Table
         total_size = if column_vectors.is_empty && column_vectors.at 0 . is_empty then 0 else
             column_vectors.length * (column_vectors.at 0 . length)
 
-        if total_size > MAX_LITERAL_SIZE then Error.throw (Illegal_Argument.new "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else 
+        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else 
             type_mapping = self.connection.dialect.get_type_mapping
 
             values_to_type_ref column_vector =
