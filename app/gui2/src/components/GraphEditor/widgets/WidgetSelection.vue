@@ -10,6 +10,7 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
@@ -79,21 +80,22 @@ const dynamicTags = computed<Tag[]>(() => {
 const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
+const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
+
 const selectedIndex = ref<number>()
 const selectedTag = computed(() => {
   if (selectedIndex.value != null) {
     return tags.value[selectedIndex.value]
   } else {
-    const currentExpression = WidgetInput.valueRepr(props.input)?.trim()
+    const currentExpression = removeSurroundingParens(WidgetInput.valueRepr(props.input))
     if (!currentExpression) return undefined
-    return tags.value.find((tag) => {
-      const tagExpression = tag.expression.trim()
-      return (
-        tagExpression === currentExpression ||
-        tagExpression === `(${currentExpression})` ||
-        `(${tagExpression})` === currentExpression
-      )
-    })
+    // We need to find the tag that matches the (beginning of) current expression.
+    // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
+    const sortedTags = tags.value
+      .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
+      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
+    return index != null ? tags.value[index] : undefined
   }
 })
 
@@ -116,9 +118,11 @@ function toggleDropdownWidget() {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  const edit = graph.astModule.edit()
-  if (selectedTag.value?.requiredImports)
+  let edit: Ast.MutableModule | undefined
+  if (selectedTag.value?.requiredImports) {
+    edit = graph.startEdit()
     graph.addMissingImports(edit, selectedTag.value.requiredImports)
+  }
   props.onUpdate({
     edit,
     portUpdate: {

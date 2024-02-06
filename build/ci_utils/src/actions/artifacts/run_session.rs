@@ -57,7 +57,7 @@ impl SessionClient {
     ) -> Result<PatchArtifactSizeResponse> {
         raw::endpoints::patch_artifact_size(
             &self.json_client,
-            self.artifact_url.clone(),
+            &self.artifact_url,
             artifact_name,
             total_size,
         )

@@ -1,6 +1,6 @@
 from Standard.Base import all
-from Standard.Test import Test
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 type My_Type
     Cons_A x
@@ -23,18 +23,18 @@ type My_Type
         _ : Self -> "it's a Self"
         _ -> "it's a something else"
 
-spec = Test.group "the Self construct" <|
-    Test.specify "should allow calling statics and constructors from static methods" <|
+add_specs suite_builder = suite_builder.group "the Self construct" group_builder->
+    group_builder.specify "should allow calling statics and constructors from static methods" <|
         My_Type.static_use.should_equal 128
-    Test.specify "should allow calling statics and constructors from instance methods" <|
+    group_builder.specify "should allow calling statics and constructors from instance methods" <|
         My_Type.Cons_A 10 . instance_use . should_equal 138
-    Test.specify "should work in instance pattern matches" <|
+    group_builder.specify "should work in instance pattern matches" <|
         My_Type.Cons_A 10 . matching_method . should_equal 12
-    Test.specify "should work in type pattern matches" <|
+    group_builder.specify "should work in type pattern matches" <|
         My_Type.static_match My_Type . should_equal "it matched"
         My_Type.static_match Boolean . should_equal "it didn't match"
-    Test.specify "should work in by-type pattern matches" <|
+    group_builder.specify "should work in by-type pattern matches" <|
         My_Type.match_by_type (My_Type.Cons_A 10) . should_equal "it's a Self"
         My_Type.match_by_type 123 . should_equal "it's a something else"
-    Test.specify "should work in constructor defaulted arguments" <|
+    group_builder.specify "should work in constructor defaulted arguments" <|
         My_Type.Cons_B . y . x . should_equal 10

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 from Standard.Base.Metadata.Choice import Option
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 polyglot java import java.util.Locale as JavaLocale
 
@@ -15,40 +15,40 @@ with_locale locale ~test =
     JavaLocale.setDefault default_locale
     result
 
-spec =
-  Test.group "Locale" <|
+add_specs suite_builder =
+  suite_builder.group "Locale" group_builder->
     en_gb = Locale.new "en" "GB"
-    Test.specify "allow constructing a locale with optional parts" <|
+    group_builder.specify "allow constructing a locale with optional parts" <|
         loc = Locale.new "en"
         loc.language . should_equal "en"
         loc.country . should_equal Nothing
         loc.variant . should_equal Nothing
-    Test.specify "should have a well-defined text conversion" <|
+    group_builder.specify "should have a well-defined text conversion" <|
         en_gb.to_text . should_equal "en-GB"
-    Test.specify "should allow obtaining it from a language tag" <|
+    group_builder.specify "should allow obtaining it from a language tag" <|
         locale = Locale.from_language_tag "en-US"
         locale.to_text . should_equal "en-US"
-    Test.specify "should allow getting the language code" <|
+    group_builder.specify "should allow getting the language code" <|
         locale = Locale.from_language_tag "en-US"
         locale.language . should_equal "en"
-    Test.specify "should allow getting the country code" <|
+    group_builder.specify "should allow getting the country code" <|
         locale = Locale.from_language_tag "en-US"
         locale.country . should_equal "US"
-    Test.specify "should allow getting the variant code" <|
+    group_builder.specify "should allow getting the variant code" <|
         locale = Locale.from_language_tag "en-US-x-lvariant-UTF-8"
         locale.variant . should_equal "UTF_8"
-    Test.specify "should allow getting the display language" <|
+    group_builder.specify "should allow getting the display language" <|
         with_locale Locale.us <|
             display = Locale.from_language_tag "en-GB" . display_language
             display . should_equal "English"
-    Test.specify "should allow getting the display country" <|
+    group_builder.specify "should allow getting the display country" <|
         with_locale Locale.us <|
             display = Locale.from_language_tag "en-GB" . display_country
             display . should_equal "United Kingdom"
-    Test.specify "should allow getting the display variant" <|
+    group_builder.specify "should allow getting the display variant" <|
         display = Locale.from_language_tag "en-GB-x-lvariant-UTF8" . display_variant
         display . should_equal "UTF8"
-    Test.specify "should have some common locale constants" <|
+    group_builder.specify "should have some common locale constants" <|
         Locale.default.to_text . should_equal "und"
         Locale.bangladesh.to_text . should_equal "bn-BD"
         Locale.brazil.to_text . should_equal "pt-BR"
@@ -70,14 +70,18 @@ spec =
         Locale.south_korea.to_text . should_equal "ko-KR"
         Locale.uk.to_text . should_equal "en-GB"
         Locale.us.to_text . should_equal "en-US"
-    Test.specify "should convert to Json" <|
+    group_builder.specify "should convert to Json" <|
         en_gb.to_json.should_equal '{"type":"Locale","constructor":"new","language":"en","country":"GB","variant":null}'
-    Test.specify "should allow equality comparisons" <|
+    group_builder.specify "should allow equality comparisons" <|
         Locale.uk . should_equal Locale.uk
         Locale.uk . should_not_equal Locale.us
 
-    Test.specify "Should correctly auto-discover static Locales" <|
+    group_builder.specify "Should correctly auto-discover static Locales" <|
         locale_names = Locale.widget_options.map x-> case x of Option locale_name _ _ _ -> locale_name
         locale_names . should_equal ['Bangladesh', 'Brazil', 'Canada English', 'Canada French', 'China', 'France', 'Germany', 'India English', 'India Hindi', 'Indonesia', 'Italy', 'Japan', 'Mexico', 'Nigeria', 'Pakistan English', 'Pakistan Urdu', 'Poland', 'Russia', 'South Korea', 'UK', 'US']
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

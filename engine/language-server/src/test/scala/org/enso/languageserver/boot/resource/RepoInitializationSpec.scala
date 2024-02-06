@@ -35,7 +35,8 @@ class RepoInitializationSpec
   val Timeout: FiniteDuration = 10.seconds.dilated
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   "RepoInitialization" should {

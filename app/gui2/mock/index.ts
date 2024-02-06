@@ -4,6 +4,7 @@ import { useGraphStore } from '@/stores/graph'
 import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { Ast } from '@/util/ast'
 import { MockTransport, MockWebSocket } from '@/util/net'
 import { getActivePinia } from 'pinia'
 import { ref, type App } from 'vue'
@@ -65,7 +66,11 @@ export function projectStore() {
   const projectStore = useProjectStore(getActivePinia())
   const mod = projectStore.projectModel.createNewModule('Main.enso')
   mod.doc.ydoc.emit('load', [])
-  mod.doc.setCode('main =\n')
+  const syncModule = new Ast.MutableModule(mod.doc.ydoc)
+  mod.transact(() => {
+    const root = Ast.parseBlock('main =\n', syncModule)
+    syncModule.replaceRoot(root)
+  })
   return projectStore
 }
 

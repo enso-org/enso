@@ -65,6 +65,8 @@ export function documentationData(
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+  const { initializeFFI } = await import('shared/ast/ffi')
+  await initializeFFI()
 
   test.each([
     ['ALIAS Bar', 'Bar'],

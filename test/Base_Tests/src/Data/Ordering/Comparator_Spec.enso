@@ -5,8 +5,8 @@ polyglot java import org.enso.base.ObjectComparator
 
 polyglot java import org.enso.base.CompareException
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 # === Test Resources ===
 
@@ -36,22 +36,22 @@ Comparable.from (_:No_Ord) = No_Ord_Comparator
 
 # Tests
 
-spec = Test.group "Object Comparator" <|
+add_specs suite_builder = suite_builder.group "Object Comparator" group_builder->
     handle_comp_exc = Panic.catch CompareException handler=(exc -> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
     default_comparator a b = handle_comp_exc <| ObjectComparator.DEFAULT.compare a b
     case_insensitive a b = handle_comp_exc <| ObjectComparator.new False Locale.default.java_locale . compare a b
 
-    Test.specify "can compare numbers" <|
+    group_builder.specify "can compare numbers" <|
         ((default_comparator 1 2) < 0) . should_equal True
         ((default_comparator 1 1.2) < 0) . should_equal True
         ((default_comparator 1 1) == 0) . should_equal True
 
-    Test.specify "can compare booleans" <|
+    group_builder.specify "can compare booleans" <|
         ((default_comparator True False) > 0) . should_equal True
         ((default_comparator True True) == 0) . should_equal True
         ((default_comparator False False) == 0) . should_equal True
 
-    Test.specify "can compare Nothing and it ends up as lowest value" <|
+    group_builder.specify "can compare Nothing and it ends up as lowest value" <|
         ((default_comparator 1 Nothing) > 0) . should_equal True
         ((default_comparator Nothing 1.235) < 0) . should_equal True
         ((default_comparator True Nothing) > 0) . should_equal True
@@ -60,22 +60,26 @@ spec = Test.group "Object Comparator" <|
         ((default_comparator Nothing "ZSA") < 0) . should_equal True
         ((default_comparator Nothing Nothing) == 0) . should_equal True
 
-    Test.specify "can compare Text with Enso standard defaults" <|
+    group_builder.specify "can compare Text with Enso standard defaults" <|
         ((default_comparator "A" "a") < 0) . should_equal True
         ((default_comparator "ABBA" "ABBA") == 0) . should_equal True
         ((default_comparator '\u00E9' '\u0065\u{301}') == 0) . should_equal True
 
-    Test.specify "can compare Text with case-insensitive comparisons" <|
+    group_builder.specify "can compare Text with case-insensitive comparisons" <|
         ((case_insensitive "A" "a") == 0) . should_equal True
         ((case_insensitive "ABBA" "abba") == 0) . should_equal True
         ((case_insensitive '\u00E9' '\u0065\u{301}') == 0) . should_equal True
 
-    Test.specify "can compare custom types" <|
+    group_builder.specify "can compare custom types" <|
         ((default_comparator (Ord.Value 1) (Ord.Value 0)) < 0) . should_equal True
         ((default_comparator (Ord.Value 1) (Ord.Value 1)) == 0) . should_equal True
 
-    Test.specify "should fail gracefully for incomparable items" <|
+    group_builder.specify "should fail gracefully for incomparable items" <|
         (default_comparator 1 True) . should_fail_with Incomparable_Values
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

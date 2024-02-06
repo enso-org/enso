@@ -46,6 +46,12 @@ pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand
     Ok(ret)
 }
 
+pub fn dashboard_script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand> {
+    let mut ret = Npm.cmd()?;
+    ret.current_dir(repo_root).workspace(crate::web::Workspace::EnsoDashboard).run(script.as_ref());
+    Ok(ret)
+}
+
 
 
 // ================
@@ -61,14 +67,28 @@ pub fn tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     install_and_run_script(Scripts::Test, repo_root)
 }
 
+pub fn dashboard_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_dashboard_script(Scripts::Test, repo_root)
+}
+
 /// Run unit tests.
 pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     install_and_run_script(Scripts::TestUnit, repo_root)
 }
 
+/// Run dashboard unit tests.
+pub fn dashboard_unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_dashboard_script(Scripts::TestUnit, repo_root)
+}
+
 /// Run E2E tests.
 pub fn e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     install_and_run_script(Scripts::TestE2e, repo_root)
+}
+
+/// Run dashboard E2E tests.
+pub fn dashboard_e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_dashboard_script(Scripts::TestE2e, repo_root)
 }
 
 pub fn watch(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
@@ -83,6 +103,18 @@ fn install_and_run_script(
     async move {
         crate::web::install(&repo_root).await?;
         self::script(&repo_root, script)?.run_ok().await
+    }
+    .boxed()
+}
+
+fn install_and_run_dashboard_script(
+    script: Scripts,
+    repo_root: impl AsRef<Path>,
+) -> BoxFuture<'static, Result> {
+    let repo_root = repo_root.as_ref().to_owned();
+    async move {
+        crate::web::install(&repo_root).await?;
+        dashboard_script(&repo_root, script)?.run_ok().await
     }
     .boxed()
 }

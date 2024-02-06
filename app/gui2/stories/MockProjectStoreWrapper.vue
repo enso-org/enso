@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
-import { useObserveYjs } from '@/util/crdt'
-import { computed, watchEffect } from 'vue'
+import { Ast } from '@/util/ast'
+import { watch } from 'vue'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
@@ -10,26 +10,40 @@ const projectStore = useProjectStore()
 const mod = projectStore.projectModel.createNewModule('Main.enso')
 projectStore.setObservedFileName('Main.enso')
 mod.doc.ydoc.emit('load', [])
+let syncedCode: string | undefined
+watch(
+  () => projectStore.module,
+  (mod) => {
+    if (!mod) return
+    const syncModule = new Ast.MutableModule(mod.doc.ydoc)
+    applyEdits(syncModule, props.modelValue)
+    const _astModule = new Ast.ReactiveModule(syncModule, [
+      (module, dirtyNodes) => {
+        if (dirtyNodes.size === 0) return
+        const root = module.root()
+        if (root) {
+          const { code } = Ast.print(root)
+          if (code !== props.modelValue) {
+            syncedCode = code
+            emit('update:modelValue', code)
+          }
+        }
+      },
+    ])
+    watch(
+      () => props.modelValue,
+      (modelValue) => applyEdits(syncModule, modelValue),
+    )
+  },
+)
 
-function applyEdits(module: NonNullable<typeof projectStore.module>, newText: string) {
-  module.transact(() => {
-    projectStore.module?.doc.setCode(newText)
-  })
-}
-
-watchEffect(() => projectStore.module && applyEdits(projectStore.module, props.modelValue))
-
-const data = computed(() => projectStore.module?.doc.data)
-const text = computed(() => projectStore.module?.doc.getCode())
-
-useObserveYjs(data, () => {
-  if (text.value) {
-    const newValue = text.value?.toString()
-    if (newValue !== props.modelValue) {
-      emit('update:modelValue', newValue)
-    }
+function applyEdits(syncModule: Ast.MutableModule, newText: string) {
+  if (newText !== syncedCode) {
+    syncModule.ydoc.transact(() => {
+      syncModule.syncRoot(Ast.parseBlock(newText, syncModule))
+    }, 'local')
   }
-})
+}
 </script>
 
 <template>

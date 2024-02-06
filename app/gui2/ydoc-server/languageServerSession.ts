@@ -1,22 +1,37 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import { splitFileContents } from '../shared/ensoFile'
+import {
+  Ast,
+  MutableModule,
+  parseBlockWithSpans,
+  setExternalIds,
+  spanMapToIdMap,
+} from '../shared/ast'
+import { print } from '../shared/ast/parse'
+import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
+import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
 import {
   DistributedProject,
+  ExternalId,
   IdMap,
   ModuleDoc,
-  type NodeMetadata,
+  visMetadataEquals,
   type Uuid,
 } from '../shared/yjsModel'
-import { applyDocumentUpdates, prettyPrintDiff, translateVisualizationFromFile } from './edits'
+import {
+  applyDiffAsTextEdits,
+  applyDocumentUpdates,
+  prettyPrintDiff,
+  translateVisualizationFromFile,
+} from './edits'
 import * as fileFormat from './fileFormat'
-import { deserializeIdMap } from './serialization'
+import { deserializeIdMap, serializeIdMap } from './serialization'
 import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
@@ -264,6 +279,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   readonly state: LsSyncState = LsSyncState.Closed
   readonly lastAction = Promise.resolve()
   updateToApply: Uint8Array | null = null
+  syncedCode: string | null = null
+  syncedIdMap: string | null = null
+  syncedMetaJson: string | null = null
   syncedContent: string | null = null
   syncedVersion: Checksum | null = null
   syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
@@ -398,41 +416,52 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const update = this.updateToApply
     this.updateToApply = null
 
-    let dataKeys: Y.YMapEvent<any>['keys'] | null = null
-    let metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null = null
-    const observeData = (event: Y.YMapEvent<any>) => (dataKeys = event.keys)
-    const observeMetadata = (event: Y.YMapEvent<NodeMetadata>) => (metadataKeys = event.keys)
-
-    this.doc.data.observe(observeData)
-    this.doc.metadata.observe(observeMetadata)
-    Y.applyUpdate(this.doc.ydoc, update, 'remote')
-    this.doc.data.unobserve(observeData)
-    this.doc.metadata.unobserve(observeMetadata)
-    this.writeSyncedEvents(dataKeys, metadataKeys)
+    const syncModule = new MutableModule(this.doc.ydoc)
+    const moduleUpdate = syncModule.applyUpdate(update, 'remote')
+    if (moduleUpdate && this.syncedContent) {
+      const synced = splitFileContents(this.syncedContent)
+      const { newCode, newIdMap, newMetadata } = applyDocumentUpdates(
+        this.doc,
+        synced,
+        moduleUpdate,
+      )
+      this.sendLsUpdate(synced, newCode, newIdMap, newMetadata)
+    }
   }
 
-  private writeSyncedEvents(
-    dataKeys: Y.YMapEvent<any>['keys'] | null,
-    metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
+  private sendLsUpdate(
+    synced: EnsoFileParts,
+    newCode: string | undefined,
+    newIdMap: IdMap | undefined,
+    newMetadata: fileFormat.IdeMetadata['node'] | undefined,
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
-    if (!dataKeys && !metadataKeys) return
 
-    const { edits, newContent, newMetadata } = applyDocumentUpdates(
-      this.doc,
-      this.syncedMeta,
-      this.syncedContent,
-      dataKeys,
-      metadataKeys,
-    )
+    const code = newCode ?? synced.code
+    const newMetadataJson =
+      newMetadata &&
+      json.stringify({ ...this.syncedMeta, ide: { ...this.syncedMeta.ide, node: newMetadata } })
+    const newIdMapJson = newIdMap && serializeIdMap(newIdMap)
+    const newContent = combineFileParts({
+      code,
+      idMapJson: newIdMapJson ?? synced.idMapJson ?? '[]',
+      metadataJson: newMetadataJson ?? synced.metadataJson ?? '{}',
+    })
+
+    const edits: TextEdit[] = []
+    if (newCode) edits.push(...applyDiffAsTextEdits(0, synced.code, newCode))
+    if (newIdMap || newMetadata) {
+      const oldMetaContent = this.syncedContent.slice(synced.code.length)
+      const metaContent = newContent.slice(code.length)
+      const metaStartLine = (code.match(/\n/g) ?? []).length
+      edits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
+    }
 
     const newVersion = computeTextChecksum(newContent)
 
     if (DEBUG_LOG_SYNC) {
       console.debug(' === changes === ')
       console.debug('number of edits:', edits.length)
-      console.debug('metadata:', metadataKeys)
-      console.debug('data:', dataKeys)
       if (edits.length > 0) {
         console.debug('version:', this.syncedVersion, '->', newVersion)
         console.debug('Content diff:')
@@ -443,14 +472,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     this.setState(LsSyncState.WritingFile)
 
-    const execute = dataKeys != null
+    const execute = newCode != null || newIdMap != null
     const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
     const apply = this.ls.applyEdit(edit, execute)
     const promise = apply.then(
       () => {
         this.syncedContent = newContent
         this.syncedVersion = newVersion
-        this.syncedMeta = newMetadata
+        if (newMetadata) this.syncedMeta.ide.node = newMetadata
+        if (newCode) this.syncedCode = newCode
+        if (newIdMapJson) this.syncedIdMap = newIdMapJson
+        if (newMetadataJson) this.syncedMetaJson = newMetadataJson
         this.setState(LsSyncState.Synchronized)
       },
       (error) => {
@@ -460,6 +492,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.setState(LsSyncState.WriteError)
         this.syncedContent = null
         this.syncedVersion = null
+        this.syncedCode = null
+        this.syncedIdMap = null
+        this.syncedMetaJson = null
         return this.reload()
       },
     )
@@ -468,32 +503,72 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private syncFileContents(content: string, version: Checksum) {
+    const contentsReceived = splitFileContents(content)
+    let unsyncedIdMap: IdMap | undefined
     this.doc.ydoc.transact(() => {
-      const { code, idMapJson, metadataJson } = splitFileContents(content)
+      const { code, idMapJson, metadataJson } = contentsReceived
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
-      const nodeMeta = metadata.ide.node
+      const nodeMeta = Object.entries(metadata.ide.node)
 
-      const idMap = idMapJson ? deserializeIdMap(idMapJson) : new IdMap()
-      this.doc.setIdMap(idMap)
-
-      const keysToDelete = new Set(this.doc.metadata.keys())
-      for (const [id, meta] of Object.entries(nodeMeta)) {
-        if (typeof id !== 'string') continue
-        const formattedMeta: NodeMetadata = {
-          x: meta.position.vector[0],
-          y: meta.position.vector[1],
-          vis: (meta.visualization && translateVisualizationFromFile(meta.visualization)) ?? null,
-        }
-        keysToDelete.delete(id)
-        this.doc.metadata.set(id, formattedMeta)
+      let parsedSpans
+      const syncModule = new MutableModule(this.doc.ydoc)
+      if (code !== this.syncedCode) {
+        const { root, spans } = parseBlockWithSpans(code, syncModule)
+        syncModule.syncRoot(root)
+        parsedSpans = spans
       }
-      for (const id of keysToDelete) this.doc.metadata.delete(id)
+      const astRoot = syncModule.root()
+      if (!astRoot) return
+      if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
+        const idMap = deserializeIdMap(idMapJson)
+        const spans = parsedSpans ?? print(astRoot).info
+        const newExternalIds = setExternalIds(syncModule, spans, idMap)
+        if (newExternalIds !== 0) {
+          if (code !== this.syncedCode) {
+            unsyncedIdMap = spanMapToIdMap(spans)
+          } else {
+            console.warn(
+              `The LS sent an IdMap-only edit that is missing ${newExternalIds} of our expected ASTs.`,
+            )
+          }
+        }
+      }
+      if (
+        (code !== this.syncedCode ||
+          idMapJson !== this.syncedIdMap ||
+          metadataJson !== this.syncedMetaJson) &&
+        nodeMeta.length !== 0
+      ) {
+        const externalIdToAst = new Map<ExternalId, Ast>()
+        astRoot.visitRecursiveAst((ast) => {
+          if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
+        })
+        const missing = new Set<string>()
+        for (const [id, meta] of nodeMeta) {
+          if (typeof id !== 'string') continue
+          const ast = externalIdToAst.get(id as ExternalId)
+          if (!ast) {
+            missing.add(id)
+            continue
+          }
+          const metadata = syncModule.getVersion(ast).mutableNodeMetadata()
+          const oldPos = metadata.get('position')
+          const newPos = { x: meta.position.vector[0], y: -meta.position.vector[1] }
+          if (oldPos?.x !== newPos.x || oldPos?.y !== newPos.y) metadata.set('position', newPos)
+          const oldVis = metadata.get('visualization')
+          const newVis = meta.visualization && translateVisualizationFromFile(meta.visualization)
+          if (!visMetadataEquals(newVis, oldVis)) metadata.set('visualization', newVis)
+        }
+      }
+
+      this.syncedCode = code
+      this.syncedIdMap = unsyncedIdMap ? null : idMapJson
       this.syncedContent = content
       this.syncedVersion = version
       this.syncedMeta = metadata
-
-      this.doc.setCode(code)
+      this.syncedMetaJson = metadataJson
     }, 'file')
+    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, undefined, unsyncedIdMap, undefined)
   }
 
   async close() {

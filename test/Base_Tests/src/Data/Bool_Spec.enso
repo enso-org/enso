@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
+
 
 Boolean.method self = self
 
@@ -11,37 +11,37 @@ type My_Error
 crash =
   Error.throw (My_Error.Value "foo")
 
-spec =
-    Test.group "Booleans" <|
-        Test.specify "should allow converting Bools to Text values" <|
+add_specs suite_builder =
+    suite_builder.group "Booleans" group_builder->
+        group_builder.specify "should allow converting Bools to Text values" <|
             True.to_text . should_equal "True"
             False.to_text . should_equal "False"
 
-        Test.specify "should allow for comparing Bools" <|
+        group_builder.specify "should allow for comparing Bools" <|
             (True == True) . should_be_true
             (False == False) . should_be_true
             (True > False) . should_be_true
             (False < True) . should_be_true
 
-        Test.specify "should allow == operator" <|
+        group_builder.specify "should allow == operator" <|
             True.should_equal True
             False.should_equal False
             True.should_not_equal False
             False.should_not_equal True
             (1 == 1).should_equal True
 
-        Test.specify "should allow for extending Bools in a local module" <|
+        group_builder.specify "should allow for extending Bools in a local module" <|
             test = 1 == 2
             test.method . should_equal test
 
-        Test.specify "should short-circuit ||" <|
+        group_builder.specify "should short-circuit ||" <|
             (1 == 1) || (crash) . should_equal True
             (1 == 0) || (1 == 1) . should_equal True
             (1 == 0) || (crash) . should_fail_with My_Error
             (1 == 1) || "foo" . should_equal True
             (1 == 0) || "foo" . should_equal "foo"
 
-        Test.specify "should short-circuit &&" <|
+        group_builder.specify "should short-circuit &&" <|
             (1 == 0) && (crash) . should_equal False
             (1 == 1) && (1 == 0) . should_equal False
             (1 == 1) && (1 == 1) . should_equal True
@@ -49,4 +49,8 @@ spec =
             (1 == 0) && "foo" . should_equal False
             (1 == 1) && "foo" . should_equal "foo"
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+
