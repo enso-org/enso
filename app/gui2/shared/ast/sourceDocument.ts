@@ -1,6 +1,10 @@
 import { print, type AstId, type Module, type ModuleUpdate } from '.'
 import { rangeEquals, sourceRangeFromKey, type SourceRange } from '../yjsModel'
 
+/** Provides a view of the text representation of a module,
+ *  and information about the correspondence between the text and the ASTs,
+ *  that can be kept up-to-date by applying AST changes.
+ */
 export class SourceDocument {
   private text_: string
   private readonly spans: Map<AstId, SourceRange>
