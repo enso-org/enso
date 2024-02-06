@@ -483,6 +483,7 @@ const arrowTransform = computed(() => {
   fill: none;
   stroke: var(--edge-color);
   transition: stroke 0.2s ease;
+  z-index: 99;
 }
 
 .arrow {

@@ -1,9 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { expect, Page, test } from '@playwright/test'
 import * as actions from './actions'
 import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
 const EDGE_PARTS = 2
+const SPLIT_EDGE_PARTS = EDGE_PARTS + 1
 
 test('Existence of edges between nodes', async ({ page }) => {
   await actions.goToGraph(page)
@@ -29,30 +30,38 @@ test('Existence of edges between nodes', async ({ page }) => {
   await expect(await edgesToNodeWithBinding(page, 'five')).toHaveCount(0)
 })
 
-test('Hover behaviour of edges', async ({ page }) => {
+async function initGraph(page: Page) {
   await actions.goToGraph(page)
+  await actions.dragNodeByBinding(page, 'ten', 400, 0)
+}
+
+/**
+ * Scenario: We hover over the edge to the left of the `ten` node. We expect the edge to be rendered with a dimmed part
+ * and a non-dimmed part.
+ */
+test('Hover behaviour of edges', async ({ page }) => {
+  await initGraph(page)
 
   const edgeElements = await edgesFromNodeWithBinding(page, 'ten')
   await expect(edgeElements).toHaveCount(EDGE_PARTS)
 
   const targetEdge = edgeElements.first()
   await expect(targetEdge).toHaveClass('edge io')
-  // It is not currently possible to interact with edges in the default node layout.
-  // See: https://github.com/enso-org/enso/issues/8938
-  /*
-  // Hover over edge to the right of node with binding `ten`.
+
+  // Hover over edge to the left of node with binding `ten`.
   await targetEdge.hover({
-    position: { x: 60, y: 45 }, // source node
+    position: { x: 250, y: 35.0 },
+    force: true,
   })
+
   // Expect an extra edge for the split rendering.
   const hoveredEdgeElements = await edgesFromNodeWithBinding(page, 'ten')
-  await expect(hoveredEdgeElements).toHaveCount(2 * EDGE_PARTS)
+  await expect(hoveredEdgeElements).toHaveCount(SPLIT_EDGE_PARTS)
 
   // Expect the top edge part to be dimmed
-  const topEdge = page.locator('path:nth-child(4)')
+  const topEdge = page.locator('path:nth-child(3)')
   await expect(topEdge).toHaveClass('edge visible dimmed')
   // Expect the bottom edge part not to be dimmed
-  const bottomEdge = page.locator('path:nth-child(6)')
+  const bottomEdge = page.locator('path:nth-child(5)')
   await expect(bottomEdge).toHaveClass('edge visible')
-   */
 })
