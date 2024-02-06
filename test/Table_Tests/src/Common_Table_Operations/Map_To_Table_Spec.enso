@@ -48,16 +48,16 @@ add_specs suite_builder setup =
             t.at 'z' . to_vector . should_equal [6, 7, 8]
 
         group_builder.specify "should not be able to create a literal table with empty columns" <|
-            data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z'] . should_fail_with Illegal_Argument
+            data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
 
         group_builder.specify "should not be able to create a literal table with no columns" <|
-            data.dummy_table.make_table_from_vectors [] [] . should_fail_with Illegal_Argument
+            data.dummy_table.make_table_from_vectors [] [] . read . should_fail_with Illegal_Argument
 
         group_builder.specify "should fail if columns are unequal length" <|
                 vecs = [[0, 1, 2], [3, 5], [6, 7, 8]]
-                Test.expect_panic_with (data.dummy_table.make_table_from_vectors vecs []) Assertion_Error
+                data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
                 vecs2 = [[], [3, 4, 5], [6, 7, 8]]
-                Test.expect_panic_with (data.dummy_table.make_table_from_vectors vecs2 []) Assertion_Error
+                data.dummy_table.make_table_from_vectors vecs2 ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
 
         if setup.is_database then
             group_builder.specify "should respect the maximum size" <|
