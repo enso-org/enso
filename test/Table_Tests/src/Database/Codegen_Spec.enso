@@ -42,14 +42,17 @@ add_specs suite_builder =
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "should serialize Tables and Columns to their SQL representation" pending="ToDo: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
+        group_builder.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = data.t1.filter (data.t1.at "A" == 42) . to_json
 
-            part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
+            part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (("T1"."A") = (']]
             part2_sub = JS_Object.from_pairs [["value", 42]]
             part2 = JS_Object.from_pairs [["sql_interpolation", part2_sub]]
-            part3 = JS_Object.from_pairs [["sql_code", ")"]]
-            expected = JS_Object.from_pairs [["query", [part1, part2, part3]]] . to_text
+            part3 = JS_Object.from_pairs [["sql_code", ")) = ("]]
+            part4_sub = JS_Object.from_pairs [["value", True]]
+            part4 = JS_Object.from_pairs [["sql_interpolation", part4_sub]]
+            part5 = JS_Object.from_pairs [["sql_code", ")"]]
+            expected = JS_Object.from_pairs [["query", [part1, part2, part3, part4, part5]]] . to_text
             q1.should_equal expected
 
             q2 = data.t1.at "A" . to_json
@@ -89,6 +92,9 @@ add_specs suite_builder =
         group_builder.specify "should generate a single BETWEEN expression" <|
             t2 = data.t1.filter "A" (Filter_Condition.Between 10 20)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [10, 20]]
+
+            t2r = data.t1.filter "A" (Filter_Condition.Between 10 20 Filter_Action.Remove)
+            t2r.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" BETWEEN ? AND ?))', [10, 20]]
 
         group_builder.specify "should generate an IN expression" <|
             t2 = data.t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])

@@ -267,7 +267,6 @@ add_specs suite_builder setup =
         group_builder.specify "by an Is_In check" <|
             t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
             t1 = table_builder [["txt", ["X", "a", "c", Nothing]], ["int", [Nothing, 2, 5, 4]], ["bool", [True, Nothing, Nothing, True]]]
-            t2 = table_builder [["txt", ["X", "a", "c", "q"]], ["int", [123, 2, 5, 4]], ["bool", [True, True, True, True]]]
 
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt")) . at "X" . to_vector . should_equal ["a", "X"]
             t.filter "X" (Filter_Condition.Is_In (t1.at "txt" . to_vector)) . at "X" . to_vector . should_equal ["a", "X"]
