@@ -2,6 +2,10 @@ import { expect, Page, test } from '@playwright/test'
 import * as actions from './actions'
 import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
 
+/**
+ * Prepare the graph for the tests. We drag the `ten` node to the right of the `sum` node for better access
+ * to the edges.
+ */
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
   await actions.dragNodeByBinding(page, 'ten', 400, 0)
