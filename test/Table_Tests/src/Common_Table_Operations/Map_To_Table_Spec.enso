@@ -1,4 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Assertion_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Database.Data.Table as Database_Table
 
 from Standard.Test_New import all
 
@@ -23,15 +27,61 @@ type Data
 add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
-    suite_builder.group prefix+"Table.replace" group_builder->
+    suite_builder.group prefix+"Table.make_table_from_map/vectors" group_builder->
         data = Data.setup setup create_connection_fn
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
 
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "should be able to create a literal table" <|
+        group_builder.specify "should be able to create a literal table with one column" <|
+            vecs = [[0], [3], [6]]
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            t.at 'x' . to_vector . should_equal [0]
+            t.at 'y' . to_vector . should_equal [3]
+            t.at 'z' . to_vector . should_equal [6]
+
+        group_builder.specify "should be able to create a literal table with three columns" <|
             vecs = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
             t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
             t.at 'x' . to_vector . should_equal [0, 1, 2]
             t.at 'y' . to_vector . should_equal [3, 4, 5]
             t.at 'z' . to_vector . should_equal [6, 7, 8]
+
+        group_builder.specify "should be able to create a literal table with empty columns" <|
+            regular_table = table_builder [['x', [0]], ['y', [1]], ['z', [2]]]
+            vecs = [[], [], []]
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            t.at 'x' . to_vector . should_equal []
+            t.at 'y' . to_vector . should_equal []
+            t.at 'z' . to_vector . should_equal []
+
+            combined = t.union regular_table
+            combined.at 'x' . to_vector . should_equal [0]
+            combined.at 'y' . to_vector . should_equal [1]
+            combined.at 'z' . to_vector . should_equal [2]
+
+        group_builder.specify "should not be able to create a literal table with no column" <|
+            data.dummy_table.make_table_from_vectors [] [] . should_fail_with Illegal_Argument
+
+        group_builder.specify "should fail if columns are unequal length" <|
+                vecs = [[0, 1, 2], [3, 5], [6, 7, 8]]
+                Test.expect_panic_with (data.dummy_table.make_table_from_vectors vecs []) Assertion_Error
+                vecs2 = [[], [3, 4, 5], [6, 7, 8]]
+                Test.expect_panic_with (data.dummy_table.make_table_from_vectors vecs2 []) Assertion_Error
+
+        if setup.is_database then
+            group_builder.specify "should respect the maximum size" <|
+                cols = ['x', 'y', 'z']
+                max_elems = Database_Table.max_literal_size
+
+                ok_col_length = max_elems / 3
+                ok_vecs = 0.up_to 3 . map (_-> 0.up_to ok_col_length . to_vector)
+                ok_result = data.dummy_table.make_table_from_vectors ok_vecs cols
+                ok_result.read.row_count . should_equal ok_col_length
+
+                too_large_col_length = ok_col_length + 1
+                too_large_vecs = 0.up_to 3 . map (_-> 0.up_to too_large_col_length . to_vector)
+                data.dummy_table.make_table_from_vectors too_large_vecs cols . should_fail_with Illegal_Argument
