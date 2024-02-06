@@ -1,15 +1,11 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.enso.interpreter.bench.Utils;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -33,7 +29,8 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Benchmark)
 public class NamedDefaultedArgumentBenchmarks {
   private static long HUNDRED_MILLION = 100_000_000L;
-  private static final String SUM_TCO_WITH_NAMED_ARGUMENTS_CODE = """
+  private static final String SUM_TCO_WITH_NAMED_ARGUMENTS_CODE =
+      """
 import Standard.Base.Data.Numbers
 main = sumTo ->
     summator = acc -> current ->
@@ -43,7 +40,8 @@ main = sumTo ->
     res
 """;
 
-  private static final String SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE = """
+  private static final String SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE =
+      """
 import Standard.Base.Data.Numbers
 main = sumTo ->
     summator = (acc = 0) -> current ->
@@ -72,7 +70,8 @@ main = sumTo ->
             .build();
 
     this.sumTCOWithNamedArguments = Utils.getMainMethod(context, SUM_TCO_WITH_NAMED_ARGUMENTS_CODE);
-    this.sumTCOWithDefaultedArguments = Utils.getMainMethod(context, SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE);
+    this.sumTCOWithDefaultedArguments =
+        Utils.getMainMethod(context, SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE);
   }
 
   @Benchmark

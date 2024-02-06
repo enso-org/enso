@@ -11,6 +11,7 @@ public class Utils {
 
   /**
    * Returns the main method associated with the given module's code.
+   *
    * @param code The code of the module
    * @return The main method that can be executed.
    */

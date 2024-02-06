@@ -1,15 +1,11 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.enso.interpreter.bench.Utils;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -34,7 +30,8 @@ import org.openjdk.jmh.infra.Blackhole;
 public class AtomBenchmarks {
 
   private static final Long MILLION = 1_000_000L;
-  private static final String MILLION_ELEMENT_LIST = """
+  private static final String MILLION_ELEMENT_LIST =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -42,9 +39,11 @@ public class AtomBenchmarks {
           generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
           res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
           res
-      """.replace("$million", MILLION.toString());
+      """
+          .replace("$million", MILLION.toString());
 
-  private static final String GENERATE_LIST_CODE = """
+  private static final String GENERATE_LIST_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -54,7 +53,8 @@ public class AtomBenchmarks {
           res = generator List.Nil length
           res
       """;
-  private static final String GENERATE_LIST_QUALIFIED_CODE = """
+  private static final String GENERATE_LIST_QUALIFIED_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -64,7 +64,8 @@ public class AtomBenchmarks {
           res = generator List.Nil length
           res
       """;
-  private static final String REVERSE_LIST_CODE = """
+  private static final String REVERSE_LIST_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -76,7 +77,8 @@ public class AtomBenchmarks {
          res = reverser List.Nil list
          res
       """;
-  private static final String REVERSE_LIST_METHODS_CODE = """
+  private static final String REVERSE_LIST_METHODS_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -88,7 +90,8 @@ public class AtomBenchmarks {
           res = list.rev List.Nil
           res
       """;
-  private static final String SUM_LIST_CODE = """
+  private static final String SUM_LIST_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -100,7 +103,8 @@ public class AtomBenchmarks {
          res = summator 0 list
          res
       """;
-  private static final String SUM_LIST_LEFT_FOLD_CODE = """
+  private static final String SUM_LIST_LEFT_FOLD_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -112,7 +116,8 @@ public class AtomBenchmarks {
           res = fold (x -> y -> x + y) 0 list
           res
       """;
-  private static final String SUM_LIST_FALLBACK_CODE = """
+  private static final String SUM_LIST_FALLBACK_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -124,7 +129,8 @@ public class AtomBenchmarks {
           res = summator 0 list
           res
       """;
-  private static final String SUM_LIST_METHODS_CODE = """
+  private static final String SUM_LIST_METHODS_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -136,7 +142,8 @@ public class AtomBenchmarks {
           res = list.sum 0
           res
       """;
-  private static final String MAP_REVERSE_LIST_CODE = """
+  private static final String MAP_REVERSE_LIST_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
@@ -148,7 +155,8 @@ public class AtomBenchmarks {
           res = list.mapReverse (x -> x + 1) List.Nil
           res
       """;
-  private static final String MAP_REVERSE_LIST_CURRY_CODE = """
+  private static final String MAP_REVERSE_LIST_CURRY_CODE =
+      """
       import Standard.Base.Data.List.List
       import Standard.Base.Data.Numbers
 
