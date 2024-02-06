@@ -862,7 +862,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
       updateProjectResponse.status === 'rejected' ||
       (updateProjectResponse.value != null && !responseIsSuccessful(updateProjectResponse.value))
     ) {
-      return this.throw(`Could not update folder '${this.value.title}'.`)
+      return this.throw(`Could not update project '${this.value.title}'.`)
     } else {
       let newValue = this.value
       if (updateProjectResponse.value != null) {
@@ -943,7 +943,7 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
       updateFileResponse.status === 'rejected' ||
       (updateFileResponse.value != null && !responseIsSuccessful(updateFileResponse.value))
     ) {
-      return this.throw(`Could not update folder '${this.value.title}'.`)
+      return this.throw(`Could not update file '${this.value.title}'.`)
     } else {
       return updateAssetResponse.value == null ? this : updateAssetResponse.value
     }
