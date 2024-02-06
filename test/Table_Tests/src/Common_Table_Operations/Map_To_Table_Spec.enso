@@ -59,6 +59,16 @@ add_specs suite_builder setup =
                 vecs2 = [[], [3, 4, 5], [6, 7, 8]]
                 data.dummy_table.make_table_from_vectors vecs2 ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
 
+        group_builder.specify "should be able to create a literal table from a map" <|
+            map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
+            t = data.dummy_table.make_table_from_map map 'k' 'v' . order_by 'v'
+            t.at 'k' . to_vector . should_equal ['x', 'y', 'z']
+            t.at 'v' . to_vector . should_equal [1, 2, 3]
+
+        group_builder.specify "should not be able to create a literal table from an empty map" <|
+            map = Map.empty
+            data.dummy_table.make_table_from_map map 'k' 'v' . should_fail_with Illegal_Argument
+
         if setup.is_database then
             group_builder.specify "should respect the maximum size" <|
                 cols = ['x', 'y', 'z']
