@@ -961,7 +961,7 @@ type Table
 
                 literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
 
-                from_spec = From_Spec.Values column_vectors column_names literal_table_name
+                from_spec = From_Spec.Literal_Values column_vectors column_names literal_table_name
                 context = Context.for_subquery from_spec
 
                 internal_columns = 0.up_to column_vectors.length . map i->

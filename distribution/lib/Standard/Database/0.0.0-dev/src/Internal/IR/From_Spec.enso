@@ -47,7 +47,7 @@ type From_Spec
        - column_names: the names of the literal table's columns,
        - alias: the name by which the table can be referred to in other parts of
          the query.
-    Values (column_vectors : Vector (Vector Any)) (column_names : Vector Text) (alias : Text)
+    Literal_Values (column_vectors : Vector (Vector Any)) (column_names : Vector Text) (alias : Text)
 
     ## PRIVATE
 
