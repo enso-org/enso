@@ -99,8 +99,10 @@ const selectedTag = computed(() => {
 })
 
 const selectedExpression = computed(() => {
-  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
-  return selectedTag.value.expression
+  return WidgetInput.valueRepr(props.input)
+})
+const selectedLabel = computed(() => {
+  return selectedTag.value?.label
 })
 const innerWidgetInput = computed(() => {
   if (props.input.dynamicConfig == null) return props.input
@@ -149,7 +151,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
-      :selectedValue="selectedExpression"
+      :selectedValue="selectedLabel"
       @pointerdown.stop
       @click="selectedIndex = $event"
     />
