@@ -238,6 +238,16 @@ main = Warning.attach "foo" Nothing
   }
 
   @Test
+  public void nothingShouldBeNull() {
+    var src = """
+import Standard.Base.Nothing.Nothing
+main = Nothing
+""";
+    var nothing = TestBase.evalModule(ctx, src);
+    assertThat(nothing.isNull(), is(true));
+  }
+
+  @Test
   public void numbersAreEitherIntegerOrFloat() throws Exception {
     var g = generator();
     var sn =
