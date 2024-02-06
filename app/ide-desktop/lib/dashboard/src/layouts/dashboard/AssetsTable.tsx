@@ -948,13 +948,15 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.newProject: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const prefix = event.templateName ?? 'New Project'
+        const projectNameRegex = new RegExp(`^${prefix} (?<projectIndex>\\d+)$`)
         const projectIndices = siblings
           .map(node => node.item.value)
           .filter(backendModule.assetIsProject)
-          .map(item => /^New Project (?<projectIndex>\d+)$/.exec(item.title))
+          .map(item => projectNameRegex.exec(item.title))
           .map(match => match?.groups?.projectIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-        const projectName = `New Project ${Math.max(0, ...projectIndices) + 1}`
+        const projectName = `${prefix} ${Math.max(0, ...projectIndices) + 1}`
         const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
         const placeholderItem = event.parent.createPlaceholderProject(
           projectName,
