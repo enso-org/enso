@@ -1800,9 +1800,6 @@ lazy val `runtime-benchmarks` =
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= jmh ++ jaxb ++ GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
-        "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Benchmark,
-        "org.scalactic"       %% "scalactic"               % scalacticVersion          % Benchmark,
-        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Benchmark,
         "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Benchmark,
         "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
       ),
