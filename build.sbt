@@ -2018,8 +2018,10 @@ lazy val `runtime-fat-jar` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
-        case PathList(xs @ _*) if xs.last.contains("module-info") =>
+        case PathList("module-info.class") =>
           MergeStrategy.preferProject
+        case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
+          MergeStrategy.discard
         case _ => MergeStrategy.first
       }
     )
