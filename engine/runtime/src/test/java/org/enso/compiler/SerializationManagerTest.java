@@ -18,7 +18,10 @@ import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.Suggestion;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SerializationManagerTest {
 
@@ -91,7 +94,6 @@ public class SerializationManagerTest {
 
     var cachedSuggestions =
         ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
-    // Assert.assertEquals(standardBaseLibrary, cachedSuggestions.getLibraryName());
 
     Supplier<Stream<Suggestion.Constructor>> cachedConstructorSuggestions =
         () ->
