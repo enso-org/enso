@@ -177,16 +177,10 @@ type Filter_Condition
             Is_Nan _ -> handle_nothing x-> (x:Number).is_nan
             Is_Infinite _ -> handle_nothing x-> (x:Number).is_infinite
             Is_Finite _ -> handle_nothing x-> (x:Number).is_finite
-            Is_True _ -> ==True
-            Is_False _ -> ==False
-            Is_Empty _ -> elem -> case elem of
-                Nothing -> True
-                "" -> True
-                _ -> False
-            Not_Empty _ -> elem -> case elem of
-                Nothing -> False
-                "" -> False
-                _ -> True
+            Is_True _ -> b-> (b:Boolean)==True
+            Is_False _ -> b-> (b:Boolean)==False
+            Is_Empty _ -> elem -> elem.is_nothing || (elem : Text)==""
+            Not_Empty _ -> elem -> elem.is_nothing.not && (elem : Text)!=""
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
