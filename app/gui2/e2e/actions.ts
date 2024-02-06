@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 import * as customExpect from './customExpect'
 import * as locate from './locate'
+import { graphNodeByBinding } from './locate'
 
 // =================
 // === goToGraph ===
@@ -12,4 +13,18 @@ export async function goToGraph(page: Page) {
   await expect(page.locator('.App')).toBeVisible()
   // Wait until nodes are loaded.
   await customExpect.toExist(locate.graphNode(page))
+}
+
+// =================
+// === Drag Node ===
+// =================
+
+/// Move node defined by the given binding  by the given x and y.
+export async function dragNodeByBinding(page: Page, nodeBinding: string, x: number, y: number) {
+  const node = graphNodeByBinding(page, nodeBinding)
+  const grabHandle = await node.locator('.grab-handle')
+  await grabHandle.dragTo(grabHandle, {
+    targetPosition: { x, y },
+    force: true,
+  })
 }

@@ -172,3 +172,17 @@ export const sqlVisualization = componentLocator('SqlVisualization')
 export const geoMapVisualization = componentLocator('GeoMapVisualization')
 export const imageBase64Visualization = componentLocator('ImageBase64Visualization')
 export const warningsVisualization = componentLocator('WarningsVisualization')
+
+// === Edge locators ===
+
+export async function edgesFromNodeWithBinding(page: Page, binding: string) {
+  const node = graphNodeByBinding(page, binding).first()
+  const nodeId = await node.getAttribute('data-node-id')
+  return page.locator(`[data-source-node-id="${nodeId}"]`)
+}
+
+export async function edgesToNodeWithBinding(page: Page, binding: string) {
+  const node = graphNodeByBinding(page, binding).first()
+  const nodeId = await node.getAttribute('data-node-id')
+  return page.locator(`[data-target-node-id="${nodeId}"]`)
+}
