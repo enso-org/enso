@@ -1796,6 +1796,8 @@ lazy val `runtime-benchmarks` =
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Benchmark)(Defaults.testSettings),
+      // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
+      commands += WithDebugCommand.withDebug,
       libraryDependencies ++= jmh ++ jaxb ++ GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
         "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Benchmark,
