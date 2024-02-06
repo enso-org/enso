@@ -937,7 +937,7 @@ type Table
     make_table_from_map self map key_column_name value_column_name =
         total_size = map.size * 2
 
-        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else 
+        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Map argument is too large ("+map.size.to_text+" entries): materialize a table into the database instead") else
             keys_and_values = map.to_vector
             self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
@@ -951,7 +951,7 @@ type Table
         total_size = if column_vectors.is_empty && column_vectors.at 0 . is_empty then 0 else
             column_vectors.length * (column_vectors.at 0 . length)
 
-        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else 
+        if total_size > Table.max_literal_size then Error.throw (Illegal_Argument.new "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
             type_mapping = self.connection.dialect.get_type_mapping
 
             values_to_type_ref column_vector =
