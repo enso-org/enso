@@ -77,7 +77,9 @@ make_filter_column source_column filter_condition on_problems =
         Is_In values _ ->
             warn_on_nothing_in_comparison_vector filter_condition values <|
                 source_column.is_in values
-    if filter_condition.action == Filter_Action.Keep then base_column else base_column.not
+    if filter_condition.action == Filter_Action.Keep then base_column else
+        ## We need to fill in the Nothing values and then negate the result.
+        (base_column.fill_nothing False).not
 
 ## Attach a warning if the provided value is `Nothing`.
 warn_on_nothing_in_comparison : Filter_Condition -> Any -> Any -> Any

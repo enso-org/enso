@@ -53,15 +53,21 @@ add_specs suite_builder setup =
             t1.at "ix" . to_vector . should_equal [2, 4]
             t1.at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
+            t.filter "X" (Filter_Condition.Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 12]
             t.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (Filter_Condition.Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (Filter_Condition.Between 4 100 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t2 = t.filter "X" (Filter_Condition.Equal to=100)
             t2 . at "X" . to_vector . should_equal [100]
             t2 . at "ix" . to_vector . should_equal [1]
 
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Equal to=3 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             ## We do not do typechecking at Enso level here, as it is
                DB-dependent if such mixing is allowed, so we will rely on an SQL
@@ -71,7 +77,9 @@ add_specs suite_builder setup =
                 False -> v.should_fail_with SQL_Error
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (Filter_Condition.Equal to=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
+            t.filter "X" (Filter_Condition.Less than=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 3]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 12]
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [12]
@@ -109,13 +117,14 @@ add_specs suite_builder setup =
             if test_selection.is_nan_and_nothing_distinct then
                 t.filter "X" Filter_Condition.Is_Nan . at "ix" . to_vector . should_equal [4]
 
-        group_builder.specify "Not_Equal test cases" pending="Specification needs clarifying, see: https://github.com/enso-org/enso/issues/5241#issuecomment-1480167927" <|
+        group_builder.specify "Not_Equal test cases" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
             t3 . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t3 . at "ix" . to_vector . should_equal [2, 3, 4, 5]
             t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
+            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Expression "[Y]")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
 
         group_builder.specify "by text comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]], ["Y", ["a", "b", "b", "c", "c"]]]
@@ -155,16 +164,20 @@ add_specs suite_builder setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Starts_With "ba") . at "X" . to_vector . should_equal ["bacb", "banana"]
+            t.filter "X" (Filter_Condition.Starts_With "ba" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", Nothing, "nana"]
             t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "banana"]
             t.filter "X" (Filter_Condition.Ends_With "na") . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (Filter_Condition.Ends_With "na" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (Filter_Condition.Contains "ac") . at "X" . to_vector . should_equal ["bacb"]
+            t.filter "X" (Filter_Condition.Contains "ac" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "banana", Nothing, "nana"]
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb"]
 
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["bacb", "banana", Nothing, "nana"]
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) . at "X" . to_vector . should_equal ["nana"]
@@ -182,6 +195,7 @@ add_specs suite_builder setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Like "%an%") . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (Filter_Condition.Like "%an%" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (Filter_Condition.Like "_a%") . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
             t.filter "X" (Filter_Condition.Like "%b") . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Like "nana") . at "X" . to_vector . should_equal ["nana"]
