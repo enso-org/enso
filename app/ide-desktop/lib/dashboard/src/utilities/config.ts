@@ -64,8 +64,10 @@ const CHAT_URLS = {
 /** All possible Stripe API public keys, sorted by environment. */
 const STRIPE_KEYS = {
     npekin: 'pk_test_51O8REgAjUAkYBrsQooU5iMWumr7D4Vf9H2A671A8zXV87VwDOTenDbJx5g3PN9IjgkbK6omxlp01bGfghA3qZSIu00lYsytprU',
-    development: 'pk_test_51Iv1a0FpIovSdxvQBRpzZpfikr7CD6DFWFF8g2ycjut3d9PXD2Jc9I2j3G1DWWgMfaNzzHyXtvUr2GaNkuQayEzu00YHYfKtGC',
-    production: 'pk_test_51Iv3YNB30SZwisesLWKD1KCUmkkOy2Bbq0zwYO56zgSjdIf00Bw39BC1Zvn4PPjq6GHZd8Q8oaR6M0JlC1K9b1f1007cjnwi4e',
+    development:
+        'pk_test_51Iv1a0FpIovSdxvQBRpzZpfikr7CD6DFWFF8g2ycjut3d9PXD2Jc9I2j3G1DWWgMfaNzzHyXtvUr2GaNkuQayEzu00YHYfKtGC',
+    production:
+        'pk_test_51Iv3YNB30SZwisesLWKD1KCUmkkOy2Bbq0zwYO56zgSjdIf00Bw39BC1Zvn4PPjq6GHZd8Q8oaR6M0JlC1K9b1f1007cjnwi4e',
 }
 
 /** All possible configuration options, sorted by environment. */

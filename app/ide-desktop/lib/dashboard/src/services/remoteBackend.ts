@@ -739,9 +739,7 @@ export class RemoteBackend extends backendModule.Backend {
         const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
         const response = await this.get<backendModule.CheckoutSessionStatus>(path)
         if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Could not get checkout session for session ID '${sessionId}'.`
-            )
+            return this.throw(`Could not get checkout session for session ID '${sessionId}'.`)
         } else {
             return await response.json()
         }

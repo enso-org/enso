@@ -310,9 +310,9 @@ export interface Version {
 /** Metadata uniquely describing a payment checkout session. */
 export interface CheckoutSession {
     /** ID of the checkout session, suffixed with a secret value. */
-    clientSecret: string,
+    clientSecret: string
     /** ID of the checkout session. */
-    id: CheckoutSessionId,
+    id: CheckoutSessionId
 }
 
 /** Metadata describing the status of a payment checkout session. */

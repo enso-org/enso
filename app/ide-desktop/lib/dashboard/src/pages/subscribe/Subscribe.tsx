@@ -1,13 +1,13 @@
 /** @file A page in which the currently active payment plan can be changed. */
 import * as React from 'react'
 
-import type * as stripe from '@stripe/stripe-js'
 import * as stripeReact from '@stripe/react-stripe-js'
+import type * as stripe from '@stripe/stripe-js'
 
-import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as config from '#/utilities/config'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as backendModule from '#/services/backend'
+import * as config from '#/utilities/config'
 import * as load from '#/utilities/load'
 
 import Modal from '#/components/Modal'
@@ -52,16 +52,15 @@ export default function Subscribe() {
     // The status of a Checkout Session on the Stripe API. This stores whether or not the Checkout
     // Session is complete (i.e., the user has provided payment information), and if so, whether
     // payment has been confirmed.
-    const [sessionStatus, setSessionStatus] = React.useState<backendModule.CheckoutSessionStatus | null>(null)
+    const [sessionStatus, setSessionStatus] =
+        React.useState<backendModule.CheckoutSessionStatus | null>(null)
     const { backend } = backendProvider.useBackend()
     const toastAndLog = toastAndLogHooks.useToastAndLog()
 
     if (stripePromise == null) {
         stripePromise = load.loadScript('https://js.stripe.com/v3/').then(script => {
             script.remove()
-            return import('@stripe/stripe-js').then(stripe =>
-                stripe.loadStripe(stripeKey)
-            )
+            return import('@stripe/stripe-js').then(stripe => stripe.loadStripe(stripeKey))
         })
     }
 
@@ -84,7 +83,7 @@ export default function Subscribe() {
         } else if (sessionId != null) {
             void (async () => {
                 try {
-                    setSessionStatus((await backend.getCheckoutSession(sessionId)))
+                    setSessionStatus(await backend.getCheckoutSession(sessionId))
                 } catch (error) {
                     toastAndLog(null, error)
                 }
@@ -94,7 +93,7 @@ export default function Subscribe() {
         backend,
         /* should never change */ plan,
         /* should never change */ sessionId,
-        /* should never change */ toastAndLog
+        /* should never change */ toastAndLog,
     ])
 
     return (
@@ -102,55 +101,63 @@ export default function Subscribe() {
             <div
                 data-testid="subscribe-modal"
                 className="flex flex-col gap-2 bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
-                onClick={event => { event.stopPropagation() }}
+                onClick={event => {
+                    event.stopPropagation()
+                }}
             >
                 {stripeKey == null ? (
                     <div>Error: Unable to display subscription page.</div>
-                ) : (sessionStatus == null || sessionStatus.status !== 'complete') ? (<>
-                    <div className="self-center text-xl">{plan != null ? `Upgrade to ${capitalize(plan)}` : 'Upgrade'}</div>
-                    <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
-                        {backendModule.PLANS.map(newPlan => (
-                            <button
-                                key={newPlan}
-                                disabled={plan === newPlan}
-                                type="button"
-                                className="flex-1 grow rounded-full disabled:bg-frame"
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    setPlan(newPlan)
+                ) : sessionStatus == null || sessionStatus.status !== 'complete' ? (
+                    <>
+                        <div className="self-center text-xl">
+                            {plan != null ? `Upgrade to ${capitalize(plan)}` : 'Upgrade'}
+                        </div>
+                        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
+                            {backendModule.PLANS.map(newPlan => (
+                                <button
+                                    key={newPlan}
+                                    disabled={plan === newPlan}
+                                    type="button"
+                                    className="flex-1 grow rounded-full disabled:bg-frame"
+                                    onClick={event => {
+                                        event.stopPropagation()
+                                        setPlan(newPlan)
+                                    }}
+                                >
+                                    {capitalize(newPlan)}
+                                </button>
+                            ))}
+                        </div>
+                        {sessionId && clientSecret && (
+                            <stripeReact.EmbeddedCheckoutProvider
+                                stripe={stripePromise}
+                                options={{
+                                    clientSecret,
+                                    // Above, `sessionId` is updated when the `checkoutSession` is
+                                    // created. This triggers a fetch of the session's `status`. The
+                                    // `status` is not going to be `complete` at that point (unless the
+                                    // user completes the checkout process before the fetch is
+                                    // complete).  So the `status` needs to be fetched again when the
+                                    // `checkoutSession` is updated. This is done by passing a function
+                                    // to `onComplete`.
+                                    onComplete: () => {
+                                        void (async () => {
+                                            try {
+                                                setSessionStatus(
+                                                    await backend.getCheckoutSession(sessionId)
+                                                )
+                                            } catch (error) {
+                                                toastAndLog(null, error)
+                                            }
+                                        })()
+                                    },
                                 }}
                             >
-                                {capitalize(newPlan)}
-                            </button>
-                        ))}
-                    </div>
-                    {sessionId && clientSecret && (
-                        <stripeReact.EmbeddedCheckoutProvider
-                            stripe={stripePromise}
-                            options={{
-                                clientSecret,
-                                // Above, `sessionId` is updated when the `checkoutSession` is
-                                // created. This triggers a fetch of the session's `status`. The
-                                // `status` is not going to be `complete` at that point (unless the
-                                // user completes the checkout process before the fetch is
-                                // complete).  So the `status` needs to be fetched again when the
-                                // `checkoutSession` is updated. This is done by passing a function
-                                // to `onComplete`.
-                                onComplete: () => {
-                                    void (async () => {
-                                        try {
-                                            setSessionStatus((await backend.getCheckoutSession(sessionId)))
-                                        } catch (error) {
-                                            toastAndLog(null, error)
-                                        }
-                                    })()
-                                }
-                            }}
-                        >
-                            <stripeReact.EmbeddedCheckout />
-                        </stripeReact.EmbeddedCheckoutProvider>
-                    )}
-                </>) : (
+                                <stripeReact.EmbeddedCheckout />
+                            </stripeReact.EmbeddedCheckoutProvider>
+                        )}
+                    </>
+                ) : (
                     <div>Successfully upgraded your plan!</div>
                 )}
             </div>
@@ -159,5 +166,5 @@ export default function Subscribe() {
 }
 
 function capitalize(string: string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+    return string.charAt(0).toUpperCase() + string.slice(1)
 }
