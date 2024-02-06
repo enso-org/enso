@@ -141,7 +141,7 @@ export interface WidgetProps<T> {
  * is committed in {@link NodeWidgetTree}.
  */
 export interface WidgetUpdate {
-  edit: MutableModule
+  edit?: MutableModule | undefined
   portUpdate?: {
     value: Ast.Owned | string | undefined
     origin: PortId

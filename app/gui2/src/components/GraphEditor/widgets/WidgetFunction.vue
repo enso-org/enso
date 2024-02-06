@@ -173,10 +173,8 @@ const widgetConfiguration = computed(() => {
 function handleArgUpdate(update: WidgetUpdate): boolean {
   const app = application.value
   if (update.portUpdate && app instanceof ArgumentApplication) {
-    const {
-      edit,
-      portUpdate: { value, origin },
-    } = update
+    const { value, origin } = update.portUpdate
+    const edit = update.edit ?? graph.startEdit()
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
