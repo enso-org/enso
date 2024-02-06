@@ -11,11 +11,6 @@ import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
 
-private
-
-
-
-
 ## PRIVATE
    Write the JUnit XML header.
 wrap_junit_testsuites : Suite_Config -> (StringBuilder|Nothing) -> Any -> Nothing
