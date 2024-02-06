@@ -66,7 +66,7 @@ class ImportResolver(compiler: Compiler) {
                 u.invalidateCache()
               }
             )
-            compiler.ensureParsed(current)
+            compiler.ensureParsed(current, false)
             return analyzeModule(current)
         }
       // put the list of resolved imports in the module metadata

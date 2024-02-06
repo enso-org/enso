@@ -200,7 +200,11 @@ class Compiler(
     */
   def generateDocs(module: Module): Module = {
     initialize()
-    parseModule(module, isGenDocs = true)
+    parseModule(
+      module,
+      irCachingEnabled && !context.isInteractive(module),
+      isGenDocs = true
+    )
     module
   }
 
@@ -244,7 +248,7 @@ class Compiler(
     initialize()
     modules.foreach(m =>
       try {
-        parseModule(m)
+        parseModule(m, irCachingEnabled && !context.isInteractive(m))
       } catch {
         case e: Throwable =>
           context.log(
@@ -286,12 +290,12 @@ class Compiler(
           )
         )
         context.updateModule(module, _.invalidateCache())
-        parseModule(module)
+        parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
           .map(m => {
             if (m.getBindingsMap() == null) {
-              parseModule(m)
+              parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
         runImportsAndExportsResolution(module, generateCode)
@@ -302,7 +306,7 @@ class Compiler(
 
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
-        ensureParsed(module)
+        ensureParsed(module, !context.isInteractive(module))
       }
     }
     requiredModules.foreach { module =>
@@ -482,7 +486,7 @@ class Compiler(
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
     if (module.getBindingsMap() == null) {
-      ensureParsed(module)
+      ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
     }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
@@ -512,7 +516,7 @@ class Compiler(
     * @param module - the scope from which docs are generated.
     */
   def gatherImportStatements(module: Module): Array[String] = {
-    ensureParsed(module)
+    ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
     val importedModules = context.getIr(module).imports.flatMap {
       case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
@@ -535,6 +539,7 @@ class Compiler(
 
   private def parseModule(
     module: Module,
+    useCaches: Boolean,
     isGenDocs: Boolean = false
   ): Unit = {
     context.log(
@@ -544,7 +549,7 @@ class Compiler(
     )
     context.updateModule(module, _.resetScope())
 
-    if (irCachingEnabled && !context.isInteractive(module)) {
+    if (useCaches) {
       if (context.deserializeModule(this, module)) {
         return
       }
@@ -638,6 +643,11 @@ class Compiler(
     * @param module the module to ensure is parsed.
     */
   def ensureParsed(module: Module): Unit = {
+    val useCaches = irCachingEnabled && !context.isInteractive(module)
+    ensureParsed(module, useCaches)
+  }
+
+  def ensureParsed(module: Module, useCaches: Boolean): Unit = {
     if (
       !context
         .getCompilationStage(module)
@@ -645,7 +655,7 @@ class Compiler(
           CompilationStage.AFTER_PARSING
         )
     ) {
-      parseModule(module)
+      parseModule(module, useCaches)
     }
   }
 
