@@ -493,9 +493,7 @@ class Compiler(
         case Some(bindings) =>
           context.updateModule(
             module,
-            u => {
-              u.ir(bindings)
-            }
+            _.ir(bindings)
           )
         case _ =>
       }
