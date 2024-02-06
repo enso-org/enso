@@ -1869,6 +1869,7 @@ lazy val `runtime-benchmarks` =
       }.evaluated
     )
   .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`benchmarks-common`)
 
 
 lazy val `runtime-parser` =
@@ -2292,6 +2293,20 @@ lazy val `distribution-manager` = project
   .dependsOn(cli)
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
+
+
+lazy val `benchmarks-common` =
+  (project in file("lib/java/benchmarks-common"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= GraalVM.modules ++ Seq(
+        "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
+      ),
+    )
+  .dependsOn(`polyglot-api`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
