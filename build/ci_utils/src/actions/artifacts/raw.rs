@@ -22,6 +22,7 @@ use tokio::io::AsyncReadExt;
 
 pub mod endpoints {
     use super::*;
+    use crate::io::retry;
     use reqwest::header::HeaderValue;
     use std::pin::Pin;
     use tokio::io::AsyncRead;
@@ -110,21 +111,21 @@ pub mod endpoints {
     #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
     pub async fn patch_artifact_size(
         json_client: &reqwest::Client,
-        artifact_url: Url,
+        artifact_url: &Url,
         artifact_name: impl AsRef<str>,
         size: usize,
     ) -> Result<PatchArtifactSizeResponse> {
         debug!("Patching the artifact `{}` size.", artifact_name.as_ref());
-        let artifact_url = artifact_url.clone();
-
-        let patch_request = json_client
-            .patch(artifact_url.clone())
-            .query(&[("artifactName", artifact_name.as_ref())]) // OsStr can be passed here, fails runtime
-            .json(&PatchArtifactSize { size });
-
-        // TODO retry
-        let response = patch_request.send().await?;
-        Ok(response.json().await?)
+        let artifact_name = artifact_name.as_ref();
+        retry(async move || {
+            let patch_request = json_client
+                .patch(artifact_url.clone())
+                .query(&[("artifactName", artifact_name)]) // OsStr can be passed here, fails runtime
+                .json(&PatchArtifactSize { size });
+            let response = patch_request.send().await?;
+            Ok(response.json().await?)
+        })
+        .await
     }
 
     pub async fn download_item(
