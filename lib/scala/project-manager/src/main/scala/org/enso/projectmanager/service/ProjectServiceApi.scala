@@ -42,7 +42,10 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @param projectId the project id
     * @return either failure or unit representing success
     */
-  def deleteUserProject(projectId: UUID, projectsDirectory: Option[File]): F[ProjectServiceFailure, Unit]
+  def deleteUserProject(
+    projectId: UUID,
+    projectsDirectory: Option[File]
+  ): F[ProjectServiceFailure, Unit]
 
   /** Renames a project.
     *
