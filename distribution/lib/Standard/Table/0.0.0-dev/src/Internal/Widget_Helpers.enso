@@ -128,7 +128,6 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", col_names]])
     builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", col_names]])
     builder.append (Option "Contains" fqn+".Contains" [["substring", col_names]])
-    builder.append (Option "Not Contains" fqn+".Not_Contains" [["substring", col_names]])
     builder.append (Option "Is Nothing" fqn+".Is_Nothing")
     builder.append (Option "Is Not Nothing" fqn+".Not_Nothing")
     builder.append (Option "Is Finite" fqn+".Is_Finite")
@@ -139,7 +138,6 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Is Empty" fqn+".Is_Empty")
     builder.append (Option "Is Not Empty" fqn+".Not_Empty")
     builder.append (Option "Like" fqn+".Like" [["pattern", col_names]])
-    builder.append (Option "Not Like" fqn+".Not_Like" [["pattern", col_names]])
     builder.append (Option "Is In" fqn+".Is_In")
     builder.append (Option "Not In" fqn+".Not_In")
     Single_Choice builder.to_vector display=display

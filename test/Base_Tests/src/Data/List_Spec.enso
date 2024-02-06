@@ -151,12 +151,6 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         txt.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"].to_list
         txt.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal [].to_list
         txt.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"].to_list
-        txt.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"].to_list
-        txt.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"].to_list
-        txt.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Insensitive) . should_equal ["bbb", "cccc", "ś"].to_list
-        txt.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"].to_list
-        txt.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"].to_list
-        txt.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"].to_list
         txt.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"].to_list
         txt.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Sensitive) . should_equal [].to_list
         txt.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"].to_list
@@ -173,7 +167,6 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         ["abab", "aaabaaaa", "ba"].to_list.filter (Filter_Condition.Like "ba") . should_equal (List.Cons "ba" List.Nil)
         ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "_ba_") . should_equal ["abab"].to_list
         ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"].to_list
-        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Not_Like "%ba%") . should_equal List.Nil
 
         mixed = [1, Nothing, "b"].to_list
         mixed.filter Filter_Condition.Is_Nothing . should_equal (List.Cons Nothing List.Nil)

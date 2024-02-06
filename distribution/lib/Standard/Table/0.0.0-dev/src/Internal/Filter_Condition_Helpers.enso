@@ -60,12 +60,9 @@ make_filter_column source_column filter_condition on_problems =
             source_column.ends_with suffix case_sensitivity
         Contains substring case_sensitivity _ ->
             source_column.contains substring case_sensitivity
-        Not_Contains substring case_sensitivity _ ->
-            source_column.contains substring case_sensitivity . not
         Is_Empty _ -> source_column.is_empty
         Not_Empty _ -> source_column.is_empty.not
         Like pattern _ -> source_column.like pattern
-        Not_Like pattern _ -> source_column.like pattern . not
         # Numeric
         Is_Nan _ -> source_column.is_nan
         Is_Infinite _ -> source_column.is_infinite

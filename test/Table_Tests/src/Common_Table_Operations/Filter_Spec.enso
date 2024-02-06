@@ -163,9 +163,6 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Contains "ac") . at "X" . to_vector . should_equal ["bacb"]
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb"]
-            t.filter "X" (Filter_Condition.Not_Contains "ac") . at "X" . to_vector . should_equal ["abb", "banana", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains "AC" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "banana", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains "AC" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "banana", "nana"]
 
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb"]
@@ -176,14 +173,10 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Contains (t.at "Y")) . at "X" . to_vector . should_equal ["abb", "nana"]
             t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb", "nana"]
             t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) . at "X" . to_vector . should_equal ["bacb", "banana"]
-            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["bacb", "banana"]
-            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana"]
 
             t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "nana"]
             t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana"]
 
         group_builder.specify "by text search (like, not_like)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
@@ -193,9 +186,6 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Like "%b") . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Like "nana") . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (Filter_Condition.Like "[ab]_%") . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
-
-            t.filter "X" (Filter_Condition.Not_Like "%b") . at "X" . to_vector . should_equal ["banana", "nana"]
-            t.filter "Z" (Filter_Condition.Not_Like "[ab]%") . at "Z" . to_vector . should_equal ["aaaaa", "bbbbb"]
 
         group_builder.specify "text operations should also match newlines" <|
             t = table_builder [["X", ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']]]
@@ -208,7 +198,6 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Ends_With '\nb') . at "X" . to_vector . should_equal ['a\n\n\nb', 'a\nb']
             t.filter "X" (Filter_Condition.Ends_With '\n') . at "X" . to_vector . should_equal ['a\n\n\n', 'a\n']
             t.filter "X" (Filter_Condition.Starts_With 'c') . at "X" . to_vector . should_equal ['caa\nbb']
-            t.filter "X" (Filter_Condition.Not_Contains '\nb') . at "X" . to_vector . should_equal ['a\n\n\n', 'a\n']
 
         if test_selection.supports_unicode_normalization then
             t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
@@ -217,7 +206,6 @@ add_specs suite_builder setup =
                 t.filter "X" (Filter_Condition.Contains 'ś') . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
                 t.filter "X" (Filter_Condition.Ends_With 'ś') . at "X" . to_vector . should_equal []
                 t.filter "X" (Filter_Condition.Ends_With 'ć') . at "X" . to_vector . should_equal ['połać', 'połac\u0301']
-                t.filter "X" (Filter_Condition.Not_Contains 'ś') . at "X" . to_vector . should_equal ['X', 'połać', 'połac\u0301']
 
                 # This should be replaced with the disabled test below, once the related bug is fixed.
                 t.filter "X" (Filter_Condition.Like 'ś%') . at "X" . to_vector . should_equal ['śnieg']
@@ -242,24 +230,18 @@ add_specs suite_builder setup =
             check_problem (t.filter "X" (Filter_Condition.Ends_With (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Contains (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Like (t.at "ix")))
-            check_problem (t.filter "X" (Filter_Condition.Not_Like (t.at "ix")))
-            check_problem (t.filter "X" (Filter_Condition.Not_Contains (t.at "ix")))
 
             check_problem (t.filter "X" (Filter_Condition.Equal_Ignore_Case (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Like (Column_Ref.Name "ix")))
-            check_problem (t.filter "X" (Filter_Condition.Not_Like (Column_Ref.Name "ix")))
-            check_problem (t.filter "X" (Filter_Condition.Not_Contains (Column_Ref.Name "ix")))
 
             check_problem (t.filter "ix" (Filter_Condition.Equal_Ignore_Case "A"))
             check_problem (t.filter "ix" (Filter_Condition.Starts_With "A"))
             check_problem (t.filter "ix" (Filter_Condition.Ends_With "A"))
             check_problem (t.filter "ix" (Filter_Condition.Contains "A"))
             check_problem (t.filter "ix" (Filter_Condition.Like "A"))
-            check_problem (t.filter "ix" (Filter_Condition.Not_Like "A"))
-            check_problem (t.filter "ix" (Filter_Condition.Not_Contains "A"))
 
             check_problem (t.filter "ix" Filter_Condition.Is_Empty)
             check_problem (t.filter "ix" Filter_Condition.Not_Empty)
@@ -271,8 +253,6 @@ add_specs suite_builder setup =
             check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Ends_With 42))
             check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Contains 42))
             check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Like 42))
-            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Like 42))
-            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Contains 42))
 
         group_builder.specify "by nulls" <|
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, 1, Nothing, 4]]]

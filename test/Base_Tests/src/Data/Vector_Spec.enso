@@ -232,12 +232,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
         txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Insensitive) . should_equal ["bbb", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
-        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
         txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
@@ -259,7 +253,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter ["abab", "aaabaaaa"] . filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"]
         alter ["aaaa", "bbbbb", "[ab]aaaa"] . filter (Filter_Condition.Like "[ab]%") . should_equal ["[ab]aaaa"]
         alter ["f.txt", "abc.*"] . filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
-        alter ["f.txt", "abc.*"] . filter (Filter_Condition.Not_Like "%.*") . should_equal ["f.txt"]
 
         txt2 = alter ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
         txt2.filter (Filter_Condition.Like 'a_') . should_equal ['a\n']
@@ -270,7 +263,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txt3 = alter ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
         txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
-        txt3.filter (Filter_Condition.Not_Contains 'ś') . should_equal ['X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
         txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
@@ -320,8 +312,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["baaa"]
         txtvec.filter (Filter_Condition.Like "b%a") . should_equal ["baaa"]
-        # Nothing is not included in the negation either
-        txtvec.filter (Filter_Condition.Not_Like "b%a") . should_equal ["abab", "cccc", "BAAA"]
 
         (alter ["a", 2, Nothing, 3]).filter (Filter_Condition.Is_In [Nothing, 2]) . should_equal [2, Nothing]
 
