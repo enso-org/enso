@@ -34,7 +34,10 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
-  const [isValueSubmittable, setIsValueSubmittable] = React.useState(false)
+  const isValueSubmittable = React.useMemo(
+    () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, value),
+    [value]
+  )
   const isSubmittable = name !== '' && isValueSubmittable
 
   return (
@@ -69,12 +72,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           />
         </div>
         <div className="relative">
-          <DataLinkInput
-            dropdownTitle="Type"
-            value={value}
-            setValue={setValue}
-            setIsSubmittable={setIsValueSubmittable}
-          />
+          <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
         <div className="relative flex gap-2">
           <button

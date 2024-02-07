@@ -78,31 +78,16 @@ export interface DataLinkInputProps {
   readonly readOnly?: boolean
   readonly value: NonNullable<unknown> | null
   readonly setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
-  readonly setIsSubmittable: (isSubmittable: boolean) => void
 }
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */
 export default function DataLinkInput(props: DataLinkInputProps) {
   const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
-  const { setValue: setValueRaw, setIsSubmittable: setIsSubmittableRaw } = props
+  const { setValue: setValueRaw } = props
   const { backend } = backendProvider.useBackend()
   const [value, setValue] = React.useState(valueRaw)
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
-  const [isSubmittable, setIsSubmittable] = React.useState(false)
-  const [childSubmittability, setChildSubmittability] = React.useState<boolean[] | null>(null)
   const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
-
-  React.useEffect(() => {
-    if (childSubmittability != null) {
-      setIsSubmittable(childSubmittability.every(submittable => submittable))
-    }
-  }, [childSubmittability])
-
-  React.useEffect(() => {
-    setIsSubmittableRaw(isSubmittable)
-    // `setIsSubmittableRaw` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSubmittable])
 
   React.useEffect(() => {
     setValue(valueRaw)
@@ -159,10 +144,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
               placeholder="Enter text"
               onChange={event => {
-                setIsSubmittable(
-                  event.currentTarget.value !== '' &&
-                    jsonSchema.isMatch(DEFS, schema, event.currentTarget.value)
-                )
                 const newValue: string = event.currentTarget.value
                 setValue(newValue)
               }}
@@ -182,9 +163,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             onChange={event => {
               const newValue: number = event.currentTarget.valueAsNumber
               if (Number.isFinite(newValue)) {
-                setIsSubmittable(
-                  event.currentTarget.value !== '' && jsonSchema.isMatch(DEFS, schema, newValue)
-                )
                 setValue(newValue)
               }
             }}
@@ -203,9 +181,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             onChange={event => {
               const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
               if (Number.isFinite(newValue)) {
-                setIsSubmittable(
-                  event.currentTarget.value !== '' && jsonSchema.isMatch(DEFS, schema, newValue)
-                )
                 setValue(newValue)
               }
             }}
@@ -237,24 +212,19 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               .map(childSchema => ({ key: k, schema: childSchema }))
           }
         )
-        if (childSubmittability == null) {
-          const valueAsObject: Record<string, NonNullable<unknown> | null> =
-            // This is SAFE, as `value` is an untyped object.
-            // eslint-disable-next-line no-restricted-syntax
-            (object.asObject(value) ?? {}) as Record<string, NonNullable<unknown> | null>
-          setChildSubmittability(
-            Array.from(propertyDefinitions, childDefinition =>
-              jsonSchema.isMatch(DEFS, childDefinition.schema, valueAsObject[childDefinition.key])
-            )
-          )
-        }
         return constantValue(schema).length === 1 ? null : (
           <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
-            {propertyDefinitions.map((definition, i) => {
+            {propertyDefinitions.map(definition => {
               const { key, schema: childSchema } = definition
               const isOptional = !requiredProperties.includes(key)
               return constantValue(childSchema).length === 1 ? null : (
-                <div key={key} className="flex flex-wrap items-center">
+                <div
+                  key={key}
+                  className="flex flex-wrap items-center"
+                  {...('description' in childSchema
+                    ? { title: String(childSchema.description) }
+                    : {})}
+                >
                   <div
                     className={`inline-block h-6 leading-170 py-px w-28 whitespace-nowrap ${
                       isOptional ? 'cursor-pointer' : ''
@@ -299,16 +269,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                             : { ...oldValue, [key]: newValue }
                         )
                       }}
-                      setIsSubmittable={isChildSubmittable => {
-                        setChildSubmittability(oldSubmittability =>
-                          Array.from(propertyDefinitions, (childDefinition, j) =>
-                            j === i
-                              ? isChildSubmittable || isOptional
-                              : oldSubmittability?.[j] ??
-                                constantValue(childDefinition.schema).length === 1
-                          )
-                        )
-                      }}
                     />
                   )}
                 </div>
@@ -319,14 +279,12 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       }
       default: {
         // This is a type we don't care about.
-        setIsSubmittable(true)
         return <></>
       }
     }
   } else if ('$ref' in schema) {
     const referencedSchema = jsonSchema.lookupDef(DEFS, schema)
     if (referencedSchema == null) {
-      setIsSubmittable(true)
       return <></>
     } else {
       return (
@@ -336,7 +294,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           schema={referencedSchema}
           value={value}
           setValue={setValue}
-          setIsSubmittable={setIsSubmittable}
         />
       )
     }
@@ -371,7 +328,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             setSelectedChildIndex(index)
             const newConstantValue = constantValue(childSchema, true)
             setValue(newConstantValue[0] ?? null)
-            setIsSubmittable(newConstantValue.length === 1)
           }}
         />
       )
@@ -392,7 +348,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               schema={selectedChildSchema}
               value={value}
               setValue={setValue}
-              setIsSubmittable={setIsSubmittable}
             />
           )}
         </div>
@@ -412,15 +367,6 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               schema={childSchema}
               value={value}
               setValue={setValue}
-              setIsSubmittable={isChildSubmittable => {
-                setChildSubmittability(oldSubmittability =>
-                  Array.from(childSchemas, (otherChildSchema, j) =>
-                    j === i
-                      ? isChildSubmittable
-                      : oldSubmittability?.[j] ?? constantValue(otherChildSchema).length === 1
-                  )
-                )
-              }}
             />
           ))}
         </div>

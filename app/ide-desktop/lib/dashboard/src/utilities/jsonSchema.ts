@@ -283,7 +283,7 @@ export function isMatch(
         // https://json-schema.org/understanding-json-schema/reference/string
         if (typeof value !== 'string') {
           result = false
-        } else if (options.partial === true && value === '') {
+        } else if (partial && value === '') {
           result = true
         } else if (
           'minLength' in schema &&
@@ -324,7 +324,7 @@ export function isMatch(
         // https://json-schema.org/understanding-json-schema/reference/numeric
         if (typeof value !== 'number') {
           result = false
-        } else if (options.partial === true && value === 0) {
+        } else if (partial && value === 0) {
           result = true
         } else if (schema.type === 'integer' && !Number.isInteger(value)) {
           result = false

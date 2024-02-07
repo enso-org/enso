@@ -85,6 +85,7 @@
         "type": { "title": "Type", "const": "S3", "type": "string" },
         "uri": {
           "title": "URI",
+          "description": "Must start with \"s3://\".",
           "type": "string",
           "pattern": "^s3://[\\w.~-]+/[/\\w.~-]+$"
         },
@@ -99,7 +100,12 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "HTTP", "type": "string" },
-        "uri": { "title": "URI", "type": "string" },
+        "uri": {
+          "title": "URI",
+          "description": "Must start with \"http://\" or \"https://\".",
+          "type": "string",
+          "pattern": "^https?://[\\w.~-]+/?.*$"
+        },
         "method": { "title": "Method", "const": "GET", "type": "string" }
       },
       "required": ["type", "uri", "method"]
@@ -132,9 +138,18 @@
           "const": "delimited",
           "type": "string"
         },
-        "delimiter": { "title": "Delimiter", "type": "string" },
+        "delimiter": {
+          "title": "Delimiter",
+          "description": "Must not be empty.",
+          "type": "string",
+          "minLength": 1
+        },
         "encoding": { "title": "Encoding", "const": "utf8", "type": "string" },
-        "headers": { "title": "Headers", "type": "boolean" }
+        "headers": {
+          "title": "Headers",
+          "description": "Whether a header row containing column names is present.",
+          "type": "boolean"
+        }
       },
       "required": ["type", "subType", "delimiter"]
     },
