@@ -2,7 +2,6 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { useResizeObserver } from '@/composables/events'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   functionCallConfiguration,
@@ -134,10 +133,6 @@ watch(selectedIndex, (_index) => {
   })
   showDropdownWidget.value = false
 })
-
-const childWidgetRef = ref<HTMLElement>()
-const childSize = useResizeObserver(childWidgetRef)
-const arrowPos = computed(() => (childSize.value != null ? childSize.value.x / 2 : 0))
 </script>
 
 <script lang="ts">
@@ -154,7 +149,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <template>
   <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
-    <SvgIcon name="arrow_right_head_only" class="arrow" :style="{ left: arrowPos }" />
+    <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"
       class="dropdownContainer"
@@ -176,6 +171,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 .arrow {
   position: absolute;
   bottom: -6px;
-  rotate: 90deg;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
 }
 </style>
