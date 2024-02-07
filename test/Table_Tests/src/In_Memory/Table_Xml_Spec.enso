@@ -215,6 +215,16 @@ add_specs suite_builder =
                 + '  </row>\r\n'
                 + '</root>'
             r . should_equal e 
+        group_builder.specify "Illegal xml names are cleaned up in root_name and row_name" <|
+            t = data.table . take 1
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title" "the library" "22book"
+            e = "<the_library>"
+                + '<_22book Author="Charles Dickens" Price="9.99">'
+                    + "A Tale Of Two Cities"
+                    + "<Year>1859</Year>"
+                + "</_22book>"
+                + "</the_library>"
+            (depretty r).should_equal e
         group_builder.specify "Illegal xml names are cleaned up" <|
             numeric_column_name = ["1", [10]]
             illegal_column_name = ["Bad <chars> & symbols", [1]]
@@ -302,8 +312,6 @@ add_specs suite_builder =
 
 
 # embedded xml gets escaped
-# errors if wrong types passed in
-# escape bad chars in row name and root names
        
 main =
     suite = Test.build suite_builder->

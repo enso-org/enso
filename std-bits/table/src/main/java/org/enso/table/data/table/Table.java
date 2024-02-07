@@ -506,12 +506,12 @@ public class Table {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document doc = docBuilder.newDocument();
-        Element rootElement = doc.createElement(root_name.isEmpty() ? "root" : root_name);
+        Element rootElement = doc.createElement(root_name.isEmpty() ? "root" : makeXmlTagNameLegal(root_name));
         doc.appendChild(rootElement);
 
         Context context = Context.getCurrent();
         for (int row = 0; row < rowCount; row++) {
-            Element rowElement = doc.createElement(row_name.isEmpty() ? "row" : row_name);
+            Element rowElement = doc.createElement(row_name.isEmpty() ? "row" : makeXmlTagNameLegal(row_name));
             if (value_Column != null) {
                 var item = value_Column.getStorage().getItemBoxed(row);
                 if (item != null) {
