@@ -408,6 +408,7 @@ class Compiler(
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
+            generateCode &&
             irCachingEnabled && !context.wasLoadedFromCache(module)
           if (
             shouldStoreCache && !hasErrors(module) &&
