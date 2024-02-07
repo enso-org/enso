@@ -7,7 +7,7 @@ import Standard.Base.Errors.Common.Type_Error
 # pretty printed xml actually makes the tests less pretty 
 # so all but one tests depretty the xml before comparing
 depretty xmlText = 
-    xmlText.replace (Regex.compile "\r\n\s*") ""
+    xmlText.replace (Regex.compile "(\r\n|\n)\s*") ""
 
 type Data
     #   | Title                  | Author              | Price | Year | Last Borrowed
@@ -40,147 +40,159 @@ add_specs suite_builder =
         group_builder.specify "if no columns are specified all fields become child elements" <|
             t = data.table . select_columns ['Title', 'Year']
             r = t.to_xml
-            e = "<Table>"
-                + "<Row>"
-                    + "<Title>A Tale Of Two Cities</Title>"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Title>The Great Gatsby</Title>"
-                    + "<Year>1925</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Title>The Catcher In The Rye</Title>"
-                    + "<Year>1951</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Title>The Grapes Of Wrath</Title>"
-                    + "<Year>1939</Year>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row>
+                    <Title>A Tale Of Two Cities</Title>
+                    <Year>1859</Year>
+                  </Row>
+                  <Row>
+                    <Title>The Great Gatsby</Title>
+                    <Year>1925</Year>
+                  </Row>
+                  <Row>
+                    <Title>The Catcher In The Rye</Title>
+                    <Year>1951</Year>
+                  </Row>
+                  <Row>
+                    <Title>The Grapes Of Wrath</Title>
+                    <Year>1939</Year>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Single column as element" <|
             t = data.table . take 4
             r = t.to_xml ["Year"]
-            e = "<Table>"
-                + "<Row>"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Year>1925</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Year>1951</Year>"
-                + "</Row>"
-                + "<Row>"
-                    + "<Year>1939</Year>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row>
+                    <Year>1859</Year>
+                  </Row>
+                  <Row>
+                    <Year>1925</Year>
+                  </Row>
+                  <Row>
+                    <Year>1951</Year>
+                  </Row>
+                  <Row>
+                    <Year>1939</Year>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Single column as attribute" <|
             t = data.table . take 4
             r = t.to_xml [] ["Year"]
-            e = "<Table>"
-                + '<Row Year="1859"/>'
-                + '<Row Year="1925"/>'
-                + '<Row Year="1951"/>'
-                + '<Row Year="1939"/>'
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Year="1859"/>
+                  <Row Year="1925"/>
+                  <Row Year="1951"/>
+                  <Row Year="1939"/>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Single column as value" <|
             t = data.table . take 4
             r = t.to_xml [] [] "Year"
-            e = "<Table>"
-                + "<Row>1859</Row>"
-                + "<Row>1925</Row>"
-                + "<Row>1951</Row>"
-                + "<Row>1939</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row>1859</Row>
+                  <Row>1925</Row>
+                  <Row>1951</Row>
+                  <Row>1939</Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Different fields can be used as attributes, elements and value" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title"
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "</Table>"
-           (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </Row>
+                </Table>
+           (depretty r).should_equal (depretty e)
         group_builder.specify "Can use indexes to specify columns" <|
             t = data.table . take 1
             r = t.to_xml [3] [1, 2] 0
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Can use regex to specify columns for element and attribute" <|
             t = data.table . take 1
             r = t.to_xml (Regex.compile ".*e") (Regex.compile ".*a.*") "Author"
-            e = '<Table>'
-                + '<Row Last_Borrowed="1999-01-02T03:40Z[Europe/London]" Year="1859">'
-                    + 'Charles Dickens'
-                    + '<Title>A Tale Of Two Cities</Title>'
-                    + '<Price>9.99</Price>'
-                + '</Row>'
-                + '</Table>'
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Last_Borrowed="1999-01-02T03:40Z[Europe/London]" Year="1859">
+                    Charles Dickens
+                    <Title>A Tale Of Two Cities</Title>
+                    <Price>9.99</Price>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "The same fields can be used as attributes, elements and value" <|
             t = data.table . take 1
             r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "Charles Dickens"
-                    + "<Author>Charles Dickens</Author>"
-                    + "<Price>9.99</Price>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    Charles Dickens
+                    <Author>Charles Dickens</Author>
+                    <Price>9.99</Price>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "If a field is specified duplicate times as an attribute or element it is only included once" <|
             t = data.table . take 1
             r = t.to_xml ["Author", "Price", "Author"] ["Author", "Price", "Price"] "Author"
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "Charles Dickens"
-                    + "<Author>Charles Dickens</Author>"
-                    + "<Price>9.99</Price>"
-                + "</Row>"
-                + "</Table>"
-           (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    Charles Dickens
+                    <Author>Charles Dickens</Author>
+                    <Price>9.99</Price>
+                  </Row>
+                </Table>
+           (depretty r).should_equal (depretty e)
         group_builder.specify "Root and Row tags can be set" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title" "library" "book"
-            e = "<library>"
-                + '<book Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</book>"
-                + "</library>"
-            (depretty r).should_equal e
+            e = '''
+                <library>
+                  <book Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </book>
+                </library>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Will warn if not all incoming columns specified" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title"
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
             Problems.expect_warning (Unexpected_Extra_Columns.Warning ["Last Borrowed"]) r
         group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Ignore
-            e = "<Table>"
-                + '<Row Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</Row>"
-                + "</Table>"
-           (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </Row>
+                </Table>
+           (depretty r).should_equal (depretty e)
             Problems.assume_no_problems r
         group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
             t = data.table
@@ -218,13 +230,14 @@ add_specs suite_builder =
         group_builder.specify "Illegal xml names are cleaned up in root_name and row_name" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title" "the library" "22book"
-            e = "<the_library>"
-                + '<_22book Author="Charles Dickens" Price="9.99">'
-                    + "A Tale Of Two Cities"
-                    + "<Year>1859</Year>"
-                + "</_22book>"
-                + "</the_library>"
-            (depretty r).should_equal e
+            e = '''
+                <the_library>
+                  <_22book Author="Charles Dickens" Price="9.99">
+                    A Tale Of Two Cities
+                    <Year>1859</Year>
+                  </_22book>
+                </the_library>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Illegal xml names are cleaned up" <|
             numeric_column_name = ["1", [10]]
             illegal_column_name = ["Bad <chars> & symbols", [1]]
@@ -234,14 +247,15 @@ add_specs suite_builder =
             # 0 | 10 | 1                     | 1999-01-02 03:40:00Z[Europe/London]
             t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
             r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
-            e = "<Table>"
-                + '<Row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40Z[Europe/London]" _1="10">'
-                    + "<_1>10</_1>"
-                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
-                    + "<Last_Borrowed>1999-01-02T03:40Z[Europe/London]</Last_Borrowed>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40Z[Europe/London]" _1="10">
+                    <_1>10</_1>
+                    <Bad__chars____symbols>1</Bad__chars____symbols>
+                    <Last_Borrowed>1999-01-02T03:40Z[Europe/London]</Last_Borrowed>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Empty strings are empty attributes/elements. Nothing values omit the entire attribute/element" <|
             desc_column = ["desc", ["Col1 and Col2 both have values", "Col1 has value, Col2 Nothing", "Col1 empty string, Col2 has value", "Col1 and Col2 both blank string", "Col1 and Col2 both Nothing" ]]
             col1 = ["Col1", ["Value1", "Value2", "", "", Nothing]]
@@ -255,27 +269,28 @@ add_specs suite_builder =
             # 4 | Col1 and Col2 both Nothing        | Nothing | Nothing
             t = Table.new [desc_column, col1, col2]
             r = t.to_xml ["Col1", "Col2"] ["desc", "Col1", "Col2"] "Col1"
-            e = "<Table>"
-                + '<Row Col1="Value1" Col2="Value1" desc="Col1 and Col2 both have values">'
-                    + "Value1"
-                    + "<Col1>Value1</Col1>"
-                    + "<Col2>Value1</Col2>"
-                + "</Row>"
-                + '<Row Col1="Value2" desc="Col1 has value, Col2 Nothing">'
-                    + "Value2"
-                    + "<Col1>Value2</Col1>"
-                + "</Row>"
-                + '<Row Col1="" Col2="Value2" desc="Col1 empty string, Col2 has value">'
-                    + "<Col1/>"
-                    + "<Col2>Value2</Col2>"
-                + "</Row>"
-                + '<Row Col1="" Col2="" desc="Col1 and Col2 both blank string">'
-                    + "<Col1/>"
-                    + "<Col2/>"
-                + "</Row>"
-                + '<Row desc="Col1 and Col2 both Nothing"/>'
-                + "</Table>"           
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row Col1="Value1" Col2="Value1" desc="Col1 and Col2 both have values">
+                    Value1
+                    <Col1>Value1</Col1>
+                    <Col2>Value1</Col2>
+                  </Row>
+                  <Row Col1="Value2" desc="Col1 has value, Col2 Nothing">
+                    Value2
+                    <Col1>Value2</Col1>
+                  </Row>
+                  <Row Col1="" Col2="Value2" desc="Col1 empty string, Col2 has value">
+                    <Col1/>
+                    <Col2>Value2</Col2>
+                  </Row>
+                  <Row Col1="" Col2="" desc="Col1 and Col2 both blank string">
+                    <Col1/>
+                    <Col2/>
+                  </Row>
+                  <Row desc="Col1 and Col2 both Nothing"/>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "Panic if wrong types passed in element_columns" <|
             t = data.table
             r = Panic.recover Any (t.to_xml 1.23)
@@ -316,17 +331,18 @@ add_specs suite_builder =
             # 1 | 👩‍🔬
             t = Table.new [unicode_column]
             r = t.to_xml ["unicode"] ["unicode"] "unicode"
-            e = "<Table>"
-                + '<Row unicode="\u00A9">'
-                    + '\u00A9'
-                    + '<unicode>\u00A9</unicode>'
-                + "</Row>"
-                + '<Row unicode="👩‍🔬">'
-                    + "👩‍🔬"
-                    + "<unicode>👩‍🔬</unicode>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e
+            e = '''
+                <Table>
+                  <Row unicode="\u00A9">
+                    \u00A9
+                    <unicode>\u00A9</unicode>
+                  </Row>
+                  <Row unicode="👩‍🔬">
+                    👩‍🔬
+                    <unicode>👩‍🔬</unicode>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)
         group_builder.specify "xml or special characters get escaped" <|
             xml_column = ["xml", ["</Table>", "<tag>12</tag>", '<r><c v="1"></c></r>']]
             special_chars_column = ["special", ["<", "&>", "'"]]
@@ -337,24 +353,25 @@ add_specs suite_builder =
             # 2 | <r><c v="1"></c></r> | '
             t = Table.new [xml_column, special_chars_column]
             r = t.to_xml ["xml", "special"] ["xml", "special"] "xml"
-            e = "<Table>"
-                + '<Row special="&lt;" xml="&lt;/Table>">'
-                    + "&lt;/Table>"
-                    + "<xml>&lt;/Table></xml>"
-                    + "<special>&lt;</special>"
-                + "</Row>"
-                + '<Row special="&amp;>" xml="&lt;tag>12&lt;/tag>">'
-                    + "&lt;tag>12&lt;/tag>"
-                    + "<xml>&lt;tag>12&lt;/tag></xml>"
-                    + "<special>&amp;></special>"
-                + "</Row>"
-                + '<Row special="\'" xml="&lt;r>&lt;c v=&quot;1&quot;>&lt;/c>&lt;/r>">'
-                    + '&lt;r>&lt;c v="1">&lt;/c>&lt;/r>'
-                    + '<xml>&lt;r>&lt;c v="1">&lt;/c>&lt;/r></xml>'
-                    + "<special>'</special>"
-                + "</Row>"
-                + "</Table>"
-            (depretty r).should_equal e       
+            e = '''
+                <Table>
+                  <Row special="&lt;" xml="&lt;/Table>">
+                    &lt;/Table>
+                    <xml>&lt;/Table></xml>
+                    <special>&lt;</special>
+                  </Row>
+                  <Row special="&amp;>" xml="&lt;tag>12&lt;/tag>">
+                    &lt;tag>12&lt;/tag>
+                    <xml>&lt;tag>12&lt;/tag></xml>
+                    <special>&amp;></special>
+                  </Row>
+                  <Row special="'" xml="&lt;r>&lt;c v=&quot;1&quot;>&lt;/c>&lt;/r>">
+                    &lt;r>&lt;c v="1">&lt;/c>&lt;/r>
+                    <xml>&lt;r>&lt;c v="1">&lt;/c>&lt;/r></xml>
+                    <special>'</special>
+                  </Row>
+                </Table>
+            (depretty r).should_equal (depretty e)       
    
 main =
     suite = Test.build suite_builder->
