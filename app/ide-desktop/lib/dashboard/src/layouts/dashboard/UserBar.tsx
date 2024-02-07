@@ -38,7 +38,7 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const self =
@@ -54,7 +54,7 @@ export default function UserBar(props: UserBarProps) {
     setProjectAsset != null &&
     self != null
   const shouldShowInviteButton =
-    backend.type === backendModule.BackendType.remote && !shouldShowShareButton
+    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
   return (
     <div className="flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
       <Button
