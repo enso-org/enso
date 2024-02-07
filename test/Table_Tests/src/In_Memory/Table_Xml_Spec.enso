@@ -102,16 +102,16 @@ add_specs suite_builder =
                 + '<row Year="1939"/>'
                 + "</root>"
             r . should_equal e
-#        group_builder.specify "Single column as value" <|
-#            t = data.table . take 4
-#            r = t.to_xml [] [] "Year"
-#            e = "<root>"
-#                + "<row>1859</row>"
-#                + "<row>1925</row>"
-#                + "<row>1951</row>"
-#                + "<row>1939</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "Single column as value" <|
+            t = data.table . take 4
+            r = t.to_xml [] [] "Year"
+            e = "<root>"
+                + "<row>1859</row>"
+                + "<row>1925</row>"
+                + "<row>1951</row>"
+                + "<row>1939</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "Different fields can be used as attributes, elements and value" <|
 #            t = data.table . take 1
 #            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
