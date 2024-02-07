@@ -74,24 +74,24 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             r . should_equal e
-#        group_builder.specify "Single column as element" <|
-#            t = data.table . take 4
-#            r = t.to_xml ["Year"]
-#            e = "<root>"
-#                + "<row>"
-#                    + "<Year>1859</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Year>1925</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Year>1951</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Year>1939</Year>"
-#                + "</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "Single column as element" <|
+            t = data.table . take 4
+            r = t.to_xml ["Year"]
+            e = "<root>"
+                + "<row>"
+                    + "<Year>1859</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Year>1925</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Year>1951</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Year>1939</Year>"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "Single column as attribute" <|
 #            t = data.table . take 4
 #            r = t.to_xml [] ["Year"]

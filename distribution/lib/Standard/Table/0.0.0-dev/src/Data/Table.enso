@@ -2615,11 +2615,8 @@ type Table
     
     to_xml self (element_columns = self.column_names) (on_problems:Problem_Behavior=Report_Warning) -> Text =
         columns_helper = self.columns_helper
-        unique = self.column_naming_helper.create_unique_name_strategy
         problem_builder = Problem_Builder.new error_on_missing_columns=True
-
         id_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
-
         java_data = id_columns.map .java_column
 
         Java_Table.to_xmlimpl java_data
