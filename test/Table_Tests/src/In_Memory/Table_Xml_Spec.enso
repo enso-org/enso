@@ -171,23 +171,23 @@ add_specs suite_builder =
             t = data.table
             r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
             r.should_fail_with (No_Such_Column.Error "Not In Table")
-#        group_builder.specify "Illegal xml names are cleaned up" <|
-#            numeric_column_name = ["1", [10]]
-#            illegal_column_name = ["Bad <chars> & symbols", [1]]
-#            last_borrowed = ["Last Borrowed", [Date_Time.new 1999 1 2 3 40]]
-#            #   | 1  | Bad <chars> & symbols | Last Borrowed
-#            #---+----+-----------------------+-------------------------------------
-#            # 0 | 10 | 1                     | 1999-01-02 03:40:00Z[Europe/London]
-#            t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
-#            r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
-#            e = "<root>"
-#                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40:00Z" _1="10">'
-#                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
-#                    + "<Last_Borrowed>1999-01-02T03:40:00Z</Last_Borrowed>"
-#                    + "<_1>10</_1>"
-#                + "</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "Illegal xml names are cleaned up" <|
+            numeric_column_name = ["1", [10]]
+            illegal_column_name = ["Bad <chars> & symbols", [1]]
+            last_borrowed = ["Last Borrowed", [Date_Time.new 1999 1 2 3 40]]
+            #   | 1  | Bad <chars> & symbols | Last Borrowed
+            #---+----+-----------------------+-------------------------------------
+            # 0 | 10 | 1                     | 1999-01-02 03:40:00Z[Europe/London]
+            t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
+            r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
+            e = "<root>"
+                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40:00Z" _1="10">'
+                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
+                    + "<Last_Borrowed>1999-01-02T03:40:00Z</Last_Borrowed>"
+                    + "<_1>10</_1>"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "Empty strings are empty attributes/elements. Nothing values omit the entire attribute/element" <|
 #            desc_column = ["desc", ["Col1 and Col2 both have values", "Col1 has value, Col2 Nothing", "Col1 empty string, Col2 has value", "Col1 and Col2 both blank string", "Col1 and Col2 both Nothing" ]]
 #            col1 = ["Col1", ["Value1", "Value2", "", "", Nothing]]
