@@ -291,6 +291,7 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-tests`,
+    `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
     `runtime-language-epb`,
@@ -321,6 +322,7 @@ lazy val enso = (project in file("."))
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
+    `benchmarks-common`,
     `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
