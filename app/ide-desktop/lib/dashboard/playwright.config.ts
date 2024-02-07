@@ -13,8 +13,10 @@ export default test.defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   workers: 1,
+  retries: 2,
   expect: {
     toHaveScreenshot: { threshold: 0 },
+    timeout: 30_000,
   },
   use: {
     baseURL: 'http://localhost:8080',

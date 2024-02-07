@@ -23,16 +23,16 @@ import * as listen from '#/authentication/listen'
  * The values in this object are not secret, and can be swapped out for testing values to avoid
  * creating authenticated users in the production environment. */
 export interface AmplifyConfig {
-  region: string
-  userPoolId: string
-  userPoolWebClientId: string
-  urlOpener: ((url: string, redirectUrl: string) => void) | null
-  saveAccessToken: ((accessToken: string | null) => void) | null
-  domain: string
-  scope: string[]
-  redirectSignIn: string
-  redirectSignOut: string
-  responseType: string
+  readonly region: string
+  readonly userPoolId: string
+  readonly userPoolWebClientId: string
+  readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
+  readonly saveAccessToken: ((accessToken: string | null) => void) | null
+  readonly domain: string
+  readonly scope: string[]
+  readonly redirectSignIn: string
+  readonly redirectSignOut: string
+  readonly responseType: string
 }
 
 // ===========================
@@ -41,25 +41,25 @@ export interface AmplifyConfig {
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
-  urlOpener?: (url: string, redirectUrl: string) => void
+  readonly urlOpener?: (url: string, redirectUrl: string) => void
 }
 
 /** OAuth configuration for a {@link NestedAmplifyConfig}. */
 interface OauthAmplifyConfig {
-  options: OauthAmplifyConfigOptions
-  domain: string
-  scope: string[]
-  redirectSignIn: string
-  redirectSignOut: string
-  responseType: string
+  readonly options: OauthAmplifyConfigOptions
+  readonly domain: string
+  readonly scope: string[]
+  readonly redirectSignIn: string
+  readonly redirectSignOut: string
+  readonly responseType: string
 }
 
 /** Same as {@link AmplifyConfig}, but in a format recognized by the AWS Amplify library. */
 export interface NestedAmplifyConfig {
-  region: string
-  userPoolId: string
-  userPoolWebClientId: string
-  oauth: OauthAmplifyConfig
+  readonly region: string
+  readonly userPoolId: string
+  readonly userPoolWebClientId: string
+  readonly oauth: OauthAmplifyConfig
 }
 
 /** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
@@ -89,15 +89,15 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
 /** Configuration for the authentication service. */
 export interface AuthConfig {
   /** Logger for the authentication service. */
-  logger: loggerProvider.Logger
+  readonly logger: loggerProvider.Logger
   /** Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows. */
-  supportsDeepLinks: boolean
+  readonly supportsDeepLinks: boolean
   /** Function to navigate to a given (relative) URL.
    *
    * Used to redirect to pages like the password reset page with the query parameters set in the
    * URL (e.g., `?verification_code=...`). */
-  navigate: (url: string) => void
+  readonly navigate: (url: string) => void
 }
 
 // ===================
@@ -107,9 +107,9 @@ export interface AuthConfig {
 /** API for the authentication service. */
 export interface AuthService {
   /** @see {@link cognitoModule.Cognito}. */
-  cognito: cognitoModule.Cognito
+  readonly cognito: cognitoModule.Cognito
   /** @see {@link listen.ListenFunction}. */
-  registerAuthEventListener: listen.ListenFunction
+  readonly registerAuthEventListener: listen.ListenFunction
 }
 
 /** Create an instance of the authentication service.

@@ -36,9 +36,9 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 /** Mandatory build options. */
 export interface Arguments {
   /** Path where bundled files are output. */
-  outputPath: string
+  readonly outputPath: string
   /** `true` if in development mode (live-reload), `false` if in production mode. */
-  devMode: boolean
+  readonly devMode: boolean
 }
 
 /** Get arguments from the environment. */

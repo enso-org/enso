@@ -87,22 +87,22 @@ export enum BackendType {
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
-  id: UserOrOrganizationId
-  name: string
-  email: EmailAddress
+  readonly id: UserOrOrganizationId
+  readonly name: string
+  readonly email: EmailAddress
   /** A URL. */
-  profilePicture: string | null
+  readonly profilePicture: string | null
   /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
    * `usersMe` will not work. */
-  isEnabled: boolean
-  rootDirectoryId: DirectoryId
+  readonly isEnabled: boolean
+  readonly rootDirectoryId: DirectoryId
 }
 
 /** A `Directory` returned by `createDirectory`. */
 export interface CreatedDirectory {
-  id: DirectoryId
-  parentId: DirectoryId
-  title: string
+  readonly id: DirectoryId
+  readonly parentId: DirectoryId
+  readonly title: string
 }
 
 /** Possible states that a project can be in. */
@@ -123,21 +123,21 @@ export enum ProjectState {
 
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
-  type: ProjectState
+  readonly type: ProjectState
   /* eslint-disable @typescript-eslint/naming-convention */
-  volume_id: string
-  instance_id?: string
-  execute_async?: boolean
-  address?: string
-  security_group_id?: string
-  ec2_id?: string
-  ec2_public_ip_address?: string
-  current_session_id?: string
-  opened_by?: EmailAddress
+  readonly volume_id: string
+  readonly instance_id?: string
+  readonly execute_async?: boolean
+  readonly address?: string
+  readonly security_group_id?: string
+  readonly ec2_id?: string
+  readonly ec2_public_ip_address?: string
+  readonly current_session_id?: string
+  readonly opened_by?: EmailAddress
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
   [ProjectState.openInProgress]: true,
@@ -150,111 +150,111 @@ export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
-  organizationId: string
-  projectId: ProjectId
-  name: string
+  readonly organizationId: string
+  readonly projectId: ProjectId
+  readonly name: string
 }
 
 /** A `Project` returned by `createProject`. */
 export interface CreatedProject extends BaseProject {
-  state: ProjectStateType
-  packageName: string
+  readonly state: ProjectStateType
+  readonly packageName: string
 }
 
 /** A `Project` returned by the `listProjects` endpoint. */
 export interface ListedProjectRaw extends CreatedProject {
-  address?: Address
+  readonly address?: Address
 }
 
 /** A `Project` returned by `listProjects`. */
 export interface ListedProject extends CreatedProject {
-  binaryAddress: Address | null
-  jsonAddress: Address | null
+  readonly binaryAddress: Address | null
+  readonly jsonAddress: Address | null
 }
 
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject extends BaseProject {
-  ami: Ami | null
-  ideVersion: VersionNumber | null
-  engineVersion: VersionNumber | null
+  readonly ami: Ami | null
+  readonly ideVersion: VersionNumber | null
+  readonly engineVersion: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  ide_version: VersionNumber | null
+  readonly ide_version: VersionNumber | null
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  engine_version: VersionNumber | null
+  readonly engine_version: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  ideVersion: VersionNumber | null
-  engineVersion: VersionNumber | null
-  openedBy?: EmailAddress
+  readonly ideVersion: VersionNumber | null
+  readonly engineVersion: VersionNumber | null
+  readonly openedBy?: EmailAddress
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface BackendProject extends Project {
   /** This must not be null as it is required to determine the base URL for backend assets. */
-  ideVersion: VersionNumber
+  readonly ideVersion: VersionNumber
 }
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
-  project: Project
-  projectAsset: ProjectAsset
+  readonly project: Project
+  readonly projectAsset: ProjectAsset
   // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
-  setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
-  backendType: BackendType
-  accessToken: string | null
+  readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
+  readonly backendType: BackendType
+  readonly accessToken: string | null
 }
 
 /** Metadata describing an uploaded file. */
 export interface File {
-  fileId: FileId
-  fileName: string | null
-  path: S3FilePath
+  readonly fileId: FileId
+  readonly fileName: string | null
+  readonly path: S3FilePath
 }
 
 /** Metadata uniquely identifying an uploaded file. */
 export interface FileInfo {
   /* TODO: Should potentially be S3FilePath,
    * but it's just string on the backend. */
-  path: string
-  id: FileId
-  project: CreatedProject | null
+  readonly path: string
+  readonly id: FileId
+  readonly project: CreatedProject | null
 }
 
 /** All metadata related to a file. */
 export interface FileDetails {
-  file: File
+  readonly file: File
 }
 
 /** A secret environment variable. */
 export interface Secret {
-  id: SecretId
-  value: string
+  readonly id: SecretId
+  readonly value: string
 }
 
 /** A secret environment variable and metadata uniquely identifying it. */
 export interface SecretAndInfo {
-  id: SecretId
-  name: string
-  value: string
+  readonly id: SecretId
+  readonly name: string
+  readonly value: string
 }
 
 /** Metadata uniquely identifying a secret environment variable. */
 export interface SecretInfo {
-  name: string
-  id: SecretId
+  readonly name: string
+  readonly id: SecretId
 }
 
 /** A label. */
 export interface Label {
-  id: TagId
-  value: LabelName
-  color: LChColor
+  readonly id: TagId
+  readonly value: LabelName
+  readonly color: LChColor
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -277,60 +277,60 @@ export enum VersionLifecycle {
 
 /** Version number of an IDE or backend. */
 export interface VersionNumber {
-  value: string
-  lifecycle: VersionLifecycle
+  readonly value: string
+  readonly lifecycle: VersionLifecycle
 }
 
 /** A version describing a release of the backend or IDE. */
 export interface Version {
-  number: VersionNumber
-  ami: Ami | null
-  created: dateTime.Rfc3339DateTime
+  readonly number: VersionNumber
+  readonly ami: Ami | null
+  readonly created: dateTime.Rfc3339DateTime
   // This does not follow our naming convention because it's defined this way in the backend,
   // so we need to match it.
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  version_type: VersionType
+  readonly version_type: VersionType
 }
 
 /** Resource usage of a VM. */
 export interface ResourceUsage {
   /** Percentage of memory used. */
-  memory: number
+  readonly memory: number
   /** Percentage of CPU time used since boot. */
-  cpu: number
+  readonly cpu: number
   /** Percentage of disk space used. */
-  storage: number
+  readonly storage: number
 }
 
 /** Metadata uniquely identifying a user. */
 export interface User {
   /* eslint-disable @typescript-eslint/naming-convention */
-  pk: Subject
-  user_name: string
-  user_email: EmailAddress
-  organization_id: UserOrOrganizationId
+  readonly pk: Subject
+  readonly user_name: string
+  readonly user_email: EmailAddress
+  readonly organization_id: UserOrOrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 /** Metadata uniquely identifying a user inside an organization.
  * This is similar to {@link User}, but without `organization_id`. */
 export interface SimpleUser {
-  id: Subject
-  name: string
-  email: EmailAddress
+  readonly id: Subject
+  readonly name: string
+  readonly email: EmailAddress
 }
 
 /** User permission for a specific user. */
 export interface UserPermission {
-  user: User
-  permission: permissions.PermissionAction
+  readonly user: User
+  readonly permission: permissions.PermissionAction
 }
 
 /** The type returned from the "update directory" endpoint. */
 export interface UpdatedDirectory {
-  id: DirectoryId
-  parentId: DirectoryId
-  title: string
+  readonly id: DirectoryId
+  readonly parentId: DirectoryId
+  readonly title: string
 }
 
 /** The type returned from the "create directory" endpoint. */
@@ -338,14 +338,14 @@ export interface Directory extends DirectoryAsset {}
 
 /** The subset of asset fields returned by the "copy asset" endpoint. */
 export interface CopiedAsset {
-  id: AssetId
-  parentId: DirectoryId
-  title: string
+  readonly id: AssetId
+  readonly parentId: DirectoryId
+  readonly title: string
 }
 
 /** The type returned from the "copy asset" endpoint. */
 export interface CopyAssetResponse {
-  asset: CopiedAsset
+  readonly asset: CopiedAsset
 }
 
 /** Possible filters for the "list directory" endpoint. */
@@ -434,27 +434,27 @@ export enum AssetType {
 
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType {
-  [AssetType.project]: ProjectId
-  [AssetType.file]: FileId
-  [AssetType.secret]: SecretId
-  [AssetType.directory]: DirectoryId
-  [AssetType.specialLoading]: LoadingAssetId
-  [AssetType.specialEmpty]: EmptyAssetId
+  readonly [AssetType.project]: ProjectId
+  readonly [AssetType.file]: FileId
+  readonly [AssetType.secret]: SecretId
+  readonly [AssetType.directory]: DirectoryId
+  readonly [AssetType.specialLoading]: LoadingAssetId
+  readonly [AssetType.specialEmpty]: EmptyAssetId
 }
 
 /** The english name of each asset type. */
-export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
   [AssetType.directory]: 'folder',
   [AssetType.project]: 'project',
   [AssetType.file]: 'file',
   [AssetType.secret]: 'secret',
   [AssetType.specialLoading]: 'special loading asset',
   [AssetType.specialEmpty]: 'special empty asset',
-} as const
+}
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */
-export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   // This is a sequence of numbers, not magic numbers. `999` and `1000` are arbitrary numbers
   // that are higher than the number of possible asset types.
   /* eslint-disable @typescript-eslint/no-magic-numbers */
@@ -474,23 +474,23 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface BaseAsset {
-  id: AssetId
-  title: string
-  modifiedAt: dateTime.Rfc3339DateTime
+  readonly id: AssetId
+  readonly title: string
+  readonly modifiedAt: dateTime.Rfc3339DateTime
   /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}. */
-  parentId: DirectoryId
-  permissions: UserPermission[] | null
-  labels: LabelName[] | null
-  description: string | null
+  readonly parentId: DirectoryId
+  readonly permissions: UserPermission[] | null
+  readonly labels: LabelName[] | null
+  readonly description: string | null
 }
 
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
-  type: Type
-  id: IdType[Type]
-  projectState: Type extends AssetType.project ? ProjectStateType : null
+  readonly type: Type
+  readonly id: IdType[Type]
+  readonly projectState: Type extends AssetType.project ? ProjectStateType : null
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -721,9 +721,9 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
 
 /** HTTP request body for the "set username" endpoint. */
 export interface CreateUserRequestBody {
-  userName: string
-  userEmail: EmailAddress
-  organizationId: UserOrOrganizationId | null
+  readonly userName: string
+  readonly userEmail: EmailAddress
+  readonly organizationId: UserOrOrganizationId | null
 }
 
 /** HTTP request body for the "update user" endpoint. */
@@ -733,98 +733,98 @@ export interface UpdateUserRequestBody {
 
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
-  organizationId: UserOrOrganizationId
-  userEmail: EmailAddress
+  readonly organizationId: UserOrOrganizationId
+  readonly userEmail: EmailAddress
 }
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  userSubjects: Subject[]
-  resourceId: AssetId
-  action: permissions.PermissionAction | null
+  readonly userSubjects: Subject[]
+  readonly resourceId: AssetId
+  readonly action: permissions.PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
 export interface CreateDirectoryRequestBody {
-  title: string
-  parentId: DirectoryId | null
+  readonly title: string
+  readonly parentId: DirectoryId | null
 }
 
 /** HTTP request body for the "update directory" endpoint. */
 export interface UpdateDirectoryRequestBody {
-  title: string
+  readonly title: string
 }
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  parentDirectoryId: DirectoryId | null
-  description: string | null
+  readonly parentDirectoryId: DirectoryId | null
+  readonly description: string | null
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
-  projectName: string
-  projectTemplateName: string | null
-  parentDirectoryId: DirectoryId | null
+  readonly projectName: string
+  readonly projectTemplateName: string | null
+  readonly parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "update project" endpoint.
  * Only updates of the `projectName` or `ami` are allowed. */
 export interface UpdateProjectRequestBody {
-  projectName: string | null
-  ami: Ami | null
-  ideVersion: VersionNumber | null
+  readonly projectName: string | null
+  readonly ami: Ami | null
+  readonly ideVersion: VersionNumber | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
-  forceCreate: boolean
-  executeAsync: boolean
+  readonly forceCreate: boolean
+  readonly executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
-  name: string
-  value: string
-  parentDirectoryId: DirectoryId | null
+  readonly name: string
+  readonly value: string
+  readonly parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "update secret" endpoint. */
 export interface UpdateSecretRequestBody {
-  value: string
+  readonly value: string
 }
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
-  value: string
-  color: LChColor
+  readonly value: string
+  readonly color: LChColor
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  parentId: string | null
-  filterBy: FilterBy | null
-  labels: LabelName[] | null
-  recentProjects: boolean
+  readonly parentId: string | null
+  readonly filterBy: FilterBy | null
+  readonly labels: LabelName[] | null
+  readonly recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-  fileId: AssetId | null
+  readonly fileId: AssetId | null
   // Marked as optional in the data type, however it is required by the actual route handler.
-  fileName: string
-  parentDirectoryId: DirectoryId | null
+  readonly fileName: string
+  readonly parentDirectoryId: DirectoryId | null
 }
 
 /** URL query string parameters for the "upload user profile picture" endpoint. */
 export interface UploadUserPictureRequestParams {
-  fileName: string | null
+  readonly fileName: string | null
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
 export interface ListVersionsRequestParams {
-  versionType: VersionType
-  default: boolean
+  readonly versionType: VersionType
+  readonly default: boolean
 }
 
 // ==============================

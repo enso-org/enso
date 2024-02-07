@@ -17,7 +17,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    backendType: backendModule.BackendType
+    readonly backendType: backendModule.BackendType
   }
 }
 
@@ -32,9 +32,9 @@ LocalStorage.registerKey('backendType', {
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-  backend: Backend
-  setBackend: (backend: Backend) => void
-  setBackendWithoutSavingType: (backend: Backend) => void
+  readonly backend: Backend
+  readonly setBackend: (backend: Backend) => void
+  readonly setBackendWithoutSavingType: (backend: Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -42,8 +42,8 @@ export interface BackendContextType {
 const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
-export interface BackendProviderProps extends React.PropsWithChildren<object> {
-  initialBackend: Backend
+export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
+  readonly initialBackend: Backend
 }
 
 // =======================

@@ -64,19 +64,19 @@ const MAX_MESSAGE_HISTORY = 25
 
 /** Information needed to display a chat message. */
 interface ChatDisplayMessage {
-  id: chat.MessageId
+  readonly id: chat.MessageId
   /** If `true`, this is a message from the staff to the user.
    * If `false`, this is a message from the user to the staff. */
-  isStaffMessage: boolean
-  avatar: string | null
+  readonly isStaffMessage: boolean
+  readonly avatar: string | null
   /** Name of the author of the message. */
-  name: string
-  content: string
-  reactions: chat.ReactionSymbol[]
+  readonly name: string
+  readonly content: string
+  readonly reactions: chat.ReactionSymbol[]
   /** Given in milliseconds since the unix epoch. */
-  timestamp: number
+  readonly timestamp: number
   /** Given in milliseconds since the unix epoch. */
-  editedTimestamp: number | null
+  readonly editedTimestamp: number | null
 }
 
 // ==========================
@@ -97,10 +97,10 @@ function makeNewThreadTitle(threads: chat.ThreadData[]) {
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
-  selectedReactions: Set<chat.ReactionSymbol>
-  doReact: (reaction: chat.ReactionSymbol) => void
-  doRemoveReaction: (reaction: chat.ReactionSymbol) => void
-  className?: string
+  readonly selectedReactions: Set<chat.ReactionSymbol>
+  readonly doReact: (reaction: chat.ReactionSymbol) => void
+  readonly doRemoveReaction: (reaction: chat.ReactionSymbol) => void
+  readonly className?: string
 }
 
 /** A list of emoji reactions to choose from. */
@@ -137,7 +137,7 @@ function ReactionBar(props: ReactionBarProps) {
 
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
-  reactions: chat.ReactionSymbol[]
+  readonly reactions: chat.ReactionSymbol[]
 }
 
 /** A list of emoji reactions that have been on a message. */
@@ -163,11 +163,11 @@ function Reactions(props: ReactionsProps) {
 
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
-  message: ChatDisplayMessage
-  reactions: chat.ReactionSymbol[]
-  shouldShowReactionBar: boolean
-  doReact: (reaction: chat.ReactionSymbol) => void
-  doRemoveReaction: (reaction: chat.ReactionSymbol) => void
+  readonly message: ChatDisplayMessage
+  readonly reactions: chat.ReactionSymbol[]
+  readonly shouldShowReactionBar: boolean
+  readonly doReact: (reaction: chat.ReactionSymbol) => void
+  readonly doRemoveReaction: (reaction: chat.ReactionSymbol) => void
 }
 
 /** A chat message, including user info, sent date, and reactions (if any). */
@@ -228,14 +228,14 @@ function ChatMessage(props: ChatMessageProps) {
 
 /** Props for a {@Link ChatHeader}. */
 interface InternalChatHeaderProps {
-  threads: chat.ThreadData[]
-  setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
-  threadId: chat.ThreadId | null
-  threadTitle: string
-  setThreadTitle: (threadTitle: string) => void
-  switchThread: (threadId: chat.ThreadId) => void
-  sendMessage: (message: chat.ChatClientMessageData) => void
-  doClose: () => void
+  readonly threads: chat.ThreadData[]
+  readonly setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
+  readonly threadId: chat.ThreadId | null
+  readonly threadTitle: string
+  readonly setThreadTitle: (threadTitle: string) => void
+  readonly switchThread: (threadId: chat.ThreadId) => void
+  readonly sendMessage: (message: chat.ChatClientMessageData) => void
+  readonly doClose: () => void
 }
 
 /** The header bar for a {@link Chat}. Includes the title, close button, and threads list. */
@@ -367,11 +367,11 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
-  page: pageSwitcher.Page
+  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
-  isOpen: boolean
-  doClose: () => void
-  endpoint: string
+  readonly isOpen: boolean
+  readonly doClose: () => void
+  readonly endpoint: string
 }
 
 /** Chat sidebar. */
@@ -399,10 +399,8 @@ export default function Chat(props: ChatProps) {
   const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
     React.useState<number | null>(null)
   const [webSocket, setWebsocket] = React.useState<WebSocket | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const messageInputRef = React.useRef<HTMLTextAreaElement>(null!)
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const messagesRef = React.useRef<HTMLDivElement>(null!)
+  const messageInputRef = React.useRef<HTMLTextAreaElement>(null)
+  const messagesRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     setIsPaidUser(false)
@@ -428,10 +426,10 @@ export default function Chat(props: ChatProps) {
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
-    if (isAtTop && messagesHeightBeforeMessageHistory != null) {
+    if (element != null && isAtTop && messagesHeightBeforeMessageHistory != null) {
       element.scrollTop = element.scrollHeight - messagesHeightBeforeMessageHistory
       setMessagesHeightBeforeMessageHistory(null)
-    } else if (isAtBottom) {
+    } else if (element != null && isAtBottom) {
       element.scrollTop = element.scrollHeight - element.clientHeight
     }
     // Auto-scroll MUST only happen when the message list changes.
@@ -598,43 +596,47 @@ export default function Chat(props: ChatProps) {
     (event: React.SyntheticEvent, createNewThread?: boolean) => {
       event.preventDefault()
       const element = messageInputRef.current
-      const content = element.value
-      if (NON_WHITESPACE_CHARACTER_REGEX.test(content)) {
-        setIsReplyEnabled(false)
-        element.value = ''
-        element.style.height = '0px'
-        element.style.height = `${element.scrollHeight}px`
-        const newMessage: ChatDisplayMessage = {
-          // This MUST be unique.
-          id: MessageId(String(Number(new Date()))),
-          isStaffMessage: false,
-          avatar: null,
-          name: 'Me',
-          content,
-          reactions: [],
-          timestamp: Number(new Date()),
-          editedTimestamp: null,
-        }
-        if (threadId == null || createNewThread === true) {
-          const newThreadTitle = threadId == null ? threadTitle : makeNewThreadTitle(threads)
-          sendMessage({
-            type: chat.ChatMessageDataType.newThread,
-            title: newThreadTitle,
+      if (element != null) {
+        const content = element.value
+        if (NON_WHITESPACE_CHARACTER_REGEX.test(content)) {
+          setIsReplyEnabled(false)
+          element.value = ''
+          element.style.height = '0px'
+          element.style.height = `${element.scrollHeight}px`
+          const newMessage: ChatDisplayMessage = {
+            // This MUST be unique.
+            id: MessageId(String(Number(new Date()))),
+            isStaffMessage: false,
+            avatar: null,
+            name: 'Me',
             content,
-          })
-          setThreadId(null)
-          setThreadTitle(newThreadTitle)
-          setMessages([newMessage])
-        } else {
-          sendMessage({
-            type: chat.ChatMessageDataType.message,
-            threadId,
-            content,
-          })
-          setMessages(oldMessages => {
-            const newMessages = [...oldMessages, newMessage]
-            return shouldIgnoreMessageLimit ? newMessages : newMessages.slice(-MAX_MESSAGE_HISTORY)
-          })
+            reactions: [],
+            timestamp: Number(new Date()),
+            editedTimestamp: null,
+          }
+          if (threadId == null || createNewThread === true) {
+            const newThreadTitle = threadId == null ? threadTitle : makeNewThreadTitle(threads)
+            sendMessage({
+              type: chat.ChatMessageDataType.newThread,
+              title: newThreadTitle,
+              content,
+            })
+            setThreadId(null)
+            setThreadTitle(newThreadTitle)
+            setMessages([newMessage])
+          } else {
+            sendMessage({
+              type: chat.ChatMessageDataType.message,
+              threadId,
+              content,
+            })
+            setMessages(oldMessages => {
+              const newMessages = [...oldMessages, newMessage]
+              return shouldIgnoreMessageLimit
+                ? newMessages
+                : newMessages.slice(-MAX_MESSAGE_HISTORY)
+            })
+          }
         }
       }
     },

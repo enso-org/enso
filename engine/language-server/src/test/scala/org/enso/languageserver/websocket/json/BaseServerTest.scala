@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket.json
 
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
@@ -20,13 +21,14 @@ import org.enso.languageserver.boot.{
 }
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
+  InitializationComponent,
   RepoInitialization,
   SequentialResourcesInitialization,
   ZioRuntimeInitialization
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.{TestRuntime, ZioExec}
+import org.enso.languageserver.effect.{ExecutionContextRuntime, ZioExec}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
@@ -67,6 +69,9 @@ import java.io.File
 import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
+import java.util.concurrent.{Executors, ThreadFactory}
+import java.util.concurrent.atomic.AtomicInteger
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 abstract class BaseServerTest
@@ -141,22 +146,36 @@ abstract class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioRuntime      = new TestRuntime
+  class TestThreadFactory(name: String) extends ThreadFactory {
+    private val counter = new AtomicInteger(0)
+    override def newThread(r: Runnable): Thread = {
+      val t = new Thread();
+      t.setName(name + "-" + counter.getAndIncrement())
+      t
+    }
+  }
+
+  val initThreadPool = Executors.newWorkStealingPool(4)
+  val threadPool =
+    Executors.newWorkStealingPool(10)
+  val testExecutor = ExecutionContext.fromExecutor(threadPool)
+  val zioRuntime   = new ExecutionContextRuntime(testExecutor)
+
   val zioExec         = ZioExec(zioRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
   private def initializationComponent =
     new SequentialResourcesInitialization(
-      system.dispatcher,
-      new DirectoriesInitialization(system.dispatcher, config.directories),
+      initThreadPool,
+      new DirectoriesInitialization(initThreadPool, config.directories),
       new ZioRuntimeInitialization(
-        system.dispatcher,
+        initThreadPool,
         zioRuntime,
         system.eventStream
       ),
       new RepoInitialization(
-        system.dispatcher,
+        initThreadPool,
         config.directories,
         system.eventStream,
         sqlDatabase,
@@ -179,7 +198,9 @@ abstract class BaseServerTest
   }
 
   override def afterAll(): Unit = {
-    sqlDatabase.close()
+    suggestionsRepo.close()
+    threadPool.shutdown()
+    initThreadPool.shutdown()
     super.afterAll()
   }
 
@@ -208,7 +229,7 @@ abstract class BaseServerTest
     rootDir
   }
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def clientControllerFactory(): ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
 
@@ -379,10 +400,11 @@ abstract class BaseServerTest
       )
     )
 
-    new JsonConnectionControllerFactory(
+    new TestJsonConnectionControllerFactory(
       mainComponent          = initializationComponent,
       bufferRegistry         = bufferRegistry,
       capabilityRouter       = capabilityRouter,
+      fileEventRegistry      = fileEventRegistry,
       fileManager            = fileManager,
       vcsManager             = vcsManager,
       contentRootManager     = contentRootManagerActor,
@@ -500,6 +522,51 @@ abstract class BaseServerTest
         receiveAndReplyToOpenFile(fileName)
       case msg =>
         fail("expected OpenFile notification got " + msg)
+    }
+  }
+
+  class TestJsonConnectionControllerFactory(
+    mainComponent: InitializationComponent,
+    bufferRegistry: ActorRef,
+    capabilityRouter: ActorRef,
+    fileEventRegistry: ActorRef,
+    fileManager: ActorRef,
+    vcsManager: ActorRef,
+    contentRootManager: ActorRef,
+    contextRegistry: ActorRef,
+    suggestionsHandler: ActorRef,
+    stdOutController: ActorRef,
+    stdErrController: ActorRef,
+    stdInController: ActorRef,
+    runtimeConnector: ActorRef,
+    idlenessMonitor: ActorRef,
+    projectSettingsManager: ActorRef,
+    profilingManager: ActorRef,
+    libraryConfig: LibraryConfig,
+    config: Config
+  )(implicit system: ActorSystem)
+      extends JsonConnectionControllerFactory(
+        mainComponent,
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        vcsManager,
+        contentRootManager,
+        contextRegistry,
+        suggestionsHandler,
+        stdOutController,
+        stdErrController,
+        stdInController,
+        runtimeConnector,
+        idlenessMonitor,
+        projectSettingsManager,
+        profilingManager,
+        libraryConfig,
+        config
+      )(system) {
+    override def shutdown(): Unit = {
+      fileEventRegistry ! ReceivesTreeUpdatesHandler.Stop
+      super.shutdown()
     }
   }
 }

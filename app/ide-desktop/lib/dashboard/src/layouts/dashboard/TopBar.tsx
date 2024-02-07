@@ -20,25 +20,25 @@ import type AssetQuery from '#/utilities/AssetQuery'
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
   /** Whether the application may have the local backend running. */
-  supportsLocalBackend: boolean
-  page: pageSwitcher.Page
-  setPage: (page: pageSwitcher.Page) => void
-  projectAsset: backendModule.ProjectAsset | null
-  setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  isCloud: boolean
-  isEditorDisabled: boolean
-  setBackendType: (backendType: backendModule.BackendType) => void
-  isHelpChatOpen: boolean
-  setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  labels: backendModule.Label[]
-  suggestions: assetSearchBar.Suggestion[]
-  canToggleAssetPanel: boolean
-  isAssetPanelVisible: boolean
-  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-  doRemoveSelf: () => void
-  onSignOut: () => void
+  readonly supportsLocalBackend: boolean
+  readonly page: pageSwitcher.Page
+  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly projectAsset: backendModule.ProjectAsset | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+  readonly isCloud: boolean
+  readonly isEditorDisabled: boolean
+  readonly setBackendType: (backendType: backendModule.BackendType) => void
+  readonly isHelpChatOpen: boolean
+  readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backendModule.Label[]
+  readonly suggestions: assetSearchBar.Suggestion[]
+  readonly canToggleAssetPanel: boolean
+  readonly isAssetPanelVisible: boolean
+  readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  readonly doRemoveSelf: () => void
+  readonly onSignOut: () => void
 }
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,

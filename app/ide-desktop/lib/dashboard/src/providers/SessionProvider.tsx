@@ -16,10 +16,10 @@ import * as listen from '#/authentication/listen'
 
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
-  session: cognito.UserSession | null
+  readonly session: cognito.UserSession | null
   /** Set `initialized` to false. Must be called when logging out. */
-  deinitializeSession: () => void
-  onSessionError: (callback: (error: Error) => void) => () => void
+  readonly deinitializeSession: () => void
+  readonly onSessionError: (callback: (error: Error) => void) => () => void
 }
 
 const SessionContext = React.createContext<SessionContextType | null>(null)
@@ -41,10 +41,10 @@ export interface SessionProviderProps {
    * obtained by reading the window location at the time that authentication is instantiated. This
    * is guaranteed to be the correct location, since authentication is instantiated when the content
    * is initially served. */
-  mainPageUrl: URL
-  registerAuthEventListener: listen.ListenFunction | null
-  userSession: (() => Promise<cognito.UserSession | null>) | null
-  children: React.ReactNode
+  readonly mainPageUrl: URL
+  readonly registerAuthEventListener: listen.ListenFunction | null
+  readonly userSession: (() => Promise<cognito.UserSession | null>) | null
+  readonly children: React.ReactNode
 }
 
 /** A React provider for the session of the authenticated user. */

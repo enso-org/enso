@@ -53,27 +53,30 @@ const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folde
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
-  key: backendModule.AssetId
-  item: AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
-  state: assetsTable.AssetsTableState
-  rowState: assetsTable.AssetRowState
-  setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+  readonly key: backendModule.AssetId
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly state: assetsTable.AssetsTableState
+  readonly rowState: assetsTable.AssetRowState
+  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
-  extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
-  item: AssetTreeNode
-  state: assetsTable.AssetsTableState
-  hidden: boolean
-  columns: columnUtils.Column[]
-  selected: boolean
-  setSelected: (selected: boolean) => void
-  isSoleSelectedItem: boolean
-  allowContextMenu: boolean
-  onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  onContextMenu?: (props: AssetRowInnerProps, event: React.MouseEvent<HTMLTableRowElement>) => void
+  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+  readonly item: AssetTreeNode
+  readonly state: assetsTable.AssetsTableState
+  readonly hidden: boolean
+  readonly columns: columnUtils.Column[]
+  readonly selected: boolean
+  readonly setSelected: (selected: boolean) => void
+  readonly isSoleSelectedItem: boolean
+  readonly allowContextMenu: boolean
+  readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
+  readonly onContextMenu?: (
+    props: AssetRowInnerProps,
+    event: React.MouseEvent<HTMLTableRowElement>
+  ) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */

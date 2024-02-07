@@ -288,15 +288,15 @@ export interface UserSession {
    * - GitHub,
    * - Google, or
    * - Email. */
-  email: string
+  readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
-  accessToken: string
+  readonly accessToken: string
 }
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
 function parseUserSession(session: cognito.CognitoUserSession): UserSession {
-  const payload: Record<string, unknown> = session.getIdToken().payload
+  const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {

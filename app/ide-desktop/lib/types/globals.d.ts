@@ -18,7 +18,7 @@ interface StringConfig {
 
 /** The public interface exposed to `window` by the IDE. */
 interface Enso {
-    main: (inputConfig?: StringConfig) => Promise<void>
+    readonly main: (inputConfig?: StringConfig) => Promise<void>
 }
 
 // ===================
@@ -29,7 +29,7 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (openedPath: string) => Promise<string>
 }
 
 // ==========================
@@ -47,12 +47,12 @@ interface BackendApi {
  * TypeScript checks for this interface when we use it. */
 interface AuthenticationApi {
     /** Open a URL in the system browser. */
-    openUrlInSystemBrowser: (url: string) => void
+    readonly openUrlInSystemBrowser: (url: string) => void
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See `setDeepLinkHandler` for details. */
-    setDeepLinkHandler: (callback: (url: string) => void) => void
+    readonly setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (accessToken: string | null) => void
+    readonly saveAccessToken: (accessToken: string | null) => void
 }
 
 // =====================================
@@ -64,13 +64,15 @@ declare global {
     // Documentation is already inherited.
     /** */
     interface Window {
-        enso?: AppRunner & Enso
-        backendApi?: BackendApi
-        authenticationApi: AuthenticationApi
+        readonly enso?: AppRunner & Enso
+        readonly backendApi?: BackendApi
+        readonly authenticationApi: AuthenticationApi
     }
 
     namespace NodeJS {
         /** Environment variables. */
+        // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
+        // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
             readonly [key: string]: never
             // These are environment variables, and MUST be in CONSTANT_CASE.
