@@ -541,7 +541,7 @@ public class Table {
         XmlObject xmlObject = XmlObject.Factory.parse(doc);
 
         XmlOptions options = new XmlOptions();
-        //options.setSavePrettyPrint();
+        options.setSavePrettyPrint();
         options.setUseDefaultNamespace();
         options.setSaveAggressiveNamespaces();
 
