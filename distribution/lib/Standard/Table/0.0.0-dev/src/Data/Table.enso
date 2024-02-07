@@ -2619,8 +2619,9 @@ type Table
     to_xml : Vector (Integer | Text | Regex) | Vector (Integer | Text | Regex) | (Integer | Text | Regex) | Text | Text 
     to_xml self (element_columns = []) (attribute_columns = []) (value_column = "") (root_element_name="root") (row_element_name="row") error_on_missing_columns=True on_problems=Report_Warning =
         columns_helper = self.columns_helper
+        #element_columns = self.columns
         problem_builder = Problem_Builder.new error_on_missing_columns=False
-        id_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
+        id_columns = columns_helper.select_columns_helper self.columns Case_Sensitivity.Default False problem_builder
         java_id = id_columns.map .java_column
         Java_Table.to_xml java_id
 

@@ -54,7 +54,7 @@ add_specs suite_builder =
             r.should_equal e
         group_builder.specify "if no columns are specified all fields become child elements" <|
             t = data.table . select_columns ['Title', 'Year']
-            r = t.to_xml ['Title', 'Year']
+            r = t.to_xml
             e = "<root>"
                 + "<row>"
                     + "<Title>A Tale Of Two Cities</Title>"
