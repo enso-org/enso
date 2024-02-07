@@ -2622,10 +2622,11 @@ type Table
         id_columns2 = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
         java_data2 = id_columns2.map .java_column
         
-        value_col = if value_column != "" then self.at value_column else Nothing
-        java_data3 = value_col.if_not_nothing <| value_col.java_column
+        value_col = if value_column != "" then value_column else []
+        id_columns3 = columns_helper.select_columns_helper value_col Case_Sensitivity.Default False problem_builder
+        java_data3 = if id_columns3.length > 0 then (id_columns3.at 0).java_column else Nothing
            
-        unused_columns = self.column_names.filter (Filter_Condition.Not_In element_columns) . filter (Filter_Condition.Not_In attribute_columns) . filter (Filter_Condition.Not_Equal value_column) 
+        unused_columns = (columns_helper.internal_columns.filter (Filter_Condition.Not_In id_columns) . filter (Filter_Condition.Not_In id_columns2) . filter (Filter_Condition.Not_In id_columns3)).map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unused_Columns.Error unused_columns)
         
         problem_builder.attach_problems_before on_problems <|

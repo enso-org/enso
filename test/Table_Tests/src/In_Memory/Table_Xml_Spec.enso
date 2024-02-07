@@ -116,6 +116,17 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             (depretty r).should_equal e
+        group_builder.specify "Can use regex to specify columns" <|
+            t = data.table . take 1
+            r = t.to_xml (Regex.compile ".*e") (Regex.compile ".*a.*") (Regex.compile "A.*")
+            e = '<root>'
+                + '<row Last_Borrowed="1999-01-02T03:40Z[Europe/London]" Year="1859">'
+                    + 'Charles Dickens'
+                    + '<Title>A Tale Of Two Cities</Title>'
+                    + '<Price>9.99</Price>'
+                + '</row>'
+                + '</root>'
+            (depretty r).should_equal e
         group_builder.specify "The same fields can be used as attributes, elements and value" <|
             t = data.table . take 1
             r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
@@ -185,7 +196,7 @@ add_specs suite_builder =
         group_builder.specify "Will error if configured with a value column that is not in the table" <|
             t = data.table
             r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
-            r.should_fail_with (No_Such_Column.Error "Not In Table")
+            r.should_fail_with (Missing_Input_Columns.Error ["Not In Table"])
         group_builder.specify "XML should be pretty printed" <|
             # pretty printed xml actually makes the tests less pretty 
             # so all the other tests depretty the xml before comparing
