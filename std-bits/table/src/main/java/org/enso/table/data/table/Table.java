@@ -486,18 +486,42 @@ public class Table {
     return new Table(new_columns);
   }
 
-  public static String to_xml() throws XmlException, ParserConfigurationException
+  public static String to_xml(Column[] element_columns) throws XmlException, ParserConfigurationException
   {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance() ;
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
       Document doc = docBuilder.newDocument();
       Element rootElement = doc.createElement("root");
       doc.appendChild(rootElement);
+      if (element_columns.length > 0) {
+        int size = element_columns[0].getSize();
+        Context context = Context.getCurrent();
+        for (int row = 0; row < size; row++) {
+          Element childElement = doc.createElement("row");
+          var elementName = element_columns[0].getName();
+          Element columnElement = doc.createElement(elementName);
+          childElement.appendChild(columnElement);
+          var textContent = element_columns[0].getStorage().getItemBoxed(row).toString();
+          columnElement.setTextContent(textContent);
+          rootElement.appendChild(childElement);
+        }
+      
+        // for (Column column : element_columns) {
+        //   for (int i = 0; i < id_columns.length; i++) {
+        //     storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
+        //   }
+
+        //   storage[id_columns.length].append(column.getName());
+        //   storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
+        // }
+
+      context.safepoint();
+    }
 
       XmlObject xmlObject = XmlObject.Factory.parse(doc);
 
       XmlOptions options = new XmlOptions();
-      options.setSavePrettyPrint();
+      //options.setSavePrettyPrint();
       options.setUseDefaultNamespace();
       options.setSaveAggressiveNamespaces();
 

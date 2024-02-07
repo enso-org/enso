@@ -2616,8 +2616,12 @@ type Table
     @attribute_columns Widget_Helpers.make_column_name_vector_selector
     @element_columns Widget_Helpers.make_column_name_vector_selector
     to_xml : Text
-    to_xml self (attribute_columns = []) (element_columns = []) (root_element_name="root") (row_element_name="row") =
-        Java_Table.to_xml
+    to_xml self (element_columns = []) (attribute_columns = []) (root_element_name="root") (row_element_name="row") =
+        columns_helper = self.columns_helper
+        problem_builder = Problem_Builder.new error_on_missing_columns=False
+        id_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
+        java_id = id_columns.map .java_column
+        Java_Table.to_xml java_id
 
     ## PRIVATE
     columns_helper : Table_Column_Helper

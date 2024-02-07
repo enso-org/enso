@@ -932,8 +932,7 @@ add_specs suite_builder =
             t.to_xml . should_equal "<root/>"
         group_builder.specify "Single column as element" <|
             t = Table.new [["X", [1,2,3]]]
-            t.to_xml ["X"] . should_equal "<root><X>1</X><X>2</X><X>3</X></root>"
-        
+            t.to_xml ["X"] . should_equal "<root><row><X>1</X></row><row><X>2</X></row><row><X>3</X></row></root>"
 
 main =
     suite = Test.build suite_builder->
