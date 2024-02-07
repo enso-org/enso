@@ -147,7 +147,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
-    get : Integer -> (Any | Nothing)
+    get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         self.read index+1 . get index default
 

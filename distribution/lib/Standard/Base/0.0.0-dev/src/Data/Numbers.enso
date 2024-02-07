@@ -8,11 +8,10 @@ import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
+import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-
-import project.Internal.Rounding_Helpers
 from project.Internal.Number_Builtins import all
 
 polyglot java import java.lang.Double

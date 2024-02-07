@@ -27,10 +27,10 @@ export default Visibility
 // =================
 
 /** The corresponding CSS classes for table rows, for each {@link Visibility}. */
-export const CLASS_NAME: Record<Visibility, string> = {
+export const CLASS_NAME: Readonly<Record<Visibility, string>> = {
   [Visibility.visible]: '',
   // Note that in some cases (e.g. table rows with alternating colors), the element should be
-  // completely removed from the DOM.
+  // completely removed from the DOM, rather than just hidden via CSS.
   [Visibility.hidden]: 'hidden',
   [Visibility.faded]: 'opacity-50 pointer-events-none-recursive',
-} as const
+}

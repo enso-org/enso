@@ -8,12 +8,12 @@ import * as permissionsModule from '#/utilities/permissions'
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps extends React.PropsWithChildren {
-  action: permissionsModule.PermissionAction
-  className?: string
-  onClick?: React.MouseEventHandler<HTMLButtonElement>
-  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>
-  onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>
+export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
+  readonly action: permissionsModule.PermissionAction
+  readonly className?: string
+  readonly onClick?: React.MouseEventHandler<HTMLButtonElement>
+  readonly onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>
+  readonly onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>
 }
 
 /** Colored border around icons and text indicating permissions. */

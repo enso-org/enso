@@ -164,6 +164,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.any (ix -> ix < 0) . should_be_false
 
         vec.any (Filter_Condition.Greater 0) . should_be_true
+        vec.any (Filter_Condition.Greater 0 Filter_Action.Remove) . should_be_false
         vec.any (Filter_Condition.Less 3) . should_be_true
         vec.any (Filter_Condition.Less 0) . should_be_false
 
@@ -175,6 +176,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.all (ix -> ix < 5) . should_be_false
 
         vec.all (Filter_Condition.Greater 0) . should_be_true
+        vec.all (Filter_Condition.Greater 0 Filter_Action.Remove) . should_be_false
         vec.all (Filter_Condition.Less 3) . should_be_false
 
         Test.expect_panic_with matcher=Type_Error (vec.all "invalid argument")
@@ -203,54 +205,83 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.filter (x -> x < 0) . should_equal []
         vec.filter (x -> if x == 2 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-    group_builder.specify "should filter elements by Filter_Condition" <|
+    group_builder.specify "should filter numerical elements by Filter_Condition" <|
         vec = alter [1, 2, 3, 4, 5]
-        vec.filter (Filter_Condition.Greater than=3) . should_equal [4, 5]
-        vec.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3]
-        vec.filter (Filter_Condition.Equal to=3) . should_equal [3]
-        vec.filter (Filter_Condition.Equal to=3.0) . should_equal [3]
-        vec.filter (Filter_Condition.Equal to=3.1) . should_equal []
-        vec.filter (Filter_Condition.Not_Equal to=3) . should_equal [1, 2, 4, 5]
-        vec.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5]
-        vec.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal []
+        vec.filter (Filter_Condition.Greater 3) . should_equal [4, 5]
+        vec.filter (Filter_Condition.Greater 3 Filter_Action.Remove) . should_equal [1, 2, 3]
+        vec.filter (Filter_Condition.Less 3.5) . should_equal [1, 2, 3]
+        vec.filter (Filter_Condition.Less 3.5 Filter_Action.Remove) . should_equal [4, 5]
+        vec.filter (Filter_Condition.Equal 3) . should_equal [3]
+        vec.filter (Filter_Condition.Equal 3 Filter_Action.Remove) . should_equal [1, 2, 4, 5]
+        vec.filter (Filter_Condition.Not_Equal 3) . should_equal [1, 2, 4, 5]
+        vec.filter (Filter_Condition.Not_Equal 3 Filter_Action.Remove) . should_equal [3]
+        vec.filter (Filter_Condition.Equal_Or_Greater 3) . should_equal [3, 4, 5]
+        vec.filter (Filter_Condition.Equal_Or_Greater 3 Filter_Action.Remove) . should_equal [1, 2]
+        vec.filter (Filter_Condition.Equal_Or_Less (-1)) . should_equal []
+        vec.filter (Filter_Condition.Equal_Or_Less (-1) Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
         vec.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
         vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
+        vec.filter (Filter_Condition.Between 2 4 Filter_Action.Remove) . should_equal [1, 5]
         vec.filter (Filter_Condition.Is_In [7, 3, 2, 2, 2]) . should_equal [2, 3]
-        vec.filter (Filter_Condition.Is_In []) . should_equal []
-        vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
+        vec.filter (Filter_Condition.Is_In [7, 3, 2] Filter_Action.Remove) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) Type_Error
-        vec.filter Filter_Condition.Is_True . should_equal []
-        vec.filter Filter_Condition.Is_False . should_equal []
         vec.filter Filter_Condition.Is_Nothing . should_equal []
-        vec.filter Filter_Condition.Not_Nothing . should_equal vec
+        vec.filter (Filter_Condition.Is_Nothing Filter_Action.Remove) . should_equal [1, 2, 3, 4, 5]
+        vec.filter Filter_Condition.Not_Nothing . should_equal [1, 2, 3, 4, 5]
+        vec.filter (Filter_Condition.Not_Nothing Filter_Action.Remove) . should_equal []
 
-        txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
+        numvec = alter [1, 2.5, Number.nan, Number.positive_infinity, Number.negative_infinity, 0]
+        # We need to use to_text because NaN!=NaN
+        numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
+        numvec.filter (Filter_Condition.Is_Nan Filter_Action.Remove) . should_equal [1, 2.5, Number.positive_infinity, Number.negative_infinity, 0]
+        numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
+        numvec.filter (Filter_Condition.Is_Infinite Filter_Action.Remove) . length . should_equal 4
+        numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
+        numvec.filter (Filter_Condition.Is_Finite Filter_Action.Remove) . length . should_equal 3
+
+        ## Text based filters should fail with type error
+        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Starts_With "a"))
+        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Ends_With "a"))
+        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Contains "a"))
+        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Equal_Ignore_Case "a"))
+        Test.expect_panic Type_Error (vec.filter (Filter_Condition.Like "a%"))
+        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_Empty)
+        Test.expect_panic Type_Error (vec.filter Filter_Condition.Not_Empty)
+
+        ## Boolean based filters should fail with type error
+        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_True)
+        Test.expect_panic Type_Error (vec.filter Filter_Condition.Is_False)
+
+    group_builder.specify "should filter text elements by Filter_Condition" <|
+        txtvec = alter ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
+        txtvec.filter (Filter_Condition.Contains "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "ś"]
         txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
         txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Insensitive) . should_equal ["bbb", "cccc", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
-        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
-        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Contains 42)) Unsupported_Argument_Types
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
+        txtvec.filter (Filter_Condition.Starts_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
+        txtvec.filter (Filter_Condition.Ends_With "a" action=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
         txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Ends_With 42)) Unsupported_Argument_Types
+
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
         txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
-        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types
-        txtvec.filter Filter_Condition.Is_True . should_equal []
         txtvec.filter (Filter_Condition.Is_In [1, 2]) . should_equal []
         txtvec.filter (Filter_Condition.Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
+
+        ## Boolean based filters should fail with type error
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_True)
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_False)
 
         alter ["", Nothing, " ", "a"] . filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
         alter ["", Nothing, " ", "a"] . filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]
@@ -259,18 +290,23 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter ["abab", "aaabaaaa"] . filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"]
         alter ["aaaa", "bbbbb", "[ab]aaaa"] . filter (Filter_Condition.Like "[ab]%") . should_equal ["[ab]aaaa"]
         alter ["f.txt", "abc.*"] . filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
-        alter ["f.txt", "abc.*"] . filter (Filter_Condition.Not_Like "%.*") . should_equal ["f.txt"]
 
         txt2 = alter ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
         txt2.filter (Filter_Condition.Like 'a_') . should_equal ['a\n']
+        txt2.filter (Filter_Condition.Like 'a_' Filter_Action.Remove) . should_equal ['a\n\n\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
         txt2.filter (Filter_Condition.Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
         txt2.filter (Filter_Condition.Like 'a_b') . should_equal ['a\nb']
         txt2.filter (Filter_Condition.Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
 
+        ## NUmber based filters should fail with type error
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Nan)
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Infinite)
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Finite)
+
+    group_builder.specify "should filter unicode text elements by Filter_Condition" <|
         txt3 = alter ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
         txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
-        txt3.filter (Filter_Condition.Not_Contains 'ś') . should_equal ['X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
         txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
@@ -284,19 +320,12 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txt4.filter (Filter_Condition.Equal_Ignore_Case 's\u0301') . should_equal ['ś', 'Ś']
         txt4.filter (Filter_Condition.Equal_Ignore_Case 'FFI') . should_equal ['ﬃ']
 
+    group_builder.specify "should filter mixed elements by Filter_Condition" <|
         mixed = alter [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
         mixed.filter Filter_Condition.Not_Nothing . should_equal [1, "b"]
-        mixed.filter Filter_Condition.Is_Empty . should_equal [Nothing]
-        mixed.filter Filter_Condition.Not_Empty . should_equal [1, "b"]
-
-        numvec = alter [1, 2.5, Number.nan, Number.positive_infinity, Number.negative_infinity, 0]
-        # We need to use to_text because NaN!=NaN
-        numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
-        numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
-        numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
-
-        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Finite)
+        Test.expect_panic Type_Error (mixed.filter Filter_Condition.Is_Empty)
+        Test.expect_panic Type_Error (mixed.filter Filter_Condition.Not_Empty)
 
         (alter [2, "a"]).filter (Filter_Condition.Greater 1) . should_fail_with Incomparable_Values
 
@@ -320,8 +349,6 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["baaa"]
         txtvec.filter (Filter_Condition.Like "b%a") . should_equal ["baaa"]
-        # Nothing is not included in the negation either
-        txtvec.filter (Filter_Condition.Not_Like "b%a") . should_equal ["abab", "cccc", "BAAA"]
 
         (alter ["a", 2, Nothing, 3]).filter (Filter_Condition.Is_In [Nothing, 2]) . should_equal [2, Nothing]
 
@@ -340,11 +367,12 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     group_builder.specify "should partition elements" <|
-        vec = alter [1, 2, 3, 4, 5]
-        vec.partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
+        vec = alter [1, 2, 3, 4, 5, Nothing]
+        vec.partition (x -> x.is_nothing.not && x%2==0) . should_equal <| Pair.new [2, 4] [1, 3, 5, Nothing]
         (vec . partition x-> if x == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
-        vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5]
+        vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5, Nothing]
+        vec.partition (Filter_Condition.Between 2 4 Filter_Action.Remove) . should_equal <| Pair.new [1, 5, Nothing] [2, 3, 4]
 
         Test.expect_panic_with matcher=Type_Error (vec.partition "invalid arg")
 
@@ -462,6 +490,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
         input.find (Filter_Condition.Greater 5) . should_equal 6
+        input.find (Filter_Condition.Less 5 Filter_Action.Remove) . should_equal 5
         Test.expect_panic_with matcher=Type_Error (input.find "invalid arg")
 
         alter ["b", "A", "c"] . find (Filter_Condition.Equal_Ignore_Case "a") . should_equal "A"
@@ -480,6 +509,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
         input.index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal 1
+        input.index_of (Filter_Condition.Less 3 Filter_Action.Remove) . should_equal 2
         input.index_of "text" . should_equal Nothing
 
     group_builder.specify "should allow finding the last index of a value" <|
@@ -494,6 +524,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
         input.last_index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal input.length-2
+        input.last_index_of (Filter_Condition.Less 3 Filter_Action.Remove) . should_equal 6
         input.last_index_of "text" . should_equal Nothing
 
     group_builder.specify "should be convertible to a list" <|

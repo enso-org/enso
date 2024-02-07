@@ -32,9 +32,9 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -1063,7 +1063,11 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
-        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
+        fallback x = case x of
+            _ : Text -> x == ""
+            Nothing  -> True
+            _        -> False
+        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Logical
        Returns a column of booleans, with `True` items at the positions where
@@ -2072,7 +2076,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
-    get : Integer -> (Any | Nothing)
+    get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else

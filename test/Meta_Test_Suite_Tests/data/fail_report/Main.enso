@@ -1,33 +1,37 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test_New import all
 
-spec = Test.group "Tests" <|
-    Test.specify "some property" <|
+
+add_specs suite_builder = suite_builder.group "Tests" group_builder->
+    group_builder.specify "some property" <|
         xs = [2, 3, 4, 5]
         xs.each x->
             (x > 0).should_be_true
 
-    Test.specify "other property" <|
+    group_builder.specify "other property" <|
         0.should_equal 0
 
-    Test.specify "pending property" pending="This test is supposed to be ignored." <|
+    group_builder.specify "pending property" pending="This test is supposed to be ignored." <|
         0.should_equal 1
 
-    Test.specify "some failing property" <|
+    group_builder.specify "some failing property" <|
         xs = [2, 3, 4, 5]
         xs.each x->
             x*x . should_equal 4
 
-    Test.specify "something OK" <|
+    group_builder.specify "something OK" <|
         1 . should_equal 1
 
-    Test.specify "dataflow error" <|
+    group_builder.specify "dataflow error" <|
         Error.throw (Illegal_Argument.Error "some error") . should_equal 0
 
-    Test.specify "panic" <|
+    group_builder.specify "panic" <|
         Panic.throw (Illegal_Argument.Error "some error")
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

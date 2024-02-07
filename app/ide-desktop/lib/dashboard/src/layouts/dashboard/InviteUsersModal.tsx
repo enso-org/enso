@@ -55,7 +55,7 @@ function Email(props: InternalEmailProps) {
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
   /** If this is `null`, this modal will be centered. */
-  eventTarget: HTMLElement | null
+  readonly eventTarget: HTMLElement | null
 }
 
 /** A modal for inviting one or more users. */
