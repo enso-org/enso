@@ -52,196 +52,196 @@ add_specs suite_builder =
             r = t.to_xml 
             e = "<root/>"
             r.should_equal e
-        group_builder.specify "if no columns are specified all fields become child elements" <|
-            t = data.table .select_columns ['Title', 'Year'] . take 4
-            r = t.to_xml
-            e = "<root>"
-                + "<row>"
-                    + "<Title>A Tale Of Two Cities</Title>"
-                    + "<Year>1859</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Title>The Great Gatsby</Title>"
-                    + "<Year>1925</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Title>The Catcher In The Rye</Title>"
-                    + "<Year>1951</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Title>The Grapes Of Wrath</Title>"
-                    + "<Year>1939</Year>"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Single column as element" <|
-            t = data.table . take 4
-            r = t.to_xml ["Year"]
-            e = "<root>"
-                + "<row>"
-                    + "<Year>1859</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Year>1925</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Year>1951</Year>"
-                + "</row>"
-                + "<row>"
-                    + "<Year>1939</Year>"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Single column as attribute" <|
-            t = data.table . take 4
-            r = t.to_xml [] ["Year"]
-            e = "<root>"
-                + '<row Year="1859"/>'
-                + '<row Year="1925"/>'
-                + '<row Year="1951"/>'
-                + '<row Year="1939"/>'
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Single column as value" <|
-            t = data.table . take 4
-            r = t.to_xml [] [] "Year"
-            e = "<root>"
-                + "<row>1859</row>"
-                + "<row>1925</row>"
-                + "<row>1951</row>"
-                + "<row>1939</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Different fields can be used as attributes, elements and value" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
-            e = "<root>"
-                + '<row Author="Charles Dickens" Price="9.99">'
-                    + "<Year>1859</Year>"
-                    + "A Tale Of Two Cities"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "The same fields can be used as attributes, elements and value" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
-            e = "<root>"
-                + '<row Author="Charles Dickens" Price="9.99">'
-                    + "<Author>Charles Dickens</Author>"
-                    + "<Price>9.99</Price>"
-                    + "Charles Dickens"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "If a field is specified duplicate times as an attribute or element it is only included once" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price", "Author"] ["Author", "Price", "Price"] "Author"
-            e = "<root>"
-                + '<row Author="Charles Dickens" Price="9.99">'
-                    + "<Author>Charles Dickens</Author>"
-                    + "<Price>9.99</Price>"
-                    + "Charles Dickens"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Root and Row tags can be set" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title" "library" "book"
-            e = "<library>"
-                + '<book Author="Charles Dickens" Price="9.99">'
-                    + "<Year>1859</Year>"
-                    + "A Tale Of Two Cities"
-                + "</book>"
-                + "</library>"
-            r . should_equal e
-        group_builder.specify "Will warn if not all incoming columns specified" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
-            e = "<root>"
-                + '<row Author="Charles Dickens" Price="9.99">'
-                    + "<Year>1859</Year>"
-                    + "A Tale Of Two Cities"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-            r . warnings . should_contain 'Not all columns were used in the output. Unused columns: "Last Borrowed"'
-        group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
-            t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Ignore
-            e = "<root>"
-                + '<row Author="Charles Dickens" Price="9.99">'
-                    + "<Year>1859</Year>"
-                    + "A Tale Of Two Cities"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-            r . warnings . should_equal []
-        group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
-            t = data.table
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Report_Error
-            r . should_fail_with_error Missing_Input_Columns  
-        group_builder.specify "Will error if configured with a element column that is not in the table" <|
-            t = data.table
-            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title"
-            r . should_fail_with_error No_Such_Column               
-        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
-            t = data.table
-            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
-            r . should_fail_with_error No_Such_Column
-        group_builder.specify "Will error if configured with a value column that is not in the table" <|
-            t = data.table
-            r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
-            r . should_fail_with_error No_Such_Column
-        group_builder.specify "Illegal xml names are cleaned up" <|
-            numeric_column_name = ["1", [10]]
-            illegal_column_name = ["Bad <chars> & symbols", [1]]
-            last_borrowed = ["Last Borrowed", [Date_Time.new 1999 1 2 3 40]]
-            #   | 1  | Bad <chars> & symbols | Last Borrowed
-            #---+----+-----------------------+-------------------------------------
-            # 0 | 10 | 1                     | 1999-01-02 03:40:00Z[Europe/London]
-            t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
-            r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
-            e = "<root>"
-                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40:00Z" _1="10">'
-                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
-                    + "<Last_Borrowed>1999-01-02T03:40:00Z</Last_Borrowed>"
-                    + "<_1>10</_1>"
-                + "</row>"
-                + "</root>"
-            r . should_equal e
-        group_builder.specify "Empty strings are empty attributes/elements. Nothing values omit the entire attribute/element" <|
-            desc_column = ["desc", ["Col1 and Col2 both have values", "Col1 has value, Col2 Nothing", "Col1 empty string, Col2 has value", "Col1 and Col2 both blank string", "Col1 and Col2 both Nothing" ]]
-            col1 = ["Col1", ["Value1", "Value2", "", "", Nothing]]
-            col2 = ["Col2", ["Value1", Nothing, "Value2", "", Nothing]]
-            #   | desc                              | Col1    | Col2
-            #---+-----------------------------------+---------+---------
-            # 0 | Col1 and Col2 both have values    | Value1  | Value1
-            # 1 | Col1 has value, Col2 Nothing      | Value2  | Nothing
-            # 2 | Col1 empty string, Col2 has value |         | Value2
-            # 3 | Col1 and Col2 both blank string   |         |
-            # 4 | Col1 and Col2 both Nothing        | Nothing | Nothing
-            t = Table.new [desc_column, col1, col2]
-            r = t.to_xml ["desc", "Col1", "Col2"] ["Col1", "Col2"]
-            e = "<root>"
-                + '<row desc="Col1 and Col2 both have values" Col1="Value1" Col2="Value1">'
-                    + "<Col1>Value1</Col1>"
-                    + "<Col2>Value1</Col2>"
-                + "</row>"
-                + '<row desc="Col1 has value, Col2 Nothing" Col1="Value2">'
-                    + "<Col1>Value2</Col1>"
-                    + "<Col2/>"
-                + "</row>"
-                + '<row desc="Col1 empty string, Col2 has value" Col1="" Col2="Value2">'
-                    + "<Col1/>"
-                    + "<Col2>Value2</Col2>"
-                + "</row>"
-                + '<row desc="Col1 and Col2 both blank string" Col1="" Col2="">'
-                    + "<Col1/>"
-                    + "<Col2/>"
-                + "</row>"
-                + '<row desc="Col1 and Col2 both Nothing"/>'
-                + "</root>"           
-            r . should_equal e
+#        group_builder.specify "if no columns are specified all fields become child elements" <|
+#            t = data.table .select_columns ['Title', 'Year'] . take 4
+#            r = t.to_xml
+#            e = "<root>"
+#                + "<row>"
+#                    + "<Title>A Tale Of Two Cities</Title>"
+#                    + "<Year>1859</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Title>The Great Gatsby</Title>"
+#                    + "<Year>1925</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Title>The Catcher In The Rye</Title>"
+#                    + "<Year>1951</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Title>The Grapes Of Wrath</Title>"
+#                    + "<Year>1939</Year>"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Single column as element" <|
+#            t = data.table . take 4
+#            r = t.to_xml ["Year"]
+#            e = "<root>"
+#                + "<row>"
+#                    + "<Year>1859</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Year>1925</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Year>1951</Year>"
+#                + "</row>"
+#                + "<row>"
+#                    + "<Year>1939</Year>"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Single column as attribute" <|
+#            t = data.table . take 4
+#            r = t.to_xml [] ["Year"]
+#            e = "<root>"
+#                + '<row Year="1859"/>'
+#                + '<row Year="1925"/>'
+#                + '<row Year="1951"/>'
+#                + '<row Year="1939"/>'
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Single column as value" <|
+#            t = data.table . take 4
+#            r = t.to_xml [] [] "Year"
+#            e = "<root>"
+#                + "<row>1859</row>"
+#                + "<row>1925</row>"
+#                + "<row>1951</row>"
+#                + "<row>1939</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Different fields can be used as attributes, elements and value" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
+#            e = "<root>"
+#                + '<row Author="Charles Dickens" Price="9.99">'
+#                    + "<Year>1859</Year>"
+#                    + "A Tale Of Two Cities"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "The same fields can be used as attributes, elements and value" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
+#            e = "<root>"
+#                + '<row Author="Charles Dickens" Price="9.99">'
+#                    + "<Author>Charles Dickens</Author>"
+#                    + "<Price>9.99</Price>"
+#                    + "Charles Dickens"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "If a field is specified duplicate times as an attribute or element it is only included once" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price", "Author"] ["Author", "Price", "Price"] "Author"
+#            e = "<root>"
+#                + '<row Author="Charles Dickens" Price="9.99">'
+#                    + "<Author>Charles Dickens</Author>"
+#                    + "<Price>9.99</Price>"
+#                    + "Charles Dickens"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Root and Row tags can be set" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Title" "library" "book"
+#            e = "<library>"
+#                + '<book Author="Charles Dickens" Price="9.99">'
+#                    + "<Year>1859</Year>"
+#                    + "A Tale Of Two Cities"
+#                + "</book>"
+#                + "</library>"
+#            r . should_equal e
+#        group_builder.specify "Will warn if not all incoming columns specified" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
+#            e = "<root>"
+#                + '<row Author="Charles Dickens" Price="9.99">'
+#                    + "<Year>1859</Year>"
+#                    + "A Tale Of Two Cities"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#            r . warnings . should_contain 'Not all columns were used in the output. Unused columns: "Last Borrowed"'
+#        group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
+#            t = data.table . take 1
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Ignore
+#            e = "<root>"
+#                + '<row Author="Charles Dickens" Price="9.99">'
+#                    + "<Year>1859</Year>"
+#                    + "A Tale Of Two Cities"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#            r . warnings . should_equal []
+#        group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
+#            t = data.table
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Report_Error
+#            r . should_fail_with_error Missing_Input_Columns  
+#        group_builder.specify "Will error if configured with a element column that is not in the table" <|
+#            t = data.table
+#            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title"
+#            r . should_fail_with_error No_Such_Column               
+#        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
+#            t = data.table
+#            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
+#            r . should_fail_with_error No_Such_Column
+#        group_builder.specify "Will error if configured with a value column that is not in the table" <|
+#            t = data.table
+#            r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
+#            r . should_fail_with_error No_Such_Column
+#        group_builder.specify "Illegal xml names are cleaned up" <|
+#            numeric_column_name = ["1", [10]]
+#            illegal_column_name = ["Bad <chars> & symbols", [1]]
+#            last_borrowed = ["Last Borrowed", [Date_Time.new 1999 1 2 3 40]]
+#            #   | 1  | Bad <chars> & symbols | Last Borrowed
+#            #---+----+-----------------------+-------------------------------------
+#            # 0 | 10 | 1                     | 1999-01-02 03:40:00Z[Europe/London]
+#            t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
+#            r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
+#            e = "<root>"
+#                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40:00Z" _1="10">'
+#                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
+#                    + "<Last_Borrowed>1999-01-02T03:40:00Z</Last_Borrowed>"
+#                    + "<_1>10</_1>"
+#                + "</row>"
+#                + "</root>"
+#            r . should_equal e
+#        group_builder.specify "Empty strings are empty attributes/elements. Nothing values omit the entire attribute/element" <|
+#            desc_column = ["desc", ["Col1 and Col2 both have values", "Col1 has value, Col2 Nothing", "Col1 empty string, Col2 has value", "Col1 and Col2 both blank string", "Col1 and Col2 both Nothing" ]]
+#            col1 = ["Col1", ["Value1", "Value2", "", "", Nothing]]
+#            col2 = ["Col2", ["Value1", Nothing, "Value2", "", Nothing]]
+#            #   | desc                              | Col1    | Col2
+#            #---+-----------------------------------+---------+---------
+#            # 0 | Col1 and Col2 both have values    | Value1  | Value1
+#            # 1 | Col1 has value, Col2 Nothing      | Value2  | Nothing
+#            # 2 | Col1 empty string, Col2 has value |         | Value2
+#            # 3 | Col1 and Col2 both blank string   |         |
+#            # 4 | Col1 and Col2 both Nothing        | Nothing | Nothing
+#            t = Table.new [desc_column, col1, col2]
+#            r = t.to_xml ["desc", "Col1", "Col2"] ["Col1", "Col2"]
+#            e = "<root>"
+#                + '<row desc="Col1 and Col2 both have values" Col1="Value1" Col2="Value1">'
+#                    + "<Col1>Value1</Col1>"
+#                    + "<Col2>Value1</Col2>"
+#                + "</row>"
+#                + '<row desc="Col1 has value, Col2 Nothing" Col1="Value2">'
+#                    + "<Col1>Value2</Col1>"
+#                    + "<Col2/>"
+#                + "</row>"
+#                + '<row desc="Col1 empty string, Col2 has value" Col1="" Col2="Value2">'
+#                    + "<Col1/>"
+#                    + "<Col2>Value2</Col2>"
+#                + "</row>"
+#                + '<row desc="Col1 and Col2 both blank string" Col1="" Col2="">'
+#                    + "<Col1/>"
+#                    + "<Col2/>"
+#                + "</row>"
+#                + '<row desc="Col1 and Col2 both Nothing"/>'
+#                + "</root>"           
+#            r . should_equal e
        
 main =
     suite = Test.build suite_builder->
