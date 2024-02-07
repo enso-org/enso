@@ -315,7 +315,6 @@ add_specs suite_builder =
             # 0 | '\u00A9'
             # 1 | 👩‍🔬
             t = Table.new [unicode_column]
-            t.print
             r = t.to_xml ["unicode"] ["unicode"] "unicode"
             e = "<root>"
                 + '<row unicode="\u00A9">'
