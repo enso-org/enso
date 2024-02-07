@@ -143,7 +143,7 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             r . should_equal e
-            Problems.expect_warning [Unused_Columns.Error ["Last Borrowed"]] r
+            Problems.expect_warning (Unused_Columns.Error ["Last Borrowed"]) r
         group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Ignore
@@ -157,12 +157,12 @@ add_specs suite_builder =
             Problems.assume_no_problems r
         group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
             t = data.table
-            t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Report_Error . should_fail_with [Unused_Columns.Error ["Last Borrowed"]]
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Report_Error
+            r.should_fail_with (Unused_Columns.Error ["Last Borrowed"])
         group_builder.specify "Will error if configured with a element column that is not in the table" <|
             t = data.table
             r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title" 
-            r.should_fail_with Missing_Input_Columns
-            r.catch.criteria . should_equal ["Not In Table"]
+            r.should_fail_with (Missing_Input_Columns.Error ["Not In Table"])
 #        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
 #            t = data.table
 #            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"

@@ -2626,7 +2626,7 @@ type Table
         java_data3 = value_col.if_not_nothing <| value_col.java_column
            
         unused_columns = self.column_names.filter (Filter_Condition.Not_In element_columns) . filter (Filter_Condition.Not_In attribute_columns) . filter (Filter_Condition.Not_Equal value_column) 
-        if unused_columns.length > 0 then problem_builder.report_other_warning [Unused_Columns.Error unused_columns]
+        if unused_columns.length > 0 then problem_builder.report_other_warning (Unused_Columns.Error unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
             Java_Table.to_xmlimpl self.row_count java_data java_data2 java_data3 root_name row_name
