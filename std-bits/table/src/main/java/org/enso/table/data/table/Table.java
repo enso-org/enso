@@ -502,16 +502,16 @@ public class Table {
         return new Table(new_columns);
     }
 
-    public static String to_xmlimpl(int rowCount, Column[] element_columns, Column[] attribute_columns, Column value_Column) throws XmlException, ParserConfigurationException {
+    public static String to_xmlimpl(int rowCount, Column[] element_columns, Column[] attribute_columns, Column value_Column, String root_name, String row_name) throws XmlException, ParserConfigurationException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document doc = docBuilder.newDocument();
-        Element rootElement = doc.createElement("root");
+        Element rootElement = doc.createElement(root_name.isEmpty() ? "root" : root_name);
         doc.appendChild(rootElement);
 
         Context context = Context.getCurrent();
         for (int row = 0; row < rowCount; row++) {
-            Element rowElement = doc.createElement("row");
+            Element rowElement = doc.createElement(row_name.isEmpty() ? "row" : row_name);
             if (value_Column != null) {
                 var textContent = value_Column.getStorage().getItemBoxed(row).toString();
                 rowElement.setTextContent(textContent);
