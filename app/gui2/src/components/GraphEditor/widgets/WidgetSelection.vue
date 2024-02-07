@@ -129,7 +129,7 @@ watch(selectedIndex, (_index) => {
   props.onUpdate({
     edit,
     portUpdate: {
-      value: selectedExpression.value,
+      value: selectedTag.value?.expression,
       origin: asNot<TokenId>(props.input.portId),
     },
   })

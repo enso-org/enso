@@ -9,7 +9,7 @@ class DropDownLocator {
 
   constructor(page: Page) {
     this.dropDown = page.locator('.dropdownContainer')
-    this.items = this.dropDown.locator('.selectable-item')
+    this.items = this.dropDown.locator('.selectable-item, .selected-item')
   }
 
   async expectVisibleWithOptions(page: Page, options: string[]): Promise<void> {
