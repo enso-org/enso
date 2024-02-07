@@ -19,24 +19,15 @@ polyglot java import java.util.UUID
 type Data
     Value ~data
 
-    connection self = self.data.at 0
-    t self = self.data.at 1
-    t2 self = self.data.at 2
+    t self = self.data.at 0
+    t2 self = self.data.at 1
 
     setup = Data.Value <|
-        enso_project.data.create_directory
-        file = enso_project.data / "sqlite_test.db"
-        file.delete_if_exists
-        connection = Database.connect (SQLite file)
+        connection = Database.connect (SQLite In_Memory)
         in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
         t = in_mem.select_into_database_table connection "T" primary_key=Nothing temporary=True
         t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
-        [connection, t, t2]
-
-    teardown self =
-        self.connection.close
-        file = enso_project.data / "sqlite_test.db"
-        file.delete_if_exists
+        [t, t2]
 
 
 type Foo
@@ -58,9 +49,6 @@ add_specs suite_builder =
 
     suite_builder.group "Table Visualization" group_builder->
         data = Data.setup
-
-        group_builder.teardown <|
-            data.teardown
 
         group_builder.specify "should forward internal errors" <|
             bad_table_test =
