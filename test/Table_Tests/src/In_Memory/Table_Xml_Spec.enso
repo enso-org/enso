@@ -144,16 +144,16 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             r . should_equal e
-#        group_builder.specify "Root and Row tags can be set" <|
-#            t = data.table . take 1
-#            r = t.to_xml ["Author", "Price"] ["Year"] "Title" "library" "book"
-#            e = "<library>"
-#                + '<book Author="Charles Dickens" Price="9.99">'
-#                    + "<Year>1859</Year>"
-#                    + "A Tale Of Two Cities"
-#                + "</book>"
-#                + "</library>"
-#            r . should_equal e
+        group_builder.specify "Root and Row tags can be set" <|
+            t = data.table . take 1
+            r = t.to_xml ["Author", "Price"] ["Year"] "Title" "library" "book"
+            e = "<library>"
+                + '<book Author="Charles Dickens" Price="9.99">'
+                    + "A Tale Of Two Cities"
+                    + "<Year>1859</Year>"
+                + "</book>"
+                + "</library>"
+            r . should_equal e
 #        group_builder.specify "Will warn if not all incoming columns specified" <|
 #            t = data.table . take 1
 #            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
