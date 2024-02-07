@@ -3,7 +3,6 @@ from Standard.Visualization import all
 
 import Standard.Examples
 import Standard.Visualization.Text as TextVis
-import Standard.Visualization.Preprocessor as Preprocessor
 
 from Standard.Test import Test
 import Standard.Test.Extensions
