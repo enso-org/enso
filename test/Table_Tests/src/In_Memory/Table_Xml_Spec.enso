@@ -154,6 +154,44 @@ add_specs suite_builder =
                 + "</book>"
                 + "</library>"
             r . should_equal e
+        group_builder.specify "Will warn if not all incoming columns specified" <|
+            t = data.table . take 1
+            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
+            e = "<root>"
+                + '<row Author="Charles Dickens" Price="9.99">'
+                    + "<Year>1859</Year>"
+                    + "A Tale Of Two Cities"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
+            r . warnings . should_contain 'Not all columns were used in the output. Unused columns: "Last Borrowed"'
+        group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
+            t = data.table . take 1
+            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Ignore
+            e = "<root>"
+                + '<row Author="Charles Dickens" Price="9.99">'
+                    + "<Year>1859</Year>"
+                    + "A Tale Of Two Cities"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
+            r . warnings . should_equal []
+        group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
+            t = data.table
+            r = t.to_xml ["Author", "Price"] ["Year"] "Title" on_problems=Problem_Behavior.Report_Error
+            r . should_fail_with_error Missing_Input_Columns  
+        group_builder.specify "Will error if configured with a element column that is not in the table" <|
+            t = data.table
+            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title"
+            r . should_fail_with_error No_Such_Column               
+        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
+            t = data.table
+            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
+            r . should_fail_with_error No_Such_Column
+        group_builder.specify "Will error if configured with a value column that is not in the table" <|
+            t = data.table
+            r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
+            r . should_fail_with_error No_Such_Column
         group_builder.specify "Illegal xml names are cleaned up" <|
             numeric_column_name = ["1", [10]]
             illegal_column_name = ["Bad <chars> & symbols", [1]]
@@ -204,13 +242,9 @@ add_specs suite_builder =
                 + '<row desc="Col1 and Col2 both Nothing"/>'
                 + "</root>"           
             r . should_equal e
-
-
-        #warning if columns not used
-        #error if colums used that not don't exist
-
        
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter
+
