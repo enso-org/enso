@@ -8,10 +8,10 @@ import Modal from '#/components/Modal'
 // ===================
 
 /** Props for a {@link ContextMenus}. */
-export interface ContextMenusProps extends React.PropsWithChildren {
-  hidden?: boolean
-  key: string
-  event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
+  readonly hidden?: boolean
+  readonly key: string
+  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A context menu that opens at the current mouse position. */

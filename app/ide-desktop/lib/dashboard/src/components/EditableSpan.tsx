@@ -16,15 +16,15 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 export interface EditableSpanProps {
   // This matches the capitalization of `data-` attributes in React.
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  'data-testid'?: string
-  className?: string
-  editable?: boolean
-  checkSubmittable?: (value: string) => boolean
-  onSubmit: (value: string) => void
-  onCancel: () => void
-  inputPattern?: string
-  inputTitle?: string
-  children: string
+  readonly 'data-testid'?: string
+  readonly className?: string
+  readonly editable?: boolean
+  readonly checkSubmittable?: (value: string) => boolean
+  readonly onSubmit: (value: string) => void
+  readonly onCancel: () => void
+  readonly inputPattern?: string
+  readonly inputTitle?: string
+  readonly children: string
 }
 
 /** A `<span>` that can turn into an `<input type="text">`. */

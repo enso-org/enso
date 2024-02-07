@@ -1913,7 +1913,7 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a key column contains `Nothing` values, either in the lookup table,
+         - If a key column contains `Nothing` values in the lookup table,
            a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
@@ -1958,6 +1958,112 @@ type Table
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
                 Table.Value java_table
+
+    ## ALIAS find replace
+       GROUP Standard.Base.Calculations
+       ICON join
+       Replaces values in `column` using `lookup_table` to specify a
+       mapping from old to new values.
+
+       Arguments:
+       - lookup_table: the table to use as a mapping from old to new values. A
+         `Map` can also be used here (in which case passing `from_column` or
+         `to_column` is disallowed and will throw an `Illegal_Argument` error.
+       - column: the column within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against `column`
+         in `self`.
+       - to_column: the column within `lookup_table` to get new values from.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified by `from_column`, `to_column`, or `column`, a
+           `Missing_Input_Columns` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+
+       > Example
+         Replace values in column 'x' using a lookup table.
+
+             table = Table.new [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
+             #      | x | y | z
+             #   ---+---+---+---
+             #    0 | 1 | a | e
+             #    1 | 2 | b | f
+             #    2 | 3 | c | g
+             #    3 | 4 | d | h
+
+             lookup_table = Table.new [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
+             #      | old_x | new_x
+             #   ---+-------+-------
+             #    0 | 1     | 10
+             #    1 | 2     | 20
+             #    2 | 3     | 30
+             #    3 | 4     | 40
+
+             result = table.replace lookup_table 'x'
+             #      | x  | y | z
+             #   ---+----+---+---
+             #    0 | 10 | a | e
+             #    1 | 20 | b | f
+             #    2 | 30 | c | g
+             #    3 | 40 | d | h
+    @column Widget_Helpers.make_column_name_selector
+    @from_column Widget_Helpers.make_column_name_selector
+    @to_column Widget_Helpers.make_column_name_selector
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        case lookup_table of
+            _ : Map ->
+                if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
+                    self.replace (map_to_lookup_table lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+            _ : Table ->
+                from_column_resolved = from_column.if_nothing 0
+                to_column_resolved = to_column.if_nothing 1
+                selected_lookup_columns = lookup_table.select_columns [from_column_resolved, to_column_resolved]
+                self.select_columns column . if_not_error <| selected_lookup_columns . if_not_error <|
+                    unique = self.column_naming_helper.create_unique_name_strategy
+                    unique.mark_used (self.column_names)
+
+                    ## We perform a `merge` into `column`, using a duplicate of `column`
+                       as the key column to join with `from_column`.
+
+                    duplicate_key_column_name = unique.make_unique "duplicate_key"
+                    duplicate_key_column = self.at column . rename duplicate_key_column_name
+                    self_with_duplicate = self.set duplicate_key_column set_mode=Set_Mode.Add
+
+                    ## Create a lookup table with just `to_column` and `from_column`,
+                       renamed to match the base table's `column` and its duplicate,
+                       respectively.
+                    lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
+
+                    merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                    merged.remove_columns duplicate_key_column_name
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2700,6 +2806,13 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         Column.from_storage column_set.name sealed_storage
+
+## PRIVATE
+   A helper that creates a two-column table from a map.
+map_to_lookup_table : Map Any Any -> Text -> Text -> Table
+map_to_lookup_table map key_column value_column =
+    keys_and_values = map.to_vector
+    Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
 
 ## PRIVATE
    Conversion method to a Table from a Column.
