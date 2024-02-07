@@ -74,6 +74,7 @@ polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Jo
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
 polyglot java import org.enso.table.error.TooManyColumnsException
@@ -2630,7 +2631,7 @@ type Table
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unused_Columns.Error unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
-            Java_Table.to_xmlimpl self.row_count java_element_columns java_attribute_column java_value_column root_name row_name
+            Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
