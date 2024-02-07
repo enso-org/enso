@@ -265,10 +265,13 @@ add_specs suite_builder =
                 + '<row desc="Col1 and Col2 both Nothing"/>'
                 + "</root>"           
             (depretty r).should_equal e
+        group_builder.specify "Error if wrong types passed in" <|
+            t = data.table . take 1
+            r = t.to_xml 1.23
+            
         
 
 # embedded xml gets escaped
-# can use regex to specify fields
 # errors if wrong types passed in
        
 main =
