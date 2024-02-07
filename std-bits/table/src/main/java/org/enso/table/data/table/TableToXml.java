@@ -1,5 +1,8 @@
 package org.enso.table.data.table;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.xmlbeans.XmlException;
@@ -26,18 +29,32 @@ public class TableToXml {
     var rootElement = doc.createElement(makeXmlTagNameLegal(root_name));
     doc.appendChild(rootElement);
 
+    Map<String, String> element_column_names =
+        Stream.of(element_columns)
+            .collect(
+                Collectors.toMap(
+                    e -> e.getName(), e -> makeXmlTagNameLegal(e.getName()), (e1, e2) -> e1));
+    Map<String, String> attribute_column_names =
+        Stream.of(attribute_columns)
+            .collect(
+                Collectors.toMap(
+                    e -> e.getName(), e -> makeXmlTagNameLegal(e.getName()), (e1, e2) -> e1));
+
+    var legal_row_name = makeXmlTagNameLegal(row_name);
     var context = Context.getCurrent();
     for (int row = 0; row < rowCount; row++) {
-      var rowElement = doc.createElement(makeXmlTagNameLegal(row_name));
+      var rowElement = doc.createElement(legal_row_name);
       if (value_Column != null) {
         get_set_value(value_Column, row, rowElement);
       }
       for (var element_column : element_columns) {
-        get_append_element(element_column, row, doc, rowElement);
+        var legal_name = element_column_names.get(element_column.getName());
+        get_append_element(element_column, legal_name, row, doc, rowElement);
         context.safepoint();
       }
       for (var attribute_column : attribute_columns) {
-        get_set_attribute(attribute_column, row, rowElement);
+        var legal_name = attribute_column_names.get(attribute_column.getName());
+        get_set_attribute(attribute_column, legal_name, row, rowElement);
         context.safepoint();
       }
       rootElement.appendChild(rowElement);
@@ -57,19 +74,20 @@ public class TableToXml {
     return xmlString;
   }
 
-  private static void get_set_attribute(Column attribute_column, int row, Element rowElement)
-      throws DOMException {
+  private static void get_set_attribute(
+      Column attribute_column, String legal_name, int row, Element rowElement) throws DOMException {
     var item = attribute_column.getStorage().getItemBoxed(row);
     if (item != null) {
-      rowElement.setAttribute(makeXmlTagNameLegal(attribute_column.getName()), item.toString());
+      rowElement.setAttribute(legal_name, item.toString());
     }
   }
 
   private static void get_append_element(
-      Column element_column, int row, Document doc, Element rowElement) throws DOMException {
+      Column element_column, String legal_name, int row, Document doc, Element rowElement)
+      throws DOMException {
     var item = element_column.getStorage().getItemBoxed(row);
     if (item != null) {
-      var columnElement = doc.createElement(makeXmlTagNameLegal(element_column.getName()));
+      var columnElement = doc.createElement(legal_name);
       columnElement.setTextContent(item.toString());
       rowElement.appendChild(columnElement);
     }
