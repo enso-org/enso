@@ -50,9 +50,9 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    isAssetPanelVisible: boolean
-    page: pageSwitcher.Page
-    projectStartupInfo: backendModule.ProjectStartupInfo
+    readonly isAssetPanelVisible: boolean
+    readonly page: pageSwitcher.Page
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo
   }
 }
 
@@ -71,7 +71,10 @@ LocalStorage.registerKey('projectStartupInfo', {
   tryParse: value => {
     if (typeof value !== 'object' || value == null) {
       return null
-    } else if (!('accessToken' in value) || typeof value.accessToken !== 'string') {
+    } else if (
+      !('accessToken' in value) ||
+      (typeof value.accessToken !== 'string' && value.accessToken != null)
+    ) {
       return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
@@ -86,7 +89,7 @@ LocalStorage.registerKey('projectStartupInfo', {
         // eslint-disable-next-line no-restricted-syntax
         projectAsset: value.projectAsset as backendModule.ProjectAsset,
         backendType: value.backendType,
-        accessToken: value.accessToken,
+        accessToken: value.accessToken ?? null,
       }
     }
   },
@@ -99,10 +102,10 @@ LocalStorage.registerKey('projectStartupInfo', {
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
-  supportsLocalBackend: boolean
-  appRunner: AppRunner
-  initialProjectName: string | null
-  projectManagerUrl: string | null
+  readonly supportsLocalBackend: boolean
+  readonly appRunner: AppRunner
+  readonly initialProjectName: string | null
+  readonly projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */

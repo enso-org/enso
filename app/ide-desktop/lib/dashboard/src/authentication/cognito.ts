@@ -57,21 +57,21 @@ const GITHUB_PROVIDER = 'Github'
 /* eslint-disable @typescript-eslint/naming-convention */
 /** Attributes returned from {@link amplify.Auth.currentUserInfo}. */
 interface UserAttributes {
-  email: string
-  email_verified: boolean
-  sub: string
-  'custom:fromDesktop'?: string
-  'custom:organizationId'?: string
+  readonly email: string
+  readonly email_verified: boolean
+  readonly sub: string
+  readonly 'custom:fromDesktop'?: string
+  readonly 'custom:organizationId'?: string
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
 /** User information returned from {@link amplify.Auth.currentUserInfo}. */
 interface UserInfo {
-  username: string
+  readonly username: string
   // The type comes from a third-party API and cannot be changed.
   // eslint-disable-next-line no-restricted-syntax
-  id: undefined
-  attributes: UserAttributes
+  readonly id: undefined
+  readonly attributes: UserAttributes
 }
 
 // ====================
@@ -93,7 +93,7 @@ interface UserInfo {
  * application (i.e., it is an error that is relevant to our business logic). */
 export interface AmplifyError extends Error {
   /** Error code for disambiguating the error. */
-  code: string
+  readonly code: string
 }
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
@@ -122,8 +122,8 @@ export function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
 
 /** Object returned by the AWS Amplify library when an auth error occurs. */
 interface AuthError {
-  name: string
-  log: string
+  readonly name: string
+  readonly log: string
 }
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
@@ -156,8 +156,8 @@ export enum CognitoErrorType {
 /** Base interface for all errors output from this module.
  * Every user-facing error MUST extend this interface. */
 interface CognitoError {
-  type: CognitoErrorType
-  message: string
+  readonly type: CognitoErrorType
+  readonly message: string
 }
 
 // ===============
@@ -363,15 +363,15 @@ export interface UserSession {
    * - GitHub,
    * - Google, or
    * - Email. */
-  email: string
+  readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
-  accessToken: string
+  readonly accessToken: string
 }
 
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
 function parseUserSession(session: cognito.CognitoUserSession): UserSession {
-  const payload: Record<string, unknown> = session.getIdToken().payload
+  const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
@@ -428,11 +428,11 @@ function intoSignUpParams(
 
 /** An error that may occur when signing up. */
 export interface SignUpError extends CognitoError {
-  type:
+  readonly type:
     | CognitoErrorType.invalidParameter
     | CognitoErrorType.invalidPassword
     | CognitoErrorType.usernameExists
-  message: string
+  readonly message: string
 }
 
 /**
@@ -467,8 +467,8 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 
 /** An error that may occur when confirming registration. */
 export interface ConfirmSignUpError extends CognitoError {
-  type: CognitoErrorType.userAlreadyConfirmed | CognitoErrorType.userNotFound
-  message: string
+  readonly type: CognitoErrorType.userAlreadyConfirmed | CognitoErrorType.userNotFound
+  readonly message: string
 }
 
 /** Convert an {@link AmplifyError} into a {@link ConfirmSignUpError} if it is a known error,
@@ -508,11 +508,11 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
 
 /** An error that may occur when signing in with a password. */
 export interface SignInWithPasswordError extends CognitoError {
-  type:
+  readonly type:
     | CognitoErrorType.notAuthorized
     | CognitoErrorType.userNotConfirmed
     | CognitoErrorType.userNotFound
-  message: string
+  readonly message: string
 }
 
 /** Convert an {@link AmplifyError} into a {@link SignInWithPasswordError} if it is a known error,
@@ -546,8 +546,8 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
-  type: CognitoErrorType.userNotConfirmed | CognitoErrorType.userNotFound
-  message: string
+  readonly type: CognitoErrorType.userNotConfirmed | CognitoErrorType.userNotFound
+  readonly message: string
 }
 
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordError} if it is a known error,
@@ -582,8 +582,8 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
 
 /** An error that may occur when resetting a password. */
 export interface ForgotPasswordSubmitError extends CognitoError {
-  type: CognitoErrorType.amplifyError | CognitoErrorType.authError
-  message: string
+  readonly type: CognitoErrorType.amplifyError | CognitoErrorType.authError
+  readonly message: string
 }
 
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordSubmitError}

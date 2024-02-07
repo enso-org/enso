@@ -26,7 +26,7 @@ import * as validation from '#/utilities/validation'
 
 /** Props for a {@link Login}. */
 export interface LoginProps {
-  supportsLocalBackend: boolean
+  readonly supportsLocalBackend: boolean
 }
 
 /** A form for users to log in. */

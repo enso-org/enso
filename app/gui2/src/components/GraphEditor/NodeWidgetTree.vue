@@ -3,11 +3,11 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, toRef } from 'vue'
 
-const props = defineProps<{ ast: Ast.Ast }>()
+const props = defineProps<{ ast: Ast.Ast; nodeId: NodeId }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
@@ -31,11 +31,9 @@ const observedLayoutTransitions = new Set([
 ])
 
 function handleWidgetUpdates(update: WidgetUpdate) {
+  const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
-    const {
-      edit,
-      portUpdate: { value, origin },
-    } = update
+    const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
         value instanceof Ast.Ast
@@ -48,13 +46,13 @@ function handleWidgetUpdates(update: WidgetUpdate) {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
     }
   }
-  graph.commitEdit(update.edit)
+  graph.commitEdit(edit)
   // This handler is guaranteed to be the last handler in the chain.
   return true
 }
 
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
-provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
+provideWidgetTree(toRef(props, 'ast'), toRef(props, 'nodeId'), layoutTransitions.active)
 </script>
 
 <template>

@@ -32,14 +32,14 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
 }
 
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
-    dir: string
-    port: number
-    externalFunctions: ExternalFunctions
+    readonly dir: string
+    readonly port: number
+    readonly externalFunctions: ExternalFunctions
 }
 
 /** Server configuration. */

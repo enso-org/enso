@@ -265,34 +265,36 @@ const graphBindingsHandler = graphBindings.handler({
         bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
       const currentFunctionEnv = environmentForNodes(selected.values())
-      const module = graphStore.astModule
       const topLevel = graphStore.topLevel
       if (!topLevel) {
         bail('BUG: no top level, collapsing not possible.')
       }
-      const edit = module.edit()
-      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
-        info,
-        edit.getVersion(topLevel),
-        graphStore.db,
-        currentMethodName,
-      )
-      const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
-      // For collapsed function, only selected nodes would affect placement of the output node.
-      collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
       const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      edit
-        .checkedGet(refactoredNodeId)
-        .mutableNodeMetadata()
-        .set('position', { x: position.x, y: position.y })
-      if (outputNodeId != null) {
-        const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
+      graphStore.edit((edit) => {
+        const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+          info,
+          edit.getVersion(topLevel),
+          graphStore.db,
+          currentMethodName,
+        )
+        const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
+        // For collapsed function, only selected nodes would affect placement of the output node.
+        collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
         edit
-          .checkedGet(outputNodeId)
+          .checkedGet(refactoredNodeId)
           .mutableNodeMetadata()
           .set('position', { x: position.x, y: position.y })
-      }
-      graphStore.commitEdit(edit)
+        if (outputNodeId != null) {
+          const { position } = previousNodeDictatedPlacement(
+            DEFAULT_NODE_SIZE,
+            collapsedFunctionEnv,
+          )
+          edit
+            .checkedGet(outputNodeId)
+            .mutableNodeMetadata()
+            .set('position', { x: position.x, y: position.y })
+        }
+      })
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
