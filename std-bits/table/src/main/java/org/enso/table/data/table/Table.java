@@ -512,6 +512,10 @@ public class Table {
         Context context = Context.getCurrent();
         for (int row = 0; row < rowCount; row++) {
             Element rowElement = doc.createElement("row");
+            if (value_Column != null) {
+                var textContent = value_Column.getStorage().getItemBoxed(row).toString();
+                rowElement.setTextContent(textContent);
+            }
             for (Column element_column : element_columns) {
                 Element columnElement = doc.createElement(element_column.getName());
                 rowElement.appendChild(columnElement);
@@ -523,10 +527,6 @@ public class Table {
                 var textContent = attribute_column.getStorage().getItemBoxed(row).toString();
                 rowElement.setAttribute(attribute_column.getName(), textContent);
                 context.safepoint();
-            }
-            if (value_Column != null) {
-                var textContent = value_Column.getStorage().getItemBoxed(row).toString();
-                rowElement.setTextContent(textContent);
             }
             rootElement.appendChild(rowElement);
             context.safepoint();

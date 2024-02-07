@@ -112,16 +112,16 @@ add_specs suite_builder =
                 + "<row>1939</row>"
                 + "</root>"
             r . should_equal e
-#        group_builder.specify "Different fields can be used as attributes, elements and value" <|
-#            t = data.table . take 1
-#            r = t.to_xml ["Author", "Price"] ["Year"] "Title"
-#            e = "<root>"
-#                + '<row Author="Charles Dickens" Price="9.99">'
-#                    + "<Year>1859</Year>"
-#                    + "A Tale Of Two Cities"
-#                + "</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "Different fields can be used as attributes, elements and value" <|
+            t = data.table . take 1
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title"
+            e = "<root>"
+                + '<row Author="Charles Dickens" Price="9.99">'
+                    + "A Tale Of Two Cities"
+                    + "<Year>1859</Year>"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "The same fields can be used as attributes, elements and value" <|
 #            t = data.table . take 1
 #            r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
