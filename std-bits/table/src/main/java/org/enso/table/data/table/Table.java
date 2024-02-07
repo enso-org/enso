@@ -517,7 +517,7 @@ public class Table {
                 rowElement.setTextContent(textContent);
             }
             for (Column element_column : element_columns) {
-                Element columnElement = doc.createElement(element_column.getName());
+                Element columnElement = doc.createElement(makeXmlTagNameLegal(element_column.getName()));
                 rowElement.appendChild(columnElement);
                 var textContent = element_column.getStorage().getItemBoxed(row).toString();
                 columnElement.setTextContent(textContent);
@@ -525,7 +525,7 @@ public class Table {
             }
             for (Column attribute_column : attribute_columns) {
                 var textContent = attribute_column.getStorage().getItemBoxed(row).toString();
-                rowElement.setAttribute(attribute_column.getName(), textContent);
+                rowElement.setAttribute(makeXmlTagNameLegal(attribute_column.getName()), textContent);
                 context.safepoint();
             }
             rootElement.appendChild(rowElement);
@@ -542,6 +542,16 @@ public class Table {
         String xmlString = xmlObject.xmlText(options);
 
         return xmlString;
+    }
+
+    public static String makeXmlTagNameLegal(String input) {
+        // XML tag names cannot start with a number or punctuation character, and cannot contain spaces
+        String cleaned = input.replaceAll("^[^a-zA-Z0-9_]+|[^a-zA-Z0-9-_:.]", "_");
+        // If the cleaned name is empty or doesn't start with a valid character, prefix it with an underscore
+        if (cleaned.isEmpty() || !cleaned.substring(0, 1).matches("[a-zA-Z_]")) {
+            cleaned = "_" + cleaned;
+        }
+        return cleaned;
     }
 
     /**

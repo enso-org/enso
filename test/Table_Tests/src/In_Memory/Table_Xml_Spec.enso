@@ -181,10 +181,10 @@ add_specs suite_builder =
             t = Table.new [numeric_column_name, illegal_column_name, last_borrowed]
             r = t.to_xml ["Bad <chars> & symbols", "Last Borrowed", "1"] ["Bad <chars> & symbols", "Last Borrowed", "1"]
             e = "<root>"
-                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40:00Z" _1="10">'
-                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
-                    + "<Last_Borrowed>1999-01-02T03:40:00Z</Last_Borrowed>"
+                + '<row Bad__chars____symbols="1" Last_Borrowed="1999-01-02T03:40Z[Europe/London]" _1="10">'
                     + "<_1>10</_1>"
+                    + "<Bad__chars____symbols>1</Bad__chars____symbols>"
+                    + "<Last_Borrowed>1999-01-02T03:40Z[Europe/London]</Last_Borrowed>"
                 + "</row>"
                 + "</root>"
             r . should_equal e
