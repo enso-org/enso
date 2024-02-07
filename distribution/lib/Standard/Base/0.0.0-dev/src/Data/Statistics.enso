@@ -43,6 +43,7 @@ type Rank_Method
     Ordinal
 
     ## GROUP Statistics
+       ICON sigma
        Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
@@ -295,6 +296,7 @@ calculate_correlation_statistics_matrix data =
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
 ## GROUP Statistics
+   ICON sigma
    Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
