@@ -18,7 +18,7 @@ export function isGUI1() {
 
 /** Whether the current IDE being used is GUI2. */
 export function isGUI2() {
-    return document.getElementById('root') != null
+    return document.getElementById('app') != null
 }
 
 // ================
