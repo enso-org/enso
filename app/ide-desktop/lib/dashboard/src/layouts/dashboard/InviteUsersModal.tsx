@@ -24,9 +24,9 @@ import * as set from '#/utilities/set'
 
 /** Props for an {@link Email}. */
 interface InternalEmailProps {
-  email: string
-  isValid: boolean
-  doDelete: () => void
+  readonly email: string
+  readonly isValid: boolean
+  readonly doDelete: () => void
 }
 
 /** A self-validating email display. */
