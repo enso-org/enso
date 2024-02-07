@@ -9,6 +9,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlObject;
+import org.apache.xmlbeans.XmlOptions;
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
@@ -36,6 +44,8 @@ import org.enso.table.operations.Distinct;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 /** A representation of a table structure. */
 public class Table {
@@ -274,6 +284,7 @@ public class Table {
    * will both be set to true. They allow to easily implement exclusive joins which only keep
    * columns form one table. {@code rightColumnsToDrop} allows to drop columns from the right table
    * that are redundant when joining on equality of equally named columns.
+     * @param right
    */
   public Table join(
       Table right,
@@ -322,7 +333,8 @@ public class Table {
     return new Table(newColumns.toArray(new Column[0]));
   }
 
-  /** Performs a cross-join of this table with the right table. */
+  /** Performs a cross-join of this table with the right table.
+     * @param problemAggregator */
   public Table crossJoin(Table right, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
@@ -473,6 +485,32 @@ public class Table {
         new Column(value_field, storage[id_columns.length + 1].seal());
     return new Table(new_columns);
   }
+
+  public static String to_xml() throws XmlException, ParserConfigurationException
+  {
+      DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance() ;
+      DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+      Document doc = docBuilder.newDocument();
+      Element rootElement = doc.createElement("root");
+      doc.appendChild(rootElement);
+
+      XmlObject xmlObject = XmlObject.Factory.parse(doc);
+
+      XmlOptions options = new XmlOptions();
+      options.setSavePrettyPrint();
+      options.setUseDefaultNamespace();
+      options.setSaveAggressiveNamespaces();
+
+      String xmlString = xmlObject.xmlText(options);
+
+      return xmlString;
+  }
+        // Column[] element_columns,
+      // Column[] attribute_columns,
+      // String value_column,
+      // String document_name,
+      // String row_element_name)
+
 
   /**
    * @return a copy of the Table containing a slice of the original data

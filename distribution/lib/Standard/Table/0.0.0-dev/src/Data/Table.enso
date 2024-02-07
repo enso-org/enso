@@ -2613,6 +2613,12 @@ type Table
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
 
+    @attribute_columns Widget_Helpers.make_column_name_vector_selector
+    @element_columns Widget_Helpers.make_column_name_vector_selector
+    to_xml : Text
+    to_xml self (attribute_columns = []) (element_columns = []) (root_element_name="root") (row_element_name="row") =
+        Java_Table.to_xml
+
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
