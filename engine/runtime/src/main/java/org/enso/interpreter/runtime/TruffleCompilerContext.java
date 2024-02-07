@@ -517,11 +517,12 @@ final class TruffleCompilerContext implements CompilerContext {
           new ImportExportCache.CachedBindings(
               libraryName, new ImportExportCache.MapToBindings(map), snd);
       try {
-        boolean result;
+        boolean result =
+            doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
         try {
           var cache = ImportExportCache.create(libraryName);
           var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
-          result = file.isPresent();
+          result &= file.isPresent();
         } catch (Throwable e) {
           logSerializationManager(
               Level.SEVERE,
@@ -529,9 +530,6 @@ final class TruffleCompilerContext implements CompilerContext {
               e);
           throw e;
         }
-
-        result &= doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
-
         return result;
       } finally {
         pool.finishSerializing(toQualifiedName(libraryName));
