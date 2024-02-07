@@ -582,6 +582,7 @@ final class TruffleCompilerContext implements CompilerContext {
           Level.SEVERE,
           "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
           e);
+      e.printStackTrace();
       throw e;
     }
   }
