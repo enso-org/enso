@@ -200,21 +200,22 @@ add_specs suite_builder =
             # 3 | Col1 and Col2 both blank string   |         |
             # 4 | Col1 and Col2 both Nothing        | Nothing | Nothing
             t = Table.new [desc_column, col1, col2]
-            r = t.to_xml ["desc", "Col1", "Col2"] ["Col1", "Col2"]
+            r = t.to_xml ["Col1", "Col2"] ["desc", "Col1", "Col2"] "Col1"
             e = "<root>"
-                + '<row desc="Col1 and Col2 both have values" Col1="Value1" Col2="Value1">'
+                + '<row Col1="Value1" Col2="Value1" desc="Col1 and Col2 both have values">'
+                    + "Value1"
                     + "<Col1>Value1</Col1>"
                     + "<Col2>Value1</Col2>"
                 + "</row>"
-                + '<row desc="Col1 has value, Col2 Nothing" Col1="Value2">'
+                + '<row Col1="Value2" desc="Col1 has value, Col2 Nothing">'
+                    + "Value2"
                     + "<Col1>Value2</Col1>"
-                    + "<Col2/>"
                 + "</row>"
-                + '<row desc="Col1 empty string, Col2 has value" Col1="" Col2="Value2">'
+                + '<row Col1="" Col2="Value2" desc="Col1 empty string, Col2 has value">'
                     + "<Col1/>"
                     + "<Col2>Value2</Col2>"
                 + "</row>"
-                + '<row desc="Col1 and Col2 both blank string" Col1="" Col2="">'
+                + '<row Col1="" Col2="" desc="Col1 and Col2 both blank string">'
                     + "<Col1/>"
                     + "<Col2/>"
                 + "</row>"

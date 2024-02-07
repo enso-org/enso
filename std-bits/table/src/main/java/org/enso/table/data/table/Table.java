@@ -513,19 +513,25 @@ public class Table {
         for (int row = 0; row < rowCount; row++) {
             Element rowElement = doc.createElement(row_name.isEmpty() ? "row" : row_name);
             if (value_Column != null) {
-                var textContent = value_Column.getStorage().getItemBoxed(row).toString();
-                rowElement.setTextContent(textContent);
+                var item = value_Column.getStorage().getItemBoxed(row);
+                if (item != null) {
+                    rowElement.setTextContent(item.toString());
+                }
             }
             for (Column element_column : element_columns) {
-                Element columnElement = doc.createElement(makeXmlTagNameLegal(element_column.getName()));
-                rowElement.appendChild(columnElement);
-                var textContent = element_column.getStorage().getItemBoxed(row).toString();
-                columnElement.setTextContent(textContent);
+                var item = element_column.getStorage().getItemBoxed(row);
+                if (item != null) {
+                    Element columnElement = doc.createElement(makeXmlTagNameLegal(element_column.getName()));
+                    columnElement.setTextContent(item.toString());
+                    rowElement.appendChild(columnElement);
+                }
                 context.safepoint();
             }
             for (Column attribute_column : attribute_columns) {
-                var textContent = attribute_column.getStorage().getItemBoxed(row).toString();
-                rowElement.setAttribute(makeXmlTagNameLegal(attribute_column.getName()), textContent);
+                var item = attribute_column.getStorage().getItemBoxed(row);
+                if (item != null) {
+                    rowElement.setAttribute(makeXmlTagNameLegal(attribute_column.getName()), item.toString());
+                }
                 context.safepoint();
             }
             rootElement.appendChild(rowElement);
