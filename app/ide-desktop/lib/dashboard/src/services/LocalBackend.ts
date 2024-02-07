@@ -104,6 +104,11 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
   listUsers() {
     return this.invalidOperation()
   }
+
+  /** Invalid operation. */
+  listRecentFiles() {
+    return this.invalidOperation()
+  }
 }
 
 /** A smart wrapper around a {@link backend.AnyAsset}. */
@@ -480,7 +485,6 @@ export default class LocalBackend extends Backend {
     const children = await rootDirectory.list({
       filterBy: backend.FilterBy.active,
       labels: null,
-      recentProjects: false,
     })
     const project = children.find(child => child.value.id === projectId)
     if (project?.type !== backend.AssetType.project) {

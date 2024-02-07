@@ -662,7 +662,6 @@ export interface CreateTagRequestBody {
 export interface ListDirectoryRequestParams {
   filterBy: FilterBy | null
   labels: LabelName[] | null
-  recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload user profile picture" endpoint. */
@@ -775,8 +774,10 @@ export interface SmartUser extends SmartObject<UserOrOrganization> {
   readonly rootDirectory: () => SmartDirectory
   /** Invite a new user to the organization by email. */
   readonly invite: (body: InviteUserRequestBody) => Promise<void>
-  /** Return a list of all users in the same organization. */
+  /** List all users in the same organization. */
   readonly listUsers: () => Promise<SimpleUser[]>
+  /** List recently modified assets. */
+  readonly listRecentFiles: () => Promise<AnySmartAsset[]>
 }
 
 /** A smart wrapper around an {@link AnyAsset}. */

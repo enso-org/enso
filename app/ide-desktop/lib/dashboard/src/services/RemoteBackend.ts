@@ -269,6 +269,39 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
       return (await response.json()).users
     }
   }
+
+  /** List recently modified assets. */
+  async listRecentFiles(): Promise<backend.AnySmartAsset[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      assets: backend.AnyAsset[]
+    }
+    const paramsString = new URLSearchParams([['recent_projects', String(true)]]).toString()
+    const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
+    const response = await this.httpGet<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      if (response.status === STATUS_SERVER_ERROR) {
+        // The directory is probably empty.
+        return []
+      } else {
+        return this.throw('Could not list recent files.')
+      }
+    } else {
+      const assets = (await response.json()).assets
+        .map(asset =>
+          object.merge(asset, {
+            // eslint-disable-next-line no-restricted-syntax
+            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+          })
+        )
+        .map(asset =>
+          object.merge(asset, {
+            permissions: [...(asset.permissions ?? [])].sort(backend.compareUserPermissions),
+          })
+        )
+      return assets.map(intoSmartAsset(this.client, this.logger))
+    }
+  }
 }
 
 /** A smart wrapper around a {@link backend.AnyAsset}. */
@@ -426,7 +459,6 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     const paramsString = new URLSearchParams([
       ['parent_id', this.value.id],
       ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-      ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
       ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
     ]).toString()
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
@@ -436,7 +468,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         // The directory is probably empty.
         return []
       } else {
-        return this.throw('Could not list root folder.')
+        return this.throw(`Could not list folder '${this.value.title}'.`)
       }
     } else {
       const assets = (await response.json()).assets
@@ -1126,11 +1158,7 @@ export default class RemoteBackend extends Backend {
       // The rest of the values will be incorrect. This is fine, because this directory
       // is only being used to fetch the child project.
       const directory = rootDirectory.withValue(object.merge(rootDirectory.value, { id: parentId }))
-      const children = await directory.list({
-        filterBy: backend.FilterBy.active,
-        labels: null,
-        recentProjects: false,
-      })
+      const children = await directory.list({ filterBy: backend.FilterBy.active, labels: null })
       const project = children.find(child => child.value.id === projectId)
       if (project?.type !== backend.AssetType.project) {
         return this.throw(`The project '${title}' was not found in its parent folder.`)

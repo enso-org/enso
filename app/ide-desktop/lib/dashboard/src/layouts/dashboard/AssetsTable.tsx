@@ -678,11 +678,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     null,
     async signal => {
       if (!isCloud) {
-        const newAssets = await rootDirectory.list({
-          filterBy: CATEGORY_TO_FILTER_BY[category],
-          recentProjects: category === Category.recent,
-          labels: null,
-        })
+        const newAssets =
+          category === Category.recent
+            ? (await organization?.listRecentFiles()) ?? []
+            : await rootDirectory.list({
+                filterBy: CATEGORY_TO_FILTER_BY[category],
+                labels: null,
+              })
         if (!signal.aborted) {
           setIsLoading(false)
           overwriteNodes(newAssets)
@@ -711,44 +713,40 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         for (const entry of nodeMapRef.current.values()) {
           if (entry.item.type === backendModule.AssetType.directory && entry.children != null) {
-            void entry.item
-              .list({
-                filterBy: CATEGORY_TO_FILTER_BY[category],
-                recentProjects: category === Category.recent,
-                labels: null,
-              })
-              .then(
-                assets => {
-                  setAssetTree(oldTree => {
-                    let found = signal.aborted
-                    const newTree = signal.aborted
-                      ? oldTree
-                      : oldTree.map(oldAsset => {
-                          if (oldAsset.key === entry.key) {
-                            found = true
-                            return withChildren(oldAsset)
-                          } else {
-                            return oldAsset
-                          }
-                        })
-                    if (!found) {
-                      queuedDirectoryListings.set(entry.key, assets)
-                    }
-                    return newTree
-                  })
-                },
-                error => {
-                  toastAndLog(null, error)
-                }
-              )
+            void entry.item.list({ filterBy: CATEGORY_TO_FILTER_BY[category], labels: null }).then(
+              assets => {
+                setAssetTree(oldTree => {
+                  let found = signal.aborted
+                  const newTree = signal.aborted
+                    ? oldTree
+                    : oldTree.map(oldAsset => {
+                        if (oldAsset.key === entry.key) {
+                          found = true
+                          return withChildren(oldAsset)
+                        } else {
+                          return oldAsset
+                        }
+                      })
+                  if (!found) {
+                    queuedDirectoryListings.set(entry.key, assets)
+                  }
+                  return newTree
+                })
+              },
+              error => {
+                toastAndLog(null, error)
+              }
+            )
           }
         }
         try {
-          const newAssets = await rootDirectory.list({
-            filterBy: CATEGORY_TO_FILTER_BY[category],
-            recentProjects: category === Category.recent,
-            labels: null,
-          })
+          const newAssets =
+            category === Category.recent
+              ? (await organization?.listRecentFiles()) ?? []
+              : await rootDirectory.list({
+                  filterBy: CATEGORY_TO_FILTER_BY[category],
+                  labels: null,
+                })
           if (!signal.aborted) {
             setIsLoading(false)
             overwriteNodes(newAssets)
@@ -857,11 +855,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         void (async () => {
           const abortController = new AbortController()
           directoryListAbortControllersRef.current.set(directory.value.id, abortController)
-          const childAssets = await directory.list({
-            filterBy: CATEGORY_TO_FILTER_BY[category],
-            recentProjects: category === Category.recent,
-            labels: null,
-          })
+          const filterBy = CATEGORY_TO_FILTER_BY[category]
+          const childAssets = await directory.list({ filterBy, labels: null })
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>
               oldAssetTree.map(item => {
