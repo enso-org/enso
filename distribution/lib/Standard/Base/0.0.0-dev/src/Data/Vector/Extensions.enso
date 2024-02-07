@@ -6,7 +6,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Runtime
 
 ## GROUP Selections
-   Swaps the rows and columns of a matrix represented by a `Vector` of `Vectors`.
+   Swaps the rows and columns of a matrix represented by a `Vector` of `Vector`s.
 
    ! Error Conditions
 

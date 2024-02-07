@@ -1683,7 +1683,7 @@ type Table
         total_size = if column_vectors.is_empty || column_vectors.at 0 . is_empty then 0 else
             column_vectors.length * (column_vectors.at 0 . length)
         if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
-            Runtime.assert (column_vectors.length == column_names.length) "Vectors and column names must have the same length"
+            Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
             Table.new (column_vectors.zip column_names (v-> n-> Column.from_vector n v))
 
     ## PRIVATE
