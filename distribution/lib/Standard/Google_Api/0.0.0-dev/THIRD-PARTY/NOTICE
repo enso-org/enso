@@ -71,11 +71,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.auto.value.auto-value-annotations-1.10.4`.
 
 
-'jsr305', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.code.findbugs.jsr305-3.0.2`.
-
-
 'gson', licensed under the Apache-2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.code.gson.gson-2.10.1`.
