@@ -50,9 +50,9 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    isAssetPanelVisible: boolean
-    page: pageSwitcher.Page
-    projectStartupInfo: backendModule.ProjectStartupInfo
+    readonly isAssetPanelVisible: boolean
+    readonly page: pageSwitcher.Page
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo
   }
 }
 
@@ -102,10 +102,10 @@ LocalStorage.registerKey('projectStartupInfo', {
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
-  supportsLocalBackend: boolean
-  appRunner: AppRunner
-  initialProjectName: string | null
-  projectManagerUrl: string | null
+  readonly supportsLocalBackend: boolean
+  readonly appRunner: AppRunner
+  readonly initialProjectName: string | null
+  readonly projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */

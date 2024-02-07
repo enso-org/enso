@@ -16,10 +16,10 @@ import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
-  page: pageSwitcher.Page
+  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
-  isOpen: boolean
-  doClose: () => void
+  readonly isOpen: boolean
+  readonly doClose: () => void
 }
 
 /** A placeholder component replacing `Chat` when a user is not logged in. */
