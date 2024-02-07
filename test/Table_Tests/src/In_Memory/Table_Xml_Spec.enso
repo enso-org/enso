@@ -106,6 +106,16 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
            (depretty r).should_equal e
+        group_builder.specify "Can use indexes to specify columns" <|
+            t = data.table . take 1
+            r = t.to_xml [3] [1, 2] 0
+            e = "<root>"
+                + '<row Author="Charles Dickens" Price="9.99">'
+                    + "A Tale Of Two Cities"
+                    + "<Year>1859</Year>"
+                + "</row>"
+                + "</root>"
+            (depretty r).should_equal e
         group_builder.specify "The same fields can be used as attributes, elements and value" <|
             t = data.table . take 1
             r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
@@ -247,8 +257,6 @@ add_specs suite_builder =
         
 
 # embedded xml gets escaped
-# xml is pretty printed
-# can use indexes to specify fields
 # can use regex to specify fields
 # errors if wrong types passed in
        
