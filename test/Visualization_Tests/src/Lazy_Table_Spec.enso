@@ -6,7 +6,7 @@ import Standard.Examples
 import Standard.Visualization.Table as Table_Visualization
 import Standard.Visualization.Preprocessor as Preprocessor
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 t1 = """
     12

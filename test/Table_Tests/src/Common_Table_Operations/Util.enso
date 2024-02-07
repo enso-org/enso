@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Table import Table
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Common_Table_Operations.Main.Test_Setup
 import project.Common_Table_Operations.Main.Test_Selection

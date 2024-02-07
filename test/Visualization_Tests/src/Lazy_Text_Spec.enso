@@ -5,7 +5,7 @@ import Standard.Examples
 import Standard.Visualization.Text as TextVis
 import Standard.Visualization.Preprocessor as Preprocessor
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 sample_text_single_line = "ABCDEFGHIJKLMNOPQRS"

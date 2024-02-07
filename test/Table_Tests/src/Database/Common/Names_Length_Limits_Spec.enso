@@ -6,8 +6,8 @@ from Standard.Table.Errors import No_Such_Column, Name_Too_Long, Truncated_Colum
 from Standard.Database import all
 from Standard.Database.Errors import Table_Not_Found, Unsupported_Database_Operation
 
-from Standard.Test_New import all
-from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test import all
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Util
 import project.Database.Helpers.Name_Generator

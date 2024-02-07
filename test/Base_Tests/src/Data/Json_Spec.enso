@@ -5,8 +5,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
 
-from Standard.Test_New import all
-import Standard.Test_New.Spec_Result.Spec_Result
+from Standard.Test import all
+import Standard.Test.Spec_Result.Spec_Result
 
 
 

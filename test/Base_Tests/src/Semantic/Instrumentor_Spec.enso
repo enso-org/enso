@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Test_New import all
+from Standard.Test import all
 
 fib n b=1 = if n <= 1 then b else
     a = fib n-1

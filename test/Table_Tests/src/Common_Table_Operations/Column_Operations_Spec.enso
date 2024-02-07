@@ -14,7 +14,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import all
 import Standard.Database.Data.Table.Table as Database_Table
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import enso_dev.Base_Tests.Data.Round_Spec

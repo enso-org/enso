@@ -10,7 +10,7 @@ import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.sql.Types as Java_SQL_Types
