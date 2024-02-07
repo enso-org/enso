@@ -440,7 +440,7 @@ impl RunContext {
         } else {
             if self.config.build_benchmarks {
                 // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime-benchmarks/Benchmark/compile").await?;
+                sbt.call_arg("runtime-benchmarks/compile").await?;
 
                 // Check Language Server Benchmark Compilation
                 sbt.call_arg("language-server/Benchmark/compile").await?;
