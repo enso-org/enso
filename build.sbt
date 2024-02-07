@@ -2339,6 +2339,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
     (Test / unmanagedClasspath) :=
       (LocalProject("runtime-fat-jar") / Compile / fullClasspath).value
   )
+  .dependsOn(`benchmarks-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
 
