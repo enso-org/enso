@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Table import Table
 from Standard.Test_New import all
 from Standard.Table.Errors import all
+import Standard.Base.Errors.Common.Type_Error
 
 # pretty printed xml actually makes the tests less pretty 
 # so all but one tests depretty the xml before comparing
@@ -265,14 +266,44 @@ add_specs suite_builder =
                 + '<row desc="Col1 and Col2 both Nothing"/>'
                 + "</root>"           
             (depretty r).should_equal e
-        group_builder.specify "Error if wrong types passed in" <|
-            t = data.table . take 1
-            r = t.to_xml 1.23
-            
+        group_builder.specify "Panic if wrong types passed in element_columns" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`element_columns`'))"   
+        group_builder.specify "Panic if wrong types passed in element_columns vector" pending='Not working' <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [1.23])
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`element_columns`'))"
+        group_builder.specify "Panic if wrong types passed in attribute_columns" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"   
+        group_builder.specify "Panic if wrong types passed in attribute_columns vector" pending='Not working' <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] [1.23])
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"
+        group_builder.specify "Panic if wrong types passed in value_column" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] [] 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Text | Integer | Regex 1.23 '`value_column`'))"   
+        group_builder.specify "Panic if wrong types passed in root_name" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] [] "Year" 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Text 1.23 '`root_name`'))"
+        group_builder.specify "Panic if wrong types passed in row_name" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] [] "Year" "root" 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Text 1.23 '`row_name`'))"
+        group_builder.specify "Panic if wrong types passed in on_problems" <|
+            t = data.table
+            r = Panic.recover Any (t.to_xml [] [] "Year" "root" "row" 1.23)
+            r.to_text.should_equal "(Error: (Type_Error.Error Problem_Behavior 1.23 '`on_problems`'))"
         
+
 
 # embedded xml gets escaped
 # errors if wrong types passed in
+# escape bad chars in row name and root names
        
 main =
     suite = Test.build suite_builder->
