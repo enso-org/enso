@@ -308,7 +308,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
         Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
 
-    group_builder.specify "should be preserved after operations on multi-dimensional Vector" pending="https://github.com/enso-org/enso/issues/8910" <|
+    group_builder.specify "should be preserved after operations on multi-dimensional Vector" <|
         even x = (Warning.attach x x) % 2
         nested_range_even x =
             (0.up_to x).to_vector.map even
@@ -466,5 +466,5 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter spec_filter="should be preserved after operations on multi-dimensional Vector"
 
