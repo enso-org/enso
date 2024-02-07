@@ -308,34 +308,34 @@ add_specs suite_builder =
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" "root" "row" 1.23)
             r.to_text.should_equal "(Error: (Type_Error.Error Problem_Behavior 1.23 '`on_problems`'))"
-#        group_builder.specify "xml or special characters get escaped" <|
-#            xml_column = ["xml", ["</root>", "<tag>12</tag>", '<r><c v="1"></c></r>']]
-#            special_chars_column = ["special", ["<", "&>", "'"]]
-#            #   | xml                  | special
-#            #---+----------------------+---------
-#            # 0 | </root>              | <
-#            # 1 | <tag>12</tag>        | &>
-#            # 2 | <r><c v="1"></c></r> | '
-#            t = Table.new [xml_column, special_chars_column]
-#            r = t.to_xml ["xml", "special"] ["xml", "special"] "xml"
-#            e = "<root>"
-#                + '<row special="&lt;" xml="&lt;/root&gt;">'
-#                    + "![CDATA[</root>]"
-#                    + "<xml><![CDATA[</root>]]></xml>"
-#                    + "<special><![CDATA[<]]></special>"
-#                + "</row>"
-#                + '<row special="&amp;&gt;" xml="&lt;tag&gt;12&lt;/tag&gt;">'
-#                    + "![CDATA[<tag>12</tag>]"
-#                    + "<xml><![CDATA[<tag>12</tag>]]></xml>"
-#                    + "<special><![CDATA[&>]]></special>"
-#                + "</row>"
-#                + '<row special="&apos;" xml="&lt;r&gt;&lt;c v=&quot;1&quot;&gt;&lt;/c&gt;&lt;/r&gt;">'
-#                    + '![CDATA[<r><c v="1"></c></r>]'
-#                    + '<xml><![CDATA[<r><c v="1"></c></r>]]></xml>'
-#                    + "<special><![CDATA[']]></special>"
-#                + "</row>"
-#                + "</root>"
-#            (depretty r).should_equal e       
+        group_builder.specify "xml or special characters get escaped" <|
+            xml_column = ["xml", ["</root>", "<tag>12</tag>", '<r><c v="1"></c></r>']]
+            special_chars_column = ["special", ["<", "&>", "'"]]
+            #   | xml                  | special
+            #---+----------------------+---------
+            # 0 | </root>              | <
+            # 1 | <tag>12</tag>        | &>
+            # 2 | <r><c v="1"></c></r> | '
+            t = Table.new [xml_column, special_chars_column]
+            r = t.to_xml ["xml", "special"] ["xml", "special"] "xml"
+            e = "<root>"
+                + '<row special="&lt;" xml="&lt;/root>">'
+                    + "&lt;/root>"
+                    + "<xml>&lt;/root></xml>"
+                    + "<special>&lt;</special>"
+                + "</row>"
+                + '<row special="&amp;>" xml="&lt;tag>12&lt;/tag>">'
+                    + "&lt;tag>12&lt;/tag>"
+                    + "<xml>&lt;tag>12&lt;/tag></xml>"
+                    + "<special>&amp;></special>"
+                + "</row>"
+                + '<row special="\'" xml="&lt;r>&lt;c v=&quot;1&quot;>&lt;/c>&lt;/r>">'
+                    + '&lt;r>&lt;c v="1">&lt;/c>&lt;/r>'
+                    + '<xml>&lt;r>&lt;c v="1">&lt;/c>&lt;/r></xml>'
+                    + "<special>'</special>"
+                + "</row>"
+                + "</root>"
+            (depretty r).should_equal e       
 
 # unicode  
 
