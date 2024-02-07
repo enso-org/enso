@@ -308,6 +308,26 @@ add_specs suite_builder =
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" "root" "row" 1.23)
             r.to_text.should_equal "(Error: (Type_Error.Error Problem_Behavior 1.23 '`on_problems`'))"
+        group_builder.specify "works with unicode characters" <|
+            unicode_column = ["unicode", ['\u00A9', "👩‍🔬"]]
+            #   | unicode
+            #---+-----------
+            # 0 | '\u00A9'
+            # 1 | 👩‍🔬
+            t = Table.new [unicode_column]
+            t.print
+            r = t.to_xml ["unicode"] ["unicode"] "unicode"
+            e = "<root>"
+                + '<row unicode="\u00A9">'
+                    + '\u00A9'
+                    + '<unicode>\u00A9</unicode>'
+                + "</row>"
+                + '<row unicode="👩‍🔬">'
+                    + "👩‍🔬"
+                    + "<unicode>👩‍🔬</unicode>"
+                + "</row>"
+                + "</root>"
+            (depretty r).should_equal e
         group_builder.specify "xml or special characters get escaped" <|
             xml_column = ["xml", ["</root>", "<tag>12</tag>", '<r><c v="1"></c></r>']]
             special_chars_column = ["special", ["<", "&>", "'"]]
@@ -336,9 +356,7 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             (depretty r).should_equal e       
-
-# unicode  
-
+   
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
