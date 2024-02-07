@@ -1,9 +1,9 @@
-import { expect, Page, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import * as actions from './actions'
 import * as customExpect from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
-import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
+import { graphNodeByBinding } from './locate'
 
 /**
  * Prepare the graph for the tests. We add the table type to  to the `aggregated` node.
