@@ -2630,7 +2630,7 @@ type Table
          - If a column in `element_columns`, `attribute_columns` or `value_column` is not in 
            the input table, a `Missing_Input_Columns` is raised as an error.
          - If any incomming columns aree not specified in one of `element_columns`, 
-           `attribute_columns` or `value_column`, a `Unused_Columns`
+           `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
        ? Example to_xml Operation
@@ -2657,7 +2657,7 @@ type Table
     @element_columns Widget_Helpers.make_column_name_vector_selector
     @attribute_columns Widget_Helpers.make_column_name_vector_selector
     @value_column Widget_Helpers.make_column_name_selector
-    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Regex = "") (root_name : Text = "") (row_name : Text = "") (on_problems : Problem_Behavior = Report_Warning) -> Text =
+    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = Report_Warning) -> Text =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
@@ -2665,13 +2665,12 @@ type Table
 
         resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
         java_attribute_column = resolved_attribute_columns.map .java_column
-        
-        value_column_for_helper = if value_column != "" then value_column else []
-        resolved_value_column = columns_helper.select_columns_helper value_column_for_helper Case_Sensitivity.Default False problem_builder
-        java_value_column = if resolved_value_column.length > 0 then (resolved_value_column.at 0).java_column else Nothing
-           
-        unused_columns = (columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns) . filter (Filter_Condition.Not_In resolved_attribute_columns) . filter (Filter_Condition.Not_In resolved_value_column)).map .name
-        if unused_columns.length > 0 then problem_builder.report_other_warning (Unused_Columns.Error unused_columns)
+
+        resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
+        java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
+
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column]) . map .name
+        if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
             Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name

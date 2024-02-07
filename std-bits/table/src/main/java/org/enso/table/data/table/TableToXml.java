@@ -24,13 +24,13 @@ public class TableToXml {
     var docBuilder = docFactory.newDocumentBuilder();
     var doc = docBuilder.newDocument();
     var rootElement =
-        doc.createElement(root_name.isEmpty() ? "root" : makeXmlTagNameLegal(root_name));
+        doc.createElement(root_name.isEmpty() ? "Table" : makeXmlTagNameLegal(root_name));
     doc.appendChild(rootElement);
 
     var context = Context.getCurrent();
     for (int row = 0; row < rowCount; row++) {
       var rowElement =
-          doc.createElement(row_name.isEmpty() ? "row" : makeXmlTagNameLegal(row_name));
+          doc.createElement(row_name.isEmpty() ? "Row" : makeXmlTagNameLegal(row_name));
       if (value_Column != null) {
         get_set_value(value_Column, row, rowElement);
       }

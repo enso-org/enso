@@ -613,7 +613,7 @@
   JSON parser based off Jackson.][8719]
 - [Implemented `Table.replace` for the in-memory backend.][8935]
 - [Allow removing rows using a Filter_Condition.][8861]
-- [Added to_xml][8979]
+- [Added `Table.to_xml`.][8979]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
