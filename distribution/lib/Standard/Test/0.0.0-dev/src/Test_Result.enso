@@ -1,36 +1,21 @@
 from Standard.Base import all
 
+import project.Spec_Result.Spec_Result
+
+
+## A wrapper for `Spec_Result` that contains also name of the group and name of the spec.
 type Test_Result
-    ## Represents a successful behavioral test.
-    Success
+    Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
 
-    ## Represents a failing behavioral test.
-
-       Arguments:
-       - message: The reason why the test failed.
-       - details: Additional context of the error, for example the stack trace.
-    Failure message details=Nothing
-
-    ## Represents a pending behavioral test.
-
-       Arguments:
-       - reason: Text describing why the test is pending.
-    Pending reason
-
-    ## Checks if the Test_Result is pending.
-    is_pending : Boolean
-    is_pending self = case self of
-        Test_Result.Pending _ -> True
-        _ -> False
-
-    ## Checks if the Test_Result is a failure.
-    is_fail : Boolean
-    is_fail self = case self of
-        Test_Result.Failure _ _ -> True
-        _ -> False
-
-    ## Checks if the Test_Result is a success.
-    is_success : Boolean
-    is_success self = case self of
-        Test_Result.Success -> True
-        _ -> False
+    to_text self =
+        "'" + self.group_name + "' '" + self.spec_name + "': " + self.spec_result.to_text
+    
+    is_pending self =
+        self.spec_result.is_pending
+    
+    is_success self =
+        self.spec_result.is_success
+        
+    is_fail self =
+        self.spec_result.is_fail
+    
