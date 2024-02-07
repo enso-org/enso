@@ -163,10 +163,10 @@ add_specs suite_builder =
             t = data.table
             r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title" 
             r.should_fail_with (Missing_Input_Columns.Error ["Not In Table"])
-#        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
-#            t = data.table
-#            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
-#            r . should_fail_with_error No_Such_Column
+        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
+            t = data.table
+            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
+            r.should_fail_with (Missing_Input_Columns.Error ["Not In Table"])
 #        group_builder.specify "Will error if configured with a value column that is not in the table" <|
 #            t = data.table
 #            r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
