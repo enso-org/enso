@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import isEmail from 'validator/es/lib/isEmail'
 
+import CrossIcon from 'enso-assets/cross.svg'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,9 +16,41 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
-// ==============================
-// === ManagePermissionsModal ===
-// ==============================
+import * as set from '#/utilities/set'
+
+// =============
+// === Email ===
+// =============
+
+/** Props for an {@link Email}. */
+interface InternalEmailProps {
+  email: string
+  isValid: boolean
+  doDelete: () => void
+}
+
+/** A self-validating email display. */
+function Email(props: InternalEmailProps) {
+  const { email, isValid, doDelete } = props
+  return (
+    <div
+      className={`inline-flex gap-0.5 items-center rounded-full py-0.5 px-1 m-0.5 ${
+        isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
+      }`}
+    >
+      {email}{' '}
+      <img
+        className="rounded-full cursor-pointer hover:brightness-50"
+        src={CrossIcon}
+        onClick={doDelete}
+      />
+    </div>
+  )
+}
+
+// ========================
+// === InviteUsersModal ===
+// ========================
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
@@ -39,25 +73,15 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
     () => new Set(members.map<string>(member => member.email)),
     [members]
   )
-  const invalidEmailError = React.useMemo(
+  const canSubmit = React.useMemo(
     () =>
-      email === ''
-        ? 'Email is blank'
-        : !isEmail(email)
-        ? `'${email}' is not a valid email`
-        : existingEmails.has(email)
-        ? `'${email}' is already in the organization`
-        : newEmails.has(email)
-        ? `You are already adding '${email}'`
-        : null,
-    [email, existingEmails, newEmails]
+      newEmails.size > 0 &&
+      [...newEmails].every(newEmail => isEmail(newEmail) && !existingEmails.has(newEmail)),
+    [existingEmails, newEmails]
   )
-  const isEmailValid = invalidEmailError == null
 
   const doAddEmail = () => {
-    if (!isEmailValid) {
-      toastAndLog(invalidEmailError)
-    } else {
+    if (canSubmit) {
       setNewEmails(oldNewEmails => new Set([...oldNewEmails, email]))
       setEmail('')
     }
@@ -90,10 +114,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         tabIndex={-1}
         style={
           position != null
-            ? {
-                left: position.left + window.scrollX,
-                top: position.top + window.scrollY,
-              }
+            ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
         className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
@@ -116,50 +137,69 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             {/* Space reserved for other tabs. */}
           </div>
           <form
-            className="flex gap-1"
+            className="grow min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1"
             onSubmit={event => {
               event.preventDefault()
               doAddEmail()
             }}
           >
-            <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-2">
-              <input
-                type="text"
-                placeholder="Type email to invite"
-                className="w-full bg-transparent"
-                value={email}
-                onInput={event => {
-                  setEmail(event.currentTarget.value)
+            {Array.from(newEmails, newEmail => (
+              <Email
+                key={newEmail}
+                email={newEmail}
+                isValid={isEmail(newEmail) && !existingEmails.has(newEmail)}
+                doDelete={() => {
+                  setNewEmails(oldNewEmails => set.withPresence(oldNewEmails, newEmail, false))
                 }}
               />
-            </div>
-            <button
-              type="submit"
-              disabled={!isEmailValid}
-              {...(!isEmailValid ? { title: invalidEmailError } : {})}
-              className="text-tag-text bg-invite rounded-full whitespace-nowrap px-4 py-1 disabled:opacity-30"
-            >
-              <div className="h-6 py-0.5">Add User</div>
-            </button>
-          </form>
-          <ul className="flex flex-col px-1">
-            {[...newEmails].map(newEmail => (
-              <li key={newEmail} className="h-6 leading-5 py-px">
-                {newEmail}
-              </li>
             ))}
-          </ul>
+            <input
+              type="text"
+              placeholder="Type email to invite"
+              className="bg-transparent h-6 leading-5 py-px px-1"
+              value={email}
+              onKeyDown={event => {
+                if (
+                  event.key === 'Backspace' &&
+                  event.currentTarget.selectionStart === 0 &&
+                  event.currentTarget.selectionEnd === 0
+                ) {
+                  const lastNewEmail = [...newEmails].at(-1)
+                  if (lastNewEmail != null) {
+                    setNewEmails(oldNewEmails =>
+                      set.withPresence(oldNewEmails, lastNewEmail, false)
+                    )
+                  }
+                }
+              }}
+              onInput={event => {
+                const value = event.currentTarget.value
+                if (/ /.test(value)) {
+                  const parts = value.split(' ')
+                  const newNewEmails = new Set(newEmails)
+                  for (const newEmail of parts.slice(0, -1)) {
+                    if (newEmail !== '') {
+                      newNewEmails.add(newEmail)
+                    }
+                  }
+                  setNewEmails(newNewEmails)
+                  setEmail(parts[parts.length - 1] ?? '')
+                } else {
+                  setEmail(value)
+                }
+              }}
+            />
+          </form>
           <div className="self-start">
             <button
               type="submit"
-              disabled={!isEmailValid && email !== ''}
-              {...(!isEmailValid && email !== '' ? { title: invalidEmailError } : {})}
+              disabled={!canSubmit}
               className="text-tag-text bg-invite rounded-full px-4 py-1 disabled:opacity-30"
               onClick={() => {
                 doSubmit()
               }}
             >
-              <div className="h-6 py-0.5">Invite All</div>
+              <div className="h-6 py-0.5">Invite</div>
             </button>
           </div>
         </div>
