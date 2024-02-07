@@ -2616,21 +2616,21 @@ type Table
     to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Regex = "") (root_name : Text = "") (row_name : Text = "") (on_problems : Problem_Behavior = Report_Warning) -> Text =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
-        id_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
-        java_data = id_columns.map .java_column
+        resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
+        java_element_columns = resolved_element_columns.map .java_column
 
-        id_columns2 = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
-        java_data2 = id_columns2.map .java_column
+        resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
+        java_attribute_column = resolved_attribute_columns.map .java_column
         
-        value_col = if value_column != "" then value_column else []
-        id_columns3 = columns_helper.select_columns_helper value_col Case_Sensitivity.Default False problem_builder
-        java_data3 = if id_columns3.length > 0 then (id_columns3.at 0).java_column else Nothing
+        value_column_for_helper = if value_column != "" then value_column else []
+        resolved_value_column = columns_helper.select_columns_helper value_column_for_helper Case_Sensitivity.Default False problem_builder
+        java_value_column = if resolved_value_column.length > 0 then (resolved_value_column.at 0).java_column else Nothing
            
-        unused_columns = (columns_helper.internal_columns.filter (Filter_Condition.Not_In id_columns) . filter (Filter_Condition.Not_In id_columns2) . filter (Filter_Condition.Not_In id_columns3)).map .name
+        unused_columns = (columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns) . filter (Filter_Condition.Not_In resolved_attribute_columns) . filter (Filter_Condition.Not_In resolved_value_column)).map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unused_Columns.Error unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
-            Java_Table.to_xmlimpl self.row_count java_data java_data2 java_data3 root_name row_name
+            Java_Table.to_xmlimpl self.row_count java_element_columns java_attribute_column java_value_column root_name row_name
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
