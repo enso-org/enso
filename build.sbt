@@ -1666,18 +1666,28 @@ lazy val `runtime-tests` =
         ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
-        "org.graalvm.truffle" % "truffle-tck"        % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle" % "truffle-tck-common" % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle" % "truffle-tck-tests"  % graalMavenPackagesVersion % Test,
-        "org.scalacheck"     %% "scalacheck"         % scalacheckVersion         % Test,
-        "org.scalactic"      %% "scalactic"          % scalacticVersion          % Test,
-        "org.scalatest"      %% "scalatest"          % scalatestVersion          % Test,
-        "junit"               % "junit"              % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"    % junitIfVersion            % Test,
-        "org.hamcrest"        % "hamcrest-all"       % hamcrestVersion           % Test,
-        "org.slf4j"           % "slf4j-api"          % slf4jVersion              % Test
+        "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-tck"           % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle"  % "truffle-tck-common"    % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle"  % "truffle-tck-tests"     % graalMavenPackagesVersion % Test,
+        "org.scalacheck"      %% "scalacheck"            % scalacheckVersion         % Test,
+        "org.scalactic"       %% "scalactic"             % scalacticVersion          % Test,
+        "org.scalatest"       %% "scalatest"             % scalatestVersion          % Test,
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
+        "org.slf4j"            % "slf4j-api"             % slf4jVersion              % Test
+      ),
+      Test / javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath,
+        "-Xlint:unchecked"
       ),
       Test / compile := (Test / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
         .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
         .value,
       Test / fork := true,
