@@ -244,6 +244,10 @@ add_specs suite_builder =
 #            r . should_equal e
 
 # embedded xml gets escaped
+# xml is pretty printed
+# can use indexes to specify fields
+# can use regex to specify fields
+# errors if wrong types passed in
        
 main =
     suite = Test.build suite_builder->

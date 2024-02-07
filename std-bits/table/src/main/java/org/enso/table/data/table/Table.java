@@ -502,7 +502,7 @@ public class Table {
         return new Table(new_columns);
     }
 
-    public static String to_xmlimpl(int rowCount, Column[] element_columns, Column[] attribute_columns) throws XmlException, ParserConfigurationException {
+    public static String to_xmlimpl(int rowCount, Column[] element_columns, Column[] attribute_columns, Column value_Column) throws XmlException, ParserConfigurationException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document doc = docBuilder.newDocument();
@@ -523,6 +523,10 @@ public class Table {
                 var textContent = attribute_column.getStorage().getItemBoxed(row).toString();
                 rowElement.setAttribute(attribute_column.getName(), textContent);
                 context.safepoint();
+            }
+            if (value_Column != null) {
+                var textContent = value_Column.getStorage().getItemBoxed(row).toString();
+                rowElement.setTextContent(textContent);
             }
             rootElement.appendChild(rowElement);
             context.safepoint();
