@@ -122,17 +122,17 @@ add_specs suite_builder =
                 + "</row>"
                 + "</root>"
             r . should_equal e
-#        group_builder.specify "The same fields can be used as attributes, elements and value" <|
-#            t = data.table . take 1
-#            r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
-#            e = "<root>"
-#                + '<row Author="Charles Dickens" Price="9.99">'
-#                    + "<Author>Charles Dickens</Author>"
-#                    + "<Price>9.99</Price>"
-#                    + "Charles Dickens"
-#                + "</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "The same fields can be used as attributes, elements and value" <|
+            t = data.table . take 1
+            r = t.to_xml ["Author", "Price"] ["Author", "Price"] "Author"
+            e = "<root>"
+                + '<row Author="Charles Dickens" Price="9.99">'
+                    + "Charles Dickens"
+                    + "<Author>Charles Dickens</Author>"
+                    + "<Price>9.99</Price>"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "If a field is specified duplicate times as an attribute or element it is only included once" <|
 #            t = data.table . take 1
 #            r = t.to_xml ["Author", "Price", "Author"] ["Author", "Price", "Price"] "Author"
