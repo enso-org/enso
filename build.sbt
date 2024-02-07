@@ -1654,7 +1654,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
-
 lazy val `runtime-tests` =
   (project in file("engine/runtime-tests"))
     .enablePlugins(JPMSPlugin)
@@ -1667,16 +1666,16 @@ lazy val `runtime-tests` =
         ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
-        "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle"  % "truffle-tck-tests"       % graalMavenPackagesVersion % Test,
-        "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
-        "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
-        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
-        "junit"                % "junit"                   % junitVersion              % Test,
-        "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
-        "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-        "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
+        "org.graalvm.truffle" % "truffle-tck"        % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle" % "truffle-tck-common" % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle" % "truffle-tck-tests"  % graalMavenPackagesVersion % Test,
+        "org.scalacheck"     %% "scalacheck"         % scalacheckVersion         % Test,
+        "org.scalactic"      %% "scalactic"          % scalacticVersion          % Test,
+        "org.scalatest"      %% "scalatest"          % scalatestVersion          % Test,
+        "junit"               % "junit"              % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"    % junitIfVersion            % Test,
+        "org.hamcrest"        % "hamcrest-all"       % hamcrestVersion           % Test,
+        "org.slf4j"           % "slf4j-api"          % slf4jVersion              % Test
       ),
       Test / compile := (Test / compile)
         .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
@@ -1721,40 +1720,41 @@ lazy val `runtime-tests` =
         val runtimeMod =
           (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
         requiredMods ++
-          Seq(runtimeTestInstrumentsMod) ++
-          Seq(runtimeMod)
+        Seq(runtimeTestInstrumentsMod) ++
+        Seq(runtimeMod)
       },
       Test / patchModules := {
+
         /** All these modules will be in --patch-module cmdline option to java, which means that
-         * for the JVM, it will appear that all the classes contained in these sbt projects are contained
-         * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
-         * fat jar.
-         */
+          * for the JVM, it will appear that all the classes contained in these sbt projects are contained
+          * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
+          * fat jar.
+          */
         val modulesToPatchIntoRuntime: Seq[File] =
           (LocalProject(
             "runtime-instrument-common"
           ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-instrument-id-execution"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-instrument-repl-debugger"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-instrument-runtime-server"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-language-epb"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-compiler"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "refactoring-utils"
-            ) / Compile / productDirectories).value ++
-            (LocalProject(
-              "runtime-instrument-common"
-            ) / Test / productDirectories).value
+          (LocalProject(
+            "runtime-instrument-id-execution"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-repl-debugger"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-runtime-server"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-language-epb"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-compiler"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "refactoring-utils"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-common"
+          ) / Test / productDirectories).value
         // Patch test-classes into the runtime module. This is standard way to deal with the
         // split package problem in unit tests. For example, Maven's surefire plugin does this.
         val testClassesDir = (Test / productDirectories).value.head
@@ -1779,18 +1779,16 @@ lazy val `runtime-tests` =
           ),
           testInstrumentsModName -> Seq(runtimeModName)
         )
-      },
+      }
     )
-  .dependsOn(`runtime-fat-jar`)
-  .dependsOn(`runtime-test-instruments`)
-  .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(testkit % Test)
+    .dependsOn(`runtime-fat-jar`)
+    .dependsOn(`runtime-test-instruments`)
+    .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(testkit % Test)
 
-
-/**
- * A project that holds only benchmarks for `runtime`. Unlike `runtime-tests`, its execution requires
- * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
- */
+/** A project that holds only benchmarks for `runtime`. Unlike `runtime-tests`, its execution requires
+  * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
+  */
 lazy val `runtime-benchmarks` =
   (project in file("engine/runtime-benchmarks"))
     .enablePlugins(JPMSPlugin)
@@ -1799,13 +1797,13 @@ lazy val `runtime-benchmarks` =
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
-        "org.openjdk.jmh" % "jmh-core"                 % jmhVersion,
-        "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion,
-        "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion,
-        "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion,
-        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api"               % slf4jVersion,
-        "org.slf4j"            % "slf4j-nop"               % slf4jVersion,
+        "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
+        "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.slf4j"           % "slf4j-api"                % slf4jVersion,
+        "org.slf4j"           % "slf4j-nop"                % slf4jVersion
       ),
       Compile / logManager :=
         sbt.internal.util.CustomLogManager.excludeMsg(
@@ -1843,11 +1841,9 @@ lazy val `runtime-benchmarks` =
           (Compile / run).toTask(" " + name).value
         }
       }.evaluated
-
     )
-  .dependsOn(`runtime-fat-jar`)
-  .dependsOn(`benchmarks-common`)
-
+    .dependsOn(`runtime-fat-jar`)
+    .dependsOn(`benchmarks-common`)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -2271,7 +2267,6 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
-
 lazy val `benchmarks-common` =
   (project in file("lib/java/benchmarks-common"))
     .settings(
@@ -2280,10 +2275,10 @@ lazy val `benchmarks-common` =
         "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
         "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
-        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
-      ),
+        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion
+      )
     )
-  .dependsOn(`polyglot-api`)
+    .dependsOn(`polyglot-api`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
