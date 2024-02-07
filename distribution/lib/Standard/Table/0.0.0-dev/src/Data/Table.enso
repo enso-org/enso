@@ -2622,7 +2622,7 @@ type Table
         id_columns2 = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
         java_data2 = id_columns2.map .java_column
         
-        value_col = self.get value_column
+        value_col = if value_column != "" then self.at value_column else Nothing
         java_data3 = value_col.if_not_nothing <| value_col.java_column
            
         unused_columns = self.column_names.filter (Filter_Condition.Not_In element_columns) . filter (Filter_Condition.Not_In attribute_columns) . filter (Filter_Condition.Not_Equal value_column) 
