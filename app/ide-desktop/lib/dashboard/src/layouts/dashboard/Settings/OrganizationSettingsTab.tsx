@@ -141,8 +141,8 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   return (
-    <div className="flex gap-8">
-      <div className="flex flex-col gap-8">
+    <div className="flex flex-col lg:flex-row gap-8 h-0 lg:h-auto">
+      <div className="flex flex-col gap-8 w-120">
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
           <div className="flex flex-col">
