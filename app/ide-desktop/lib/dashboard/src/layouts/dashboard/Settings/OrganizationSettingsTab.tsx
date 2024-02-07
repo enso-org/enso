@@ -57,15 +57,19 @@ function InfoEntry(props: InternalInfoEntryProps) {
 // === OrganizationSettingsTab ===
 // ===============================
 
+/** Props for a {@link OrganizationSettingsTab}. */
+export interface OrganizationSettingsTabProps {
+  readonly organization: backendModule.OrganizationInfo | null
+  readonly setOrganization: (organization: backendModule.OrganizationInfo) => void
+}
+
 /** Settings tab for viewing and editing organization information. */
-export default function OrganizationSettingsTab() {
+export default function OrganizationSettingsTab(props: OrganizationSettingsTabProps) {
+  const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo | null>(
-    null
-  )
   const inputRefs: Record<
     Exclude<keyof backendModule.OrganizationInfo, 'profilePicture'>,
     React.RefObject<HTMLInputElement>
@@ -75,13 +79,6 @@ export default function OrganizationSettingsTab() {
     location: React.useRef<HTMLInputElement>(null),
     website: React.useRef<HTMLInputElement>(null),
   }
-
-  React.useEffect(() => {
-    void (async () => {
-      const newOrganization = await backend.getOrganization()
-      setOrganization(newOrganization)
-    })()
-  }, [backend])
 
   const doUpdateOrganization = async <
     K extends Exclude<keyof backendModule.OrganizationInfo, 'profilePicture'>,

@@ -2,12 +2,15 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 
 import AccountSettingsTab from '#/layouts/dashboard/Settings/AccountSettingsTab'
 import MembersSettingsTab from '#/layouts/dashboard/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/dashboard/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/dashboard/Settings/SettingsTab'
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
+
+import type * as backendModule from '#/services/Backend'
 
 // ================
 // === Settings ===
@@ -17,6 +20,17 @@ import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 export default function Settings() {
   const [settingsTab, setSettingsTab] = React.useState(SettingsTab.account)
   const { user } = authProvider.useNonPartialUserSession()
+  const { backend } = backendProvider.useBackend()
+  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo | null>(
+    null
+  )
+
+  React.useEffect(() => {
+    void (async () => {
+      const newOrganization = await backend.getOrganization()
+      setOrganization(newOrganization)
+    })()
+  }, [backend])
 
   let content: JSX.Element
   switch (settingsTab) {
@@ -25,7 +39,9 @@ export default function Settings() {
       break
     }
     case SettingsTab.organization: {
-      content = <OrganizationSettingsTab />
+      content = (
+        <OrganizationSettingsTab organization={organization} setOrganization={setOrganization} />
+      )
       break
     }
     case SettingsTab.members: {
