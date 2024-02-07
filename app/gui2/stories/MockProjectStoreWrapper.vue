@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
-import { watch } from 'vue'
+import { SourceDocument } from 'shared/ast/sourceDocument'
+import { reactive, watch } from 'vue'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
@@ -17,19 +18,17 @@ watch(
     if (!mod) return
     const syncModule = new Ast.MutableModule(mod.doc.ydoc)
     applyEdits(syncModule, props.modelValue)
-    const _astModule = new Ast.ReactiveModule(syncModule, [
-      (module, dirtyNodes) => {
-        if (dirtyNodes.size === 0) return
-        const root = module.root()
-        if (root) {
-          const { code } = Ast.print(root)
-          if (code !== props.modelValue) {
-            syncedCode = code
-            emit('update:modelValue', code)
-          }
+    const moduleSource = reactive(SourceDocument.Empty())
+    syncModule.observe((update) => moduleSource.applyUpdate(syncModule, update))
+    watch(
+      () => moduleSource.text,
+      (text) => {
+        if (text !== props.modelValue) {
+          syncedCode = text
+          emit('update:modelValue', text)
         }
       },
-    ])
+    )
     watch(
       () => props.modelValue,
       (modelValue) => applyEdits(syncModule, modelValue),

@@ -11,13 +11,13 @@ export type Modal = JSX.Element
 
 /** State contained in a `ModalStaticContext`. */
 interface ModalStaticContextType {
-  setModal: React.Dispatch<React.SetStateAction<Modal | null>>
-  modalRef: React.RefObject<Modal>
+  readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
+  readonly modalRef: React.RefObject<Modal>
 }
 
 /** State contained in a `ModalContext`. */
 interface ModalContextType {
-  modal: Modal | null
+  readonly modal: Modal | null
 }
 
 const ModalContext = React.createContext<ModalContextType>({
@@ -33,7 +33,7 @@ const ModalStaticContext = React.createContext<ModalStaticContextType>({
 })
 
 /** Props for a {@link ModalProvider}. */
-export interface ModalProviderProps extends React.PropsWithChildren {}
+export interface ModalProviderProps extends Readonly<React.PropsWithChildren> {}
 
 /** A React provider containing the currently active modal. */
 export default function ModalProvider(props: ModalProviderProps) {
@@ -59,9 +59,9 @@ export default function ModalProvider(props: ModalProviderProps) {
 }
 
 /** Props for a {@link ModalProvider}. */
-interface InternalModalStaticProviderProps extends React.PropsWithChildren {
-  setModal: React.Dispatch<React.SetStateAction<Modal | null>>
-  modalRef: React.RefObject<Modal>
+interface InternalModalStaticProviderProps extends Readonly<React.PropsWithChildren> {
+  readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
+  readonly modalRef: React.RefObject<Modal>
 }
 
 /** A React provider containing a function to set the currently active modal. */
@@ -78,14 +78,14 @@ function ModalStaticProvider(props: InternalModalStaticProviderProps) {
 /** A React context hook exposing the currently active modal, if one is currently visible. */
 export function useModal() {
   const { modal } = React.useContext(ModalContext)
-  return { modal }
+  return { modal } as const
 }
 
 /** A React context hook exposing the currently active modal (if one is currently visible) as a ref.
  */
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
-  return { modalRef }
+  return { modalRef } as const
 }
 
 /** A React context hook exposing functions to set and unset the currently active modal. */
@@ -96,5 +96,5 @@ export function useSetModal() {
   const unsetModal = React.useCallback(() => {
     setModalRaw(null)
   }, [/* should never change */ setModalRaw])
-  return { setModal, updateModal, unsetModal }
+  return { setModal, updateModal, unsetModal } as const
 }

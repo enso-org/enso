@@ -27,7 +27,7 @@ import {
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
-import type { ExternalId, SourceRange, VisualizationMetadata } from '../yjsModel'
+import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import * as RawAst from './generated/ast'
 
 declare const brandAstId: unique symbol
@@ -82,11 +82,6 @@ export abstract class Ast {
    */
   is<T extends Ast>(other: T): boolean {
     return this.id === other.id
-  }
-
-  /** Return this node's span, if it belongs to a module with an associated span map. */
-  get span(): SourceRange | undefined {
-    return this.module.getSpan(this.id)
   }
 
   innerExpression(): Ast {
