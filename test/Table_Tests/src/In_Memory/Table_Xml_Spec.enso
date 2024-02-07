@@ -124,7 +124,7 @@ add_specs suite_builder =
             r . should_equal e
         group_builder.specify "Root and Row tags can be set" <|
             t = data.table . take 1
-            r = t.to_xml ["Author", "Price"] ["Year"] "Title" "library" "book"
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title" "library" "book"
             e = "<library>"
                 + '<book Author="Charles Dickens" Price="9.99">'
                     + "A Tale Of Two Cities"
