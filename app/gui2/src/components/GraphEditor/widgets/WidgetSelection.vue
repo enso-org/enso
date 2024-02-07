@@ -10,7 +10,10 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import {
+  type SuggestionEntry,
+  type SuggestionEntryArgument,
+} from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -136,11 +139,21 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
+function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
+  if (parameter.tagValues == null) return false
+  if (parameter.tagValues.length != 2) return false
+  const [first, second] = Array.from(parameter.tagValues).sort()
+  if (first === 'Boolean.False' && second === 'Boolean.True') return true
+  return false
+}
+
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 50,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
-    if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
+    // Boolean arguments also have tag values, but the checkbox widget should handle them.
+    if (props.input[ArgumentInfoKey]?.info?.tagValues != null && !hasBooleanTagValues)
+      return Score.Perfect
     return Score.Mismatch
   },
 })
