@@ -1697,8 +1697,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     <div ref={scrollContainerRef} className="flex-1 overflow-auto">
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
-          <div className="sticky top-0 h-0">
-            <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
+          <div className="sticky top-0 h-0 flex flex-col">
+            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
               <div className="inline-flex gap-3">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button
