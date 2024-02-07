@@ -28,7 +28,7 @@ type Suite_Builder
          `specify` method on group builder. See its docs.
        - pending: Contains a reason for why the test group should be ignored. If Nothing, the test
          is not ignored.
-    group : Text -> (Group_Builder -> Any) -> Nothing
+    group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
     group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl
         case pending of
@@ -62,7 +62,7 @@ type Suite
        - group_filter: Filter for group names.
        - spec_filter: Filter for spec names.
        - should_exit: If true, executes `System.exit` at the end.
-    run_with_filter : (Regex | Text | Nothing) -> (Regex | Text | Nothing) -> Nothing
+    run_with_filter : (Regex | Text | Nothing) -> (Regex | Text | Nothing) -> Boolean -> Nothing
     run_with_filter self group_filter=Nothing spec_filter=Nothing should_exit=True =
         config = Suite_Config.from_environment
 
@@ -99,9 +99,11 @@ type Suite
             False ->
                 failed_tests == 0
 
+    ## Gets the names of all the groups in this suite.
     group_names self =
         self.groups.map (_.name)
 
+    ## Print the structure of the suite to the console.
     print_all self =
         IO.println "Test Suite:"
         self.groups.each group->

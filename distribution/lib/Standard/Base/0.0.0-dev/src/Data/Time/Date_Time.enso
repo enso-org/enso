@@ -308,7 +308,7 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_from_unix_epoch = Date_Time.from_unix_epoch_milliseconds 1601587200000
-    from_unix_epoch_milliseconds : Integer -> Time_Zone -> Date_Time
+    from_unix_epoch_milliseconds : Integer -> Date_Time
     from_unix_epoch_milliseconds milliseconds:Integer =
         unix_epoch_start + Duration.new milliseconds=milliseconds
 
