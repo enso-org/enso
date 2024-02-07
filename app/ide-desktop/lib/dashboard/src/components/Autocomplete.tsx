@@ -212,7 +212,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               })
             }}
           >
-            {itemsToString?.(values) ?? ZWSP}
+            {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
           </div>
         )}
       </div>

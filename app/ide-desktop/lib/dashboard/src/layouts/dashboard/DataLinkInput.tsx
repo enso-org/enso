@@ -86,6 +86,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
   const { setValue: setValueRaw } = props
   const { backend } = backendProvider.useBackend()
   const [value, setValue] = React.useState(valueRaw)
+  const [autocompleteText, setAutocompleteText] = React.useState(() =>
+    typeof value === 'string' ? value : null
+  )
   const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
   const [autocompleteItems, setAutocompleteItems] = React.useState<string[] | null>(null)
 
@@ -109,6 +112,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
     switch (schema.type) {
       case 'string': {
         if ('format' in schema && schema.format === 'enso-secret') {
+          const isValid = typeof value === 'string' && value !== ''
           if (autocompleteItems == null) {
             setAutocompleteItems([])
             void (async () => {
@@ -118,19 +122,21 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             })()
           }
           return (
-            <div className="rounded-2xl border border-black/10">
+            <div
+              className={`rounded-2xl border ${isValid ? 'border-black/10' : 'border-red-700/60'}`}
+            >
               <Autocomplete
                 items={autocompleteItems ?? []}
                 itemToKey={item => item}
                 itemToString={item => item}
                 placeholder="Enter secret path"
                 matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
-                values={typeof value !== 'string' || value === '' ? [] : [value]}
+                values={isValid ? [value] : []}
                 setValues={values => {
                   setValue(values[0])
                 }}
-                text={typeof value !== 'string' ? null : value}
-                setText={setValue}
+                text={autocompleteText}
+                setText={setAutocompleteText}
               />
             </div>
           )
@@ -141,7 +147,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               readOnly={readOnly}
               value={typeof value === 'string' ? value : ''}
               size={1}
-              className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
+              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+                jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+              }`}
               placeholder="Enter text"
               onChange={event => {
                 const newValue: string = event.currentTarget.value
@@ -158,7 +166,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
+            className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+            }`}
             placeholder="Enter number"
             onChange={event => {
               const newValue: number = event.currentTarget.valueAsNumber
@@ -176,7 +186,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className="rounded-full w-40 px-2 bg-transparent border border-black/10 leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed"
+            className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+            }`}
             placeholder="Enter integer"
             onChange={event => {
               const newValue: number = Math.floor(event.currentTarget.valueAsNumber)

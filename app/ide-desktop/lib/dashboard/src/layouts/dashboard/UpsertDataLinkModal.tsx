@@ -59,12 +59,14 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex">
+        <div className="relative flex" title="Must not be blank.">
           <div className="w-12 h-6 py-1">Name</div>
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
+            className={`grow bg-transparent border rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50 ${
+              name !== '' ? 'border-black/10' : 'border-red-700/60'
+            }`}
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)

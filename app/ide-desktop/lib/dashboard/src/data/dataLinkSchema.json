@@ -52,7 +52,12 @@
       "properties": {
         "type": { "title": "Type", "const": "aws_auth", "type": "string" },
         "subType": { "title": "Subtype", "const": "profile", "type": "string" },
-        "profile": { "title": "Profile", "type": "string" }
+        "profile": {
+          "title": "Profile",
+          "description": "Must not be blank.",
+          "type": "string",
+          "minLength": 1
+        }
       },
       "required": ["type", "subType", "profile"]
     },
@@ -140,7 +145,7 @@
         },
         "delimiter": {
           "title": "Delimiter",
-          "description": "Must not be empty.",
+          "description": "Must not be blank.",
           "type": "string",
           "minLength": 1
         },
