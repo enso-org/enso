@@ -336,7 +336,9 @@ add_specs suite_builder =
 #                + "</row>"
 #                + "</root>"
 #            (depretty r).should_equal e       
-      
+
+# unicode  
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
