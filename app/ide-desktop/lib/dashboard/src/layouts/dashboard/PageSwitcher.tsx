@@ -20,7 +20,7 @@ export enum Page {
 }
 
 /** Error text for each page. */
-const ERRORS: Record<Page, string | null> = {
+const ERRORS: Readonly<Record<Page, string | null>> = {
   [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'No project is currently open.',
@@ -29,9 +29,9 @@ const ERRORS: Record<Page, string | null> = {
 
 /** Data describing how to display a button for a pageg. */
 interface PageUIData {
-  page: Page
-  icon: string
-  alt: string
+  readonly page: Page
+  readonly icon: string
+  readonly alt: string
 }
 
 const PAGE_DATA: PageUIData[] = [
@@ -42,9 +42,9 @@ const PAGE_DATA: PageUIData[] = [
 
 /** Props for a {@link PageSwitcher}. */
 export interface PageSwitcherProps {
-  page: Page
-  setPage: (page: Page) => void
-  isEditorDisabled: boolean
+  readonly page: Page
+  readonly setPage: (page: Page) => void
+  readonly isEditorDisabled: boolean
 }
 
 /** Switcher to choose the currently visible full-screen page. */

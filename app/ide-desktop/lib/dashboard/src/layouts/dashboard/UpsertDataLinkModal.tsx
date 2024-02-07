@@ -25,7 +25,7 @@ const INITIAL_DATA_LINK_VALUE =
 
 /** Props for a {@link UpsertDataLinkModal}. */
 export interface UpsertDataLinkModalProps {
-  doCreate: (name: string, dataLink: unknown) => void
+  readonly doCreate: (name: string, dataLink: unknown) => void
 }
 
 /** A modal for creating a Data Link. */

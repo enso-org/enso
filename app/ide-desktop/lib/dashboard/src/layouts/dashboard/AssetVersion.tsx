@@ -11,8 +11,8 @@ import * as dateTime from '#/utilities/dateTime'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
-  number: number
-  version: backend.S3ObjectVersion
+  readonly number: number
+  readonly version: backend.S3ObjectVersion
 }
 
 /** Displays information describing a specific version of an asset. */

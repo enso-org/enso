@@ -611,6 +611,7 @@
   `Filter_Condition`.][8865]
 - [Added `File_By_Line` type allowing processing a file line by line. New faster
   JSON parser based off Jackson.][8719]
+- [Implemented `Table.replace` for the in-memory backend.][8935]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -878,6 +879,7 @@
 [8816]: https://github.com/enso-org/enso/pull/8816
 [8849]: https://github.com/enso-org/enso/pull/8849
 [8865]: https://github.com/enso-org/enso/pull/8865
+[8935]: https://github.com/enso-org/enso/pull/8935
 
 #### Enso Compiler
 

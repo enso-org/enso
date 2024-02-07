@@ -6,16 +6,16 @@ import SvgMask from '#/components/SvgMask'
 /** Props for a {@link Button}. */
 export interface ButtonProps {
   /** When true, the button is not faded out even when not hovered. */
-  active?: boolean
+  readonly active?: boolean
   /** When true, the button is not clickable. */
-  disabled?: boolean
-  disabledOpacityClassName?: string
-  image: string
-  alt?: string
+  readonly disabled?: boolean
+  readonly disabledOpacityClassName?: string
+  readonly image: string
+  readonly alt?: string
   /** A title that is only shown when `disabled` is true. */
-  error?: string | null
-  className?: string
-  onClick: (event: React.MouseEvent) => void
+  readonly error?: string | null
+  readonly className?: string
+  readonly onClick: (event: React.MouseEvent) => void
 }
 
 /** A styled button. */

@@ -73,12 +73,12 @@ function getSchemaName(schema: object) {
 
 /** Props for a {@link DataLinkInput}. */
 export interface DataLinkInputProps {
-  dropdownTitle?: string
-  schema?: object
-  readOnly?: boolean
-  value: NonNullable<unknown> | null
-  setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
-  setIsSubmittable: (isSubmittable: boolean) => void
+  readonly dropdownTitle?: string
+  readonly schema?: object
+  readonly readOnly?: boolean
+  readonly value: NonNullable<unknown> | null
+  readonly setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
+  readonly setIsSubmittable: (isSubmittable: boolean) => void
 }
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */

@@ -1,7 +1,10 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+
+await initializeFFI()
 
 //const disabledCases = [
 //  ' a',
@@ -356,6 +359,9 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   const idMap = Ast.spanMapToIdMap(printed.info)
   idMap.validate()
 
+  // Parsed tree shouldn't need any repair.
+  expect(Ast.repair(root).fixes).toBe(undefined)
+
   // Re-parse.
   const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
   Ast.setExternalIds(root1.module, spans1, idMap)
@@ -474,6 +480,24 @@ test('Splice', () => {
   expect(spliced.code()).toBe('foo')
 })
 
+test('Construct app', () => {
+  const edit = MutableModule.Transient()
+  const app = Ast.App.new(
+    edit,
+    Ast.Ident.new(edit, 'func' as Identifier),
+    undefined,
+    Ast.Ident.new(edit, 'arg' as Identifier),
+  )
+  expect(app.code()).toBe('func arg')
+  const namedApp = Ast.App.new(
+    edit,
+    Ast.Ident.new(edit, 'func' as Identifier),
+    'argName' as Identifier,
+    Ast.Ident.new(edit, 'arg' as Identifier),
+  )
+  expect(namedApp.code()).toBe('func argName=arg')
+})
+
 test.each([
   ['Hello, World!', 'Hello, World!'],
   ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
@@ -489,4 +513,55 @@ test.each([
   const escaped = escape(original)
   expect(escaped).toBe(expectedEscaped)
   expect(unescape(escaped)).toBe(original)
+})
+
+test('Automatic parenthesis', () => {
+  const block = Ast.parseBlock('main = func arg1 arg2')
+  let arg1: Ast.MutableAst | undefined
+  block.visitRecursiveAst((ast) => {
+    if (ast instanceof Ast.MutableIdent && ast.code() === 'arg1') {
+      assert(!arg1)
+      arg1 = ast
+    }
+  })
+  assert(arg1 != null)
+  arg1.replace(Ast.parse('innerfunc innerarg', block.module))
+  const correctCode = 'main = func (innerfunc innerarg) arg2'
+  // This assertion will fail when smart printing handles this case.
+  // At that point we should test tree repair separately.
+  assert(block.code() !== correctCode)
+  Ast.repair(block, block.module)
+  expect(block.code()).toBe(correctCode)
+})
+
+test('Resync', () => {
+  const root = Ast.parseBlock('main = func arg1 arg2')
+  const module = root.module
+  module.replaceRoot(root)
+  const arg1 = 'arg1' as Identifier
+  const func = Ast.Function.fromStatements(
+    module,
+    'func' as Identifier,
+    [arg1],
+    [Ast.Ident.new(module, arg1)],
+  )
+  // Add a trailing line to the function's block. This is syntactically non-canonical; it should belong to the parent.
+  func.bodyAsBlock().insert(1, undefined)
+  expect(func.bodyAsBlock().lines.length).toBe(2)
+  root.insert(0, func)
+  const codeBeforeRepair = root.code()
+  const rootExternalIdBeforeRepair = root.externalId
+  const funcExternalIdBeforeRepair = func.externalId
+  Ast.repair(root, module)
+  const repairedRoot = module.root()
+  assert(repairedRoot instanceof Ast.BodyBlock)
+  const repairedFunc = repairedRoot.statements().next().value
+  assert(repairedFunc instanceof Ast.Function)
+  assert(repairedFunc.body instanceof Ast.BodyBlock)
+  // The function's body has been corrected.
+  expect(repairedFunc.body.lines.length).toBe(1)
+  expect(repairedRoot.code()).toBe(codeBeforeRepair)
+  expect(repairedRoot.externalId).toBe(rootExternalIdBeforeRepair)
+  // The resync operation loses metadata within the non-canonical subtree.
+  expect(repairedFunc.body?.externalId).not.toBe(funcExternalIdBeforeRepair)
 })

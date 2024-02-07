@@ -56,8 +56,10 @@ main =
     ten = 10
     sum = five + ten
     prod = sum * 3
+    ## This node can be entered
     final = Main.func1 prod
     list = []
+    text = 'test'
     
     # Widget tests
     data = Data.read

@@ -11,17 +11,17 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a list item child. */
 interface InternalChildProps<T> {
-  item: T
+  readonly item: T
 }
 
 /** Props for a {@link Dropdown}. */
 export interface DropdownProps<T> {
-  readOnly?: boolean
-  className?: string
-  items: T[]
-  selectedIndex: number | null
-  render: (props: InternalChildProps<T>) => React.ReactNode
-  onClick: (item: T, index: number) => void
+  readonly readOnly?: boolean
+  readonly className?: string
+  readonly items: T[]
+  readonly selectedIndex: number | null
+  readonly render: (props: InternalChildProps<T>) => React.ReactNode
+  readonly onClick: (item: T, index: number) => void
 }
 
 /** A styled dropdown. */

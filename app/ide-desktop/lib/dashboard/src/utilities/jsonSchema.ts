@@ -251,7 +251,7 @@ export function constantValue(defs: Record<string, object>, schema: object, part
 /** Options for {@link isMatch}. */
 export interface MatchOptions {
   /** If true, accept a match where one or more members are `null`, `undefined`, or not present. */
-  partial?: boolean
+  readonly partial?: boolean
 }
 
 /** Attempt to construct a RegExp from the given pattern. If that fails, return a regex that matches

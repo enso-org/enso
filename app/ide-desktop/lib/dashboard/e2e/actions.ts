@@ -673,7 +673,7 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Parameters for {@link mockDate}. */
 interface MockParams {
-  page: test.Page
+  readonly page: test.Page
 }
 
 /** Replace `Date` with a version that returns a fixed time. */

@@ -29,10 +29,10 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
-  item: AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
-  category: Category
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly category: Category
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Display and modify the properties of an asset. */

@@ -18,6 +18,24 @@ export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: 
   return object => Object.assign({ ...object }, update)
 }
 
+// ================
+// === readonly ===
+// ================
+
+/** Makes all properties readonly at the type level. They are still mutable at the runtime level. */
+export function readonly<T extends object>(object: T): Readonly<T> {
+  return object
+}
+
+// =====================
+// === unsafeMutable ===
+// =====================
+
+/** Removes the readonly modifier from all properties on the object. UNSAFE. */
+export function unsafeMutable<T extends object>(object: T): { -readonly [K in keyof T]: T[K] } {
+  return object
+}
+
 // =====================
 // === unsafeEntries ===
 // =====================
