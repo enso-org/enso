@@ -47,6 +47,7 @@ case object TypeNames extends IRPass {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
+      // TODO the 2 pattern matches next to each other could be cleaned up
       val typeParams: List[Name] = d match {
         case t: Definition.Type => t.params.map(_.name)
         case m: Method.Explicit =>
@@ -63,16 +64,29 @@ case object TypeNames extends IRPass {
           params
         case _ => Nil
       }
+      val selfType: Option[BindingsMap.ResolvedType] = d match {
+        case m: Method.Explicit =>
+          m.methodReference.typePointer
+            .flatMap { p =>
+              p.getMetadata(MethodDefinitions)
+                .flatMap(_.target match {
+                  case typ: BindingsMap.ResolvedType => Some(typ)
+                  case _ => None
+                })
+            }
+        case _ => None
+      }
       val mapped =
-        d.mapExpressions(resolveExpression(typeParams, bindingsMap, _))
+        d.mapExpressions(resolveExpression(selfType, typeParams, bindingsMap, _))
       doResolveType(
+        selfType,
         typeParams,
         bindingsMap,
         mapped match {
           case typ: Definition.Type =>
             typ.members.foreach(m =>
               m.arguments.foreach(a =>
-                doResolveType(typ.params.map(_.name), bindingsMap, a)
+                doResolveType(selfType, typ.params.map(_.name), bindingsMap, a)
               )
             )
             typ
@@ -83,6 +97,7 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveExpression(
+    selfType: Option[BindingsMap.ResolvedType],
     typeParams: List[Name],
     bindingsMap: BindingsMap,
     ir: Expression
@@ -91,16 +106,17 @@ case object TypeNames extends IRPass {
       val processedIr = ir match {
         case fn: Function.Lambda =>
           fn.copy(arguments =
-            fn.arguments.map(doResolveType(typeParams, bindingsMap, _))
+            fn.arguments.map(doResolveType(selfType, typeParams, bindingsMap, _))
           )
         case x => x
       }
-      doResolveType(typeParams, bindingsMap, processedIr.mapExpressions(go))
+      doResolveType(selfType, typeParams, bindingsMap, processedIr.mapExpressions(go))
     }
     go(ir)
   }
 
   private def doResolveType[T <: IR](
+    selfType: Option[BindingsMap.ResolvedType],
     typeParams: List[Name],
     bindingsMap: BindingsMap,
     ir: T
@@ -111,7 +127,7 @@ case object TypeNames extends IRPass {
           new MetadataPair(
             TypeSignatures,
             TypeSignatures.Signature(
-              resolveSignature(typeParams, bindingsMap, s.signature),
+              resolveSignature(selfType, typeParams, bindingsMap, s.signature),
               s.comment
             )
           )
@@ -121,6 +137,7 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
+    selfType: Option[BindingsMap.ResolvedType],
     typeParams: List[Name],
     bindingsMap: BindingsMap,
     expression: Expression
@@ -138,8 +155,13 @@ case object TypeNames extends IRPass {
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
+      case selfRef: Name.SelfType =>
+        val resolvedSelfType = selfType.toRight {
+          BindingsMap.SelfTypeOutsideOfTypeDefinition
+        }
+        processResolvedName(selfRef, resolvedSelfType)
       case s: `type`.Set =>
-        s.mapExpressions(resolveSignature(typeParams, bindingsMap, _))
+        s.mapExpressions(resolveSignature(selfType, typeParams, bindingsMap, _))
     }
 
   private def processResolvedName(

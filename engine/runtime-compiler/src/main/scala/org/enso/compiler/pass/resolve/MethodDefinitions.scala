@@ -2,13 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{
-  DefinitionArgument,
-  Expression,
-  Function,
-  Module,
-  Name
-}
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -17,11 +11,7 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
 
 /** Resolves the correct `self` argument type for method definitions and stores
   * the resolution in the method's metadata.
@@ -117,7 +107,7 @@ case object MethodDefinitions extends IRPass {
                 // This is the synthetic Self argument that gets the static module
                 List(syntheticModuleSelfArg),
                 // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body, tp.name),
+                addTypeAscriptionToSelfArgument(dup.body),
                 None
               )
             )
@@ -133,8 +123,7 @@ case object MethodDefinitions extends IRPass {
   }
 
   private def addTypeAscriptionToSelfArgument(
-    methodBody: Expression,
-    typeName: String
+    methodBody: Expression
   ): Expression = methodBody match {
     case lambda: Function.Lambda =>
       val newArguments = lambda.arguments match {
@@ -147,7 +136,7 @@ case object MethodDefinitions extends IRPass {
               _,
               _
             )) :: rest =>
-          val selfType = Name.Literal(typeName, isMethod = false, location = selfArg.location)
+          val selfType = Name.SelfType(location = selfArg.location)
           selfArg.copy(ascribedType = Some(selfType)) :: rest
         case other :: _ =>
           throw new CompilerError(
