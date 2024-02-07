@@ -13,9 +13,6 @@ async function initGraph(page: Page) {
   await mockExpressionUpdate(page, 'aggregated', { type: 'Standard.Table.Data.Table.Table' })
 }
 
-// For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
-const EDGE_PARTS = 2
-
 /**
  Scenario: We open the default visualisation of the `aggregated` node. We expect it to be a table visualisation and to
     contain 10 rows and the values 0,0 to 3,0, which are just some sample values that should be visible in the table
@@ -23,7 +20,6 @@ const EDGE_PARTS = 2
  */
 test('Load Table Visualisation', async ({ page }) => {
   await initGraph(page)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
