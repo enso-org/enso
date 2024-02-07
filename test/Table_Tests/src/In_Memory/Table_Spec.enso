@@ -923,6 +923,11 @@ add_specs suite_builder =
             t.set (100.up_to 102) . should_fail_with Row_Count_Mismatch
             t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 3)) . should_fail_with Row_Count_Mismatch
 
+    suite_builder.group "to_xml" group_builder->
+        group_builder.specify "table with no rows should become empty root element" <|
+            t = Table.new [["X", []]]
+            t.to_xml . should_equal "<root/>"
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
