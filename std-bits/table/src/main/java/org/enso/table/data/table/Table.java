@@ -10,9 +10,13 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlObject;
+import org.apache.xmlbeans.XmlOptions;
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
@@ -40,6 +44,8 @@ import org.enso.table.operations.Distinct;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 /** A representation of a table structure. */
 public class Table {
@@ -328,7 +334,8 @@ public class Table {
   }
 
   /** Performs a cross-join of this table with the right table.
-     * @param problemAggregator */
+     * @param problemAggregator
+     * @param rightPrefix */
   public Table crossJoin(Table right, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
@@ -359,7 +366,8 @@ public class Table {
     return new Table(newColumns);
   }
 
-  /** Zips rows of this table with rows of the right table. */
+  /** Zips rows of this table with rows of the right table.
+     * @param problemAggregator */
   public Table zip(
       Table right, boolean keepUnmatched, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
@@ -482,47 +490,47 @@ public class Table {
 
   public static String to_xml(Column[] element_columns) throws XmlException, ParserConfigurationException
   {
-      return "<root/>";
-      // DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance() ;
-      // DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-      // Document doc = docBuilder.newDocument();
-      // Element rootElement = doc.createElement("root");
-      // doc.appendChild(rootElement);
-      // if (element_columns.length > 0) {
-      //   int size = element_columns[0].getSize();
-      //   Context context = Context.getCurrent();
-      //   for (int row = 0; row < size; row++) {
-      //     Element childElement = doc.createElement("row");
-      //     var elementName = element_columns[0].getName();
-      //     Element columnElement = doc.createElement(elementName);
-      //     childElement.appendChild(columnElement);
-      //     var textContent = element_columns[0].getStorage().getItemBoxed(row).toString();
-      //     columnElement.setTextContent(textContent);
-      //     rootElement.appendChild(childElement);
-      //   }
+      DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance() ;
+      DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+      Document doc = docBuilder.newDocument();
+      Element rootElement = doc.createElement("root");
+      doc.appendChild(rootElement);
+      if (element_columns.length > 0) {
+        int size = element_columns[0].getSize();
+        Context context = Context.getCurrent();
+        for (int row = 0; row < size; row++) {
+          Element childElement = doc.createElement("row");
+            for (Column element_column : element_columns) {
+                Element columnElement = doc.createElement(element_column.getName());
+                childElement.appendChild(columnElement);
+                var textContent = element_column.getStorage().getItemBoxed(row).toString();
+                columnElement.setTextContent(textContent);
+                rootElement.appendChild(childElement);
+            }
+        }
       
-      //   // for (Column column : element_columns) {
-      //   //   for (int i = 0; i < id_columns.length; i++) {
-      //   //     storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
-      //   //   }
+        // for (Column column : element_columns) {
+        //   for (int i = 0; i < id_columns.length; i++) {
+        //     storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
+        //   }
 
-      //   //   storage[id_columns.length].append(column.getName());
-      //   //   storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
-      //   // }
+        //   storage[id_columns.length].append(column.getName());
+        //   storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
+        // }
 
-      // context.safepoint();
-    // }
+      context.safepoint();
+    }
 
-    //   XmlObject xmlObject = XmlObject.Factory.parse(doc);
+      XmlObject xmlObject = XmlObject.Factory.parse(doc);
 
-    //   XmlOptions options = new XmlOptions();
-    //   //options.setSavePrettyPrint();
-    //   options.setUseDefaultNamespace();
-    //   options.setSaveAggressiveNamespaces();
+      XmlOptions options = new XmlOptions();
+      //options.setSavePrettyPrint();
+      options.setUseDefaultNamespace();
+      options.setSaveAggressiveNamespaces();
 
-    //   String xmlString = xmlObject.xmlText(options);
+      String xmlString = xmlObject.xmlText(options);
 
-    //   return xmlString;
+      return xmlString;
   }
         // Column[] element_columns,
       // Column[] attribute_columns,

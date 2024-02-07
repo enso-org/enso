@@ -2616,7 +2616,7 @@ type Table
     @element_columns Widget_Helpers.make_column_name_vector_selector
     @attribute_columns Widget_Helpers.make_column_name_vector_selector
     @value_column Widget_Helpers.make_column_name_selector
-    to_xml : Text
+    to_xml : Vector (Integer | Text | Regex) | Vector (Integer | Text | Regex) | (Integer | Text | Regex) | Text | Text 
     to_xml self (element_columns = []) (attribute_columns = []) (value_column = "") (root_element_name="root") (row_element_name="row") error_on_missing_columns=True on_problems=Report_Warning =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=False

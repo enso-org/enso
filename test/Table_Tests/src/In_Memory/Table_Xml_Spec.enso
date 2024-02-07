@@ -52,28 +52,28 @@ add_specs suite_builder =
             r = t.to_xml 
             e = "<root/>"
             r.should_equal e
-#        group_builder.specify "if no columns are specified all fields become child elements" <|
-#            t = data.table .select_columns ['Title', 'Year'] . take 4
-#            r = t.to_xml
-#            e = "<root>"
-#                + "<row>"
-#                    + "<Title>A Tale Of Two Cities</Title>"
-#                    + "<Year>1859</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Title>The Great Gatsby</Title>"
-#                    + "<Year>1925</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Title>The Catcher In The Rye</Title>"
-#                    + "<Year>1951</Year>"
-#                + "</row>"
-#                + "<row>"
-#                    + "<Title>The Grapes Of Wrath</Title>"
-#                    + "<Year>1939</Year>"
-#                + "</row>"
-#                + "</root>"
-#            r . should_equal e
+        group_builder.specify "if no columns are specified all fields become child elements" <|
+            t = data.table . select_columns ['Title', 'Year']
+            r = t.to_xml ['Title', 'Year']
+            e = "<root>"
+                + "<row>"
+                    + "<Title>A Tale Of Two Cities</Title>"
+                    + "<Year>1859</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Title>The Great Gatsby</Title>"
+                    + "<Year>1925</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Title>The Catcher In The Rye</Title>"
+                    + "<Year>1951</Year>"
+                + "</row>"
+                + "<row>"
+                    + "<Title>The Grapes Of Wrath</Title>"
+                    + "<Year>1939</Year>"
+                + "</row>"
+                + "</root>"
+            r . should_equal e
 #        group_builder.specify "Single column as element" <|
 #            t = data.table . take 4
 #            r = t.to_xml ["Year"]
