@@ -29,13 +29,8 @@ public class TableToXml {
     var rootElement = doc.createElement(makeXmlTagNameLegal(root_name));
     doc.appendChild(rootElement);
 
-    Map<String, String> element_column_names =
-        Stream.of(element_columns)
-            .collect(
-                Collectors.toMap(
-                    e -> e.getName(), e -> makeXmlTagNameLegal(e.getName()), (e1, e2) -> e1));
-    Map<String, String> attribute_column_names =
-        Stream.of(attribute_columns)
+    Map<String, String> legal_column_names =
+        Stream.concat(Stream.of(element_columns), Stream.of(attribute_columns))
             .collect(
                 Collectors.toMap(
                     e -> e.getName(), e -> makeXmlTagNameLegal(e.getName()), (e1, e2) -> e1));
@@ -48,12 +43,12 @@ public class TableToXml {
         get_set_value(value_Column, row, rowElement);
       }
       for (var element_column : element_columns) {
-        var legal_name = element_column_names.get(element_column.getName());
+        var legal_name = legal_column_names.get(element_column.getName());
         get_append_element(element_column, legal_name, row, doc, rowElement);
         context.safepoint();
       }
       for (var attribute_column : attribute_columns) {
-        var legal_name = attribute_column_names.get(attribute_column.getName());
+        var legal_name = legal_column_names.get(attribute_column.getName());
         get_set_attribute(attribute_column, legal_name, row, rowElement);
         context.safepoint();
       }
