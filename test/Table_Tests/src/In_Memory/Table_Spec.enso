@@ -927,9 +927,10 @@ add_specs suite_builder =
         group_builder.specify "table with no rows should become empty root element" <|
             t = Table.new [["X", []]]
             t.to_xml . should_equal "<root/>"
-        group_builder.specify "if no columns are specified we just get an empty <row> tag per row" <|
+        group_builder.specify "if no columns are specified we get empty root element" <|
             t = Table.new [["X", [1,2,3]]]
-            t.to_xml . should_equal "<root><row/><row/><row/></root>"
+            t.to_xml . should_equal "<root/>"
+        
 
 main =
     suite = Test.build suite_builder->
