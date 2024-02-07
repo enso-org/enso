@@ -279,7 +279,7 @@ type JS_Object
              obj.set_value "foo" "asdf"
              # => {"foo":"asdf","baz":"quux"}
     set_value : Text -> Any -> JS_Object
-    set_value self:JS_Object key:Text value = JS_Object.Value (set_value self.js_object key value.to_js_object)
+    set_value self key:Text value = JS_Object.Value (set_value self.js_object key value.to_js_object)
 
 ## PRIVATE
 type JS_Object_Comparator

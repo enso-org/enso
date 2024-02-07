@@ -155,7 +155,7 @@ type Random
              import Standard.Base.Random.Random
 
              d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
-    date : Date -> Date -> Boolean -> Date
+    date : Date -> Date -> Date
     date min:Date max:Date = Random_Generator.global_random_generator.date min max
 
     ## GROUP Random
@@ -297,7 +297,7 @@ type Random_Generator
         Vector.from_polyglot_array array
 
     ## PRIVATE
-    date : Date -> Date -> Boolean -> Date
+    date : Date -> Date -> Date
     date self start_date:Date end_date:Date =
         date_range = start_date.up_to end_date include_end=True
         date_range.at (self.integer 0 (date_range.length - 1))
