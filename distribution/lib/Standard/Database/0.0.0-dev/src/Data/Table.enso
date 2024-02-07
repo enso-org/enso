@@ -160,6 +160,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
@@ -970,6 +971,7 @@ type Table
             self.make_column (self.internal_columns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1019,6 +1021,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -1306,7 +1309,7 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS cartesian join, append
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1421,8 +1424,8 @@ type Table
             Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS find replace
-       GROUP Standard.Base.Calculations
-       ICON join
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
@@ -2319,6 +2322,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -2416,7 +2420,7 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata 
+    ## ALIAS metadata
        GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
