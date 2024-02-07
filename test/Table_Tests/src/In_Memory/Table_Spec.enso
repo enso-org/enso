@@ -930,6 +930,9 @@ add_specs suite_builder =
         group_builder.specify "if no columns are specified we get empty root element" <|
             t = Table.new [["X", [1,2,3]]]
             t.to_xml . should_equal "<root/>"
+        group_builder.specify "Single column as element" <|
+            t = Table.new [["X", [1,2,3]]]
+            t.to_xml ["X"] . should_equal "<root><X>1</X><X>2</X><X>3</X></root>"
         
 
 main =
