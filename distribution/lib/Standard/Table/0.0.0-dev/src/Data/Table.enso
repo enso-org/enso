@@ -2802,6 +2802,13 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
         Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
+   A helper that creates a two-column table from a map.
+map_to_lookup_table : Map Any Any -> Text -> Text -> Table
+map_to_lookup_table map key_column value_column =
+    keys_and_values = map.to_vector
+    Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
+
+## PRIVATE
    Conversion method to a Table from a Column.
 Table.from (that:Column) = that.to_table
 

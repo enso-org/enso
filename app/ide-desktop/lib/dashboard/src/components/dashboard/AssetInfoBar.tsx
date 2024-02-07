@@ -12,9 +12,9 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-  canToggleAssetPanel: boolean
-  isAssetPanelVisible: boolean
-  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  readonly canToggleAssetPanel: boolean
+  readonly isAssetPanelVisible: boolean
+  readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A toolbar for displaying asset information. */
