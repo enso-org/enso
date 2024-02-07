@@ -158,10 +158,9 @@ add_specs suite_builder =
         group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
             t = data.table
             t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Report_Error . should_fail_with [Unused_Columns.Error ["Last Borrowed"]]
-#        group_builder.specify "Will error if configured with a element column that is not in the table" <|
-#            t = data.table
-#            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title"
-#            r . should_fail_with_error No_Such_Column               
+        group_builder.specify "Will error if configured with a element column that is not in the table" <|
+            t = data.table
+            t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title" . should_fail_with Missing_Input_Columns
 #        group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
 #            t = data.table
 #            r = t.to_xml ["Author", "Price"] ["Year", "Not In Table"] "Title"
