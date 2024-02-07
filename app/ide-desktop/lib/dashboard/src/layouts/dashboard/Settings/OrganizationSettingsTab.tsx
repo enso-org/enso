@@ -5,13 +5,9 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 
 import * as backendModule from '#/services/Backend'
-
-import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
 
 // =================
 // === InfoEntry ===
@@ -67,8 +63,6 @@ export interface OrganizationSettingsTabProps {
 export default function OrganizationSettingsTab(props: OrganizationSettingsTabProps) {
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { signOut } = authProvider.useAuth()
-  const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const inputRefs: Record<
     Exclude<keyof backendModule.OrganizationInfo, 'profilePicture'>,
@@ -231,31 +225,6 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </Value>
             </InfoEntry>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
-          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
-          <div className="flex gap-2">
-            <button
-              className="rounded-full bg-danger text-inversed px-2 py-1"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(
-                  <ConfirmDeleteUserModal
-                    description="organization"
-                    doDelete={async () => {
-                      await backend.deleteOrganization()
-                      await signOut()
-                    }}
-                  />
-                )
-              }}
-            >
-              <span className="leading-5 h-6 py-px">Delete this organization</span>
-            </button>
-            <span className="leading-5 h-8 py-1.25">
-              Once deleted, it will be gone forever. Please be certain.
-            </span>
           </div>
         </div>
       </div>

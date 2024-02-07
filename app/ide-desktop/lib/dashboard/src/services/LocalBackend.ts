@@ -362,11 +362,6 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override deleteOrganization() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
   override uploadOrganizationPicture() {
     return this.invalidOperation()
   }

@@ -261,16 +261,6 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Delete the current organization. */
-  override async deleteOrganization(): Promise<void> {
-    const response = await this.delete(remoteBackendPaths.DELETE_ORGANIZATION_PATH)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not delete organization.')
-    } else {
-      return
-    }
-  }
-
   /** Upload a new profile picture for the current organization. */
   override async uploadOrganizationPicture(
     params: backendModule.UploadPictureRequestParams,

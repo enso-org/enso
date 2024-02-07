@@ -949,8 +949,6 @@ export default abstract class Backend {
   abstract getOrganization(): Promise<OrganizationInfo>
   /** Change the details of the current organization. */
   abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<void>
-  /** Delete the current organization. */
-  abstract deleteOrganization(): Promise<void>
   /** Upload a new profile picture for the current organization. */
   abstract uploadOrganizationPicture(
     params: UploadPictureRequestParams,
