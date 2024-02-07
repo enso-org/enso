@@ -19,7 +19,7 @@ import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
 
 /** Props for a transparent wrapper component. */
 interface InternalTransparentWrapperProps {
-  children: React.ReactNode
+  readonly children: React.ReactNode
 }
 
 /** A transparent wrapper component */
@@ -38,7 +38,7 @@ function Value(props: InternalTransparentWrapperProps) {
 
 /** Props for a {@link InfoEntry}. */
 interface InternalInfoEntryProps {
-  children: [React.ReactNode, React.ReactNode]
+  readonly children: [React.ReactNode, React.ReactNode]
 }
 
 /** Styled information display containing key and value. */

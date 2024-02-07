@@ -13,8 +13,8 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */
 export interface ConfirmDeleteUserModalProps {
-  description: string
-  doDelete: () => Promise<void>
+  readonly description: string
+  readonly doDelete: () => Promise<void>
 }
 
 /** A modal for confirming the deletion of a user. */
