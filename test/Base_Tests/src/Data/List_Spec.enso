@@ -143,11 +143,21 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         list.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4].to_list
         list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
 
-        Test.expect_panic Type_Error (list.filter (Filter_Condition.Starts_With "a"))
-        list.filter Filter_Condition.Is_True . should_equal List.Nil
-        list.filter Filter_Condition.Is_False . should_equal List.Nil
         list.filter Filter_Condition.Is_Nothing . should_equal List.Nil
         list.filter Filter_Condition.Not_Nothing . should_equal list
+
+        ## Boolean based filters should fail with type error
+        Test.expect_panic Type_Error (list.filter Filter_Condition.Is_True)
+        Test.expect_panic Type_Error (list.filter Filter_Condition.Is_False)
+
+        ## Text based filters should fail with type error
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Starts_With "a"))
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Ends_With "a"))
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Contains "a"))
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Equal_Ignore_Case "a"))
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Like "a%"))
+        Test.expect_panic Type_Error (list.filter Filter_Condition.Is_Empty)
+        Test.expect_panic Type_Error (list.filter Filter_Condition.Not_Empty)
 
         txt = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"].to_list
