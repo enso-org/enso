@@ -13,11 +13,11 @@ import * as dateTime from '#/utilities/dateTime'
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
-  asset: backend.AnyAsset
+  readonly asset: backend.AnyAsset
   /** If `true`, `lastModified` will be hidden, as it is not relevant. */
-  new?: boolean
-  newName?: string
-  className?: string
+  readonly new?: boolean
+  readonly newName?: string
+  readonly className?: string
 }
 
 /** Displays a few details of an asset. */

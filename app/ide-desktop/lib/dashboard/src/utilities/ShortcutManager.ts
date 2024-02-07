@@ -105,25 +105,25 @@ export enum MouseButton {
  *
  * If a key is omitted, the shortcut will be triggered regardless of its value in the event. */
 interface Modifiers {
-  ctrl?: boolean
-  alt?: boolean
-  shift?: boolean
-  meta?: boolean
+  readonly ctrl?: boolean
+  readonly alt?: boolean
+  readonly shift?: boolean
+  readonly meta?: boolean
 }
 
 /** A keyboard shortcut. */
 export interface KeyboardShortcut extends Modifiers {
   // Every printable character is a valid value for `key`, so unions and enums are both
   // not an option here.
-  key: string
-  action: KeyboardAction
+  readonly key: string
+  readonly action: KeyboardAction
 }
 
 /** A mouse shortcut. If a key is omitted, that means its value does not matter. */
 export interface MouseShortcut extends Modifiers {
-  button: MouseButton
-  action: MouseAction
-  clicks: number
+  readonly button: MouseButton
+  readonly action: MouseAction
+  readonly clicks: number
 }
 
 /** All possible modifier keys. */
@@ -132,11 +132,9 @@ export type ModifierKey = (typeof MODIFIERS)[number]
 /** A list of all possible modifier keys, in order. */
 export const MODIFIERS =
   detect.platform() === detect.Platform.macOS
-    ? // This is required to derive the `ModifierKey` type above.
-      // eslint-disable-next-line no-restricted-syntax
+    ? // These MUST be `as const` to derive the `ModifierKey` type above.
       (['Meta', 'Shift', 'Alt', 'Ctrl'] as const)
-    : // eslint-disable-next-line no-restricted-syntax
-      (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
+    : (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
 
 // ========================
 // === isTextInputEvent ===
@@ -172,7 +170,9 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 // =============================
 
 /** Create a mapping from {@link KeyboardAction} to `T`. */
-function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<KeyboardAction, T> {
+function makeKeyboardActionMap<T>(
+  make: (action: KeyboardAction) => T
+): Readonly<Record<KeyboardAction, T>> {
   // This is SAFE, as the types of the keys are statically known.
   // eslint-disable-next-line no-restricted-syntax
   return Object.fromEntries(
@@ -187,10 +187,10 @@ function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<K
 /** Data needed to render a keyboard shortcut in a context menu. */
 export interface ShortcutInfo {
   /** A URL to the image representing this shortcut. */
-  icon: string
+  readonly icon: string
   /** A Tailwind class for the desired color of the icon. It should be in the form `text-<color>`,
    * where `<color>` is replaced with the actual color. */
-  colorClass?: string
+  readonly colorClass?: string
 }
 
 // ===============================
@@ -241,14 +241,16 @@ function modifiersMatchEvent(
 /** Holds all keyboard and mouse shortcutManager, and provides functions to detect them. */
 export default class ShortcutManager {
   keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
-  allKeyboardHandlers: Record<
-    KeyboardAction,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-    ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+  allKeyboardHandlers: Readonly<
+    Record<
+      KeyboardAction,
+      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+      ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+    >
   > = makeKeyboardActionMap(() => [])
   /** The last handler (if any) for each action in
    * {@link ShortcutManager.allKeyboardHandlers}. */
-  activeKeyboardHandlers: Record<
+  readonly activeKeyboardHandlers: Record<
     KeyboardAction,
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
     ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
@@ -256,9 +258,9 @@ export default class ShortcutManager {
 
   /** Create a {@link ShortcutManager}. */
   constructor(
-    public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
-    public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
-    public keyboardShortcutInfo: Record<KeyboardAction, ShortcutInfo>
+    public readonly keyboardShortcuts: Readonly<Record<KeyboardAction, KeyboardShortcut[]>>,
+    public readonly mouseShortcuts: Readonly<Record<MouseAction, MouseShortcut[]>>,
+    public readonly keyboardShortcutInfo: Readonly<Record<KeyboardAction, ShortcutInfo>>
   ) {
     this.updateKeyboardShortcutsByKey()
   }
@@ -423,8 +425,8 @@ const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 /** The key known as the `Delete` key for the current platform. */
 const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
-/** The default keyboard shortcutManager. */
-const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
+/** The default keyboard shortcuts. */
+const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortcut[]>> = {
   [KeyboardAction.settings]: [keybind(KeyboardAction.settings, [CTRL], ',')],
   [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
   [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
@@ -464,7 +466,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 }
 
 /** The default UI data for every keyboard shortcut. */
-const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
+const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutInfo>> = {
   [KeyboardAction.settings]: { icon: SettingsIcon },
   [KeyboardAction.open]: { icon: OpenIcon },
   [KeyboardAction.run]: { icon: Play2Icon },
@@ -504,8 +506,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
   [KeyboardAction.cancelCut]: { icon: BlankIcon },
 }
 
-/** The default mouse shortcutManager. */
-const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
+/** The default mouse shortcuts. */
+const DEFAULT_MOUSE_SHORTCUTS: Readonly<Record<MouseAction, MouseShortcut[]>> = {
   [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
   [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
   [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],

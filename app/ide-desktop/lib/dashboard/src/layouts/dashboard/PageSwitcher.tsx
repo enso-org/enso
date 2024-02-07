@@ -24,7 +24,6 @@ export enum Page {
 }
 
 /** Error text for each page. */
-// eslint-disable-next-line no-restricted-syntax
 const ERRORS = {
   [Page.home]: null,
   [Page.drive]: null,
@@ -34,8 +33,8 @@ const ERRORS = {
 
 /** Data describing how to display a button for a pageg. */
 interface PageUIData {
-  page: Page
-  icon: string
+  readonly page: Page
+  readonly icon: string
 }
 
 const PAGE_DATA: PageUIData[] = [
@@ -46,9 +45,9 @@ const PAGE_DATA: PageUIData[] = [
 
 /** Props for a {@link PageSwitcher}. */
 export interface PageSwitcherProps {
-  page: Page
-  setPage: (page: Page) => void
-  isEditorDisabled: boolean
+  readonly page: Page
+  readonly setPage: (page: Page) => void
+  readonly isEditorDisabled: boolean
 }
 
 /** Switcher to choose the currently visible full-screen page. */

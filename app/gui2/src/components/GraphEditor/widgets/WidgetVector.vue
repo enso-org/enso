@@ -36,9 +36,7 @@ const value = computed({
   set(value) {
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    const edit = graph.astModule.edit()
     props.onUpdate({
-      edit,
       portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
     })
   },
@@ -54,9 +52,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
     else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
-    else if (props.input.value instanceof Ast.Ast)
-      return props.input.value.children().next().value.code === '[' ? Score.Perfect : Score.Mismatch
-    else return Score.Mismatch
+    else if (props.input.value instanceof Ast.Ast) {
+      return props.input.value.children().next().value.code() === '['
+        ? Score.Perfect
+        : Score.Mismatch
+    } else return Score.Mismatch
   },
 })
 </script>

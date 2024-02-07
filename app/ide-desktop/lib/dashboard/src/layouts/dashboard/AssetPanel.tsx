@@ -37,7 +37,7 @@ enum AssetPanelTab {
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    assetPanelTab: AssetPanelTab
+    readonly assetPanelTab: AssetPanelTab
   }
 }
 
@@ -52,24 +52,24 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  item: AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
 }
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
-  supportsLocalBackend: boolean
-  page: pageSwitcher.Page
-  setPage: (page: pageSwitcher.Page) => void
-  category: Category
-  isHelpChatOpen: boolean
-  setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
-  setVisibility: React.Dispatch<React.SetStateAction<boolean>>
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  projectAsset: backend.ProjectAsset | null
-  setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
-  doRemoveSelf: () => void
-  onSignOut: () => void
+  readonly supportsLocalBackend: boolean
+  readonly page: pageSwitcher.Page
+  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly category: Category
+  readonly isHelpChatOpen: boolean
+  readonly setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
+  readonly setVisibility: React.Dispatch<React.SetStateAction<boolean>>
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly projectAsset: backend.ProjectAsset | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
+  readonly doRemoveSelf: () => void
+  readonly onSignOut: () => void
 }
 
 /** A panel containing the description and settings for an asset. */

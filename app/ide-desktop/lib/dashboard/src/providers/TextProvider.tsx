@@ -4,21 +4,24 @@ import * as React from 'react'
 
 import * as text from '#/text'
 
+import * as object from '#/utilities/object'
+
 // ===================
 // === TextContext ===
 // ===================
 
 /** State contained in a `TextContext`. */
 export interface TextContextType {
-  language: text.Language
-  setLanguage: (newLanguage: text.Language) => void
+  readonly language: text.Language
+  readonly setLanguage: (newLanguage: text.Language) => void
 }
 
 const TextContext = React.createContext<TextContextType>({
   language: text.Language.english,
-  /** Set `this.language`. */
+  /** Set `this.language`. It is NOT RECOMMENDED to use the default value, as this does not trigger
+   * reactive updates. */
   setLanguage(language) {
-    this.language = language
+    object.unsafeMutable(this).language = language
   },
 })
 

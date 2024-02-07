@@ -33,18 +33,21 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  hidden?: boolean
-  category: Category
-  pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
-  selectedKeys: Set<backendModule.AssetId>
-  setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-  nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
-  event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  readonly hidden?: boolean
+  readonly category: Category
+  readonly pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
+  readonly selectedKeys: Set<backendModule.AssetId>
+  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (
+    newParentKey: backendModule.AssetId,
+    newParentId: backendModule.DirectoryId
+  ) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows

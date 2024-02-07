@@ -29,7 +29,7 @@ import * as validation from '#/utilities/validation'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    loginRedirect: string
+    readonly loginRedirect: string
   }
 }
 

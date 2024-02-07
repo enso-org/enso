@@ -17,9 +17,9 @@ import * as backend from '#/services/Backend'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-  labels: backend.Label[]
-  eventTarget: HTMLElement
-  doCreate: (value: string, color: backend.LChColor) => void
+  readonly labels: backend.Label[]
+  readonly eventTarget: HTMLElement
+  readonly doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */

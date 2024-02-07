@@ -26,14 +26,16 @@ const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
 /** Props for values of {@link MODIFIER_MAPPINGS}. */
 interface InternalModifierProps {
-  getText: ReturnType<typeof textProvider.useText>['getText']
+  readonly getText: ReturnType<typeof textProvider.useText>['getText']
 }
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Record<
-  detect.Platform,
-  Partial<
-    Record<shortcutManagerModule.ModifierKey, (props: InternalModifierProps) => React.ReactNode>
+const MODIFIER_MAPPINGS: Readonly<
+  Record<
+    detect.Platform,
+    Partial<
+      Record<shortcutManagerModule.ModifierKey, (props: InternalModifierProps) => React.ReactNode>
+    >
   >
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
@@ -68,7 +70,7 @@ const MODIFIER_MAPPINGS: Record<
 
 /** Props for a {@link KeyboardShortcut} */
 export interface KeyboardShortcutProps {
-  action: shortcutManagerModule.KeyboardAction
+  readonly action: shortcutManagerModule.KeyboardAction
 }
 
 /** A visual representation of a keyboard shortcut. */

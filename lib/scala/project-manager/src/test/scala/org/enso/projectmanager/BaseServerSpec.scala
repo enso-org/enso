@@ -207,7 +207,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       distributionConfiguration
     )
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def clientControllerFactory(): ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZAny, +*, +*]](
       system                          = system,
       projectService                  = projectService,

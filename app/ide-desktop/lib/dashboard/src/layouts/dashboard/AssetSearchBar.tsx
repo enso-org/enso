@@ -32,9 +32,9 @@ enum QuerySource {
 
 /** A suggested query. */
 export interface Suggestion {
-  render: () => React.ReactNode
-  addToQuery: (query: AssetQuery) => AssetQuery
-  deleteFromQuery: (query: AssetQuery) => AssetQuery
+  readonly render: () => React.ReactNode
+  readonly addToQuery: (query: AssetQuery) => AssetQuery
+  readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
 // ======================
@@ -43,10 +43,10 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  labels: backend.Label[]
-  suggestions: Suggestion[]
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backend.Label[]
+  readonly suggestions: Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */

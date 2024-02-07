@@ -14,8 +14,8 @@ import type * as spinner from '#/components/Spinner'
 
 /** Props for a {@link Home}. */
 export interface HomeProps {
-  hidden: boolean
-  createProject: (
+  readonly hidden: boolean
+  readonly createProject: (
     templateId?: string | null,
     templateName?: string | null,
     onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null

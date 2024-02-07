@@ -32,19 +32,19 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
-  showDelete?: boolean
+  readonly showDelete?: boolean
   /** When true, the button is not clickable. */
-  disabled?: boolean
+  readonly disabled?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
-  typeSelectorYOffsetPx?: number
-  error?: string | null
-  selfPermission: permissions.PermissionAction
+  readonly typeSelectorYOffsetPx?: number
+  readonly error?: string | null
+  readonly selfPermission: permissions.PermissionAction
   /** If this prop changes, the internal state will be updated too. */
-  action: permissions.PermissionAction
-  assetType: backend.AssetType
-  className?: string
-  onChange: (action: permissions.PermissionAction) => void
-  doDelete?: () => void
+  readonly action: permissions.PermissionAction
+  readonly assetType: backend.AssetType
+  readonly className?: string
+  readonly onChange: (action: permissions.PermissionAction) => void
+  readonly doDelete?: () => void
 }
 
 /** A horizontal selector for all possible permissions. */

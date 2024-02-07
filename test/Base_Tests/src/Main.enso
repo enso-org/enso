@@ -88,7 +88,7 @@ import project.System.Temporary_File_Spec
 
 import project.Random_Spec
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         Any_Spec.add_specs suite_builder
         Array_Spec.add_specs suite_builder
@@ -126,6 +126,7 @@ main =
         Instrumentor_Spec.add_specs suite_builder
         Meta_Location_Spec.add_specs suite_builder
         Names_Spec.add_specs suite_builder
+        Numbers_Spec.add_specs suite_builder
         Equals_Spec.add_specs suite_builder
         Ordering_Spec.add_specs suite_builder
         Comparator_Spec.add_specs suite_builder
@@ -165,4 +166,5 @@ main =
         System_Spec.add_specs suite_builder
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
-    suite.run_with_filter
+
+    suite.run_with_filter filter

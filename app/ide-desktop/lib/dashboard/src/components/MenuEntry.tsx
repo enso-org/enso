@@ -15,13 +15,13 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
-  hidden?: boolean
-  action: shortcutManagerModule.KeyboardAction
+  readonly hidden?: boolean
+  readonly action: shortcutManagerModule.KeyboardAction
   /** When true, the button is not clickable. */
-  disabled?: boolean
-  title?: string
-  paddingClassName?: string
-  doAction: () => void
+  readonly disabled?: boolean
+  readonly title?: string
+  readonly paddingClassName?: string
+  readonly doAction: () => void
 }
 
 /** An item in a menu. */

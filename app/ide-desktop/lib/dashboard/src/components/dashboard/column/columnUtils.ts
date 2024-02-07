@@ -10,6 +10,16 @@ import * as backend from '#/services/Backend'
 
 import SortDirection from '#/utilities/SortDirection'
 
+// =================
+// === Constants ===
+// =================
+
+/** The corresponding icon URL for each {@link SortDirection}. */
+export const SORT_ICON: Readonly<Record<SortDirection, string>> = {
+  [SortDirection.ascending]: SortAscendingIcon,
+  [SortDirection.descending]: SortDescendingIcon,
+}
+
 // =============
 // === Types ===
 // =============
@@ -51,7 +61,6 @@ export type SortableColumn = Column.modified | Column.name
 
 /** The list of extra columns, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
-// eslint-disable-next-line no-restricted-syntax
 export const EXTRA_COLUMNS = [
   Column.labels,
   Column.accessedByProjects,
@@ -59,7 +68,7 @@ export const EXTRA_COLUMNS = [
   Column.docs,
 ] as const
 
-export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
+export const EXTRA_COLUMN_IMAGES: Readonly<Record<ExtraColumn, string>> = {
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
@@ -71,7 +80,7 @@ const COLUMN_CSS_CLASSES =
 const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
-export const COLUMN_CSS_CLASS: Record<Column, string> = {
+export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
@@ -79,7 +88,7 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
   [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-} as const
+}
 
 // =====================
 // === getColumnList ===
@@ -100,14 +109,4 @@ export function getColumnList(backendType: backend.BackendType, extraColumns: Se
       ]
     }
   }
-}
-
-// =================
-// === Constants ===
-// =================
-
-/** The corresponding icon URL for each {@link SortDirection}. */
-export const SORT_ICON: Record<SortDirection, string> = {
-  [SortDirection.ascending]: SortAscendingIcon,
-  [SortDirection.descending]: SortDescendingIcon,
 }

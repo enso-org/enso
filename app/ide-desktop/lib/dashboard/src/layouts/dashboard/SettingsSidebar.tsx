@@ -55,17 +55,17 @@ const SECTIONS: SettingsSectionData[] = [
 
 /** Metadata for rendering a settings tab label. */
 interface SettingsTabLabelData {
-  name: string
-  settingsTab: SettingsTab
-  icon: string
+  readonly name: string
+  readonly settingsTab: SettingsTab
+  readonly icon: string
   /** Temporary, until all tabs are implemented. */
-  visible?: true
+  readonly visible?: true
 }
 
 /** Metadata for rendering a settings section. */
 interface SettingsSectionData {
-  name: string
-  tabs: SettingsTabLabelData[]
+  readonly name: string
+  readonly tabs: SettingsTabLabelData[]
 }
 
 // =======================
@@ -74,8 +74,8 @@ interface SettingsSectionData {
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
-  settingsTab: SettingsTab
-  setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
+  readonly settingsTab: SettingsTab
+  readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
 }
 
 /** A panel to switch between settings tabs. */

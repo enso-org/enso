@@ -28,10 +28,10 @@ import * as shortcutManager from '#/utilities/ShortcutManager'
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
   /** If `true`, disables `data-testid` because it will not be visible. */
-  hidden?: boolean
-  setPage: (page: pageSwitcher.Page) => void
-  supportsLocalBackend: boolean
-  onSignOut: () => void
+  readonly hidden?: boolean
+  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly supportsLocalBackend: boolean
+  readonly onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */

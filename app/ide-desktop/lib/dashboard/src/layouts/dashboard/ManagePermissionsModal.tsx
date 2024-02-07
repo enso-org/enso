@@ -38,14 +38,14 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
-  item: Asset
-  setItem: React.Dispatch<React.SetStateAction<Asset>>
-  self: backendModule.UserPermission
+  readonly item: Asset
+  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
+  readonly self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
-  doRemoveSelf: () => void
+  readonly doRemoveSelf: () => void
   /** If this is `null`, this modal will be centered. */
-  eventTarget: HTMLElement | null
+  readonly eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
