@@ -2613,7 +2613,7 @@ type Table
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
     
-    to_xml self (element_columns = self.column_names) (attribute_columns = []) (value_column = "") (root_name = "") (row_name = "") (on_problems:Problem_Behavior=Report_Warning) -> Text =
+    to_xml self (element_columns = self.column_names) (attribute_columns = []) (value_column = "") (root_name = "") (row_name = "") (on_problems = Report_Warning) -> Text =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         id_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
