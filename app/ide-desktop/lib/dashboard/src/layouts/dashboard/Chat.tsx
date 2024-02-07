@@ -8,6 +8,7 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
+import * as detect from 'enso-common/src/detect'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
@@ -16,6 +17,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
+import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
 import * as config from '#/utilities/config'
@@ -120,7 +122,6 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          // FIXME: Grayscale has the wrong lightness
           className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
             selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
           }`}
@@ -274,7 +275,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
     <>
       <div className="flex text-sm font-semibold mx-4 mt-2">
         <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
-          <img
+          <SvgMask
             className={`transition-transform duration-300 ${
               isThreadListVisible ? '-rotate-180' : ''
             }`}
@@ -328,7 +329,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-ide-bg backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
@@ -338,8 +339,8 @@ function ChatHeader(props: InternalChatHeaderProps) {
                 key={thread.id}
                 className={`flex p-1 ${
                   thread.id === threadId
-                    ? 'cursor-default bg-gray-350'
-                    : 'cursor-pointer hover:bg-gray-300'
+                    ? 'cursor-default bg-frame-selected'
+                    : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
                   event.stopPropagation()
@@ -660,8 +661,8 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 transition-transform ${
-          page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
@@ -741,14 +742,14 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-white p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
           <textarea
             ref={messageInputRef}
             rows={1}
             autoFocus
             required
             placeholder="Type your message ..."
-            className="w-full rounded-lg resize-none p-1"
+            className="w-full rounded-lg bg-transparent resize-none p-1"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -791,7 +792,7 @@ export default function Chat(props: ChatProps) {
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
+              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
                 isReplyEnabled ? '' : 'opacity-50'
               }`}
             >
@@ -801,7 +802,7 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"
+            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!
