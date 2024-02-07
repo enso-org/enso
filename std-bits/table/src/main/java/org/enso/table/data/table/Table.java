@@ -274,8 +274,6 @@ public class Table {
    * will both be set to true. They allow to easily implement exclusive joins which only keep
    * columns form one table. {@code rightColumnsToDrop} allows to drop columns from the right table
    * that are redundant when joining on equality of equally named columns.
-   *
-   * @param right
    */
   public Table join(
       Table right,
@@ -324,12 +322,7 @@ public class Table {
     return new Table(newColumns.toArray(new Column[0]));
   }
 
-  /**
-   * Performs a cross-join of this table with the right table.
-   *
-   * @param problemAggregator
-   * @param rightPrefix
-   */
+  /** Performs a cross-join of this table with the right table. */
   public Table crossJoin(Table right, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
@@ -360,11 +353,7 @@ public class Table {
     return new Table(newColumns);
   }
 
-  /**
-   * Zips rows of this table with rows of the right table.
-   *
-   * @param problemAggregator
-   */
+  /** Zips rows of this table with rows of the right table. */
   public Table zip(
       Table right, boolean keepUnmatched, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
