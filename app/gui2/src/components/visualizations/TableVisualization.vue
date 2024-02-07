@@ -116,7 +116,9 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 const selectableRowLimits = computed(() => {
-  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter((r) => r <= rowCount.value)
+  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
+    (r) => r <= rowCount.value,
+  )
   if (rowCount.value < 100000 && !defaults.includes(rowCount.value)) {
     defaults.push(rowCount.value)
   }
@@ -124,7 +126,7 @@ const selectableRowLimits = computed(() => {
     defaults.push(rowLimit.value)
   }
   return defaults
-},)
+})
 const wasAutomaticallyAutosized = ref(false)
 
 function setRowLimit(newRowLimit: number) {
