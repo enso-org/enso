@@ -75,7 +75,7 @@ type Suite
             group.pending.is_nothing.not
         groups_to_run = groups_with_matching_names.filter group->
             pending_groups.contains group . not
-        assert (pending_groups.length <= groups_to_run.length)
+        assert (pending_groups.length <= groups_with_matching_names.length)
         assert (groups_to_run.length <= groups_with_matching_names.length)
         assert (groups_with_matching_names.length <= self.groups.length)
 
