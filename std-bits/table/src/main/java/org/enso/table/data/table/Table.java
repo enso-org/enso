@@ -543,11 +543,6 @@ public class Table {
 
         return xmlString;
     }
-    // Column[] element_columns,
-    // Column[] attribute_columns,
-    // String value_column,
-    // String document_name,
-    // String row_element_name)
 
     /**
      * @return a copy of the Table containing a slice of the original data
