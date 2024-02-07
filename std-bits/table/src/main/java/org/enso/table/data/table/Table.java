@@ -502,33 +502,29 @@ public class Table {
         return new Table(new_columns);
     }
 
-    public static String to_xmlimpl(Column[] element_columns) throws XmlException, ParserConfigurationException {
+    public static String to_xmlimpl(int rowCount, Column[] element_columns, Column[] attribute_columns) throws XmlException, ParserConfigurationException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document doc = docBuilder.newDocument();
         Element rootElement = doc.createElement("root");
         doc.appendChild(rootElement);
-        if (element_columns.length > 0) {
-            int size = element_columns[0].getSize();
-            Context context = Context.getCurrent();
-            for (int row = 0; row < size; row++) {
-                Element childElement = doc.createElement("row");
-                for (Column element_column : element_columns) {
-                    Element columnElement = doc.createElement(element_column.getName());
-                    childElement.appendChild(columnElement);
-                    var textContent = element_column.getStorage().getItemBoxed(row).toString();
-                    columnElement.setTextContent(textContent);
-                    rootElement.appendChild(childElement);
-                }
-            }
 
-            // for (Column column : element_columns) {
-            //   for (int i = 0; i < id_columns.length; i++) {
-            //     storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
-            //   }
-            //   storage[id_columns.length].append(column.getName());
-            //   storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
-            // }
+        Context context = Context.getCurrent();
+        for (int row = 0; row < rowCount; row++) {
+            Element rowElement = doc.createElement("row");
+            for (Column element_column : element_columns) {
+                Element columnElement = doc.createElement(element_column.getName());
+                rowElement.appendChild(columnElement);
+                var textContent = element_column.getStorage().getItemBoxed(row).toString();
+                columnElement.setTextContent(textContent);
+                context.safepoint();
+            }
+            for (Column attribute_column : attribute_columns) {
+                var textContent = attribute_column.getStorage().getItemBoxed(row).toString();
+                rowElement.setAttribute(attribute_column.getName(), textContent);
+                context.safepoint();
+            }
+            rootElement.appendChild(rowElement);
             context.safepoint();
         }
 
