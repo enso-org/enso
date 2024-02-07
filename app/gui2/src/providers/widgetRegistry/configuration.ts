@@ -119,9 +119,14 @@ export interface FunctionCall {
 }
 
 /** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget.
+ * One of function calls will be chosen by WidgetFunction basing on the actual AST at the call site,
+ * and the configuration will be used in child widgets.
  * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
 export interface OneOfFunctionCalls {
   kind: 'OneOfFunctionCalls'
+  /** A list of possible function calls and their corresponding configuration.
+   * The key is typically a fully qualified name of the function, but in general it can be anything,
+   * depending on the widget implementation. */
   possibleFunctions: Map<string, FunctionCall>
 }
 
@@ -177,6 +182,7 @@ export function functionCallConfiguration(parameters: ArgumentWidgetConfiguratio
   }
 }
 
+/** A configuration for the inner widget of the dropdown widget. */
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
   return {
     kind: 'OneOfFunctionCalls',

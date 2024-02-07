@@ -100,9 +100,6 @@ const selectedTag = computed(() => {
   }
 })
 
-const selectedExpression = computed(() => {
-  return WidgetInput.valueRepr(props.input)
-})
 const selectedLabel = computed(() => {
   return selectedTag.value?.label
 })
