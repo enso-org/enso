@@ -634,7 +634,10 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (event.currentTarget === event.target) {
+                if (
+                  event.relatedTarget instanceof Node &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
                   clearDragState()
                 }
                 props.onDragLeave?.(event)
