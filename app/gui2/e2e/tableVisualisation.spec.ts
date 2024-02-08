@@ -6,7 +6,7 @@ import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 
 /**
- * Prepare the graph for the tests. We add the table type to  to the `aggregated` node.
+ * Prepare the graph for the tests. We add the table type to the `aggregated` node.
  */
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
