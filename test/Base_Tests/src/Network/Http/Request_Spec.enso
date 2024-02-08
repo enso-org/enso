@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =

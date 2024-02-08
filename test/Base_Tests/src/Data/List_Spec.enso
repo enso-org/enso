@@ -6,7 +6,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "List" group_builder->

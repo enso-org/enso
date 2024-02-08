@@ -4,8 +4,8 @@ import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
+from Standard.Test import all
+import Standard.Test.Test_Environment
 
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup

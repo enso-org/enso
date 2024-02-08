@@ -8,7 +8,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type Data
     Value ~data
