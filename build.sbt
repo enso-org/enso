@@ -1697,6 +1697,7 @@ lazy val `runtime-tests` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
         "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
       ),
+      inConfig(Test)(truffleRunOptionsSettings),
       Test / javaOptions ++= Seq(
         "-Dtck.values=java-host,enso",
         "-Dtck.language=enso",
