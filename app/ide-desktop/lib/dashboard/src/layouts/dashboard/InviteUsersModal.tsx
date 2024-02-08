@@ -16,8 +16,6 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
-import * as set from '#/utilities/set'
-
 // =============
 // === Email ===
 // =============
@@ -65,7 +63,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [newEmails, setNewEmails] = React.useState(new Set<string>())
+  const [newEmails, setNewEmails] = React.useState<string[]>([])
   const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
@@ -75,14 +73,14 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   )
   const canSubmit = React.useMemo(
     () =>
-      newEmails.size > 0 &&
-      [...newEmails].every(newEmail => isEmail(newEmail) && !existingEmails.has(newEmail)),
+      newEmails.length > 0 &&
+      newEmails.every(newEmail => isEmail(newEmail) && !existingEmails.has(newEmail)),
     [existingEmails, newEmails]
   )
 
   const doAddEmail = () => {
     if (canSubmit) {
-      setNewEmails(oldNewEmails => new Set([...oldNewEmails, email]))
+      setNewEmails(oldNewEmails => [...oldNewEmails, email])
       setEmail('')
     }
   }
@@ -143,13 +141,17 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               doAddEmail()
             }}
           >
-            {Array.from(newEmails, newEmail => (
+            {Array.from(newEmails, (newEmail, i) => (
               <Email
-                key={newEmail}
+                key={i}
                 email={newEmail}
-                isValid={isEmail(newEmail) && !existingEmails.has(newEmail)}
+                isValid={
+                  isEmail(newEmail) &&
+                  !existingEmails.has(newEmail) &&
+                  newEmails.indexOf(newEmail) === i
+                }
                 doDelete={() => {
-                  setNewEmails(oldNewEmails => set.withPresence(oldNewEmails, newEmail, false))
+                  setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
                 }}
               />
             ))}
@@ -164,25 +166,14 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                   event.currentTarget.selectionStart === 0 &&
                   event.currentTarget.selectionEnd === 0
                 ) {
-                  const lastNewEmail = [...newEmails].at(-1)
-                  if (lastNewEmail != null) {
-                    setNewEmails(oldNewEmails =>
-                      set.withPresence(oldNewEmails, lastNewEmail, false)
-                    )
-                  }
+                  setNewEmails(newEmails.slice(0, -1))
                 }
               }}
               onInput={event => {
                 const value = event.currentTarget.value
                 if (/ /.test(value)) {
                   const parts = value.split(' ')
-                  const newNewEmails = new Set(newEmails)
-                  for (const newEmail of parts.slice(0, -1)) {
-                    if (newEmail !== '') {
-                      newNewEmails.add(newEmail)
-                    }
-                  }
-                  setNewEmails(newNewEmails)
+                  setNewEmails([...newEmails, ...parts.slice(0, -1)])
                   setEmail(parts[parts.length - 1] ?? '')
                 } else {
                   setEmail(value)
