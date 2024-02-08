@@ -6,12 +6,13 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 
 import Input from '#/components/Input'
 import Modal from '#/components/Modal'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
 
 // ===========================
 // === ChangePasswordModal ===

@@ -5,12 +5,14 @@ import isEmail from 'validator/es/lib/isEmail'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
 
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -19,7 +21,7 @@ import Modal from '#/components/Modal'
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
   /** If this is `null`, this modal will be centered. */
-  eventTarget: HTMLElement | null
+  readonly eventTarget: HTMLElement | null
 }
 
 /** A modal for inviting one or more users. */

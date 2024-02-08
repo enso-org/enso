@@ -149,6 +149,7 @@ type List
         Cons x xs -> xs.fold x function
 
     ## GROUP Logical
+       ICON preparation
        Checks whether any element of the list matches the given condition.
 
        Arguments:
@@ -179,6 +180,7 @@ type List
         res
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this list.
 
        Arguments:
@@ -204,6 +206,7 @@ type List
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this list contains a given value as an element.
 
        Arguments:
@@ -219,6 +222,7 @@ type List
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this list is empty.
 
        > Example
@@ -233,6 +237,7 @@ type List
         Cons _ _ -> False
 
     ## GROUP Logical
+       ICON metadata
        Checks if the list is not empty.
 
        > Example

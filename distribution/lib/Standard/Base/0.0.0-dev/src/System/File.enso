@@ -320,6 +320,7 @@ type File
         Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
+       ICON math
        Join two path segments together.
 
        Arguments:
@@ -406,6 +407,7 @@ type File
         File_Error.handle_java_exceptions self <| self.size_builtin
 
     ## GROUP Text
+       ICON preparation
        Checks whether the file is within another path.
 
        Arguments:
@@ -420,6 +422,7 @@ type File
     starts_with self parent = @Builtin_Method "File.starts_with"
 
     ## GROUP Metadata
+       ICON metadata
        Gets the creation time of a file.
 
        > Example
@@ -821,3 +824,7 @@ find_extension_from_name : Text -> Text
 find_extension_from_name name =
     extension = name.drop (Text_Sub_Range.Before_Last ".")
     if extension == "." then "" else extension
+
+## PRIVATE
+   Convert from a Text to a File.
+File.from (that:Text) = File.new that

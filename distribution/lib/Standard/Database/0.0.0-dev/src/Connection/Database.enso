@@ -12,6 +12,7 @@ from project.Errors import SQL_Error
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
 ## GROUP Standard.Base.Input
+   ICON data_input
    Tries to connect to the database.
 
    Arguments:

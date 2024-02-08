@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
@@ -202,9 +203,12 @@ type Date_Range
 
              (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
     to_vector : Vector Date
-    to_vector self = self.map x->x
+    to_vector self =
+        proxy = Array_Proxy.new self.length self.at
+        Vector.from_polyglot_array proxy
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -215,6 +219,7 @@ type Date_Range
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -346,6 +351,7 @@ type Date_Range
             function acc (self.internal_at ix)
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
@@ -363,6 +369,7 @@ type Date_Range
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
@@ -402,6 +409,7 @@ type Date_Range
             _ : Integer -> self.internal_at index
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example

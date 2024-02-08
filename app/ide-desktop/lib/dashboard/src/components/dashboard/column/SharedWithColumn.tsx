@@ -3,18 +3,22 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import AssetEventType from '#/events/AssetEventType'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+import AssetEventType from '#/events/AssetEventType'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+
+import type * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ========================
 // === SharedWithColumn ===
@@ -22,13 +26,13 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp {
-  category: column.AssetColumnProps['state']['category']
-  dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
+  readonly category: column.AssetColumnProps['state']['category']
+  readonly dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
 }
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
-  state: SharedWithColumnStateProp
+  readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */

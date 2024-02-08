@@ -141,23 +141,20 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `foo() {}` instead of `foo = () => {}`',
     },
     {
-        selector: `:matches(Program, ExportNamedDeclaration) > VariableDeclaration[kind=const] > * > ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))`,
-        message: 'Use `as const` for top-level object literals only containing string literals',
+        // This lint intentionally excludes classes and readonly arrays.
+        selector: 'TSInterfaceBody:has(TSPropertySignature[readonly=false])',
+        message: 'Add `readonly` modifier to all interface properties',
     },
     {
-        // Matches `as T` in either:
-        // - anything other than a variable declaration
-        // - a variable declaration that is not at the top level
-        // - a top-level variable declaration that shouldn't be `as const`
-        // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
-        selector: `:matches(:not(VariableDeclarator) > TSAsExpression, :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression, :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))), :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL}))))`,
-        // This cannot be changed right now, as `cognito.ts` would need to be refactored.
-        // selector: `:matches(:not(VariableDeclarator) > TSAsExpression, VariableDeclaration > * > TSAsExpression)`,
+        selector: `TSAsExpression:not(:has(TSTypeReference > Identifier[name=const]))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },
     {
-        selector:
-            ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined]))',
+        selector: `:matches(\
+            TSUndefinedKeyword,\
+            Identifier[name=undefined],\
+            UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
+        )`,
         message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
@@ -456,7 +453,7 @@ export default [
                 'error',
                 ...RESTRICTED_SYNTAXES,
                 {
-                    selector: '[declare=true]',
+                    selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
                 },
                 {
@@ -512,12 +509,12 @@ export default [
     },
     {
         files: [
-            'lib/dashboard/test*/**/*.ts',
-            'lib/dashboard/test*/**/*.mts',
-            'lib/dashboard/test*/**/*.cts',
-            'lib/dashboard/test*/**/*.tsx',
-            'lib/dashboard/test*/**/*.mtsx',
-            'lib/dashboard/test*/**/*.ctsx',
+            'lib/dashboard/e2e/**/*.ts',
+            'lib/dashboard/e2e/**/*.mts',
+            'lib/dashboard/e2e/**/*.cts',
+            'lib/dashboard/e2e/**/*.tsx',
+            'lib/dashboard/e2e/**/*.mtsx',
+            'lib/dashboard/e2e/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [

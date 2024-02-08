@@ -6,15 +6,16 @@ import ConnectorIcon from 'enso-assets/connector.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as backend from '#/services/backend'
-import * as fileIcon from '#/utilities/fileIcon'
-
 import SvgMask from '#/components/SvgMask'
+
+import * as backend from '#/services/Backend'
+
+import * as fileIcon from '#/utilities/fileIcon'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
-  asset: backend.AnyAsset
-  className?: string
+  readonly asset: backend.AnyAsset
+  readonly className?: string
 }
 
 /** Displays a few details of an asset. */

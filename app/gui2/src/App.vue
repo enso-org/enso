@@ -5,8 +5,9 @@ import { provideGuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { computed, onMounted, toRaw } from 'vue'
-import { isDevMode } from './util/detect'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, toRaw } from 'vue'
+import { useProjectStore } from './stores/project'
 
 const props = defineProps<{
   config: ApplicationConfig
@@ -25,6 +26,9 @@ onMounted(() => {
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
+})
+onUnmounted(() => {
+  useProjectStore().disposeYDocsProvider()
 })
 </script>
 

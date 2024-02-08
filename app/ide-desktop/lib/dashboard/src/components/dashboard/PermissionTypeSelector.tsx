@@ -1,14 +1,15 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
-import * as backend from '#/services/backend'
+import * as backend from '#/services/Backend'
+
 import * as permissions from '#/utilities/permissions'
 
 // =================
 // === Constants ===
 // =================
 
-const CAPITALIZED_ASSET_TYPE: Record<backend.AssetType, string> = {
+const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.directory]: 'Folder',
   [backend.AssetType.project]: 'Project',
   [backend.AssetType.file]: 'File',
@@ -16,17 +17,17 @@ const CAPITALIZED_ASSET_TYPE: Record<backend.AssetType, string> = {
   // These assets should never be visible, since they don't have columns.
   [backend.AssetType.specialEmpty]: 'Empty asset',
   [backend.AssetType.specialLoading]: 'Loading asset',
-} as const
+}
 
 /** Data needed to display a single permission type. */
 interface PermissionTypeData {
-  type: permissions.Permission
-  previous: permissions.Permission | null
-  description: (type: backend.AssetType) => string
+  readonly type: permissions.Permission
+  readonly previous: permissions.Permission | null
+  readonly description: (type: backend.AssetType) => string
 }
 
 /** Data needed to display each permission type. */
-const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
+const PERMISSION_TYPE_DATA: readonly PermissionTypeData[] = [
   {
     type: permissions.Permission.view,
     previous: null,
@@ -69,12 +70,12 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
-  showDelete?: boolean
-  selfPermission: permissions.PermissionAction
-  type: permissions.Permission
-  assetType: backend.AssetType
-  style?: React.CSSProperties
-  onChange: (permission: permissions.Permission) => void
+  readonly showDelete?: boolean
+  readonly selfPermission: permissions.PermissionAction
+  readonly type: permissions.Permission
+  readonly assetType: backend.AssetType
+  readonly style?: React.CSSProperties
+  readonly onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */

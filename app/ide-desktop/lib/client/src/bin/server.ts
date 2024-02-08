@@ -32,14 +32,14 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
 }
 
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
-    dir: string
-    port: number
-    externalFunctions: ExternalFunctions
+    readonly dir: string
+    readonly port: number
+    readonly externalFunctions: ExternalFunctions
 }
 
 /** Server configuration. */
@@ -96,17 +96,34 @@ export class Server {
                     handler: this.process.bind(this),
                 },
                 (err, { http: httpServer }) => {
-                    if (err) {
-                        logger.error(`Error creating server:`, err.http)
-                        reject(err)
-                    }
-                    // Prepare the YDoc server access point for the new Vue-based GUI.
-                    if (httpServer) {
-                        ydocServer.createGatewayServer(httpServer)
-                    }
-                    logger.log(`Server started on port ${this.config.port}.`)
-                    logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-                    resolve()
+                    void (async () => {
+                        if (err) {
+                            logger.error(`Error creating server:`, err.http)
+                            reject(err)
+                        }
+                        // Prepare the YDoc server access point for the new Vue-based GUI.
+                        // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
+                        // working both in browser and in ydocs server. Doing it properly
+                        // is tracked in https://github.com/enso-org/enso/issues/8931
+                        const assets = path.join(paths.ASSETS_PATH, 'assets')
+                        const bundledFiles = fs.existsSync(assets) ? fs.readdirSync(assets) : []
+                        const rustFFIWasm = bundledFiles.find(name =>
+                            /rust_ffi_bg-.*\.wasm/.test(name)
+                        )
+                        if (httpServer && rustFFIWasm != null) {
+                            await ydocServer.createGatewayServer(
+                                httpServer,
+                                path.join(assets, rustFFIWasm)
+                            )
+                        } else {
+                            logger.warn('YDocs server is not run, new GUI may not work properly!')
+                        }
+                        logger.log(`Server started on port ${this.config.port}.`)
+                        logger.log(
+                            `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
+                        )
+                        resolve()
+                    })()
                 }
             )
         })

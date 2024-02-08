@@ -3,8 +3,28 @@
 import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import type * as backendModule from '#/services/backend'
-import * as localStorageModule from '#/utilities/localStorage'
+
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import * as array from '#/utilities/array'
+import LocalStorage from '#/utilities/LocalStorage'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly backendType: backendModule.BackendType
+  }
+}
+
+const BACKEND_TYPES = Object.values(backendModule.BackendType)
+LocalStorage.registerKey('backendType', {
+  tryParse: value => (array.includes(BACKEND_TYPES, value) ? value : null),
+})
 
 // ======================
 // === BackendContext ===
@@ -12,9 +32,9 @@ import * as localStorageModule from '#/utilities/localStorage'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-  backend: backendModule.Backend
-  setBackend: (backend: backendModule.Backend) => void
-  setBackendWithoutSavingType: (backend: backendModule.Backend) => void
+  readonly backend: Backend
+  readonly setBackend: (backend: Backend) => void
+  readonly setBackendWithoutSavingType: (backend: Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -22,8 +42,8 @@ export interface BackendContextType {
 const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
-export interface BackendProviderProps extends React.PropsWithChildren<object> {
-  initialBackend: backendModule.Backend
+export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
+  readonly initialBackend: Backend
 }
 
 // =======================
@@ -34,12 +54,11 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 export default function BackendProvider(props: BackendProviderProps) {
   const { initialBackend, children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [backend, setBackendWithoutSavingType] =
-    React.useState<backendModule.Backend>(initialBackend)
+  const [backend, setBackendWithoutSavingType] = React.useState<Backend>(initialBackend)
   const setBackend = React.useCallback(
-    (newBackend: backendModule.Backend) => {
+    (newBackend: Backend) => {
       setBackendWithoutSavingType(newBackend)
-      localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
+      localStorage.set('backendType', newBackend.type)
     },
     [/* should never change */ localStorage]
   )

@@ -5,8 +5,8 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
-import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.File_Format.File_Format
+import project.System.File_Format_Metadata.File_Format_Metadata
 
 polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException

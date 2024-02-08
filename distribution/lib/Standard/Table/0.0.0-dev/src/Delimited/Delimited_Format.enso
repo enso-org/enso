@@ -140,8 +140,8 @@ type Delimited_Format
         self.clone value_formatter=Nothing
 
     ## Creates a clone of this with a changed line ending style.
-    with_line_endings : Line_Ending_Style|Infer -> Delimited_Format
-    with_line_endings self (line_endings : Line_Ending_Style | Infer)=Infer =
+    with_line_endings : Line_Ending_Style | Infer -> Delimited_Format
+    with_line_endings self (line_endings : Line_Ending_Style | Infer = Infer) =
         self.clone line_endings=line_endings
 
     ## Creates a clone of this with comment parsing enabled.

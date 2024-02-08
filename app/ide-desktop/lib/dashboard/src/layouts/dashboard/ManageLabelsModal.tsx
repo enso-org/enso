@@ -2,16 +2,19 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
 
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =========================
 // === ManageLabelsModal ===
@@ -21,12 +24,12 @@ import Modal from '#/components/Modal'
 export interface ManageLabelsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
-  item: Asset
-  setItem: React.Dispatch<React.SetStateAction<Asset>>
-  allLabels: Map<backendModule.LabelName, backendModule.Label>
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  readonly item: Asset
+  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
+  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
+  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
-  eventTarget: HTMLElement | null
+  readonly eventTarget: HTMLElement | null
 }
 
 /** A modal to select labels for an asset.

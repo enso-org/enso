@@ -355,6 +355,7 @@ function portGroupStyle(port: PortData) {
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
+    :data-node-id="nodeId"
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
@@ -387,7 +388,7 @@ function portGroupStyle(port: PortData) {
     <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="displayedExpression" />
+        <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />
