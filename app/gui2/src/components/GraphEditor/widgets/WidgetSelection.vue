@@ -84,6 +84,11 @@ const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expres
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
 const selectedIndex = ref<number>()
+// When the input changes, we need to reset the selected index.
+watch(
+  () => props.input.value,
+  () => (selectedIndex.value = undefined),
+)
 const selectedTag = computed(() => {
   if (selectedIndex.value != null) {
     return tags.value[selectedIndex.value]
@@ -115,6 +120,11 @@ function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
 
+function onClick(index: number) {
+  selectedIndex.value = index
+  showDropdownWidget.value = false
+}
+
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
@@ -129,7 +139,6 @@ watch(selectedIndex, (_index) => {
       origin: asNot<TokenId>(props.input.portId),
     },
   })
-  showDropdownWidget.value = false
 })
 </script>
 
@@ -155,7 +164,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       :values="tagLabels"
       :selectedValue="selectedLabel"
       @pointerdown.stop
-      @click="selectedIndex = $event"
+      @click="onClick($event)"
     />
   </div>
 </template>
