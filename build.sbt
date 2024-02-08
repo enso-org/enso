@@ -290,7 +290,7 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
-    `runtime-tests`,
+    `runtime-integration-tests`,
     `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
@@ -1654,8 +1654,13 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
-lazy val `runtime-tests` =
-  (project in file("engine/runtime-tests"))
+/**
+ * A project holding all the runtime integration tests. These tests require, among other things,
+ * the `org.enso.runtime` JPMS module, so it is easier to keep them in a separate project.
+ * For standard unit tests, use `runtime/Test`.
+ */
+lazy val `runtime-integration-tests` =
+  (project in file("engine/runtime-integration-tests"))
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
@@ -1797,7 +1802,7 @@ lazy val `runtime-tests` =
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
 
-/** A project that holds only benchmarks for `runtime`. Unlike `runtime-tests`, its execution requires
+/** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
   */
 lazy val `runtime-benchmarks` =
