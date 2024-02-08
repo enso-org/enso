@@ -11,12 +11,12 @@ import * as object from '#/utilities/object'
 
 /** Props for a {@link UserPermissions}. */
 export interface UserPermissionsProps {
-  asset: backendModule.AnySmartAsset
-  self: backendModule.UserPermission
-  isOnlyOwner: boolean
-  userPermission: backendModule.UserPermission
-  setUserPermission: (userPermissions: backendModule.UserPermission) => void
-  doDelete: (user: backendModule.User) => void
+  readonly asset: backendModule.AnySmartAsset
+  readonly self: backendModule.UserPermission
+  readonly isOnlyOwner: boolean
+  readonly userPermission: backendModule.UserPermission
+  readonly setUserPermission: (userPermissions: backendModule.UserPermission) => void
+  readonly doDelete: (user: backendModule.User) => void
 }
 
 /** A user and their permissions for a specific asset. */

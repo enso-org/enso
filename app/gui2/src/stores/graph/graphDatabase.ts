@@ -339,6 +339,7 @@ export class GraphDb {
     const currentNodeIds = new Set<NodeId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
+      if (!newNode) continue
       const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata

@@ -18,13 +18,13 @@ import * as shortcutManager from '#/utilities/ShortcutManager'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
-  hidden?: boolean
-  isCloud: boolean
-  hasPasteData: boolean
-  directoryKey: backendModule.DirectoryId | null
-  directory: backendModule.SmartDirectory | null
-  dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-  doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly hidden?: boolean
+  readonly isCloud: boolean
+  readonly hasPasteData: boolean
+  readonly directoryKey: backendModule.DirectoryId | null
+  readonly directory: backendModule.SmartDirectory | null
+  readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+  readonly doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** A context menu available everywhere in the directory. */

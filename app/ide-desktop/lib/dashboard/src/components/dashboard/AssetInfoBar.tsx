@@ -8,10 +8,10 @@ import Button from '#/components/Button'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-  canToggleAssetPanel: boolean
-  isAssetPanelVisible: boolean
-  setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-  isCloud: boolean
+  readonly canToggleAssetPanel: boolean
+  readonly isAssetPanelVisible: boolean
+  readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  readonly isCloud: boolean
 }
 
 /** A toolbar for displaying asset information. */

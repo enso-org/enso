@@ -8,8 +8,8 @@ import * as detect from 'enso-common/src/detect'
 // ===================
 
 /** Props for a {@link ContextMenu}. */
-export interface ContextMenuProps extends React.PropsWithChildren {
-  hidden?: boolean
+export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
+  readonly hidden?: boolean
 }
 
 /** A context menu that opens at the current mouse position. */

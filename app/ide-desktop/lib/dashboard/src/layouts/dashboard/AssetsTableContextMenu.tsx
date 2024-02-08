@@ -29,29 +29,29 @@ import * as uniqueString from '#/utilities/uniqueString'
 // === Constants ===
 // =================
 
-/** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'item'
-/** The user-facing plural name of this asset type. */
-const ASSET_TYPE_NAME_PLURAL = 'items'
 // This is a function, even though does not look like one.
 // eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
+const pluralize = string.makePluralize('item', 'items')
+
+// ==============================
+// === AssetsTableContextMenu ===
+// ==============================
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  hidden?: boolean
-  isCloud: boolean
-  category: Category
-  hasPasteData: boolean
-  selectedKeys: Set<backendModule.AssetId>
-  setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-  nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
-  event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly hidden?: boolean
+  readonly isCloud: boolean
+  readonly category: Category
+  readonly hasPasteData: boolean
+  readonly selectedKeys: Set<backendModule.AssetId>
+  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows

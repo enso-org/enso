@@ -119,12 +119,18 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 5.seconds.dilated): String = {
+    def expectMessage(
+      timeout: FiniteDuration            = 5.seconds.dilated,
+      printStackTracesOnFailure: Boolean = false
+    ): String = {
       val message =
         try {
           outActor.expectMsgClass[String](timeout, classOf[String])
         } catch {
-          case e: AssertionError if e.getMessage.contains("timeout") =>
+          case e: AssertionError
+              if e.getMessage.contains(
+                "timeout"
+              ) && printStackTracesOnFailure =>
             val sb = new StringBuilder(
               "Thread dump when timeout is reached while waiting for the message:\n"
             )
@@ -142,7 +148,7 @@ abstract class JsonRpcServerTestKit
                   .append(")\n")
               }
             }
-            //println(sb.toString())
+            println(sb.toString())
             throw e
         }
       if (debugMessages) println(message)
@@ -158,9 +164,10 @@ abstract class JsonRpcServerTestKit
     }
 
     def expectSomeJson(
-      timeout: FiniteDuration = 10.seconds.dilated
+      timeout: FiniteDuration            = 10.seconds.dilated,
+      printStackTracesOnFailure: Boolean = false
     )(implicit pos: Position): Json = {
-      val parsed = parse(expectMessage(timeout))
+      val parsed = parse(expectMessage(timeout, printStackTracesOnFailure))
       inside(parsed) { case Right(json) => json }
     }
 

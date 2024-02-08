@@ -18,9 +18,9 @@ import * as colorModule from '#/utilities/color'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-  labels: backend.Label[]
-  eventTarget: HTMLElement
-  doCreate: (value: string, color: colorModule.LChColor) => void
+  readonly labels: backend.Label[]
+  readonly eventTarget: HTMLElement
+  readonly doCreate: (value: string, color: colorModule.LChColor) => void
 }
 
 /** A modal for creating a new label. */

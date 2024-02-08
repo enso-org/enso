@@ -134,7 +134,7 @@ type Response
          inferred from response headers. If that fails, UTF-8 is used as the
          fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding|Infer -> Text
+    decode_as_text : Encoding | Infer -> Text
     decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
@@ -154,7 +154,7 @@ type Response
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 

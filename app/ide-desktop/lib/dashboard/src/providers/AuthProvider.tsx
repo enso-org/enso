@@ -53,20 +53,20 @@ export enum UserSessionType {
 /** Properties common to all {@link UserSession}s. */
 interface BaseUserSession<Type extends UserSessionType> {
   /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  type: Type
+  readonly type: Type
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-  accessToken: string
+  readonly accessToken: string
   /** User's email address. */
-  email: string
+  readonly email: string
 }
 
 // Extends `BaseUserSession` in order to inherit the documentation.
 /** Empty object of an offline user session.
  * Contains some fields from {@link FullUserSession} to allow destructuring. */
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
-  accessToken: null
-  organization: null
-  user: null
+  readonly accessToken: null
+  readonly organization: null
+  readonly user: null
 }
 
 /** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
@@ -88,8 +88,8 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
-  organization: backendModule.SmartUser
-  user: backendModule.SimpleUser | null
+  readonly organization: backendModule.SmartUser
+  readonly user: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -108,22 +108,26 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  goOffline: (shouldShowToast?: boolean) => Promise<boolean>
-  signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
-  confirmSignUp: (email: string, code: string) => Promise<boolean>
-  setUsername: (username: string, email: string) => Promise<boolean>
-  signInWithGoogle: () => Promise<boolean>
-  signInWithGitHub: () => Promise<boolean>
-  signInWithPassword: (email: string, password: string) => Promise<boolean>
-  forgotPassword: (email: string) => Promise<boolean>
-  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  resetPassword: (email: string, code: string, password: string) => Promise<boolean>
-  signOut: () => Promise<boolean>
+  readonly goOffline: (shouldShowToast?: boolean) => Promise<boolean>
+  readonly signUp: (
+    email: string,
+    password: string,
+    organizationId: string | null
+  ) => Promise<boolean>
+  readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
+  readonly setUsername: (username: string, email: string) => Promise<boolean>
+  readonly signInWithGoogle: () => Promise<boolean>
+  readonly signInWithGitHub: () => Promise<boolean>
+  readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
+  readonly forgotPassword: (email: string) => Promise<boolean>
+  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+  readonly signOut: () => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
-  session: UserSession | null
-  setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
+  readonly session: UserSession | null
+  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
 }
 
 // Eslint doesn't like headings.
@@ -159,15 +163,15 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
-  shouldStartInOfflineMode: boolean
-  supportsLocalBackend: boolean
-  backend: Backend
-  setBackendWithoutSavingType: (backend: Backend) => void
-  authService: authServiceModule.AuthService
+  readonly shouldStartInOfflineMode: boolean
+  readonly supportsLocalBackend: boolean
+  readonly backend: Backend
+  readonly setBackendWithoutSavingType: (backend: Backend) => void
+  readonly authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
-  onAuthenticated: (accessToken: string | null) => void
-  children: React.ReactNode
-  projectManagerUrl: string | null
+  readonly onAuthenticated: (accessToken: string | null) => void
+  readonly children: React.ReactNode
+  readonly projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
@@ -620,7 +624,7 @@ export default function AuthProvider(props: AuthProviderProps) {
  * displayed to the user. */
 interface UserFacingError {
   /** The user-facing error message. */
-  message: string
+  readonly message: string
 }
 
 /** Return `true` if the value is a {@link UserFacingError}. */

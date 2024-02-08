@@ -10,7 +10,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 
 /** State contained in a `LocalStorageContext`. */
 export interface LocalStorageContextType {
-  localStorage: LocalStorage
+  readonly localStorage: LocalStorage
 }
 
 // @ts-expect-error The default value will never be exposed, as using this without a `Provider`
@@ -19,7 +19,7 @@ const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
 
 /** Props for a {@link LocalStorageProvider}. */
 export interface LocalStorageProviderProps extends React.PropsWithChildren {
-  localStorage?: LocalStorage
+  readonly localStorage?: LocalStorage
 }
 
 // ============================

@@ -45,7 +45,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    driveCategory: Category
+    readonly driveCategory: Category
   }
 }
 
@@ -78,31 +78,31 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  supportsLocalBackend: boolean
-  hidden: boolean
-  backend: Backend
-  rootDirectory: backendModule.SmartDirectory | null
-  initialProjectName: string | null
-  assetListEvents: assetListEvent.AssetListEvent[]
-  dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  labels: backendModule.Label[]
-  setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-  setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-  projectStartupInfo: backendModule.ProjectStartupInfo | null
-  setAssetPanelProps: React.Dispatch<
+  readonly supportsLocalBackend: boolean
+  readonly hidden: boolean
+  readonly backend: Backend
+  readonly rootDirectory: backendModule.SmartDirectory | null
+  readonly initialProjectName: string | null
+  readonly assetListEvents: assetListEvent.AssetListEvent[]
+  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backendModule.Label[]
+  readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  doCreateProject: (templateId: string | null) => void
-  doOpenEditor: (
+  readonly doCreateProject: (templateId: string | null) => void
+  readonly doOpenEditor: (
     project: backendModule.SmartProject,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */

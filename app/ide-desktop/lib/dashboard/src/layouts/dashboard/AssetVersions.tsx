@@ -15,8 +15,8 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
-  hidden: boolean
-  item: AssetTreeNode
+  readonly hidden: boolean
+  readonly item: AssetTreeNode
 }
 
 /** A list of previous versions of an asset. */

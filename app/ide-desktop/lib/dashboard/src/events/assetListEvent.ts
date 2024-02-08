@@ -10,7 +10,7 @@ import type * as backend from '#/services/Backend'
 declare module '#/hooks/eventHooks' {
   /** A map containing all known event types. */
   export interface KnownEventsMap {
-    assetListEvent: AssetListEvent
+    readonly assetListEvent: AssetListEvent
   }
 }
 
@@ -20,22 +20,22 @@ declare module '#/hooks/eventHooks' {
 
 /** Properties common to all asset list events. */
 interface AssetListBaseEvent<Type extends AssetListEventType> {
-  type: Type
+  readonly type: Type
 }
 
 /** All possible events. */
 interface AssetListEvents {
-  newFolder: AssetListNewFolderEvent
-  newProject: AssetListNewProjectEvent
-  uploadFiles: AssetListUploadFilesEvent
-  newSecret: AssetListNewSecretEvent
-  insertAssets: AssetListInsertAssetsEvent
-  closeFolder: AssetListCloseFolderEvent
-  copy: AssetListCopyEvent
-  move: AssetListMoveEvent
-  willDelete: AssetListWillDeleteEvent
-  delete: AssetListDeleteEvent
-  removeSelf: AssetListRemoveSelfEvent
+  readonly newFolder: AssetListNewFolderEvent
+  readonly newProject: AssetListNewProjectEvent
+  readonly uploadFiles: AssetListUploadFilesEvent
+  readonly newSecret: AssetListNewSecretEvent
+  readonly insertAssets: AssetListInsertAssetsEvent
+  readonly closeFolder: AssetListCloseFolderEvent
+  readonly copy: AssetListCopyEvent
+  readonly move: AssetListMoveEvent
+  readonly willDelete: AssetListWillDeleteEvent
+  readonly delete: AssetListDeleteEvent
+  readonly removeSelf: AssetListRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
@@ -43,82 +43,84 @@ interface AssetListEvents {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type SanityCheck<
   T extends {
-    [Type in keyof typeof AssetListEventType]: AssetListBaseEvent<(typeof AssetListEventType)[Type]>
+    readonly [Type in keyof typeof AssetListEventType]: AssetListBaseEvent<
+      (typeof AssetListEventType)[Type]
+    >
   } = AssetListEvents,
 > = [T]
 
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
-  parentKey: backend.DirectoryId
-  parent: backend.SmartDirectory
+  readonly parentKey: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
-  parentKey: backend.DirectoryId
-  parent: backend.SmartDirectory
-  templateId: string | null
-  templateName: string | null
-  onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
+  readonly parentKey: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
+  readonly templateId: string | null
+  readonly templateName: string | null
+  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
-  parentKey: backend.DirectoryId
-  parent: backend.SmartDirectory
-  files: File[]
+  readonly parentKey: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
+  readonly files: File[]
 }
 
 /** A signal to create a new secret. */
 interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
-  parentKey: backend.DirectoryId
-  parent: backend.SmartDirectory
-  name: string
-  value: string
+  readonly parentKey: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
+  readonly name: string
+  readonly value: string
 }
 
 /** A signal to insert new assets. The assets themselves need to be created by the caller. */
 interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
-  parentKey: backend.DirectoryId
-  parent: backend.SmartDirectory
-  assets: backend.AnySmartAsset[]
+  readonly parentKey: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
+  readonly assets: backend.AnySmartAsset[]
 }
 
 /** A signal to close (collapse) a folder. */
 interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
-  folder: backend.SmartDirectory
-  key: backend.DirectoryId
+  readonly folder: backend.SmartDirectory
+  readonly key: backend.DirectoryId
 }
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
-  newParentKey: backend.AssetId
-  newParent: backend.SmartDirectory
-  items: backend.AnySmartAsset[]
+  readonly newParentKey: backend.AssetId
+  readonly newParent: backend.SmartDirectory
+  readonly items: backend.AnySmartAsset[]
 }
 
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
-  key: backend.AssetId
-  newParentKey: backend.AssetId
-  newParent: backend.SmartDirectory
-  item: backend.AnySmartAsset
+  readonly key: backend.AssetId
+  readonly newParentKey: backend.AssetId
+  readonly newParent: backend.SmartDirectory
+  readonly item: backend.AnySmartAsset
 }
 
 /** A signal that a file has been deleted. */
 interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
-  key: backend.AssetId
+  readonly key: backend.AssetId
 }
 
 /** A signal that a file has been deleted. This must not be called before the request is
  * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
-  key: backend.AssetId
+  readonly key: backend.AssetId
 }
 
 /** A signal for a file to remove itself from the asset list, without being deleted. */
 interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {
-  id: backend.AssetId
+  readonly id: backend.AssetId
 }
 
 /** Every possible type of asset list event. */

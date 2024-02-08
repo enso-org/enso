@@ -8,6 +8,16 @@ import TagIcon from 'enso-assets/tag.svg'
 
 import SortDirection from '#/utilities/SortDirection'
 
+// =================
+// === Constants ===
+// =================
+
+/** The corresponding icon URL for each {@link SortDirection}. */
+export const SORT_ICON: Readonly<Record<SortDirection, string>> = {
+  [SortDirection.ascending]: SortAscendingIcon,
+  [SortDirection.descending]: SortDescendingIcon,
+}
+
 // =============
 // === Types ===
 // =============
@@ -49,7 +59,6 @@ export type SortableColumn = Column.modified | Column.name
 
 /** The list of extra columns, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
-// eslint-disable-next-line no-restricted-syntax
 export const EXTRA_COLUMNS = [
   Column.labels,
   Column.accessedByProjects,
@@ -57,7 +66,7 @@ export const EXTRA_COLUMNS = [
   Column.docs,
 ] as const
 
-export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
+export const EXTRA_COLUMN_IMAGES: Readonly<Record<ExtraColumn, string>> = {
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
@@ -65,7 +74,7 @@ export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
 }
 
 /** English names for every column except for the name column. */
-export const COLUMN_NAME: Record<Column, string> = {
+export const COLUMN_NAME: Readonly<Record<Column, string>> = {
   [Column.name]: 'Name',
   [Column.modified]: 'Modified',
   [Column.sharedWith]: 'Shared with',
@@ -73,14 +82,14 @@ export const COLUMN_NAME: Record<Column, string> = {
   [Column.accessedByProjects]: 'Accessed by projects',
   [Column.accessedData]: 'Accessed data',
   [Column.docs]: 'Docs',
-} as const
+}
 
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
 const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
-export const COLUMN_CSS_CLASS: Record<Column, string> = {
+export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
@@ -88,7 +97,7 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
   [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-} as const
+}
 
 // =====================
 // === getColumnList ===
@@ -104,14 +113,4 @@ export function getColumnList(isCloud: boolean, extraColumns: Set<ExtraColumn>) 
         Column.sharedWith,
         ...EXTRA_COLUMNS.filter(column => extraColumns.has(column)),
       ]
-}
-
-// =================
-// === Constants ===
-// =================
-
-/** The corresponding icon URL for each {@link SortDirection}. */
-export const SORT_ICON: Record<SortDirection, string> = {
-  [SortDirection.ascending]: SortAscendingIcon,
-  [SortDirection.descending]: SortDescendingIcon,
 }

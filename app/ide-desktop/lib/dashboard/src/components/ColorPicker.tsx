@@ -5,7 +5,7 @@ import * as color from '#/utilities/color'
 
 /** Props for a {@link ColorPicker}. */
 export interface ColorPickerProps {
-  setColor: (color: color.LChColor) => void
+  readonly setColor: (color: color.LChColor) => void
 }
 
 /** A color picker to select from a predetermined list of colors. */

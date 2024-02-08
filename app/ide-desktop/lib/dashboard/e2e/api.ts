@@ -1,15 +1,15 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
-import type * as color from '#/utilities/color'
+import * as backend from '#/services/Backend'
+import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+
+import type * as colorModule from '#/utilities/color'
+import * as config from '#/utilities/config'
+import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-
-import * as backend from '../src/services/Backend'
-import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
-import * as config from '../src/utilities/config'
-import * as dateTime from '../src/utilities/dateTime'
-import * as uniqueString from '../src/utilities/uniqueString'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -38,7 +38,7 @@ const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
 
 /** Parameters for {@link mockApi}. */
 interface MockParams {
-  page: test.Page
+  readonly page: test.Page
 }
 
 /** Add route handlers for the mock API to a page. */
@@ -157,7 +157,7 @@ export async function mockApi({ page }: MockParams) {
       rest
     )
 
-  const createLabel = (value: string, color: color.LChColor): backend.Label => ({
+  const createLabel = (value: string, color: colorModule.LChColor): backend.Label => ({
     id: backend.TagId('tag-' + uniqueString.uniqueString()),
     value: backend.LabelName(value),
     color,
@@ -179,7 +179,7 @@ export async function mockApi({ page }: MockParams) {
     return addAsset(createSecret(title, rest))
   }
 
-  const addLabel = (value: string, color: color.LChColor) => {
+  const addLabel = (value: string, color: colorModule.LChColor) => {
     const label = createLabel(value, color)
     labels.push(label)
     labelsByValue.set(label.value, label)
@@ -197,7 +197,7 @@ export async function mockApi({ page }: MockParams) {
     for (const innerId of ids) {
       const asset = assetMap.get(innerId)
       if (asset != null) {
-        asset.labels = newLabels
+        object.unsafeMutable(asset).labels = newLabels
       }
     }
   }
@@ -234,10 +234,10 @@ export async function mockApi({ page }: MockParams) {
         /** The search query for this endpoint. */
         interface Query {
           /* eslint-disable @typescript-eslint/naming-convention */
-          parent_id?: string
-          filter_by?: backend.FilterBy
-          labels?: backend.LabelName[]
-          recent_projects?: boolean
+          readonly parent_id?: string
+          readonly filter_by?: backend.FilterBy
+          readonly labels?: backend.LabelName[]
+          readonly recent_projects?: boolean
           /* eslint-enable @typescript-eslint/naming-convention */
         }
         // The type of the body sent by this app is statically known.
@@ -354,7 +354,7 @@ export async function mockApi({ page }: MockParams) {
       async (route, request) => {
         /** The type for the JSON request payload for this endpoint. */
         interface Body {
-          parentDirectoryId: backend.DirectoryId
+          readonly parentDirectoryId: backend.DirectoryId
         }
         const assetId = request.url().match(/[/]assets[/](.+?)[/]copy/)?.[1]
         // eslint-disable-next-line no-restricted-syntax
@@ -434,7 +434,7 @@ export async function mockApi({ page }: MockParams) {
           const asset = assetMap.get(backend.DirectoryId(assetId))
           if (asset != null) {
             if (body.description != null) {
-              asset.description = body.description
+              object.unsafeMutable(asset).description = body.description
             }
           }
         } else {
@@ -449,11 +449,11 @@ export async function mockApi({ page }: MockParams) {
           const assetId = request.url().match(/[/]assets[/]([^/?]+)/)?.[1] ?? ''
           /** The type for the JSON request payload for this endpoint. */
           interface Body {
-            labels: backend.LabelName[]
+            readonly labels: backend.LabelName[]
           }
           /** The type for the JSON response payload for this endpoint. */
           interface Response {
-            tags: backend.Label[]
+            readonly tags: backend.Label[]
           }
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -485,7 +485,7 @@ export async function mockApi({ page }: MockParams) {
           if (asset == null) {
             await route.abort()
           } else {
-            asset.title = body.title
+            object.unsafeMutable(asset).title = body.title
             await route.fulfill({
               json: {
                 id: backend.DirectoryId(directoryId),
@@ -519,7 +519,7 @@ export async function mockApi({ page }: MockParams) {
         if (request.method() === 'PATCH') {
           /** The type for the JSON request payload for this endpoint. */
           interface Body {
-            assetId: backend.AssetId
+            readonly assetId: backend.AssetId
           }
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -572,16 +572,16 @@ export async function mockApi({ page }: MockParams) {
         /** The search query for this endpoint. */
         interface Query {
           /* eslint-disable @typescript-eslint/naming-convention */
-          file_name: string
-          file_id?: backend.FileId | null
-          parent_directory_id?: backend.DirectoryId | null
+          readonly file_name: string
+          readonly file_id?: backend.FileId | null
+          readonly parent_directory_id?: backend.DirectoryId | null
           /* eslint-enable @typescript-eslint/naming-convention */
         }
         /** HTTP response body for this endpoint. */
         interface ResponseBody {
-          path: string
-          id: backend.FileId
-          project: NonNullable<unknown> | null
+          readonly path: string
+          readonly id: backend.FileId
+          readonly project: NonNullable<unknown> | null
         }
         if (route.request().method() === 'POST') {
           // The type of the body sent by this app is statically known.
@@ -602,9 +602,9 @@ export async function mockApi({ page }: MockParams) {
       if (route.request().method() === 'POST') {
         /** HTTP request body for this endpoint. */
         interface Body {
-          name: string
-          value: string
-          parentDirectoryId: backend.DirectoryId | null
+          readonly name: string
+          readonly value: string
+          readonly parentDirectoryId: backend.DirectoryId | null
         }
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const body: Body = route.request().postDataJSON()
@@ -637,9 +637,9 @@ export async function mockApi({ page }: MockParams) {
         if (request.method() === 'POST') {
           /** HTTP request body for this endpoint. */
           interface Body {
-            projectName: string
-            projectTemplateName: string | null
-            parentDirectoryId: backend.DirectoryId | null
+            readonly projectName: string
+            readonly projectTemplateName: string | null
+            readonly parentDirectoryId: backend.DirectoryId | null
           }
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: Body = request.postDataJSON()
@@ -691,8 +691,8 @@ export async function mockApi({ page }: MockParams) {
         if (request.method() === 'POST') {
           /** HTTP request body for this endpoint. */
           interface Body {
-            title: string
-            parentId: backend.DirectoryId | null
+            readonly title: string
+            readonly parentId: backend.DirectoryId | null
           }
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: Body = request.postDataJSON()

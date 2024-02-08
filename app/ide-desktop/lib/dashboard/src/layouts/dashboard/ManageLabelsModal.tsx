@@ -24,12 +24,12 @@ import * as string from '#/utilities/string'
 export interface ManageLabelsModalProps<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 > {
-  item: Asset
-  setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
-  allLabels: Map<backendModule.LabelName, backendModule.Label>
-  doCreateLabel: (value: string, color: colorModule.LChColor) => Promise<void>
+  readonly item: Asset
+  readonly setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
+  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
+  readonly doCreateLabel: (value: string, color: colorModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
-  eventTarget: HTMLElement | null
+  readonly eventTarget: HTMLElement | null
 }
 
 /** A modal to select labels for an asset.

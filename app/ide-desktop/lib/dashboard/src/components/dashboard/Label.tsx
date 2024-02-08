@@ -9,24 +9,24 @@ import * as colorModule from '#/utilities/color'
 
 /** Props for a {@link Label}. */
 interface InternalLabelProps
-  extends React.PropsWithChildren,
-    Omit<JSX.IntrinsicElements['button'], 'color' | 'onClick'>,
-    Required<Pick<JSX.IntrinsicElements['button'], 'onClick'>> {
+  extends Readonly<React.PropsWithChildren>,
+    Readonly<Omit<JSX.IntrinsicElements['button'], 'color' | 'onClick'>>,
+    Readonly<Required<Pick<JSX.IntrinsicElements['button'], 'onClick'>>> {
   // This matches the capitalization of `data-` attributes in React.
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  'data-testid'?: string
+  readonly 'data-testid'?: string
   /** When true, the button is not faded out even when not hovered. */
-  active?: boolean
+  readonly active?: boolean
   /** When true, the button has a red border signifying that it will be deleted,
    * or that it is excluded from search. */
-  negated?: boolean
+  readonly negated?: boolean
   /** When true, the button cannot be clicked. */
-  disabled?: boolean
-  color: colorModule.LChColor
+  readonly disabled?: boolean
+  readonly color: colorModule.LChColor
   /** When true, will turn opaque when the nearest ancestor `.group` is hovered.
    * Otherwise, will turn opaque only when itself is hovered. */
-  group?: boolean
-  className?: string
+  readonly group?: boolean
+  readonly className?: string
 }
 
 /** An label that can be applied to an asset. */

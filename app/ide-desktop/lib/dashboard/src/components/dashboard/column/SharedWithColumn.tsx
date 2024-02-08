@@ -25,13 +25,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp {
-  category: column.AssetColumnProps['state']['category']
-  dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
+  readonly category: column.AssetColumnProps['state']['category']
+  readonly dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
 }
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
-  state: SharedWithColumnStateProp
+  readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */

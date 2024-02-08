@@ -14,6 +14,7 @@ import Modal from '#/components/Modal'
 import * as backendModule from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
+import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 // =================
@@ -173,7 +174,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const doRename = (toRename: ConflictingAsset[]) => {
     const clonedConflicts = structuredClone(toRename)
     for (const conflict of clonedConflicts) {
-      conflict.new.value.title = findNewName(conflict)
+      // This is SAFE, as it is a shallow mutation of a freshly cloned object.
+      object.unsafeMutable(conflict.new.value).title = findNewName(conflict)
     }
     dispatchAssetListEvent({
       type: AssetListEventType.insertAssets,

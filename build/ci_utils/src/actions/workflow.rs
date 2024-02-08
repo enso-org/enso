@@ -108,3 +108,7 @@ impl Message {
 pub fn message(level: MessageLevel, text: impl AsRef<str>) {
     Message { level, text: text.as_ref().into() }.send()
 }
+
+pub fn warn(text: impl AsRef<str>) {
+    message(MessageLevel::Warning, text)
+}

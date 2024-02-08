@@ -14,8 +14,8 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link BackendSwitcher}. */
 export interface BackendSwitcherProps {
-  backendType: backendModule.BackendType
-  setBackendType: (backendType: backendModule.BackendType) => void
+  readonly backendType: backendModule.BackendType
+  readonly setBackendType: (backendType: backendModule.BackendType) => void
 }
 
 /** Switcher for choosing the project management backend. */

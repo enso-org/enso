@@ -29,7 +29,7 @@ function ipWithSocketToAddress(ipWithSocket: projectManagerModule.IpWithSocket) 
 
 /** Any object that has a `materialize()` method that accepts no arguments. */
 interface HasMaterialize<T> {
-  materialize: () => Promise<T> | T
+  readonly materialize: () => Promise<T> | T
 }
 
 /** Overwrites `materialize` so that it does not. */
@@ -39,7 +39,9 @@ function overwriteMaterialize<T>(
 ): () => Promise<T> {
   return () => {
     const promise = materialize()
-    smartAsset.materialize = () => promise
+    // This is SAFE - `materialize` is intended to be mutated here. This is the only place where
+    // it should be mutated.
+    object.unsafeMutable(smartAsset).materialize = () => promise
     return promise
   }
 }

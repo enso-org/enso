@@ -21,16 +21,16 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  supportsLocalBackend: boolean
-  isCloud: boolean
-  page: pageSwitcher.Page
-  setPage: (page: pageSwitcher.Page) => void
-  isHelpChatOpen: boolean
-  setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  projectAsset: backendModule.SmartProject | null
-  setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  doRemoveSelf: () => void
-  onSignOut: () => void
+  readonly supportsLocalBackend: boolean
+  readonly isCloud: boolean
+  readonly page: pageSwitcher.Page
+  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly isHelpChatOpen: boolean
+  readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
+  readonly projectAsset: backendModule.SmartProject | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+  readonly doRemoveSelf: () => void
+  readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */

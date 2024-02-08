@@ -26,14 +26,14 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-  category: Category
-  isCloud: boolean
-  canDownloadFiles: boolean
-  doCreateProject: () => void
-  doCreateDirectory: () => void
-  doCreateSecret: (name: string, value: string) => void
-  doUploadFiles: (files: File[]) => void
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly category: Category
+  readonly isCloud: boolean
+  readonly canDownloadFiles: boolean
+  readonly doCreateProject: () => void
+  readonly doCreateDirectory: () => void
+  readonly doCreateSecret: (name: string, value: string) => void
+  readonly doUploadFiles: (files: File[]) => void
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,

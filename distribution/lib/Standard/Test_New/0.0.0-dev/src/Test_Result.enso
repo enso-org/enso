@@ -5,17 +5,23 @@ import project.Spec_Result.Spec_Result
 
 ## A wrapper for `Spec_Result` that contains also name of the group and name of the spec.
 type Test_Result
+    ## PRIVATE
     Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
 
+    ## PRIVATE
+       Render as Test_Result as Text.
     to_text self =
         "'" + self.group_name + "' '" + self.spec_name + "': " + self.spec_result.to_text
-    
+
+    ## Was the test pending?
     is_pending self =
         self.spec_result.is_pending
-    
+
+    ## Was the test successful?
     is_success self =
         self.spec_result.is_success
-        
+
+    ## Was the test a failure?
     is_fail self =
         self.spec_result.is_fail
     

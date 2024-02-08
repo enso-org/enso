@@ -56,7 +56,7 @@ import Visibility from '#/utilities/visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    extraColumns: columnUtils.ExtraColumn[]
+    readonly extraColumns: columnUtils.ExtraColumn[]
   }
 }
 
@@ -161,7 +161,7 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
+const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
   [Category.recent]: null,
   [Category.home]: backendModule.FilterBy.active,
   [Category.trash]: backendModule.FilterBy.trashed,
@@ -173,80 +173,82 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-  isCloud: boolean
-  numberOfSelectedItems: number
-  category: Category
-  rootDirectory: backendModule.SmartDirectory
-  labels: Map<backendModule.LabelName, backendModule.Label>
-  deletedLabelNames: Set<backendModule.LabelName>
-  hasPasteData: boolean
-  sortColumn: columnUtils.SortableColumn | null
-  setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  sortDirection: SortDirection | null
-  setSortDirection: (sortDirection: SortDirection | null) => void
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetPanelProps: React.Dispatch<
+  readonly isCloud: boolean
+  readonly numberOfSelectedItems: number
+  readonly category: Category
+  readonly rootDirectory: backendModule.SmartDirectory
+  readonly labels: Map<backendModule.LabelName, backendModule.Label>
+  readonly deletedLabelNames: Set<backendModule.LabelName>
+  readonly hasPasteData: boolean
+  readonly sortColumn: columnUtils.SortableColumn | null
+  readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
+  readonly sortDirection: SortDirection | null
+  readonly setSortDirection: (sortDirection: SortDirection | null) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  nodeMap: Readonly<React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>>
-  doToggleDirectoryExpansion: (
+  readonly nodeMap: Readonly<
+    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  >
+  readonly doToggleDirectoryExpansion: (
     directory: backendModule.SmartDirectory,
     key: backendModule.AssetId,
     override?: boolean
   ) => void
   /** Called when the project is opened via the `ProjectActionButton`. */
-  doOpenManually: (projectId: backendModule.ProjectId) => void
-  doOpenEditor: (
+  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+  readonly doOpenEditor: (
     project: backendModule.SmartProject,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseEditor: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-  setVisibility: (visibility: Visibility) => void
-  isEditingName: boolean
-  temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
-  temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
+  readonly setVisibility: (visibility: Visibility) => void
+  readonly isEditingName: boolean
+  readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
+  readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  isCloud: boolean
-  rootDirectory: backendModule.SmartDirectory
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  setCanDownloadFiles: (canDownloadFiles: boolean) => void
-  category: Category
-  allLabels: Map<backendModule.LabelName, backendModule.Label>
-  setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-  initialProjectName: string | null
-  projectStartupInfo: backendModule.ProjectStartupInfo | null
-  deletedLabelNames: Set<backendModule.LabelName>
-  assetListEvents: assetListEvent.AssetListEvent[]
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetPanelProps: React.Dispatch<
+  readonly isCloud: boolean
+  readonly rootDirectory: backendModule.SmartDirectory
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
+  readonly category: Category
+  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
+  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+  readonly initialProjectName: string | null
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly deletedLabelNames: Set<backendModule.LabelName>
+  readonly assetListEvents: assetListEvent.AssetListEvent[]
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  doOpenEditor: (
+  readonly doOpenEditor: (
     project: backendModule.SmartProject,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseEditor: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doCreateLabel: (value: string, color: color.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */

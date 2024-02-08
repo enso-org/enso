@@ -28,13 +28,13 @@ import * as drag from '#/utilities/drag'
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
-  labels: backend.Label[]
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  doCreateLabel: (name: string, color: color.LChColor) => void
-  doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
-  newLabelNames: Set<backend.LabelName>
-  deletedLabelNames: Set<backend.LabelName>
+  readonly labels: backend.Label[]
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly doCreateLabel: (name: string, color: color.LChColor) => void
+  readonly doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
+  readonly newLabelNames: Set<backend.LabelName>
+  readonly deletedLabelNames: Set<backend.LabelName>
 }
 
 /** A list of selectable labels. */

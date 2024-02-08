@@ -31,7 +31,9 @@ test.test('sign up flow', async ({ page }) => {
   const currentUser = api.currentUser
   test.expect(currentUser).toBeDefined()
   if (currentUser != null) {
-    currentUser.isEnabled = true
+    // This is required because `UserOrOrganization` is `readonly`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, no-extra-semi
+    ;(currentUser as { isEnabled: boolean }).isEnabled = true
   }
   await actions.login({ page }, email)
   await test.expect(actions.locateUpgradeButton(page)).not.toBeVisible()

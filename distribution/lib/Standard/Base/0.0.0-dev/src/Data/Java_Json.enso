@@ -22,14 +22,19 @@ from project.Metadata.Widget import Single_Choice
 
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
 polyglot java import com.fasterxml.jackson.databind.JsonNode
-polyglot java import com.fasterxml.jackson.databind.ObjectMapper
 polyglot java import com.fasterxml.jackson.databind.node.ArrayNode
 polyglot java import com.fasterxml.jackson.databind.node.JsonNodeType
 polyglot java import com.fasterxml.jackson.databind.node.ObjectNode
+polyglot java import com.fasterxml.jackson.databind.ObjectMapper
 
 ## PRIVATE
    Jackson-based JSON Parser
 type Java_Json
+    ## ALIAS from text
+       GROUP Conversions
+
+       Parse a Text value into a `Jackson_Object` or an Enso primitive value
+       (like `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
     parse : Text -> Nothing | Boolean | Number | Text | Vector | Jackson_Object
     parse text:Text =
         error_handler js_exception =
@@ -60,6 +65,8 @@ read_json_array node =
 
 ## PRIVATE
 type Jackson_Object
+    ## PRIVATE
+       Creates a new `Jackson_Object` from an `ObjectNode`.
     new : ObjectNode -> Jackson_Object
     new object_node =
         make_field_names object =

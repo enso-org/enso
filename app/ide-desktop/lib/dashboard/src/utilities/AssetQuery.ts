@@ -37,12 +37,12 @@ export interface AssetQueryData extends Record<AssetQueryKey, string[][]> {}
 
 /** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
  * instead of `string[][]`s, representing the last term rather than all terms. */
-export interface AssetQueryLastTermData extends Record<AssetQueryKey, string[]> {}
+export interface AssetQueryLastTermData extends Readonly<Record<AssetQueryKey, string[]>> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
-  tag: string | null
-  values: string[]
+  readonly tag: string | null
+  readonly values: string[]
 }
 
 /** Parsing and representation of the search query. */
@@ -74,7 +74,7 @@ export default class AssetQuery {
     ['negativeNos', 'has'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
-  query
+  readonly query
 
   /** Create an {@link AssetQuery}. */
   constructor(
@@ -159,7 +159,7 @@ export default class AssetQuery {
     const negativeOwners: string[][] = []
     const nos: string[][] = []
     const negativeNos: string[][] = []
-    const tagNameToSet: Record<string, string[][]> = {
+    const tagNameToSet: Readonly<Record<string, string[][]>> = {
       // This is a dictionary, not an object.
       /* eslint-disable @typescript-eslint/naming-convention */
       '': keywords,

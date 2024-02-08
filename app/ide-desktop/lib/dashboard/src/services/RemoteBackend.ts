@@ -48,7 +48,7 @@ function responseIsSuccessful(response: Response) {
 
 /** Any object that has a `materialize()` method that accepts no arguments. */
 interface HasMaterialize<T> {
-  materialize: () => Promise<T> | T
+  readonly materialize: () => Promise<T> | T
 }
 
 /** Overwrites `materialize` so that it does not. */
@@ -58,7 +58,9 @@ function overwriteMaterialize<T>(
 ): () => Promise<T> {
   return () => {
     const promise = materialize()
-    smartAsset.materialize = () => promise
+    // This is SAFE - `materialize` is intended to be mutated here. This is the only place where
+    // it should be mutated.
+    object.unsafeMutable(smartAsset).materialize = () => promise
     return promise
   }
 }
@@ -69,8 +71,8 @@ function overwriteMaterialize<T>(
 
 /** URL query string parameters for the "list versions" endpoint. */
 export interface ListVersionsRequestParams {
-  versionType: backend.VersionType
-  default: boolean
+  readonly versionType: backend.VersionType
+  readonly default: boolean
 }
 
 /** Return a list of backend or IDE versions.
@@ -81,7 +83,7 @@ async function listVersions(
 ): Promise<backend.Version[]> {
   /** HTTP response body for this endpoint. */
   interface ResponseBody {
-    versions: [backend.Version, ...backend.Version[]]
+    readonly versions: [backend.Version, ...backend.Version[]]
   }
   const paramsString = new URLSearchParams({
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -127,10 +129,10 @@ async function getDefaultVersion(client: HttpClient, versionType: backend.Versio
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-  fileId: backend.AssetId | null
+  readonly fileId: backend.AssetId | null
   // Marked as optional in the data type, however it is required by the actual route handler.
-  fileName: string
-  parentDirectoryId: backend.DirectoryId | null
+  readonly fileName: string
+  readonly parentDirectoryId: backend.DirectoryId | null
 }
 
 // =====================
@@ -259,7 +261,7 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
   async listUsers(): Promise<backend.SimpleUser[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      users: backend.SimpleUser[]
+      readonly users: backend.SimpleUser[]
     }
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.httpGet<ResponseBody>(path)
@@ -274,7 +276,7 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
   async listRecentFiles(): Promise<backend.AnySmartAsset[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      assets: backend.AnyAsset[]
+      readonly assets: backend.AnyAsset[]
     }
     const paramsString = new URLSearchParams([['recent_projects', String(true)]]).toString()
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
@@ -454,7 +456,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   async list(query: backend.ListDirectoryRequestParams): Promise<backend.AnySmartAsset[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      assets: backend.AnyAsset[]
+      readonly assets: backend.AnyAsset[]
     }
     const paramsString = new URLSearchParams([
       ['parent_id', this.value.id],
@@ -493,9 +495,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   override async update(body: backend.UpdateAssetOrDirectoryRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      id: backend.DirectoryId
-      parentId: backend.DirectoryId
-      title: string
+      readonly id: backend.DirectoryId
+      readonly parentId: backend.DirectoryId
+      readonly title: string
     }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -585,14 +587,14 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     result.materialize = overwriteMaterialize(result, async (): Promise<SmartDirectory> => {
       /** HTTP request body for this endpoint. */
       interface Body {
-        title: string
-        parentId: backend.DirectoryId | null
+        readonly title: string
+        readonly parentId: backend.DirectoryId | null
       }
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
-        id: backend.DirectoryId
-        parentId: backend.DirectoryId
-        title: string
+        readonly id: backend.DirectoryId
+        readonly parentId: backend.DirectoryId
+        readonly title: string
       }
       const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
       const body: Body = { title, parentId: this.value.id }
@@ -630,19 +632,19 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     })
     /** A project returned by the endpoints. */
     interface CreatedProject {
-      organizationId: string
-      projectId: backend.ProjectId
-      name: string
-      state: backend.ProjectStateType
-      packageName: string
+      readonly organizationId: string
+      readonly projectId: backend.ProjectId
+      readonly name: string
+      readonly state: backend.ProjectStateType
+      readonly packageName: string
     }
     if (fileOrTemplateName instanceof File) {
       result.materialize = overwriteMaterialize(result, async () => {
         /** HTTP response body for this endpoint. */
         interface ResponseBody {
-          path: string
-          id: backend.FileId
-          project: CreatedProject | null
+          readonly path: string
+          readonly id: backend.FileId
+          readonly project: CreatedProject | null
         }
         const paramsString = new URLSearchParams({
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -682,9 +684,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       result.materialize = overwriteMaterialize(result, async () => {
         /** HTTP request body for this endpoint. */
         interface Body {
-          projectName: string
-          projectTemplateName: string | null
-          parentDirectoryId: backend.DirectoryId | null
+          readonly projectName: string
+          readonly projectTemplateName: string | null
+          readonly parentDirectoryId: backend.DirectoryId | null
         }
         /** HTTP response body for this endpoint. */
         interface ResponseBody extends CreatedProject {}
@@ -732,9 +734,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
-        path: string
-        id: backend.FileId
-        project: NonNullable<unknown> | null
+        readonly path: string
+        readonly id: backend.FileId
+        readonly project: NonNullable<unknown> | null
       }
       const paramsString = new URLSearchParams({
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -783,9 +785,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP request body for this endpoint. */
       interface Body {
-        name: string
-        value: string
-        parentDirectoryId: backend.DirectoryId | null
+        readonly name: string
+        readonly value: string
+        readonly parentDirectoryId: backend.DirectoryId | null
       }
       const path = remoteBackendPaths.CREATE_SECRET_PATH
       const body: Body = { parentDirectoryId: this.value.id, name: title, value }
@@ -818,16 +820,16 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   async getDetails(): Promise<backend.Project> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      organizationId: string
-      projectId: backend.ProjectId
-      name: string
-      state: backend.ProjectStateType
-      packageName: string
-      address?: backend.Address
+      readonly organizationId: string
+      readonly projectId: backend.ProjectId
+      readonly name: string
+      readonly state: backend.ProjectStateType
+      readonly packageName: string
+      readonly address?: backend.Address
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      ide_version: backend.VersionNumber | null
+      readonly ide_version: backend.VersionNumber | null
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      engine_version: backend.VersionNumber | null
+      readonly engine_version: backend.VersionNumber | null
     }
     const path = remoteBackendPaths.getProjectDetailsPath(this.value.id)
     const response = await this.httpGet<ResponseBody>(path)
@@ -862,12 +864,12 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   override async update(body: backend.UpdateAssetOrProjectRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      organizationId: string
-      projectId: backend.ProjectId
-      name: string
-      ami: backend.Ami | null
-      ideVersion: backend.VersionNumber | null
-      engineVersion: backend.VersionNumber | null
+      readonly organizationId: string
+      readonly projectId: backend.ProjectId
+      readonly name: string
+      readonly ami: backend.Ami | null
+      readonly ideVersion: backend.VersionNumber | null
+      readonly engineVersion: backend.VersionNumber | null
     }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -948,8 +950,8 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
   override async update(body: backend.UpdateAssetOrFileRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      path: string
-      id: backend.FileId
+      readonly path: string
+      readonly id: backend.FileId
     }
     const updateAssetRequest =
       body.description == null && body.parentDirectoryId == null
@@ -1047,8 +1049,8 @@ class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.Sma
 
 /** Information for a cached default version. */
 interface DefaultVersionInfo {
-  version: backend.VersionNumber
-  lastUpdatedEpochMs: number
+  readonly version: backend.VersionNumber
+  readonly lastUpdatedEpochMs: number
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
@@ -1120,7 +1122,7 @@ export default class RemoteBackend extends Backend {
   override async listTags(): Promise<backend.Label[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      tags: backend.Label[]
+      readonly tags: backend.Label[]
     }
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ResponseBody>(path)

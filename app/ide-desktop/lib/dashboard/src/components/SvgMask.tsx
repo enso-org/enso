@@ -7,16 +7,16 @@ import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps {
-  alt?: string
+  readonly alt?: string
   /** The URL of the SVG to use as the mask. */
-  src: string
-  title?: string
-  style?: React.CSSProperties
+  readonly src: string
+  readonly title?: string
+  readonly style?: React.CSSProperties
   // Allowing `undefined` is fine here as this prop is being transparently passed through to the
   // underlying `div`.
   // eslint-disable-next-line no-restricted-syntax
-  className?: string | undefined
-  onClick?: (event: React.MouseEvent) => void
+  readonly className?: string | undefined
+  readonly onClick?: (event: React.MouseEvent) => void
 }
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
