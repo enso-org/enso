@@ -11,6 +11,7 @@ import type {
 } from '.'
 import {
   MutableModule,
+  ROOT_ID,
   Token,
   asOwned,
   isIdentifier,
@@ -134,7 +135,7 @@ export abstract class Ast {
 
   get parentId(): AstId | undefined {
     const parentId = this.fields.get('parent')
-    if (parentId !== 'ROOT_ID') return parentId
+    if (parentId !== ROOT_ID) return parentId
   }
 
   parent(): Ast | undefined {
