@@ -33,6 +33,11 @@
           "value": 0,
           "description": "The offset of rust-rendered toolbar from window's left edge.",
           "primary": false
+        },
+        "vibrancy": {
+          "value": false,
+          "description": "Enable the vibrancy effect.",
+          "primary": false
         }
       }
     },

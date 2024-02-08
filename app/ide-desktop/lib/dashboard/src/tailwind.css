@@ -5,9 +5,12 @@ body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
+  background-blend-mode: lighten;
+}
+
+body:not(.vibrancy) {
   background: url("enso-assets/background.jpg") 0 0;
   background-size: cover;
-  background-blend-mode: lighten;
 }
 
 body::before {

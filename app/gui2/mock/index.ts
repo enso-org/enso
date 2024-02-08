@@ -35,6 +35,7 @@ export function guiConfig(app: App) {
       },
       window: {
         topBarOffset: 96,
+        vibrancy: false,
       },
       authentication: {
         enabled: true,

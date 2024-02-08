@@ -151,6 +151,7 @@ export interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
+    readonly supportsVibrancy: boolean
     readonly projectManagerUrl: string | null
     readonly isInAuthenticationFlow: boolean
     readonly shouldUseAuthentication: boolean
@@ -266,6 +267,7 @@ class Main implements AppRunner {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
+            const supportsVibrancy = configOptions.groups.window.options.vibrancy.value
             const shouldUseAuthentication = configOptions.options.authentication.value
             const isOpeningMainEntryPoint =
                 configOptions.groups.startup.options.entry.value ===
@@ -284,6 +286,7 @@ class Main implements AppRunner {
             }
             if (shouldUseAuthentication && isOpeningMainEntryPoint) {
                 this.runAuthentication({
+                    supportsVibrancy,
                     isInAuthenticationFlow,
                     projectManagerUrl,
                     shouldUseAuthentication,
@@ -319,6 +322,7 @@ class Main implements AppRunner {
         dashboard.run({
             appRunner: this,
             logger,
+            vibrancy: config.supportsVibrancy,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             projectManagerUrl: config.projectManagerUrl,

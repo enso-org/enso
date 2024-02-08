@@ -31,7 +31,7 @@ export function supportsVibrancy() {
             }
         }
         default: {
-            return false
+            return process.env.ENSO_SUPPORTS_VIBRANCY === 'true'
         }
     }
 }

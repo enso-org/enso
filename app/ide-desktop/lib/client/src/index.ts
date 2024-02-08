@@ -279,7 +279,8 @@ class App {
                 const useFrame = this.args.groups.window.options.frame.value
                 const macOS = process.platform === 'darwin'
                 const useHiddenInsetTitleBar = !useFrame && macOS
-                const useVibrancy = this.args.groups.window.options.vibrancy.value
+                const useVibrancy = (this.args.groups.window.options.vibrancy.value &&=
+                    detect.supportsVibrancy())
                 const webPreferences: electron.WebPreferences = {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
@@ -294,11 +295,13 @@ class App {
                     height: windowSize.height,
                     frame: useFrame,
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-                    ...(useVibrancy && detect.supportsVibrancy()
+                    ...(useVibrancy
                         ? {
                               vibrancy: 'fullscreen-ui',
                               backgroundMaterial: 'acrylic',
-                              ...(os.platform() === 'win32' ? { transparent: true } : {}),
+                              ...(os.platform() === 'win32' || os.platform() === 'linux'
+                                  ? { transparent: true }
+                                  : {}),
                           }
                         : {}),
                 }
