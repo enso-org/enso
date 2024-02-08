@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -43,13 +44,43 @@ Vector.transpose self =
     if self.is_empty then [] else
         length = self.length
         first_subvector_length = self.at 0 . length
-        builders = Vector.new first_subvector_length (_-> Vector.new_builder length)
-        result = self.map v->
-            if v.length != first_subvector_length then Error.throw (Illegal_Argument.Error "Transpose requires that all rows be the same length") else
-                v.map_with_index i-> x->
-                    builders.at i . append x
-        result.if_not_error <|
-            builders.map .to_vector
+        if self.any s-> s.length != first_subvector_length then Error.throw (Illegal_Argument.Error "Transpose requires that all rows be the same length") else
+            inner i  = Vector.from_polyglot_array (Array_Proxy.new length j-> ((self.at j).at i))
+            proxy = Array_Proxy.new first_subvector_length inner
+            Vector.from_polyglot_array proxy
 
-Array.transpose : Vector (Vector Any) ! Illegal_Argument
+## GROUP Selections
+   Swaps the rows and columns of a matrix represented by an `Array` of `Array`s.
+
+   ! Error Conditions
+
+     - If the rowws (subvectors) do not all have the same length, an
+     `Illegal_Argument` error is raised.
+
+   > Example
+     Transpose a `Array` of `Array`s.`
+
+         "Hello, world!".reverse
+
+         matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+         # +---+---+---+
+         # | 0 | 1 | 2 |
+         # +---+---+---+
+         # | 3 | 4 | 5 |
+         # +---+---+---+
+         # | 6 | 7 | 8 |
+         # +---+---+---+
+
+         transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+         # +---+---+---+
+         # | 0 | 3 | 6 |
+         # +---+---+---+
+         # | 1 | 4 | 7 |
+         # +---+---+---+
+         # | 2 | 5 | 8 |
+         # +---+---+---+
+
+         matrix.transposed == transposed
+         # => True
+Array.transpose : Array (Array Any) ! Illegal_Argument
 Array.transpose self = Vector.transpose self
