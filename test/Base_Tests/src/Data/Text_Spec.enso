@@ -11,7 +11,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 type Auto

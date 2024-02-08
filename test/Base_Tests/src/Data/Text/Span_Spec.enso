@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Text.Span" group_builder->
