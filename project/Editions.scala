@@ -10,7 +10,6 @@ object Editions {
   val standardLibraries: Seq[String] = Seq(
     "Standard.Base",
     "Standard.Test",
-    "Standard.Test_New",
     "Standard.Table",
     "Standard.Database",
     "Standard.AWS",

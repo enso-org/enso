@@ -52,16 +52,19 @@ type Set
     size self = self.underlying_map.size
 
     ## GROUP Logical
+       ICON metadata
        Checks if the set is empty.
     is_empty : Boolean
     is_empty self = self.underlying_map.is_empty
 
     ## GROUP Logical
+       ICON metadata
        Checks if the set is not empty.
     not_empty : Boolean
     not_empty self = self.underlying_map.not_empty
 
     ## GROUP Logical
+       ICON preparation
        Checks if this set contains a given value.
     contains : Any -> Boolean
     contains self value = self.underlying_map.contains_key value

@@ -5,7 +5,7 @@ import Standard.Database.Data.Column.Column as Database_Column
 import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Data.Column.Column as In_Memory_Column
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
