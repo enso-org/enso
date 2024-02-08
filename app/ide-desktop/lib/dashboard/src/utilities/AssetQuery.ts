@@ -474,6 +474,14 @@ export default class AssetQuery {
 
   /** Return whether the given {@link AssetTreeNode} matches this query. */
   isMatch(node: AssetTreeNode) {
+    if (
+      node.item.type === backendModule.AssetType.specialEmpty ||
+      node.item.type === backendModule.AssetType.specialLoading
+    ) {
+      // This is FINE, as these assets have no meaning info to match with.
+      // eslint-disable-next-line no-restricted-syntax
+      return false
+    }
     const assetType =
       node.item.value.type === backendModule.AssetType.directory
         ? 'folder'
