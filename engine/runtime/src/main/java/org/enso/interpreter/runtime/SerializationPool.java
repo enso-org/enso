@@ -14,6 +14,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.enso.pkg.QualifiedName;
 
+/**
+ * Manages threading aspects of serialization. The goal of {@code SerializationPool} is to
+ * encapsulate working with threads:
+ *
+ * <ul>
+ *   <li>serialization is done asychronously in a single background thread
+ *   <li>deserialization is done synchronously and tries to wait for possible background work to
+ *       finish
+ * </ul>
+ *
+ * It is good to keep in mind, that serialization isn't the primary goal while Enso program is
+ * running. When a program is running as much of the CPU time should be dedicated to compilation and
+ * execution. Only when the Enso program execution is over, flushing the pending caches becomes a
+ * priority. Future rewrites of this class may optimize towards such direction.
+ */
 final class SerializationPool {
   private final TruffleCompilerContext context;
 
@@ -49,8 +64,6 @@ final class SerializationPool {
               return t;
             });
   }
-
-  void prestartAllCoreThreads() {}
 
   /**
    * @return `true` if there are remaining serialization jobs, `false` otherwise
@@ -118,10 +131,10 @@ final class SerializationPool {
   }
 
   /**
-   * Checks if the provided library's bindings are waiting for serialization.
+   * Checks if the provided key is waiting for serialization.
    *
-   * @param library the library to check
-   * @return `true` if `library` is waiting for serialization, `false` otherwise
+   * @param key the library to check
+   * @return {@code true} if there is a pending serialization for given key, {@code false} otherwise
    */
   boolean abort(QualifiedName key) {
     synchronized (isWaitingForSerialization) {
@@ -148,9 +161,9 @@ final class SerializationPool {
   }
 
   /**
-   * Sets the module described by `name` as finished with serialization.
+   * Sets the {@code key} as finished with serialization.
    *
-   * @param name the name of the module to set as having finished serialization
+   * @param name the key to set as having finished serialization
    */
   void finishSerializing(QualifiedName name) {
     synchronized (isWaitingForSerialization) {
@@ -177,6 +190,12 @@ final class SerializationPool {
     }
   }
 
+  /**
+   * Waits for a given key to finish serialization, if there is one pending.
+   *
+   * @param name the key
+   * @throws InterruptedException if the wait is interrupted
+   */
   void waitWhileSerializing(QualifiedName name) throws InterruptedException {
     synchronized (isWaitingForSerialization) {
       while (isSerializing.containsKey(name)) {
