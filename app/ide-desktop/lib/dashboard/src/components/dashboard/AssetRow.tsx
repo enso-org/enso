@@ -189,6 +189,7 @@ export default function AssetRow(props: AssetRowProps) {
             directoryId: nonNullNewParentId,
           })
         )
+        setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -196,6 +197,7 @@ export default function AssetRow(props: AssetRowProps) {
         )
       } catch (error) {
         toastAndLog(`Could not move '${asset.title}'`, error)
+        setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -216,6 +218,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryId,
       item.directoryKey,
       item.key,
+      /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
