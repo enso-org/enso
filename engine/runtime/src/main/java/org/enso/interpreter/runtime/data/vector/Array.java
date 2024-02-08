@@ -184,8 +184,6 @@ final class Array implements EnsoObject {
       boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    return Warning.fromSetToArray(collectAllWarnings(warnings, location, shouldWrap));
-    /*
     Warning[] cache = shouldWrap ? cachedWarningsWrapped : cachedWarningsUnwrapped;
     if (cache == null) {
       cache = Warning.fromSetToArray(collectAllWarnings(warnings, location, shouldWrap));
@@ -196,7 +194,6 @@ final class Array implements EnsoObject {
       }
     }
     return cache;
-    */
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -214,10 +211,7 @@ final class Array implements EnsoObject {
         if (shouldWrap) {
           wrappedWarningsMaybe =
               Arrays.stream(warnings)
-                  .map(warning -> {
-                    System.out.println("AAA wrapping warning " + warning + " of " + finalIndex + " of " + Arrays.deepToString(this.items));
-                    return Warning.wrapMapError(warningsLib, warning, finalIndex);
-        })
+                  .map(warning -> Warning.wrapMapError(warningsLib, warning, finalIndex))
                   .toArray(Warning[]::new);
         } else {
           wrappedWarningsMaybe = warnings;
