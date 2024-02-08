@@ -179,7 +179,7 @@ class ImportResolver(compiler: Compiler) {
             u.compilationStage(CompilationStage.INITIAL)
           }
         )
-        compiler.ensureParsed(mod)
+        compiler.ensureParsed(mod, false)
         b = mod.getBindingsMap()
       }
 
