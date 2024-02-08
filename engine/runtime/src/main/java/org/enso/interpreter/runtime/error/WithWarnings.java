@@ -197,8 +197,10 @@ public final class WithWarnings implements EnsoObject {
       return getReassignedWarnings(location, shouldWrap, warningsLibrary);
     } else {
       if (shouldWrap) {
+        // In the wrapping case, we don't use the local cache in .values, since
+        // it contains unwrapped warnings. Instead, we fetch them again.
         return getWarningsNoCache(warningsLibrary);
-        } else {
+      } else {
         return Warning.fromSetToArray(warnings);
       }
     }
