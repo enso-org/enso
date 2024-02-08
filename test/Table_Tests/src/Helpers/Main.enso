@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Helpers.Sorted_List_Index_Spec
 import project.Helpers.Unique_Naming_Strategy_Spec

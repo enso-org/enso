@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
