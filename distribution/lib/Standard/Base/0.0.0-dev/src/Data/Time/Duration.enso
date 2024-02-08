@@ -131,6 +131,7 @@ type Duration
 
     ## ALIAS add duration
        GROUP Operators
+       ICON date_and_time
        Add the specified amount of time to this duration.
 
        Arguments:
@@ -157,6 +158,7 @@ type Duration
 
     ## ALIAS subtract duration
        GROUP Operators
+       ICON date_and_time
        Subtract the specified amount of time from this duration.
 
        Arguments:

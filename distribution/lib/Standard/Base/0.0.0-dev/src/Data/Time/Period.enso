@@ -86,6 +86,7 @@ type Period
     years self = self.internal_period.getYears
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period expressed in months.
     months : Integer
     months self = self.internal_period.getMonths
@@ -97,12 +98,14 @@ type Period
     total_months self = self.internal_period.toTotalMonths
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period expressed in days.
     days : Integer
     days self = self.internal_period.getDays
 
     ## ALIAS add period
        GROUP Operators
+       ICON date_and_time
        Add the specified amount of time to this period.
 
        Arguments:
@@ -123,6 +126,7 @@ type Period
 
     ## ALIAS subtract period
        GROUP Operators
+       ICON date_and_time
        Subtract a specified amount of time from this period.
 
        Arguments:
@@ -144,6 +148,7 @@ type Period
 
     ## ALIAS multiply, times
        GROUP Operators
+       ICON date_and_time
        Multiply the amount of time in this period by the specified scalar.
 
        Arguments:

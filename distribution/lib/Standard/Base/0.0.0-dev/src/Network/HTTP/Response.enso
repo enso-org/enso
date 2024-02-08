@@ -117,6 +117,7 @@ type Response
 
     ## ALIAS parse
        GROUP Conversions
+       ICON data_input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
@@ -127,6 +128,7 @@ type Response
 
     ## ALIAS parse as text
        GROUP Conversions
+       ICON data_input
        Decodes the body to a Text value.
 
        Arguments:
@@ -140,6 +142,7 @@ type Response
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
+       ICON data_input
        Decodes the body as JSON.
 
        Arguments:

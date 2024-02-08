@@ -135,6 +135,7 @@ type Response_Body
 
     ## ALIAS parse as text
        GROUP Conversions
+       ICON data_input
        Decodes the body to a Text value.
 
        Arguments:
@@ -147,6 +148,7 @@ type Response_Body
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
+       ICON data_input
        Decodes the body as JSON.
 
        Arguments:

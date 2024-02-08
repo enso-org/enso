@@ -302,6 +302,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
@@ -724,6 +725,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -1137,6 +1139,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -1695,6 +1698,7 @@ type Table
             Column.Value (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1823,7 +1827,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join, append
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1961,8 +1965,8 @@ type Table
                 Table.Value java_table
 
     ## ALIAS find replace
-       GROUP Standard.Base.Calculations
-       ICON join
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
@@ -2518,6 +2522,7 @@ type Table
         Table.Value (self.java_table.slice offset limit)
 
     ## GROUP Standard.Base.Selections
+       ICON order
        Returns a table containing the rows of `self` table with their order
        reversed.
 
