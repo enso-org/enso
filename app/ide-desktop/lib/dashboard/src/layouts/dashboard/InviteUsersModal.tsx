@@ -74,16 +74,12 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const canSubmit = React.useMemo(
     () =>
       newEmails.length > 0 &&
-      newEmails.every(newEmail => isEmail(newEmail) && !existingEmails.has(newEmail)),
+      newEmails.every(
+        (newEmail, i) =>
+          isEmail(newEmail) && !existingEmails.has(newEmail) && newEmails.indexOf(newEmail) === i
+      ),
     [existingEmails, newEmails]
   )
-
-  const doAddEmail = () => {
-    if (canSubmit) {
-      setNewEmails(oldNewEmails => [...oldNewEmails, email])
-      setEmail('')
-    }
-  }
 
   const doSubmit = () => {
     unsetModal()
@@ -138,7 +134,12 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             className="grow min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1"
             onSubmit={event => {
               event.preventDefault()
-              doAddEmail()
+              if (email !== '') {
+                setNewEmails([...newEmails, email])
+                setEmail('')
+              } else if (canSubmit) {
+                doSubmit()
+              }
             }}
           >
             {Array.from(newEmails, (newEmail, i) => (
