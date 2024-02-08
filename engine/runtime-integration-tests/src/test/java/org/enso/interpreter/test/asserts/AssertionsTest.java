@@ -50,6 +50,17 @@ public class AssertionsTest extends TestBase {
   }
 
   @Test
+  public void jvmAssertionsAreEnabled() {
+    boolean assertsOn = false;
+    assert assertsOn = true;
+    assertTrue(
+        "JVM assertions must be enabled (with -ea cmd line option) in order to run all the tests"
+            + " inside runtime-integration-tests project. Note that there are some features in the"
+            + " runtime that work only with the JVM assertions enabled.",
+        assertsOn);
+  }
+
+  @Test
   public void assertionsAreEnabled() {
     EnsoContext ensoCtx =
         ctx.getBindings(LanguageInfo.ID)

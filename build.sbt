@@ -1654,11 +1654,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
-/**
- * A project holding all the runtime integration tests. These tests require, among other things,
- * the `org.enso.runtime` JPMS module, so it is easier to keep them in a separate project.
- * For standard unit tests, use `runtime/Test`.
- */
+/** A project holding all the runtime integration tests. These tests require, among other things,
+  * the `org.enso.runtime` JPMS module, so it is easier to keep them in a separate project.
+  * For standard unit tests, use `runtime/Test`.
+  */
 lazy val `runtime-integration-tests` =
   (project in file("engine/runtime-integration-tests"))
     .enablePlugins(JPMSPlugin)
