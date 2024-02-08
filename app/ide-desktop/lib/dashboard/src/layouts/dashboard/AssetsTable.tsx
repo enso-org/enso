@@ -176,6 +176,7 @@ export interface AssetsTableState {
   isCloud: boolean
   numberOfSelectedItems: number
   category: Category
+  rootDirectory: backendModule.SmartDirectory
   labels: Map<backendModule.LabelName, backendModule.Label>
   deletedLabelNames: Set<backendModule.LabelName>
   hasPasteData: boolean
@@ -1253,6 +1254,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       isCloud,
       numberOfSelectedItems: selectedKeys.size,
       category,
+      rootDirectory,
       labels: allLabels,
       deletedLabelNames,
       hasPasteData,
@@ -1280,6 +1282,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       isCloud,
       selectedKeys.size,
       category,
+      rootDirectory,
       allLabels,
       deletedLabelNames,
       hasPasteData,

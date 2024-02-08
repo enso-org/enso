@@ -61,8 +61,7 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
+export interface AssetRowProps {
   item: AssetTreeNode
   state: assetsTable.AssetsTableState
   visibility: Visibility | null
@@ -72,14 +71,19 @@ export interface AssetRowProps
   isSoleSelectedItem: boolean
   allowContextMenu: boolean
   onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  onContextMenu?: (props: AssetRowInnerProps, event: React.MouseEvent<HTMLTableRowElement>) => void
+  onContextMenu: (props: AssetRowInnerProps, event: React.MouseEvent<HTMLTableRowElement>) => void
+  onDragStart: React.DragEventHandler<HTMLTableRowElement>
+  onDragOver: React.DragEventHandler<HTMLTableRowElement>
+  onDragEnd: React.DragEventHandler<HTMLTableRowElement>
+  onDrop: React.DragEventHandler<HTMLTableRowElement>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, visibility: visibilityRaw, selected, isSoleSelectedItem } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { isCloud, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { onDragEnd, onDrop } = props
+  const { isCloud, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
   const { organization, user } = authProvider.useNonPartialUserSession()
@@ -168,7 +172,7 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
-        newParentId ??= organization?.rootDirectory().value.id ?? backendModule.DirectoryId('')
+        newParentId ??= rootDirectory.value.id
         const copiedAsset = await smartAsset.copy(
           newParentId,
           nodeMap.current.get(newParentId)?.item.value.title ?? '(unknown)'
@@ -189,6 +193,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
+      rootDirectory.value.id,
       organization,
       user,
       smartAsset,
@@ -206,46 +211,45 @@ export default function AssetRow(props: AssetRowProps) {
       newParentKey: backendModule.AssetId | null,
       newParent: backendModule.SmartDirectory | null
     ) => {
-      const rootDirectory = organization?.rootDirectory()
-      newParentKey ??= rootDirectory?.value.id ?? null
-      newParent ??= rootDirectory ?? null
-      if (newParentKey != null && newParent != null) {
-        const nonNullNewParentKey = newParentKey
-        const nonNullNewParent = newParent
-        try {
-          dispatchAssetListEvent({
-            type: AssetListEventType.move,
-            newParentKey: nonNullNewParentKey,
-            newParent: nonNullNewParent,
-            key: item.key,
-            item: smartAsset,
-          })
-          setItem(oldItem =>
-            oldItem.with({ directoryKey: nonNullNewParentKey, directory: nonNullNewParent })
-          )
-          await smartAsset.update({ parentDirectoryId: nonNullNewParent.value.id })
-        } catch (error) {
-          toastAndLog(`Could not move '${smartAsset.value.title}'`, error)
-          setItem(oldItem =>
-            oldItem.with({ directoryKey: item.directoryKey, directory: item.directory })
-          )
-          // Move the asset back to its original position.
-          dispatchAssetListEvent({
-            type: AssetListEventType.move,
-            newParentKey: item.directoryKey,
-            newParent: item.directory,
-            key: item.key,
-            item: smartAsset,
-          })
-        }
+      const nonNullNewParentKey = newParentKey ?? rootDirectory.value.id
+      const nonNullNewParent = newParent ?? rootDirectory
+      try {
+        dispatchAssetListEvent({
+          type: AssetListEventType.move,
+          newParentKey: nonNullNewParentKey,
+          newParent: nonNullNewParent,
+          key: item.key,
+          item: smartAsset,
+        })
+        setItem(oldItem =>
+          oldItem.with({ directoryKey: nonNullNewParentKey, directory: nonNullNewParent })
+        )
+        setAsset(object.merger({ parentId: nonNullNewParent.value.id }))
+        await smartAsset.update({ parentDirectoryId: nonNullNewParent.value.id })
+      } catch (error) {
+        toastAndLog(`Could not move '${smartAsset.value.title}'`, error)
+        setAsset(object.merger({ parentId: asset.parentId }))
+        setItem(oldItem =>
+          oldItem.with({ directoryKey: item.directoryKey, directory: item.directory })
+        )
+        // Move the asset back to its original position.
+        dispatchAssetListEvent({
+          type: AssetListEventType.move,
+          newParentKey: item.directoryKey,
+          newParent: item.directory,
+          key: item.key,
+          item: smartAsset,
+        })
       }
     },
     [
-      organization,
+      rootDirectory,
       smartAsset,
+      asset.parentId,
       item.directory,
       item.directoryKey,
       item.key,
+      /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -529,11 +533,14 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [])
 
-  const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryKey =
-      item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+  const onDragOver = (event: React.DragEvent<HTMLTableRowElement>) => {
+    props.onDragOver(event)
+    const directoryId =
+      item.item.type === backendModule.AssetType.directory
+        ? item.item.value.id
+        : item.directory.value.id
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+    if (payload != null && payload.every(innerItem => innerItem.asset.parentId !== directoryId)) {
       event.preventDefault()
       if (item.item.type === backendModule.AssetType.directory) {
         setIsDraggedOver(true)
@@ -583,7 +590,7 @@ export default function AssetRow(props: AssetRowProps) {
                 if (allowContextMenu) {
                   event.preventDefault()
                   event.stopPropagation()
-                  onContextMenu?.(innerProps, event)
+                  onContextMenu(innerProps, event)
                   setModal(
                     <AssetContextMenu
                       isCloud={isCloud}
@@ -599,14 +606,14 @@ export default function AssetRow(props: AssetRowProps) {
                     />
                   )
                 } else {
-                  onContextMenu?.(innerProps, event)
+                  onContextMenu(innerProps, event)
                 }
               }}
               onDragStart={event => {
                 if (rowState.isEditingName || !isCloud) {
                   event.preventDefault()
                 } else {
-                  props.onDragStart?.(event)
+                  props.onDragStart(event)
                 }
               }}
               onDragEnter={event => {
@@ -619,16 +626,12 @@ export default function AssetRow(props: AssetRowProps) {
                   }, DRAG_EXPAND_DELAY_MS)
                 }
                 // Required because `dragover` does not fire on `mouseenter`.
-                props.onDragOver?.(event)
                 onDragOver(event)
               }}
-              onDragOver={event => {
-                props.onDragOver?.(event)
-                onDragOver(event)
-              }}
+              onDragOver={onDragOver}
               onDragEnd={event => {
                 clearDragState()
-                props.onDragEnd?.(event)
+                onDragEnd(event)
               }}
               onDragLeave={event => {
                 if (
@@ -641,10 +644,9 @@ export default function AssetRow(props: AssetRowProps) {
                 if (event.currentTarget === event.target) {
                   clearDragState()
                 }
-                props.onDragLeave?.(event)
               }}
               onDrop={event => {
-                props.onDrop?.(event)
+                onDrop(event)
                 clearDragState()
                 const [newParentKey, newParent] =
                   item.item.type === backendModule.AssetType.directory
