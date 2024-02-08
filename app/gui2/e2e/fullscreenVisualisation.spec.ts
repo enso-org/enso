@@ -30,39 +30,38 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   const visBoundingBox = await vis.boundingBox()
   expect(visBoundingBox!.height).toBe(808)
   expect(visBoundingBox!.width).toBe(1920)
-  await expect(vis).toContainText(
-    '{\n' +
-      '  "axis": {\n' +
-      '    "x": {\n' +
-      '      "label": "x-axis label",\n' +
-      '      "scale": "linear"\n' +
-      '    },\n' +
-      '    "y": {\n' +
-      '      "label": "y-axis label",\n' +
-      '      "scale": "logarithmic"\n' +
-      '    }\n' +
-      '  },\n' +
-      '  "points": {\n' +
-      '    "labels": "visible"\n' +
-      '  },\n' +
-      '  "data": [\n' +
-      '    {\n' +
-      '      "x": 0.1,\n' +
-      '      "y": 0.7,\n' +
-      '      "label": "foo",\n' +
-      '      "color": "#FF0000",\n' +
-      '      "shape": "circle",\n' +
-      '      "size": 0.2\n' +
-      '    },\n' +
-      '    {\n' +
-      '      "x": 0.4,\n' +
-      '      "y": 0.2,\n' +
-      '      "label": "baz",\n' +
-      '      "color": "#0000FF",\n' +
-      '      "shape": "square",\n' +
-      '      "size": 0.3\n' +
-      '    }\n' +
-      '  ]\n' +
-      '}',
-  )
+  const jsonContent = await vis.textContent().then((text) => JSON.parse(text!))
+  expect(jsonContent).toEqual({
+    axis: {
+      x: {
+        label: 'x-axis label',
+        scale: 'linear',
+      },
+      y: {
+        label: 'y-axis label',
+        scale: 'logarithmic',
+      },
+    },
+    points: {
+      labels: 'visible',
+    },
+    data: [
+      {
+        x: 0.1,
+        y: 0.7,
+        label: 'foo',
+        color: '#FF0000',
+        shape: 'circle',
+        size: 0.2,
+      },
+      {
+        x: 0.4,
+        y: 0.2,
+        label: 'baz',
+        color: '#0000FF',
+        shape: 'square',
+        size: 0.3,
+      },
+    ],
+  })
 })
