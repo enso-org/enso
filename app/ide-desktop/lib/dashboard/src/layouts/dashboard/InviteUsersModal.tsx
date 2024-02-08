@@ -131,7 +131,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             {/* Space reserved for other tabs. */}
           </div>
           <form
-            className="grow min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1"
+            className="grow"
             onSubmit={event => {
               event.preventDefault()
               if (email !== '') {
@@ -142,45 +142,47 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               }
             }}
           >
-            {Array.from(newEmails, (newEmail, i) => (
-              <Email
-                key={i}
-                email={newEmail}
-                isValid={
-                  isEmail(newEmail) &&
-                  !existingEmails.has(newEmail) &&
-                  newEmails.indexOf(newEmail) === i
-                }
-                doDelete={() => {
-                  setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
+            <label className="block min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1">
+              {Array.from(newEmails, (newEmail, i) => (
+                <Email
+                  key={i}
+                  email={newEmail}
+                  isValid={
+                    isEmail(newEmail) &&
+                    !existingEmails.has(newEmail) &&
+                    newEmails.indexOf(newEmail) === i
+                  }
+                  doDelete={() => {
+                    setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
+                  }}
+                />
+              ))}
+              <input
+                type="text"
+                placeholder="Type email to invite"
+                className="bg-transparent h-6 leading-5 py-px px-1"
+                value={email}
+                onKeyDown={event => {
+                  if (
+                    event.key === 'Backspace' &&
+                    event.currentTarget.selectionStart === 0 &&
+                    event.currentTarget.selectionEnd === 0
+                  ) {
+                    setNewEmails(newEmails.slice(0, -1))
+                  }
+                }}
+                onInput={event => {
+                  const value = event.currentTarget.value
+                  if (/ /.test(value)) {
+                    const parts = value.split(' ')
+                    setNewEmails([...newEmails, ...parts.slice(0, -1)])
+                    setEmail(parts[parts.length - 1] ?? '')
+                  } else {
+                    setEmail(value)
+                  }
                 }}
               />
-            ))}
-            <input
-              type="text"
-              placeholder="Type email to invite"
-              className="bg-transparent h-6 leading-5 py-px px-1"
-              value={email}
-              onKeyDown={event => {
-                if (
-                  event.key === 'Backspace' &&
-                  event.currentTarget.selectionStart === 0 &&
-                  event.currentTarget.selectionEnd === 0
-                ) {
-                  setNewEmails(newEmails.slice(0, -1))
-                }
-              }}
-              onInput={event => {
-                const value = event.currentTarget.value
-                if (/ /.test(value)) {
-                  const parts = value.split(' ')
-                  setNewEmails([...newEmails, ...parts.slice(0, -1)])
-                  setEmail(parts[parts.length - 1] ?? '')
-                } else {
-                  setEmail(value)
-                }
-              }}
-            />
+            </label>
           </form>
           <div className="self-start">
             <button
