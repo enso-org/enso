@@ -641,13 +641,16 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (event.currentTarget === event.target) {
+                if (
+                  event.relatedTarget instanceof Node &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
                   clearDragState()
                 }
               }}
               onDrop={event => {
-                onDrop(event)
                 clearDragState()
+                onDrop(event)
                 const [newParentKey, newParent] =
                   item.item.type === backendModule.AssetType.directory
                     ? [item.key, item.item]
