@@ -4,6 +4,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -487,7 +488,7 @@ type Date_Range
          into a new date.
        - if_empty: Value returned if the range is empty.
     reduce : (Date -> Date -> Date) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Date_Range)) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Range)) =
         case self.length of
             0 -> if_empty
             1 -> self.start
