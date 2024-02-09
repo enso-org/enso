@@ -144,7 +144,7 @@ type Array
              [My_Type.Value 'hello', 1].to_array.sort == [1, My_Type.Value 'hello'].to_array
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
-        Vector.sort self order on by on_incomparable
+        Vector.sort (Vector.from_polyglot_array self) order on by on_incomparable
 
     ## ALIAS first, last, sample, slice
        GROUP Selections
@@ -159,7 +159,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) = Vector.take self range
+    take self range=(Index_Sub_Range.First 1) = Vector.take (Vector.from_polyglot_array self) range
 
     ## ALIAS skip
        GROUP Selections
@@ -173,7 +173,7 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
+    drop self range=(Index_Sub_Range.First 1) = Vector.drop (Vector.from_polyglot_array self) range
 
     ## GROUP Calculations
        Inserts the given item into the array at the given index.
@@ -192,7 +192,7 @@ type Array
             ['a', 'b', 'c'].to_array.insert -1 'X' == ['a', 'b', 'X', 'c'].to_array
             ['a', 'b', 'c'].to_array.insert item='X' == ['a', 'b', 'c', 'X'].to_array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
-    insert self at=self.length item=Nothing = Vector.insert self at item
+    insert self at=self.length item=Nothing = Vector.insert (Vector.from_polyglot_array self) at item
 
     ## GROUP Selections
        Removes the item at the given index from the array.
@@ -202,7 +202,7 @@ type Array
          If the index is less than 0, the index will be counted back from the
          end.
     remove : Integer -> Vector
-    remove self at=-1 = Vector.remove self at
+    remove self at=-1 = Vector.remove (Vector.from_polyglot_array self) at
 
     ## GROUP Selections
        ICON select_row
@@ -262,7 +262,7 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 = Vector.index_of self condition start
+    index_of self condition start=0 = Vector.index_of (Vector.from_polyglot_array self) condition start
 
     ## GROUP Values
        Returns the last index of an element in the array.
@@ -284,7 +284,7 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 = Vector.last_index_of self condition start
+    last_index_of self condition start=-1 = Vector.last_index_of (Vector.from_polyglot_array self) condition start
 
     ## GROUP Logical
        ICON metadata
@@ -299,7 +299,7 @@ type Array
 
     ## Converts the array to a list with the same elements.
     to_list : List
-    to_list self = Vector.to_list self
+    to_list self = Vector.to_list (Vector.from_polyglot_array self)
 
     ## GROUP Selections
        ICON preparation
@@ -325,7 +325,7 @@ type Array
 
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"].to_array . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"].to_array
     distinct : (Any -> Any) -> Vector Any
-    distinct self (on = x->x) = Vector.distinct self on
+    distinct self (on = x->x) = Vector.distinct (Vector.from_polyglot_array self) on
 
     ## ICON dataframe_map_column
        Applies a function to each element of the array, returning the `Vector` of
@@ -363,7 +363,7 @@ type Array
 
              [1, 2, 3].to_array . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map self function on_problems=Problem_Behavior.Report_Error = Vector.map self function on_problems
+    map self function on_problems=Problem_Behavior.Report_Error = Vector.map (Vector.from_polyglot_array self) function on_problems
 
     ## Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
@@ -400,7 +400,7 @@ type Array
 
             [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    flat_map self function on_problems=Problem_Behavior.Report_Error = Vector.flat_map self function on_problems
+    flat_map self function on_problems=Problem_Behavior.Report_Error = Vector.flat_map (Vector.from_polyglot_array self) function on_problems
 
     ## GROUP Selections
        ICON preparation
@@ -418,7 +418,7 @@ type Array
              [1, 2, 3, 4, 5].to_array.filter (> 3)
              [1, 2, 3, 4, 5].to_array.filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter = Vector.filter self filter
+    filter self filter = Vector.filter (Vector.from_polyglot_array self) filter
 
     ## GROUP Calculations
        Transforms an array of arrays into a `Vector` of inner elements - removes
@@ -429,12 +429,12 @@ type Array
 
             [[1, 2, 3].to_array, [4, 10].to_array, [].to_array, [0].to_array, [0].to_array].to_array . flatten == [1, 2, 3, 4, 10, 0, 0].to_array
     flatten : Vector Any
-    flatten self = Vector.flatten self
+    flatten self = Vector.flatten (Vector.from_polyglot_array self)
 
     ## PRIVATE
        ADVANCED
     short_display_text : Integer -> Text
-    short_display_text self max_entries=10 = Vector.short_display_text self max_entries
+    short_display_text self max_entries=10 = Vector.short_display_text (Vector.from_polyglot_array self) max_entries
 
     ## Combines all the elements of the array, by iteratively applying the
        passed function with the next element of the array. After each step the
@@ -449,7 +449,7 @@ type Array
 
             [1, 2, 3].to_array.running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
-    running_fold self init function = Vector.running_fold self init function
+    running_fold self init function = Vector.running_fold (Vector.from_polyglot_array self) init function
 
     ## ICON dataframe_map_column
        Combines all the elements of the array, by iteratively applying the
@@ -469,7 +469,7 @@ type Array
 
              [0, 1, 2].to_array . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
-    fold self init function = Vector.fold self init function
+    fold self init function = Vector.fold (Vector.from_polyglot_array self) init function
 
     ## ICON dataframe_map_column
        Combines all the elements of the array, by iteratively applying the
@@ -485,7 +485,7 @@ type Array
 
              [0, 1, 2].to_array . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
-    fold_with_index self init function = Vector.fold_with_index self init function
+    fold_with_index self init function = Vector.fold_with_index (Vector.from_polyglot_array self) init function
 
     ## GROUP Calculations
        Extend `self` array to the length of `n` appending elements `elem` to
@@ -508,7 +508,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.pad 5 0 == [1, 2, 3, 4, 5].to_array
     pad : Integer -> Any -> Vector Any
-    pad self n elem = Vector.pad self n elem
+    pad self n elem = Vector.pad (Vector.from_polyglot_array self) n elem
 
     ## GROUP Selections
        ICON split_text
@@ -536,7 +536,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.partition (x -> x % 2 == 0) == (Pair [2, 4].to_array [1, 3, 5].to_array)
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
-    partition self condition = Vector.partition self condition
+    partition self condition = Vector.partition (Vector.from_polyglot_array self) condition
 
     ## Partitions the array into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
@@ -557,7 +557,7 @@ type Array
 
              ["a", "b", "c", "d"].to_array.partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"].to_array ["b", "d"].to_array)
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
-    partition_with_index self predicate = Vector.partition_with_index self predicate
+    partition_with_index self predicate = Vector.partition_with_index (Vector.from_polyglot_array self) predicate
 
     ## Applies a function to each element of the array, returning the `Vector`
        of results.
@@ -597,7 +597,7 @@ type Array
 
              [1, 2, 3].to_array.map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    map_with_index self function on_problems=Problem_Behavior.Report_Error = Vector.map_with_index self function on_problems
+    map_with_index self function on_problems=Problem_Behavior.Report_Error = Vector.map_with_index (Vector.from_polyglot_array self) function on_problems
 
     ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
@@ -612,7 +612,7 @@ type Array
 
              [1, 2, 3, 4, 5, 6, 7, 8].to_array.slice 2 5 == [3, 4, 5].to_array
     slice : Integer -> Integer -> Vector Any
-    slice self start end = Vector.slice self start end
+    slice self start end = Vector.slice (Vector.from_polyglot_array self) start end
 
     ## GROUP Selections
        Returns the first element of the array that satisfies the condition or
@@ -630,7 +630,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.find (> 3)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) = Vector.find self condition start if_missing
+    find self condition start=0 ~if_missing=(Error.throw Not_Found) = Vector.find (Vector.from_polyglot_array self) condition start if_missing
 
     ## ICON select_row
        Gets an element from the array at a specified index (0-based).
@@ -642,7 +642,7 @@ type Array
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing = Vector.get self index if_missing
+    get self index ~if_missing=Nothing = Vector.get (Vector.from_polyglot_array self) index if_missing
 
     ## GROUP Logical
        ICON metadata
@@ -669,7 +669,7 @@ type Array
 
              [0, 10, 2, 2].to_array.filter (==) == [0, 2].to_array
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
-    filter_with_index self predicate = Vector.filter_with_index self predicate
+    filter_with_index self predicate = Vector.filter_with_index (Vector.from_polyglot_array self) predicate
 
     ## GROUP Calculations
        ICON join
@@ -686,7 +686,7 @@ type Array
 
              ["foo", "bar", "baz"].to_array.join ", "
     join : Text -> Text -> Text -> Text
-    join self separator="" prefix="" suffix="" = Vector.join self separator prefix suffix
+    join self separator="" prefix="" suffix="" = Vector.join (Vector.from_polyglot_array self) separator prefix suffix
 
     ## PRIVATE
        Generates a human-readable text representation of the array.
@@ -710,7 +710,7 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
+    reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce (Vector.from_polyglot_array self) function if_empty
 
     ## GROUP Logical
        ICON preparation
@@ -730,7 +730,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition = Vector.any self condition
+    any self condition = Vector.any (Vector.from_polyglot_array self) condition
 
     ## GROUP Logical
        ICON preparation
@@ -750,7 +750,7 @@ type Array
 
              [-1, 1, 5, 8].to_array.all (x-> x%2 == 0)
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self condition = Vector.all self condition
+    all self condition = Vector.all (Vector.from_polyglot_array self) condition
 
     ## GROUP Logical
        ICON preparation
@@ -820,7 +820,7 @@ type Array
 
     ## Returns the array as a `Vector`.
     to_vector : Vector
-    to_vector self = Vector.from_polyglot_array self
+    to_vector self = Vector.from_polyglot_array (Vector.from_polyglot_array self)
 
     ## GROUP Selections
        Reverses the array, returning a `Vector` with the same elements, but in
@@ -831,7 +831,7 @@ type Array
 
              [1, 2].to_array.reverse
     reverse : Vector Any
-    reverse self = Vector.reverse self
+    reverse self = Vector.reverse (Vector.from_polyglot_array self)
 
     ## PRIVATE
        ADVANCED
@@ -848,7 +848,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array . each IO.println
     each : (Any -> Any) -> Nothing
-    each self f = Vector.each self f
+    each self f = Vector.each (Vector.from_polyglot_array self) f
 
     ## PRIVATE
        ADVANCED
@@ -868,7 +868,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array . each_with_index (ix->elem-> IO.println Pair ix elem)
     each_with_index : (Integer -> Any -> Any) -> Nothing
-    each_with_index self f = Vector.each_with_index self f
+    each_with_index self f = Vector.each_with_index (Vector.from_polyglot_array self) f
 
     ## ALIAS append, concatenate, union
        GROUP Operators
@@ -884,4 +884,4 @@ type Array
 
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
-    + self that = Vector.+ self that
+    + self that = Vector.+ (Vector.from_polyglot_array self) that
