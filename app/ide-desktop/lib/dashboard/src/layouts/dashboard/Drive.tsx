@@ -11,7 +11,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -25,7 +24,6 @@ import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 import type * as spinner from '#/components/Spinner'
 
@@ -80,7 +78,6 @@ enum DriveStatus {
 export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
-  readonly page: pageSwitcher.Page
   readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
@@ -109,7 +106,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -119,9 +116,7 @@ export default function Drive(props: DriveProps) {
   const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { modalRef } = modalProvider.useModalRef()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
-  const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -161,22 +156,6 @@ export default function Drive(props: DriveProps) {
         projectManager.ProjectManagerEvents.loadingFailed,
         onProjectManagerLoadingFailed
       )
-    }
-  }, [])
-
-  React.useEffect(() => {
-    if (modalRef.current != null) {
-      setIsFileBeingDragged(false)
-    }
-  }, [/* should never change */ modalRef])
-
-  React.useEffect(() => {
-    const onBlur = () => {
-      setIsFileBeingDragged(false)
-    }
-    window.addEventListener('blur', onBlur)
-    return () => {
-      window.removeEventListener('blur', onBlur)
     }
   }, [])
 
@@ -303,23 +282,6 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  React.useEffect(() => {
-    const onDragEnter = (event: DragEvent) => {
-      if (
-        modalRef.current == null &&
-        page === pageSwitcher.Page.drive &&
-        category === Category.home &&
-        event.dataTransfer?.types.includes('Files') === true
-      ) {
-        setIsFileBeingDragged(true)
-      }
-    }
-    document.body.addEventListener('dragenter', onDragEnter)
-    return () => {
-      document.body.removeEventListener('dragenter', onDragEnter)
-    }
-  }, [page, category, /* should never change */ modalRef])
-
   switch (status) {
     case DriveStatus.offline: {
       return (
@@ -440,29 +402,6 @@ export default function Drive(props: DriveProps) {
               doCreateLabel={doCreateLabel}
             />
           </div>
-          {isFileBeingDragged && organization != null && isCloud ? (
-            <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
-              onDragLeave={() => {
-                setIsFileBeingDragged(false)
-              }}
-              onDragOver={event => {
-                event.preventDefault()
-              }}
-              onDrop={event => {
-                event.preventDefault()
-                setIsFileBeingDragged(false)
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: rootDirectoryId,
-                  parentId: rootDirectoryId,
-                  files: Array.from(event.dataTransfer.files),
-                })
-              }}
-            >
-              Drop to upload files.
-            </div>
-          ) : null}
         </div>
       )
     }
