@@ -10,6 +10,7 @@ import * as apiModule from './api'
 /** An example password that does not meet validation requirements. */
 export const INVALID_PASSWORD = 'password'
 /** An example password that meets validation requirements. */
+// deepcode ignore NoHardcodedPasswords: This is used in E2E tests. It is not an actual password.
 export const VALID_PASSWORD = 'Password0!'
 /** An example valid email address. */
 export const VALID_EMAIL = 'email@example.com'

@@ -187,6 +187,7 @@ async function genIcons(outputDir) {
 
         if (os.platform() === 'darwin') {
             console.log('Generating ICNS.')
+            // deepcode ignore IndirectCommandInjection: `outputDir` is controlled by us.
             childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
             childProcess.execSync(
                 `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`

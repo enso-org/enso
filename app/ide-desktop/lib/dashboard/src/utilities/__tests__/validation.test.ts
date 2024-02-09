@@ -3,6 +3,9 @@ import * as v from 'vitest'
 
 import * as validation from '#/utilities/validation'
 
+// file deepcode ignore NoHardcodedPasswords/test: This is a test file. These are not real
+// passwords.
+
 // =============
 // === Tests ===
 // =============

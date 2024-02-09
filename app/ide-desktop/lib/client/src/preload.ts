@@ -13,10 +13,10 @@ import * as ipc from 'ipc'
 
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
-const BACKEND_API_KEY = 'backendApi'
+const BACKEND_API_VARIABLE_NAME = 'backendApi'
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
-const AUTHENTICATION_API_KEY = 'authenticationApi'
+const AUTHENTICATION_API_VARIABLE_NAME = 'authenticationApi'
 
 // =============================
 // === importProjectFromPath ===
@@ -24,7 +24,7 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
-electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
+electron.contextBridge.exposeInMainWorld(BACKEND_API_VARIABLE_NAME, {
     importProjectFromPath: (projectPath: string) => {
         electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
         return new Promise<string>(resolve => {
@@ -150,4 +150,4 @@ const AUTHENTICATION_API = {
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
     },
 }
-electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
+electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_VARIABLE_NAME, AUTHENTICATION_API)
