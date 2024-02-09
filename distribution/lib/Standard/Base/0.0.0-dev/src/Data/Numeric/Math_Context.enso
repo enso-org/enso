@@ -1,0 +1,11 @@
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
+from project.Data.Numbers import Integer
+
+polyglot java import java.math.MathContext
+
+type Math_Context
+    Value (math_context:MathContext)
+
+    new : Integer -> Rounding_Mode -> Math_Context
+    new (scale:Integer) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
+        Math_Context.Value (MathContext.new scale rounding_mode.rounding_mode)
