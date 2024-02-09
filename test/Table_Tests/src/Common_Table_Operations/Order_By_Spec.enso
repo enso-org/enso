@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Incomparable_Values
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -48,6 +48,8 @@ add_specs suite_builder setup =
     test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
         "ToDo: order_by is not yet supported by this backend."
+    pending_collation = "Need more reliable testing for collation locale support"
+
     suite_builder.group prefix+"Table.order_by" pending=order_by_pending group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
@@ -236,7 +238,7 @@ add_specs suite_builder setup =
             t3 = data.table.order_by [Sort_Column.Name "rho" Sort_Direction.Descending]
             t3.at "rho" . to_vector . should_equal ["BB", "B", Nothing, Nothing]
 
-        group_builder.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
+        group_builder.specify "should behave as expected with Unicode normalization, depending on the defaults settings" pending=pending_collation <|
             t1 = data.table.order_by [Sort_Column.Name "phi"]
             case test_selection.order_by_unicode_normalization_by_default of
                 True ->
@@ -255,7 +257,7 @@ add_specs suite_builder setup =
             t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
             t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
 
-        group_builder.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
+        group_builder.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported." else pending_collation) <|
             t1 = data.table.order_by [Sort_Column.Name "eta"] text_ordering=(Text_Ordering.Case_Insensitive)
             expected = case test_selection.case_insensitive_ascii_only of
                 True -> ["Aleph", "alpha", "Beta", "bądź"]

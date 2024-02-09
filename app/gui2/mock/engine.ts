@@ -56,8 +56,10 @@ main =
     ten = 10
     sum = five + ten
     prod = sum * 3
+    ## This node can be entered
     final = Main.func1 prod
     list = []
+    text = 'test'
     
     # Widget tests
     data = Data.read
@@ -194,6 +196,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
             {
               type: 'Widget',
               constructor: 'Vector_Editor',
+              /* eslint-disable camelcase */
               item_default: 'Aggregate_Column.Group_By',
               item_editor: {
                 type: 'Widget',
@@ -276,6 +279,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                 ],
                 display: { type: 'Display', constructor: 'Always' },
               },
+              /* eslint-enable camelcase */
               display: { type: 'Display', constructor: 'Always' },
             },
           ],

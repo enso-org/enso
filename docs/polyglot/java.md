@@ -65,6 +65,136 @@ main =
 >
 > - Expand on the detail when there is time.
 
+## Download a Java Library from Maven Central
+
+A typical use-case when bringing in some popular Java library into Enso
+ecosystem is to download it (including is **transitive dependencies**) from
+[Maven Central](http://maven.org) - a popular place hosting thousands of Java
+libraries. Let's **start from scratch** by creating an _empty Enso project_:
+
+```bash
+$ bin/enso --new polydemo
+$ cd polydemo
+polydemo$ find .
+.
+./src
+./src/Main.enso
+./package.yaml
+```
+
+To populate the appropriate `polyglot/java` subdirectory, let's create following
+two files - `pom.xml` and `assembly.xml` and put them into root of the project,
+next to `package.yaml` file. The content of `assembly.xml` is:
+
+```xml
+<?xml version="1.0"?>
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+
+    <id>polyglot</id>
+    <formats>
+        <format>dir</format>
+    </formats>
+    <baseDirectory>/</baseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <scope>runtime</scope>
+            <outputDirectory>/</outputDirectory>
+            <outputFileNameMapping>${artifact.artifactId}-${artifact.baseVersion}.${artifact.extension}</outputFileNameMapping>
+        </dependencySet>
+    </dependencySets>
+</assembly>
+```
+
+and let the content of the `pom.xml` be:
+
+```xml
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.yourorg.yourproject</groupId>
+  <artifactId>download</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>Download JARs for Your Project</name>
+  <build>
+      <plugins>
+          <plugin>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <version>2.4</version>
+              <executions>
+                  <execution>
+                      <id>download</id>
+                      <phase>package</phase>
+                      <goals>
+                          <goal>single</goal>
+                      </goals>
+                      <configuration>
+                          <outputDirectory>polyglot</outputDirectory>
+                          <appendAssemblyId>false</appendAssemblyId>
+                          <finalName>java</finalName>
+                          <descriptors>
+                              <descriptor>assembly.xml</descriptor>
+                          </descriptors>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+      </plugins>
+  </build>
+  <dependencies>
+      <dependency>
+          <!-- find your favorite Java library at maven.org
+               and put the co-ordinates here
+            -->
+          <groupId>com.google.analytics</groupId>
+          <artifactId>google-analytics-data</artifactId>
+          <version>0.44.0</version>
+      </dependency>
+  </dependencies>
+</project>
+```
+
+The files are instructing [Maven](http://maven.apache.org) - _standard Java
+build tool_ - to download
+[google-analytics-data library](https://central.sonatype.com/artifact/com.google.analytics/google-analytics-data/0.44.0)
+library version `0.44.0` and all _its dependencies_ into your `polyglot/java`
+directory. Of course, _feel free to find different library_ on
+[Maven central](http://maven.apache.org) to download - edit `pom.xml`
+appropriately. Once your files are ready execute:
+
+```bash
+polydemo$ ls *ml
+assembly.xml  package.yaml  pom.xml
+
+polyglot$ mvn -q package
+
+polydemo$ ls polyglot/java/*.jar
+...
+```
+
+the [mvn command](http://maven.apache.org) invokes
+[Maven](http://maven.apache.org) which in turns downloads all the requested
+library JAR files (52 of them in the case of `google-analytics-data`) into
+`polyglot/java` directory. Now you are ready to use them.
+
+There is a class `com.google.analytics.data.v1alpha.AlphaAnalyticsDataClient`
+among the downloaded libraries, as such let's modify `src/Main.enso` to:
+
+```ruby
+polyglot java import com.google.analytics.data.v1alpha.AlphaAnalyticsDataClient
+
+main =
+  client = AlphaAnalyticsDataClient.create
+  client.close
+```
+
+run the project and voilá, the Java classes are available to your Enso sources.
+
 ## Polyglot Syntax System
 
 The static system, however, lets us do much better in terms of user experience.

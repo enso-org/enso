@@ -329,6 +329,9 @@ export function filterOutRedundantImports(
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+  const { initializeFFI } = await import('shared/ast/ffi')
+
+  await initializeFFI()
 
   test.each([
     {
@@ -534,8 +537,8 @@ if (import.meta.vitest) {
   })
 
   const parseImport = (code: string): Import | null => {
-    const ast: Ast.Ast = Ast.parse(code)
-    return ast instanceof Ast.Import ? recognizeImport(ast) : null
+    const ast = Ast.Import.tryParse(code)
+    return ast ? recognizeImport(ast) : null
   }
 
   test.each([

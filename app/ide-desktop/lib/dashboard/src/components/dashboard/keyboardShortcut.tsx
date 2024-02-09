@@ -24,9 +24,8 @@ const ICON_SIZE_PX = 13
 const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Record<
-  detect.Platform,
-  Partial<Record<shortcutManagerModule.ModifierKey, React.ReactNode>>
+const MODIFIER_MAPPINGS: Readonly<
+  Record<detect.Platform, Partial<Record<shortcutManagerModule.ModifierKey, React.ReactNode>>>
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -60,7 +59,7 @@ const MODIFIER_MAPPINGS: Record<
 
 /** Props for a {@link KeyboardShortcut} */
 export interface KeyboardShortcutProps {
-  action: shortcutManagerModule.KeyboardAction
+  readonly action: shortcutManagerModule.KeyboardAction
 }
 
 /** A visual representation of a keyboard shortcut. */

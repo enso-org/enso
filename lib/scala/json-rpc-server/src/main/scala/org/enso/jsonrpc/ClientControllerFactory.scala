@@ -17,4 +17,8 @@ trait ClientControllerFactory {
     */
   def createClientController(clientId: UUID): ActorRef
 
+  /** Shutdown resources neccessary for creating client controller actor.
+    */
+  def shutdown(): Unit
+
 }

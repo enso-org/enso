@@ -6,7 +6,7 @@ from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Util
 

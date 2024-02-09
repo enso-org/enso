@@ -117,15 +117,15 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 interface SigningContext {
     /** A digital identity that is stored in a keychain that is on the calling user's keychain
      * search list. We rely on this already being set up by the Electron Builder. */
-    identity: string
+    readonly identity: string
     /** Path to the entitlements file. */
-    entitlements: string
+    readonly entitlements: string
 }
 
 /** An entity that we want to sign. */
 interface Signable {
     /** Sign this entity. */
-    sign: (context: SigningContext) => Promise<void>
+    readonly sign: (context: SigningContext) => Promise<void>
 }
 
 /** Placeholder name for temporary archives. */
@@ -321,8 +321,8 @@ async function getTmpDir(prefix?: string) {
 
 /** Input for this script. */
 interface Input extends SigningContext {
-    appOutDir: string
-    productFilename: string
+    readonly appOutDir: string
+    readonly productFilename: string
 }
 
 /** Entry point, meant to be used from an afterSign Electron Builder's hook. */

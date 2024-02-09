@@ -10,7 +10,7 @@ import ShortcutManager from '#/utilities/ShortcutManager'
 
 /** State contained in a `ShortcutsContext`. */
 export interface ShortcutManagerContextType {
-  shortcutManager: ShortcutManager
+  readonly shortcutManager: ShortcutManager
 }
 
 const ShortcutManagerContext = React.createContext<ShortcutManagerContextType>({
@@ -19,7 +19,7 @@ const ShortcutManagerContext = React.createContext<ShortcutManagerContextType>({
 
 /** Props for a {@link ShortcutsProvider}. */
 export interface ShortcutsProviderProps extends React.PropsWithChildren<object> {
-  shortcutManager?: ShortcutManager
+  readonly shortcutManager?: ShortcutManager
 }
 
 // ===============================

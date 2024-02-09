@@ -6,7 +6,7 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 import project.Semantic.Conversion_Use.Hello
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.Object

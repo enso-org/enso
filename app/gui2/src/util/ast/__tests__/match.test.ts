@@ -1,7 +1,10 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule } from '../abstract'
+
+await initializeFFI()
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
