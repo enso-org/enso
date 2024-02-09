@@ -3,7 +3,7 @@ import project.Data.Text.Text
 ## An error representing that the collection is empty.
 type Empty_Error
     ## PRIVATE
-    Error (collection)
+    Error collection
 
     ## PRIVATE
 
