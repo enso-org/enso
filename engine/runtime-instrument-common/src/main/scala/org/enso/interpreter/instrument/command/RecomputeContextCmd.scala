@@ -73,16 +73,17 @@ class RecomputeContextCmd(
         }
         .getOrElse(Set())
     if (invalidatedExpressions.nonEmpty) {
-      val updates = invalidatedExpressions.map { expressionId =>
-        Api.ExpressionUpdate(
-          expressionId,
-          None,
-          None,
-          Vector.empty,
-          true,
-          false,
-          Api.ExpressionUpdate.Payload.Pending(None, None)
-        )
+      val updates = invalidatedExpressions.collect {
+        case expressionId if expressionId ne null =>
+          Api.ExpressionUpdate(
+            expressionId,
+            None,
+            None,
+            Vector.empty,
+            true,
+            false,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
       }
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExpressionUpdates(request.contextId, updates))
