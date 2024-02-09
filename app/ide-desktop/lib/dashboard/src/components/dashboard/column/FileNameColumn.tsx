@@ -77,7 +77,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         break
       }
       case AssetEventType.updateFiles: {
-        const file = event.files.get(item.key)
+        const file = event.files.get(item.item.value.id)
         if (file != null) {
           rowState.setVisibility(Visibility.faded)
           try {

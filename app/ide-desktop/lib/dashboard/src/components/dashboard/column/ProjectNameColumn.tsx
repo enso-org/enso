@@ -121,7 +121,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         break
       }
       case AssetEventType.updateFiles: {
-        const file = event.files.get(item.key)
+        const file = event.files.get(item.item.value.id)
         if (file != null) {
           rowState.setVisibility(Visibility.faded)
           const title = backendModule.stripProjectExtension(asset.title)
