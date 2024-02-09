@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
+from Standard.Test import all
+import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries

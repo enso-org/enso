@@ -187,6 +187,7 @@ type Time_Of_Day
     hour self = @Builtin_Method "Time_Of_Day.hour"
 
     ## GROUP Metadata
+       ICON date_and_time
        Get the minute portion of the time of day.
 
        > Example
@@ -258,6 +259,7 @@ type Time_Of_Day
     start_of self period=Time_Period.Day = period.adjust_start self
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns the last time within the `Time_Period` containing self.
     end_of : Time_Period -> Time_Of_Day
     end_of self period=Time_Period.Day = period.adjust_end self
@@ -293,6 +295,7 @@ type Time_Of_Day
 
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns a requested time part as integer.
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
@@ -306,6 +309,7 @@ type Time_Of_Day
             Time_Period.Nanosecond  -> self.nanosecond
 
     ## GROUP DateTime
+       ICON date_and_time
        Computes a time difference between the two times of day.
 
        It returns an integer expressing how many periods fit between the two
@@ -324,6 +328,7 @@ type Time_Of_Day
             Time_Utils.unit_time_difference period.to_java_unit self end
 
     ## GROUP DateTime
+       ICON date_and_time
        Shifts the time of day by a specified period.
 
        Arguments:
@@ -338,6 +343,7 @@ type Time_Of_Day
 
     ## ALIAS add duration
        GROUP Operators
+       ICON date_and_time
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
@@ -366,6 +372,7 @@ type Time_Of_Day
 
     ## ALIAS subtract duration
        GROUP Operators
+       ICON date_and_time
        Subtract the  specified amount of time from this instant to get a new
        instant.
 

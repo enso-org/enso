@@ -208,6 +208,7 @@ type Date_Range
         Vector.from_polyglot_array proxy
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -218,6 +219,7 @@ type Date_Range
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -349,6 +351,7 @@ type Date_Range
             function acc (self.internal_at ix)
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
@@ -366,6 +369,7 @@ type Date_Range
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
@@ -405,6 +409,7 @@ type Date_Range
             _ : Integer -> self.internal_at index
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example

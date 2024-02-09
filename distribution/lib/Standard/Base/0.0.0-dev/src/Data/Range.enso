@@ -132,6 +132,7 @@ type Range
             if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -144,6 +145,7 @@ type Range
             throw_zero_step_error
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -331,6 +333,7 @@ type Range
         built.to_vector
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
@@ -353,6 +356,7 @@ type Range
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
@@ -401,6 +405,7 @@ type Range
             if result.is_nothing then if_missing else result.first
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example
