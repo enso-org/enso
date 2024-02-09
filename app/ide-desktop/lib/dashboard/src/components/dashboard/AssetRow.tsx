@@ -527,7 +527,10 @@ export default function AssetRow(props: AssetRowProps) {
     const directoryKey =
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+    if (
+      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
+      event.dataTransfer.types.includes('Files')
+    ) {
       event.preventDefault()
       if (item.item.type === backendModule.AssetType.directory) {
         setIsDraggedOver(true)
@@ -654,6 +657,19 @@ export default function AssetRow(props: AssetRowProps) {
                     newParentKey: directoryKey,
                     newParentId: directoryId,
                     ids: new Set(payload.map(dragItem => dragItem.key)),
+                  })
+                } else if (event.dataTransfer.types.includes('Files')) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.uploadFiles,
+                    // This is SAFE, as it is guarded by the condition above:
+                    // `item.item.type === backendModule.AssetType.directory`
+                    // eslint-disable-next-line no-restricted-syntax
+                    parentKey: directoryKey as backendModule.DirectoryId,
+                    parentId: directoryId,
+                    files: Array.from(event.dataTransfer.files),
                   })
                 }
               }}
