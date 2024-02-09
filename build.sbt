@@ -2355,6 +2355,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     parallelExecution := false,
     run / fork := true,
     run / connectInput := true,
+    Compile / compile := (Compile / compile)
+      .dependsOn(`runtime-fat-jar` / assembly)
+      .value,
     Compile / javacOptions ++= Seq(
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath,
@@ -2373,8 +2376,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         streams.value.log,
         shouldContainAll = true
       )
+      // The runtime.jar is actually assembled here - we want to have the whole fat jar on the
+      // module path to emulate the actual distribution as closely as possible.
       val runtimeMod =
-        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+        (`runtime-fat-jar` / assembly / assemblyOutputPath).value
       requiredMods ++ Seq(runtimeMod)
     },
     addModules := {
