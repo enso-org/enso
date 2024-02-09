@@ -7,10 +7,10 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
-import Standard.Base.Errors.Empty_Error.Empty_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
@@ -710,7 +710,7 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error.Error Vector) = Vector.reduce self function if_empty
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Vector)) = Vector.reduce self function if_empty
 
     ## GROUP Logical
        ICON preparation
