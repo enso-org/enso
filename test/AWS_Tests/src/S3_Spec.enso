@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.AWS import S3, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries

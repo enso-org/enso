@@ -8,7 +8,7 @@ from Standard.Table import Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import project.Database.Helpers.Name_Generator
