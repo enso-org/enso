@@ -16,7 +16,7 @@ case class URIBuilder private (uri: URI) {
     */
   def addPathSegment(segment: String): URIBuilder = {
     val pathItems = uri.getRawPath.split("/")
-    val newPath = (pathItems :+ segment).mkString("/")
+    val newPath   = (pathItems :+ segment).mkString("/")
     copy(uri.resolve(newPath))
   }
 
@@ -25,14 +25,16 @@ case class URIBuilder private (uri: URI) {
     * The query is appended at the end.
     */
   def addQuery(key: String, value: String): URIBuilder = {
-    val scheme = uri.getScheme
+    val scheme    = uri.getScheme
     val authority = uri.getAuthority
-    val path = uri.getPath
-    val query = uri.getQuery
-    val fragment = uri.getFragment
-    val newQuery = if (query == null) null else {
-      query + "&" + key + "=" + value
-    }
+    val path      = uri.getPath
+    val query     = uri.getQuery
+    val fragment  = uri.getFragment
+    val newQuery =
+      if (query == null) null
+      else {
+        query + "&" + key + "=" + value
+      }
     val newUri = new URI(scheme, authority, path, newQuery, fragment)
     copy(newUri)
   }
@@ -49,8 +51,8 @@ object URIBuilder {
     * `https://example.com/`.
     */
   def fromHost(host: String): URIBuilder = {
-    val scheme = "https"
-    val path: String = null
+    val scheme           = "https"
+    val path: String     = null
     val fragment: String = null
     new URIBuilder(new URI(scheme, host, path, fragment))
   }

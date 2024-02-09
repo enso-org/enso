@@ -162,7 +162,6 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     }
   }
 
-
   /** Loads a manifest, if it exists. */
   private def loadSavedManifest(manifestPath: Path): Option[LibraryManifest] = {
     if (Files.exists(manifestPath)) {
@@ -170,7 +169,6 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       Some(loaded)
     } else None
   }
-
 
   /** Uploads the provided files to the provided url, using the provided token
     * for authentication.
@@ -180,7 +178,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     authToken: auth.Token,
     files: Seq[Path]
   ): TaskProgress[Unit] = {
-    val data: Map[Object, Object] = files.map{ path => ("file" -> path)}.toMap
+    val data: Map[Object, Object] = files.map { path => ("file" -> path) }.toMap
     val request = authToken
       .alterRequest(HTTPRequestBuilder.fromURI(uri))
       .postMultipartData(data)

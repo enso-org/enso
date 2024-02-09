@@ -1,7 +1,11 @@
 package org.enso.downloader.http
 
 import com.typesafe.scalalogging.Logger
-import org.enso.cli.task.{ProgressUnit, TaskProgress, TaskProgressImplementation}
+import org.enso.cli.task.{
+  ProgressUnit,
+  TaskProgress,
+  TaskProgressImplementation
+}
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpHeaders, HttpResponse}
@@ -43,20 +47,23 @@ object HTTPDownload {
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
     logger.debug("Fetching [{}].", request.requestImpl.uri())
-    val taskProgress = new TaskProgressImplementation[APIResponse](ProgressUnit.Bytes)
-    val bodyHandler = java.net.http.HttpResponse.BodyHandlers.ofString(encoding)
+    val taskProgress =
+      new TaskProgressImplementation[APIResponse](ProgressUnit.Bytes)
+    val bodyHandler = HttpResponse.BodyHandlers.ofString(encoding)
     asyncDownload(request, bodyHandler)
       .thenAccept(res => {
         if (res.statusCode() == 404) {
           taskProgress.setComplete(Failure(ResourceNotFound()))
         } else {
-          taskProgress.setComplete(Success(
-            APIResponse(
-              res.body(),
-              convertHeaders(res.headers()),
-              res.statusCode()
+          taskProgress.setComplete(
+            Success(
+              APIResponse(
+                res.body(),
+                convertHeaders(res.headers()),
+                res.statusCode()
+              )
             )
-          ))
+          )
         }
       })
       .exceptionally(ex => {
@@ -70,10 +77,11 @@ object HTTPDownload {
 
   private def asyncDownload[T](
     request: HTTPRequest,
-    bodyHandler: java.net.http.HttpResponse.BodyHandler[T],
+    bodyHandler: HttpResponse.BodyHandler[T]
   ): CompletableFuture[HttpResponse[T]] = {
     val vThreadExecutor = Executors.newVirtualThreadPerTaskExecutor()
-    val httpClient = HttpClient.newBuilder()
+    val httpClient = HttpClient
+      .newBuilder()
       .followRedirects(HttpClient.Redirect.NORMAL)
       .executor(vThreadExecutor)
       .build()
@@ -84,7 +92,7 @@ object HTTPDownload {
     headers: HttpHeaders
   ): Seq[Header] = {
     val headerBuilder = Seq.newBuilder[Header]
-    headers.map().forEach{case (name, values) =>
+    headers.map().forEach { case (name, values) =>
       values.forEach(value => {
         headerBuilder += Header(name, value)
       })
@@ -136,7 +144,7 @@ object HTTPDownload {
       destination
     )
     val taskProgress = new TaskProgressImplementation[Path](ProgressUnit.Bytes)
-    val bodyHandler = java.net.http.HttpResponse.BodyHandlers.ofFile(destination)
+    val bodyHandler  = HttpResponse.BodyHandlers.ofFile(destination)
     asyncDownload(request, bodyHandler)
       .thenAccept(res => {
         if (res.statusCode() == 404) {

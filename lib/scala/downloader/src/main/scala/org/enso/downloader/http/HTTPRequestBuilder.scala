@@ -28,11 +28,10 @@ case class HTTPRequestBuilder private (
   def addHeader(name: String, value: String): HTTPRequestBuilder =
     copy(headers = headers.appended((name, value)))
 
-  /**
-   * Adds multipart form data into `Content-Type: multipart/form-data`
-   * @param data
-   * @return
-   */
+  /** Adds multipart form data into `Content-Type: multipart/form-data`
+    * @param data
+    * @return
+    */
   def postMultipartData(data: Map[Object, Object]): HTTPRequestBuilder = {
     val bodyPublisher = MultipartBodyPublisher.ofMimeMultipartData(data.asJava)
     copy(
