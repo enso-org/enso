@@ -10,3 +10,6 @@ type Decimal
 
     from_string : Text -> Decimal
     from_string (s:Text) = Decimal.Value (BigDecimal.new s)
+
+    + : Decimal -> Decimal -> Decimal
+    + self (that:Decimal) = self.big_decimal.add(that.big_decimal)
