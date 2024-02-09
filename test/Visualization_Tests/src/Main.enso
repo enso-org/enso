@@ -11,6 +11,7 @@ import project.Lazy_Text_Spec
 import project.Scatter_Plot_Spec
 import project.SQL_Spec
 import project.Table_Spec
+import project.Table_Xml_Spec
 import project.Visualization_Spec
 import project.Widgets_Spec
 import project.Lazy_Table_Spec
@@ -27,6 +28,7 @@ main =
         Scatter_Plot_Spec.add_specs suite_builder
         SQL_Spec.add_specs suite_builder
         Table_Spec.add_specs suite_builder
+        Table_Xml_Spec.add_specs suite_builder
         Visualization_Spec.add_specs suite_builder
         Widgets_Spec.add_specs suite_builder
     suite.run_with_filter
