@@ -1245,7 +1245,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectory.value.id)
-    if (filtered != null && filtered.length > 0) {
+    if ((filtered != null && filtered.length > 0) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
     }
   }
@@ -1691,6 +1691,15 @@ export default function AssetsTable(props: AssetsTableProps) {
               newParentKey: rootDirectory.value.id,
               newParent: rootDirectory,
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
+            })
+          } else if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault()
+            event.stopPropagation()
+            dispatchAssetListEvent({
+              type: AssetListEventType.uploadFiles,
+              parentKey: rootDirectory.value.id,
+              parent: rootDirectory,
+              files: Array.from(event.dataTransfer.files),
             })
           }
         }}
