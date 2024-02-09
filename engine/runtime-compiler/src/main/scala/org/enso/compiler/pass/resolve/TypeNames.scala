@@ -2,7 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -48,27 +48,9 @@ case object TypeNames extends IRPass {
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
       val selfTypeInfo: SelfTypeInfo = d match {
-        case t: Definition.Type =>
-          // TODO currently the `Self` type is only used internally as an ascription for static method bindings
-          //  Once we actually start supporting the `Self` syntax, we should set the self type here to the ResolvedType
-          //  corresponding to the current definition, so that we can correctly resolve `Self` references in constructor
-          //  argument types.
-          val selfType   = None
-          val typeParams = t.params.map(_.name)
-          SelfTypeInfo(selfType, typeParams)
+        case t: Definition.Type => SelfTypeInfo.fromTypeDefinition(t)
         case m: Method.Explicit =>
-          m.methodReference.typePointer
-            .flatMap { p =>
-              p.getMetadata(MethodDefinitions)
-                .map(_.target match {
-                  case typ: BindingsMap.ResolvedType =>
-                    val params =
-                      typ.tp.params.map(Name.Literal(_, false, None)).toList
-                    SelfTypeInfo(Some(typ), params)
-                  case _ => SelfTypeInfo.empty
-                })
-            }
-            .getOrElse(SelfTypeInfo.empty)
+          SelfTypeInfo.fromMethodReference(m.methodReference)
         case _ => SelfTypeInfo.empty
       }
 
@@ -76,7 +58,21 @@ case object TypeNames extends IRPass {
         d.mapExpressions(
           resolveExpression(selfTypeInfo, bindingsMap, _)
         )
-      doResolveType(selfTypeInfo, bindingsMap, mapped)
+      val withResolvedArguments = mapped match {
+        case typ: Definition.Type =>
+          typ.members.foreach(m =>
+            m.arguments.foreach(a =>
+              doResolveType(
+                SelfTypeInfo.fromTypeDefinition(typ),
+                bindingsMap,
+                a
+              )
+            )
+          )
+          typ
+        case x => x
+      }
+      doResolveType(selfTypeInfo, bindingsMap, withResolvedArguments)
     })
   }
 
@@ -87,6 +83,35 @@ case object TypeNames extends IRPass {
 
   private case object SelfTypeInfo {
     def empty: SelfTypeInfo = SelfTypeInfo(None, Nil)
+
+    def fromTypeDefinition(d: Definition.Type): SelfTypeInfo = {
+      // TODO currently the `Self` type is only used internally as an ascription for static method bindings
+      //  Once we actually start supporting the `Self` syntax, we should set the self type here to the ResolvedType
+      //  corresponding to the current definition, so that we can correctly resolve `Self` references in constructor
+      //  argument types.
+      val selfType   = None
+      val typeParams = d.params.map(_.name)
+      SelfTypeInfo(selfType, typeParams)
+    }
+
+    def fromMethodReference(m: Name.MethodReference): SelfTypeInfo =
+      m.typePointer match {
+        case Some(p) =>
+          p.unsafeGetMetadata(
+            MethodDefinitions,
+            s"Missing MethodDefinitions resolution data for $p."
+          ).target match {
+            case typ: BindingsMap.ResolvedType =>
+              val params =
+                typ.tp.params.map(Name.Literal(_, false, None)).toList
+              SelfTypeInfo(Some(typ), params)
+            case other =>
+              throw new CompilerError(
+                s"Method target not resolved as ResolvedType, but $other."
+              )
+          }
+        case None => SelfTypeInfo.empty
+      }
   }
 
   private def resolveExpression(
