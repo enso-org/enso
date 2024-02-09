@@ -12,6 +12,9 @@ import config from './vite.config'
 export default vite.mergeConfig(
   config,
   vite.defineConfig({
+    define: {
+      'process.env.SUPPORTS_LOCAL_BACKEND': JSON.stringify('true'),
+    },
     resolve: {
       extensions: [
         '.mock.mjs',

@@ -134,6 +134,7 @@ export function bundlerOptions(args: Arguments) {
         process.env.ENSO_CLOUD_ENV != null
           ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
           : 'undefined',
+      'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     pure: ['assert'],

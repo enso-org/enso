@@ -10,7 +10,10 @@ import * as authentication from '#/index'
 authentication.run({
   logger: console,
   // This file is only included when building for the cloud.
-  supportsLocalBackend: false,
+  supportsLocalBackend:
+    process.env.SUPPORTS_LOCAL_BACKEND == null
+      ? false
+      : process.env.SUPPORTS_LOCAL_BACKEND === 'true',
   supportsDeepLinks: false,
   isAuthenticationDisabled: false,
   shouldShowDashboard: true,

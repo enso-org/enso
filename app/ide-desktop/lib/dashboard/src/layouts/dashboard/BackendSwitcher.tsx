@@ -26,6 +26,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
     <div className="flex shrink-0 gap-px">
       <button
         disabled={backendType === backendModule.BackendType.remote}
+        title="Switch to cloud drive"
         className={`rounded-l-full px-2.5 py-1 ${
           backendType === backendModule.BackendType.remote
             ? 'bg-frame-selected text-cloud'
@@ -46,6 +47,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       </button>
       <button
         disabled={backendType === backendModule.BackendType.local}
+        title="Switch to local drive"
         className={`rounded-r-full px-2.5 py-1 ${
           backendType === backendModule.BackendType.local
             ? 'bg-frame-selected text-cloud'

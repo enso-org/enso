@@ -170,6 +170,7 @@ export function bundlerOptions(args: Arguments) {
                     : 'undefined',
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
+            'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
         },
         pure: ['assert'],
         sourcemap: true,

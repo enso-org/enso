@@ -40,6 +40,7 @@ export default vite.defineConfig({
     REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${SERVER_PORT}`),
     CLOUD_ENV:
       process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
+    'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
     // Single hardcoded usage of `global` in by aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': JSON.stringify(true),
   },
