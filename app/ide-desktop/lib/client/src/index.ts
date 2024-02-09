@@ -279,8 +279,8 @@ class App {
                 const useFrame = this.args.groups.window.options.frame.value
                 const macOS = process.platform === 'darwin'
                 const useHiddenInsetTitleBar = !useFrame && macOS
-                const useVibrancy = (this.args.groups.window.options.vibrancy.value &&=
-                    detect.supportsVibrancy())
+                this.args.groups.window.options.vibrancy.value &&= detect.supportsVibrancy()
+                const useVibrancy = this.args.groups.window.options.vibrancy.value
                 const webPreferences: electron.WebPreferences = {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
