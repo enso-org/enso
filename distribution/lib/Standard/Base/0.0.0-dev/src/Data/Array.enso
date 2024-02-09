@@ -14,6 +14,7 @@ import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
@@ -558,6 +559,42 @@ type Array
              ["a", "b", "c", "d"].to_array.partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"].to_array ["b", "d"].to_array)
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate = Vector.partition_with_index self predicate
+
+    ## GROUP Selections
+       Swaps the rows and columns of a matrix represented by an `Array` of `Array`s.
+
+       ! Error Conditions
+
+         - If the rowws (subvectors) do not all have the same length, an
+         `Illegal_Argument` error is raised.
+
+       > Example
+         Transpose a `Array` of `Array`s.`
+
+             "Hello, world!".reverse
+
+             matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+             # +---+---+---+
+             # | 0 | 1 | 2 |
+             # +---+---+---+
+             # | 3 | 4 | 5 |
+             # +---+---+---+
+             # | 6 | 7 | 8 |
+             # +---+---+---+
+
+             transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+             # +---+---+---+
+             # | 0 | 3 | 6 |
+             # +---+---+---+
+             # | 1 | 4 | 7 |
+             # +---+---+---+
+             # | 2 | 5 | 8 |
+             # +---+---+---+
+
+             matrix.transposed == transposed
+             # => True
+    transpose : Array (Array Any) ! Illegal_Argument
+    transpose self = Vector.transpose self
 
     ## Applies a function to each element of the array, returning the `Vector`
        of results.

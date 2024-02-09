@@ -1,6 +1,5 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Vector.Extensions
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
