@@ -1832,7 +1832,7 @@ lazy val `runtime-benchmarks` =
       ),
       parallelExecution := false,
       javaOptions :=
-        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+        (LocalProject("std-benchmarks") / Compile / javaOptions).value,
       javaOptions ++= benchOnlyOptions,
       run / fork := true,
       run / connectInput := true,
@@ -1919,7 +1919,7 @@ lazy val `runtime-instrument-common` =
       bench := (Benchmark / test).tag(Exclusive).value,
       Benchmark / parallelExecution := false,
       (Benchmark / javaOptions) :=
-        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+        (LocalProject("std-benchmarks") / Compile / javaOptions).value,
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
@@ -2334,24 +2334,16 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .dependsOn(runtime)
 
 lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % Benchmark,
-      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark,
-      "org.slf4j"            % "slf4j-api"                % slf4jVersion              % Benchmark,
-      "org.slf4j"            % "slf4j-nop"                % slf4jVersion              % Benchmark
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
+      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
+      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
+      "org.slf4j"            % "slf4j-api"                % slf4jVersion,
+      "org.slf4j"            % "slf4j-nop"                % slf4jVersion
     ),
-    // Add all GraalVM packages with Benchmark scope - we don't need them for compilation,
-    // just provide them for benchmarks (in module-path).
-    libraryDependencies ++= {
-      val necessaryModules =
-        GraalVM.modules.map(_.withConfigurations(Some(Benchmark.name)))
-      val langs =
-        GraalVM.langsPkgs.map(_.withConfigurations(Some(Benchmark.name)))
-      necessaryModules ++ langs
-    },
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=
       sbt.internal.util.CustomLogManager.excludeMsg(
@@ -2359,67 +2351,52 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         Level.Warn
       )
   )
-  .configs(Benchmark)
   .settings(
-    inConfig(Benchmark)(Defaults.testSettings)
-  )
-  .settings(
-    (Benchmark / parallelExecution) := false,
-    (Benchmark / run / fork) := true,
-    (Benchmark / run / connectInput) := true,
-    // This ensures that the full class-path of runtime-fat-jar is put on
-    // class-path of the Java compiler (and thus the benchmark annotation processor).
-    (Benchmark / compile / unmanagedClasspath) ++=
-      (LocalProject(
-        "runtime-fat-jar"
-      ) / Compile / fullClasspath).value,
-    (Benchmark / compile / javacOptions) ++= Seq(
+    parallelExecution := false,
+    run / fork := true,
+    run / connectInput := true,
+    Compile / javacOptions ++= Seq(
       "-s",
-      (Benchmark / sourceManaged).value.getAbsolutePath,
+      (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked",
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
-    (Benchmark / run / javaOptions) ++= {
-      val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    modulePath := {
+      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion,
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
-      val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
-        (Benchmark / fullClasspath).value,
-        requiredModules,
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        requiredModIds,
         streams.value.log,
         shouldContainAll = true
       )
-      val requiredModulesPaths = requiredModulesCp
-        .map(_.data.getAbsolutePath)
-      val runtimeJar =
-        (LocalProject(
-          "runtime-fat-jar"
-        ) / assembly / assemblyOutputPath).value.getAbsolutePath
-      val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
-      val runtimeModuleName =
-        (LocalProject(
-          "runtime-fat-jar"
-        ) / javaModuleName).value
+      val runtimeMod =
+        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+      requiredMods ++ Seq(runtimeMod)
+    },
+    addModules := {
+      val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
+      Seq(runtimeModuleName)
+    },
+    addExports := {
+      Map("org.slf4j.nop/org.slf4j" -> Seq("org.slf4j"))
+    },
+    javaOptions ++= {
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
-        "--module-path",
-        allModulePaths.mkString(File.pathSeparator),
-        "--add-modules",
-        runtimeModuleName,
-        "--add-exports",
-        "org.slf4j.nop/org.slf4j.nop=org.slf4j"
       )
     },
-    (Benchmark / run / mainClass) :=
+    mainClass :=
       (LocalProject("bench-processor") / mainClass).value
   )
   .settings(
     bench := Def
       .task {
-        (Benchmark / run).toTask("").tag(Exclusive).value
+        (Compile / run).toTask("").tag(Exclusive).value
       }
       .dependsOn(
         buildEngineDistribution
@@ -2432,12 +2409,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
       Def.task {
-        (Benchmark / run).toTask(" " + name).value
+        (Compile / run).toTask(" " + name).value
       }
     }.evaluated
   )
-  .dependsOn(`bench-processor` % Benchmark)
-  .dependsOn(runtime % Benchmark)
+  .dependsOn(`bench-processor`)
+  .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`std-table`)
 
 lazy val editions = project
   .in(file("lib/scala/editions"))
