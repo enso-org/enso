@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.31-SNAPSHOT</version>
+    <version>1.33-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -127,6 +127,11 @@
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-openide-util</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-modules</artifactId>
             <version>${netbeans.version}</version>
         </dependency>
         <dependency>

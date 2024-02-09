@@ -2,8 +2,9 @@ package org.enso.tools.enso4igv;
 
 import com.sun.jdi.connect.Connector;
 import java.io.File;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +27,7 @@ import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.platform.JavaPlatform;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.filesystems.FileUtil;
+import org.openide.modules.Modules;
 import org.openide.util.NbBundle;
 import org.openide.util.NbPreferences;
 import org.openide.util.RequestProcessor;
@@ -70,15 +72,18 @@ public final class EnsoActionProvider implements ActionProvider {
             if (file.canExecute()) {
                 prefs.put(exeKey, file.getPath());
 
+                var platform = JavaPlatform.getDefault();
+                var isGraalVM = platform.findTool("native-image") != null;
+                var java = platform.findTool("java");
+
                 var b = ProcessBuilder.getLocal();
                 b.setExecutable(file.getPath());
-                b.setArguments(Arrays.asList("--run", script.getPath()));
+                b.setArguments(prepareArguments(script, isGraalVM));
                 b.setWorkingDirectory(script.getParent());
                 b.setRedirectErrorStream(true);
 
                 var env = b.getEnvironment();
                 var path = env.getVariable("PATH");
-                var java = JavaPlatform.getDefault().findTool("java");
                 if (path != null && java != null) {
                     var javaBinDir = FileUtil.toFile(java.getParent());
                     if (javaBinDir != null) {
@@ -123,6 +128,17 @@ public final class EnsoActionProvider implements ActionProvider {
             dd.notifyLater(new NotifyDescriptor.Message(ex.getMessage(), NotifyDescriptor.ERROR_MESSAGE));
             return null;
         });
+    }
+
+    private static List<String> prepareArguments(File script, boolean isGraalVM) {
+        var list = new ArrayList<String>();
+        list.add("--run");
+        list.add(script.getPath());
+        var isIGV = Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.connection") != null;
+        if (isGraalVM && isIGV) {
+            list.add("--dump-graphs");
+        }
+        return list;
     }
 
     @Override
