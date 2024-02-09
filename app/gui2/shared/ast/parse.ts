@@ -1,6 +1,14 @@
 import * as map from 'lib0/map'
-import type { AstId, NodeChild, Owned } from '.'
-import { Token, asOwned, parentId, subtreeRoots } from '.'
+import {
+  Token,
+  asOwned,
+  isTokenId,
+  parentId,
+  subtreeRoots,
+  type AstId,
+  type NodeChild,
+  type Owned,
+} from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
 import type { SourceRange, SourceRangeKey } from '../yjsModel'
 import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
@@ -52,32 +60,212 @@ export function abstract(
   tree: RawAst.Tree,
   code: string,
 ): { root: Owned; spans: SpanMap; toRaw: Map<AstId, RawAst.Tree> } {
-  const tokens = new Map()
-  const nodes = new Map()
-  const toRaw = new Map()
-  const root = abstractTree(module, tree, code, nodes, tokens, toRaw).node
-  const spans = { tokens, nodes }
-  return { root, spans, toRaw }
+  const abstractor = new Abstractor(module, code)
+  const root = abstractor.abstractTree(tree).node
+  const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
+  return { root, spans, toRaw: abstractor.toRaw }
 }
 
-function abstractTree(
-  module: MutableModule,
-  tree: RawAst.Tree,
-  code: string,
-  nodesOut: NodeSpanMap,
-  tokensOut: TokenSpanMap,
-  toRaw: Map<AstId, RawAst.Tree>,
-): { whitespace: string | undefined; node: Owned } {
-  const recurseTree = (tree: RawAst.Tree) =>
-    abstractTree(module, tree, code, nodesOut, tokensOut, toRaw)
-  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokensOut)
-  const visitChildren = (tree: LazyObject) => {
+class Abstractor {
+  private readonly module: MutableModule
+  private readonly code: string
+  readonly nodes: NodeSpanMap
+  readonly tokens: TokenSpanMap
+  readonly toRaw: Map<AstId, RawAst.Tree>
+
+  constructor(module: MutableModule, code: string) {
+    this.module = module
+    this.code = code
+    this.nodes = new Map()
+    this.tokens = new Map()
+    this.toRaw = new Map()
+  }
+
+  abstractTree(tree: RawAst.Tree): { whitespace: string | undefined; node: Owned } {
+    const whitespaceStart = tree.whitespaceStartInCodeParsed
+    const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
+    const whitespace = this.code.substring(whitespaceStart, whitespaceEnd)
+    const codeStart = whitespaceEnd
+    const codeEnd = codeStart + tree.childrenLengthInCodeParsed
+    const spanKey = nodeKey(codeStart, codeEnd - codeStart)
+    let node: Owned
+    switch (tree.type) {
+      case RawAst.Tree.Type.BodyBlock: {
+        const lines = Array.from(tree.statements, (line) => {
+          const newline = this.abstractToken(line.newline)
+          const expression = line.expression ? this.abstractTree(line.expression) : undefined
+          return { newline, expression }
+        })
+        node = BodyBlock.concrete(this.module, lines)
+        break
+      }
+      case RawAst.Tree.Type.Function: {
+        const name = this.abstractTree(tree.name)
+        const argumentDefinitions = Array.from(tree.args, (arg) => this.abstractChildren(arg))
+        const equals = this.abstractToken(tree.equals)
+        const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
+        node = Function.concrete(this.module, name, argumentDefinitions, equals, body)
+        break
+      }
+      case RawAst.Tree.Type.Ident: {
+        const token = this.abstractToken(tree.token)
+        node = Ident.concrete(this.module, token)
+        break
+      }
+      case RawAst.Tree.Type.Assignment: {
+        const pattern = this.abstractTree(tree.pattern)
+        const equals = this.abstractToken(tree.equals)
+        const value = this.abstractTree(tree.expr)
+        node = Assignment.concrete(this.module, pattern, equals, value)
+        break
+      }
+      case RawAst.Tree.Type.App: {
+        const func = this.abstractTree(tree.func)
+        const arg = this.abstractTree(tree.arg)
+        node = App.concrete(this.module, func, undefined, undefined, arg)
+        break
+      }
+      case RawAst.Tree.Type.NamedApp: {
+        const func = this.abstractTree(tree.func)
+        const open = tree.open ? this.abstractToken(tree.open) : undefined
+        const name = this.abstractToken(tree.name)
+        const equals = this.abstractToken(tree.equals)
+        const arg = this.abstractTree(tree.arg)
+        const close = tree.close ? this.abstractToken(tree.close) : undefined
+        const parens = open && close ? { open, close } : undefined
+        const nameSpecification = { name, equals }
+        node = App.concrete(this.module, func, parens, nameSpecification, arg)
+        break
+      }
+      case RawAst.Tree.Type.UnaryOprApp: {
+        const opr = this.abstractToken(tree.opr)
+        const arg = tree.rhs ? this.abstractTree(tree.rhs) : undefined
+        if (arg && opr.node.code() === '-') {
+          node = NegationApp.concrete(this.module, opr, arg)
+        } else {
+          node = UnaryOprApp.concrete(this.module, opr, arg)
+        }
+        break
+      }
+      case RawAst.Tree.Type.OprApp: {
+        const lhs = tree.lhs ? this.abstractTree(tree.lhs) : undefined
+        const opr = tree.opr.ok
+          ? [this.abstractToken(tree.opr.value)]
+          : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
+        const rhs = tree.rhs ? this.abstractTree(tree.rhs) : undefined
+        if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
+          // Propagate type.
+          const rhs_ = { ...rhs, node: rhs.node }
+          node = PropertyAccess.concrete(this.module, lhs, opr[0], rhs_)
+        } else {
+          node = OprApp.concrete(this.module, lhs, opr, rhs)
+        }
+        break
+      }
+      case RawAst.Tree.Type.Number: {
+        const tokens = []
+        if (tree.base) tokens.push(this.abstractToken(tree.base))
+        if (tree.integer) tokens.push(this.abstractToken(tree.integer))
+        if (tree.fractionalDigits) {
+          tokens.push(this.abstractToken(tree.fractionalDigits.dot))
+          tokens.push(this.abstractToken(tree.fractionalDigits.digits))
+        }
+        node = NumericLiteral.concrete(this.module, tokens)
+        break
+      }
+      case RawAst.Tree.Type.Wildcard: {
+        const token = this.abstractToken(tree.token)
+        node = Wildcard.concrete(this.module, token)
+        break
+      }
+      // These expression types are (or will be) used for backend analysis.
+      // The frontend can ignore them, avoiding some problems with expressions sharing spans
+      // (which makes it impossible to give them unique IDs in the current IdMap format).
+      case RawAst.Tree.Type.OprSectionBoundary:
+      case RawAst.Tree.Type.TemplateFunction:
+        return { whitespace, node: this.abstractTree(tree.ast).node }
+      case RawAst.Tree.Type.Invalid: {
+        const expression = this.abstractTree(tree.ast)
+        node = Invalid.concrete(this.module, expression)
+        break
+      }
+      case RawAst.Tree.Type.Group: {
+        const open = tree.open ? this.abstractToken(tree.open) : undefined
+        const expression = tree.body ? this.abstractTree(tree.body) : undefined
+        const close = tree.close ? this.abstractToken(tree.close) : undefined
+        node = Group.concrete(this.module, open, expression, close)
+        break
+      }
+      case RawAst.Tree.Type.TextLiteral: {
+        const open = tree.open ? this.abstractToken(tree.open) : undefined
+        const newline = tree.newline ? this.abstractToken(tree.newline) : undefined
+        const elements = []
+        for (const e of tree.elements) {
+          elements.push(...this.abstractChildren(e))
+        }
+        const close = tree.close ? this.abstractToken(tree.close) : undefined
+        node = TextLiteral.concrete(this.module, open, newline, elements, close)
+        break
+      }
+      case RawAst.Tree.Type.Documented: {
+        const open = this.abstractToken(tree.documentation.open)
+        const elements = []
+        for (const e of tree.documentation.elements) {
+          elements.push(...this.abstractChildren(e))
+        }
+        const newlines = Array.from(tree.documentation.newlines, this.abstractToken.bind(this))
+        const expression = tree.expression ? this.abstractTree(tree.expression) : undefined
+        node = Documented.concrete(this.module, open, elements, newlines, expression)
+        break
+      }
+      case RawAst.Tree.Type.Import: {
+        const recurseBody = (tree: RawAst.Tree) => {
+          const body = this.abstractTree(tree)
+          if (body.node instanceof Invalid && body.node.code() === '') return undefined
+          return body
+        }
+        const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
+          header: this.abstractToken(segment.header),
+          body: segment.body ? recurseBody(segment.body) : undefined,
+        })
+        const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : undefined
+        const from = tree.from ? recurseSegment(tree.from) : undefined
+        const import_ = recurseSegment(tree.import)
+        const all = tree.all ? this.abstractToken(tree.all) : undefined
+        const as = tree.as ? recurseSegment(tree.as) : undefined
+        const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
+        node = Import.concrete(this.module, polyglot, from, import_, all, as, hiding)
+        break
+      }
+      default: {
+        node = Generic.concrete(this.module, this.abstractChildren(tree))
+      }
+    }
+    this.toRaw.set(node.id, tree)
+    map.setIfUndefined(this.nodes, spanKey, (): Ast[] => []).unshift(node)
+    return { node, whitespace }
+  }
+
+  private abstractToken(token: RawAst.Token): { whitespace: string; node: Token } {
+    const whitespaceStart = token.whitespaceStartInCodeBuffer
+    const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
+    const whitespace = this.code.substring(whitespaceStart, whitespaceEnd)
+    const codeStart = token.startInCodeBuffer
+    const codeEnd = codeStart + token.lengthInCodeBuffer
+    const tokenCode = this.code.substring(codeStart, codeEnd)
+    const key = tokenKey(codeStart, codeEnd - codeStart)
+    const node = Token.new(tokenCode, token.type)
+    this.tokens.set(key, node)
+    return { whitespace, node }
+  }
+
+  private abstractChildren(tree: LazyObject) {
     const children: NodeChild<Owned | Token>[] = []
     const visitor = (child: LazyObject) => {
       if (RawAst.Tree.isInstance(child)) {
-        children.push(recurseTree(child))
+        children.push(this.abstractTree(child))
       } else if (RawAst.Token.isInstance(child)) {
-        children.push(recurseToken(child))
+        children.push(this.abstractToken(child))
       } else {
         child.visitChildren(visitor)
       }
@@ -85,185 +273,6 @@ function abstractTree(
     tree.visitChildren(visitor)
     return children
   }
-  const whitespaceStart = tree.whitespaceStartInCodeParsed
-  const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
-  const whitespace = code.substring(whitespaceStart, whitespaceEnd)
-  const codeStart = whitespaceEnd
-  const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  const spanKey = nodeKey(codeStart, codeEnd - codeStart)
-  let node: Owned
-  switch (tree.type) {
-    case RawAst.Tree.Type.BodyBlock: {
-      const lines = Array.from(tree.statements, (line) => {
-        const newline = recurseToken(line.newline)
-        const expression = line.expression ? recurseTree(line.expression) : undefined
-        return { newline, expression }
-      })
-      node = BodyBlock.concrete(module, lines)
-      break
-    }
-    case RawAst.Tree.Type.Function: {
-      const name = recurseTree(tree.name)
-      const argumentDefinitions = Array.from(tree.args, (arg) => visitChildren(arg))
-      const equals = recurseToken(tree.equals)
-      const body = tree.body !== undefined ? recurseTree(tree.body) : undefined
-      node = Function.concrete(module, name, argumentDefinitions, equals, body)
-      break
-    }
-    case RawAst.Tree.Type.Ident: {
-      const token = recurseToken(tree.token)
-      node = Ident.concrete(module, token)
-      break
-    }
-    case RawAst.Tree.Type.Assignment: {
-      const pattern = recurseTree(tree.pattern)
-      const equals = recurseToken(tree.equals)
-      const value = recurseTree(tree.expr)
-      node = Assignment.concrete(module, pattern, equals, value)
-      break
-    }
-    case RawAst.Tree.Type.App: {
-      const func = recurseTree(tree.func)
-      const arg = recurseTree(tree.arg)
-      node = App.concrete(module, func, undefined, undefined, arg)
-      break
-    }
-    case RawAst.Tree.Type.NamedApp: {
-      const func = recurseTree(tree.func)
-      const open = tree.open ? recurseToken(tree.open) : undefined
-      const name = recurseToken(tree.name)
-      const equals = recurseToken(tree.equals)
-      const arg = recurseTree(tree.arg)
-      const close = tree.close ? recurseToken(tree.close) : undefined
-      const parens = open && close ? { open, close } : undefined
-      const nameSpecification = { name, equals }
-      node = App.concrete(module, func, parens, nameSpecification, arg)
-      break
-    }
-    case RawAst.Tree.Type.UnaryOprApp: {
-      const opr = recurseToken(tree.opr)
-      const arg = tree.rhs ? recurseTree(tree.rhs) : undefined
-      if (arg && opr.node.code() === '-') {
-        node = NegationApp.concrete(module, opr, arg)
-      } else {
-        node = UnaryOprApp.concrete(module, opr, arg)
-      }
-      break
-    }
-    case RawAst.Tree.Type.OprApp: {
-      const lhs = tree.lhs ? recurseTree(tree.lhs) : undefined
-      const opr = tree.opr.ok
-        ? [recurseToken(tree.opr.value)]
-        : Array.from(tree.opr.error.payload.operators, recurseToken)
-      const rhs = tree.rhs ? recurseTree(tree.rhs) : undefined
-      if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
-        // Propagate type.
-        const rhs_ = { ...rhs, node: rhs.node }
-        node = PropertyAccess.concrete(module, lhs, opr[0], rhs_)
-      } else {
-        node = OprApp.concrete(module, lhs, opr, rhs)
-      }
-      break
-    }
-    case RawAst.Tree.Type.Number: {
-      const tokens = []
-      if (tree.base) tokens.push(recurseToken(tree.base))
-      if (tree.integer) tokens.push(recurseToken(tree.integer))
-      if (tree.fractionalDigits) {
-        tokens.push(recurseToken(tree.fractionalDigits.dot))
-        tokens.push(recurseToken(tree.fractionalDigits.digits))
-      }
-      node = NumericLiteral.concrete(module, tokens)
-      break
-    }
-    case RawAst.Tree.Type.Wildcard: {
-      const token = recurseToken(tree.token)
-      node = Wildcard.concrete(module, token)
-      break
-    }
-    // These expression types are (or will be) used for backend analysis.
-    // The frontend can ignore them, avoiding some problems with expressions sharing spans
-    // (which makes it impossible to give them unique IDs in the current IdMap format).
-    case RawAst.Tree.Type.OprSectionBoundary:
-    case RawAst.Tree.Type.TemplateFunction:
-      return { whitespace, node: recurseTree(tree.ast).node }
-    case RawAst.Tree.Type.Invalid: {
-      const expression = recurseTree(tree.ast)
-      node = Invalid.concrete(module, expression)
-      break
-    }
-    case RawAst.Tree.Type.Group: {
-      const open = tree.open ? recurseToken(tree.open) : undefined
-      const expression = tree.body ? recurseTree(tree.body) : undefined
-      const close = tree.close ? recurseToken(tree.close) : undefined
-      node = Group.concrete(module, open, expression, close)
-      break
-    }
-    case RawAst.Tree.Type.TextLiteral: {
-      const open = tree.open ? recurseToken(tree.open) : undefined
-      const newline = tree.newline ? recurseToken(tree.newline) : undefined
-      const elements = []
-      for (const e of tree.elements) {
-        elements.push(...visitChildren(e))
-      }
-      const close = tree.close ? recurseToken(tree.close) : undefined
-      node = TextLiteral.concrete(module, open, newline, elements, close)
-      break
-    }
-    case RawAst.Tree.Type.Documented: {
-      const open = recurseToken(tree.documentation.open)
-      const elements = []
-      for (const e of tree.documentation.elements) {
-        elements.push(...visitChildren(e))
-      }
-      const newlines = Array.from(tree.documentation.newlines, recurseToken)
-      const expression = tree.expression ? recurseTree(tree.expression) : undefined
-      node = Documented.concrete(module, open, elements, newlines, expression)
-      break
-    }
-    case RawAst.Tree.Type.Import: {
-      const recurseBody = (tree: RawAst.Tree) => {
-        const body = recurseTree(tree)
-        if (body.node instanceof Invalid && body.node.code() === '') return undefined
-        return body
-      }
-      const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
-        header: recurseToken(segment.header),
-        body: segment.body ? recurseBody(segment.body) : undefined,
-      })
-      const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : undefined
-      const from = tree.from ? recurseSegment(tree.from) : undefined
-      const import_ = recurseSegment(tree.import)
-      const all = tree.all ? recurseToken(tree.all) : undefined
-      const as = tree.as ? recurseSegment(tree.as) : undefined
-      const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
-      node = Import.concrete(module, polyglot, from, import_, all, as, hiding)
-      break
-    }
-    default: {
-      node = Generic.concrete(module, visitChildren(tree))
-    }
-  }
-  toRaw.set(node.id, tree)
-  map.setIfUndefined(nodesOut, spanKey, (): Ast[] => []).unshift(node)
-  return { node, whitespace }
-}
-
-function abstractToken(
-  token: RawAst.Token,
-  code: string,
-  tokensOut: TokenSpanMap,
-): { whitespace: string; node: Token } {
-  const whitespaceStart = token.whitespaceStartInCodeBuffer
-  const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
-  const whitespace = code.substring(whitespaceStart, whitespaceEnd)
-  const codeStart = token.startInCodeBuffer
-  const codeEnd = codeStart + token.lengthInCodeBuffer
-  const tokenCode = code.substring(codeStart, codeEnd)
-  const key = tokenKey(codeStart, codeEnd - codeStart)
-  const node = Token.new(tokenCode, token.type)
-  tokensOut.set(key, node)
-  return { whitespace, node }
 }
 
 declare const nodeKeyBrand: unique symbol
@@ -325,6 +334,87 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
+/** @internal Used by `Ast.printSubtree`. Note that some AST types have overrides. */
+export function printAst(
+  ast: Ast,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  let code = ''
+  for (const child of ast.concreteChildren(verbatim)) {
+    if (!isTokenId(child.node) && ast.module.checkedGet(child.node) === undefined) continue
+    if (child.whitespace != null) {
+      code += child.whitespace
+    } else if (code.length != 0) {
+      code += ' '
+    }
+    if (isTokenId(child.node)) {
+      const tokenStart = offset + code.length
+      const token = ast.module.getToken(child.node)
+      const span = tokenKey(tokenStart, token.code().length)
+      info.tokens.set(span, token)
+      code += token.code()
+    } else {
+      const childNode = ast.module.checkedGet(child.node)
+      assert(childNode != null)
+      code += childNode.printSubtree(info, offset + code.length, parentIndent, verbatim)
+      // Extra structural validation.
+      assertEqual(childNode.id, child.node)
+      if (parentId(childNode) !== ast.id) {
+        console.error(`Inconsistent parent pointer (expected ${ast.id})`, childNode)
+      }
+      assertEqual(parentId(childNode), ast.id)
+    }
+  }
+  const span = nodeKey(offset, code.length)
+  map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(ast)
+  return code
+}
+
+/** @internal Use `Ast.code()' to stringify. */
+export function printBlock(
+  block: BodyBlock,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  let blockIndent: string | undefined
+  let code = ''
+  for (const line of block.fields.get('lines')) {
+    code += line.newline.whitespace ?? ''
+    const newlineCode = block.module.getToken(line.newline.node).code()
+    // Only print a newline if this isn't the first line in the output, or it's a comment.
+    if (offset || code || newlineCode.startsWith('#')) {
+      // If this isn't the first line in the output, but there is a concrete newline token:
+      // if it's a zero-length newline, ignore it and print a normal newline.
+      code += newlineCode || '\n'
+    }
+    if (line.expression) {
+      if (blockIndent === undefined) {
+        if ((line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)) {
+          blockIndent = line.expression.whitespace!
+        } else if (parentIndent !== undefined) {
+          blockIndent = parentIndent + '    '
+        } else {
+          blockIndent = ''
+        }
+      }
+      const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
+      code += validIndent ? line.expression.whitespace : blockIndent
+      const lineNode = block.module.checkedGet(line.expression.node)
+      assertEqual(lineNode.id, line.expression.node)
+      assertEqual(parentId(lineNode), block.id)
+      code += lineNode.printSubtree(info, offset + code.length, blockIndent, verbatim)
+    }
+  }
+  const span = nodeKey(offset, code.length)
+  map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(block)
+  return code
+}
+
 /** Parse the input as a block. */
 export function parseBlock(code: string, inModule?: MutableModule) {
   return parseBlockWithSpans(code, inModule).root
@@ -384,7 +474,6 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
 
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) {
   let astsMatched = 0
-  let idsUnmatched = 0
   let asts = 0
   edit.root()?.visitRecursiveAst((_ast) => (asts += 1))
   for (const [key, externalId] of ids.entries()) {
@@ -395,8 +484,6 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) 
         const editAst = edit.getVersion(ast)
         if (editAst.externalId !== externalId) editAst.setExternalId(externalId)
       }
-    } else {
-      idsUnmatched += 1
     }
   }
   return edit.root() ? asts - astsMatched : 0

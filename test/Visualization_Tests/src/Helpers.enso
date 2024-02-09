@@ -2,11 +2,11 @@ from Standard.Base import all
 
 from Standard.Table import Column
 
-from Standard.Test import Test
-import Standard.Test.Extensions
-import Standard.Test.Test_Result.Test_Result
+from Standard.Test import all
+import Standard.Test.Spec_Result.Spec_Result
 
-Column.expect : Text -> Vector -> Test_Result
-Column.expect self name contents =
+
+
+Column.expect self name:Text contents:Vector -> Spec_Result =
     self.name.should_equal name
     self.to_vector.should_equal contents

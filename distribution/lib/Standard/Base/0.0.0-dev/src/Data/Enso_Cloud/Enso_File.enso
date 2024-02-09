@@ -255,7 +255,7 @@ type Enso_File
 
     ## UNSTABLE
        Resolves a file or directory within this directory.
-    / : Text -> Enso_File
+    / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
         if self.is_directory.not then Error.throw (Illegal_Argument.Error "/ can only be used for directories") else
             if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else

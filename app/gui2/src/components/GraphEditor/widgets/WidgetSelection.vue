@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
@@ -10,6 +11,7 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
@@ -117,9 +119,11 @@ function toggleDropdownWidget() {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  const edit = graph.astModule.edit()
-  if (selectedTag.value?.requiredImports)
+  let edit: Ast.MutableModule | undefined
+  if (selectedTag.value?.requiredImports) {
+    edit = graph.startEdit()
     graph.addMissingImports(edit, selectedTag.value.requiredImports)
+  }
   props.onUpdate({
     edit,
     portUpdate: {
@@ -144,7 +148,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 <template>
   <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
-    <NodeWidget :input="innerWidgetInput" />
+    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
+    <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"
       class="dropdownContainer"
@@ -161,5 +166,12 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+}
+
+.arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
 }
 </style>

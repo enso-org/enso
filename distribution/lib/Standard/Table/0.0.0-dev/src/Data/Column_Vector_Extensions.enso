@@ -33,6 +33,7 @@ Date_Range.to_column self name="Date_Range" =
 
 ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
    GROUP Standard.Base.Statistics
+   ICON sigma
    Compute a single statistic on the column.
 
    Arguments:
@@ -54,6 +55,7 @@ Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
 
 ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
    GROUP Standard.Base.Statistics
+   ICON sigma
    Compute a single running statistic on the column.
 
    Arguments:

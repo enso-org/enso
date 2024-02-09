@@ -14,7 +14,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import all
 import Standard.Database.Data.Table.Table as Database_Table
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import enso_dev.Base_Tests.Data.Round_Spec
@@ -595,6 +595,18 @@ add_specs suite_builder setup =
             actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
+
+        group_builder.specify "fill_nothing should cope with notted boolean columns" <|
+            t = table_builder [["col0", [True, False, Nothing, True]], ["colTrue", [True, True, True, True]], ["colFalse", [False, False, False, False]]]
+            s = t.set (t.at "col0" . not) "col1"
+            s_false = s.fill_nothing ["col1"] False
+            s_false.at "col1" . to_vector . should_equal [False, True, False, False]
+            s_false_2 = s.fill_nothing ["col1"] (s.at "colFalse")
+            s_false_2.at "col1" . to_vector . should_equal [False, True, False, False]
+            s_true = s.fill_nothing ["col1"] True
+            s_true.at "col1" . to_vector . should_equal [False, True, True, False]
+            s_true_2 = s.fill_nothing ["col1"] (s.at "colTrue")
+            s_true_2.at "col1" . to_vector . should_equal [False, True, True, False]
 
     suite_builder.group prefix+"Table.text_replace" group_builder->
         data = Data.setup create_connection_fn

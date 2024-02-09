@@ -161,6 +161,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
@@ -971,6 +972,7 @@ type Table
             self.make_column (self.internal_columns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1020,6 +1022,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -1307,7 +1310,7 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS cartesian join, append
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1404,7 +1407,7 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a key column contains `Nothing` values, either in the lookup table,
+         - If a key column contains `Nothing` values in the lookup table,
            a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
@@ -1420,6 +1423,85 @@ type Table
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Helpers.ensure_same_connection "table" [self, lookup_table] <|
             Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+
+    ## ALIAS find replace
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Replaces values in `column` using `lookup_table` to specify a
+       mapping from old to new values.
+
+       Arguments:
+       - lookup_table: the table to use as a mapping from old to new values. A
+         `Map` can also be used here (in which case passing `from_column` or
+         `to_column` is disallowed and will throw an `Illegal_Argument` error.
+       - column: the column within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against `column`
+         in `self`.
+       - to_column: the column within `lookup_table` to get new values from.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified by `from_column`, `to_column`, or `column`, a
+           `Missing_Input_Columns` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+
+       > Example
+         Replace values in column 'x' using a lookup table.
+
+             table = Table.new [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
+             #      | x | y | z
+             #   ---+---+---+---
+             #    0 | 1 | a | e
+             #    1 | 2 | b | f
+             #    2 | 3 | c | g
+             #    3 | 4 | d | h
+
+             lookup_table = Table.new [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
+             #      | old_x | new_x
+             #   ---+-------+-------
+             #    0 | 1     | 10
+             #    1 | 2     | 20
+             #    2 | 3     | 30
+             #    3 | 4     | 40
+
+             result = table.replace lookup_table 'x'
+             #      | x  | y | z
+             #   ---+----+---+---
+             #    0 | 10 | a | e
+             #    1 | 20 | b | f
+             #    2 | 30 | c | g
+             #    3 | 40 | d | h
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2241,6 +2323,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -2338,7 +2421,7 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata 
+    ## ALIAS metadata
        GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 

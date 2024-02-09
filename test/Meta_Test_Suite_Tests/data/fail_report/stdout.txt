@@ -1,4 +1,4 @@
-Tests:  [3/6, ???ms]
+[FAILED] Tests: [3/6, ???ms]
     - some property [???ms]
     - other property [???ms]
     - [PENDING] pending property
@@ -8,16 +8,14 @@ Tests:  [3/6, ???ms]
     - something OK [???ms]
     - [FAILED] dataflow error [???ms]
         Reason: An unexpected dataflow error ((Illegal_Argument.Error 'some error' Nothing)) has been matched (at ???/fail_report/Main.enso:28:9-74).
-        at <enso> Error.throw(Internal)
-        at <enso> Main.spec<arg-0>(???/fail_report/Main.enso:28:9-57)
         ???
-        at <enso> Main.main(???/fail_report/Main.enso:33:8-31)
+        at <enso> Main.main(???/fail_report/Main.enso:36:5-25)
     - [FAILED] panic [???ms]
         Reason: An unexpected panic was thrown: (Illegal_Argument.Error 'some error' Nothing)
         at <enso> Panic.throw(Internal)
-        at <enso> Main.spec<arg-1>(???/fail_report/Main.enso:31:9-57)
         ???
-        at <enso> Main.main(???/fail_report/Main.enso:33:8-31)
+        at <enso> Main.main(???/fail_report/Main.enso:36:5-25)
 3 tests succeeded.
 3 tests failed.
 1 tests skipped.
+0 groups skipped.

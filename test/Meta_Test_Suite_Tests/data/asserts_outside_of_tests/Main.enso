@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test import all
 
 catch_and_print ~action = Panic.catch Any action caught_panic->
     IO.println "Panic: "+caught_panic.payload.to_text

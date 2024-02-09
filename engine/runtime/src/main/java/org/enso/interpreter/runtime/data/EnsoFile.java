@@ -235,7 +235,8 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
   public String getName() {
-    return this.truffleFile.getName();
+    var name = this.truffleFile.getName();
+    return name == null ? "/" : name;
   }
 
   @Builtin.Method(name = "size_builtin")

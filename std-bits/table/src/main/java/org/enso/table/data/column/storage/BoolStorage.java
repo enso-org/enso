@@ -124,7 +124,7 @@ public final class BoolStorage extends Storage<Boolean> {
    */
   private Storage<?> fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
-    if (arg) {
+    if (arg != negated) {
       newValues.or(isMissing);
     } else {
       newValues.andNot(isMissing);

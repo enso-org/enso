@@ -39,7 +39,6 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   ...(process.env.CI ? { workers: 1 } : {}),
-  reporter: 'line',
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
@@ -47,7 +46,7 @@ export default defineConfig({
   use: {
     headless: !DEBUG,
     trace: 'on-first-retry',
-    viewport: { width: 1920, height: 1200 },
+    viewport: { width: 1920, height: 1600 },
     ...(DEBUG
       ? {}
       : {
@@ -110,7 +109,10 @@ export default defineConfig({
     env: {
       E2E: 'true',
     },
-    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
+    command:
+      process.env.CI || process.env.PROD
+        ? `npx vite build && npx vite preview --port ${PORT} --strictPort`
+        : `npx vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
     timeout: 120 * 1000,
     port: PORT,

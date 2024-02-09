@@ -324,6 +324,7 @@ type File
         Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
+       ICON math
        Join two path segments together.
 
        Arguments:
@@ -410,6 +411,7 @@ type File
         File_Error.handle_java_exceptions self <| self.size_builtin
 
     ## GROUP Text
+       ICON preparation
        Checks whether the file is within another path.
 
        Arguments:
@@ -424,6 +426,7 @@ type File
     starts_with self parent = @Builtin_Method "File.starts_with"
 
     ## GROUP Metadata
+       ICON metadata
        Gets the creation time of a file.
 
        > Example

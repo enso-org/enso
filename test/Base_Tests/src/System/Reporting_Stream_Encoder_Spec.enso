@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =

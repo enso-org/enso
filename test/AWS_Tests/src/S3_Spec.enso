@@ -14,13 +14,12 @@ from Standard.Table import Table, Excel, Worksheet
 # Needed for correct `Table.should_equal`
 import enso_dev.Table_Tests.Util
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
-spec =
+add_specs suite_builder =
     bucket_name = "enso-data-samples"
     writable_bucket_name = "enso-ci-s3-test-stage"
     not_a_bucket_name = "not_a_bucket_enso"
@@ -29,35 +28,36 @@ spec =
     sub_folder_name = "examples/folder 1/"
     api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
     cloud_setup = Cloud_Tests_Setup.prepare
+    can_list_buckets = S3.list_buckets.is_error.not
+    can_list_objects = S3.list_objects bucket_name . contains object_name
 
-    Test.group "S3.parse_uri" <|
-        Test.specify "parse bucket only uris" <|
+    suite_builder.group "S3.parse_uri" group_builder->
+        group_builder.specify "parse bucket only uris" <|
             S3.parse_uri "s3://" . should_equal (Pair.new "" "")
             S3.parse_uri "s3://asda" . should_equal (Pair.new "asda" "")
             S3.parse_uri "s3://banana/" . should_equal (Pair.new "banana" "")
 
-        Test.specify "parse full paths uris" <|
+        group_builder.specify "parse full paths uris" <|
             S3.parse_uri "s3://banana/apple" . should_equal (Pair.new "banana" "apple")
             S3.parse_uri "s3://banana/apple/orange" . should_equal (Pair.new "banana" "apple/orange")
 
-        Test.specify "reject invalid urils" <|
+        group_builder.specify "reject invalid urils" <|
             S3.parse_uri "asda" . should_equal Nothing
             S3.parse_uri "s3:///" . should_equal Nothing
             S3.parse_uri "s3:///apple/orange" . should_equal Nothing
 
-    buckets = S3.list_buckets
-    Test.group "S3.list_buckets" pending=api_pending <|
-        Test.specify "should be able to list buckets" <|
-            buckets . should_succeed
-            buckets . should_contain bucket_name
+    suite_builder.group "S3.list_buckets" pending=api_pending group_builder->
+        group_builder.specify "should be able to list buckets" <|
+            bucket_list = S3.list_buckets . should_succeed
+            if bucket_name != Nothing then bucket_list . should_contain bucket_name
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-        Test.specify "should not work with invalid credentials" <|
+        group_builder.specify "should not work with invalid credentials" <|
             S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
 
-        Test.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
+        group_builder.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
             secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
@@ -69,15 +69,15 @@ spec =
                     r2.should_be_a Vector
 
     ## Rest of tests need a functional S3 connection
-    pending = if buckets.is_error then "S3 Access Failed: "+buckets.catch.to_display_text else if buckets.contains bucket_name then Nothing else "S3 Bucket "+bucket_name+" Not Found."
+    pending = if bucket_name.is_nothing then "No S3 bucket set." else if can_list_buckets.not then "S3 Access Failed." else Nothing
 
-    Test.group "S3.head (bucket)" pending=pending <|
-        Test.specify "should be able to head a bucket" <|
+    suite_builder.group "S3.head (bucket)" pending=pending group_builder->
+        group_builder.specify "should be able to head a bucket" <|
             S3.head bucket_name . should_equal Map.empty
             S3.head not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-    Test.group "S3.read_bucket" pending=pending <|
-        Test.specify "should be able to read bucket" <|
+    suite_builder.group "S3.read_bucket" pending=pending group_builder->
+        group_builder.specify "should be able to read bucket" <|
             objects_and_folders = S3.read_bucket bucket_name
             folders = objects_and_folders.first
             folders . should_contain folder_name
@@ -85,12 +85,12 @@ spec =
             objects = objects_and_folders.second
             objects . should_contain object_name
 
-        Test.specify "should be able to read sub folder" <|
+        group_builder.specify "should be able to read sub folder" <|
             objects_and_folders = S3.read_bucket bucket_name folder_name
             folders = objects_and_folders.first
             folders . should_contain sub_folder_name
 
-        Test.specify "should attach a warning if not a complete list" <|
+        group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.read_bucket bucket_name max_count=1
 
             warnings = Warning.get_all objects
@@ -99,20 +99,18 @@ spec =
             warning = warnings.first
             warning.value.should_be_a More_Records_Available
 
-        Test.specify "should handle missing bucket gracefully" <|
+        group_builder.specify "should handle missing bucket gracefully" <|
             S3.read_bucket not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.read_bucket bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    list = Ref.new []
-    Test.group "S3.list_objects" pending=pending <|
-        Test.specify "should be able to list objects" <|
+    suite_builder.group "S3.list_objects" pending=pending group_builder->
+        group_builder.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name
             objects . should_contain object_name
-            list.put objects
 
-        Test.specify "should attach a warning if not a complete list" <|
+        group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.list_objects bucket_name max_count=1
 
             warnings = Warning.get_all objects
@@ -121,28 +119,28 @@ spec =
             warning = warnings.first
             warning.value.should_be_a More_Records_Available
 
-        Test.specify "should handle missing bucket gracefully" <|
+        group_builder.specify "should handle missing bucket gracefully" <|
             S3.list_objects not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
     ## These tests need a valid object, so check we found it within the bucket.
     pending_object = if pending.is_nothing.not then pending else
-        if list.get.contains object_name then Nothing else
+        if can_list_objects then Nothing else
             "Unable to find test object in bucket."
 
-    Test.group "S3.head (object)" pending=pending_object <|
-        Test.specify "should be able to head an object" <|
+    suite_builder.group "S3.head (object)" pending=pending_object group_builder->
+        group_builder.specify "should be able to head an object" <|
             S3.head bucket_name object_name . should_succeed
             S3.head not_a_bucket_name object_name . should_fail_with S3_Key_Not_Found
             S3.head bucket_name "not_an_object" . should_fail_with S3_Key_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    Test.group "S3.get_object" pending=pending_object <|
-        Test.specify "should be able to get an object" <|
+    suite_builder.group "S3.get_object" pending=pending_object group_builder->
+        group_builder.specify "should be able to get an object" <|
             response = S3.get_object bucket_name object_name
             response.should_succeed
             response.decode_as_json.should_succeed
@@ -150,25 +148,25 @@ spec =
             S3.get_object not_a_bucket_name object_name . should_fail_with S3_Bucket_Not_Found
             S3.get_object bucket_name "not_an_object" . should_fail_with S3_Key_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    Test.group "S3_File reading" pending=pending <|
+    suite_builder.group "S3_File reading" pending=pending group_builder->
         root = S3_File.new "s3://"+bucket_name+"/"
         hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
-        Test.specify "should be able to list the bucket's root directory" <|
+        group_builder.specify "should be able to list the bucket's root directory" <|
             r = root.list
             r.should_succeed
 
             r.map .name . should_contain object_name
 
-        Test.specify "should be able to read a file" <|
+        group_builder.specify "should be able to read a file" <|
             f = root / "locations.json"
             r = f.read
             r.should_be_a Vector
             r.at 0 . get "name" . should_equal "Green St Green"
 
-        Test.specify "should be able to read a file as bytes or stream" <|
+        group_builder.specify "should be able to read a file as bytes or stream" <|
             bytes = hello_txt.read_bytes
             bytes.should_equal "Hello WORLD!".utf_8
 
@@ -177,7 +175,7 @@ spec =
 
             bytes2.should_equal bytes
 
-        Test.specify "should support path traversal" <|
+        group_builder.specify "should support path traversal" <|
             root.prefix . should_equal ""
             (root / "foo") . prefix . should_equal "foo"
             (root / "foo") . path . should_equal "s3://"+bucket_name+"/foo"
@@ -194,7 +192,7 @@ spec =
             hello_txt.is_descendant_of root . should_be_true
             root.is_descendant_of hello_txt . should_be_false
 
-        Test.specify "returns a valid name for files and 'directories'" <|
+        group_builder.specify "returns a valid name for files and 'directories'" <|
             hello_txt.name . should_equal "hello.txt"
             # For the root, the name is the bucket name:
             root.name . should_equal "enso-data-samples"
@@ -204,7 +202,7 @@ spec =
             # The trailing slash is removed for 'directories':
             (root / "foo/") . name . should_equal "foo"
 
-        Test.specify "should be able to read file metadata" <|
+        group_builder.specify "should be able to read file metadata" <|
             root.exists . should_be_true
             hello_txt.exists . should_be_true
             root.is_directory . should_be_true
@@ -223,7 +221,7 @@ spec =
             # AWS S3 does not record creation time, only last modified time.
             hello_txt.creation_time . should_fail_with S3_Error
 
-    Test.group "S3_File writing" pending=pending <|
+    suite_builder.group "S3_File writing" pending=pending group_builder->
         writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
         my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
         assert my_writable_dir.is_directory
@@ -235,7 +233,7 @@ spec =
         delete_afterwards file ~action =
             Panic.with_finalizer file.delete action
 
-        Test.specify "should be able to write and delete a new file" <|
+        group_builder.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
             "Hello".write new_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
@@ -252,7 +250,7 @@ spec =
                 new_file.exists . should_be_false
                 my_writable_dir.list . should_not_contain new_file
 
-        Test.specify "should be able to overwrite a file" <|
+        group_builder.specify "should be able to overwrite a file" <|
             new_file = my_writable_dir / "new_file-overwrite.txt"
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
@@ -262,7 +260,7 @@ spec =
                 with_retries <|
                     new_file.read . should_equal "World"
 
-        Test.specify "should not be able to append to a file" <|
+        group_builder.specify "should not be able to append to a file" <|
             new_file = my_writable_dir / "new_file-append.txt"
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
@@ -270,7 +268,7 @@ spec =
                 r.should_fail_with S3_Error
                 r.catch.to_display_text . should_contain "you may read it, modify and then write the new contents"
 
-        Test.specify "will error if the file existed prior to writing, if Existing_File_Behavior.Error" <|
+        group_builder.specify "will error if the file existed prior to writing, if Existing_File_Behavior.Error" <|
             new_file = my_writable_dir / "new_file-exists.txt"
             "Hello".write new_file . should_succeed
             delete_afterwards new_file <|
@@ -280,7 +278,7 @@ spec =
                 r.catch.to_display_text . should_contain "already exists"
                 r.catch.to_display_text . should_contain "new_file-exists.txt"
 
-        Test.specify "should be able to copy a file" <|
+        group_builder.specify "should be able to copy a file" <|
             base_file = my_writable_dir / "new_file-for-copy.txt"
             "Hello".write base_file . should_succeed
             delete_afterwards base_file <|
@@ -291,7 +289,7 @@ spec =
                 delete_afterwards dest_file <|
                     dest_file.read . should_equal "Hello"
 
-        Test.specify "will fail if source file does not exist" <|
+        group_builder.specify "will fail if source file does not exist" <|
             base_file = my_writable_dir / "nonexistent-src-file.txt"
             dest_file = my_writable_dir / "nonexistent-dest-file.txt"
             r = base_file.copy_to dest_file
@@ -299,7 +297,7 @@ spec =
             r.catch.should_be_a File_Error.Not_Found
             dest_file.exists . should_be_false
 
-        Test.specify "respects replace_existing setting in copy_to" <|
+        group_builder.specify "respects replace_existing setting in copy_to" <|
             base_file = my_writable_dir / "new_file-for-copy-2.txt"
             "Hello".write base_file . should_succeed
             delete_afterwards base_file <|
@@ -317,7 +315,7 @@ spec =
                     r2 = base_file.copy_to dest_file replace_existing=True
                     r2.should_equal dest_file
 
-        Test.specify "should be able to write a raw stream" <|
+        group_builder.specify "should be able to write a raw stream" <|
             new_file = my_writable_dir / "new_file-stream.txt"
             r = new_file.with_output_stream [File_Access.Write] stream->
                 stream.write_bytes [1, 2, 3]
@@ -326,7 +324,7 @@ spec =
             delete_afterwards new_file <|
                 new_file.read_bytes.should_equal [1, 2, 3]
 
-        Test.specify "fails if unsupported File_Access options are selected" <|
+        group_builder.specify "fails if unsupported File_Access options are selected" <|
             new_file = my_writable_dir / "new_file-stream-file-access.txt"
             r = new_file.with_output_stream [File_Access.Write, File_Access.Append] _->Nothing
             r.should_fail_with S3_Error
@@ -335,7 +333,7 @@ spec =
             r2 = new_file.with_output_stream [File_Access.Read] _->Nothing
             r2.should_fail_with S3_Error
 
-        Test.specify "will respect the File_Access.Create_New option and fail if the file already exists" <|
+        group_builder.specify "will respect the File_Access.Create_New option and fail if the file already exists" <|
             new_file = my_writable_dir / "new_file-stream-create-new.txt"
             r = new_file.with_output_stream [File_Access.Write] stream->
                 stream.write_bytes [1, 2, 3]
@@ -347,13 +345,13 @@ spec =
                 r2.catch.should_be_a File_Error.Already_Exists
                 r2.catch.to_display_text . should_contain "already exists"
 
-        Test.specify "should be able to write a vector of bytes" <|
+        group_builder.specify "should be able to write a vector of bytes" <|
             new_file = my_writable_dir / "new_file-bytes.txt"
             [4, 5, 6].write_bytes new_file . should_succeed
             delete_afterwards new_file <|
                 new_file.read_bytes.should_equal [4, 5, 6]
 
-        Test.specify "should support .bak logic" <|
+        group_builder.specify "should support .bak logic" <|
             my_file = my_writable_dir / "bak-test/my_file.txt"
             bak_file = my_writable_dir / "bak-test/my_file.txt.bak"
             my_file.exists.should_be_false
@@ -383,7 +381,7 @@ spec =
                     parent_dir = my_file.parent
                     parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
 
-        Test.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
+        group_builder.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
             weird_ext = my_writable_dir / "weird-ext.unknown"
             "Hello".write weird_ext . should_succeed
 
@@ -393,7 +391,7 @@ spec =
                 r.catch.should_be_a File_Error.Unsupported_Type
                 r.catch.to_display_text . should_contain ".unknown"
 
-        Test.specify "should be able to write and then read custom types, like Table as Excel" <|
+        group_builder.specify "should be able to write and then read custom types, like Table as Excel" <|
             file = my_writable_dir / "table.xlsx"
             table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
             table.write file . should_equal file
@@ -412,7 +410,7 @@ spec =
                 # The old table is kept intact
                 workbook2.read "EnsoSheet" . should_equal table
 
-        Test.specify "should be able to write and then read custom types, like Table as CSV" <|
+        group_builder.specify "should be able to write and then read custom types, like Table as CSV" <|
             file = my_writable_dir / "table.csv"
             table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
             table.write file . should_succeed
@@ -425,30 +423,33 @@ spec =
                 r.should_fail_with S3_Error
                 r.catch.to_display_text . should_contain "you may read it, modify and then write the new contents"
 
-        Test.specify "should fail to write a file if permissions are lacking" <|
+        group_builder.specify "should fail to write a file if permissions are lacking" <|
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
             r = "Hello".write new_file
             r.should_fail_with S3_Error
             r.catch.to_display_text . should_contain "Access Denied"
 
-        Test.specify "should fail to open an output stream if Output context is not enabled" <|
+        group_builder.specify "should fail to open an output stream if Output context is not enabled" <|
             Context.Output.with_disabled <|
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 new_file.with_output_stream [File_Access.Write] _->Nothing . should_fail_with Forbidden_Operation
 
-        Test.specify "should fail to write if Output context is not enabled" <|
+        group_builder.specify "should fail to write if Output context is not enabled" <|
             Context.Output.with_disabled <|
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 "Hello".write new_file . should_fail_with Forbidden_Operation
                 new_file.exists . should_be_false
 
-        Test.specify "should fail to delete a file if the Output context is not enabled" <|
+        group_builder.specify "should fail to delete a file if the Output context is not enabled" <|
             Context.Output.with_disabled <|
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 new_file.delete . should_fail_with Forbidden_Operation
 
-        Test.specify "does not raise an exception if the file being deleted did not exist in the first place" <|
+        group_builder.specify "does not raise an exception if the file being deleted did not exist in the first place" <|
             new_file = my_writable_dir / "nonexistent-file.txt"
             new_file.delete . should_succeed
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
