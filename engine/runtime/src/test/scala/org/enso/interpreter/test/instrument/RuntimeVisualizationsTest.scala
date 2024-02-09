@@ -2565,7 +2565,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(106, 34)
+    val idMain = metadata.addItem(158, 36)
 
     val code =
       """import Standard.Base.Data.List
@@ -2666,7 +2666,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-38)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:7:5-40)"}"""
   }
 
   it should "run visualization default preprocessor" in withContext() {
