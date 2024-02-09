@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job;
 
 import java.util.logging.Level;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
-import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 
@@ -22,7 +21,6 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
   public Void run(RuntimeContext ctx) {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
-    SerializationManager serializationManager = SerializationManager.apply(compiler.context());
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
     var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
     try {
@@ -40,9 +38,10 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                           new Object[] {module.getName(), module.getCompilationStage()});
                   return;
                 }
-
-                serializationManager.serializeModule(
-                    compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
+                compiler
+                    .context()
+                    .serializeModule(
+                        compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
