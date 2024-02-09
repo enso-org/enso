@@ -17,8 +17,6 @@ import project.Runtime
    > Example
      Transpose a `Vector` of `Vectors`.`
 
-         "Hello, world!".reverse
-
          matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
          # +---+---+---+
          # | 0 | 1 | 2 |
@@ -44,7 +42,7 @@ Vector.transpose self =
     if self.is_empty then [] else
         length = self.length
         first_subvector_length = self.at 0 . length
-        if self.any s-> s.length != first_subvector_length then Error.throw (Illegal_Argument.Error "Transpose requires that all rows be the same length") else
+        check_same_length self <|
             inner i  = Vector.from_polyglot_array (Array_Proxy.new length j-> ((self.at j).at i))
             proxy = Array_Proxy.new first_subvector_length inner
             Vector.from_polyglot_array proxy
@@ -84,3 +82,18 @@ Vector.transpose self =
          # => True
 Array.transpose : Array (Array Any) ! Illegal_Argument
 Array.transpose self = Vector.transpose self
+
+## PRIVATE
+   Check that all vectors have the same length and return an informative message
+   if they don't.
+
+   Compares all vectors to the first one and reports the first one that differs.
+check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
+check_same_length vecs ~action =
+    if vecs.is_empty then action else
+        num_vecs = vecs.length
+        len = vecs.at 0 . length
+        go i = if i >= num_vecs then action else
+            if vecs.at i . length == len then @Tail_Call go (i+1) else
+                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length. Vector #0 length is "+len.to_text+", Vector #"+i.to_text+" length is "+(vecs.at i . length).to_text)
+        go 0
