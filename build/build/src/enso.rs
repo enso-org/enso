@@ -158,7 +158,7 @@ impl BuiltEnso {
 
         let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
         let futures = std_tests.into_iter().map(|test_path| {
-            let command = self.run_test(&test_path, ir_caches);
+            let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }
         });
 
