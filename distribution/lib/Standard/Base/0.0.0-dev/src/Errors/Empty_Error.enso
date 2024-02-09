@@ -10,4 +10,3 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The " + self.collection.to_text + " is empty."
-    
