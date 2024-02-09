@@ -2392,7 +2392,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     javaOptions ++= {
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
+        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
       )
     },
     mainClass :=
