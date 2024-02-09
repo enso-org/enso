@@ -3,10 +3,8 @@ package org.enso.table.data.table;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.xmlbeans.XmlException;
 import org.graalvm.polyglot.Context;
 import org.w3c.dom.DOMException;
