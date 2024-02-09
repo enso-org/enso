@@ -64,7 +64,6 @@ export async function mockApi({ page }: MockParams) {
   const assets: backend.AnyAsset[] = []
   const labels: backend.Label[] = []
   const labelsByValue = new Map<backend.LabelName, backend.Label>()
-  const labelMap = new Map<backend.TagId, backend.Label>()
 
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
     assets.push(asset)
@@ -183,7 +182,6 @@ export async function mockApi({ page }: MockParams) {
     const label = createLabel(value, color)
     labels.push(label)
     labelsByValue.set(label.value, label)
-    labelMap.set(label.id, label)
     return label
   }
 
@@ -247,9 +245,7 @@ export async function mockApi({ page }: MockParams) {
         ) as unknown as Query
         const parentId = body.parent_id ?? defaultDirectoryId
         let filteredAssets = assets.filter(asset => asset.parentId === parentId)
-        // This lint rule is broken; there is clearly a case for `undefined` below.
-        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-        switch (body.filter_by) {
+        switch (body.filter_by ?? null) {
           case backend.FilterBy.active: {
             filteredAssets = filteredAssets.filter(asset => !deletedAssets.has(asset.id))
             break
@@ -267,11 +263,6 @@ export async function mockApi({ page }: MockParams) {
           }
           case backend.FilterBy.all:
           case null: {
-            // do nothing
-            break
-          }
-          // eslint-disable-next-line no-restricted-syntax
-          case undefined: {
             // do nothing
             break
           }

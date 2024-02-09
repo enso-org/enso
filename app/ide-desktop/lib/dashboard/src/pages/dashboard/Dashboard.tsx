@@ -69,16 +69,16 @@ const BACKEND_TYPES = Object.values(backendModule.BackendType)
 LocalStorage.registerKey('projectStartupInfo', {
   isUserSpecific: true,
   tryParse: value => {
-    if (typeof value !== 'object' || value == null) {
-      return null
-    } else if (
+    if (
+      typeof value !== 'object' ||
+      value == null ||
       !('accessToken' in value) ||
-      (typeof value.accessToken !== 'string' && value.accessToken != null)
+      (typeof value.accessToken !== 'string' && value.accessToken != null) ||
+      !('backendType' in value) ||
+      !array.includes(BACKEND_TYPES, value.backendType) ||
+      !('project' in value) ||
+      !('projectAsset' in value)
     ) {
-      return null
-    } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
-      return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
       return null
     } else {
       return {

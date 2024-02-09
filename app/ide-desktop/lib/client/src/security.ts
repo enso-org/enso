@@ -59,11 +59,12 @@ function enableGlobalSandbox() {
  * want to assume the very opposite. Follow the link to learn more:
  * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content. */
 function rejectPermissionRequests() {
-    void electron.app.whenReady().then(() => {
+    void (async () => {
+        await electron.app.whenReady()
         electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
             console.error(`Unhandled permission request '${permission}'.`)
         })
-    })
+    })()
 }
 
 /** A WebView created in a renderer process that does not have Node.js integration enabled will not

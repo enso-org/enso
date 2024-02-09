@@ -15,7 +15,8 @@ import * as dashboardBundler from '../dashboard/esbuild-config'
 
 /** The path of this file. */
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-const PORT = 8080
+/** The port of the development server. */
+const DEVELOPMENT_PORT = 8080
 const HTTP_STATUS_OK = 200
 
 // ===============
@@ -39,7 +40,7 @@ async function watch() {
         })
     )
     opts.pure.splice(opts.pure.indexOf('assert'), 1)
-    opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
+    opts.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${DEVELOPMENT_PORT}`)
     // This is safe as this entry point is statically known.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const serviceWorkerEntryPoint = opts.entryPoints.find(
@@ -49,7 +50,7 @@ async function watch() {
     const builder = await esbuild.context(opts)
     await builder.watch()
     await builder.serve({
-        port: await portfinder.getPortPromise({ port: PORT }),
+        port: await portfinder.getPortPromise({ port: DEVELOPMENT_PORT }),
         servedir: opts.outdir,
         /** This function is called on every request.
          * It is used here to show an error if the file to serve was not found. */

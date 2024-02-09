@@ -68,7 +68,8 @@ export function spawn(
 /** Get the Project Manager version. */
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
-        return await exec(args, ['--version']).then(t => t.stdout)
+        const process = await exec(args, ['--version'])
+        return process.stdout
     } else {
         return
     }

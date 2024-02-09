@@ -162,7 +162,7 @@ export class Cognito {
     } else {
       localStorage.removeItem(MOCK_ORGANIZATION_ID_KEY)
     }
-    return signUp(this.supportsDeepLinks, username, password, organizationId)
+    return signUpInternal(this.supportsDeepLinks, username, password, organizationId)
   }
 
   /** Send the email address verification code.
@@ -312,7 +312,7 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
 
 /** A wrapper around the Amplify "sign up" endpoint that converts known errors
  * to `SignUpError`s. */
-async function signUp(
+async function signUpInternal(
   _supportsDeepLinks: boolean,
   _username: string,
   _password: string,
@@ -331,11 +331,12 @@ async function signUp(
 /** A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
  * to `ConfirmSignUpError`s. */
 async function confirmSignUp(_email: string, _code: string) {
-  return results.Result.wrapAsync(async () => {
+  const result = await results.Result.wrapAsync(async () => {
     // Ignored.
-  }).then(result =>
-    result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow)
-  )
+  })
+  return result
+    .mapErr(original.intoAmplifyErrorOrThrow)
+    .mapErr(original.intoConfirmSignUpErrorOrThrow)
 }
 
 // ======================

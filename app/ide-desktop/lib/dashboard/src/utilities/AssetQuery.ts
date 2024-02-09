@@ -179,8 +179,11 @@ export default class AssetQuery {
       /* eslint-enable @typescript-eslint/naming-convention */
     }
     for (const term of terms) {
-      const set = term.tag == null ? keywords : tagNameToSet[term.tag]
-      set?.push(term.values)
+      if (term.tag == null) {
+        keywords.push(term.values)
+      } else {
+        tagNameToSet[term.tag]?.push(term.values)
+      }
     }
     return new AssetQuery(
       query,

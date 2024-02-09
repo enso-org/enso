@@ -31,13 +31,15 @@ export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 /** The current environment that we're running in. */
 export const ENVIRONMENT: Environment = typeof CLOUD_ENV !== 'undefined' ? CLOUD_ENV : 'production'
 
+/** The port used for the development server. */
+const DEVELOPMENT_PORT = 8080
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
   /** In development, a fixed port is used so that the redirect URL can be known ahead of time.
    * The redirect URL must be known ahead of time because it is registered with the OAuth provider
    * when it is created. In the native app, the port is unpredictable, but this is not a problem
    * because the native app does not use port-based redirects, but deep links. */
-  development: auth.OAuthRedirect('http://localhost:8080'),
+  development: auth.OAuthRedirect(`http://localhost:${DEVELOPMENT_PORT}`),
   production: auth.OAuthRedirect(
     typeof REDIRECT_OVERRIDE !== 'undefined' ? REDIRECT_OVERRIDE : CLOUD_DOMAIN
   ),

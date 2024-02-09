@@ -317,8 +317,10 @@ export default class LocalBackend extends Backend {
   /** Called for any function that does not make sense in the Local Backend.
    * @throws An error stating that the operation is intentionally unavailable on the local
    * backend. */
-  invalidOperation(): never {
-    throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
+  invalidOperation() {
+    return Promise.reject<never>(
+      new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
+    )
   }
 
   /** Do nothing. This function should never need to be called. */

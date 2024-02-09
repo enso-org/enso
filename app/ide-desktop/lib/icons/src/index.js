@@ -121,14 +121,9 @@ viewBox="0 0 ${this.xsize} ${this.xsize}">
         ${this.defs}
 
     </defs>
-    ${this.main()}
+    <g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>
 </svg>
 `
-    }
-
-    /** Return a reference to the element containing the complete logo. */
-    main() {
-        return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
     }
 }
 

@@ -3,6 +3,8 @@ import * as v from 'vitest'
 
 import * as dateTime from '#/utilities/dateTime'
 
+// file deepcode ignore DateMonthIndex/test: Acknowledged.
+
 // =============
 // === Tests ===
 // =============

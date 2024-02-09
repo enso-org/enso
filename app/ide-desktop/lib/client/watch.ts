@@ -36,6 +36,8 @@ interface Watches {
 
 const IDE_DIR_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
+/** The port used for the development server. */
+const DEVELOPMENT_PORT = 8080
 
 // =============
 // === Watch ===
@@ -108,7 +110,9 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         })
         contentOpts.pure.splice(contentOpts.pure.indexOf('assert'), 1)
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        contentOpts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
+        contentOpts.define.REDIRECT_OVERRIDE = JSON.stringify(
+            `http://localhost:${DEVELOPMENT_PORT}`
+        )
         const contentBuilder = await esbuild.context(contentOpts)
         const content = await contentBuilder.rebuild()
         console.log('Result of content bundling: ', content)

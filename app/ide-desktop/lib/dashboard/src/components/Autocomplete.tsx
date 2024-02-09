@@ -149,10 +149,6 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         }
         break
       }
-      case 'Escape': {
-        // Do not prevent default; the input needs to handle the event too.
-        break
-      }
       case 'Enter': {
         // Do not prevent default; the input needs to handle the event too.
         if (selectedIndex != null) {
@@ -166,8 +162,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         }
         break
       }
+      case 'Escape':
       case 'Tab': {
-        // Ignore completely.
+        // For 'Escape', do not prevent default; the input needs to handle the event too.
+        // For 'Tab', ignore completely.
         break
       }
       default: {
