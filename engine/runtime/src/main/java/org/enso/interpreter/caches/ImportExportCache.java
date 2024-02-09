@@ -1,12 +1,14 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -21,73 +23,84 @@ import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
-import scala.Option;
-import scala.Tuple2;
-import scala.collection.immutable.Map;
 
 @Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache
-    extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+    implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
   private final LibraryName libraryName;
 
-  public ImportExportCache(LibraryName libraryName) {
-    super(Level.FINEST, libraryName.toString(), true, false);
+  private ImportExportCache(LibraryName libraryName) {
     this.libraryName = libraryName;
-    this.entryName = libraryName.name();
-    this.dataSuffix = bindingsCacheDataExtension;
-    this.metadataSuffix = bindingsCacheMetadataExtension;
+  }
+
+  public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
+      LibraryName libraryName) {
+    var impl = new ImportExportCache(libraryName);
+    return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
   }
 
   @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry) {
-    try {
-      return objectMapper
-          .writeValueAsString(new Metadata(sourceDigest, blobDigest))
-          .getBytes(metadataCharset);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+  public String metadataSuffix() {
+    return bindingsCacheMetadataExtension;
   }
 
   @Override
-  protected CachedBindings deserialize(
-      EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+  public String dataSuffix() {
+    return bindingsCacheDataExtension;
+  }
+
+  @Override
+  public String entryName() {
+    return libraryName.name();
+  }
+
+  @Override
+  public byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry)
+      throws IOException {
+    return new Metadata(sourceDigest, blobDigest).toBytes();
+  }
+
+  @Override
+  public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
+    var arr =
+        Persistance.write(
+            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context()));
+    return arr;
+  }
+
+  @Override
+  public CachedBindings deserialize(
+      EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var ref = Persistance.read(data, null);
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }
 
   @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
-    var maybeJsonString = new String(bytes, Cache.metadataCharset);
-    var mapper = new ObjectMapper();
-    try {
-      return Optional.of(objectMapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
-    } catch (JsonProcessingException e) {
-      logger.log(logLevel, "Failed to deserialize library's metadata.", e);
-      return Optional.empty();
-    }
+  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException {
+    return Optional.of(Metadata.read(bytes));
   }
 
   @Override
-  protected Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
-    return entry.sources().map(sources -> computeDigestOfLibrarySources(sources, logger));
+  public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
+    return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  protected Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
+  public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
     return context
         .getPackageRepository()
         .getPackageForLibraryJava(libraryName)
-        .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
+        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  protected Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
+  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
     return context
         .getPackageRepository()
         .getPackageForLibraryJava(libraryName)
@@ -114,56 +127,43 @@ public final class ImportExportCache
   }
 
   @Override
-  protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-    var arr = Persistance.write(entry.bindings(), null);
-    return arr;
+  public String sourceHash(Metadata meta) {
+    return meta.sourceHash();
+  }
+
+  @Override
+  public String blobHash(Metadata meta) {
+    return meta.blobHash();
   }
 
   public static final class MapToBindings {
-    private final Map<QualifiedName, Persistance.Reference<BindingsMap>> entries;
+    private final java.util.Map<QualifiedName, org.enso.compiler.core.ir.Module> entries;
 
-    public MapToBindings(Map<QualifiedName, Persistance.Reference<BindingsMap>> entries) {
+    public MapToBindings(java.util.Map<QualifiedName, org.enso.compiler.core.ir.Module> entries) {
       this.entries = entries;
     }
 
-    public Option<BindingsMap> findForModule(QualifiedName moduleName) {
-      var ref = entries.get(moduleName);
-      if (ref.isEmpty()) {
-        return Option.empty();
-      }
-      return Option.apply(ref.get().get(BindingsMap.class));
+    public org.enso.compiler.core.ir.Module findForModule(QualifiedName moduleName) {
+      return entries.get(moduleName);
     }
   }
 
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMapToBindings extends Persistance<MapToBindings> {
     public PersistMapToBindings() {
-      super(MapToBindings.class, false, 364);
+      super(MapToBindings.class, false, 3642);
     }
 
     @Override
     protected void writeObject(MapToBindings obj, Output out) throws IOException {
-      out.writeInt(obj.entries.size());
-      var it = obj.entries.iterator();
-      while (it.hasNext()) {
-        var e = it.next();
-        out.writeInline(QualifiedName.class, e._1());
-        out.writeObject(e._2().get(BindingsMap.class));
-      }
+      out.writeInline(java.util.Map.class, obj.entries);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MapToBindings readObject(Input in) throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var b = Map.newBuilder();
-      b.sizeHint(size);
-      while (size-- > 0) {
-        var name = in.readInline(QualifiedName.class);
-        var value = in.readReference(BindingsMap.class);
-        b.addOne(Tuple2.apply(name, value));
-      }
-      return new MapToBindings((Map) b.result());
+      var map = in.readInline(java.util.Map.class);
+      return new MapToBindings(map);
     }
   }
 
@@ -172,15 +172,27 @@ public final class ImportExportCache
       MapToBindings bindings,
       Optional<List<SourceFile<TruffleFile>>> sources) {}
 
-  public record Metadata(
-      @JsonProperty("source_hash") String sourceHash, @JsonProperty("blob_hash") String blobHash)
-      implements Cache.Metadata {}
+  public record Metadata(String sourceHash, String blobHash) {
+    byte[] toBytes() throws IOException {
+      try (var os = new ByteArrayOutputStream();
+          var dos = new DataOutputStream(os)) {
+        dos.writeUTF(sourceHash());
+        dos.writeUTF(blobHash());
+        return os.toByteArray();
+      }
+    }
+
+    static Metadata read(byte[] arr) throws IOException {
+      try (var is = new ByteArrayInputStream(arr);
+          var dis = new DataInputStream(is)) {
+        return new Metadata(dis.readUTF(), dis.readUTF());
+      }
+    }
+  }
 
   private static final String bindingsCacheDataExtension = ".bindings";
 
   private static final String bindingsCacheMetadataExtension = ".bindings.meta";
-
-  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Persistable(clazz = BindingsMap.PolyglotSymbol.class, id = 33006)
   @Persistable(

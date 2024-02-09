@@ -27,7 +27,7 @@ const sourceNode = computed(() => {
     // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
     // as the source, as long as it is not from the same node as the target.
     if (selection?.hoveredNode != null) {
-      const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
+      const rawTargetNode = props.edge.target && graph.getPortNodeId(props.edge.target)
       if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
     }
   }
@@ -45,30 +45,29 @@ const targetExpr = computed(() => {
 })
 
 const targetNode = computed(
-  () => targetExpr.value && graph.db.getExpressionNodeId(targetExpr.value),
+  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? selection?.hoveredNode),
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
-const targetRect = computed<Rect | null>(() => {
+const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
-  if (expr != null) {
-    if (targetNode.value == null) return null
-    const targetRectRelative = graph.exprRects.get(expr)
-    if (targetRectRelative == null || targetNodeRect.value == null) return null
+  if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
+    const targetRectRelative = graph.getPortRelativeRect(expr)
+    if (targetRectRelative == null) return
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
-    return null
+    return undefined
   }
 })
-const sourceRect = computed<Rect | null>(() => {
+const sourceRect = computed<Rect | undefined>(() => {
   if (sourceNode.value != null) {
-    return graph.nodeRects.get(sourceNode.value) ?? null
+    return graph.nodeRects.get(sourceNode.value)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
-    return null
+    return undefined
   }
 })
 
@@ -398,6 +397,7 @@ const activeStyle = computed(() => {
     offset += length
   }
   return {
+    ...baseStyle.value,
     strokeDasharray: length,
     strokeDashoffset: offset,
   }
@@ -437,21 +437,39 @@ const arrowTransform = computed(() => {
 <template>
   <template v-if="basePath">
     <path
+      v-if="activePath"
+      :d="basePath"
+      class="edge visible dimmed"
+      :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    />
+    <path
       :d="basePath"
       class="edge io"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
       @pointerdown="click"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     />
-    <path ref="base" :d="basePath" class="edge visible" :style="baseStyle" />
+    <path
+      ref="base"
+      :d="activePath ?? basePath"
+      class="edge visible"
+      :style="activePath ? activeStyle : baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    />
     <polygon
       v-if="arrowTransform"
       :transform="arrowTransform"
       points="0,-9.375 -9.375,9.375 9.375,9.375"
       class="arrow visible"
       :style="baseStyle"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     />
-    <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
   </template>
 </template>
 
@@ -481,7 +499,8 @@ const arrowTransform = computed(() => {
   stroke-linecap: round;
 }
 
-.edge.visible.active {
-  stroke: rgba(255, 255, 255, 0.4);
+.edge.visible.dimmed {
+  /* stroke: rgba(255, 255, 255, 0.4); */
+  stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>

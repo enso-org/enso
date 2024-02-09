@@ -324,81 +324,37 @@ class CollaborativeBuffer(
         )
       )
 
-    case FileEvent(path, _) =>
-      fileManager ! FileManagerProtocol.InfoFile(path)
-      val timeoutCancellable = context.system.scheduler.scheduleOnce(
-        timingsConfig.requestTimeout,
-        self,
-        IOTimeout
-      )
-      context.become(
-        waitingOnFileEventContent(
-          path,
-          buffer,
-          timeoutCancellable,
-          clients,
-          lockHolder,
-          autoSave
-        )
-      )
-
-  }
-
-  private def waitingOnFileEventContent(
-    path: Path,
-    buffer: Buffer,
-    timeoutCancellable: Cancellable,
-    clients: Map[ClientId, JsonSession],
-    lockHolder: Option[JsonSession],
-    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
-  ): Receive = {
-    case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
-      timeoutCancellable.cancel()
-      val newBuffer = buffer.fileWithMetadata.lastModifiedTime.map {
-        bufferLastModifiedTime =>
-          if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
-            clients.values.foreach {
-              _.rpcController ! FileModifiedOnDisk(path)
-            }
-            buffer
-              .withLastModifiedTime(attrs.lastModifiedTime)
-              .withModifiedOnDisk()
-          } else {
-            buffer
+    case FileEvent(path, _, attributes) =>
+      attributes match {
+        case Right(attrs) =>
+          val newBuffer = buffer.fileWithMetadata.lastModifiedTime.map {
+            bufferLastModifiedTime =>
+              if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
+                clients.values.foreach {
+                  _.rpcController ! FileModifiedOnDisk(path)
+                }
+                buffer
+                  .withLastModifiedTime(attrs.lastModifiedTime)
+                  .withModifiedOnDisk()
+              } else {
+                buffer
+              }
           }
+          context.become(
+            collaborativeEditing(
+              newBuffer.getOrElse(buffer),
+              clients,
+              lockHolder,
+              autoSave
+            )
+          )
+        case Left(failure) =>
+          logger.error(
+            "Failed to read file attributes for [{}]. {}",
+            path,
+            failure
+          )
       }
-      unstashAll()
-      context.become(
-        collaborativeEditing(
-          newBuffer.getOrElse(buffer),
-          clients,
-          lockHolder,
-          autoSave
-        )
-      )
-
-    case FileManagerProtocol.InfoFileResult(Left(err)) =>
-      timeoutCancellable.cancel()
-      logger.error("Failed to read file attributes for [{}]. {}", path, err)
-      unstashAll()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
-
-    case Status.Failure(ex) =>
-      logger.error("Failed to read file attributes for [{}].", path, ex)
-      unstashAll()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
-
-    case IOTimeout =>
-      unstashAll()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
-
-    case _ => stash()
   }
 
   private def waitingOnReloadedContent(
@@ -444,7 +400,11 @@ class CollaborativeBuffer(
 
     case FileManagerProtocol.ReadFileWithAttributesResult(Left(FileNotFound)) =>
       clients.values.foreach {
-        _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed)
+        _.rpcController ! TextProtocol.FileEvent(
+          path,
+          FileEventKind.Removed,
+          None
+        )
       }
       replyTo ! ReloadedBuffer(path)
       timeoutCancellable.cancel()

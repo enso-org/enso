@@ -13,12 +13,15 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
   public static final File REPORT_FILE = new File("./bench-report.xml");
 
-  /** @return A list of qualified names of all benchmarks visible to JMH. */
+  /**
+   * @return A list of qualified names of all benchmarks visible to JMH.
+   */
   public List<String> getAvailable() {
     return BenchmarkList.defaultList().getAll(null, new ArrayList<>()).stream()
         .map(BenchmarkListEntry::getUsername)
@@ -32,14 +35,17 @@ public class BenchmarksRunner {
    * @return a {@link BenchmarkItem} containing current run result and historical results.
    */
   public BenchmarkItem run(String label) throws RunnerException, JAXBException {
-    ChainedOptionsBuilder builder = new OptionsBuilder()
-      .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
-      .include("^" + label + "$");
+    ChainedOptionsBuilder builder =
+        new OptionsBuilder()
+            .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
+            .include("^" + label + "$");
 
     if (Boolean.getBoolean("bench.compileOnly")) {
       builder
-        .measurementIterations(1)
-        .warmupIterations(0);
+          .measurementIterations(1)
+          .warmupIterations(0)
+          .measurementTime(TimeValue.seconds(1))
+          .forks(0);
     }
 
     Options benchmarkOptions = builder.build();

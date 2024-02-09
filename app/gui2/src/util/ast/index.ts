@@ -1,28 +1,23 @@
-import * as RawAst from '@/generated/ast'
 import { assert } from '@/util/assert'
 import * as Ast from '@/util/ast/abstract'
+import { parseEnso } from '@/util/ast/abstract'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import { isResult, mapOk } from '@/util/data/result'
-import { parse } from '@/util/ffi'
-import { LazyObject, LazySequence } from '@/util/parserSupport'
 import * as map from 'lib0/map'
-import type { ContentRange } from 'shared/yjsModel'
+import * as RawAst from 'shared/ast/generated/ast'
+import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
+import type { SourceRange } from 'shared/yjsModel'
 
-export { Ast, RawAst, RawAstExtended }
+export { Ast, RawAst, RawAstExtended, parseEnso }
 
-export type HasAstRange = ContentRange | RawAst.Tree | RawAst.Token
-
-export function parseEnso(code: string): RawAst.Tree {
-  const blob = parse(code)
-  return RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
-}
+export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 
 /** Read a single line of code
  *
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
 export function parseEnsoLine(code: string): RawAst.Tree {
-  const block = parseEnso(code)
+  const block = Ast.parseEnso(code)
   assert(block.type === RawAst.Tree.Type.BodyBlock)
   const statements = block.statements[Symbol.iterator]()
   const firstLine = statements.next()
@@ -116,7 +111,7 @@ function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst
 
 export function findAstWithRange(
   root: RawAst.Tree | RawAst.Token,
-  range: ContentRange,
+  range: SourceRange,
 ): RawAst.Tree | RawAst.Token | undefined {
   for (const child of childrenAstNodes(root)) {
     const [begin, end] = parsedTreeOrTokenRange(child)
@@ -165,19 +160,19 @@ export function visitRecursive(
  * @returns Object with `start` and `end` properties; index of first character in the `node`
  *   and first character _not_ being in the `node`.
  */
-export function parsedTreeRange(tree: RawAst.Tree): ContentRange {
+export function parsedTreeRange(tree: RawAst.Tree): SourceRange {
   const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
   const end = start + tree.childrenLengthInCodeParsed
   return [start, end]
 }
 
-export function parsedTokenRange(token: RawAst.Token): ContentRange {
+export function parsedTokenRange(token: RawAst.Token): SourceRange {
   const start = token.startInCodeBuffer
   const end = start + token.lengthInCodeBuffer
   return [start, end]
 }
 
-export function parsedTreeOrTokenRange(node: HasAstRange): ContentRange {
+export function parsedTreeOrTokenRange(node: HasAstRange): SourceRange {
   if (RawAst.Tree.isInstance(node)) return parsedTreeRange(node)
   else if (RawAst.Token.isInstance(node)) return parsedTokenRange(node)
   else return node

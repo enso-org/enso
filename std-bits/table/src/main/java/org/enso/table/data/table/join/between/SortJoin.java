@@ -7,18 +7,18 @@ import java.util.List;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
+import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
-import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
+public class SortJoin implements JoinStrategy {
 
-  public SortJoin(List<Between> conditions, JoinResult.BuilderSettings resultBuilderSettings) {
-    conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
-    this.resultBuilderSettings = resultBuilderSettings;
+  public SortJoin(List<Between> conditions, JoinKind joinKind) {
+    JoinStrategy.ensureConditionsNotEmpty(conditions);
+    this.joinKind = joinKind;
 
     Context context = Context.getCurrent();
     int nConditions = conditions.size();
@@ -35,8 +35,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private final JoinStrategy.ConditionsHelper conditionsHelper;
-  private final JoinResult.BuilderSettings resultBuilderSettings;
+  private final JoinKind joinKind;
 
   private final int[] directions;
   private final Storage<?>[] leftStorages;
@@ -47,13 +46,13 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    JoinResult.Builder resultBuilder = new JoinResult.Builder(resultBuilderSettings);
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
 
-    int leftRowCount = conditionsHelper.getLeftTableRowCount();
-    int rightRowCount = conditionsHelper.getRightTableRowCount();
+    int leftRowCount = leftStorages[0].size();
+    int rightRowCount = lowerStorages[0].size();
     if (leftRowCount == 0 || rightRowCount == 0) {
       // if one group is completely empty, there will be no matches to report
-      return resultBuilder.build();
+      return resultBuilder.buildAndInvalidate();
     }
     List<OrderedMultiValueKey> leftKeys = new ArrayList<>(leftRowCount);
     for (int i = 0; i < leftRowCount; i++) {
@@ -65,13 +64,13 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
     for (int rightRowIx = 0; rightRowIx < rightRowCount; rightRowIx++) {
       int matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
-      if (resultBuilderSettings.wantsRightUnmatched() && matches == 0) {
+      if (joinKind.wantsRightUnmatched && matches == 0) {
         resultBuilder.addUnmatchedRightRow(rightRowIx);
       }
       context.safepoint();
     }
 
-    if (resultBuilderSettings.wantsLeftUnmatched()) {
+    if (joinKind.wantsLeftUnmatched) {
       for (int leftRowIx = 0; leftRowIx < leftRowCount; leftRowIx++) {
         if (!matchedLeftRows.get(leftRowIx)) {
           resultBuilder.addUnmatchedLeftRow(leftRowIx);
@@ -80,10 +79,9 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       }
     }
 
-    return resultBuilder.build();
+    return resultBuilder.buildAndInvalidate();
   }
 
-  @Override
   public void joinSubsets(
       List<Integer> leftGroup,
       List<Integer> rightGroup,
@@ -104,13 +102,13 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
     for (int rightRowIx : rightGroup) {
       int matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
-      if (resultBuilderSettings.wantsRightUnmatched() && matches == 0) {
+      if (joinKind.wantsRightUnmatched && matches == 0) {
         resultBuilder.addUnmatchedRightRow(rightRowIx);
       }
       context.safepoint();
     }
 
-    if (resultBuilderSettings.wantsLeftUnmatched()) {
+    if (joinKind.wantsLeftUnmatched) {
       for (int leftRowIx : leftGroup) {
         if (!matchedLeftRows.get(leftRowIx)) {
           resultBuilder.addUnmatchedLeftRow(leftRowIx);
@@ -162,10 +160,10 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       if (isInRange(key, lowerBound, upperBound)) {
         int leftRowIx = key.getRowIndex();
         matchCount++;
-        if (resultBuilderSettings.wantsCommon()) {
+        if (joinKind.wantsCommon) {
           resultBuilder.addMatchedRowsPair(leftRowIx, rightRowIx);
         }
-        if (resultBuilderSettings.wantsLeftUnmatched()) {
+        if (joinKind.wantsLeftUnmatched) {
           matchedLeftRows.set(leftRowIx);
         }
       }
@@ -184,7 +182,6 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     // Note: we cannot just use `compareTo`, because we are now not checking that the key is between
     // the bounds in lexicographic order.
     // Instead, we are checking if the key is between the bounds for all dimensions.
-
     int n = key.getNumberOfColumns();
     for (int i = 0; i < n; i++) {
       var keyValue = key.get(i);

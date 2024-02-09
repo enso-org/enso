@@ -17,9 +17,8 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -81,9 +80,10 @@ public abstract class CatchPanicNode extends Node {
       InteropLibrary interopLibrary) {
 
     if (profile.profile(isValueOfTypeNode.execute(panicType, payload))) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      Atom caughtPanic =
-          builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
+      var builtins = EnsoContext.get(this).getBuiltins();
+      var cons = builtins.caughtPanic().getUniqueConstructor();
+      var caughtPanic =
+          AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } else {
       try {

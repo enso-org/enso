@@ -5,11 +5,18 @@ import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
+import org.enso.compiler.core.{ExternalID, IR}
+import org.enso.compiler.core.ir.{
+  expression,
+  Diagnostic,
+  IdentifiedLocation,
+  Warning
+}
 import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
+  DataflowAnalysis,
   GatherDiagnostics
 }
 import org.enso.interpreter.instrument.execution.{
@@ -30,7 +37,9 @@ import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
+import java.util.UUID
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -307,14 +316,15 @@ final class EnsureCompiledJob(
       ctx.locking.releasePendingEditsLock()
       logger.log(
         Level.FINEST,
-        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
+        "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
+        System.currentTimeMillis() - pendingEditsLockTimestamp
       )
       ctx.locking.releaseFileLock(file)
       logger.log(
         Level.FINEST,
-        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+        "Kept file lock [EnsureCompiledJob] for {} milliseconds",
+        System.currentTimeMillis() - fileLockTimestamp
       )
-
     }
   }
 
@@ -322,19 +332,21 @@ final class EnsureCompiledJob(
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
+    * @param ir the IR of compiled module
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    oldIRs: Seq[IR]
+    ir: IR
   ): Seq[CacheInvalidation] = {
+    val resolutionErrors = findNodesWithResolutionErrors(ir)
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated
+        changeset.invalidated ++ resolutionErrors
       )
-    val oldUUIDs = oldIRs.flatMap(_.location()).flatMap(_.id()).distinct
+    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
     val invalidateStaleCommand =
-      CacheInvalidation.Command.InvalidateStale(oldUUIDs)
+      CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
@@ -349,6 +361,40 @@ final class EnsureCompiledJob(
     )
   }
 
+  /** Looks for the nodes with the resolution error and their dependents.
+    *
+    * @param ir the module IR
+    * @return the set of node ids affected by a resolution error in the module
+    */
+  private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
+    val metadata = ir
+      .unsafeGetMetadata(
+        DataflowAnalysis,
+        "Empty dataflow analysis metadata during the interactive compilation."
+      )
+
+    val resolutionNotFoundKeys =
+      ir.preorder()
+        .collect {
+          case err @ expression.errors.Resolution(
+                _,
+                expression.errors.Resolution
+                  .ResolverError(BindingsMap.ResolutionNotFound),
+                _,
+                _
+              ) =>
+            DataflowAnalysis.DependencyInfo.Type.Static(
+              err.getId(),
+              err.getExternalId
+            )
+        }
+        .toSet
+
+    resolutionNotFoundKeys.flatMap(
+      metadata.dependents.getExternal(_).getOrElse(Set())
+    )
+  }
+
   /** Run the invalidation commands.
     *
     * @param module the compiled module
@@ -360,10 +406,7 @@ final class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(
-        changeset,
-        module.getIr.preorder()
-      )
+      buildCacheInvalidationCommands(changeset, module.getIr)
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
@@ -386,7 +429,8 @@ final class EnsureCompiledJob(
     if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
+        "Invalidated visualizations [{}]",
+        invalidatedVisualizations.map(_.id)
       )
     }
 

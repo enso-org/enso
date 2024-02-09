@@ -42,7 +42,9 @@ public class DelimitedReader {
    * <p>I considered to choose `\u0F8EE` which comes from the Private Use Area of the Basic
    * Multilingual Plane. Is has no meaning designated by the Unicode standard.
    */
-  public static final char UNUSED_CHARACTER = '\0';
+  public static final char COMMENT_CHARACTER = '\0';
+
+  public static final char UNUSED_CHARACTER = '\uF8EE';
 
   private static final String COLUMN_NAME = "Column";
   private static final char noQuoteCharacter = '\0';
@@ -113,15 +115,17 @@ public class DelimitedReader {
       String commentCharacter,
       boolean warningsAsErrors,
       ProblemAggregator problemAggregator) {
-    if (delimiter.isEmpty()) {
-      throw new IllegalArgumentException("Empty delimiters are not supported.");
-    }
     if (delimiter.length() > 1) {
       throw new IllegalArgumentException(
           "Delimiters consisting of multiple characters or code units are not supported.");
     }
-
-    this.delimiter = delimiter.charAt(0);
+    if (delimiter.isEmpty()) {
+      // User wants to read each row into a single cell. So we delimit on a character that we assume
+      // is not in user data
+      this.delimiter = UNUSED_CHARACTER;
+    } else {
+      this.delimiter = delimiter.charAt(0);
+    }
 
     if (quote != null) {
       if (quote.isEmpty()) {
@@ -198,7 +202,7 @@ public class DelimitedReader {
     }
 
     if (commentCharacter == null) {
-      format.setComment(UNUSED_CHARACTER);
+      format.setComment(COMMENT_CHARACTER);
     } else {
       if (commentCharacter.length() != 1) {
         throw new IllegalArgumentException(

@@ -1,6 +1,9 @@
 import { Ast } from '@/util/ast/abstract'
 import { Prefixes } from '@/util/ast/prefixes'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
 
 test.each([
   {
@@ -67,7 +70,8 @@ test.each([
   },
 ])('modify', ({ prefixes: lines, modifications, source, target }) => {
   const prefixes = Prefixes.FromLines(lines as any)
-  const sourceAst = Ast.parseExpression(source)
+  const sourceAst = Ast.parse(source)
+  sourceAst.module.replaceRoot(sourceAst)
   const edit = sourceAst.module.edit()
   const modificationAsts = Object.fromEntries(
     Object.entries(modifications).map(([k, v]) => [
@@ -75,5 +79,6 @@ test.each([
       v ? Array.from(v, (mod) => Ast.parse(mod, edit)) : undefined,
     ]),
   )
-  expect(prefixes.modify(edit, sourceAst, modificationAsts).code(edit)).toBe(target)
+  prefixes.modify(edit.getVersion(sourceAst), modificationAsts)
+  expect(edit.root()?.code()).toBe(target)
 })

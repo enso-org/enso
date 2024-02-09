@@ -3,7 +3,6 @@ package expression
 package errors
 
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 
@@ -57,10 +56,9 @@ object Unexpected {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Unexpected
       with IRKind.Primitive
-      with org.enso.compiler.core.ir.module.scope.Definition {
+      with org.enso.compiler.core.ir.module.scope.Definition
+      with LazyId {
     override val entity: String = "type signature"
-
-    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -109,7 +107,7 @@ object Unexpected {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

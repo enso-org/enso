@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.{ir, IR, Identifier}
 
@@ -42,8 +41,8 @@ object Error {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Error
       with Diagnostic.Kind.Static
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -82,7 +81,7 @@ object Error {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

@@ -100,8 +100,14 @@ object WithDebugCommand {
           state.fail
         case Some(taskKey) =>
           val extracted = Project.extract(state)
+          // Append the java options also to the Benchmark configuration, in case we run `benchOnly`
+          // task.
+          val Benchmark = config("bench")
           val withJavaOpts = extracted.appendWithoutSession(
-            Seq(Compile / Keys.javaOptions ++= javaOpts),
+            Seq(
+              Compile / Keys.javaOptions ++= javaOpts,
+              Benchmark / Keys.javaOptions ++= javaOpts
+            ),
             state
           )
           Project

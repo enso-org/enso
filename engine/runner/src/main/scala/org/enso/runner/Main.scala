@@ -546,17 +546,19 @@ object Main {
       exitFail()
     }
 
-    val context = new ContextFactory().create(
-      packagePath,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches           = true,
-      strictErrors             = true,
-      useGlobalIrCacheLocation = shouldUseGlobalCache
-    )
+    val context = ContextFactory
+      .create()
+      .projectRoot(packagePath)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(true)
+      .strictErrors(true)
+      .useGlobalIrCacheLocation(shouldUseGlobalCache)
+      .build
+
     val topScope = context.getTopScope
     try {
       topScope.compile(shouldCompileDependencies)
@@ -600,27 +602,15 @@ object Main {
     executionEnvironment: Option[String],
     warningsLimit: Int
   ): Unit = {
-    val file = new File(path)
-    if (!file.exists) {
-      println(s"File $file does not exist.")
+    val fileAndProject =
+      Utils.findFileAndProject(path, projectPath.getOrElse(null))
+    if (fileAndProject == null) {
       exitFail()
     }
-    val projectMode = file.isDirectory
-    val projectRoot =
-      if (projectMode) {
-        projectPath match {
-          case Some(inProject) if inProject != path =>
-            println(
-              "It is not possible to run a project in context of another " +
-              "project, please do not use the `--in-project` option for " +
-              "running projects."
-            )
-            exitFail()
-          case _ =>
-        }
-        file.getAbsolutePath
-      } else projectPath.getOrElse("")
-    val options = new HashMap[String, String]()
+    val projectMode = fileAndProject._1
+    val file        = fileAndProject._2
+    val projectRoot = fileAndProject._3
+    val options     = new HashMap[String, String]()
     if (dump) {
       options.put("engine.TraceCompilation", "true")
       options.put("engine.MultiTier", "false")
@@ -628,21 +618,25 @@ object Main {
     if (inspect) {
       options.put("inspect", "")
     }
-    val context = new ContextFactory().create(
-      projectRoot,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches,
-      disablePrivateCheck,
-      strictErrors          = true,
-      enableAutoParallelism = enableAutoParallelism,
-      executionEnvironment  = executionEnvironment,
-      warningsLimit         = warningsLimit,
-      options               = options
-    )
+    val context = ContextFactory
+      .create()
+      .projectRoot(projectRoot)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(enableIrCaches)
+      .disablePrivateCheck(disablePrivateCheck)
+      .strictErrors(true)
+      .enableAutoParallelism(enableAutoParallelism)
+      .executionEnvironment(
+        if (executionEnvironment.isDefined) executionEnvironment.get else null
+      )
+      .warningsLimit(warningsLimit)
+      .options(options)
+      .build
+
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
         case Success(pkg) =>
@@ -703,15 +697,16 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
-    val executionContext = new ContextFactory().create(
-      path,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches
-    )
+    val executionContext = ContextFactory
+      .create()
+      .projectRoot(path)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(enableIrCaches)
+      .build
 
     val file = new File(path)
     val pkg  = PackageManager.Default.fromDirectory(file)
@@ -867,7 +862,12 @@ object Main {
             )
           val res = main.execute(parsedArgs: _*)
           if (!res.isNull) {
-            out.println(res);
+            val textRes = if (res.isString) {
+              res.asString
+            } else {
+              res.toString
+            }
+            out.println(textRes);
           }
         case None =>
           err.println(
@@ -906,15 +906,16 @@ object Main {
     val replModuleName = "Internal_Repl_Module___"
     val projectRoot    = projectPath.getOrElse("")
     val context =
-      new ContextFactory().create(
-        projectRoot,
-        System.in,
-        System.out,
-        Repl(makeTerminalForRepl()),
-        logLevel,
-        logMasking,
-        enableIrCaches
-      )
+      ContextFactory
+        .create()
+        .projectRoot(projectRoot)
+        .in(System.in)
+        .out(System.out)
+        .repl(Repl(makeTerminalForRepl()))
+        .logLevel(logLevel)
+        .logMasking(logMasking)
+        .enableIrCaches(enableIrCaches)
+        .build
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
     runMain(

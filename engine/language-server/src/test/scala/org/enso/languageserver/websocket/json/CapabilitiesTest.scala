@@ -3,11 +3,12 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
-class CapabilitiesTest extends BaseServerTest {
+class CapabilitiesTest extends BaseServerTest with ReportLogsOnFailure {
 
   "capability/acquire" must {
 

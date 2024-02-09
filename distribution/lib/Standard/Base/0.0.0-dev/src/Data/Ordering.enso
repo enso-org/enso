@@ -166,9 +166,11 @@ type Ordering
        Compares values and returns an Ordering.
     compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
-        if x < y then Ordering.Less else
-            if x == y then Ordering.Equal else
-                if x > y then Ordering.Greater else
+        safe_predicate ~action -> Boolean = Panic.catch Type_Error action=action (_-> False)
+
+        if safe_predicate x<y then Ordering.Less else
+            if safe_predicate x==y then Ordering.Equal else
+                if safe_predicate x>y then Ordering.Greater else
                     Error.throw (Incomparable_Values.Error x y)
 
     ## GROUP Conversions

@@ -350,7 +350,10 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => gui2::tests(&self.repo_root),
+            arg::gui2::Command::Test =>
+                try_join(gui2::tests(&self.repo_root), gui2::dashboard_tests(&self.repo_root))
+                    .void_ok()
+                    .boxed(),
             arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
@@ -441,6 +444,9 @@ impl Processor {
                     test_standard_library: true,
                     test_java_generated_from_rust: true,
                     build_benchmarks: true,
+                    // Windows is not yet supported for the native runner.
+                    build_native_runner: enso_build::ci::big_memory_machine()
+                        && TARGET_OS != OS::Windows,
                     execute_benchmarks: {
                         // Run benchmarks only on Linux.
                         let mut ret = BTreeSet::new();
@@ -450,7 +456,15 @@ impl Processor {
                         ret
                     },
                     execute_benchmarks_once: true,
-                    check_enso_benchmarks: true,
+                    // Benchmarks are only checked on Linux because:
+                    // * they are then run only on Linux;
+                    // * checking takes time;
+                    // * this rather verifies the Enso code correctness which should not be platform
+                    //   specific.
+                    // Checking benchmarks on Windows has caused some CI issues, see
+                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
+                    // possible explanation.
+                    check_enso_benchmarks: TARGET_OS == OS::Linux,
                     verify_packages: true,
                     ..default()
                 };

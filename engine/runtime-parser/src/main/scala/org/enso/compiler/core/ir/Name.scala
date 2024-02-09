@@ -1,7 +1,6 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 
 import java.util.UUID
@@ -51,10 +50,10 @@ object Name {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
+      with IRKind.Sugar
+      with LazyId {
 
     override val name: String = showCode()
-    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -113,7 +112,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -212,7 +211,8 @@ object Name {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Primitive {
+      with IRKind.Primitive
+      with LazyId {
 
     override val name: String = parts.map(_.name).mkString(".")
 
@@ -271,14 +271,11 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
     override def children: List[IR] = parts
-
-    /** @inheritdoc */
-    var id: UUID @Identifier = randomId
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
@@ -295,9 +292,9 @@ object Name {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
+      with IRKind.Sugar
+      with LazyId {
     override val name: String = "_"
-    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -331,7 +328,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -368,9 +365,9 @@ object Name {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
+      with IRKind.Sugar
+      with LazyId {
     override val name: String = s"<special::${specialName}>"
-    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -404,7 +401,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     override def mapExpressions(
@@ -461,8 +458,8 @@ object Name {
     originalName: Option[Name]     = None,
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    var id: UUID @Identifier = randomId
+  ) extends Name
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -503,7 +500,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -568,8 +565,8 @@ object Name {
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -605,7 +602,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -653,8 +650,8 @@ object Name {
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Annotation {
-    var id: UUID @Identifier = randomId
+  ) extends Annotation
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -693,7 +690,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -740,8 +737,8 @@ object Name {
     synthetic: Boolean             = false,
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    var id: UUID @Identifier  = randomId
+  ) extends Name
+      with LazyId {
     override val name: String = ConstantsNames.SELF_ARGUMENT
 
     /** Creates a copy of `self`.
@@ -777,7 +774,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -818,8 +815,8 @@ object Name {
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    var id: UUID @Identifier  = randomId
+  ) extends Name
+      with LazyId {
     override val name: String = ConstantsNames.SELF_TYPE_ARGUMENT
 
     /** Creates a copy of `Self`.
@@ -854,7 +851,7 @@ object Name {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

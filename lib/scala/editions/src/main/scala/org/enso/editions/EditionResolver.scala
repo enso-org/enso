@@ -1,6 +1,5 @@
 package org.enso.editions
 
-import cats.implicits._
 import org.enso.editions.EditionResolutionError.{
   EditionResolutionCycle,
   LibraryReferencesUndefinedRepository
@@ -73,9 +72,18 @@ case class EditionResolver(provider: EditionProvider) {
       LibraryReferencesUndefinedRepository,
       List[(LibraryName, Editions.Resolved.Library)]
     ] =
-      libraries.toList.traverse { case (name, library) =>
-        val resolved = resolveLibrary(library, currentRepositories, parent)
-        resolved.map((name, _))
+      libraries.toList
+        .map { case (name, library) =>
+          val resolved = resolveLibrary(library, currentRepositories, parent)
+          resolved.map((name, _))
+        }
+        .partition(_.isLeft) match {
+        case (Nil, libraries) =>
+          // Can't be null because we just partitioned
+          // but there is no API anymore to just get right projection
+          Right(libraries.map(_.getOrElse(null)))
+        case (failure :: _, _) =>
+          Left(failure.left.getOrElse(null))
       }
 
     resolvedPairs.map(Map.from)

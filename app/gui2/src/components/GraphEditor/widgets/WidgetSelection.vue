@@ -1,136 +1,177 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import {
+  functionCallConfiguration,
+  type ArgumentWidgetConfiguration,
+} from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { ArgumentInfoKey } from '@/util/callTree'
+import { asNot } from '@/util/data/types.ts'
+import {
+  qnLastSegment,
+  tryQualifiedName,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/qualifiedName'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 
-/** Static selection entry, label and value are the same. */
-interface StaticTag {
-  kind: 'Static'
-  label: string
+interface Tag {
+  /** If not set, the label is same as expression */
+  label?: string
+  expression: string
+  requiredImports?: RequiredImport[]
+  parameters?: ArgumentWidgetConfiguration[]
 }
 
-/** Dynamic selection entry, label and value can be different. */
-interface DynamicTag {
-  kind: 'Dynamic'
-  label: string
-  value: string
+function identToLabel(name: IdentifierOrOperatorIdentifier): string {
+  return name.replaceAll('_', ' ')
 }
-type Tag = StaticTag | DynamicTag
+
+function tagFromExpression(expression: string): Tag {
+  const qn = tryQualifiedName(expression)
+  if (!qn.ok) return { expression }
+  const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
+  if (entry) return tagFromEntry(entry)
+  return {
+    label: identToLabel(qnLastSegment(qn.value)),
+    expression: qn.value,
+  }
+}
+
+function tagFromEntry(entry: SuggestionEntry): Tag {
+  return {
+    label: identToLabel(entry.name),
+    expression:
+      entry.selfType != null
+        ? `_.${entry.name}`
+        : entry.memberOf
+        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+        : entry.name,
+    requiredImports: requiredImports(suggestions.entries, entry),
+  }
+}
 
 const staticTags = computed<Tag[]>(() => {
-  const tags = props.input.info?.tagValues
+  const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((tag) => {
-    const qualifiedName = tryQualifiedName(tag)
-    if (!qualifiedName.ok) return { kind: 'Static', label: tag }
-    const segments = qnSegments(qualifiedName.value).slice(-2)
-    if (segments[0] == undefined) return { kind: 'Static', label: tag }
-    if (segments[1] == undefined) return { kind: 'Static', label: segments[0] }
-    return { kind: 'Static', label: qnJoin(segments[0], segments[1]) }
-  })
+  return tags.map(tagFromExpression)
 })
 
 const dynamicTags = computed<Tag[]>(() => {
-  const config = props.config
-  if (config == null) return []
-  const [_, widgetConfig] = config.find(([name]) => name === props.input.info?.name) ?? []
-  if (widgetConfig && widgetConfig.kind == 'Single_Choice') {
-    return widgetConfig.values.map((value) => ({
-      kind: 'Dynamic',
-      label: value.label || value.value,
-      value: value.value,
-    }))
-  } else {
-    return []
-  }
+  const config = props.input.dynamicConfig
+  if (config?.kind !== 'Single_Choice') return []
+  return config.values.map((value) => ({
+    ...tagFromExpression(value.value),
+    ...(value.label ? { label: value.label } : {}),
+    parameters: value.parameters,
+  }))
 })
 
 const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
-const tagLabels = computed(() => tags.value.map((tag) => tag.label))
-const tagValues = computed(() => {
-  return tags.value.map((tag) => (tag.kind == 'Static' ? tag.label : tag.value))
-})
+const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
-const rootElement = ref<HTMLElement>()
-const parentColor = ref<string>()
+const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
-onMounted(async () => {
-  await nextTick()
-  if (rootElement.value != null) {
-    parentColor.value = getComputedStyle(rootElement.value).getPropertyValue('--node-color-primary')
+const selectedIndex = ref<number>()
+const selectedTag = computed(() => {
+  if (selectedIndex.value != null) {
+    return tags.value[selectedIndex.value]
+  } else {
+    const currentExpression = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (!currentExpression) return undefined
+    // We need to find the tag that matches the (beginning of) current expression.
+    // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
+    const sortedTags = tags.value
+      .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
+      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
+    return index != null ? tags.value[index] : undefined
   }
 })
 
-const selectedIndex = ref<number>()
-const selectedValue = computed(() => {
-  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
-  return tagValues.value[selectedIndex.value] ?? ''
+const selectedExpression = computed(() => {
+  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
+  return selectedTag.value.expression
 })
-const selectedLabel = computed(() => {
-  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
-  return tagLabels.value[selectedIndex.value] ?? ''
+const innerWidgetInput = computed(() => {
+  if (selectedTag.value == null) return props.input
+  const parameters = selectedTag.value.parameters
+  if (!parameters) return props.input
+  const config = functionCallConfiguration(parameters)
+  return { ...props.input, dynamicConfig: config }
 })
 const showDropdownWidget = ref(false)
 
+function toggleDropdownWidget() {
+  showDropdownWidget.value = !showDropdownWidget.value
+}
+
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  // TODO: Handle the case for ArgumentPlaceholder once the AST has been updated,
-  const id = props.input instanceof ArgumentAst ? props.input.ast.astId : undefined
-  const expression = selectedValue.value ?? ''
-  if (id) graph.setExpressionContent(id, expression)
+  let edit: Ast.MutableModule | undefined
+  if (selectedTag.value?.requiredImports) {
+    edit = graph.startEdit()
+    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+  }
+  props.onUpdate({
+    edit,
+    portUpdate: {
+      value: selectedExpression.value,
+      origin: asNot<TokenId>(props.input.portId),
+    },
+  })
   showDropdownWidget.value = false
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
-  priority: 999,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 50,
   score: (props) => {
-    const tags = props.input.info?.tagValues
-    const [_, dynamicConfig] = props.config?.find(([name]) => name === props.input.info?.name) ?? []
-    const isSuitableDynamicConfig = dynamicConfig && dynamicConfig.kind === 'Single_Choice'
-    if (tags == null && !isSuitableDynamicConfig) return Score.Mismatch
-    return Score.Perfect
+    if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
+    if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
+    return Score.Mismatch
   },
 })
 </script>
 
 <template>
-  <div ref="rootElement" class="WidgetRoot">
-    <span
-      class="SelectionWidgetArgumentValue"
-      @pointerdown="showDropdownWidget = !showDropdownWidget"
-    >
-      <NodeWidget :input="props.input" />
-      <template v-if="props.input instanceof ArgumentPlaceholder">
-        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
-      </template>
-    </span>
-    <div class="SelectionWidgetSingleChoice">
-      <DropdownWidget
-        v-if="showDropdownWidget"
-        :color="parentColor ?? 'white'"
-        :values="tagLabels"
-        :selectedValue="selectedLabel"
-        @click="selectedIndex = $event"
-      />
-    </div>
+  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
+    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
+    <SvgIcon name="arrow_right_head_only" class="arrow" />
+    <DropdownWidget
+      v-if="showDropdownWidget"
+      class="dropdownContainer"
+      :color="'var(--node-color-primary)'"
+      :values="tagLabels"
+      :selectedValue="selectedExpression"
+      @pointerdown.stop
+      @click="selectedIndex = $event"
+    />
   </div>
 </template>
+
 <style scoped>
-.SelectionWidgetArgumentValue {
-  margin-left: 8px;
+.WidgetSelection {
+  display: flex;
+  flex-direction: row;
 }
-.SelectionWidgetSingleChoice {
+
+.arrow {
   position: absolute;
-  top: 100%;
-  margin-top: 4px;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
 }
 </style>

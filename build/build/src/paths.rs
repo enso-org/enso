@@ -32,6 +32,12 @@ ide_ci::define_env_var! {
 
     /// If Enso-specific assertions should be enabled.
     ENSO_ENABLE_ASSERTIONS, String;
+
+    /// If true, enso tests output will be colored.
+    ENSO_TEST_ANSI_COLORS, String;
+
+    /// Can be set to `"espresso"` to enable Espresso interpreter support.
+    ENSO_JAVA, String;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
@@ -43,7 +49,7 @@ pub const LIBRARIES_TO_TEST: [&str; 7] = [
     // Temporarily disabled due to https://www.pivotaltracker.com/story/show/184042416
     // "Meta_Test_Suite_Tests",
     "Table_Tests",
-    "Tests",
+    "Base_Tests",
     "AWS_Tests",
     "Visualization_Tests",
 ];
@@ -81,16 +87,10 @@ impl TargetTriple {
 
     /// Get the triple effectively used by the Engine build.
     ///
-    /// As the GraalVM we use does not support native Aarch64 builds, it should be treated as amd64
-    /// there.
+    /// This might differ from `self` if Engine for some reason needs to cross-compile. Currently
+    /// this is not the case, previously it was used to force x64 on Applce Silicon.
     pub fn engine(&self) -> Self {
-        let mut ret = self.clone();
-        ret.arch = if self.arch == Arch::AArch64 && self.os == OS::MacOS {
-            Arch::X86_64
-        } else {
-            self.arch
-        };
-        ret
+        self.clone()
     }
 
     /// Pretty prints architecture for our packages. Conform to GraalVM scheme as well.

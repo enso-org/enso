@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
@@ -40,8 +39,8 @@ object Type {
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Type {
-    var id: UUID @Identifier = randomId
+  ) extends Type
+      with LazyId {
 
     def copy(
       args: List[Expression]               = args,
@@ -83,7 +82,7 @@ object Type {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -122,6 +121,7 @@ object Type {
     *
     * @param typed       the expression being ascribed a type
     * @param signature   the signature being ascribed to `typed`
+    * @param comment     a comment that may be used to add context to the type error
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
@@ -129,18 +129,20 @@ object Type {
   sealed case class Ascription(
     typed: Expression,
     signature: Expression,
+    comment: Option[String],
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with module.scope.Definition
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
       * @param typed       the expression being ascribed a type
       * @param signature   the signature being ascribed to `typed`
+      * @param comment     a comment that may be used to add context to the type error
       * @param location    the source location that the node corresponds to
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -150,12 +152,14 @@ object Type {
     def copy(
       typed: Expression                    = typed,
       signature: Expression                = signature,
+      comment: Option[String]              = comment,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Ascription = {
-      val res = Ascription(typed, signature, location, passData, diagnostics)
+      val res =
+        Ascription(typed, signature, comment, location, passData, diagnostics)
       res.id = id
       res
     }
@@ -185,7 +189,7 @@ object Type {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -205,6 +209,7 @@ object Type {
       s"""Type.Ascription(
          |typed = $typed,
          |signature = $signature,
+         |comment = $comment,
          |location = $location,
          |passData = ${this.showPassData},
          |diagnostics = $diagnostics,
@@ -240,8 +245,8 @@ object Type {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates ac opy of `this`.
       *
@@ -291,7 +296,7 @@ object Type {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -344,8 +349,8 @@ object Type {
     override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
-      with IRKind.Primitive {
-    var id: UUID @Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -395,7 +400,7 @@ object Type {
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

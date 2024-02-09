@@ -64,6 +64,46 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void testDesugarOperators() throws Exception {
+    var module = ctx.eval("enso", """
+    main =
+      ma ==ums==
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: The name `ma` could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsLeftRight() throws Exception {
+    var module = ctx.eval("enso", """
+    main = (+ (2 *))
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Unnamed could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsRightLeft() throws Exception {
+    var module = ctx.eval("enso", """
+    main = ((* 2) +)
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
   public void testHalfAssignment() throws Exception {
     var module =
         ctx.eval(
@@ -236,11 +276,12 @@ public class ExecCompilerTest {
         ctx.eval(
             "enso",
             """
-    type My_Type
-        Value x
+            import Standard.Base.Data.Numbers
+            type My_Type
+                Value x
 
-        member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
-    """);
+                member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+            """);
     var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
     var result = instance.invokeMember("member_foo", 2, 3);
     assertEquals(321, result.asInt());

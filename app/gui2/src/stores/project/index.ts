@@ -35,7 +35,7 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject, type ExternalId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -107,7 +107,7 @@ export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
   'executionContextId'
 > & {
-  expressionId: ExprId
+  expressionId: ExternalId
 }
 
 interface ExecutionContextState {
@@ -399,7 +399,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
-  recompute(expressionIds: 'all' | ExprId[] = 'all', executionEnvironment?: ExecutionEnvironment) {
+  recompute(
+    expressionIds: 'all' | ExternalId[] = 'all',
+    executionEnvironment?: ExecutionEnvironment,
+  ) {
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
       await state.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
@@ -441,6 +444,7 @@ export const useProjectStore = defineStore('project', () => {
   const config = injectGuiConfig()
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
+  const projectDisplayName = config.value.startup?.displayedProjectName ?? projectName
 
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
@@ -495,6 +499,7 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     if (lsUrls.rpcUrl.startsWith('mock://')) {
       doc.load()
@@ -506,16 +511,14 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(
+    yDocsProvider = attachProvider(
       socketUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
       awareness.internal,
     )
-    onCleanup(() => {
-      provider.dispose()
-    })
+    onCleanup(disposeYDocsProvider)
   })
 
   const projectModel = new DistributedProject(doc)
@@ -636,7 +639,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function executeExpression(
-    expressionId: ExprId,
+    expressionId: ExternalId,
     expression: string,
   ): Promise<Result<string> | null> {
     return new Promise((resolve) => {
@@ -671,11 +674,17 @@ export const useProjectStore = defineStore('project', () => {
 
   const { executionMode } = setupSettings(projectModel)
 
+  function disposeYDocsProvider() {
+    yDocsProvider?.dispose()
+    yDocsProvider = undefined
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
     name: projectName,
+    displayName: projectDisplayName,
     isOnLocalBackend,
     executionContext,
     firstExecution,
@@ -694,6 +703,7 @@ export const useProjectStore = defineStore('project', () => {
     executionMode,
     dataflowErrors,
     executeExpression,
+    disposeYDocsProvider,
   }
 })
 

@@ -74,11 +74,11 @@ polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Jo
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.error.UnmatchedRow
-polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
@@ -103,7 +103,7 @@ type Table
     new columns =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
-        cols = columns.map on_problems=No_Wrap.Value c->
+        cols = columns.map on_problems=No_Wrap c->
             case c of
                 v : Vector ->
                     if v.length != 2 then invalid_input_shape else
@@ -302,6 +302,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
@@ -724,6 +725,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -971,7 +973,7 @@ type Table
                 False ->
                     Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-            new_columns = self.columns.map on_problems=No_Wrap.Value column-> if selected_column_names.contains_key column.name . not then column else
+            new_columns = self.columns.map on_problems=No_Wrap column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -1137,6 +1139,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -1348,7 +1351,7 @@ type Table
     expand_to_rows self column at_least_one_row=False =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row
 
-    ## ALIAS filter rows
+    ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -1483,7 +1486,8 @@ type Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
@@ -1694,6 +1698,7 @@ type Table
             Column.Value (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1822,7 +1827,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1869,12 +1874,14 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS lookup
+       GROUP Standard.Base.Calculations
        ICON join
-       Replaces values in this table by values from a lookup table.
+       Merges this table with a lookup table
        New values are looked up in the lookup table based on the `key_columns`.
-       Columns found in the lookup table values are replaced by values from the
-       lookup. Columns not found are left unchanged.
+       Columns that exist in the lookup table where a match was found are
+       replaced by values from the lookup table. Columns not found are left
+       unchanged.
        This operation is similar to `Table.update_rows`, but just returns a new
        `Table` instance, instead of updating the table in-place (which is only
        possible for Database tables).
@@ -1911,7 +1918,7 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a key column contains `Nothing` values, either in the lookup table,
+         - If a key column contains `Nothing` values in the lookup table,
            a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
@@ -1923,14 +1930,14 @@ type Table
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map make_java_lookup_column_description
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
 
         keys = lookup_columns.filter .is_key
-        java_keys = keys.map key_column->
+        java_keys = keys.map on_problems=No_Wrap key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 
         handle_java_errors ~action =
@@ -1956,6 +1963,112 @@ type Table
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
                 Table.Value java_table
+
+    ## ALIAS find replace
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Replaces values in `column` using `lookup_table` to specify a
+       mapping from old to new values.
+
+       Arguments:
+       - lookup_table: the table to use as a mapping from old to new values. A
+         `Map` can also be used here (in which case passing `from_column` or
+         `to_column` is disallowed and will throw an `Illegal_Argument` error.
+       - column: the column within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against `column`
+         in `self`.
+       - to_column: the column within `lookup_table` to get new values from.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified by `from_column`, `to_column`, or `column`, a
+           `Missing_Input_Columns` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+
+       > Example
+         Replace values in column 'x' using a lookup table.
+
+             table = Table.new [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']], ['z', ['e', 'f', 'g', 'h']]]
+             #      | x | y | z
+             #   ---+---+---+---
+             #    0 | 1 | a | e
+             #    1 | 2 | b | f
+             #    2 | 3 | c | g
+             #    3 | 4 | d | h
+
+             lookup_table = Table.new [['x', [1, 2, 3, 4]], ['new_x', [10, 20, 30, 40]]]
+             #      | old_x | new_x
+             #   ---+-------+-------
+             #    0 | 1     | 10
+             #    1 | 2     | 20
+             #    2 | 3     | 30
+             #    3 | 4     | 40
+
+             result = table.replace lookup_table 'x'
+             #      | x  | y | z
+             #   ---+----+---+---
+             #    0 | 10 | a | e
+             #    1 | 20 | b | f
+             #    2 | 30 | c | g
+             #    3 | 40 | d | h
+    @column Widget_Helpers.make_column_name_selector
+    @from_column Widget_Helpers.make_column_name_selector
+    @to_column Widget_Helpers.make_column_name_selector
+    replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        case lookup_table of
+            _ : Map ->
+                if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
+                    self.replace (map_to_lookup_table lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+            _ : Table ->
+                from_column_resolved = from_column.if_nothing 0
+                to_column_resolved = to_column.if_nothing 1
+                selected_lookup_columns = lookup_table.select_columns [from_column_resolved, to_column_resolved]
+                self.select_columns column . if_not_error <| selected_lookup_columns . if_not_error <|
+                    unique = self.column_naming_helper.create_unique_name_strategy
+                    unique.mark_used (self.column_names)
+
+                    ## We perform a `merge` into `column`, using a duplicate of `column`
+                       as the key column to join with `from_column`.
+
+                    duplicate_key_column_name = unique.make_unique "duplicate_key"
+                    duplicate_key_column = self.at column . rename duplicate_key_column_name
+                    self_with_duplicate = self.set duplicate_key_column set_mode=Set_Mode.Add
+
+                    ## Create a lookup table with just `to_column` and `from_column`,
+                       renamed to match the base table's `column` and its duplicate,
+                       respectively.
+                    lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
+
+                    merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                    merged.remove_columns duplicate_key_column_name
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2191,7 +2304,8 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning max_rows
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
@@ -2343,7 +2457,7 @@ type Table
         normalize_group_by input = case input of
             Aggregate_Column.Group_By c _ -> c
             _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
-            _ : Vector -> input.map on_problems=No_Wrap.Value normalize_group_by
+            _ : Vector -> input.map on_problems=No_Wrap normalize_group_by
             _ -> input
 
         ## validate the name and group_by columns
@@ -2358,7 +2472,7 @@ type Table
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        resolved_values = values_vector.map on_problems=No_Wrap.Value (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        resolved_values = values_vector.map on_problems=No_Wrap (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
@@ -2408,6 +2522,7 @@ type Table
         Table.Value (self.java_table.slice offset limit)
 
     ## GROUP Standard.Base.Selections
+       ICON order
        Returns a table containing the rows of `self` table with their order
        reversed.
 
@@ -2419,7 +2534,7 @@ type Table
              example_reverse = Examples.inventory_table.reverse
     reverse : Table
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.row_count
+        mask = OrderMask.reverse self.row_count
         Table.Value <| self.java_table.applyMask mask
 
     ## GROUP Standard.Base.Output
@@ -2484,14 +2599,13 @@ type Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     @format Widget_Helpers.write_table_selector
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
-        file = File.new path
+    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         case format of
             _ : Auto_Detect ->
-                base_format = format.get_writing_format file
-                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
-                    self.write file format=base_format on_existing_file match_columns on_problems
+                base_format = format.get_writing_format path
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path Table) else
+                    self.write path format=base_format on_existing_file match_columns on_problems
             _ ->
                 handle_no_write_method caught_panic =
                     is_write = caught_panic.payload.method_name == "write_table"
@@ -2499,11 +2613,72 @@ type Table
                         Error.throw (File_Error.Unsupported_Output_Type format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
                     to_write = if Context.Output.is_enabled then self else self.take 1000
-                    format.write_table file to_write on_existing_file match_columns on_problems
+                    format.write_table path to_write on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
+    
+    ## GROUP Standard.Base.Conversions
+       Returns a string containing an XML representation of the table.
+       Arguments:
+       - element_columns: Columns to be used as elements in the XML.
+       - attribute_columns: Columns to be used as attributes in the XML.
+       - value_column: Column to be used as the value for the row tag in the XML.
+       - root_name: The name of the root tag in the XML.
+       - row_name: The name of the row tag in the XML.
+       - on_problems: Specifies how to handle warnings if they occur, reporting
+         them as warnings by default.     
+
+       ! Error Conditions
+
+         - If a column in `element_columns`, `attribute_columns` or `value_column` is not in 
+           the input table, a `Missing_Input_Columns` is raised as an error.
+         - If any incomming columns aree not specified in one of `element_columns`, 
+           `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
+           is reported according to the `on_problems` setting.
+
+       ? Example to_xml Operation
+
+         Input Table `table`:
+
+            Title                  | Author              | Price | Year 
+           ------------------------+---------------------+-------+------
+            A Tale Of Two Cities   | Charles Dickens     | 9.99  | 1859 
+            The Great Gatsby       | F. Scott Fitzgerald | 5.99  | 1925 
+
+         Result `r = t.to_xml ["Year"] ["Author", "Price"] "Title" "Books" "Book"`:
+
+            <Books>
+              <Book Author="Charles Dickens" Price="9.99">
+                A Tale Of Two Cities
+                <Year>1859</Year>
+              </Book>
+              <Book Author="F. Scott Fitzgerald" Price="5.99">
+                The Great Gatsby
+                <Year>1925</Year>
+              </Book>
+            </Books>
+    @element_columns Widget_Helpers.make_column_name_vector_selector
+    @attribute_columns Widget_Helpers.make_column_name_vector_selector
+    @value_column Widget_Helpers.make_column_name_selector
+    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = Report_Warning) -> Text =
+        columns_helper = self.columns_helper
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+        resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
+        java_element_columns = resolved_element_columns.map .java_column
+
+        resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
+        java_attribute_column = resolved_attribute_columns.map .java_column
+
+        resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
+        java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
+
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column]) . map .name
+        if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
+        
+        problem_builder.attach_problems_before on_problems <|
+            Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -2588,7 +2763,7 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.replace "-" "_"
+             table.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
@@ -2602,8 +2777,8 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @term Widget_Helpers.make_column_ref_or_text_value_selector
     @new_text Widget_Helpers.make_column_ref_or_text_value_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
-    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -2700,6 +2875,13 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
         Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
+   A helper that creates a two-column table from a map.
+map_to_lookup_table : Map Any Any -> Text -> Text -> Table
+map_to_lookup_table map key_column value_column =
+    keys_and_values = map.to_vector
+    Table.new [[key_column, keys_and_values.map .first], [value_column, keys_and_values.map .second]]
+
+## PRIVATE
    Conversion method to a Table from a Column.
 Table.from (that:Column) = that.to_table
 
@@ -2725,10 +2907,9 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
    Arguments:
    - that: The table to convert.
    - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    case format of
-        _ : Delimited_Format -> Delimited_Writer.write_text that format
-        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') = case format of
+    _ : Delimited_Format -> Delimited_Writer.write_text that format
+    _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
@@ -2738,6 +2919,14 @@ Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table
    Conversion method to a Table from a JS_Object.
 Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Range) (name:Text="Range") = Table.new [Column.from_vector name that.to_vector]
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Table.from (that:Date_Range) (name:Text=that.default_column_name) = Table.new [Column.from_vector name that.to_vector]
 
 ## PRIVATE
    Convert an `XML_Element` into a `Table`

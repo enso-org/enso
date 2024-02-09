@@ -80,6 +80,7 @@ type Regex
     to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
     ## GROUP Text
+       ICON preparation
        Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
 
@@ -92,6 +93,7 @@ type Regex
             m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Match` containing the matched text and its match groups, or
@@ -99,7 +101,7 @@ type Regex
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match | Nothing | Type_Error
+    match : Text -> Match | Nothing ! Type_Error
     match self input =
         Helpers.expect_text input <|
             it = Match_Iterator.new self input
@@ -108,6 +110,7 @@ type Regex
                 Match_Iterator_Value.Last _ -> Nothing
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Match` object, each containing the matched text
@@ -230,6 +233,7 @@ type Regex
         self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## GROUP Text
+       ICON text
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 

@@ -1,48 +1,77 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-
 const graph = useGraphStore()
+
 const value = computed({
   get() {
-    return props.input.code().endsWith('True') ?? false
+    return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const node = getRawBoolNode(props.input)
-    if (node != null) {
-      graph.setExpressionContent(node.astId, value ? 'True' : 'False')
+    const edit = graph.startEdit()
+    if (props.input.value instanceof Ast.Ast) {
+      setBoolNode(
+        edit.getVersion(props.input.value),
+        value ? ('True' as Identifier) : ('False' as Identifier),
+      )
+      props.onUpdate({ edit })
+    } else {
+      graph.addMissingImports(edit, [
+        {
+          kind: 'Unqualified',
+          from: 'Standard.Base.Data.Boolean' as QualifiedName,
+          import: 'Boolean' as Identifier,
+        },
+      ])
+      props.onUpdate({
+        edit,
+        portUpdate: {
+          value: value ? 'Boolean.True' : 'Boolean.False',
+          origin: asNot<TokenId>(props.input.portId),
+        },
+      })
     }
   },
 })
 </script>
 
 <script lang="ts">
-function getRawBoolNode(ast: Ast.Ast) {
+function isBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs : ast
-  if (candidate instanceof Ast.Ident && ['True', 'False'].includes(candidate.code())) {
-    return candidate
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
+      ? ast.rhs
+      : ast instanceof Ast.Ident
+      ? ast.token
+      : undefined
+  return candidate && ['True', 'False'].includes(candidate.code())
+}
+function setBoolNode(ast: Ast.Mutable, value: Identifier) {
+  if (ast instanceof Ast.MutablePropertyAccess) {
+    ast.setRhs(value)
+  } else {
+    assert(ast instanceof Ast.MutableIdent)
+    ast.setToken(value)
   }
-  return null
 }
 
-export const widgetDefinition = defineWidget(
-  (input) => input instanceof Ast.PropertyAccess || input instanceof Ast.Ident,
-  {
-    priority: 10,
-    score: (props) => {
-      if (getRawBoolNode(props.input) != null) {
-        return Score.Perfect
-      }
-      return Score.Mismatch
-    },
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 500,
+  score: (props) => {
+    if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
+    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
+      ? Score.Good
+      : Score.Mismatch
   },
-)
+})
 </script>
 
 <template>

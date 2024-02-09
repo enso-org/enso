@@ -125,7 +125,7 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
 Table.update_rows : Database_Table | Table -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 Table.update_rows self (source_table : Database_Table | Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = Nothing) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     _ = [source_table, update_action, key_columns, error_on_missing_columns, on_problems]
-    Error.throw (Illegal_Argument.Error "Table.update_rows modifies the underlying table, so it is only supported for Database tables - in-memory tables are immutable. Consider using `join` or `lookup_and_replace` for a similar operation that creates a new Table instead.")
+    Error.throw (Illegal_Argument.Error "Table.update_rows modifies the underlying table, so it is only supported for Database tables - in-memory tables are immutable. Consider using `join` or `merge` for a similar operation that creates a new Table instead.")
 
 ## GROUP Standard.Base.Output
    ICON data_output

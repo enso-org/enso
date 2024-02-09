@@ -14,9 +14,10 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
+import type { AstId } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import type { ExprId } from 'shared/yjsModel'
+import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 test.each([
@@ -97,10 +98,11 @@ test.each([
       selfArg?: { type: string; typename?: string }
     },
   ) => {
-    const operator1Id: ExprId = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as ExprId
-    const operator2Id: ExprId = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as ExprId
+    const operator1Id = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as AstId
+    const operator1ExternalId = operator1Id as Uuid as ExternalId
+    const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as AstId
     const computedValueRegistryMock = ComputedValueRegistry.Mock()
-    computedValueRegistryMock.db.set(operator1Id, {
+    computedValueRegistryMock.db.set(operator1ExternalId, {
       typename: 'Standard.Base.Number',
       methodCall: undefined,
       payload: { type: 'Value' },

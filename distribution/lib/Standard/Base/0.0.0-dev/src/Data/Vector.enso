@@ -397,6 +397,7 @@ type Vector a
                 used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
@@ -418,6 +419,7 @@ type Vector a
         0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this vector.
 
        Arguments:
@@ -439,6 +441,7 @@ type Vector a
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this vector contains a given value as an element.
 
        Arguments:
@@ -452,6 +455,7 @@ type Vector a
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is empty.
 
        > Example
@@ -462,6 +466,7 @@ type Vector a
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is not empty.
 
        > Example
@@ -513,7 +518,7 @@ type Vector a
         builder.to_vector
 
     ## GROUP Selections
-       ICON preparation
+       ICON split_text
        Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -791,6 +796,7 @@ type Vector a
 
     ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -852,6 +858,7 @@ type Vector a
     remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
     ## GROUP Calculations
+       ICON join
        When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -909,7 +916,8 @@ type Vector a
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## GROUP Selections
+    ## ALIAS skip
+       GROUP Selections
        ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 
@@ -1214,11 +1222,13 @@ type Builder
     new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.java_builder.isEmpty
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
@@ -1289,6 +1299,7 @@ type Builder
     unsafe_append self item = self.java_builder.add item
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
@@ -1324,6 +1335,7 @@ type Builder
     last self = self.at -1
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of this builder.
 
        Arguments:
@@ -1354,12 +1366,20 @@ type Builder
         Vector.from_polyglot_array self.java_builder.toArray
 
 ## PRIVATE
-   Describes an error produced by a function mapped over a Vector. Includes the
-   funtion argument's position in the vector.
+   Describes an error attached to a value within a `Vector`. The `index` field
+   contains the index into the `Vector` at which the error occurred.
+
+   If a value is nested within multiple `Vector`s, its warnings are wrapped
+   with `Map_Error` multiple times. The outermost `Map_Error` index indicates
+   the index into the outermost `Vector`, the second `Map_Error` index the index
+   into the sub-`Vector` within the outermost `Vector`, and so on.
 
    An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
    as itself. In the latter case, the `Map_Error` wrapper is stripped off.
+@Builtin_Type
 type Map_Error
+    ## PRIVATE
+       Creates a new `Map_Error` from the given index and underlying error.
     Error (index:Integer) inner_error
 
     ## PRIVATE
@@ -1369,8 +1389,8 @@ type Map_Error
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
 type No_Wrap
-    Value
 
+## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
 
 ## PRIVATE

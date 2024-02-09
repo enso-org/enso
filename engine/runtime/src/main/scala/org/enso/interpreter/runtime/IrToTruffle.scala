@@ -75,10 +75,6 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{
-  ConstantNode,
-  QualifiedAccessorNode
-}
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
@@ -88,13 +84,14 @@ import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   BaseNode,
   ClosureRootNode,
+  ConstantNode,
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
-import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
+import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
@@ -542,17 +539,40 @@ class IrToTruffle(
                     effectContext,
                     true
                   )
-                val rootNode = MethodRootNode.build(
-                  language,
-                  expressionProcessor.scope,
-                  moduleScope,
-                  () => bodyBuilder.bodyNode(),
-                  makeSection(moduleScope, methodDef.location),
-                  cons,
-                  methodDef.methodName.name
-                )
+
+                val operators = ".!$%&*+-/<>?^~\\"
+                def isOperator(n: Name): Boolean = {
+                  n.name
+                    .chars()
+                    .allMatch(operators.indexOf(_) >= 0)
+                }
+
+                val arguments = bodyBuilder.args()
+                val rootNode =
+                  if (arguments.size == 2 && isOperator(methodDef.methodName)) {
+                    MethodRootNode.buildOperator(
+                      language,
+                      expressionProcessor.scope,
+                      moduleScope,
+                      () => bodyBuilder.argsExpr._1(0),
+                      () => bodyBuilder.argsExpr._1(1),
+                      () => bodyBuilder.argsExpr._2,
+                      makeSection(moduleScope, methodDef.location),
+                      cons,
+                      methodDef.methodName.name
+                    )
+                  } else {
+                    MethodRootNode.build(
+                      language,
+                      expressionProcessor.scope,
+                      moduleScope,
+                      () => bodyBuilder.bodyNode(),
+                      makeSection(moduleScope, methodDef.location),
+                      cons,
+                      methodDef.methodName.name
+                    )
+                  }
                 val callTarget = rootNode.getCallTarget
-                val arguments  = bodyBuilder.args()
                 // build annotations
                 val annotations =
                   methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
@@ -713,24 +733,24 @@ class IrToTruffle(
   // ==========================================================================
 
   private def extractAscribedType(
-    name: Name,
+    comment: String,
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
       ReadArgumentCheckNode.oneOf(
-        name,
-        u.operands.map(extractAscribedType(name, _)).asJava
+        comment,
+        u.operands.map(extractAscribedType(comment, _)).asJava
       )
     case i: `type`.Set.Intersection =>
       ReadArgumentCheckNode.allOf(
-        name,
-        extractAscribedType(name, i.left),
-        extractAscribedType(name, i.right)
+        comment,
+        extractAscribedType(comment, i.left),
+        extractAscribedType(comment, i.right)
       )
-    case p: Application.Prefix => extractAscribedType(name, p.function)
+    case p: Application.Prefix => extractAscribedType(comment, p.function)
     case _: Tpe.Function =>
       ReadArgumentCheckNode.build(
-        name,
+        comment,
         context.getTopScope().getBuiltins().function()
       )
     case t => {
@@ -740,7 +760,7 @@ class IrToTruffle(
                 .Resolution(BindingsMap.ResolvedType(mod, tpe))
             ) =>
           ReadArgumentCheckNode.build(
-            name,
+            comment,
             asScope(
               mod
                 .unsafeAsModule()
@@ -753,7 +773,7 @@ class IrToTruffle(
                 .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
             ) =>
           ReadArgumentCheckNode.meta(
-            name,
+            comment,
             asScope(
               mod
                 .unsafeAsModule()
@@ -768,7 +788,8 @@ class IrToTruffle(
   private def checkAsTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
-    arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
+    val comment = "`" + arg.name.name + "`"
+    arg.ascribedType.map(extractAscribedType(comment, _)).getOrElse(null)
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -876,21 +897,8 @@ class IrToTruffle(
   }
 
   private def generateReExportBindings(module: Module): Unit = {
-    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
-      new RuntimeFunction(
-        new QualifiedAccessorNode(language, constructor).getCallTarget,
-        null,
-        new FunctionSchema(
-          new ArgumentDefinition(
-            0,
-            ConstantsNames.SELF_ARGUMENT,
-            null,
-            null,
-            ArgumentDefinition.ExecutionMode.EXECUTE
-          )
-        )
-      )
-    }
+    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
+      constructor.getAccessorFunction()
 
     def mkTypeGetter(tp: Type): RuntimeFunction = {
       new RuntimeFunction(
@@ -1074,9 +1082,11 @@ class IrToTruffle(
       ir match {
         case _: Expression.Binding =>
         case _ =>
-          val types = ir.getMetadata(TypeSignatures)
+          val types: Option[TypeSignatures.Signature] =
+            ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
-            val checkNode = extractAscribedType(null, tpe.signature);
+            val checkNode =
+              extractAscribedType(tpe.comment.orNull, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
                 ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
@@ -1885,12 +1895,14 @@ class IrToTruffle(
     ) {
       private val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
       private lazy val slots = computeSlots()
-      private lazy val bodyN = computeBodyNode()
+      lazy val argsExpr      = computeArgsAndExpression()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression     = bodyN
+      def bodyNode(): RuntimeExpression =
+        BlockNode.build(argsExpr._1.toArray, argsExpr._2)
 
-      private def computeBodyNode(): RuntimeExpression = {
+      private def computeArgsAndExpression()
+        : (Array[RuntimeExpression], RuntimeExpression) = {
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
@@ -1904,7 +1916,7 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        BlockNode.build(argExpressions.toArray, bodyExpr)
+        (argExpressions.toArray, bodyExpr)
       }
 
       private def computeSlots(): (

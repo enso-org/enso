@@ -1,37 +1,58 @@
 <script setup lang="ts">
-import SliderWidget from '@/components/widgets/SliderWidget.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
+import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
 const value = computed({
   get() {
-    return parseFloat(props.input.code() ?? '')
+    const valueStr = WidgetInput.valueRepr(props.input)
+    return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
-    const id = props.input.astId
-    if (id) graph.setExpressionContent(id, value.toString())
+    props.onUpdate({
+      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
+    })
   },
+})
+
+const limits = computed(() => {
+  const config = props.input.dynamicConfig
+  if (config?.kind === 'Numeric_Input' && config?.minimum != null && config?.maximum != null) {
+    return { min: config.minimum, max: config.maximum }
+  } else {
+    return undefined
+  }
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  (input) =>
-    input instanceof Ast.NumericLiteral ||
-    (input instanceof Ast.NegationOprApp && input.argument instanceof Ast.NumericLiteral),
-  {
-    priority: 10,
-    score: Score.Perfect,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 1001,
+  score: (props) => {
+    if (
+      props.input.value instanceof Ast.NumericLiteral ||
+      (props.input.value instanceof Ast.NegationApp &&
+        props.input.value.argument instanceof Ast.NumericLiteral)
+    )
+      return Score.Perfect
+    const type = props.input.expectedType
+    if (
+      type === 'Standard.Base.Data.Number' ||
+      type === 'Standard.Base.Data.Numbers.Integer' ||
+      type === 'Standard.Data.Numbers.Float'
+    )
+      return Score.Good
+    return Score.Mismatch
   },
-)
+})
 </script>
 
 <template>
-  <SliderWidget v-model="value" class="WidgetNumber r-24" :min="-1000" :max="1000" />
+  <NumericInputWidget v-model="value" class="WidgetNumber r-24" :limits="limits" />
 </template>
 
 <style scoped>

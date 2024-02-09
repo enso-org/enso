@@ -6,7 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
 
 /** Generates stubs of runtime representations of atom constructors, to allow
@@ -48,12 +48,13 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope, true)
       } else {
-        val rtp = if (tp.members.nonEmpty || tp.builtinType) {
-          Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
-        } else {
-          Type.createSingleton(tp.name, scope, builtins.any(), false)
-        }
-        scope.registerType(rtp)
+        val createdType =
+          if (tp.members.nonEmpty || tp.builtinType) {
+            Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
+          } else {
+            Type.createSingleton(tp.name, scope, builtins.any(), false)
+          }
+        val rtp = scope.registerType(createdType)
         tp.members.foreach { cons =>
           val constructor = new AtomConstructor(cons.name, scope, rtp)
           rtp.registerConstructor(constructor)

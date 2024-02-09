@@ -1,66 +1,54 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { ForcePort } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
-import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => props.input.typeName())
-const children = computed(() => [...props.input.children()])
+const spanClass = computed(() => props.input.value.typeName())
+const children = computed(() => [...props.input.value.children()])
 
-function transformChild(child: WidgetInput) {
-  if (!(props.input instanceof Ast.Ast)) return child
-  if (props.input instanceof Ast.PropertyAccess) {
-    if (child === props.input.lhs) {
-      return new ForcePort(child)
-    }
-  } else if (props.input instanceof Ast.OprApp) {
-    if (child === props.input.rhs || child === props.input.lhs) {
-      return new ForcePort(child)
-    }
-  } else if (props.input instanceof Ast.UnaryOprApp && child === props.input.argument) {
-    return new ForcePort(child)
-  }
-  return child
+function transformChild(child: Ast.Ast | Ast.Token) {
+  const childInput = WidgetInput.FromAst(child)
+  if (props.input.value instanceof Ast.PropertyAccess && child.id === props.input.value.lhs?.id)
+    childInput.forcePort = true
+  if (
+    props.input.value instanceof Ast.OprApp &&
+    (child.id === props.input.value.rhs?.id || child.id === props.input.value.lhs?.id)
+  )
+    childInput.forcePort = true
+  if (props.input.value instanceof Ast.UnaryOprApp && child.id === props.input.value.argument?.id)
+    childInput.forcePort = true
+  return childInput
 }
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget((expression) => expression instanceof Ast.Ast, {
-  priority: 1001,
+export const widgetDefinition = defineWidget(WidgetInput.isAst, {
+  priority: 1000,
 })
 </script>
 
 <template>
-  <span :class="['Tree', spanClass]"
-    ><NodeWidget
+  <div class="WidgetHierarchy" :class="spanClass">
+    <NodeWidget
       v-for="(child, index) in children"
-      :key="child.astId ?? index"
+      :key="child.id ?? index"
       :input="transformChild(child)"
     />
-  </span>
+  </div>
 </template>
 
 <style scoped>
-.Tree {
-  white-space: pre;
+.WidgetHierarchy {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   transition: background 0.2s ease;
-  min-height: 24px;
-  display: inline-block;
 
   &.Literal {
     font-weight: bold;
-  }
-
-  &.port {
-    background-color: var(--node-color-port);
-    border-radius: var(--node-border-radius);
-    margin: -2px -4px;
-    padding: 2px 4px;
   }
 }
 </style>

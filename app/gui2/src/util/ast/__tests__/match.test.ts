@@ -1,7 +1,10 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule } from '../abstract'
+
+await initializeFFI()
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
@@ -80,7 +83,7 @@ test.each([
     extracted: ['with_enabled_context', "'current_context_name'", 'a + b'],
   },
 ])('`isMatch` and `extractMatches`', ({ target, pattern, extracted }) => {
-  const targetAst = Ast.parseExpression(target)
+  const targetAst = Ast.parse(target)
   const module = targetAst.module
   const patternAst = Pattern.parse(pattern)
   expect(
@@ -104,6 +107,6 @@ test.each([
   const pattern = Pattern.parse(template)
   const edit = MutableModule.Transient()
   const intron = Ast.parse(source, edit)
-  const instantiated = pattern.instantiate(edit, [intron.exprId])
-  expect(instantiated.code(edit)).toBe(result)
+  const instantiated = pattern.instantiate(edit, [intron])
+  expect(instantiated.code()).toBe(result)
 })

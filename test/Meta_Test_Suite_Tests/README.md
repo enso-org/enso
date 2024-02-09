@@ -19,6 +19,9 @@ export ENSO_META_TEST_ARGS=--run
 $ENSO_META_TEST_COMMAND --run test/Meta_Test_Suite_Tests
 ```
 
+Make sure to disable to colored output of the tests. That is, make sure that
+`ENSO_TEST_ANSI_COLORS` env var is not set.
+
 ## Creating the tests
 
 The test runner browses the `data` directory for subdirectories. Each

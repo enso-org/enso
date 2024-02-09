@@ -1,9 +1,6 @@
-import * as Ast from '@/generated/ast'
-import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
-  debugAst,
   parseEnso,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
@@ -15,7 +12,9 @@ import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
+import * as Ast from 'shared/ast/generated/ast'
+import { Token, Tree } from 'shared/ast/generated/ast'
+import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
@@ -71,14 +70,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     })
   }
 
-  treeTypeName(): (typeof Tree.typeNames)[number] | null {
-    return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
-  }
-
-  tokenTypeName(): (typeof Token.typeNames)[number] | null {
-    return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
-  }
-
   isToken<T extends OneOrArray<Ast.Token.Type>>(
     type?: T,
   ): this is AstExtended<ExtractType<Ast.Token, T>, HasIdMap> {
@@ -103,18 +94,14 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     this.ctx = ctx
   }
 
-  get astId(): CondType<ExprId, HasIdMap> {
+  get astId(): CondType<ExternalId, HasIdMap> {
     if (this.ctx.idMap != null) {
       const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
       assert(id != null, 'All AST nodes should have an assigned ID')
-      return id as CondType<ExprId, HasIdMap>
+      return id as CondType<ExternalId, HasIdMap>
     } else {
-      return undefined as CondType<ExprId, HasIdMap>
+      return undefined as CondType<ExternalId, HasIdMap>
     }
-  }
-
-  debug(): unknown {
-    return debugAst(this.inner)
   }
 
   tryMap<T2 extends Tree | Token>(
@@ -147,7 +134,7 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
   }
 
-  span(): ContentRange {
+  span(): SourceRange {
     return parsedTreeOrTokenRange(this.inner)
   }
 
@@ -236,12 +223,5 @@ class AstExtendedCtx<HasIdMap extends boolean> {
         }),
       ),
     )
-  }
-}
-
-declare const AstExtendedKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [AstExtendedKey]: AstExtended
   }
 }

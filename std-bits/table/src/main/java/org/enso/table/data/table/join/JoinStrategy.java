@@ -3,11 +3,10 @@ package org.enso.table.data.table.join;
 import java.util.List;
 import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
-import org.enso.table.data.table.join.conditions.Equals;
-import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.data.table.join.conditions.JoinCondition;
-import org.enso.table.data.table.join.hashing.HashJoin;
+import org.enso.table.data.table.join.hashing.CompoundHashJoin;
+import org.enso.table.data.table.join.hashing.SimpleHashJoin;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A strategy used for performing a join of two tables. */
@@ -15,11 +14,7 @@ public interface JoinStrategy {
   JoinResult join(ProblemAggregator problemAggregator);
 
   static JoinStrategy createStrategy(List<JoinCondition> conditions, JoinKind joinKind) {
-    if (conditions.isEmpty()) {
-      throw new IllegalArgumentException("At least one join condition must be provided.");
-    }
-
-    JoinResult.BuilderSettings builderSettings = JoinKind.makeSettings(joinKind);
+    ensureConditionsNotEmpty(conditions);
 
     List<HashableCondition> hashableConditions =
         conditions.stream()
@@ -35,40 +30,17 @@ public interface JoinStrategy {
 
     if (hashableConditions.isEmpty()) {
       assert !betweenConditions.isEmpty();
-      return new SortJoin(betweenConditions, builderSettings);
+      return new SortJoin(betweenConditions, joinKind);
     } else if (betweenConditions.isEmpty()) {
-      return new HashJoin(hashableConditions, new MatchAllStrategy(), builderSettings);
+      return new SimpleHashJoin(hashableConditions, joinKind);
     } else {
-      return new HashJoin(
-          hashableConditions, new SortJoin(betweenConditions, builderSettings), builderSettings);
+      return new CompoundHashJoin(hashableConditions, betweenConditions, joinKind);
     }
   }
 
-  class ConditionsHelper {
-    private final List<? extends JoinCondition> conditions;
-
-    public ConditionsHelper(List<? extends JoinCondition> conditions) {
-      if (conditions.isEmpty()) {
-        throw new IllegalArgumentException("At least one join condition must be provided.");
-      }
-
-      this.conditions = conditions;
-    }
-
-    public int getLeftTableRowCount() {
-      return switch (conditions.get(0)) {
-        case Equals equals -> equals.left().getStorage().size();
-        case EqualsIgnoreCase equalsIgnoreCase -> equalsIgnoreCase.left().getStorage().size();
-        case Between between -> between.left().getStorage().size();
-      };
-    }
-
-    public int getRightTableRowCount() {
-      return switch (conditions.get(0)) {
-        case Equals equals -> equals.right().getStorage().size();
-        case EqualsIgnoreCase equalsIgnoreCase -> equalsIgnoreCase.right().getStorage().size();
-        case Between between -> between.rightLower().getStorage().size();
-      };
+  static void ensureConditionsNotEmpty(List<? extends JoinCondition> conditions) {
+    if (conditions.isEmpty()) {
+      throw new IllegalArgumentException("At least one join condition must be provided.");
     }
   }
 }

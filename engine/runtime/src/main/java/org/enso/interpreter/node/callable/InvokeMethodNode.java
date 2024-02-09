@@ -431,7 +431,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Warning[] arrOfWarnings;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
-      arrOfWarnings = warnings.getWarnings(self, this);
+      arrOfWarnings = warnings.getWarnings(self, this, false);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
     }
@@ -507,7 +507,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         warningProfiles[i].enter();
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this));
+          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this, false));
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           throw CompilerDirectives.shouldNotReachHere(e);

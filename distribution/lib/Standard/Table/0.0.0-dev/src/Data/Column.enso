@@ -34,6 +34,7 @@ from project.Internal.Java_Exports import make_date_builder_adapter, make_string
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -179,6 +180,7 @@ type Column
 
     ## ALIAS equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise equality comparison.
 
        Arguments:
@@ -218,6 +220,7 @@ type Column
         run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise case-insensitive text equality comparison.
 
        Arguments:
@@ -245,6 +248,7 @@ type Column
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise non-equality comparison.
 
        Arguments:
@@ -281,6 +285,7 @@ type Column
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -311,6 +316,7 @@ type Column
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -341,6 +347,7 @@ type Column
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -371,6 +378,7 @@ type Column
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -400,6 +408,7 @@ type Column
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise inclusive bounds check.
 
        Arguments:
@@ -423,6 +432,7 @@ type Column
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise addition. Works on numeric types or text.
 
        Arguments:
@@ -462,6 +472,7 @@ type Column
 
     ## ALIAS minus, subtract
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
 
@@ -516,6 +527,7 @@ type Column
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise multiplication.
 
        Arguments:
@@ -555,6 +567,7 @@ type Column
 
     ## ALIAS divide
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise division.
 
        Arguments:
@@ -600,6 +613,7 @@ type Column
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise modulus.
 
        Arguments:
@@ -636,6 +650,7 @@ type Column
 
     ## ALIAS power
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise raising to the power.
 
        Arguments:
@@ -675,6 +690,7 @@ type Column
 
     ## ALIAS and
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise boolean conjunction.
 
        Arguments:
@@ -706,6 +722,7 @@ type Column
 
     ## ALIAS or
        GROUP Standard.Base.Operators
+       ICON operators
 
        Element-wise boolean disjunction.
 
@@ -738,6 +755,7 @@ type Column
 
     ## ALIAS not
        GROUP Standard.Base.Logical
+       ICON operators
 
        Boolean negation of each element in self column.
 
@@ -755,6 +773,7 @@ type Column
 
     ## ALIAS if
        GROUP Standard.Base.Logical
+       ICON preparation
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
@@ -816,6 +835,7 @@ type Column
     const self value = self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
+       ICON math
        Round the values in a numeric column to a specified number of decimal
        places.
 
@@ -874,6 +894,7 @@ type Column
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
+       ICON math
 
        If the column is numeric, truncate the floating-point values to an
        integer by dropping the fractional part. This is equivalent to
@@ -908,6 +929,7 @@ type Column
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Computes the nearest integer above this number for values in a numeric
        column.
 
@@ -927,6 +949,7 @@ type Column
                 simple_unary_op self Java_Storage.Maps.CEIL
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Computes the nearest integer below this number for values in a numeric
        column.
 
@@ -946,7 +969,7 @@ type Column
                 simple_unary_op self Java_Storage.Maps.FLOOR
 
     ## GROUP Standard.Base.Logical
-       ICON preparation
+       ICON operators
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -965,6 +988,7 @@ type Column
         run_vectorized_many_op self "coalesce" fallback values
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
@@ -986,6 +1010,7 @@ type Column
             run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
@@ -1007,6 +1032,7 @@ type Column
             run_vectorized_many_op self "max" fallback values
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
 
@@ -1018,10 +1044,11 @@ type Column
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing : Column
     is_nothing self =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is null"]
+        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
@@ -1039,6 +1066,7 @@ type Column
         run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
@@ -1062,9 +1090,14 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
-        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
+        fallback x = case x of
+            _ : Text -> x == ""
+            Nothing  -> True
+            _        -> False
+        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
@@ -1237,7 +1270,69 @@ type Column
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_length
+    text_length : Column
+    text_length self =
+        Value_Type.expect_text self <|
+            simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the left n characters for each element of the column.
+
+       In the Database backends, the default text left method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the left n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_left 5
+    text_left : Column|Integer -> Column
+    text_left self n =
+        Value_Type.expect_text self <|
+            Value_Type.expect_integer n <|
+                new_name = naming_helper.function_name "text_left" [self, n]
+                run_vectorized_binary_op self Java_Storage.Maps.TEXT_LEFT n new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Gets the right n characters for each element of the column.
+
+       In the Database backends, the default text right method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the right n graphemes of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_right 5
+    text_right : Column|Integer -> Column
+    text_right self n =
+        Value_Type.expect_text self <|
+            Value_Type.expect_integer n <|
+                new_name = naming_helper.function_name "text_right" [self, n]
+                run_vectorized_binary_op self Java_Storage.Maps.TEXT_RIGHT n new_name
+
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it contains `other`.
 
        Arguments:
@@ -1268,6 +1363,7 @@ type Column
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it matches an SQL-like pattern.
 
        Arguments:
@@ -1290,7 +1386,7 @@ type Column
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON text
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1370,6 +1466,7 @@ type Column
                 Column.from_storage new_name builder.seal
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1379,6 +1476,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.YEAR
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1388,6 +1486,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.MONTH
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the day of the month as a number (1-31) from the date stored in the
        column.
 
@@ -1398,6 +1497,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.DAY
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the hour as a number (0-23) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1407,6 +1507,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.HOUR
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the minute as a number (0-59) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1426,6 +1527,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.SECOND
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the date part of the date/time value.
 
        Returns a column of `Integer` type.
@@ -1435,6 +1537,7 @@ type Column
         Date_Time_Helpers.make_date_part_function self period simple_unary_op naming_helper
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Computes a time difference between the two dates.
 
        It returns a column of integers expressing how many periods fit between
@@ -1477,6 +1580,7 @@ type Column
 
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
@@ -1512,6 +1616,7 @@ type Column
                     run_binary_op self fn amount new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it is contained within the
        provided vector or column.
 
@@ -1539,7 +1644,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1789,6 +1894,7 @@ type Column
                 Column.from_storage self.name new_storage
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of the column to a more specific one, based on its
        contents.
 
@@ -1858,7 +1964,7 @@ type Column
     map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
     map self function skip_nothing=True expected_value_type=Auto =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
-        new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
+        new_st = self.to_vector.map on_problems=No_Wrap new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
     ## ALIAS combine, join by row position, merge
@@ -1906,7 +2012,7 @@ type Column
                             function x y
             False -> function
         new_name = naming_helper.binary_operation_name "x" self that
-        vec = self.to_vector.zip on_problems=No_Wrap.Value that.to_vector new_fn
+        vec = self.to_vector.zip on_problems=No_Wrap that.to_vector new_fn
         Column.from_vector new_name vec value_type=expected_value_type
 
     ## GROUP Standard.Base.Metadata
@@ -1977,7 +2083,7 @@ type Column
     count self = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON select_column
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -1994,8 +2100,26 @@ type Column
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self (index : Integer) =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## GROUP Standard.Base.Selections
+       ICON select_row
+       Returns the value contained in this column at the given index.
+
+       Arguments:
+       - index: The index in the column from which to get the value.
+       - default: The value if the index is out of range.
+
+       > Example
+         Get the first element from a column.
+
+             import Standard.Examples
+
+             example_at = Examples.integer_column.get 0 -1
+    get : Integer -> Any -> Any | Nothing
+    get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
+        if valid_index.not then default else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
@@ -2077,7 +2201,8 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS metadata
+       GROUP Standard.Base.Metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -2087,6 +2212,7 @@ type Column
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -2156,7 +2282,8 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS skip
+       GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
@@ -2210,6 +2337,7 @@ type Column
     last self = self.at (self.length - 1)
 
     ## GROUP Standard.Base.Selections
+       ICON order
        Returns a column containing the values of `self` column with their order
        reversed.
 
@@ -2221,7 +2349,7 @@ type Column
              example_reverse = Examples.integer_column.reverse
     reverse : Column
     reverse self =
-        mask = OrderBuilder.buildReversedMask self.length
+        mask = OrderMask.reverse self.length
         Column.Value (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
@@ -2593,4 +2721,4 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
-Column.from (that:Date_Range) (name:Text="Date Range") = Column.from_vector name that.to_vector
+Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector

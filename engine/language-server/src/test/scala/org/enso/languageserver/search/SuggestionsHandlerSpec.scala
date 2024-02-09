@@ -13,6 +13,7 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
@@ -37,14 +38,16 @@ class SuggestionsHandlerSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with RetrySpec {
+    with RetrySpec
+    with ReportLogsOnFailure {
 
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   "SuggestionsHandler" should {

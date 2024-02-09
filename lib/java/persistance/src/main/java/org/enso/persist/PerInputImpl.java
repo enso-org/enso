@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
@@ -22,31 +23,30 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve)
+  static <T> Reference<T> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
-      if (arr[i] != PerGenerator.HEADER[i]) {
+      if (buf.get(i) != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");
       }
     }
-    var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
-    if (version != PerMap.DEFAULT.versionStamp) {
+    var cache = new InputCache(buf, readResolve);
+    if (version != cache.map().versionStamp) {
       throw new IOException(
           "Incompatible version "
               + Integer.toHexString(version)
               + " != "
-              + Integer.toHexString(PerMap.DEFAULT.versionStamp));
+              + Integer.toHexString(cache.map().versionStamp));
     }
     var at = buf.getInt(8);
-    var cache = new InputCache(buf, readResolve);
 
     return PerBufferReference.from(cache, at);
   }
 
   @Override
   public <T> T readInline(Class<T> clazz) {
-    Persistance<T> p = PerMap.DEFAULT.forType(clazz);
+    Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
     var resolve = cache.readResolve().apply(res);
     return clazz.cast(resolve);
@@ -54,13 +54,13 @@ final class PerInputImpl implements Input {
 
   @Override
   public Object readObject() throws IOException {
-    var obj = readIndirect(cache, PerMap.DEFAULT, this);
+    var obj = readIndirect(cache, cache.map(), this);
     return obj;
   }
 
   @Override
   public <T> Persistance.Reference<T> readReference(Class<T> clazz) throws IOException {
-    var obj = readIndirectAsReference(cache, PerMap.DEFAULT, this, clazz);
+    var obj = readIndirectAsReference(cache, cache.map(), this, clazz);
     return obj;
   }
 
@@ -202,17 +202,27 @@ final class PerInputImpl implements Input {
     res = cache.readResolve().apply(res);
     var prev = cache.cache().put(at, res);
     if (prev != null) {
-      throw raise(
-          RuntimeException.class,
-          new IOException(
-              "Adding at "
-                  + at
-                  + " object: "
-                  + res.getClass().getName()
-                  + " but there already is "
-                  + prev.getClass().getName()));
+      var bothObjectsAreTheSame = Objects.equals(res, prev);
+      var sb = new StringBuilder();
+      sb.append("Adding at ").append(at).append(" object:\n  ");
+      dumpObject(sb, res);
+      sb.append("\nbut there already is:\n  ");
+      dumpObject(sb, prev);
+      sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
+      var ex = new IOException(sb.toString());
+      if (bothObjectsAreTheSame) {
+        PerUtils.LOG.warn(sb.toString(), ex);
+      } else {
+        throw raise(RuntimeException.class, ex);
+      }
     }
     return res;
+  }
+
+  private static void dumpObject(StringBuilder sb, Object obj) {
+    sb.append(obj.getClass().getName())
+        .append("@")
+        .append(Integer.toHexString(System.identityHashCode(obj)));
   }
 
   @SuppressWarnings("unchecked")
@@ -232,9 +242,16 @@ final class PerInputImpl implements Input {
   }
 
   static final record InputCache(
-      ByteBuffer buf, Function<Object, Object> readResolve, Map<Integer, Object> cache) {
+      ByteBuffer buf,
+      Function<Object, Object> readResolve,
+      Map<Integer, Object> cache,
+      PerMap map) {
     InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
-      this(buf, readResolve == null ? Function.identity() : readResolve, new HashMap<>());
+      this(
+          buf,
+          readResolve == null ? Function.identity() : readResolve,
+          new HashMap<>(),
+          PerMap.create());
     }
   }
 }

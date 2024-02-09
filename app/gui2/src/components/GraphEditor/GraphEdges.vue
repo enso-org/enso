@@ -3,33 +3,40 @@ import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { useGraphStore } from '@/stores/graph'
+import type { PortId } from '@/providers/portInfo'
+import { useGraphStore, type NodeId } from '@/stores/graph'
+import { Ast } from '@/util/ast'
+import { isAstId, type AstId } from '@/util/ast/abstract.ts'
 import { Vec2 } from '@/util/data/vec2'
-import type { ExprId } from 'shared/yjsModel'
+import { toast } from 'react-toastify'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 
 const emits = defineEmits<{
-  createNodeFromEdge: [source: ExprId, position: Vec2]
+  createNodeFromEdge: [source: AstId, position: Vec2]
 }>()
 
 const editingEdge: Interaction = {
   cancel() {
-    const target = graph.unconnectedEdge?.disconnectedEdgeTarget
-    graph.transact(() => {
-      if (target != null) disconnectEdge(target)
-      graph.clearUnconnected()
-    })
+    graph.clearUnconnected()
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
-    const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
+    let source: AstId | undefined
+    let sourceNode: NodeId | undefined
+    if (graph.unconnectedEdge.source) {
+      source = graph.unconnectedEdge.source
+      sourceNode = graph.db.getPatternExpressionNodeId(source)
+    } else if (selection?.hoveredNode) {
+      sourceNode = selection.hoveredNode
+      source = graph.db.getNodeFirstOutputPort(sourceNode)
+    }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = target && graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.getPortNodeId(target)
     graph.transact(() => {
-      if (source != null && source != targetNode) {
+      if (source != null && sourceNode != targetNode) {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
@@ -37,24 +44,57 @@ const editingEdge: Interaction = {
         } else {
           createEdge(source, target)
         }
+      } else if (source == null && target != null) {
+        disconnectEdge(target)
       }
       graph.clearUnconnected()
     })
     return true
   },
 }
+
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
-function disconnectEdge(target: ExprId) {
-  graph.setExpressionContent(target, '_')
+function disconnectEdge(target: PortId) {
+  graph.edit((edit) => {
+    if (!graph.updatePortValue(edit, target, undefined)) {
+      if (isAstId(target)) {
+        console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
+        edit.replaceValue(target, Ast.Wildcard.new(edit))
+      } else {
+        console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
+      }
+    }
+  })
 }
 
-function createEdge(source: ExprId, target: ExprId) {
+function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
-  // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, ident)
-  // TODO: Use alias analysis to ensure declarations are in a dependency order.
+  const identAst = Ast.parse(ident)
+
+  const sourceNode = graph.db.getPatternExpressionNodeId(source)
+  const targetNode = graph.getPortNodeId(target)
+  if (sourceNode == null || targetNode == null) {
+    return console.error(`Failed to connect edge, source or target node not found.`)
+  }
+
+  const edit = graph.startEdit()
+  const reorderResult = graph.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
+  if (reorderResult === 'circular') {
+    // Creating this edge would create a circular dependency. Prevent that and display error.
+    toast.error('Could not connect due to circular dependency.')
+  } else {
+    if (!graph.updatePortValue(edit, target, identAst)) {
+      if (isAstId(target)) {
+        console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
+        edit.replaceValue(target, identAst)
+        graph.commitEdit(edit)
+      } else {
+        console.error(`Failed to connect edge to port ${target}, no fallback possible.`)
+      }
+    }
+  }
 }
 </script>
 

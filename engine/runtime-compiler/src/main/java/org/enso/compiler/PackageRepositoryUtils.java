@@ -1,12 +1,16 @@
 package org.enso.compiler;
 
 import com.oracle.truffle.api.TruffleFile;
+import java.io.IOException;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 
 public final class PackageRepositoryUtils {
+  private static final Logger LOG = Logger.getLogger(PackageRepositoryUtils.class.getName());
+
   private PackageRepositoryUtils() {}
 
   /**
@@ -35,11 +39,18 @@ public final class PackageRepositoryUtils {
    */
   public static Optional<Package<TruffleFile>> getPackageOf(
       PackageRepository packageRepository, TruffleFile file) {
-    if (file == null) {
-      return Optional.empty();
+    try {
+      if (file != null) {
+        file = file.getCanonicalFile();
+        for (var pkg : packageRepository.getLoadedPackagesJava()) {
+          if (file.startsWith(pkg.root().getCanonicalFile())) {
+            return Optional.of(pkg);
+          }
+        }
+      }
+    } catch (IOException e) {
+      LOG.log(Level.WARNING, null, e);
     }
-    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
-        .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
-        .findFirst();
+    return Optional.empty();
   }
 }

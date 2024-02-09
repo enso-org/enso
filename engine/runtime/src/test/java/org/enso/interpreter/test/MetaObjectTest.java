@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -212,6 +214,49 @@ public class MetaObjectTest extends TestBase {
       assertNotNull("c " + c + " has a type", c.getMetaObject());
       assertEquals("c " + c + " is function", "Function", c.getMetaObject().getMetaSimpleName());
       assertEquals("c " + c + " is function", g.typeFunction(), c.getMetaObject());
+    }
+  }
+
+  @Test
+  public void nothingIsNotMeta() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var nothing = g.typeNothing();
+    assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
+  }
+
+  @Test
+  public void nothingWithWarningIsNotMeta() {
+    var src =
+        """
+import Standard.Base.Warning.Warning
+import Standard.Base.Nothing.Nothing
+
+main = Warning.attach "foo" Nothing
+""";
+    var nothingWithWarn = TestBase.evalModule(ctx, src);
+    assertThat(nothingWithWarn.isMetaObject(), is(false));
+  }
+
+  @Test
+  public void numbersAreEitherIntegerOrFloat() throws Exception {
+    var g = generator();
+    var sn =
+        ctx.eval(
+                "enso",
+                """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """)
+            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    for (var v : g.numbers()) {
+      var simpleName = sn.execute(v).asString();
+      var ok =
+          switch (simpleName) {
+            case "Integer", "Float" -> true;
+            default -> false;
+          };
+      assertTrue("Unexpected simple name for number: " + v + " is " + simpleName, ok);
     }
   }
 

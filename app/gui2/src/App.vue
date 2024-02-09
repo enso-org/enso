@@ -1,25 +1,44 @@
 <script setup lang="ts">
+import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { provideGuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { onMounted, toRef } from 'vue'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, toRaw } from 'vue'
+import { useProjectStore } from './stores/project'
 
 const props = defineProps<{
-  config: GuiConfig
+  config: ApplicationConfig
+  accessToken: string | null
   metadata: object
+  unrecognizedOptions: string[]
 }>()
 
 const classSet = provideAppClassSet()
 
-provideGuiConfig(toRef(props, 'config'))
+provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
-onMounted(() => useSuggestionDbStore())
+onMounted(() => {
+  const suggestionDb = useSuggestionDbStore()
+  if (isDevMode) {
+    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+  }
+})
+onUnmounted(() => {
+  useProjectStore().disposeYDocsProvider()
+})
 </script>
 
 <template>
-  <ProjectView class="App" :class="[...classSet.keys()]" />
+  <HelpScreen
+    v-if="unrecognizedOptions.length"
+    :unrecognizedOptions="props.unrecognizedOptions"
+    :config="props.config"
+  />
+  <ProjectView v-else class="App" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>

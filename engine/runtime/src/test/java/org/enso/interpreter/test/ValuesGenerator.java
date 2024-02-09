@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,7 +35,7 @@ import org.graalvm.polyglot.Value;
  * call appropriate methods to obtain such values. It's up to the tests to use these values
  * meaningfully.
  */
-class ValuesGenerator {
+public final class ValuesGenerator {
   private final Context ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
@@ -368,7 +369,7 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "", "42").type());
       collect.add(v(null, "", "6.7").type());
-      collect.add(v(null, "", "40321 * 43202").type());
+      collect.add(v(null, "import Standard.Base.Data.Numbers", "40321 * 43202").type());
       collect.add(
           v(
                   null,
@@ -394,6 +395,9 @@ class ValuesGenerator {
       collect.add(ctx.asValue((float) Math.PI));
       collect.add(ctx.asValue((double) Math.E));
       collect.add(ctx.asValue(Double.NaN));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40)));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue()));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue() + 1.0));
     }
 
     for (var v : collect) {

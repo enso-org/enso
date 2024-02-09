@@ -4,6 +4,7 @@ import akka.actor.ActorRef
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import zio.{ZAny, ZIO}
@@ -20,7 +21,8 @@ class ProjectShutdownSpec
     extends BaseServerSpec
     with FlakySpec
     with OverrideTestVersionSuite
-    with ProjectManagementOps {
+    with ProjectManagementOps
+    with ReportLogsOnFailure {
 
   override val testVersion: SemVer = SemVer(0, 0, 1)
 
@@ -37,7 +39,7 @@ class ProjectShutdownSpec
 
   var clientUUID: UUID = null
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def clientControllerFactory(): ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZAny, +*, +*]](
       system                          = system,
       projectService                  = projectService,

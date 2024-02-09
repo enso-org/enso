@@ -43,31 +43,46 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
     */
   def tryDownloadingAttachments(address: String): Seq[Attachment] =
     try {
-      val homePage  = url(address).cat.!!
-      val fileRegex = """<a .*? href="(.*?)".*?>(.*?)</a>""".r("href", "name")
-      val matches = fileRegex
-        .findAllMatchIn(homePage)
-        .map(m => (m.group("name"), m.group("href")))
-        .filter(p => mayBeRelevant(p._1))
-        .toList
-      matches.flatMap { case (_, href) =>
-        try {
-          val content =
-            url("https://github.com" + href.replace("blob", "raw")).cat.!!
-          Seq(
-            AttachedFile(
-              PortablePath.of(href),
-              content,
-              origin = Some("github.com")
-            )
-          )
-        } catch {
-          case NonFatal(error) =>
-            log.warn(
-              s"Found file $href but cannot download it: $error"
-            )
-            Seq()
-        }
+      val homePage    = url(address).cat.!!
+      val branchRegex = """"defaultBranch":"([^"]*?)"""".r("branch")
+      val branch      = branchRegex.findFirstMatchIn(homePage).map(_.group("branch"))
+      branch match {
+        case None =>
+          log.warn(s"Cannot find default branch for $address")
+          Seq()
+        case Some(branch) =>
+          val fileRegex =
+            """\{"name":"([^"]*?)","path":"([^"]*?)","contentType":"file"\}"""
+              .r("name", "path")
+          val matches = fileRegex
+            .findAllMatchIn(homePage)
+            .map(m => (m.group("name"), m.group("path")))
+            .filter(p => mayBeRelevant(p._1))
+            .toList
+          matches.flatMap { case (_, path) =>
+            val rawHref = address + "/raw/" + branch + "/" + path
+            // This path is reconstructed to match the 'legacy' format for compatibility with older versions of the review settings.
+            // It has the format <org>/<repo>/blob/<branch>/<path>
+            val internalPath = address
+              .stripPrefix("https://github.com")
+              .stripSuffix("/") + "/blob/" + branch + "/" + path
+            try {
+              val content = url(rawHref).cat.!!
+              Seq(
+                AttachedFile(
+                  PortablePath.of(internalPath),
+                  content,
+                  origin = Some(address)
+                )
+              )
+            } catch {
+              case NonFatal(error) =>
+                log.warn(
+                  s"Found file $rawHref but cannot download it: $error"
+                )
+                Seq()
+            }
+          }
       }
     } catch {
       case NonFatal(error) =>

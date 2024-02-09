@@ -129,10 +129,15 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 
 export const graphEditor = componentLocator('GraphEditor')
 export const graphNode = componentLocator('GraphNode')
+export function graphNodeByBinding(page: Locator | Page, binding: string) {
+  return graphNode(page).filter({ has: page.locator('.binding').and(page.getByText(binding)) })
+}
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
+export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
+export const nodeOutputPort = componentLocator('outputPortHoverArea')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -152,6 +157,12 @@ export function componentBrowserSelectedEntry(
   )
 }
 
+export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
+  return componentBrowserEntry(page).filter({ has: page.getByText(label) })
+}
+
+export const navBreadcrumb = componentLocator('NavBreadcrumb')
+export const componentBrowserInput = componentLocator('CBInput')
 export const jsonVisualization = componentLocator('JSONVisualization')
 export const tableVisualization = componentLocator('TableVisualization')
 export const scatterplotVisualization = componentLocator('ScatterplotVisualization')
@@ -161,3 +172,17 @@ export const sqlVisualization = componentLocator('SqlVisualization')
 export const geoMapVisualization = componentLocator('GeoMapVisualization')
 export const imageBase64Visualization = componentLocator('ImageBase64Visualization')
 export const warningsVisualization = componentLocator('WarningsVisualization')
+
+// === Edge locators ===
+
+export async function edgesFromNodeWithBinding(page: Page, binding: string) {
+  const node = graphNodeByBinding(page, binding).first()
+  const nodeId = await node.getAttribute('data-node-id')
+  return page.locator(`[data-source-node-id="${nodeId}"]`)
+}
+
+export async function edgesToNodeWithBinding(page: Page, binding: string) {
+  const node = graphNodeByBinding(page, binding).first()
+  const nodeId = await node.getAttribute('data-node-id')
+  return page.locator(`[data-target-node-id="${nodeId}"]`)
+}

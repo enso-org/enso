@@ -180,7 +180,7 @@ type Connection
             True -> result
             False ->
                 hidden_tables = self.hidden_table_registry.list_hidden_tables
-                result.filter "Name" (Filter_Condition.Not_In hidden_tables)
+                result.filter "Name" (Filter_Condition.Is_In hidden_tables Filter_Action.Remove)
 
     ## PRIVATE
        Checks if the table with the given name exists in the database.

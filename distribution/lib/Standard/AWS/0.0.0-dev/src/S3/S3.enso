@@ -1,16 +1,18 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Network.HTTP.Response import filename_from_content_disposition
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
-import project.Internal.Auth
 
 polyglot java import java.io.IOException
+polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
@@ -114,10 +116,14 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
     response = client.getObject request
 
     inner_response = response.response
-    mime_type = inner_response.contentType
     s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+    content_type = inner_response.contentType
+    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
+        key.split "/" . last
+    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
+
     input_stream = Input_Stream.new response (handle_io_errors s3_uri)
-    Response_Body.Raw_Stream input_stream mime_type s3_uri
+    Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.
@@ -145,8 +151,8 @@ handle_s3_errors ~action bucket="" key="" =
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client
 make_client credentials:(AWS_Credential | Nothing) =
-    provider = Auth.create_provider credentials
-    S3Client.builder.credentialsProvider provider . build
+    builder = ClientBuilder.new (AWS_Credential.as_java credentials)
+    builder.buildS3Client
 
 ## PRIVATE
    Utility method for running an action with Java exceptions mapping.

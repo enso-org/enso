@@ -13,6 +13,8 @@ import { createGatewayServer } from './ydoc-server'
 const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
+const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   cacheDir: '../../node_modules/.cache/vite',
@@ -33,14 +35,16 @@ export default defineConfig({
         ? { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
         : {}),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
-      'rust-ffi': fileURLToPath(new URL('./rust-ffi', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   define: {
-    REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${localServerPort}`),
+    REDIRECT_OVERRIDE: IS_CLOUD_BUILD
+      ? 'undefined'
+      : JSON.stringify(`http://localhost:${localServerPort}`),
+    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
+    IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV === 'development'),
     CLOUD_ENV:
       process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
     RUNNING_VITEST: false,

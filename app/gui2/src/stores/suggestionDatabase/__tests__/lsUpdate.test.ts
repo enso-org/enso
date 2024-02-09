@@ -4,8 +4,11 @@ import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { initializeFFI } from 'shared/ast/ffi'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()
@@ -191,7 +194,7 @@ test('Adding new argument', () => {
   const test = new Fixture()
   const newArg: lsTypes.SuggestionEntryArgument = {
     name: 'c',
-    type: 'Any',
+    reprType: 'Any',
     hasDefault: false,
     isSuspended: false,
   }
@@ -212,13 +215,13 @@ test('Adding new argument', () => {
 test('Modifying arguments', () => {
   const newArg1 = {
     name: 'c',
-    type: 'Standard.Base.Number',
+    reprType: 'Standard.Base.Number',
     isSuspended: true,
     hasDefault: false,
   }
   const newArg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
@@ -275,14 +278,14 @@ class Fixture {
   ]
   arg1 = {
     name: 'a',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
   }
   arg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: false,
   }

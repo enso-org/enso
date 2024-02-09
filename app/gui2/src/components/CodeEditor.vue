@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -9,7 +10,7 @@ import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
-import { rangeEncloses, type ExprId } from 'shared/yjsModel'
+import { rangeEncloses } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
@@ -38,8 +39,8 @@ const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
 const executionContextDiagnostics = computed(() =>
-  projectStore.module
-    ? lsDiagnosticsToCMDiagnostics(projectStore.module.doc.getCode(), projectStore.diagnostics)
+  projectStore.module && graphStore.moduleSource.text
+    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, projectStore.diagnostics)
     : [],
 )
 
@@ -52,10 +53,13 @@ const expressionUpdatesDiagnostics = computed(() => {
   for (const id of chain(panics, errors)) {
     const update = updates.get(id)
     if (!update) continue
-    const node = nodeMap.get(id)
+    const externalId = graphStore.db.idFromExternal(id)
+    if (!externalId) continue
+    const node = nodeMap.get(asNodeId(externalId))
     if (!node) continue
-    if (!node.rootSpan.astExtended) continue
-    const [from, to] = node.rootSpan.astExtended.span()
+    const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
+    if (!rootSpan) continue
+    const [from, to] = rootSpan
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
@@ -85,9 +89,10 @@ watchEffect(() => {
   const awareness = projectStore.awareness.internal
   extensions: [yCollab(yText, awareness, { undoManager }), ...]
    */
+  if (!graphStore.moduleSource.text) return
   editorView.setState(
     EditorState.create({
-      doc: module.doc.getCode(),
+      doc: graphStore.moduleSource.text,
       extensions: [
         minimalSetup,
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
@@ -99,12 +104,10 @@ watchEffect(() => {
         hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
-          let foundNode: ExprId | undefined
+          let foundNode: NodeId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (
-              node.rootSpan.astExtended &&
-              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
-            ) {
+            const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
+            if (rootSpan && rangeEncloses(rootSpan, astSpan)) {
               foundNode = id
               break
             }

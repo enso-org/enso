@@ -5,52 +5,69 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.AWS import S3, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
 
-spec =
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
+add_specs suite_builder =
     bucket_name = "enso-data-samples"
     not_a_bucket_name = "not_a_bucket_enso"
     object_name = "Bus_Stop_Benches.geojson"
     folder_name = "examples/"
     sub_folder_name = "examples/folder 1/"
     api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
+    cloud_setup = Cloud_Tests_Setup.prepare
+    can_list_buckets = S3.list_buckets.is_error.not
+    can_list_objects = S3.list_objects bucket_name . contains object_name
 
-    Test.group "S3.parse_uri" <|
-        Test.specify "parse bucket only uris" <|
+    suite_builder.group "S3.parse_uri" group_builder->
+        group_builder.specify "parse bucket only uris" <|
             S3.parse_uri "s3://" . should_equal (Pair.new "" "")
             S3.parse_uri "s3://asda" . should_equal (Pair.new "asda" "")
             S3.parse_uri "s3://banana/" . should_equal (Pair.new "banana" "")
 
-        Test.specify "parse full paths uris" <|
+        group_builder.specify "parse full paths uris" <|
             S3.parse_uri "s3://banana/apple" . should_equal (Pair.new "banana" "apple")
             S3.parse_uri "s3://banana/apple/orange" . should_equal (Pair.new "banana" "apple/orange")
 
-        Test.specify "reject invalid urils" <|
+        group_builder.specify "reject invalid urils" <|
             S3.parse_uri "asda" . should_equal Nothing
             S3.parse_uri "s3:///" . should_equal Nothing
             S3.parse_uri "s3:///apple/orange" . should_equal Nothing
 
-    buckets = Ref.new []
-    Test.group "S3.list_buckets" pending=api_pending <|
-        Test.specify "should be able to list buckets" <|
+    suite_builder.group "S3.list_buckets" pending=api_pending group_builder->
+        group_builder.specify "should be able to list buckets" <|
             bucket_list = S3.list_buckets . should_succeed
-            buckets.put bucket_list
             if bucket_name != Nothing then bucket_list . should_contain bucket_name
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    ## Rest of tests need a functional S3 connection
-    pending = if bucket_name.is_nothing then "No S3 bucket set." else if buckets.get.is_error then "S3 Access Failed." else if buckets.get.contains bucket_name then Nothing else "S3 Bucket Not Found."
+        group_builder.specify "should not work with invalid credentials" <|
+            S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
 
-    Test.group "S3.head (bucket)" pending=pending <|
-        Test.specify "should be able to head a bucket" <|
+        group_builder.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
+            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
+            secret_key_id.should_succeed
+            Panic.with_finalizer secret_key_id.delete <|
+                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" (Environment.get "AWS_SECRET_ACCESS_KEY")
+                secret_key_value.should_succeed
+                Panic.with_finalizer secret_key_value.delete <| with_retries <|
+                    r2 = S3.list_buckets (AWS_Credential.Key secret_key_id secret_key_value)
+                    r2.should_succeed
+                    r2.should_be_a Vector
+
+    ## Rest of tests need a functional S3 connection
+    pending = if bucket_name.is_nothing then "No S3 bucket set." else if can_list_buckets.not then "S3 Access Failed." else Nothing
+
+    suite_builder.group "S3.head (bucket)" pending=pending group_builder->
+        group_builder.specify "should be able to head a bucket" <|
             S3.head bucket_name . should_equal Map.empty
             S3.head not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-    Test.group "S3.read_bucket" pending=pending <|
-        Test.specify "should be able to read bucket" <|
+    suite_builder.group "S3.read_bucket" pending=pending group_builder->
+        group_builder.specify "should be able to read bucket" <|
             objects_and_folders = S3.read_bucket bucket_name
             folders = objects_and_folders.first
             folders . should_contain folder_name
@@ -58,12 +75,12 @@ spec =
             objects = objects_and_folders.second
             objects . should_contain object_name
 
-        Test.specify "should be able to read sub folder" <|
+        group_builder.specify "should be able to read sub folder" <|
             objects_and_folders = S3.read_bucket bucket_name folder_name
             folders = objects_and_folders.first
             folders . should_contain sub_folder_name
 
-        Test.specify "should attach a warning if not a complete list" <|
+        group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.read_bucket bucket_name max_count=1
 
             warnings = Warning.get_all objects
@@ -72,20 +89,18 @@ spec =
             warning = warnings.first
             warning.value.should_be_a More_Records_Available
 
-        Test.specify "should handle missing bucket gracefully" <|
+        group_builder.specify "should handle missing bucket gracefully" <|
             S3.read_bucket not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.read_bucket bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    list = Ref.new []
-    Test.group "S3.list_objects" pending=pending <|
-        Test.specify "should be able to list objects" <|
+    suite_builder.group "S3.list_objects" pending=pending group_builder->
+        group_builder.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name
             objects . should_contain object_name
-            list.put objects
 
-        Test.specify "should attach a warning if not a complete list" <|
+        group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.list_objects bucket_name max_count=1
 
             warnings = Warning.get_all objects
@@ -94,28 +109,28 @@ spec =
             warning = warnings.first
             warning.value.should_be_a More_Records_Available
 
-        Test.specify "should handle missing bucket gracefully" <|
+        group_builder.specify "should handle missing bucket gracefully" <|
             S3.list_objects not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
     ## These tests need a valid object, so check we found it within the bucket.
     pending_object = if pending.is_nothing.not then pending else
-        if list.get.contains object_name then Nothing else
+        if can_list_objects then Nothing else
             "Unable to find test object in bucket."
 
-    Test.group "S3.head (object)" pending=pending_object <|
-        Test.specify "should be able to head an object" <|
+    suite_builder.group "S3.head (object)" pending=pending_object group_builder->
+        group_builder.specify "should be able to head an object" <|
             S3.head bucket_name object_name . should_succeed
             S3.head not_a_bucket_name object_name . should_fail_with No_Such_Key
             S3.head bucket_name "not_an_object" . should_fail_with No_Such_Key
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    Test.group "S3.get_object" pending=pending_object <|
-        Test.specify "should be able to get an object" <|
+    suite_builder.group "S3.get_object" pending=pending_object group_builder->
+        group_builder.specify "should be able to get an object" <|
             response = S3.get_object bucket_name object_name
             response.should_succeed
             response.decode_as_json.should_succeed
@@ -123,7 +138,11 @@ spec =
             S3.get_object not_a_bucket_name object_name . should_fail_with S3_Bucket_Not_Found
             S3.get_object bucket_name "not_an_object" . should_fail_with No_Such_Key
 
-        Test.specify "should handle auth issues" <|
+        group_builder.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-main = Test_Suite.run_main spec
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
+

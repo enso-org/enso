@@ -161,7 +161,8 @@ type Array
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
-    ## GROUP Selections
+    ## ALIAS skip
+       GROUP Selections
        ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 
@@ -286,6 +287,7 @@ type Array
     last_index_of self condition start=-1 = Vector.last_index_of self condition start
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is empty.
 
        > Example
@@ -509,7 +511,7 @@ type Array
     pad self n elem = Vector.pad self n elem
 
     ## GROUP Selections
-       ICON preparation
+       ICON split_text
        Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -643,6 +645,7 @@ type Array
     get self index ~if_missing=Nothing = Vector.get self index if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is not empty.
 
        > Example
@@ -669,6 +672,7 @@ type Array
     filter_with_index self predicate = Vector.filter_with_index self predicate
 
     ## GROUP Calculations
+       ICON join
        When `self` is an array of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -709,6 +713,7 @@ type Array
     reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
@@ -728,6 +733,7 @@ type Array
     any self condition = Vector.any self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this array.
 
        Arguments:
@@ -747,6 +753,7 @@ type Array
     all self condition = Vector.all self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this array contains a given value as an element.
 
        Arguments:
@@ -865,6 +872,7 @@ type Array
 
     ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 

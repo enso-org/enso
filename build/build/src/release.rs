@@ -275,7 +275,7 @@ pub async fn upload_gui_to_cloud(
         assets.style_css.as_path(),
         assets.dynamic_assets.as_path(),
     ];
-    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.pkg_js.as_path()];
+    let files_to_upload_gzipped = [assets.entrypoint_js.as_path(), assets.pkg_js.as_path()];
 
     for file in files_to_upload.iter() {
         bucket.put_item(file).await?;

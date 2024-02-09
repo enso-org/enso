@@ -1,10 +1,15 @@
 import { useProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
-import { type Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import {
+  normalizeQualifiedName,
+  qnJoin,
+  qnParent,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
@@ -13,15 +18,10 @@ import { markRaw, ref, type Ref } from 'vue'
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    let qualifiedName: Opt<QualifiedName>
-    if (entry.memberOf) {
-      qualifiedName = entry.memberOf
-    } else {
-      qualifiedName = qnParent(entryQn(entry))
-    }
+    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
     if (qualifiedName) {
-      const parents = Array.from(this.nameToId.lookup(qualifiedName))
-      return parents.map((p) => [id, p])
+      const parents = this.nameToId.lookup(qualifiedName)
+      return Array.from(parents, (p) => [id, p])
     }
     return []
   })
@@ -38,7 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     const moduleName = tryQualifiedName(method.definedOnType)
     const methodName = tryQualifiedName(method.name)
     if (!moduleName.ok || !methodName.ok) return
-    const qualifiedName = qnJoin(moduleName.value, methodName.value)
+    const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
     const [suggestionId] = this.nameToId.lookup(qualifiedName)
     return suggestionId
   }

@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends IntegerNode {
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();

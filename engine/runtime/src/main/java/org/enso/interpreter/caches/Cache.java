@@ -2,23 +2,19 @@ package org.enso.interpreter.caches;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.security.MessageDigest;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.bouncycastle.jcajce.provider.digest.SHA1;
-import org.bouncycastle.util.encoders.Hex;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
-import org.enso.pkg.SourceFile;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
@@ -27,11 +23,14 @@ import org.enso.pkg.SourceFile;
  * @param <T> type of the cached data
  * @param <M> type of the metadata associated with the data
  */
-public abstract class Cache<T, M extends Cache.Metadata> {
+public final class Cache<T, M> {
   private final Object LOCK = new Object();
 
+  /** implementation of the serialize/deserialize operations */
+  private final Spi<T, M> spi;
+
   /** Returns a default level of logging for this Cache. */
-  protected final Level logLevel;
+  private final Level logLevel;
 
   /** Log name to use in log messages */
   private final String logName;
@@ -59,15 +58,39 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param needsDataDigestVerification Flag indicating if the de-serialization process should
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
-  protected Cache(
+  private Cache(
+      Cache.Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
+    this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
+  }
+
+  /**
+   * Factory method to create new cache instance.
+   *
+   * @param spi the implementation logic of the cache
+   * @param logLevel logging level
+   * @param logName name to use in logs
+   * @param needsSourceDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the sources from which the cache was created and compare it with the
+   *     stored metadata entry.
+   * @param needsDataDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the stored cache and compare it with the stored metadata entry.
+   */
+  static <T, M> Cache<T, M> create(
+      Cache.Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification) {
+    return new Cache<>(
+        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
   }
 
   /**
@@ -82,7 +105,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   public final Optional<TruffleFile> save(
       T entry, EnsoContext context, boolean useGlobalCacheLocations) {
     TruffleLogger logger = context.getLogger(this.getClass());
-    return getCacheRoots(context)
+    return spi.getCacheRoots(context)
         .flatMap(
             roots -> {
               try {
@@ -125,14 +148,14 @@ public abstract class Cache<T, M extends Cache.Metadata> {
       EnsoContext context, TruffleFile cacheRoot, T entry, TruffleLogger logger)
       throws IOException, ClassNotFoundException {
     if (ensureRoot(cacheRoot)) {
-      byte[] bytesToWrite = serialize(context, entry);
+      byte[] bytesToWrite = spi.serialize(context, entry);
 
-      String blobDigest = computeDigestFromBytes(bytesToWrite);
-      String sourceDigest = computeDigest(entry, logger).get();
+      String blobDigest = CacheUtils.computeDigestFromBytes(ByteBuffer.wrap(bytesToWrite));
+      String sourceDigest = spi.computeDigest(entry, logger).get();
       if (sourceDigest == null) {
         throw new ClassNotFoundException("unable to compute digest");
       }
-      byte[] metadataBytes = metadata(sourceDigest, blobDigest, entry);
+      byte[] metadataBytes = spi.metadata(sourceDigest, blobDigest, entry);
 
       TruffleFile cacheDataFile = getCacheDataPath(cacheRoot);
       TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
@@ -169,16 +192,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   }
 
   /**
-   * Return serialized representation of data's metadata.
-   *
-   * @param sourceDigest digest of data's source
-   * @param blobDigest digest of serialized data
-   * @param entry data to serialize
-   * @return raw bytes representing serialized metadata
-   */
-  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry);
-
-  /**
    * Loads cache for this data, if possible.
    *
    * @param context the language context in which loading is taking place
@@ -187,7 +200,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   public final Optional<T> load(EnsoContext context) {
     synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
-      return getCacheRoots(context)
+      return spi.getCacheRoots(context)
           .flatMap(
               roots -> {
                 try {
@@ -218,6 +231,9 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                   }
 
                   logger.log(logLevel, "Unable to load a cache [" + logName + "]");
+                } catch (IOException e) {
+                  logger.log(
+                      Level.FINE, "Unable to load a cache [" + logName + "]: " + e.getMessage(), e);
                 } catch (Exception e) {
                   logger.log(
                       Level.WARNING,
@@ -248,24 +264,34 @@ public abstract class Cache<T, M extends Cache.Metadata> {
       M meta = optMeta.get();
       boolean sourceDigestValid =
           !needsSourceDigestVerification
-              || computeDigestFromSource(context, logger)
-                  .map(digest -> digest.equals(meta.sourceHash()))
+              || spi.computeDigestFromSource(context, logger)
+                  .map(digest -> digest.equals(spi.sourceHash(meta)))
                   .orElseGet(() -> false);
-      byte[] blobBytes = dataPath.readAllBytes();
+      var file = new File(dataPath.toUri());
+      ByteBuffer blobBytes;
+      var threeMbs = 3 * 1024 * 1024;
+      if (file.exists() && file.length() > threeMbs) {
+        logger.log(Level.FINE, "Cache file " + file + " mmapped with " + file.length() + " size");
+        var raf = new RandomAccessFile(file, "r");
+        blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+      } else {
+        blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
+      }
       boolean blobDigestValid =
-          !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+          !needsDataDigestVerification
+              || CacheUtils.computeDigestFromBytes(blobBytes).equals(spi.blobHash(meta));
 
       if (sourceDigestValid && blobDigestValid) {
         T cachedObject = null;
         try {
           long now = System.currentTimeMillis();
-          cachedObject = deserialize(context, blobBytes, meta, logger);
+          cachedObject = spi.deserialize(context, blobBytes, meta, logger);
           long took = System.currentTimeMillis() - now;
           if (cachedObject != null) {
             logger.log(
                 Level.FINEST,
                 "Loaded cache for {0} with {1} bytes in {2} ms",
-                new Object[] {logName, blobBytes.length, took});
+                new Object[] {logName, blobBytes.limit(), took});
             return Optional.of(cachedObject);
           } else {
             logger.log(logLevel, "`{0}` was corrupt on disk.", logName);
@@ -298,21 +324,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   }
 
   /**
-   * Deserializes and validates data by returning the expected cached entry, or {@code null}.
-   *
-   * @param context the context
-   * @param data data to deserialize object from
-   * @param meta metadata corresponding to the `obj`
-   * @param logger Truffle's logger
-   * @return {@code data} transformed to a cached entry or {@code null}
-   * @throws ClassNotFoundException exception thrown on unexpected deserialized data
-   * @throws IOException when I/O goes wrong
-   * @throws ClassNotFoundException on problems with deserializaiton of Java classes
-   */
-  protected abstract T deserialize(EnsoContext context, byte[] data, M meta, TruffleLogger logger)
-      throws IOException, ClassNotFoundException, ClassNotFoundException;
-
-  /**
    * Read metadata representation from the provided location
    *
    * @param path location of the serialized metadata
@@ -320,107 +331,11 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    */
   private Optional<M> loadCacheMetadata(TruffleFile path, TruffleLogger logger) throws IOException {
     if (path.isReadable()) {
-      return metadataFromBytes(path.readAllBytes(), logger);
+      return spi.metadataFromBytes(path.readAllBytes(), logger);
     } else {
       return Optional.empty();
     }
   }
-
-  /**
-   * De-serializes raw bytes to data's metadata.
-   *
-   * @param bytes raw bytes representing metadata
-   * @return non-empty metadata, if de-serialization was successful
-   */
-  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger);
-
-  /**
-   * Compute digest of cache's data
-   *
-   * @param entry data for which digest should be computed
-   * @param logger Truffle's logger
-   * @return non-empty digest, if successful
-   */
-  protected abstract Optional<String> computeDigest(T entry, TruffleLogger logger);
-
-  /**
-   * Compute digest of data's source
-   *
-   * @param context the language context in which loading is taking place
-   * @param logger Truffle's logger
-   * @return non-empty digest, if successful
-   */
-  protected abstract Optional<String> computeDigestFromSource(
-      EnsoContext context, TruffleLogger logger);
-
-  /**
-   * Computes digest from an array of bytes using a default hashing algorithm.
-   *
-   * @param bytes bytes for which hash will be computed
-   * @return string representation of bytes' hash
-   */
-  protected final String computeDigestFromBytes(byte[] bytes) {
-    return Hex.toHexString(messageDigest().digest(bytes));
-  }
-
-  /**
-   * Computes digest from package sources using a default hashing algorithm.
-   *
-   * @param pkgSources the list of package sources
-   * @param logger the truffle logger
-   * @return string representation of bytes' hash
-   */
-  protected final String computeDigestOfLibrarySources(
-      List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
-    pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
-
-    var digest = messageDigest();
-    pkgSources.forEach(
-        source -> {
-          try {
-            digest.update(source.file().readAllBytes());
-          } catch (IOException e) {
-            logger.log(
-                logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
-          }
-        });
-    return Hex.toHexString(digest.digest());
-  }
-
-  /**
-   * Returns a default hashing algorithm used for Enso caches.
-   *
-   * @return digest used for computing hashes
-   */
-  protected MessageDigest messageDigest() {
-    return new SHA1.Digest();
-  }
-
-  /**
-   * Returns locations where caches can be located
-   *
-   * @param context the language context in which loading is taking place
-   * @return non-empty if the locations have been inferred successfully, empty otherwise
-   */
-  protected abstract Optional<Roots> getCacheRoots(EnsoContext context);
-
-  /**
-   * Returns the exact data to be serialized. Override in subclasses to turn an {@code entry} into
-   * an array of bytes to persist
-   *
-   * @param context context we operate in
-   * @param entry entry to persist
-   * @return array of bytes
-   * @throws java.io.IOException if something goes wrong
-   */
-  protected abstract byte[] serialize(EnsoContext context, T entry) throws IOException;
-
-  protected String entryName;
-
-  /** Suffix to be used */
-  protected String dataSuffix;
-
-  protected String metadataSuffix;
 
   /**
    * Gets the path to the cache data within the `cacheRoot`.
@@ -429,11 +344,11 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return the name of the data file for this entry's cache
    */
   private TruffleFile getCacheDataPath(TruffleFile cacheRoot) {
-    return cacheRoot.resolve(cacheFileName(dataSuffix));
+    return cacheRoot.resolve(cacheFileName(spi.dataSuffix()));
   }
 
   private TruffleFile getCacheMetadataPath(TruffleFile cacheRoot) {
-    return cacheRoot.resolve(cacheFileName(metadataSuffix));
+    return cacheRoot.resolve(cacheFileName(spi.metadataSuffix()));
   }
 
   /**
@@ -443,7 +358,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return the cache file name with the provided `ext`
    */
   private String cacheFileName(String suffix) {
-    return entryName + suffix;
+    return spi.entryName() + suffix;
   }
 
   /**
@@ -493,7 +408,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   public final void invalidate(EnsoContext context) {
     synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
-      getCacheRoots(context)
+      spi.getCacheRoots(context)
           .ifPresent(
               roots -> {
                 invalidateCache(roots.globalCacheRoot, logger);
@@ -502,7 +417,9 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     }
   }
 
-  protected static final Charset metadataCharset = StandardCharsets.UTF_8;
+  final <T> T asSpi(Class<T> type) {
+    return type.cast(spi);
+  }
 
   /**
    * Roots encapsulates two possible locations where caches can be stored.
@@ -531,9 +448,96 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     return new MaskedPath(Path.of(truffleFile.getPath()));
   }
 
-  interface Metadata {
-    String sourceHash();
+  /**
+   * Set of methods to be implemented by those who want to cache something.
+   *
+   * @param <T>
+   */
+  public static interface Spi<T, M> {
+    /**
+     * Deserializes and validates data by returning the expected cached entry, or {@code null}.
+     *
+     * @param context the context
+     * @param data data to deserialize object from
+     * @param meta metadata corresponding to the `obj`
+     * @param logger Truffle's logger
+     * @return {@code data} transformed to a cached entry or {@code null}
+     * @throws ClassNotFoundException exception thrown on unexpected deserialized data
+     * @throws IOException when I/O goes wrong
+     */
+    public abstract T deserialize(
+        EnsoContext context, ByteBuffer data, M meta, TruffleLogger logger)
+        throws IOException, ClassNotFoundException;
 
-    String blobHash();
+    /**
+     * Returns the exact data to be serialized. Override in subclasses to turn an {@code entry} into
+     * an array of bytes to persist
+     *
+     * @param context context we operate in
+     * @param entry entry to persist
+     * @return array of bytes
+     * @throws java.io.IOException if something goes wrong
+     */
+    public abstract byte[] serialize(EnsoContext context, T entry) throws IOException;
+
+    /**
+     * Return serialized representation of data's metadata.
+     *
+     * @param sourceDigest digest of data's source
+     * @param blobDigest digest of serialized data
+     * @param entry data to serialize
+     * @return raw bytes representing serialized metadata
+     * @throws java.io.IOException in case of I/O error
+     */
+    public abstract byte[] metadata(String sourceDigest, String blobDigest, T entry)
+        throws IOException;
+
+    /**
+     * De-serializes raw bytes to data's metadata.
+     *
+     * @param bytes raw bytes representing metadata
+     * @param logger logger to use
+     * @return non-empty metadata, if de-serialization was successful
+     * @throws IOException in case of I/O error
+     */
+    public abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+        throws IOException;
+
+    /**
+     * Compute digest of cache's data
+     *
+     * @param entry data for which digest should be computed
+     * @param logger Truffle's logger
+     * @return non-empty digest, if successful
+     */
+    public abstract Optional<String> computeDigest(T entry, TruffleLogger logger);
+
+    /**
+     * Compute digest of data's source
+     *
+     * @param context the language context in which loading is taking place
+     * @param logger Truffle's logger
+     * @return non-empty digest, if successful
+     */
+    public abstract Optional<String> computeDigestFromSource(
+        EnsoContext context, TruffleLogger logger);
+
+    /**
+     * Returns locations where caches can be located
+     *
+     * @param context the language context in which loading is taking place
+     * @return non-empty if the locations have been inferred successfully, empty otherwise
+     */
+    public abstract Optional<Roots> getCacheRoots(EnsoContext context);
+
+    public abstract String entryName();
+
+    public abstract String dataSuffix();
+
+    public abstract String metadataSuffix();
+
+    public abstract String sourceHash(M meta);
+
+    public abstract String blobHash(M meta);
   }
 }

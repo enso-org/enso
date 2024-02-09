@@ -86,7 +86,7 @@ public abstract class CompilerTest {
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
-    String txt = ir.pretty();
+    String txt = ir.duplicate(!noLocations, true, true, !noIds).pretty();
     if (noIds) {
       txt =
           txt.replaceAll(

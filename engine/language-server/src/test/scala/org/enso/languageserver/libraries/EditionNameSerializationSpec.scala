@@ -5,10 +5,14 @@ import org.enso.languageserver.libraries.EditionReference.{
   CurrentProjectEdition,
   NamedEdition
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class EditionNameSerializationSpec extends AnyWordSpec with Matchers {
+class EditionNameSerializationSpec
+    extends AnyWordSpec
+    with Matchers
+    with ReportLogsOnFailure {
   "EditionName" should {
     "serialize and deserialize to the same thing" in {
       val edition1: EditionReference = CurrentProjectEdition

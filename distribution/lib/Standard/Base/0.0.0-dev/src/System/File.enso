@@ -7,7 +7,8 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
-import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
@@ -319,6 +320,7 @@ type File
         Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
+       ICON math
        Join two path segments together.
 
        Arguments:
@@ -405,6 +407,7 @@ type File
         File_Error.handle_java_exceptions self <| self.size_builtin
 
     ## GROUP Text
+       ICON preparation
        Checks whether the file is within another path.
 
        Arguments:
@@ -419,6 +422,7 @@ type File
     starts_with self parent = @Builtin_Method "File.starts_with"
 
     ## GROUP Metadata
+       ICON metadata
        Gets the creation time of a file.
 
        > Example
@@ -427,7 +431,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.creation_time
-    creation_time : Time_Of_Day ! File_Error
+    creation_time : Date_Time ! File_Error
     creation_time self =
         File_Error.handle_java_exceptions self <| self.creation_time_builtin
 
@@ -440,7 +444,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.last_modified_time
-    last_modified_time : Time_Of_Day ! File_Error
+    last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         File_Error.handle_java_exceptions self <| self.last_modified_time_builtin
 
@@ -818,7 +822,9 @@ get_child_widget file =
 ## PRIVATE
 find_extension_from_name : Text -> Text
 find_extension_from_name name =
-    last_dot = name.locate "." mode=Matching_Mode.Last
-    if last_dot.is_nothing then "" else
-        extension = name.drop (Index_Sub_Range.First last_dot.start)
-        if extension == "." then "" else extension
+    extension = name.drop (Text_Sub_Range.Before_Last ".")
+    if extension == "." then "" else extension
+
+## PRIVATE
+   Convert from a Text to a File.
+File.from (that:Text) = File.new that

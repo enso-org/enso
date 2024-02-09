@@ -1,9 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.File_Format.File_For_Read
-import Standard.Base.System.File_Format.File_Format_Metadata
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
-from Standard.Base.System.File import find_extension_from_name
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -17,9 +15,9 @@ import project.Internal.Excel_Writer
 should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean ! Illegal_Argument
 should_treat_as_xls_format xls_format file =
     if xls_format != Infer then xls_format else
-        inferred_xls_format = xls_format_from_file_extension file.extension
+        inferred_xls_format = xls_format_from_metadata file
         inferred_xls_format.if_nothing <|
-            Error.throw (Illegal_Argument.Error ("Unknown file extension for Excel file (" + file.extension + ")"))
+            Error.throw (Illegal_Argument.Error ("File not recognized as Excel file (" + file.name + ")"))
 
 ## Read the file to a `Table` from an Excel file
 type Excel_Format
@@ -49,26 +47,16 @@ type Excel_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Excel_Format | Nothing
-    for_file_read file:File_For_Read =
-        is_xls = should_treat_as_xls_format Infer file
-        if is_xls.is_error then Nothing else
+    for_read : File_Format_Metadata -> Excel_Format | Nothing
+    for_read file:File_Format_Metadata =
+        is_xls = xls_format_from_metadata file
+        is_xls.if_not_nothing <|
             Excel_Format.Excel xls_format=is_xls
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Excel_Format | Nothing
-    for_file_write file = Excel_Format.for_file_read file
-
-    ## PRIVATE
-       ADVANCED
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> Excel_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        inferred_xls_format = xls_format_from_content_type content_type
-        inferred_xls_format.if_not_nothing <|
-            Excel_Format.Excel xls_format=inferred_xls_format
+    for_file_write file = Excel_Format.for_read file
 
     ## PRIVATE
        ADVANCED
@@ -91,7 +79,9 @@ type Excel_Format
 
         bad_format _ =
             message = case self.xls_format of
-                Infer -> "Cannot infer xls_format from a stream (tried xlsx)."
+                Infer ->
+                    tried = if xls_format then "xls" else "xlsx"
+                    "Cannot infer xls_format from a stream (tried "+tried+")."
                 True -> "Stream was not in the expected format (xls)."
                 False -> "Stream was not in the expected format (xlsx)."
             Error.throw (Illegal_Argument.Error message)
@@ -132,33 +122,22 @@ type Excel_Format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
 
 ## PRIVATE
-   Infers the xls format from the Content-Type.
-   Returns Nothing if the content type is not a known Excel format.
-xls_format_from_content_type : Text -> Boolean | Nothing
-xls_format_from_content_type content_type =
-    parts = content_type.split ";" . map .trim
-    case parts.first of
-        "application/vnd.ms-excel" -> True
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> False
-        _ -> Nothing
-
-## PRIVATE
-    Infers the xls format from the file extension.
-    Returns Nothing if the content type is not a known Excel format.
-xls_format_from_file_extension : Text -> Boolean | Nothing
-xls_format_from_file_extension extension =
-    case extension of
-        ".xlsx" -> False
-        ".xlsm" -> False
-        ".xls" -> True
-        ".xlt" -> True
-        _ -> Nothing
-
-## PRIVATE
+   This function returns:
+   - `True` if the file is an XLS format,
+   - `False` if the file is an XLSX format,
+   - `Nothing` if the file is not an Excel format.
 xls_format_from_metadata : File_Format_Metadata -> Boolean | Nothing
-xls_format_from_metadata metadata =
-    from_content_type = metadata.content_type.if_not_nothing (xls_format_from_content_type metadata.content_type)
+xls_format_from_metadata (metadata : File_Format_Metadata) =
+    content_type = metadata.interpret_content_type
+    from_content_type = content_type.if_not_nothing <|
+        case content_type.base_type of
+            "application/vnd.ms-excel" -> True
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> False
+            _ -> Nothing
     from_content_type.if_nothing <|
-        metadata.file_name.if_not_nothing <|
-            extension = find_extension_from_name metadata.file_name
-            xls_format_from_file_extension extension
+        case metadata.guess_extension of
+            ".xlsx" -> False
+            ".xlsm" -> False
+            ".xls" -> True
+            ".xlt" -> True
+            _ -> Nothing
