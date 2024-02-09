@@ -71,13 +71,15 @@ case object TypeNames extends IRPass {
               p.getMetadata(MethodDefinitions)
                 .flatMap(_.target match {
                   case typ: BindingsMap.ResolvedType => Some(typ)
-                  case _ => None
+                  case _                             => None
                 })
             }
         case _ => None
       }
       val mapped =
-        d.mapExpressions(resolveExpression(selfType, typeParams, bindingsMap, _))
+        d.mapExpressions(
+          resolveExpression(selfType, typeParams, bindingsMap, _)
+        )
       doResolveType(
         selfType,
         typeParams,
@@ -106,11 +108,18 @@ case object TypeNames extends IRPass {
       val processedIr = ir match {
         case fn: Function.Lambda =>
           fn.copy(arguments =
-            fn.arguments.map(doResolveType(selfType, typeParams, bindingsMap, _))
+            fn.arguments.map(
+              doResolveType(selfType, typeParams, bindingsMap, _)
+            )
           )
         case x => x
       }
-      doResolveType(selfType, typeParams, bindingsMap, processedIr.mapExpressions(go))
+      doResolveType(
+        selfType,
+        typeParams,
+        bindingsMap,
+        processedIr.mapExpressions(go)
+      )
     }
     go(ir)
   }

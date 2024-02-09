@@ -999,7 +999,7 @@ object BindingsMap {
   }
 
   /** A resolution error due to usage of Self type reference outside of a type scope.
-   */
+    */
   case object SelfTypeOutsideOfTypeDefinition extends ResolutionError {
     override def explain(originalName: ir.Name): String =
       s"The Self type is not applicable outside of a type definition"
