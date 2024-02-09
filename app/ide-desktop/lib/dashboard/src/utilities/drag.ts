@@ -25,9 +25,9 @@ export function setDragImageToBlank(event: React.DragEvent) {
 
 /** Associates drag events with payload data. */
 class DragPayloadManager<Payload> {
-  regex: RegExp
-  map = new Map<string, Payload>()
-  reverseMap = new Map<Payload, string>()
+  readonly regex: RegExp
+  readonly map = new Map<string, Payload>()
+  readonly reverseMap = new Map<Payload, string>()
   /** Create a {@link DragPayloadManager}. */
   constructor(public mimetype: string) {
     this.regex = new RegExp('^' + mimetype + '; id=(.+)$')

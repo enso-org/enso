@@ -17,9 +17,9 @@ from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
-from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test import all
+import Standard.Test.Test_Environment
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Database.Helpers.Name_Generator
 

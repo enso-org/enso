@@ -60,7 +60,7 @@ class LibrariesTest
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" taggedAs Flaky in {
+    "create a library project and include it on the list of local projects" taggedAs SkipOnFailure in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
@@ -95,7 +95,10 @@ class LibrariesTest
         } yield libraryNames
 
       // The resolver may find the current project and other test projects on the path.
-      val msg1 = client.expectSomeJson(timeout = defaultTimeout)
+      val msg1 = client.expectSomeJson(
+        timeout                   = defaultTimeout,
+        printStackTracesOnFailure = true
+      )
       inside(findLibraryNamesInResponse(msg1)) { case Some(libs) =>
         // Ensure that before running this test, the library did not exist.
         libs should not contain testLibraryName

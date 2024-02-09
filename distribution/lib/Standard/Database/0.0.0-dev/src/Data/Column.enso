@@ -147,7 +147,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
-    get : Integer -> (Any | Nothing)
+    get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         self.read index+1 . get index default
 
@@ -255,6 +255,7 @@ type Column
 
     ## ALIAS equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise equality comparison.
 
        Arguments:
@@ -289,6 +290,7 @@ type Column
         make_equality_check_with_floating_point_handling self other "=="
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise case-insensitive text equality comparison.
 
        Arguments:
@@ -310,6 +312,7 @@ type Column
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise non-equality comparison.
 
        Arguments:
@@ -345,6 +348,7 @@ type Column
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -359,6 +363,7 @@ type Column
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -373,6 +378,7 @@ type Column
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -387,6 +393,7 @@ type Column
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -400,6 +407,7 @@ type Column
         self.make_binary_op "<" other
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise inclusive bounds check.
 
        Arguments:
@@ -422,6 +430,7 @@ type Column
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise addition. Works on numeric types or text.
 
        Arguments:
@@ -450,6 +459,7 @@ type Column
 
     ## ALIAS minus, subtract, time difference
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
 
@@ -478,6 +488,7 @@ type Column
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise multiplication.
 
        Arguments:
@@ -502,6 +513,7 @@ type Column
 
     ## ALIAS divide
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise division.
 
        Arguments:
@@ -546,6 +558,7 @@ type Column
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise modulus.
 
        Arguments:
@@ -585,6 +598,7 @@ type Column
 
     ## ALIAS power
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise raising to the power.
 
        Arguments:
@@ -624,6 +638,7 @@ type Column
 
     ## ALIAS and
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise boolean conjunction.
 
        Arguments:
@@ -641,6 +656,7 @@ type Column
 
     ## ALIAS or
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise boolean disjunction.
 
        Arguments:
@@ -657,6 +673,7 @@ type Column
             self.make_binary_op "OR" other new_name
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Boolean negation of each element in this column.
     not : Column
     not self =
@@ -666,6 +683,7 @@ type Column
 
     ## ALIAS if
        GROUP Standard.Base.Logical
+       ICON preparation
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
@@ -704,6 +722,7 @@ type Column
     const self value = self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
+       ICON math
        Round to a specified number of decimal places.
 
        `round` is only valid for `Value_Type.Decimal`, `Value_Type.Float`, and
@@ -838,6 +857,7 @@ type Column
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
+       ICON math
 
        Truncate the floating-point values to an integer by dropping the
        fractional part. This is equivalent to "round-toward-zero".
@@ -871,6 +891,7 @@ type Column
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Takes the ceiling of floating-point values, returning integer values.
 
        ! NaN/Inf
@@ -890,6 +911,7 @@ type Column
             self.make_unary_op "CEIL" new_name
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Takes the floor of floating-point values, returning integer values.
 
        ! NaN/Inf
@@ -925,7 +947,7 @@ type Column
             self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## GROUP Standard.Base.Logical
-       ICON preparation
+       ICON operators
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -949,6 +971,7 @@ type Column
             adapt_unified_column op_result common_type
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
@@ -969,6 +992,7 @@ type Column
             self.make_op "ROW_MIN" args new_name
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
@@ -989,6 +1013,7 @@ type Column
             self.make_op "ROW_MAX" args new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_nothing : Column
@@ -997,6 +1022,7 @@ type Column
         self.make_unary_op "IS_NULL" new_name
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
@@ -1005,6 +1031,7 @@ type Column
         self.make_unary_op "IS_NAN" new_name
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
@@ -1022,6 +1049,7 @@ type Column
         self.make_unary_op "IS_EMPTY" new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
@@ -1136,6 +1164,7 @@ type Column
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -1279,6 +1308,7 @@ type Column
             self.make_binary_op "RIGHT" n2 new_name           
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it contains `other`.
 
        Arguments:
@@ -1296,6 +1326,7 @@ type Column
         make_text_case_op self "contains" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it matches an SQL-like pattern.
 
        Arguments:
@@ -1319,7 +1350,7 @@ type Column
                 self.make_binary_op "LIKE" pattern new_name
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON text
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1417,6 +1448,7 @@ type Column
                 self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1426,6 +1458,7 @@ type Column
         simple_unary_op self "year"
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1435,6 +1468,7 @@ type Column
         simple_unary_op self "month"
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the day of the month as a number (1-31) from the date stored in the
        column.
 
@@ -1445,6 +1479,7 @@ type Column
         simple_unary_op self "day"
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the hour as a number (0-23) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1454,6 +1489,7 @@ type Column
         simple_unary_op self "hour"
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the minute as a number (0-59) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1473,6 +1509,7 @@ type Column
         simple_unary_op self "second"
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the date part of the date/time value.
 
        Returns a column of `Integer` type.
@@ -1482,6 +1519,7 @@ type Column
         Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helper
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Computes a time difference between the two dates.
 
        It returns a column of integers expressing how many periods fit between
@@ -1516,6 +1554,7 @@ type Column
                     self.make_op "date_diff" [end] new_name metadata
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
@@ -1545,6 +1584,7 @@ type Column
                     self.make_op "date_add" [amount] new_name metadata
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it is contained within the
        provided vector or column.
 
@@ -1702,6 +1742,7 @@ type Column
             self.internal_do_cast value_type on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of the column to a more specific one, based on its
        contents.
 

@@ -9,7 +9,7 @@ import Standard.Base.Runtime.Context
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 set_writable file writable =
@@ -22,6 +22,11 @@ add_specs suite_builder =
     non_existent_file = File.new "does_not_exist.txt"
 
     suite_builder.group "File Operations" group_builder->
+        group_builder.specify "should get name of the root" <|
+            root = File.new "/"
+            root.name . is_nothing . should_be_false
+            root.path . is_nothing . should_be_false
+
         group_builder.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path

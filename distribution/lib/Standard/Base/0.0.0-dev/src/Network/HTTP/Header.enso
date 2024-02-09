@@ -1,13 +1,13 @@
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Utils as Cloud_Utils
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Ordering import all
 from project.Data.Enso_Cloud.Enso_Secret import as_hideable_value
+from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 
 polyglot java import org.graalvm.collections.Pair as Java_Pair
@@ -22,7 +22,7 @@ type Header
        - value: The header value.
     Value name:Text value:(Text|Enso_Secret|Derived_Secret_Value)
 
-    ## ALIAS Build a Header
+    ## ALIAS build a header
 
        Create a new Header.
 
@@ -36,7 +36,7 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_new = Header.new "My_Header" "my header's value"
-    new : Text -> Text | Enso_Secret -> Header
+    new : Text -> Text | Enso_Secret | Derived_Secret_Value -> Header
     new name:Text value:(Text | Enso_Secret | Derived_Secret_Value) = Header.Value name value
 
     ## Create an "Accept" header.
@@ -64,7 +64,7 @@ type Header
     accept_all : Header
     accept_all = Header.accept "*/*"
 
-    ## ALIAS Build an Auth Header
+    ## ALIAS build an auth header
 
        Create an "Authorization" header.
 
@@ -102,7 +102,7 @@ type Header
 
        Arguments:
        - token: The token.
-    authorization_bearer : Text -> Header
+    authorization_bearer : Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization_bearer (token : Text | Enso_Secret | Derived_Secret_Value) =
         value = ((Derived_Secret_Value.from "Bearer ") + (Derived_Secret_Value.from token))
         Header.authorization value.simplify
