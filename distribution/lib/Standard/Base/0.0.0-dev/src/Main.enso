@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.Decimal.Decimal
 import project.Data.Enso_Cloud.Enso_File.Enso_File
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_User.Enso_User
@@ -100,6 +101,7 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 export project.Any.Any
 export project.Data
 export project.Data.Array.Array
+export project.Data.Decimal.Decimal
 export project.Data.Enso_Cloud.Enso_File.Enso_File
 export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 export project.Data.Enso_Cloud.Enso_User.Enso_User

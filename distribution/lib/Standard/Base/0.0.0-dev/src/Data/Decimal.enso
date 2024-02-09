@@ -1,0 +1,12 @@
+import project.Data.Text.Text
+
+polyglot java import java.math.BigDecimal
+
+type Decimal
+    Value (big_decimal:BigDecimal)
+
+    new : Text -> Decimal
+    new (s:Text) = Decimal.from_string s
+
+    from_string : Text -> Decimal
+    from_string (s:Text) = Decimal.Value (BigDecimal.new s)
