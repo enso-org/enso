@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
-import { WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract'
