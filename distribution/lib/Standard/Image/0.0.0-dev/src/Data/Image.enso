@@ -68,13 +68,12 @@ type Image
              Image.read "image.png" Read_Flag.Grayscale
     read : File -> (Read_Flag | Vector) -> Image ! File_Error
     read (location:File) flags=[] =
-        path = location.path
         read_flags = case flags of
             _ : Vector ->
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
-        Panic.catch JException (Image.Value (Java_Codecs.read path read_flags)) _->
+        Panic.catch JException (Image.Value (Java_Codecs.read location.path read_flags)) _->
             Error.throw (File_Error.IO_Error location 'Failed to read the file')
 
     ## UNSTABLE
