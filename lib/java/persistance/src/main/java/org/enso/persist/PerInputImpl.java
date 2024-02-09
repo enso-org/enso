@@ -23,14 +23,13 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve)
+  static <T> Reference<T> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
-      if (arr[i] != PerGenerator.HEADER[i]) {
+      if (buf.get(i) != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");
       }
     }
-    var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
     var cache = new InputCache(buf, readResolve);
     if (version != cache.map().versionStamp) {
