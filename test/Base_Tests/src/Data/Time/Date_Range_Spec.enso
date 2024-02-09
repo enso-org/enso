@@ -184,7 +184,7 @@ add_specs suite_builder =
                 reducer x y = if x > y then x else y
 
                 case r.length of
-                    0 -> r.reduce reducer . should_fail_with (Empty_Error.Error Range)
+                    0 -> r.reduce reducer . should_fail_with (Empty_Error.Error Date_Range)
                     _ -> r.reduce reducer . should_equal (r.to_vector.reduce reducer)
 
         group_builder.specify "should define friendly text representations" <|
