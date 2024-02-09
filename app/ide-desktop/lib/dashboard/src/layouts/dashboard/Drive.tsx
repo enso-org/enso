@@ -10,7 +10,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -116,9 +115,7 @@ export default function Drive(props: DriveProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { modalRef } = modalProvider.useModalRef()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
-  const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -155,22 +152,6 @@ export default function Drive(props: DriveProps) {
         projectManager.ProjectManagerEvents.loadingFailed,
         onProjectManagerLoadingFailed
       )
-    }
-  }, [])
-
-  React.useEffect(() => {
-    if (modalRef.current != null) {
-      setIsFileBeingDragged(false)
-    }
-  }, [/* should never change */ modalRef])
-
-  React.useEffect(() => {
-    const onBlur = () => {
-      setIsFileBeingDragged(false)
-    }
-    window.addEventListener('blur', onBlur)
-    return () => {
-      window.removeEventListener('blur', onBlur)
     }
   }, [])
 
@@ -303,23 +284,6 @@ export default function Drive(props: DriveProps) {
     [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
-  React.useEffect(() => {
-    const onDragEnter = (event: DragEvent) => {
-      if (
-        modalRef.current == null &&
-        !hidden &&
-        category === Category.home &&
-        event.dataTransfer?.types.includes('Files') === true
-      ) {
-        setIsFileBeingDragged(true)
-      }
-    }
-    document.body.addEventListener('dragenter', onDragEnter)
-    return () => {
-      document.body.removeEventListener('dragenter', onDragEnter)
-    }
-  }, [hidden, category, /* should never change */ modalRef])
-
   switch (status) {
     case DriveStatus.offline: {
       return (
@@ -444,31 +408,6 @@ export default function Drive(props: DriveProps) {
               />
             )}
           </div>
-          {isFileBeingDragged && organization != null && isCloud ? (
-            <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
-              onDragLeave={() => {
-                setIsFileBeingDragged(false)
-              }}
-              onDragOver={event => {
-                event.preventDefault()
-              }}
-              onDrop={event => {
-                event.preventDefault()
-                setIsFileBeingDragged(false)
-                if (rootDirectory != null) {
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.uploadFiles,
-                    parentKey: rootDirectory.value.id,
-                    parent: rootDirectory,
-                    files: Array.from(event.dataTransfer.files),
-                  })
-                }
-              }}
-            >
-              Drop to upload files.
-            </div>
-          ) : null}
         </div>
       )
     }
