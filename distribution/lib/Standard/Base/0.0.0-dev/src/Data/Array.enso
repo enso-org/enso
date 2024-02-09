@@ -561,19 +561,17 @@ type Array
     partition_with_index self predicate = Vector.partition_with_index self predicate
 
     ## GROUP Selections
-       Swaps the rows and columns of a matrix represented by an `Array` of `Array`s.
+       Swaps the rows and columns of a matrix represented by an array of arrays.
 
        ! Error Conditions
 
-         - If the rowws (subvectors) do not all have the same length, an
+         - If the rows (subarrays) do not all have the same length, an
          `Illegal_Argument` error is raised.
 
        > Example
-         Transpose a `Array` of `Array`s.`
+         Transpose an array of arrays.
 
-             "Hello, world!".reverse
-
-             matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+             matrix = [[0, 1, 2].to_array, [3, 4, 5].to_array, [6, 7, 8].to_array].to_array
              # +---+---+---+
              # | 0 | 1 | 2 |
              # +---+---+---+
@@ -582,7 +580,7 @@ type Array
              # | 6 | 7 | 8 |
              # +---+---+---+
 
-             transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+             transposed = [[0, 3, 6].to_array, [1, 4, 7].to_array, [2, 5, 8].to_array].to_array
              # +---+---+---+
              # | 0 | 3 | 6 |
              # +---+---+---+

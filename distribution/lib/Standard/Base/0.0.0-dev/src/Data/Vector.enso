@@ -581,15 +581,15 @@ type Vector a
         pair.map .to_vector
 
     ## GROUP Selections
-       Swaps the rows and columns of a matrix represented by a `Vector` of `Vector`s.
+       Swaps the rows and columns of a matrix represented by a vector of vectors.
 
        ! Error Conditions
 
-         - If the rowws (subvectors) do not all have the same length, an
+         - If the rows (subvectors) do not all have the same length, an
          `Illegal_Argument` error is raised.
 
        > Example
-         Transpose a `Vector` of `Vectors`.`
+         Transpose a vector of vectors.
 
              matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
              # +---+---+---+
