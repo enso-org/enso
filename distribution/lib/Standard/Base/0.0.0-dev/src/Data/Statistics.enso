@@ -16,7 +16,7 @@ import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
-from project.Data.Vector import Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.NullPointerException
@@ -352,8 +352,8 @@ check_if_empty count ~action = if count == 0 then Number.nan else action
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
-    Statistic.Minimum -> Error.throw Empty_Error
-    Statistic.Maximum -> Error.throw Empty_Error
+    Statistic.Minimum -> Error.throw (Empty_Error.Error Vector)
+    Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
 
 ## PRIVATE

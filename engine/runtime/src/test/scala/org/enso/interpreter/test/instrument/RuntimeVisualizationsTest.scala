@@ -2571,9 +2571,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       """import Standard.Base.Data.List
         |import Standard.Visualization
         |import Standard.Base.Error.Error
+        |import Standard.Base.Errors.Empty_Error.Empty_Error
         |
         |main =
-        |    Error.throw List.Empty_Error.Error
+        |    Error.throw Empty_Error.Error
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
