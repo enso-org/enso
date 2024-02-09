@@ -266,7 +266,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         no_error = warned.remove_warnings Unimplemented
         Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
 
-    group_builder.specify "should allow to throwing warnings, by type" <|
+    group_builder.specify "should allow raising warnings as errors, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
         warned.throw_on_warning . should_fail_with Integer
@@ -467,4 +467,3 @@ main =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter
-
