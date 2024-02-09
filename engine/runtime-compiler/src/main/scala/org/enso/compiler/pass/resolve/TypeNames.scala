@@ -47,60 +47,50 @@ case object TypeNames extends IRPass {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
-      // TODO the 2 pattern matches next to each other could be cleaned up
-      val typeParams: List[Name] = d match {
-        case t: Definition.Type => t.params.map(_.name)
-        case m: Method.Explicit =>
-          val params: List[Name] = m.methodReference.typePointer
-            .flatMap { p =>
-              p.getMetadata(MethodDefinitions)
-                .map(_.target match {
-                  case typ: BindingsMap.ResolvedType =>
-                    typ.tp.params.map(Name.Literal(_, false, None)).toList
-                  case _ => List()
-                })
-            }
-            .getOrElse(List())
-          params
-        case _ => Nil
-      }
-      val selfType: Option[BindingsMap.ResolvedType] = d match {
+      val selfTypeInfo: SelfTypeInfo = d match {
+        case t: Definition.Type =>
+          // TODO currently the `Self` type is only used internally as an ascription for static method bindings
+          //  Once we actually start supporting the `Self` syntax, we should set the self type here to the ResolvedType
+          //  corresponding to the current definition, so that we can correctly resolve `Self` references in constructor
+          //  argument types.
+          val selfType   = None
+          val typeParams = t.params.map(_.name)
+          SelfTypeInfo(selfType, typeParams)
         case m: Method.Explicit =>
           m.methodReference.typePointer
             .flatMap { p =>
               p.getMetadata(MethodDefinitions)
-                .flatMap(_.target match {
-                  case typ: BindingsMap.ResolvedType => Some(typ)
-                  case _                             => None
+                .map(_.target match {
+                  case typ: BindingsMap.ResolvedType =>
+                    val params =
+                      typ.tp.params.map(Name.Literal(_, false, None)).toList
+                    SelfTypeInfo(Some(typ), params)
+                  case _ => SelfTypeInfo.empty
                 })
             }
-        case _ => None
+            .getOrElse(SelfTypeInfo.empty)
+        case _ => SelfTypeInfo.empty
       }
+
       val mapped =
         d.mapExpressions(
-          resolveExpression(selfType, typeParams, bindingsMap, _)
+          resolveExpression(selfTypeInfo, bindingsMap, _)
         )
-      doResolveType(
-        selfType,
-        typeParams,
-        bindingsMap,
-        mapped match {
-          case typ: Definition.Type =>
-            typ.members.foreach(m =>
-              m.arguments.foreach(a =>
-                doResolveType(selfType, typ.params.map(_.name), bindingsMap, a)
-              )
-            )
-            typ
-          case x => x
-        }
-      )
+      doResolveType(selfTypeInfo, bindingsMap, mapped)
     })
   }
 
-  private def resolveExpression(
+  private case class SelfTypeInfo(
     selfType: Option[BindingsMap.ResolvedType],
-    typeParams: List[Name],
+    typeParams: List[Name]
+  )
+
+  private case object SelfTypeInfo {
+    def empty: SelfTypeInfo = SelfTypeInfo(None, Nil)
+  }
+
+  private def resolveExpression(
+    selfTypeInfo: SelfTypeInfo,
     bindingsMap: BindingsMap,
     ir: Expression
   ): Expression = {
@@ -109,14 +99,13 @@ case object TypeNames extends IRPass {
         case fn: Function.Lambda =>
           fn.copy(arguments =
             fn.arguments.map(
-              doResolveType(selfType, typeParams, bindingsMap, _)
+              doResolveType(selfTypeInfo, bindingsMap, _)
             )
           )
         case x => x
       }
       doResolveType(
-        selfType,
-        typeParams,
+        selfTypeInfo,
         bindingsMap,
         processedIr.mapExpressions(go)
       )
@@ -125,8 +114,7 @@ case object TypeNames extends IRPass {
   }
 
   private def doResolveType[T <: IR](
-    selfType: Option[BindingsMap.ResolvedType],
-    typeParams: List[Name],
+    selfTypeInfo: SelfTypeInfo,
     bindingsMap: BindingsMap,
     ir: T
   ): T = {
@@ -136,7 +124,7 @@ case object TypeNames extends IRPass {
           new MetadataPair(
             TypeSignatures,
             TypeSignatures.Signature(
-              resolveSignature(selfType, typeParams, bindingsMap, s.signature),
+              resolveSignature(selfTypeInfo, bindingsMap, s.signature),
               s.comment
             )
           )
@@ -146,15 +134,14 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
-    selfType: Option[BindingsMap.ResolvedType],
-    typeParams: List[Name],
+    selfTypeInfo: SelfTypeInfo,
     bindingsMap: BindingsMap,
     expression: Expression
   ): Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: Name.Literal =>
-        if (typeParams.exists(_.name == n.name)) {
+        if (selfTypeInfo.typeParams.exists(_.name == n.name)) {
           n
         } else {
           processResolvedName(n, bindingsMap.resolveName(n.name))
@@ -165,12 +152,12 @@ case object TypeNames extends IRPass {
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
       case selfRef: Name.SelfType =>
-        val resolvedSelfType = selfType.toRight {
+        val resolvedSelfType = selfTypeInfo.selfType.toRight {
           BindingsMap.SelfTypeOutsideOfTypeDefinition
         }
         processResolvedName(selfRef, resolvedSelfType)
       case s: `type`.Set =>
-        s.mapExpressions(resolveSignature(selfType, typeParams, bindingsMap, _))
+        s.mapExpressions(resolveSignature(selfTypeInfo, bindingsMap, _))
     }
 
   private def processResolvedName(
