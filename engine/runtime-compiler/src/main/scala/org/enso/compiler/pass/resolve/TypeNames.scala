@@ -2,13 +2,12 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
-import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
-import org.enso.compiler.core.ir.`type`
+import org.enso.compiler.core.ir.{`type`, Expression, Function, Module, Name}
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
@@ -97,18 +96,24 @@ case object TypeNames extends IRPass {
     def fromMethodReference(m: Name.MethodReference): SelfTypeInfo =
       m.typePointer match {
         case Some(p) =>
-          p.unsafeGetMetadata(
-            MethodDefinitions,
-            s"Missing MethodDefinitions resolution data for $p."
-          ).target match {
-            case typ: BindingsMap.ResolvedType =>
-              val params =
-                typ.tp.params.map(Name.Literal(_, false, None)).toList
-              SelfTypeInfo(Some(typ), params)
-            case other =>
-              throw new CompilerError(
-                s"Method target not resolved as ResolvedType, but $other."
-              )
+          p.getMetadata(MethodDefinitions) match {
+            case Some(resolution) =>
+              resolution.target match {
+                case typ: BindingsMap.ResolvedType =>
+                  val params =
+                    typ.tp.params.map(Name.Literal(_, false, None)).toList
+                  SelfTypeInfo(Some(typ), params)
+                case _: BindingsMap.ResolvedModule =>
+                  SelfTypeInfo.empty
+                case other =>
+                  throw new CompilerError(
+                    s"Method target not resolved as ResolvedType, but $other."
+                  )
+              }
+            case None =>
+              // It is unexpected that the metadata is missing here, but we don't fail because other passes should fail
+              // with more detailed info.
+              SelfTypeInfo.empty
           }
         case None => SelfTypeInfo.empty
       }
