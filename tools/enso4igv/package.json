@@ -32,10 +32,10 @@
     "truffle"
   ],
   "activationEvents": [
-		"workspaceContains:**/*.java",
+    "workspaceContains:**/*.java",
     "onLanguage:enso",
-		"onDebug",
-		"onDebugDynamicConfigurations"
+    "onDebug",
+    "onDebugDynamicConfigurations"
   ],
   "main": "./dist/extension",
   "contributes": {
