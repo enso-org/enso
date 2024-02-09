@@ -129,7 +129,7 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
     response = client.getObject request
 
     inner_response = response.response
-    s3_uri = URI.parse ("s3://" + bucket + "/") / key
+    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
     content_type = inner_response.contentType
     name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
         key.split "/" . last
@@ -168,9 +168,8 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
    Splits a S3 URI into bucket and key.
 parse_uri : Text -> Pair Text Text | Nothing
 parse_uri uri =
-    prefix = "s3://"
-    if uri.starts_with prefix . not then Nothing else
-        no_prefix = uri.drop prefix.length
+    if uri.starts_with uri_prefix . not then Nothing else
+        no_prefix = uri.drop uri_prefix.length
         index_of = no_prefix.index_of "/"
         if index_of == 0 then Nothing else
             if index_of.is_nothing then Pair.new no_prefix "" else
@@ -199,3 +198,9 @@ make_client credentials:(AWS_Credential | Nothing) =
 handle_io_errors uri:URI ~action =
     Panic.catch IOException action caught_panic->
         Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)
+
+## PRIVATE
+scheme = "s3"
+
+## PRIVATE
+uri_prefix = s3_scheme + "://"

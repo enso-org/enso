@@ -30,7 +30,7 @@ type S3_File
        - credentials: The credentials to use when accessing the file.
          If not specified, the default credentials are used.
     new : Text -> AWS_Credential | Nothing -> S3_File
-    new uri="s3://" credentials=Nothing =
+    new uri=S3.uri_prefix credentials=Nothing =
         parts = S3.parse_uri uri
         if parts.is_nothing then Error.throw (Syntax_Error.Error "Invalid S3 URI.") else
             S3_File.Value parts.first parts.second credentials
@@ -41,7 +41,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file
     uri : Text
-    uri self = "s3://" + self.bucket + "/" + self.prefix
+    uri self = S3.uri_prefix + self.bucket + "/" + self.prefix
 
     ## GROUP Standard.Base.Metadata
        Checks if the folder or file exists
