@@ -2574,7 +2574,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         |import Standard.Base.Errors.Empty_Error.Empty_Error
         |
         |main =
-        |    Error.throw Empty_Error.Error
+        |    Error.throw (Empty_Error.Error List)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
