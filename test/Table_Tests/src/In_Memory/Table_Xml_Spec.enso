@@ -7,7 +7,7 @@ import Standard.Base.Errors.Common.Type_Error
 # pretty printed xml actually makes the tests less pretty 
 # so all but one tests depretty the xml before comparing
 depretty xmlText = 
-    xmlText.replace (Regex.compile "(\r\n|\n)\s*") ""
+    xmlText.replace (Regex.compile "\n\s*") ""
 
 type Data
     #   | Title                  | Author              | Price | Year | Last Borrowed
@@ -36,7 +36,7 @@ add_specs suite_builder =
             t = data.table . take 0
             r = t.to_xml 
             e = "<Table/>"
-            r.should_equal e
+            (depretty r).should_equal (depretty e)
         group_builder.specify "if no columns are specified all fields become child elements" <|
             t = data.table . select_columns ['Title', 'Year']
             r = t.to_xml
@@ -216,16 +216,16 @@ add_specs suite_builder =
             # this one makes sure it actually is pretty printed for users
             t = data.table . take 2
             r = t.to_xml ["Year"] ["Author", "Price"] "Title"
-            e = '<Table>\r\n'
-                + '  <Row Author="Charles Dickens" Price="9.99">\r\n'
-                + '    A Tale Of Two Cities\r\n'
-                + '    <Year>1859</Year>\r\n'
-                + '  </Row>\r\n'
-                + '  <Row Author="F. Scott Fitzgerald" Price="5.99">\r\n'
-                + '    The Great Gatsby\r\n'
-                + '    <Year>1925</Year>\r\n'
-                + '  </Row>\r\n'
-                + '</Table>'
+            e = '<Table>\n'
+                + '    <Row Author="Charles Dickens" Price="9.99">\n'
+                + '        A Tale Of Two Cities\n'
+                + '        <Year>1859</Year>\n'
+                + '    </Row>\n'
+                + '    <Row Author="F. Scott Fitzgerald" Price="5.99">\n'
+                + '        The Great Gatsby\n'
+                + '        <Year>1925</Year>\n'
+                + '    </Row>\n'
+                + '</Table>\n'
             r . should_equal e 
         group_builder.specify "Illegal xml names are cleaned up in root_name and row_name" <|
             t = data.table . take 1
@@ -355,19 +355,19 @@ add_specs suite_builder =
             r = t.to_xml ["xml", "special"] ["xml", "special"] "xml"
             e = '''
                 <Table>
-                  <Row special="&lt;" xml="&lt;/Table>">
-                    &lt;/Table>
-                    <xml>&lt;/Table></xml>
+                  <Row special="&lt;" xml="&lt;/Table&gt;">
+                    &lt;/Table&gt;
+                    <xml>&lt;/Table&gt;</xml>
                     <special>&lt;</special>
                   </Row>
-                  <Row special="&amp;>" xml="&lt;tag>12&lt;/tag>">
-                    &lt;tag>12&lt;/tag>
-                    <xml>&lt;tag>12&lt;/tag></xml>
-                    <special>&amp;></special>
+                  <Row special="&amp;&gt;" xml="&lt;tag&gt;12&lt;/tag&gt;">
+                    &lt;tag&gt;12&lt;/tag&gt;
+                    <xml>&lt;tag&gt;12&lt;/tag&gt;</xml>
+                    <special>&amp;&gt;</special>
                   </Row>
-                  <Row special="'" xml="&lt;r>&lt;c v=&quot;1&quot;>&lt;/c>&lt;/r>">
-                    &lt;r>&lt;c v="1">&lt;/c>&lt;/r>
-                    <xml>&lt;r>&lt;c v="1">&lt;/c>&lt;/r></xml>
+                  <Row special="'" xml="&lt;r&gt;&lt;c v=&quot;1&quot;&gt;&lt;/c&gt;&lt;/r&gt;">
+                    &lt;r&gt;&lt;c v="1"&gt;&lt;/c&gt;&lt;/r&gt;
+                    <xml>&lt;r&gt;&lt;c v="1"&gt;&lt;/c&gt;&lt;/r&gt;</xml>
                     <special>'</special>
                   </Row>
                 </Table>
