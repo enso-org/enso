@@ -52,8 +52,9 @@ object HTTPRequestBuilder {
 
   /** Creates a request builder that will send the request for the given URI.
     */
-  def fromURI(uri: URI): HTTPRequestBuilder =
-    new HTTPRequestBuilder(uri, Vector.empty, HttpRequest.newBuilder())
+  def fromURI(uri: URI): HTTPRequestBuilder = {
+    new HTTPRequestBuilder(uri, Vector.empty, HttpRequest.newBuilder(uri))
+  }
 
   /** Tries to parse the URI provided as a [[String]] and returns a request
     * builder that will send the request to the given `uri`.

@@ -15,7 +15,9 @@ case class URIBuilder private (uri: URI) {
     * `http://example.com/foo/bar`.
     */
   def addPathSegment(segment: String): URIBuilder = {
-    copy(uri.resolve(segment))
+    val pathItems = uri.getRawPath.split("/")
+    val newPath = (pathItems :+ segment).mkString("/")
+    copy(uri.resolve(newPath))
   }
 
   /** Add a query parameter to the URI.
