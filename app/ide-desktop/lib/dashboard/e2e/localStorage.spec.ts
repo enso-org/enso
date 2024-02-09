@@ -4,6 +4,10 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
+// Tests for `loginRedirect` and `project` omitted for now as they are more
+// difficult to test.
+// Tests for `assetPanelTab` also omitted for now.
+
 test.test.beforeEach(actions.mockAllAndLogin)
 
 test.test('extra columns', async ({ page }) => {
@@ -83,7 +87,7 @@ test.test('backend type', async ({ page }) => {
   await actions.expectBackgroundFrame(actions.locateLocalBackendButton(page))
 })
 
-test.test('page', async ({ page }) => {
+test.test('drive category', async ({ page }) => {
   await actions.expectNoBackground(actions.locateRecentCategory(page))
   await actions.expectBackgroundFrameSelected(actions.locateHomeCategory(page))
   await actions.expectNoBackground(actions.locateTrashCategory(page))
@@ -102,4 +106,46 @@ test.test('page', async ({ page }) => {
   })
   await actions.login({ page })
   await actions.expectBackgroundFrameSelected(actions.locateHomeCategory(page))
+})
+
+test.test('asset panel visibility', async ({ page }) => {
+  await actions.locateNewFolderIcon(page).click()
+  await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
+  await actions.locateAssetRows(page).first().click()
+  await actions.locateAssetPanelIcon(page).click()
+  await test.expect(actions.locateAssetPanel(page)).toBeVisible()
+  await actions.login({ page })
+  await actions.locateAssetRows(page).first().click()
+  await test.expect(actions.locateAssetPanel(page)).toBeVisible()
+  // Invalid `localStorage` values should reset the setting rather than crashing
+  // the application.
+  await page.evaluate(() => {
+    localStorage.setItem('enso', JSON.stringify({ isAssetPanelVisible: 'invalid' }))
+  })
+  await actions.login({ page })
+  await actions.locateAssetRows(page).first().click()
+  await test.expect(actions.locateAssetsTable(page)).toBeVisible()
+  await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
+})
+
+test.test('page', async ({ page }) => {
+  await test.expect(actions.locateAssetsTable(page)).toBeVisible()
+  await actions.locateHomePageIcon(page).click()
+  await test.expect(actions.locateSamplesList(page)).toBeVisible()
+  await actions.login({ page })
+  await test.expect(actions.locateSamplesList(page)).toBeVisible()
+  await actions.locateDrivePageIcon(page).click()
+  await actions.locateNewProjectButton(page).click()
+  await actions.mockIDEContainer({ page })
+  await test.expect(actions.locateEditor(page)).toBeVisible()
+  await actions.login({ page })
+  await actions.mockIDEContainer({ page })
+  await test.expect(actions.locateEditor(page)).toBeVisible()
+  // Invalid `localStorage` values should reset the setting rather than crashing
+  // the application.
+  await page.evaluate(() => {
+    localStorage.setItem('enso', JSON.stringify({ page: 'invalid' }))
+  })
+  await actions.login({ page })
+  await test.expect(actions.locateAssetsTable(page)).toBeVisible()
 })
