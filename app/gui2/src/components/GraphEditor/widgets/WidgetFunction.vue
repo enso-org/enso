@@ -146,11 +146,7 @@ const widgetConfiguration = computed(() => {
     const cfg = props.input.dynamicConfig
     const info = methodCallInfo.value
     const name = entryQn(info?.suggestion)
-    const usedFunctionConfig = cfg.possibleFunctions.get(name)
-    if (!usedFunctionConfig) {
-      console.error(`Expecting one of ${cfg.possibleFunctions}, found ${name}.`)
-    }
-    return usedFunctionConfig
+    return cfg.possibleFunctions.get(name)
   }
   const data = visualizationData.value
   if (data?.ok) {
