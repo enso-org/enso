@@ -12,7 +12,7 @@ const graph = useGraphStore()
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
-    return (typeof valueStr === 'string' && Ast.parse(valueStr) instanceof Ast.TextLiteral)
+    return typeof valueStr === 'string' && Ast.parse(valueStr) instanceof Ast.TextLiteral
       ? valueStr
       : ''
   },
