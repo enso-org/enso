@@ -5,6 +5,7 @@ import static org.enso.persist.PerUtils.raise;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.function.Function;
 
 /**
@@ -169,7 +170,22 @@ public abstract class Persistance<T> implements Cloneable {
    */
   public static <T> Reference<T> read(byte[] arr, Function<Object, Object> readResolve)
       throws IOException {
-    return PerInputImpl.readObject(arr, readResolve);
+    return read(ByteBuffer.wrap(arr), readResolve);
+  }
+
+  /**
+   * Read object written down by {@link #write} from a byte buffer.
+   *
+   * @param <T> expected type of object
+   * @param buf the stored bytes
+   * @param readResolve either {@code null} or function to call for each object being stored to
+   *     provide a replacement
+   * @return the read object
+   * @throws java.io.IOException when an I/O problem happens
+   */
+  public static <T> Reference<T> read(ByteBuffer buf, Function<Object, Object> readResolve)
+      throws IOException {
+    return PerInputImpl.readObject(buf, readResolve);
   }
 
   /**

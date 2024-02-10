@@ -2674,7 +2674,7 @@ type Table
         resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
         java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
 
-        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column]) . map .name
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] Filter_Action.Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
