@@ -203,4 +203,4 @@ handle_io_errors uri:URI ~action =
 scheme = "s3"
 
 ## PRIVATE
-uri_prefix = s3_scheme + "://"
+uri_prefix = scheme + "://"
