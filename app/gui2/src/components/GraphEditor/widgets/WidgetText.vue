@@ -10,7 +10,9 @@ const props = defineProps(widgetProps(widgetDefinition))
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
-    return valueStr ?? ''
+    return typeof valueStr === 'string' && Ast.parse(valueStr) instanceof Ast.TextLiteral
+      ? valueStr
+      : ''
   },
   set(value) {
     props.onUpdate({
@@ -27,7 +29,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     if (props.input.value instanceof Ast.TextLiteral) return Score.Perfect
     if (props.input.dynamicConfig?.kind === 'Text_Input') return Score.Perfect
     const type = props.input.expectedType
-    if (type === 'Standard.Base.Data.Text') return Score.Good
+    if (type === 'Standard.Base.Data.Text.Text') return Score.Good
     return Score.Mismatch
   },
 })
