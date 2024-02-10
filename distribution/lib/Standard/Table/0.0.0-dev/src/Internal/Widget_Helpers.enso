@@ -82,34 +82,24 @@ make_column_name_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column reference by name selector.
-make_column_ref_by_name_selector : Table -> Display -> Widget
-make_column_ref_by_name_selector table display=Display.Always =
-    expression_option = Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"
-    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    Single_Choice values=([expression_option]+col_names_options) display=display
-
-## PRIVATE
-   Same as `make_column_ref_by_name_selector` but also highlights an option for
-   custom text.
-make_column_ref_or_text_selector : Table -> Display -> Boolean -> Widget
-make_column_ref_or_text_selector table display=Display.Always include_regex:Boolean=False =
-    expression_option = Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"
-    text_constant = Option "<Text Value>" "''"
-    regex_constant = Option "<Regular Expression>" "('').to_regex"
-    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    Single_Choice values=([expression_option, text_constant]+(if include_regex then [regex_constant] else [])+col_names_options) display=display
+make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_column_ref_by_name_selector table display:Display=Display.Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
+    text = if add_text then [Option "<Text Value>" "''"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "('').to_regex"] else []
+    number = if add_number then [Option "<Number Value>" "0"] else []
+    boolean = if add_boolean then [Option "<True/False>" "True"] else []
+    expression = if table.is_nothing.not then [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"] else []
+    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
+    values = text + regex + number + boolean + expression + col_names
+    Single_Choice values=values display=display
 
 ## PRIVATE
    If `column_source` is Nothing, `Column_Ref` options will not be added.
-make_fill_default_value_selector : Table | Nothing -> Boolean -> Display -> Widget
-make_fill_default_value_selector column_source=Nothing include_custom_text=False display=Display.Always =
-    col_names_options = if column_source.is_nothing then [] else
-        column_source.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    custom_text_option = if include_custom_text then [Option "'custom text'" "''"] else []
-    previous_value_option = [Option 'Previous Value' 'Previous_Value']
-    default_column = if column_source.is_nothing then '""' else column_source.name.pretty
-    expression_option = Option "<Expression>" '(Column_Ref.Expression \''+default_column+'\')'
-    Single_Choice values=(previous_value_option+expression_option+col_names_options+custom_text_option) display=display
+make_fill_default_value_selector : Table | Nothing -> Display -> Boolean -> Boolean -> Boolean -> Widget
+make_fill_default_value_selector column_source=Nothing display=Display.Always add_text:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
+    column_ref = make_column_ref_by_name_selector column_source display add_text add_regex=False add_number=add_number add_boolean=add_boolean
+    previous_value = [Option 'Previous Value' 'Previous_Value']
+    Single_Choice values=(previous_value+column_ref.values) display=display
 
 ## PRIVATE
    Make a filter condition selector.
