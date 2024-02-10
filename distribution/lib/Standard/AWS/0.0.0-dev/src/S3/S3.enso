@@ -176,7 +176,7 @@ parse_uri uri =
                 Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
 
 ## PRIVATE
-handle_s3_errors : Text -> Text -> Function -> Any ! S3_Error | AWS_SDK_Error
+handle_s3_errors : Any -> Text -> Text -> Any ! S3_Error | AWS_SDK_Error
 handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =
         error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
