@@ -179,8 +179,8 @@ make_order_by_selector table display=Display.Always =
 make_rename_name_vector_selector : Table -> Display -> Widget
 make_rename_name_vector_selector table display=Display.Always =
     col_names = table.column_names
-    names = col_names.map n-> Option n "(Pair.Value "+n.pretty+" 'New Name')"
-    item_editor = Single_Choice display=Display.Always values=names
+    names = col_names.map n-> Option n "(Pair.new "+n.pretty+" 'New Name')"
+    item_editor = Single_Choice display=Display.Always values=([Option "<Regular Expression>" "(Pair.new '^.*$'.to_regex 'New Name')"]+names)
     default_item = names.first.value
     Vector_Editor item_editor=item_editor item_default=default_item display=display
 
