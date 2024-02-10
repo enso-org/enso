@@ -46,7 +46,7 @@ type S3_Bucket_Not_Found
    `S3_File` will translate this error to a `File_Error.Not_Found`.
 type S3_Key_Not_Found
     ## PRIVATE
-    Error bucket:Text key:Text (credentials : AWS_Credential | Nothing)
+    Error bucket:Text key:Text
 
     ## PRIVATE
     to_display_text : Text
