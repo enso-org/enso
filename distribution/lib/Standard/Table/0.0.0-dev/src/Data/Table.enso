@@ -2763,20 +2763,20 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.text_replace "-" "_"
+             table.text_replace ["Input"] "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             table.text_replace ["Input"] "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    @term Widget_Helpers.make_column_ref_or_text_value_selector
-    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    @term (Widget_Helpers.make_column_ref_or_text_selector include_regex=True)
+    @new_text Widget_Helpers.make_column_ref_or_text_selector
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
     text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
