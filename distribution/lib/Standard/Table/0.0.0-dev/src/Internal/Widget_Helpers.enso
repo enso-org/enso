@@ -105,14 +105,10 @@ make_fill_default_value_selector column_source=Nothing display=Display.Always ad
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
-    text_constant = Option "<Text Value>" "''"
-    number_constant = Option "<Number Value>" "0"
-    bool_constant = Option "<True/False>" "True"
-
     col_names = make_column_ref_by_name_selector table
-    with_constants = Single_Choice display=col_names.display values=([text_constant, number_constant, bool_constant] + col_names.values)
-    with_number_text = Single_Choice display=col_names.display values=([text_constant, number_constant] + col_names.values)
-    with_text = Single_Choice display=col_names.display values=([text_constant] + col_names.values)
+    with_constants = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
+    with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
+    with_text = make_column_ref_by_name_selector table add_text=True
 
     builder = Vector.new_builder
     fqn = Meta.get_qualified_type_name Filter_Condition
