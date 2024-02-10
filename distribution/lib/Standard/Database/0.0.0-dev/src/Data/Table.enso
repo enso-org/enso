@@ -2701,7 +2701,7 @@ type Table
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
-        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
+        transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE

@@ -1423,20 +1423,20 @@ type Column
        > Example
          Replace dashes with underscores.
 
-             column.replace "-" "_"
+             column.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             column.text_replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
-    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+    text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
+    text_replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
