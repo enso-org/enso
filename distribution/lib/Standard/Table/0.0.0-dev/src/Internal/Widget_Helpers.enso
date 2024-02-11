@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor, Numeric_Input
+from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
 from Standard.Base.System.File_Format import format_types
 
 import project.Data.Aggregate_Column.Aggregate_Column
