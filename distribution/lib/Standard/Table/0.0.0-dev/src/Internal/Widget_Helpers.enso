@@ -160,7 +160,7 @@ make_order_by_selector table display=Display.Always =
     name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
     index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
 
-    item_editor = Single_Choice display=display values=[name, index]
+    item_editor = Single_Choice display=Display.Always values=[name, index]
     Vector_Editor item_editor=item_editor item_default="(Sort_Column.Name "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
