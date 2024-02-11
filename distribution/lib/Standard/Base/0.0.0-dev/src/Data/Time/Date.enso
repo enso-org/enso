@@ -524,6 +524,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
+       ICON date_and_time
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -550,6 +551,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
+       ICON date_and_time
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
