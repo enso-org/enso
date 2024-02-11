@@ -2,11 +2,12 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor, Numeric_Input
 from Standard.Base.System.File_Format import format_types
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
+import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Value_Type
@@ -155,10 +156,12 @@ make_join_condition_selector table display=Display.Always =
    Make a column name selector.
 make_order_by_selector : Table -> Display -> Widget
 make_order_by_selector table display=Display.Always =
-    col_names = table.column_names
-    names = col_names.fold [] c-> n-> c + [Option n "(Sort_Column.Name "+n.pretty+")"]
-    item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default=names.first.value display=display
+    fqn = Meta.get_qualified_type_name Sort_Column
+    name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
+    index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+
+    item_editor = Single_Choice display=display values=[name, index]
+    Vector_Editor item_editor=item_editor item_default="(Sort_Column.Name "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column rename name selector.
