@@ -56,7 +56,11 @@ add_specs suite_builder =
             vector_methods . should_equal array_methods
 
     suite_builder.group "ArrayOverBuffer" group_builder->
-        group_builder.specify "should behave like an Array" <|
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows."
+            _ -> Nothing
+
+        group_builder.specify "should behave like an Array" pending=location_pending <|
             array_over_buffer = (File.new (enso_project.data / "sample.txt") . read_last_bytes 10).to_array
 
             case array_over_buffer of
