@@ -4,13 +4,13 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Range.Empty_Error
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -208,6 +208,7 @@ type Date_Range
         Vector.from_polyglot_array proxy
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -218,6 +219,7 @@ type Date_Range
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -349,6 +351,7 @@ type Date_Range
             function acc (self.internal_at ix)
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
@@ -366,6 +369,7 @@ type Date_Range
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
@@ -405,6 +409,7 @@ type Date_Range
             _ : Integer -> self.internal_at index
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example
@@ -482,7 +487,7 @@ type Date_Range
          into a new date.
        - if_empty: Value returned if the range is empty.
     reduce : (Date -> Date -> Date) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Date_Range)) =
         case self.length of
             0 -> if_empty
             1 -> self.start

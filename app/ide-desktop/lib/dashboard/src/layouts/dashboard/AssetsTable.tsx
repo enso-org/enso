@@ -208,6 +208,7 @@ function insertArbitraryAssetTreeNodeChildren(
     [backendModule.AssetType.directory]: [],
     [backendModule.AssetType.project]: [],
     [backendModule.AssetType.file]: [],
+    [backendModule.AssetType.dataLink]: [],
     [backendModule.AssetType.secret]: [],
     [backendModule.AssetType.specialLoading]: [],
     [backendModule.AssetType.specialEmpty]: [],
@@ -1189,13 +1190,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.map(item =>
           item.key !== actualParentKey
             ? item
             : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
         )
-      })
+      )
     },
     [rootDirectoryId]
   )
@@ -1416,6 +1417,27 @@ export default function AssetsTable(props: AssetsTableProps) {
             />
           )
         }
+        break
+      }
+      case AssetListEventType.newDataLink: {
+        const placeholderItem: backendModule.DataLinkAsset = {
+          type: backendModule.AssetType.dataLink,
+          id: backendModule.ConnectorId(uniqueString.uniqueString()),
+          title: event.name,
+          modifiedAt: dateTime.toRfc3339(new Date()),
+          parentId: event.parentId,
+          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          projectState: null,
+          labels: [],
+          description: null,
+        }
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
+        insertAssets([placeholderItem], event.parentKey, event.parentId)
+        dispatchAssetEvent({
+          type: AssetEventType.newDataLink,
+          placeholderId: placeholderItem.id,
+          value: event.value,
+        })
         break
       }
       case AssetListEventType.newSecret: {

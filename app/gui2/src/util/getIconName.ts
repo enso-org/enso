@@ -19,6 +19,7 @@ const oldIconNameToNewIconNameLookup: Record<string, Icon> = {
   spatial: 'location',
   predictive: 'predict',
   machine_learning: 'robot',
+  split_text: 'split',
   /* eslint-enable camelcase */
 }
 

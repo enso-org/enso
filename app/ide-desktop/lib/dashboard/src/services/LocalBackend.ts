@@ -423,6 +423,21 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override createConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override createSecret() {
     return this.invalidOperation()
   }
@@ -441,7 +456,6 @@ export default class LocalBackend extends Backend {
   override listSecrets() {
     return Promise.resolve([])
   }
-
   /** Invalid operation. */
   override createTag() {
     return this.invalidOperation()

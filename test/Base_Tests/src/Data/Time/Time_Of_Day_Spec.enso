@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.time.LocalTime

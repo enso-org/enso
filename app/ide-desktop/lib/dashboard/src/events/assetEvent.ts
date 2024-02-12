@@ -29,6 +29,7 @@ interface AssetEvents {
   readonly newFolder: AssetNewFolderEvent
   readonly uploadFiles: AssetUploadFilesEvent
   readonly updateFiles: AssetUpdateFilesEvent
+  readonly newDataLink: AssetNewDataLinkEvent
   readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
@@ -78,6 +79,12 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
 /** A signal to update files with new versions. */
 export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
   readonly files: Map<backendModule.AssetId, File>
+}
+
+/** A signal to create a Data Link. */
+export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
+  readonly placeholderId: backendModule.ConnectorId
+  readonly value: unknown
 }
 
 /** A signal to create a secret. */

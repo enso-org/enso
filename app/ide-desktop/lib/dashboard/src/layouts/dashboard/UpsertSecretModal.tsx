@@ -1,16 +1,13 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as toastify from 'react-toastify'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 
 import type * as backend from '#/services/Backend'
-
-import * as errorModule from '#/utilities/error'
 
 // =========================
 // === UpsertSecretModal ===
@@ -26,7 +23,7 @@ export interface UpsertSecretModalProps {
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
-  const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
   const [name, setName] = React.useState(nameRaw ?? '')
@@ -40,9 +37,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
     try {
       doCreate(name, value)
     } catch (error) {
-      const message = errorModule.getMessageOrToString(error)
-      toastify.toast.error(message)
-      logger.error(message)
+      toastAndLog(null, error)
     }
   }
 
@@ -62,8 +57,6 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          // Consider not calling `onSubmit()` here to make it harder to accidentally
-          // delete an important asset.
           onSubmit()
         }}
       >

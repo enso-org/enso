@@ -5,7 +5,7 @@ polyglot java import org.enso.base.ObjectComparator
 
 polyglot java import org.enso.base.CompareException
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 # === Test Resources ===

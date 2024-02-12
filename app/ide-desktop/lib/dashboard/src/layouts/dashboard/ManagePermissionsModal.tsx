@@ -293,8 +293,6 @@ export default function ManagePermissionsModal<
                     otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
                     otherUser.name.toLowerCase().includes(text.toLowerCase())
                   }
-                  className="grow"
-                  inputClassName="bg-transparent leading-170 h-6 py-px"
                   text={email}
                   setText={setEmail}
                 />

@@ -94,6 +94,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       case AssetEventType.newFolder:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
