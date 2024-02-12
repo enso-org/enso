@@ -20,13 +20,16 @@ public class HTTPTestHelperServer {
       System.err.println("Usage: http-test-helper <host> <port>");
       System.exit(1);
     }
-
     String host = args[0];
+    int port = Integer.parseInt(args[1]);
+    runServer(host, port);
+  }
+
+  public static void runServer(String host, int port) {
     HybridHTTPServer server = null;
     try {
       Path projectRoot = findProjectRoot();
       Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
-      int port = Integer.parseInt(args[1]);
       server = new HybridHTTPServer(host, port, port + 1, keyStorePath);
       setupEndpoints(server, projectRoot);
 
