@@ -208,6 +208,7 @@ function insertArbitraryAssetTreeNodeChildren(
     [backendModule.AssetType.directory]: [],
     [backendModule.AssetType.project]: [],
     [backendModule.AssetType.file]: [],
+    [backendModule.AssetType.dataLink]: [],
     [backendModule.AssetType.secret]: [],
     [backendModule.AssetType.specialLoading]: [],
     [backendModule.AssetType.specialEmpty]: [],
@@ -392,6 +393,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       return null
     } else {
       return (node: AssetTreeNode) => {
+        if (
+          node.item.type === backendModule.AssetType.specialEmpty ||
+          node.item.type === backendModule.AssetType.specialLoading
+        ) {
+          // This is FINE, as these assets have no meaning info to match with.
+          // eslint-disable-next-line no-restricted-syntax
+          return false
+        }
         const assetType =
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
@@ -1189,13 +1198,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.map(item =>
           item.key !== actualParentKey
             ? item
             : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
         )
-      })
+      )
     },
     [rootDirectoryId]
   )
@@ -1418,6 +1427,27 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         break
       }
+      case AssetListEventType.newDataLink: {
+        const placeholderItem: backendModule.DataLinkAsset = {
+          type: backendModule.AssetType.dataLink,
+          id: backendModule.ConnectorId(uniqueString.uniqueString()),
+          title: event.name,
+          modifiedAt: dateTime.toRfc3339(new Date()),
+          parentId: event.parentId,
+          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          projectState: null,
+          labels: [],
+          description: null,
+        }
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
+        insertAssets([placeholderItem], event.parentKey, event.parentId)
+        dispatchAssetEvent({
+          type: AssetEventType.newDataLink,
+          placeholderId: placeholderItem.id,
+          value: event.value,
+        })
+        break
+      }
       case AssetListEventType.newSecret: {
         const placeholderItem: backendModule.SecretAsset = {
           type: backendModule.AssetType.secret,
@@ -1621,7 +1651,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-    if (filtered != null && filtered.length > 0) {
+    if ((filtered != null && filtered.length > 0) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
     }
   }
@@ -1833,7 +1863,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const itemRows = isLoading ? (
     <tr className="h-8">
       <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid justify-around w-full">
+        <div className="grid justify-around w-container">
           <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
         </div>
       </td>
@@ -2085,6 +2115,15 @@ export default function AssetsTable(props: AssetsTableProps) {
               newParentId: rootDirectoryId,
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
+          } else if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault()
+            event.stopPropagation()
+            dispatchAssetListEvent({
+              type: AssetListEventType.uploadFiles,
+              parentKey: rootDirectoryId,
+              parentId: rootDirectoryId,
+              files: Array.from(event.dataTransfer.files),
+            })
           }
         }}
       />
@@ -2092,11 +2131,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
       <div className="flex flex-col w-min min-w-full h-full">
-        {backend.type !== backendModule.BackendType.local && (
-          <div className="sticky top-0 h-0">
-            <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
+        {isCloud && (
+          <div className="sticky top-0 h-0 flex flex-col">
+            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
               <div className="inline-flex gap-3">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button

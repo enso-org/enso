@@ -36,7 +36,7 @@ Cargo.toml
 /distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis @AdRiley
 /engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /project/ @4e6 @jaroslavtulach @hubertp
-/tools/ @4e6 @jaroslavtulach @radeusgd
+/tools/ @4e6 @jaroslavtulach @radeusgd @hubertp
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine

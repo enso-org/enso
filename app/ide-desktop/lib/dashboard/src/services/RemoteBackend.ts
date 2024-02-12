@@ -269,12 +269,15 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<ListDirectoryResponseBody>(
       path +
         '?' +
-        new URLSearchParams([
-          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-          ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
-          ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
-        ]).toString()
+        new URLSearchParams(
+          query.recentProjects
+            ? [['recent_projects', String(true)]]
+            : [
+                ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+                ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+                ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+              ]
+        ).toString()
     )
     if (!responseIsSuccessful(response)) {
       if (response.status === STATUS_SERVER_ERROR) {
@@ -617,6 +620,52 @@ export default class RemoteBackend extends Backend {
       )
     } else {
       return await response.json()
+    }
+  }
+
+  /** Return a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async createConnector(
+    body: backendModule.CreateConnectorRequestBody
+  ): Promise<backendModule.ConnectorInfo> {
+    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
+    const response = await this.post<backendModule.ConnectorInfo>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not create Data Link with name '${body.name}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Return a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getConnector(
+    connectorId: backendModule.ConnectorId,
+    title: string | null
+  ): Promise<backendModule.Connector> {
+    const path = remoteBackendPaths.getConnectorPath(connectorId)
+    const response = await this.get<backendModule.Connector>(path)
+    if (!responseIsSuccessful(response)) {
+      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
+      return this.throw(`Could not get Data Link ${name}.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Delete a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async deleteConnector(
+    connectorId: backendModule.ConnectorId,
+    title: string | null
+  ): Promise<void> {
+    const path = remoteBackendPaths.getConnectorPath(connectorId)
+    const response = await this.delete(path)
+    if (!responseIsSuccessful(response)) {
+      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
+      return this.throw(`Could not delete Data Link ${name}.`)
+    } else {
+      return
     }
   }
 
