@@ -239,7 +239,7 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
         True -> Panic.throw original_panic
         False ->
             row = materialized.first_row.to_vector
-            example_count = row.first
+            example_count = row.last
             example_entry = row.drop (Last 1)
             Error.throw (Non_Unique_Key.Error primary_key example_entry example_count)
 
@@ -627,7 +627,7 @@ check_multiple_rows_match left_table right_table key_columns ~continuation =
         False ->
             row = example.first_row . to_vector
             offending_key = row.drop (Last 1)
-            count = row.first
+            count = row.last
             Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
 
 ## PRIVATE
