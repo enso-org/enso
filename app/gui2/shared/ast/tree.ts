@@ -313,12 +313,109 @@ export abstract class MutableAst extends Ast {
   }
 
   /** @internal */
-  abstract replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>): void
+  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
+    const replacementId = this.claimChild(replacement)
+    const changes = rewriteRefs(this, (id) => (id === target ? replacementId : undefined))
+    assertEqual(changes, 1)
+  }
 
   protected claimChild<T extends MutableAst>(child: Owned<T>): AstId
   protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
   protected claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
+  }
+}
+
+type FieldData =
+  | NodeChild<AstId>
+  | NodeChild
+  | NodeChild<SyncTokenId>
+  | FieldObject
+  | FieldData[]
+  | undefined
+interface FieldObject {
+  [field: string]: FieldData
+}
+/** @internal */
+export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined) {
+  let fieldsChanged = 0
+  for (const [key, value] of (ast.fields as any as Map<string, FieldData>).entries()) {
+    if (astFieldKeys.includes(key as any)) continue
+    const newValue = rewriteFieldRefs(value, f)
+    if (newValue !== undefined) {
+      ast.fields.set(key as any, newValue)
+      fieldsChanged += 1
+    }
+  }
+  return fieldsChanged
+}
+export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId | undefined) {
+  const expressionMetadata =
+    ast1 instanceof MutableAssignment ? ast1.expression.fields.get('metadata').clone() : undefined
+  for (const [key, value] of (ast2.fields as any as Map<string, FieldData>).entries()) {
+    if (astFieldKeys.includes(key as any)) continue
+    const changedValue = rewriteFieldRefs(value, f)
+    const newValue = changedValue ?? value
+    if (!fieldEqual(ast1.fields.get(key as any), newValue)) ast1.fields.set(key as any, newValue)
+  }
+  if (ast1 instanceof MutableAssignment) ast1.expression.fields.set('metadata', expressionMetadata!)
+}
+
+/** @internal */
+export function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | undefined): FieldData {
+  if (field === undefined) return field
+  if ('node' in field) {
+    const child = field.node as AstId | SyncTokenId
+    if (isTokenId(child)) return
+    const newValue = f(child)
+    if (newValue !== undefined) {
+      field.node = newValue
+      return field
+    }
+  } else if (Array.isArray(field)) {
+    let fieldChanged = false
+    field.forEach((subfield, i) => {
+      const newValue = rewriteFieldRefs(subfield, f)
+      if (newValue !== undefined) {
+        field[i] = newValue
+        fieldChanged = true
+      }
+    })
+    if (fieldChanged) return field
+  } else {
+    const fieldObject = field as FieldObject
+    let fieldChanged = false
+    for (const [key, value] of Object.entries(fieldObject)) {
+      const newValue = rewriteFieldRefs(value, f)
+      if (newValue !== undefined) {
+        fieldObject[key] = newValue
+        fieldChanged = true
+      }
+    }
+    if (fieldChanged) return fieldObject
+  }
+}
+function fieldEqual(field1: FieldData, field2: FieldData): boolean {
+  if (field1 === undefined) return field2 === undefined
+  if (field2 === undefined) return false
+  if ('node' in field1 && 'node' in field2) {
+    return field1['whitespace'] === field2['whitespace'] && field1.node === field2.node
+  } else if ('node' in field1 || 'node' in field2) {
+    return false
+  } else if (Array.isArray(field1) && Array.isArray(field2)) {
+    return (
+      field1.length === field2.length && field1.every((value1, i) => fieldEqual(value1, field2[i]))
+    )
+  } else if (Array.isArray(field1) || Array.isArray(field2)) {
+    return false
+  } else {
+    const fieldObject1 = field1 as FieldObject
+    const fieldObject2 = field2 as FieldObject
+    const keys = new Set<string>()
+    for (const key of Object.keys(fieldObject1)) keys.add(key)
+    for (const key of Object.keys(fieldObject2)) keys.add(key)
+    for (const key of keys) if (fieldObject1[key] !== fieldObject2[key]) return false
+    return true
   }
 }
 
@@ -457,16 +554,6 @@ export class MutableApp extends App implements MutableAst {
   setArgument<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'argument', this.claimChild(value))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('function').node === target) {
-      this.setFunction(replacement)
-    } else if (this.fields.get('argument').node === target) {
-      this.setArgument(replacement)
-    } else {
-      bail(`Child not found: this.id=${this.id} target=${target}`)
-    }
-  }
 }
 export interface MutableApp extends App, MutableAst {
   get function(): MutableAst
@@ -530,12 +617,6 @@ export class MutableUnaryOprApp extends UnaryOprApp implements MutableAst {
   setArgument<T extends MutableAst>(argument: Owned<T> | undefined) {
     setNode(this.fields, 'argument', this.claimChild(argument))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('argument')?.node === target) {
-      this.setArgument(replacement)
-    }
-  }
 }
 export interface MutableUnaryOprApp extends UnaryOprApp, MutableAst {
   get argument(): MutableAst | undefined
@@ -590,12 +671,6 @@ export class MutableNegationApp extends NegationApp implements MutableAst {
 
   setArgument<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'argument', this.claimChild(value))
-  }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('argument')?.node === target) {
-      this.setArgument(replacement)
-    }
   }
 }
 export interface MutableNegationApp extends NegationApp, MutableAst {
@@ -679,14 +754,6 @@ export class MutableOprApp extends OprApp implements MutableAst {
   }
   setRhs<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'rhs', this.claimChild(value))
-  }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('lhs')?.node === target) {
-      this.setLhs(replacement)
-    } else if (this.fields.get('rhs')?.node === target) {
-      this.setRhs(replacement)
-    }
   }
 }
 export interface MutableOprApp extends OprApp, MutableAst {
@@ -797,15 +864,6 @@ export class MutablePropertyAccess extends PropertyAccess implements MutableAst 
     const old = this.fields.get('rhs')
     this.fields.set('rhs', old ? { ...old, node } : unspaced(node))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('lhs')?.node === target) {
-      this.setLhs(replacement)
-    } else if (this.fields.get('rhs')?.node === target) {
-      assert(replacement instanceof MutableIdent)
-      this.setRhs(replacement.token)
-    }
-  }
 }
 export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
   get lhs(): MutableAst | undefined
@@ -837,14 +895,6 @@ export class Generic extends Ast {
 export class MutableGeneric extends Generic implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & GenericFields>
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const replacement_ = autospaced(this.claimChild(replacement))
-    this.fields.set(
-      'children',
-      this.fields.get('children').map((child) => (child.node === target ? replacement_ : child)),
-    )
-  }
 }
 export interface MutableGeneric extends Generic, MutableAst {}
 applyMixins(MutableGeneric, [MutableAst])
@@ -1045,21 +1095,6 @@ export class MutableImport extends Import implements MutableAst {
   setHiding<T extends MutableAst>(value: Owned<T> | undefined) {
     this.fields.set('hiding', this.toRaw(multiSegmentAppSegment('hiding', value)))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const { polyglot, from, import: import_, as, hiding } = getAll(this.fields)
-    polyglot?.body?.node === target
-      ? this.setPolyglot(replacement)
-      : from?.body?.node === target
-      ? this.setFrom(replacement)
-      : import_.body?.node === target
-      ? this.setImport(replacement)
-      : as?.body?.node === target
-      ? this.setAs(replacement)
-      : hiding?.body?.node === target
-      ? this.setHiding(replacement)
-      : bail(`Failed to find child ${target} in node ${this.externalId}.`)
-  }
 }
 export interface MutableImport extends Import, MutableAst {
   get polyglot(): MutableAst | undefined
@@ -1141,14 +1176,6 @@ export class TextLiteral extends Ast {
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const replacement_ = autospaced(this.claimChild(replacement))
-    this.fields.set(
-      'elements',
-      this.fields.get('elements').map((child) => (child.node === target ? replacement_ : child)),
-    )
-  }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
@@ -1207,18 +1234,6 @@ export class MutableDocumented extends Documented implements MutableAst {
   setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    if (this.fields.get('expression')?.node === target) {
-      this.setExpression(replacement)
-    } else {
-      const replacement_ = unspaced(this.claimChild(replacement))
-      this.fields.set(
-        'elements',
-        this.fields.get('elements').map((child) => (child.node === target ? replacement_ : child)),
-      )
-    }
-  }
 }
 export interface MutableDocumented extends Documented, MutableAst {
   get expression(): MutableAst | undefined
@@ -1271,11 +1286,6 @@ export class MutableInvalid extends Invalid implements MutableAst {
   /** Private, because it makes more sense to `.replace` the `Invalid` node. */
   private setExpression<T extends MutableAst>(value: Owned<T>) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
-  }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    assertEqual(this.fields.get('expression').node, target)
-    this.setExpression(replacement)
   }
 }
 export interface MutableInvalid extends Invalid, MutableAst {
@@ -1336,11 +1346,6 @@ export class MutableGroup extends Group implements MutableAst {
   setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    assertEqual(this.fields.get('expression')?.node, target)
-    this.setExpression(replacement)
-  }
 }
 export interface MutableGroup extends Group, MutableAst {
   get expression(): MutableAst | undefined
@@ -1377,8 +1382,6 @@ export class NumericLiteral extends Ast {
 export class MutableNumericLiteral extends NumericLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & NumericLiteralFields>
-
-  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
 }
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
@@ -1525,23 +1528,6 @@ export class MutableFunction extends Function implements MutableAst {
     if (oldBody) newBody.push(oldBody.take())
     return newBody
   }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const { name, argumentDefinitions, body } = getAll(this.fields)
-    if (name.node === target) {
-      this.setName(replacement)
-    } else if (body?.node === target) {
-      this.setBody(replacement)
-    } else {
-      const replacement_ = this.claimChild(replacement)
-      const replaceChild = (child: NodeChild) =>
-        child.node === target ? { ...child, node: replacement_ } : child
-      this.fields.set(
-        'argumentDefinitions',
-        argumentDefinitions.map((def) => def.map(replaceChild)),
-      )
-    }
-  }
 }
 export interface MutableFunction extends Function, MutableAst {
   get name(): MutableAst
@@ -1613,15 +1599,6 @@ export class MutableAssignment extends Assignment implements MutableAst {
   }
   setExpression<T extends MutableAst>(value: Owned<T>) {
     setNode(this.fields, 'expression', this.claimChild(value))
-  }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const { pattern, expression } = getAll(this.fields)
-    if (pattern.node === target) {
-      this.setPattern(replacement)
-    } else if (expression.node === target) {
-      this.setExpression(replacement)
-    }
   }
 }
 export interface MutableAssignment extends Assignment, MutableAst {
@@ -1727,15 +1704,6 @@ export class MutableBodyBlock extends BodyBlock implements MutableAst {
       return keep(this.module.checkedGet(line.expression.node))
     })
     this.fields.set('lines', filteredLines)
-  }
-
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
-    const replacement_ = this.claimChild(replacement)
-    const updateLine = (line: RawBlockLine) =>
-      line.expression?.node === target
-        ? { ...line, expression: { ...line.expression, node: replacement_ } }
-        : line
-    this.fields.set('lines', this.fields.get('lines').map(updateLine))
   }
 }
 export interface MutableBodyBlock extends BodyBlock, MutableAst {
@@ -1845,8 +1813,6 @@ export class MutableIdent extends Ident implements MutableAst {
     this.fields.set('token', unspaced(toIdent(ident)))
   }
 
-  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
-
   code(): Identifier {
     return this.token.code()
   }
@@ -1891,8 +1857,6 @@ export class Wildcard extends Ast {
 export class MutableWildcard extends Wildcard implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & WildcardFields>
-
-  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
 }
 export interface MutableWildcard extends Wildcard, MutableAst {}
 applyMixins(MutableWildcard, [MutableAst])
