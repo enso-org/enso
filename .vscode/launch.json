@@ -15,14 +15,6 @@
       "port": "5005"
     },
     {
-      "name": "Connect to 5005",
-      "type": "java+",
-      "request": "attach",
-      "listen": "false",
-      "hostName": "localhost",
-      "port": "5005"
-    },
-    {
       "name": "Debug Adapter Protocol",
       "type": "node",
       "debugServer": 4711,
