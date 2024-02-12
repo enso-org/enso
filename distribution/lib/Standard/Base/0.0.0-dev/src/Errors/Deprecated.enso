@@ -1,0 +1,12 @@
+import project.Data.Text.Text
+
+## An error representing that the collection is empty.
+type Deprecated
+    ## PRIVATE
+    Warning type_name:Text method_name:Text message:Text=""
+
+    ## PRIVATE
+
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = self.message.if_nothing ("Deprecated Warning: " + self.type_name + "." + self.method_name + " is deprecated.")

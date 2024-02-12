@@ -31,25 +31,29 @@ polyglot java import org.enso.table.aggregations.StandardDeviation as StandardDe
 polyglot java import org.enso.table.aggregations.Sum as SumAggregator
 
 ## Result type for aggregate_columns validation
-   - key_columns: Vector of Columns from the table to group by
-   - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
-   - problems: Set of any problems when validating the input
+   - key_columns: Vector of Columns from the table to group by.
+   - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column.
+   - problems: Set of any problems when validating the input.
+   - old_style: Boolean indicating if the input was in the old style.
 type Validated_Aggregate_Columns
     ## PRIVATE
-    Value (key_columns:(Vector Column)) (valid_columns:(Vector (Pair Text Aggregate_Column))) (problems:(Vector Any))
+    Value (key_columns:(Vector Column)) (valid_columns:(Vector (Pair Text Aggregate_Column))) (problems:(Vector Any)) (old_style:Boolean=False)
 
 ## PRIVATE
    Prepares an aggregation input for further processing:
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : Column_Naming_Helper -> Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
-prepare_aggregate_columns naming_helper aggregates table error_on_missing_columns =
+prepare_aggregate_columns : Column_Naming_Helper -> Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
+prepare_aggregate_columns naming_helper group_by aggregates table error_on_missing_columns =
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
 
-    keys = aggregates.filter is_a_key
+    ## Resolve old style aggregate into new style
+    old_style = aggregates.is_empty && group_by.any (g-> g.is_a Aggregate_Column)
+    keys = if old_style then group_by.filter is_a_key else group_by.map (Aggregate_Column.Group_By _ "")
+
     # Key resolution always errors on missing, regardless of any settings.
     keys_problem_builder = Problem_Builder.new error_on_missing_columns=True
     resolved_keys = keys.map (resolve_aggregate table keys_problem_builder)
@@ -60,7 +64,8 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
     keys_problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
         assert (resolved_keys.contains Nothing . not)
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        valid_resolved_aggregate_columns = aggregates.map on_problems=No_Wrap (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+        columns = if old_style then group_by else keys+aggregates
+        valid_resolved_aggregate_columns = columns.map on_problems=No_Wrap (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
         # Grouping Key
         key_columns = resolved_keys.map .column
@@ -68,6 +73,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
 
         # Resolve Names
         unique = naming_helper.create_unique_name_strategy
+
         ## First pass ensures the custom names specified by the user are unique.
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names
@@ -93,7 +99,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
                     Error.throw No_Output_Columns.Error
             False ->
                 problem_builder.report_unique_name_strategy unique
-                Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors
+                Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors old_style
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
