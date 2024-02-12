@@ -6,6 +6,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
@@ -22,17 +24,10 @@ public class HTTPTestHelperServer {
     }
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-    runServer(host, port);
-  }
-
-  public static void runServer(String host, int port) {
+    Semaphore stopNotification = new Semaphore(0, false);
     HybridHTTPServer server = null;
     try {
-      Path projectRoot = findProjectRoot();
-      Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
-      server = new HybridHTTPServer(host, port, port + 1, keyStorePath);
-      setupEndpoints(server, projectRoot);
-
+      server = createServer(host, port, null, true);
       final HybridHTTPServer server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
@@ -43,17 +38,39 @@ public class HTTPTestHelperServer {
         Signal.handle(new Signal(signalName), stopServerHandler);
       }
       server.start();
-    } catch (IOException | URISyntaxException e) {
+      // Make sure the execution is blocked until the process is interrupted.
+      stopNotification.acquire();
+    } catch (URISyntaxException | IOException e) {
       e.printStackTrace();
+    } catch (InterruptedException e) {
+      System.out.println("Server interrupted");
     } finally {
+      stopNotification.release();
       if (server != null) {
         server.stop();
       }
     }
   }
 
-  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot)
-      throws URISyntaxException {
+  /**
+   * Creates the server.
+   *
+   * @param executor An {@link Executor} for both HTTP and HTTPS servers. If {@code null}, the
+   *     default executor is set, which runs the server on the thread that created the server.
+   * @param withSSLServer Whether HTTPS server should be also be started along with HTTP server.
+   * @return The created server
+   */
+  public static HybridHTTPServer createServer(
+      String host, int port, Executor executor, boolean withSSLServer)
+      throws URISyntaxException, IOException {
+    Path projectRoot = findProjectRoot();
+    Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
+    var server = new HybridHTTPServer(host, port, port + 1, keyStorePath, executor, withSSLServer);
+    setupEndpoints(server, projectRoot);
+    return server;
+  }
+
+  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot) {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
