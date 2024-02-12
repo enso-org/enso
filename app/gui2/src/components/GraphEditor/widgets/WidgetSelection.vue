@@ -17,6 +17,7 @@ import {
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
 import {
   qnLastSegment,
@@ -141,10 +142,10 @@ watch(selectedIndex, (_index) => {
 <script lang="ts">
 function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
   if (parameter.tagValues == null) return false
-  if (parameter.tagValues.length != 2) return false
-  const [first, second] = Array.from(parameter.tagValues).sort()
-  if (first === 'Boolean.False' && second === 'Boolean.True') return true
-  return false
+  return arrayEquals(Array.from(parameter.tagValues).sort(), [
+    'Standard.Base.Data.Boolean.Boolean.False',
+    'Standard.Base.Data.Boolean.Boolean.True',
+  ])
 }
 
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
@@ -152,7 +153,10 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
     // Boolean arguments also have tag values, but the checkbox widget should handle them.
-    if (props.input[ArgumentInfoKey]?.info?.tagValues != null && !hasBooleanTagValues)
+    if (
+      props.input[ArgumentInfoKey]?.info?.tagValues != null &&
+      !hasBooleanTagValues(props.input[ArgumentInfoKey].info)
+    )
       return Score.Perfect
     return Score.Mismatch
   },
