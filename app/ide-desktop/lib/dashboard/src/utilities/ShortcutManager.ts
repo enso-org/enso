@@ -3,6 +3,7 @@ import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
@@ -82,7 +83,8 @@ export enum KeyboardAction {
   uploadProjects = 'upload-projects',
   newProject = 'new-project',
   newFolder = 'new-folder',
-  newDataConnector = 'new-data-connector',
+  newSecret = 'new-secret',
+  newDataLink = 'new-data-link',
   closeModal = 'close-modal',
   cancelEditName = 'cancel-edit-name',
   changeYourPassword = 'change-your-password',
@@ -457,7 +459,16 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortc
   [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
   [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
   [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
-  [KeyboardAction.newDataConnector]: [keybind(KeyboardAction.newDataConnector, [CTRL, 'Alt'], 'N')],
+  [KeyboardAction.newSecret]: [
+    keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], 'N'),
+    ...(!detect.isOnMacOS() ? [] : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], '~')]),
+  ],
+  [KeyboardAction.newDataLink]: [
+    keybind(KeyboardAction.newDataLink, [CTRL, 'Alt', 'Shift'], 'N'),
+    ...(!detect.isOnMacOS()
+      ? []
+      : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt', 'Shift'], '~')]),
+  ],
   [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
   [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
   [KeyboardAction.changeYourPassword]: [],
@@ -472,10 +483,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
   [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
   [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
   [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
-  [KeyboardAction.uploadToCloud]: {
-    name: 'Upload To Cloud',
-    icon: CloudToIcon,
-  },
+  [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
   [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
   [KeyboardAction.edit]: { name: 'Edit', icon: PenIcon },
   [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
@@ -489,24 +497,10 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
     icon: TrashIcon,
     colorClass: 'text-delete',
   },
-  [KeyboardAction.delete]: {
-    name: 'Delete',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.deleteAll]: {
-    name: 'Delete All',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.restoreFromTrash]: {
-    name: 'Restore From Trash',
-    icon: UntrashIcon,
-  },
-  [KeyboardAction.restoreAllFromTrash]: {
-    name: 'Restore All From Trash',
-    icon: UntrashIcon,
-  },
+  [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.restoreFromTrash]: { name: 'Restore From Trash', icon: UntrashIcon },
+  [KeyboardAction.restoreAllFromTrash]: { name: 'Restore All From Trash', icon: UntrashIcon },
   [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
   [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
   [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
@@ -518,26 +512,17 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
   [KeyboardAction.pasteAll]: { name: 'Paste All', icon: PasteIcon },
   [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
   [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
-  [KeyboardAction.uploadProjects]: {
-    name: 'Upload Projects',
-    icon: DataUploadIcon,
-  },
+  [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
   [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
   [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
-  [KeyboardAction.newDataConnector]: { name: 'New Secret', icon: AddConnectorIcon },
+  [KeyboardAction.newSecret]: { name: 'New Secret', icon: AddKeyIcon },
+  [KeyboardAction.newDataLink]: { name: 'New Data Link', icon: AddConnectorIcon },
   // These should not appear in any context menus.
   [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
   [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
-  [KeyboardAction.changeYourPassword]: {
-    name: 'Change Your Password',
-    icon: ChangePasswordIcon,
-  },
+  [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
   [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
-  [KeyboardAction.signOut]: {
-    name: 'Logout',
-    icon: SignOutIcon,
-    colorClass: 'text-delete',
-  },
+  [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
   [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
   [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }

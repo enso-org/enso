@@ -9,3 +9,10 @@ trait FailureMapper[FailureType] {
   /** Converts a [[FailureType]] into the protocol [[Error]] message. */
   def mapFailure(failure: FailureType): Error
 }
+
+object FailureMapper {
+
+  @inline
+  def apply[A: FailureMapper]: FailureMapper[A] =
+    implicitly[FailureMapper[A]]
+}

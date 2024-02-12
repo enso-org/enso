@@ -227,7 +227,7 @@ export abstract class MutableAst extends Ast {
     return this.replace(Wildcard.new(this.module))
   }
 
-  takeIfParented<T extends MutableAst>(): Owned<typeof this> {
+  takeIfParented(): Owned<typeof this> {
     const parent = parentId(this)
     if (parent) {
       const parentAst = this.module.checkedGet(parent)
@@ -492,7 +492,7 @@ export class UnaryOprApp extends Ast {
     return this.module.checkedGet(this.fields.get('argument')?.node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { operator, argument } = getAll(this.fields)
     yield operator
     if (argument) yield argument
@@ -556,7 +556,7 @@ export class NegationApp extends Ast {
     return this.module.checkedGet(this.fields.get('argument').node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { operator, argument } = getAll(this.fields)
     yield operator
     if (argument) yield argument
@@ -638,7 +638,7 @@ export class OprApp extends Ast {
     return this.module.checkedGet(this.fields.get('rhs')?.node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { lhs, operators, rhs } = getAll(this.fields)
     if (lhs) yield lhs
     yield* operators
@@ -756,7 +756,7 @@ export class PropertyAccess extends Ast {
     return ast.token as IdentifierOrOperatorIdentifierToken
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { lhs, operator, rhs } = getAll(this.fields)
     if (lhs) yield lhs
     yield operator
@@ -808,7 +808,7 @@ export class Generic extends Ast {
     return asOwned(new MutableGeneric(module, fields))
   }
 
-  concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     return this.fields.get('children')[Symbol.iterator]()
   }
 }
@@ -972,7 +972,7 @@ export class Import extends Ast {
     )
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const segment = (segment: RawMultiSegmentAppSegment | undefined) => {
       const parts = []
       if (segment) parts.push(segment.header)
@@ -1108,7 +1108,7 @@ export class TextLiteral extends Ast {
     return this.concrete(module, open, undefined, elements, close)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { open, newline, elements, close } = getAll(this.fields)
     if (open) yield open
     if (newline) yield newline
@@ -1170,7 +1170,7 @@ export class Documented extends Ast {
     return this.module.checkedGet(this.fields.get('expression')?.node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
     if (open) yield open
     yield* elements
@@ -1221,7 +1221,7 @@ export class Invalid extends Ast {
     return this.module.checkedGet(this.fields.get('expression').node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     yield this.fields.get('expression')
   }
 
@@ -1229,7 +1229,7 @@ export class Invalid extends Ast {
     info: SpanMap,
     offset: number,
     parentIndent: string | undefined,
-    verbatim?: boolean,
+    _verbatim?: boolean,
   ): string {
     return super.printSubtree(info, offset, parentIndent, true)
   }
@@ -1300,7 +1300,7 @@ export class Group extends Ast {
     return this.module.checkedGet(this.fields.get('expression')?.node)
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     const { open, expression, close } = getAll(this.fields)
     if (open) yield open
     if (expression) yield expression
@@ -1348,7 +1348,7 @@ export class NumericLiteral extends Ast {
     return asOwned(new MutableNumericLiteral(module, fields))
   }
 
-  concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     return this.fields.get('tokens')[Symbol.iterator]()
   }
 }
@@ -1356,7 +1356,7 @@ export class MutableNumericLiteral extends NumericLiteral implements MutableAst 
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & NumericLiteralFields>
 
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
 }
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
@@ -1645,7 +1645,7 @@ export class BodyBlock extends Ast {
     }
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     for (const line of this.fields.get('lines')) {
       yield line.newline ?? { node: Token.new('\n', RawAst.Token.Type.Newline) }
       if (line.expression) yield line.expression
@@ -1807,7 +1807,7 @@ export class Ident extends Ast {
     return Ident.concrete(module, unspaced(toIdent(ident)))
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     yield this.fields.get('token')
   }
 
@@ -1823,7 +1823,7 @@ export class MutableIdent extends Ident implements MutableAst {
     this.fields.set('token', unspaced(toIdent(ident)))
   }
 
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
 
   code(): Identifier {
     return this.token.code()
@@ -1861,7 +1861,7 @@ export class Wildcard extends Ast {
     return this.concrete(module, unspaced(token))
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
     yield this.fields.get('token')
   }
 }
@@ -1870,7 +1870,7 @@ export class MutableWildcard extends Wildcard implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & WildcardFields>
 
-  replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {}
+  replaceChild<T extends MutableAst>(_target: AstId, _replacement: Owned<T>) {}
 }
 export interface MutableWildcard extends Wildcard, MutableAst {}
 applyMixins(MutableWildcard, [MutableAst])

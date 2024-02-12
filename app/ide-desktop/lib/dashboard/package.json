@@ -44,6 +44,7 @@
     "validator": "^13.11.0"
   },
   "devDependencies": {
+    "@babel/plugin-syntax-import-assertions": "^7.23.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@fast-check/vitest": "^0.0.8",
     "@ianvs/prettier-plugin-sort-imports": "^4.1.1",

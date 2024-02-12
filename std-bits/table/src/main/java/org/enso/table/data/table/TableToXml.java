@@ -6,12 +6,12 @@ import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.xmlbeans.XmlException;
-import org.apache.xmlbeans.XmlObject;
-import org.apache.xmlbeans.XmlOptions;
 import org.graalvm.polyglot.Context;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
 
 public class TableToXml {
 
@@ -60,13 +60,12 @@ public class TableToXml {
   }
 
   private static String convert_to_string(Document doc) throws XmlException {
-    var xmlObject = XmlObject.Factory.parse(doc);
-    var options = new XmlOptions();
-    options.setSavePrettyPrint();
-
-    String xmlString = xmlObject.xmlText(options);
-
-    return xmlString;
+    DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
+    LSSerializer lsSerializer = domImplementation.createLSSerializer();
+    lsSerializer.getDomConfig().setParameter("format-pretty-print", Boolean.TRUE);
+    lsSerializer.getDomConfig().setParameter("xml-declaration", false);
+    lsSerializer.setNewLine("\n");
+    return lsSerializer.writeToString(doc);
   }
 
   private static void get_set_attribute(
