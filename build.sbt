@@ -2355,6 +2355,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     parallelExecution := false,
     run / fork := true,
     run / connectInput := true,
+    mainClass :=
+      (LocalProject("bench-processor") / mainClass).value,
     Compile / compile := (Compile / compile)
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
@@ -2376,8 +2378,6 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         streams.value.log,
         shouldContainAll = true
       )
-      // The runtime.jar is actually assembled here - we want to have the whole fat jar on the
-      // module path to emulate the actual distribution as closely as possible.
       val runtimeMod =
         (`runtime-fat-jar` / assembly / assemblyOutputPath).value
       requiredMods ++ Seq(runtimeMod)
@@ -2387,7 +2387,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       Seq(runtimeModuleName)
     },
     addExports := {
-      Map("org.slf4j.nop/org.slf4j" -> Seq("org.slf4j"))
+      Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
     },
     javaOptions ++= {
       Seq(
@@ -2395,8 +2395,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
       )
     },
-    mainClass :=
-      (LocalProject("bench-processor") / mainClass).value
+    javaOptions ++= benchOnlyOptions,
   )
   .settings(
     bench := Def
