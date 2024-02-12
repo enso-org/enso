@@ -1820,6 +1820,8 @@ lazy val `runtime-benchmarks` =
         "org.slf4j"           % "slf4j-api"                % slf4jVersion,
         "org.slf4j"           % "slf4j-nop"                % slf4jVersion
       ),
+      mainClass :=
+        Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
       Compile / logManager :=
         sbt.internal.util.CustomLogManager.excludeMsg(
           "Could not determine source for class ",
@@ -1831,13 +1833,37 @@ lazy val `runtime-benchmarks` =
         "--enable-preview"
       ),
       parallelExecution := false,
-      javaOptions :=
-        (LocalProject("std-benchmarks") / Compile / javaOptions).value,
+      modulePath := {
+        val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+          "org.slf4j" % "slf4j-api" % slf4jVersion,
+          "org.slf4j" % "slf4j-nop" % slf4jVersion
+        )
+        val requiredMods = JPMSUtils.filterModulesFromUpdate(
+          (Compile / update).value,
+          requiredModIds,
+          streams.value.log,
+          shouldContainAll = true
+        )
+        val runtimeMod =
+          (`runtime-fat-jar` / assembly / assemblyOutputPath).value
+        requiredMods ++ Seq(runtimeMod)
+      },
+      addModules := {
+        val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
+        Seq(runtimeModuleName)
+      },
+      addExports := {
+        Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
+      },
+      javaOptions ++= {
+        Seq(
+          // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
+          "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
+        )
+      },
       javaOptions ++= benchOnlyOptions,
       run / fork := true,
       run / connectInput := true,
-      mainClass :=
-        Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
       bench := Def
         .task {
           (Compile / run).toTask("").tag(Exclusive).value
