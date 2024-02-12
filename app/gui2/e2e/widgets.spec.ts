@@ -9,7 +9,7 @@ class DropDownLocator {
 
   constructor(page: Page) {
     this.dropDown = page.locator('.dropdownContainer')
-    this.items = this.dropDown.locator('.selectable-item')
+    this.items = this.dropDown.locator('.selectable-item, .selected-item')
   }
 
   async expectVisibleWithOptions(page: Page, options: string[]): Promise<void> {
@@ -187,7 +187,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Count_Distinct',
   ])
-  await expect(columnsArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 1"')
+  await expect(columnsArg.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 1"')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
@@ -222,7 +222,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
   await dropDown.clickOption(page, 'column 2')
   await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
-  await expect(secondItem.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 2"')
+  await expect(secondItem.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 2"')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).
