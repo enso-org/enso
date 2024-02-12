@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.String as Java_String

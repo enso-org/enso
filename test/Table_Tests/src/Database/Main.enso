@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import Test
+from Standard.Test import Test
 
 import project.Database.Codegen_Spec
 import project.Database.SQLite_Spec

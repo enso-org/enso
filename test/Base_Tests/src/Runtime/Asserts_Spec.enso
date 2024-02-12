@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Base.Errors.Common import Assertion_Error
 from Standard.Base.Errors.Common import Type_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 foreign js js_check = """

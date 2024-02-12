@@ -8,8 +8,8 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test_New import all
-import Standard.Test_New.Suite.Suite_Builder
+from Standard.Test import all
+import Standard.Test.Suite.Suite_Builder
 
 import project.Util
 import project.Database.Helpers.Name_Generator

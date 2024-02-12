@@ -1,8 +1,4 @@
-import init, {
-  is_ident_or_operator,
-  parse_doc_to_json,
-  parse as parse_tree,
-} from '../../rust-ffi/pkg/rust_ffi'
+import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import { isNode } from '../util/detect'
 
 export async function initializeFFI(path?: string | undefined) {
@@ -18,5 +14,5 @@ export async function initializeFFI(path?: string | undefined) {
 // TODO[ao]: We cannot to that, because the ffi is used by cjs modules.
 // await initializeFFI()
 
-// eslint-disable-next-line camelcase
-export { is_ident_or_operator, parse_doc_to_json, parse_tree }
+/* eslint-disable-next-line camelcase */
+export { is_ident_or_operator, parse_doc_to_json, parse as parse_tree }

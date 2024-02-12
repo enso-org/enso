@@ -136,6 +136,7 @@ type JS_Object
     Value js_object
 
     ## GROUP Logical
+       ICON preparation
        Returns True iff the objects contains the given `key`.
     contains_key : Text -> Boolean
     contains_key self key:Text = has_property self.js_object key

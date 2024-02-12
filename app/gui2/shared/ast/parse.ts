@@ -474,7 +474,6 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
 
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) {
   let astsMatched = 0
-  let idsUnmatched = 0
   let asts = 0
   edit.root()?.visitRecursiveAst((_ast) => (asts += 1))
   for (const [key, externalId] of ids.entries()) {
@@ -485,8 +484,6 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) 
         const editAst = edit.getVersion(ast)
         if (editAst.externalId !== externalId) editAst.setExternalId(externalId)
       }
-    } else {
-      idsUnmatched += 1
     }
   }
   return edit.root() ? asts - astsMatched : 0

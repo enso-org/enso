@@ -10,9 +10,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.caches.SuggestionsCache;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
 import org.enso.pkg.Package;
@@ -20,7 +18,10 @@ import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.Suggestion;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SerializationManagerTest {
 
@@ -78,7 +79,6 @@ public class SerializationManagerTest {
   @Test
   public void serializeLibrarySuggestions()
       throws ExecutionException, InterruptedException, TimeoutException {
-    SerializationManager serializationManager = new SerializationManager(ensoContext.getCompiler());
     LibraryName standardBaseLibrary = new LibraryName("Standard", "Base");
     Package<TruffleFile> standardBasePackage = getLibraryPackage(standardBaseLibrary);
     ensoContext
@@ -92,13 +92,12 @@ public class SerializationManagerTest {
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 
-    SuggestionsCache.CachedSuggestions cachedSuggestions =
-        serializationManager.deserializeSuggestions(standardBaseLibrary).get();
-    Assert.assertEquals(standardBaseLibrary, cachedSuggestions.getLibraryName());
+    var cachedSuggestions =
+        ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
 
     Supplier<Stream<Suggestion.Constructor>> cachedConstructorSuggestions =
         () ->
-            cachedSuggestions.getSuggestions().stream()
+            cachedSuggestions.stream()
                 .flatMap(
                     suggestion -> {
                       if (suggestion instanceof Suggestion.Constructor constructor) {

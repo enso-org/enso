@@ -1,10 +1,12 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.languageserver.event.JsonSessionTerminated
 import org.enso.languageserver.runtime.{
   TestComponentGroups,
   VisualizationConfiguration
 }
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
@@ -1037,6 +1039,36 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
             }
           }
           """)
+    }
+
+    "destroy execution context when client disconnected" in {
+      val (client, clientId) = getInitialisedWsClientAndId()
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // destroy context
+      system.eventStream.publish(
+        JsonSessionTerminated(JsonSession(clientId, client.actorRef()))
+      )
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(_, Api.DestroyContextRequest(`contextId`)) =>
+          succeed
+        case msg =>
+          fail(s"Unexpected message: $msg")
+      }
     }
 
   }

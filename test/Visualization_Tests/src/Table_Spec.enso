@@ -10,7 +10,7 @@ import Standard.Visualization.Table.Visualization
 import Standard.Visualization.Helpers
 import Standard.Visualization.Id.Id
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import Standard.Base.Errors.Common.Type_Error
 
