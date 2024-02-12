@@ -233,6 +233,7 @@ type Enso_File
         list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
 
     ## UNSTABLE
+       GROUP Output
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
     create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
@@ -244,6 +245,7 @@ type Enso_File
         response.if_not_error <| response.decode_as_json.into Enso_File
 
     ## UNSTABLE
+       GROUP Output
        Deletes the file or directory.
     delete : Nothing
     delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
@@ -254,6 +256,7 @@ type Enso_File
         response.if_not_error <| Nothing
 
     ## UNSTABLE
+       GROUP Operators
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =

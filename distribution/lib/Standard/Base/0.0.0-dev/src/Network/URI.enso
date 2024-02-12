@@ -131,7 +131,7 @@ type URI
     path self = handle_resolve_errors <|
         self.to_java_representation.getPath
 
-    ## GROUP Calculations
+    ## GROUP Operators
        Extends the path of this URI with an additional segment.
 
        Arguments:

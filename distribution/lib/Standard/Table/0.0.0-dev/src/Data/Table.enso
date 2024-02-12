@@ -2618,7 +2618,7 @@ type Table
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
-    
+
     ## GROUP Standard.Base.Conversions
        Returns a string containing an XML representation of the table.
        Arguments:
