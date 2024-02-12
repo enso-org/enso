@@ -23,6 +23,8 @@ import * as object from '#/utilities/object'
 const STATUS_SUCCESS_FIRST = 200
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_LAST = 299
+/** HTTP status indicating that the resource does not exist. */
+const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
 
@@ -254,7 +256,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<void> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
     const response = await this.patch(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!responseIsSuccessful(response) && response.status !== STATUS_NOT_FOUND) {
       return this.throw('Could not update organization.')
     } else {
       return

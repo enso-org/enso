@@ -328,11 +328,13 @@ export interface UserInfo {
 
 /** Metadata for an organization. */
 export interface OrganizationInfo {
-  readonly name: string
+  readonly pk: OrganizationId
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly organization_name: string
   readonly email: EmailAddress
   readonly website: string
-  readonly location: string
-  readonly profilePicture: string | null
+  readonly address: string
+  readonly picture: string | null
 }
 
 /** Metadata uniquely identifying a user inside an organization.

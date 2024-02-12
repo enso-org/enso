@@ -65,17 +65,18 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputRefs: Record<
-    Exclude<keyof backendModule.OrganizationInfo, 'profilePicture'>,
+    Exclude<keyof backendModule.OrganizationInfo, 'picture' | 'pk'>,
     React.RefObject<HTMLInputElement>
   > = {
-    name: React.useRef<HTMLInputElement>(null),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    organization_name: React.useRef<HTMLInputElement>(null),
     email: React.useRef<HTMLInputElement>(null),
-    location: React.useRef<HTMLInputElement>(null),
     website: React.useRef<HTMLInputElement>(null),
+    address: React.useRef<HTMLInputElement>(null),
   }
 
   const doUpdateOrganization = async <
-    K extends Exclude<keyof backendModule.OrganizationInfo, 'profilePicture'>,
+    K extends Exclude<keyof backendModule.OrganizationInfo, 'picture' | 'pk'>,
   >(
     key: K,
     value: backendModule.OrganizationInfo[K]
@@ -150,17 +151,17 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Organization display name</Name>
               <Value>
                 <input
-                  ref={inputRefs.name}
+                  ref={inputRefs.organization_name}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.name}
+                  key={organization?.organization_name}
                   type="text"
                   size={1}
-                  defaultValue={organization?.name ?? ''}
+                  defaultValue={organization?.organization_name ?? ''}
                   onBlur={event => {
-                    void doUpdateOrganization('name', event.currentTarget.value)
+                    void doUpdateOrganization('organization_name', event.currentTarget.value)
                   }}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.name ?? '')
+                    onKeyDown(event, organization?.organization_name ?? '')
                   }}
                 />
               </Value>
@@ -210,17 +211,17 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Location</Name>
               <Value>
                 <input
-                  ref={inputRefs.location}
+                  ref={inputRefs.address}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.location}
+                  key={organization?.address}
                   type="text"
                   size={1}
-                  defaultValue={organization?.location ?? ''}
+                  defaultValue={organization?.address ?? ''}
                   onBlur={event => {
-                    void doUpdateOrganization('location', event.currentTarget.value)
+                    void doUpdateOrganization('address', event.currentTarget.value)
                   }}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.location ?? '')
+                    onKeyDown(event, organization?.address ?? '')
                   }}
                 />
               </Value>
@@ -237,7 +238,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             accept="image/*"
             onChange={doUploadOrganizationPicture}
           />
-          <img src={organization?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
+          <img src={organization?.picture ?? DefaultUserIcon} width={128} height={128} />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
