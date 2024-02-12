@@ -2,6 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java+",
+      "request": "launch",
+      "name": "Launch Enso File"
+    },
+    {
       "name": "Listen to 5005",
       "type": "java+",
       "request": "attach",
