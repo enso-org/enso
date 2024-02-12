@@ -89,7 +89,7 @@ type S3_File
                 # The exists check is not atomic, but it is the best we can do with S3
                 check_exists = open_options.contains File_Access.Create_New
                 valid_options = [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create]
-                invalid_options = open_options.filter (Filter_Condition.Not_In valid_options)
+                invalid_options = open_options.filter (Filter_Condition.Is_In valid_options action=Filter_Action.Remove)
                 if invalid_options.not_empty then Error.throw (S3_Error.Error "Unsupported S3 stream options: "+invalid_options.to_display_text self.uri) else
                     if check_exists && self.exists then Error.throw (File_Error.Already_Exists self) else
                         # Given that the amount of data written may be large and AWS library does not seem to support streaming it directly, we use a temporary file to store the data.
