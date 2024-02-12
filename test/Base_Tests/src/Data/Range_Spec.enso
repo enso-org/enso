@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Range.Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
@@ -244,7 +244,7 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
     group_builder.specify "should be able to be reduced" <|
         1.up_to 6 . reduce (+) . should_equal 15
         1.up_to 6 . with_step 2 . reduce (+) . should_equal 9
-        1.up_to 1 . reduce (+) . should_fail_with Empty_Error
+        1.up_to 1 . reduce (+) . should_fail_with (Empty_Error.Error Range)
         1.up_to 1 . reduce (+) 0 . should_equal 0
 
     group_builder.specify "should check all" <|
