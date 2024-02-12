@@ -9,7 +9,7 @@ from Standard.Table import Table
 from Standard.Table.Data.Type.Value_Type import Bits, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Table.Extensions.Table_Conversions import all
-from Standard.Test_New import all
+from Standard.Test import all
 from project.Util import all
 
 add_specs suite_builder =

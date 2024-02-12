@@ -10,6 +10,7 @@ import {
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, proxyRefs } from 'vue'
 
@@ -30,6 +31,7 @@ defineOptions({
 
 type UpdateHandler = (update: WidgetUpdate) => boolean
 
+const graph = useGraphStore()
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
@@ -85,8 +87,9 @@ provideWidgetUsageInfo(
 
 const spanStart = computed(() => {
   if (!(props.input instanceof Ast.Ast)) return undefined
-  if (props.input.span == null) return undefined
-  return props.input.span[0] - tree.nodeSpanStart
+  const span = graph.moduleSource.getSpan(props.input.id)
+  if (span == null) return undefined
+  return span[0] - tree.nodeSpanStart
 })
 </script>
 

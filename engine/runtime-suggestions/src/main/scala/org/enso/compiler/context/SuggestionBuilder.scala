@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
-  Literal,
   Location,
   Name,
   Type
@@ -575,7 +574,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 reprType     = selfType.toString,
                 isSuspended  = suspended,
                 hasDefault   = defaultValue.isDefined,
-                defaultValue = defaultValue.flatMap(buildDefaultValue)
+                defaultValue = defaultValue.map(buildDefaultValue)
               )
               go(vtail, targs, acc :+ thisArg)
             }
@@ -640,7 +639,7 @@ final class SuggestionBuilder[A: IndexedSource](
       reprType     = buildTypeArgumentName(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
+      defaultValue = varg.defaultValue.map(buildDefaultValue),
       tagValues    = buildTagValues(targ)
     )
 
@@ -712,7 +711,7 @@ final class SuggestionBuilder[A: IndexedSource](
           reprType     = Any,
           isSuspended  = arg.suspended,
           hasDefault   = arg.defaultValue.isDefined,
-          defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+          defaultValue = arg.defaultValue.map(buildDefaultValue)
         )
     }
   }
@@ -730,13 +729,11 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param expr the argument expression
     * @return the argument default value
     */
-  private def buildDefaultValue(expr: IR): Option[String] =
+  private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Literal.Number(_, value, _, _, _) => Some(value)
-      case Literal.Text(text, _, _, _)       => Some(text)
       case Application.Prefix(name, path, _, _, _, _) =>
-        Some(path.map(_.value.showCode()).mkString(".") + "." + name.showCode())
-      case other => Some(other.showCode())
+        path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
+      case other => other.showCode()
     }
 
   /** Build scope from the location. */

@@ -4,32 +4,55 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
+
+import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as navigateHooks from '#/hooks/navigateHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
 import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
 import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import type * as assetQuery from '#/utilities/assetQuery'
-import * as github from '#/utilities/github'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as projectManager from '#/utilities/projectManager'
-import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as spinner from '#/components/Spinner'
+
+import * as backendModule from '#/services/Backend'
+
+import * as array from '#/utilities/array'
+import type AssetQuery from '#/utilities/AssetQuery'
+import * as github from '#/utilities/github'
+import LocalStorage from '#/utilities/LocalStorage'
+import * as projectManager from '#/utilities/ProjectManager'
+import * as uniqueString from '#/utilities/uniqueString'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly driveCategory: Category
+  }
+}
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
+})
 
 // ===================
 // === DriveStatus ===
@@ -55,33 +78,33 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  supportsLocalBackend: boolean
-  hidden: boolean
-  page: pageSwitcher.Page
-  initialProjectName: string | null
+  readonly supportsLocalBackend: boolean
+  readonly hidden: boolean
+  readonly page: pageSwitcher.Page
+  readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
-  queuedAssetEvents: assetEvent.AssetEvent[]
-  assetListEvents: assetListEvent.AssetListEvent[]
-  dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  query: assetQuery.AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-  labels: backendModule.Label[]
-  setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-  setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-  projectStartupInfo: backendModule.ProjectStartupInfo | null
-  setAssetSettingsPanelProps: React.Dispatch<
-    React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+  readonly queuedAssetEvents: assetEvent.AssetEvent[]
+  readonly assetListEvents: assetListEvent.AssetListEvent[]
+  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backendModule.Label[]
+  readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setAssetPanelProps: React.Dispatch<
+    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  doCreateProject: (templateId: string | null) => void
-  doOpenEditor: (
+  readonly doCreateProject: (templateId: string | null) => void
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -89,7 +112,7 @@ export default function Drive(props: DriveProps) {
   const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetSettingsPanelProps, doOpenEditor, doCloseEditor } = props
+  const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -101,7 +124,7 @@ export default function Drive(props: DriveProps) {
   const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
-    () => localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ?? Category.home
+    () => localStorage.get('driveCategory') ?? Category.home
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -267,7 +290,7 @@ export default function Drive(props: DriveProps) {
     ]
   )
 
-  const doCreateDataConnector = React.useCallback(
+  const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newSecret,
@@ -373,7 +396,7 @@ export default function Drive(props: DriveProps) {
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
-              doCreateDataConnector={doCreateDataConnector}
+              doCreateSecret={doCreateSecret}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>
@@ -411,7 +434,7 @@ export default function Drive(props: DriveProps) {
               dispatchAssetEvent={dispatchAssetEvent}
               assetListEvents={assetListEvents}
               dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+              setAssetPanelProps={setAssetPanelProps}
               doOpenIde={doOpenEditor}
               doCloseIde={doCloseEditor}
               doCreateLabel={doCreateLabel}

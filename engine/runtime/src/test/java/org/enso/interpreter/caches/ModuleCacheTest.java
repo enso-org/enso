@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
@@ -49,10 +50,12 @@ public class ModuleCacheTest extends TestBase {
     var module = option.get();
     var ir = module.getIr().duplicate(true, true, true, true);
     var cm = new ModuleCache.CachedModule(ir, CompilationStage.AFTER_CODEGEN, module.getSource());
-    byte[] arr = module.getCache().serialize(ensoCtx, cm);
+
+    var mc = module.getCache().asSpi(ModuleCache.class);
+    byte[] arr = mc.serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
-    var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
+    var cachedIr = mc.deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
     CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }
@@ -78,10 +81,11 @@ public class ModuleCacheTest extends TestBase {
     var module = option.get();
     var ir = module.getIr().duplicate(true, true, true, true);
     var cm = new ModuleCache.CachedModule(ir, CompilationStage.AFTER_CODEGEN, module.getSource());
-    byte[] arr = module.getCache().serialize(ensoCtx, cm);
+    var mc = module.getCache().asSpi(ModuleCache.class);
+    byte[] arr = mc.serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
-    var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
+    var cachedIr = mc.deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
     CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }

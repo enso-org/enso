@@ -1,10 +1,12 @@
 import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
@@ -131,6 +133,7 @@ type Range
             if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -143,6 +146,7 @@ type Range
             throw_zero_step_error
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -183,12 +187,11 @@ type Range
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
-    filter self filter = case filter of
-        _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            builder = self.fold Vector.new_builder builder-> elem->
-                if predicate elem then builder.append elem else builder
-            builder.to_vector
+    filter self filter =
+        predicate = unify_condition_or_predicate filter
+        builder = self.fold Vector.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
 
     ## GROUP Selections
        Partitions the range into `Vector`s of elements which satisfy a given
@@ -331,6 +334,7 @@ type Range
         built.to_vector
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
@@ -353,6 +357,7 @@ type Range
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
@@ -401,6 +406,7 @@ type Range
             if result.is_nothing then if_missing else result.first
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example
@@ -502,7 +508,10 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector Integer
-    to_vector self = self.map x->x
+    to_vector self =
+        proxy = Array_Proxy.new self.length self.at
+        Vector.from_polyglot_array proxy
+
 
     ## Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.
@@ -516,7 +525,7 @@ type Range
 
              0.up_to 10 . reduce (+)
     reduce : (Integer -> Integer -> Integer) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Range)) =
         len = self.length
         case len of
             0 -> if_empty
@@ -568,14 +577,6 @@ get_index range min max value =
         index = (diff / range.step).floor
         if index < min || index > max then Nothing else
             index
-
-## An error representing that the list is empty.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The Range is empty."
 
 ## PRIVATE
 range_default_filter_condition_widget =

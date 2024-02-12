@@ -2,11 +2,13 @@
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backend from '#/services/backend'
 
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
+
+import * as backend from '#/services/Backend'
 
 // =====================
 // === NewLabelModal ===
@@ -14,9 +16,9 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-  labels: backend.Label[]
-  eventTarget: HTMLElement
-  doCreate: (value: string, color: backend.LChColor) => void
+  readonly labels: backend.Label[]
+  readonly eventTarget: HTMLElement
+  readonly doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */

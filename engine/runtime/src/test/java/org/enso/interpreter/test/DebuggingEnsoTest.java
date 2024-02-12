@@ -404,10 +404,9 @@ public class DebuggingEnsoTest {
                           + " DebugException",
                       DebugException.class,
                       () -> event.getTopStackFrame().eval("non_existing_identifier"));
-              assertTrue(
-                  exception
-                      .getMessage()
-                      .contains("The name `non_existing_identifier` could not be found"));
+              assertThat(
+                  exception.getMessage(),
+                  containsString("The name `non_existing_identifier` could not be found"));
 
               assertThrows(
                   DebugException.class,

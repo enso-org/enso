@@ -1,17 +1,21 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as fileInfo from '#/utilities/fileInfo'
-import * as string from '#/utilities/string'
 
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
+
+import * as backendModule from '#/services/Backend'
+
+import * as fileInfo from '#/utilities/fileInfo'
+import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =================
 // === Constants ===
@@ -170,7 +174,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const doRename = (toRename: ConflictingAsset[]) => {
     const clonedConflicts = structuredClone(toRename)
     for (const conflict of clonedConflicts) {
-      conflict.new.title = findNewName(conflict)
+      // This is SAFE, as it is a shallow mutation of a freshly cloned object.
+      object.unsafeMutable(conflict.new).title = findNewName(conflict)
     }
     dispatchAssetListEvent({
       type: AssetListEventType.insertAssets,

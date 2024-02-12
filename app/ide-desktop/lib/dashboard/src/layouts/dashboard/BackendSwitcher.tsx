@@ -5,9 +5,10 @@ import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as backendModule from '#/services/backend'
 
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
 
 // =======================
 // === BackendSwitcher ===
@@ -15,7 +16,7 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link BackendSwitcher}. */
 export interface BackendSwitcherProps {
-  setBackendType: (backendType: backendModule.BackendType) => void
+  readonly setBackendType: (backendType: backendModule.BackendType) => void
 }
 
 /** Switcher for choosing the project management backend. */

@@ -21,7 +21,6 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.SerializationManager$;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -60,15 +59,13 @@ public class SerdeCompilerTest {
               .filter((m) -> !m.getPackage().libraryName().namespace().equals("Standard"));
       assertEquals("Two non-standard library modules are compiled", nonStandard.size(), 2);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
-      var serializationManager =
-          SerializationManager$.MODULE$.apply(ensoContext.getCompiler().context());
       var futures = new ArrayList<Future<?>>();
       result
           .compiledModules()
           .filter((m) -> !m.isSynthetic())
           .foreach(
               (m) -> {
-                var future = serializationManager.serializeModule(compiler, m, true, true);
+                var future = compiler.context().serializeModule(compiler, m, true, true);
                 futures.add(future);
                 return null;
               });

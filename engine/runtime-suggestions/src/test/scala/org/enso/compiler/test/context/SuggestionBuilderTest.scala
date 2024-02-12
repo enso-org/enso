@@ -380,7 +380,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
 
     "build method with default arguments" in {
 
-      val code   = """foo (a = 0) = a + 1"""
+      val code   = """foo (a = 0) (b = "bar") (c = x.y) = a + b + c"""
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -393,7 +393,23 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "foo",
               arguments = Seq(
                 Suggestion
-                  .Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
+                  .Argument("a", SuggestionBuilder.Any, false, true, Some("0")),
+                Suggestion
+                  .Argument(
+                    "b",
+                    SuggestionBuilder.Any,
+                    false,
+                    true,
+                    Some("\"bar\"")
+                  ),
+                Suggestion
+                  .Argument(
+                    "c",
+                    SuggestionBuilder.Any,
+                    false,
+                    true,
+                    Some("x.y")
+                  )
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,

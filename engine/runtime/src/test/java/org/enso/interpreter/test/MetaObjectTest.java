@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -213,6 +215,26 @@ public class MetaObjectTest extends TestBase {
       assertEquals("c " + c + " is function", "Function", c.getMetaObject().getMetaSimpleName());
       assertEquals("c " + c + " is function", g.typeFunction(), c.getMetaObject());
     }
+  }
+
+  @Test
+  public void nothingIsNotMeta() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var nothing = g.typeNothing();
+    assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
+  }
+
+  @Test
+  public void nothingWithWarningIsNotMeta() {
+    var src =
+        """
+import Standard.Base.Warning.Warning
+import Standard.Base.Nothing.Nothing
+
+main = Warning.attach "foo" Nothing
+""";
+    var nothingWithWarn = TestBase.evalModule(ctx, src);
+    assertThat(nothingWithWarn.isMetaObject(), is(false));
   }
 
   @Test

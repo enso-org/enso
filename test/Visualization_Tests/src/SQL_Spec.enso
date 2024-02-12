@@ -4,26 +4,42 @@ from Standard.Database import Database, SQLite, SQL_Query
 
 import Standard.Visualization.SQL.Visualization
 
-from Standard.Test import Test
-import Standard.Test.Extensions
+from Standard.Test import all
 
-visualization_spec connection =
-    connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
-    t = connection.query (SQL_Query.Table_Name "T")
-    Test.group "SQL Visualization" <|
-        Test.specify "should provide type metadata for interpolations" <|
-            q = t.filter ((t.at "B" == 2) && (t.at "A" == True)) Filter_Condition.Is_True . at "C"
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t self = self.data.at 1
+
+    setup = Data.Value <|
+        enso_project.data.create_directory
+        file = enso_project.data / "sqlite_test.db"
+        file.delete_if_exists
+        connection = Database.connect (SQLite file)
+        connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
+        t = connection.query (SQL_Query.Table_Name "T")
+        [connection, t]
+
+    teardown self =
+        self.connection.close
+        file = enso_project.data / "sqlite_test.db"
+        file.delete_if_exists
+
+
+add_specs suite_builder =
+    suite_builder.group "SQL Visualization" group_builder->
+        data = Data.setup
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should provide type metadata for interpolations" <|
+            q = data.t.filter ((data.t.at "B" == 2) && (data.t.at "A" == True)) Filter_Condition.Is_True . at "C"
             vis = Visualization.prepare_visualization q
             int_param = JS_Object.from_pairs [["value", 2], ["enso_type", "Standard.Base.Data.Numbers.Integer"]]
             str_param = JS_Object.from_pairs [["value", True], ["enso_type", "Standard.Base.Data.Boolean.Boolean"]]
             code = 'SELECT "T"."C" AS "C" FROM "T" AS "T" WHERE (("T"."B") = (?) AND ("T"."A") = (?))'
             json = JS_Object.from_pairs [["dialect", "SQLite"], ["code", code], ["interpolations", [int_param, str_param]]]
             vis . should_equal json.to_text
-spec =
-    enso_project.data.create_directory
-    file = enso_project.data / "sqlite_test.db"
-    file.delete_if_exists
-    connection = Database.connect (SQLite file)
-    visualization_spec connection
-    connection.close
-    file.delete
+

@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -57,14 +57,13 @@ public class SerializerTest {
     ctx.enter();
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
-    var serializationManager = new SerializationManager(ensoContext.getCompiler());
     var useThreadPool = compiler.context().isCreateThreadAllowed();
-    var future = serializationManager.serializeModule(compiler, module, true, useThreadPool);
+    var future = compiler.context().serializeModule(compiler, module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);
-    var deserialized = serializationManager.deserialize(compiler, module);
-    assertEquals(deserialized.isDefined() && (Boolean) deserialized.get(), true);
-    serializationManager.shutdown(true);
+    var deserialized = compiler.context().deserializeModule(compiler, module);
+    assertTrue("Deserialized", deserialized);
+    compiler.context().shutdown(true);
     ctx.leave();
     ctx.close();
   }
