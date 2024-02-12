@@ -2445,6 +2445,9 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "commons-io"                  % "commons-io"       % commonsIoVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      "junit"                       % "junit"            % junitVersion     % Test,
+      "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
+      "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test,
       akkaActor,
       akkaStream,
       akkaHttp,
@@ -2452,6 +2455,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     )
   )
   .dependsOn(cli)
+  .dependsOn(`http-test-helper`)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
