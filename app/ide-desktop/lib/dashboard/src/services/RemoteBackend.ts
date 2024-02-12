@@ -258,7 +258,7 @@ export default class RemoteBackend extends Backend {
     body: backendModule.UpdateOrganizationRequestBody
   ): Promise<backendModule.OrganizationInfo | null> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
-    const response = await this.put<backendModule.OrganizationInfo>(path, body)
+    const response = await this.patch<backendModule.OrganizationInfo>(path, body)
 
     if (response.status === STATUS_NOT_FOUND) {
       // Organization info has not yet been created.

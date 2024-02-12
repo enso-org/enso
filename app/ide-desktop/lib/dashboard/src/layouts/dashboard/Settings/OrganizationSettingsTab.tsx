@@ -1,6 +1,8 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
+import isEmail from 'validator/lib/isEmail'
+
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -117,7 +119,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
 
   const doUpdateWebsite = async () => {
     const oldWebsite = organization.website ?? null
-    const website = backendModule.HttpsUrl(emailRef.current?.value ?? '')
+    const website = backendModule.HttpsUrl(websiteRef.current?.value ?? '')
     if (oldWebsite !== website) {
       try {
         setOrganization(object.merger({ website }))
@@ -222,14 +224,25 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Value>
                 <input
                   ref={emailRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
                   key={organization.email}
                   type="text"
                   size={1}
                   defaultValue={organization.email ?? ''}
-                  onBlur={doUpdateEmail}
+                  onBlur={event => {
+                    if (isEmail(event.currentTarget.value)) {
+                      void doUpdateEmail()
+                    } else {
+                      event.currentTarget.focus()
+                    }
+                  }}
                   onKeyDown={event => {
                     onKeyDown(event, organization.email ?? '')
+                  }}
+                  onInput={event => {
+                    event.currentTarget.setCustomValidity(
+                      isEmail(event.currentTarget.value) ? '' : 'Invalid email.'
+                    )
                   }}
                 />
               </Value>
