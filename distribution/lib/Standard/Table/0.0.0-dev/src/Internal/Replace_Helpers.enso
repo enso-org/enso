@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Data.Table.Table as Database_Table
@@ -13,7 +14,9 @@ replace base_table:(Table | Database_Table) lookup_table:(Table | Database_Table
     case lookup_table of
         _ : Map ->
             if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
-                base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                # An empty map is a no-op, but we attach a warning.
+                if lookup_table.is_empty then Warning.attach (Empty_Error.Error lookup_table) base_table else
+                    base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
         _ ->
             from_column_resolved = from_column.if_nothing 0
             to_column_resolved = to_column.if_nothing 1
@@ -34,5 +37,8 @@ replace base_table:(Table | Database_Table) lookup_table:(Table | Database_Table
                     respectively.
                 lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
 
+                warn_if_empty result_table = if lookup_table_renamed.row_count != 0 then result_table else Warning.attach (Empty_Error.Error lookup_table_renamed) result_table
+
                 merged = base_table_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-                merged.remove_columns duplicate_key_column_name
+                warn_if_empty <|
+                    merged.remove_columns duplicate_key_column_name

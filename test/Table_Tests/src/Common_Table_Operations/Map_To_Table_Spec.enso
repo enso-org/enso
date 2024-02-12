@@ -1,10 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Assertion_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Database.Data.Table import MAX_LITERAL_ELEMENT_COUNT
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -47,8 +48,14 @@ add_specs suite_builder setup =
             t.at 'y' . to_vector . should_equal [3, 4, 5]
             t.at 'z' . to_vector . should_equal [6, 7, 8]
 
-        group_builder.specify "should not be able to create a literal table with empty columns" <|
-            data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+        if setup.is_database then
+            group_builder.specify "should not be able to create a literal table with empty columns (db backend)" <|
+                data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "should be able to create a literal table with empty columns (in-mem backend)" <|
+                t = data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z']
+                t.row_count . should_equal 0
 
         group_builder.specify "should not be able to create a literal table with no columns" <|
             data.dummy_table.make_table_from_vectors [] [] . read . should_fail_with Illegal_Argument
@@ -65,9 +72,16 @@ add_specs suite_builder setup =
             t.at 'k' . to_vector . should_equal ['x', 'y', 'z']
             t.at 'v' . to_vector . should_equal [1, 2, 3]
 
-        group_builder.specify "should not be able to create a literal table from an empty map" <|
-            map = Map.empty
-            data.dummy_table.make_table_from_map map 'k' 'v' . should_fail_with Illegal_Argument
+        if setup.is_database then
+            group_builder.specify "should not be able to create a literal table from an empty map" <|
+                map = Map.empty
+                data.dummy_table.make_table_from_map map 'k' 'v' . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "should be able to create a literal table from an empty map" <|
+                map = Map.empty
+                t = data.dummy_table.make_table_from_map map 'k' 'v'
+                t.row_count . should_equal 0
 
         if setup.is_database then
             group_builder.specify "should respect the maximum size" <|

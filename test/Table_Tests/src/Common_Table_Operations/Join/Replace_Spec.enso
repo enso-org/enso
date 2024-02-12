@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -103,6 +104,25 @@ add_specs suite_builder setup =
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             lookup_table = table_builder [['x', [2, 1, Nothing, 3]], ['z', [20, 10, 40, 30]]]
             table.replace lookup_table 'x' . should_fail_with Null_Values_In_Key_Columns
+
+        group_builder.specify "should fail on an empty lookup table with no columns" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder []
+            table.replace lookup_table 'x' . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "should accept an empty (but well-formed) lookup table, but expect a warning" <|
+                table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+                lookup_table = table_builder [['x', []], ['z', []]]
+                t = table.replace lookup_table 'x'
+                t . should_equal table
+                Problems.expect_warning Empty_Error t
+
+        group_builder.specify "should accept an empty lookup map, but expect a warning" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            t = table.replace Map.empty 'x'
+            t . should_equal table
+            Problems.expect_warning Empty_Error t
 
         group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]

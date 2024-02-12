@@ -1674,6 +1674,18 @@ type Table
 
     ## PRIVATE
        A helper that creates a two-column table from a Map.
+
+       The keys of the `Map` become the first column, with name
+       `key_column_name`, and the values of the `Map` become the second column,
+       with name `value_column_name`.
+
+       For the in-memory database, the `Map` can be empty. For the database
+       backends, it must not be empty.
+
+       Arguments:
+       - map: The `Map` to create the table from.
+       - key_column_name: The name to use for the first column.
+       - value_column_name: The name to use for the second column.
     make_table_from_map  : Map Any Any -> Text -> Text -> Table
     make_table_from_map self map key_column_name value_column_name =
         keys_and_values = map.to_vector
@@ -1681,12 +1693,18 @@ type Table
 
     ## PRIVATE
        A helper that creates a literal table from `Vector`s.
+
+       For the in-memory database, the columns can be empty. For the database
+       backends, they must not be empty.
+
+       Arguments:
+       - column_vectors: A `Vector` of `Vector`s; each inner `Vector` becomes a
+         column of the table.
+       - column_names: The names of the columns of the new table.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
     make_table_from_vectors self column_vectors column_names =
         # Assume the columns are all the same length; if not, it will be an error anyway.
-        total_size = if column_vectors.is_empty || column_vectors.at 0 . is_empty then 0 else
-            column_vectors.length * (column_vectors.at 0 . length)
-        if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
+        if column_vectors.is_empty then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
             Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
             Table.new (column_vectors.zip column_names (v-> n-> Column.from_vector n v))
 
