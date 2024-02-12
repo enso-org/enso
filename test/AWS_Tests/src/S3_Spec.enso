@@ -211,17 +211,18 @@ add_specs suite_builder =
             # AWS S3 does not record creation time, only last modified time.
             hello_txt.creation_time . should_fail_with S3_Error
 
+    writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
+    my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
+    delete_on_panic file ~action =
+        handler caught_panic =
+            file.delete
+            Panic.throw caught_panic
+        Panic.catch Any action handler
+    delete_afterwards file ~action =
+        Panic.with_finalizer file.delete action
+
     suite_builder.group "S3_File writing" pending=api_pending group_builder->
-        writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
-        my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
         assert my_writable_dir.is_directory
-        delete_on_panic file ~action =
-            handler caught_panic =
-                file.delete
-                Panic.throw caught_panic
-            Panic.catch Any action handler
-        delete_afterwards file ~action =
-            Panic.with_finalizer file.delete action
 
         group_builder.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
@@ -438,6 +439,11 @@ add_specs suite_builder =
         group_builder.specify "does not raise an exception if the file being deleted did not exist in the first place" <|
             new_file = my_writable_dir / "nonexistent-file.txt"
             new_file.delete . should_succeed
+
+    suite_builder.group "S3_File copying/moving" pending=api_pending group_builder->
+        # TODO add Enso_File here too once cloud write is implemented
+        source_files =
+
 
 main =
     suite = Test.build suite_builder->

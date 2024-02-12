@@ -15,7 +15,6 @@ from Standard.Base.System.File import find_extension_from_name
 import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
 import project.Errors.S3_Key_Not_Found
-import project.Internal.Request_Body
 import project.Internal.S3_File_Write_Strategy
 import project.S3.S3
 
@@ -98,8 +97,7 @@ type S3_File
                             result = tmp_file.with_output_stream [File_Access.Write] action
                             # Only proceed if the write succeeded
                             result.if_not_error <|
-                                request_body = Request_Body.from_local_file tmp_file
-                                (translate_file_errors self <| S3.put_object self.bucket self.prefix self.credentials request_body) . if_not_error <|
+                                (translate_file_errors self <| S3.upload_file tmp_file self.bucket self.prefix self.credentials request_body) . if_not_error <|
                                     result
 
 
