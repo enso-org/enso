@@ -14,6 +14,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -2611,12 +2612,12 @@ type Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     @format Widget_Helpers.write_table_selector
-    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_writing_format path
-                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path Table) else
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path.file Table) else
                     self.write path format=base_format on_existing_file match_columns on_problems
             _ ->
                 handle_no_write_method caught_panic =
@@ -2630,7 +2631,7 @@ type Table
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
-    
+
     ## GROUP Standard.Base.Conversions
        Returns a string containing an XML representation of the table.
        Arguments:

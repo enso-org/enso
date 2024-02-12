@@ -614,6 +614,7 @@
 - [Implemented `Table.replace` for the in-memory backend.][8935]
 - [Allow removing rows using a Filter_Condition.][8861]
 - [Added `Table.to_xml`.][8979]
+- [Implemented Write support for `S3_File`.][8921]
 - [Implemented `Table.replace` for the database backend.][8986]
 
 [debug-shortcuts]:
@@ -884,6 +885,7 @@
 [8865]: https://github.com/enso-org/enso/pull/8865
 [8935]: https://github.com/enso-org/enso/pull/8935
 [8861]: https://github.com/enso-org/enso/pull/8861
+[8921]: https://github.com/enso-org/enso/pull/8921
 [8979]: https://github.com/enso-org/enso/pull/8979
 [8986]: https://github.com/enso-org/enso/pull/8986
 
