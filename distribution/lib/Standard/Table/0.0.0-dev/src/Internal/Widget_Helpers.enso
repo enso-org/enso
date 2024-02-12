@@ -89,7 +89,7 @@ make_column_ref_by_name_selector table display:Display=Display.Always add_text:B
     regex = if add_regex then [Option "<Regular Expression>" "('').to_regex"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
     boolean = if add_boolean then [Option "<True/False>" "True"] else []
-    expression = if table.is_nothing.not then [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"] else []
+    expression = if table.is_nothing then [] else [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"]
     col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
     values = text + regex + number + boolean + expression + col_names
     Single_Choice values=values display=display
@@ -107,14 +107,14 @@ make_fill_default_value_selector column_source=Nothing display=Display.Always ad
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
     col_names = make_column_ref_by_name_selector table
-    with_constants = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
+    with_all_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
     with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
     with_text = make_column_ref_by_name_selector table add_text=True
 
     builder = Vector.new_builder
     fqn = Meta.get_qualified_type_name Filter_Condition
-    builder.append (Option "Equals" fqn+".Equal" [["to", with_constants]])
-    builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", with_constants]])
+    builder.append (Option "Equals" fqn+".Equal" [["to", with_all_types]])
+    builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", with_all_types]])
     builder.append (Option "Less Than" fqn+".Less" [["than", with_number_text]])
     builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", with_number_text]])
     builder.append (Option "Greater Than" fqn+".Greater" [["than", with_number_text]])
