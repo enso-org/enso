@@ -6,7 +6,7 @@ import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Table import Column, Table
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 

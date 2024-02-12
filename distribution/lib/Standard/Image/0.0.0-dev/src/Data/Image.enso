@@ -276,6 +276,7 @@ type Image
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON math
        Calculates the per-element product of an image and a scalar or a matrix.
 
        Arguments:
@@ -326,6 +327,7 @@ type Image
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON math
        Performs per-element division of an image and a scalar or a matrix.
 
        Arguments:

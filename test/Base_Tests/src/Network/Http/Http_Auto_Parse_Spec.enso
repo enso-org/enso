@@ -5,7 +5,7 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Network.HTTP.Response.Response
 
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 main =
     suite = Test.build suite_builder->

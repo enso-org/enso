@@ -17,7 +17,7 @@ split_to_columns table input_column_id delimiter="," column_count=Nothing on_pro
    Splits a column of text into a set of new rows.
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Table
-split_to_rows table input_column_id:(Text|Integer) delimiter="," =
+split_to_rows table input_column_id:(Text | Integer) delimiter="," =
     column = table.at input_column_id
     Value_Type.expect_text column <|
         fan_out_to_rows table column.name (handle_nothing (_.split delimiter)) at_least_one_row=True

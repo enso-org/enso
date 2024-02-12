@@ -23,7 +23,15 @@ export default vite.defineConfig(viteEnv => {
   const devMode = mode === 'development'
   return {
     server: { port: serverPort, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
-    plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml()],
+    plugins: [
+      vitePluginReact({
+        include: '**/*.tsx',
+        babel: {
+          plugins: ['@babel/plugin-syntax-import-assertions'],
+        },
+      }),
+      vitePluginYaml(),
+    ],
     resolve: {
       alias: {
         '#': url.fileURLToPath(new URL('./src', import.meta.url)),

@@ -9,6 +9,7 @@ import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -309,7 +310,7 @@ type Vector a
 
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Vector)) =
         len = self.length
         case len of
             0 -> if_empty
@@ -397,6 +398,7 @@ type Vector a
                 used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
@@ -418,6 +420,7 @@ type Vector a
         0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this vector.
 
        Arguments:
@@ -439,6 +442,7 @@ type Vector a
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this vector contains a given value as an element.
 
        Arguments:
@@ -452,6 +456,7 @@ type Vector a
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is empty.
 
        > Example
@@ -462,6 +467,7 @@ type Vector a
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is not empty.
 
        > Example
@@ -513,7 +519,7 @@ type Vector a
         builder.to_vector
 
     ## GROUP Selections
-       ICON preparation
+       ICON split_text
        Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -791,6 +797,7 @@ type Vector a
 
     ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -852,6 +859,7 @@ type Vector a
     remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
     ## GROUP Calculations
+       ICON join
        When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -1215,11 +1223,13 @@ type Builder
     new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.java_builder.isEmpty
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
@@ -1290,6 +1300,7 @@ type Builder
     unsafe_append self item = self.java_builder.add item
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
@@ -1325,6 +1336,7 @@ type Builder
     last self = self.at -1
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of this builder.
 
        Arguments:
@@ -1381,14 +1393,6 @@ type No_Wrap
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
-
-## PRIVATE
-   An error that indicates that the vector is empty.
-type Empty_Error
-    ## PRIVATE
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The vector is empty."
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

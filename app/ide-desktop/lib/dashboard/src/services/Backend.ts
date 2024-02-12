@@ -42,6 +42,10 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
+/** Unique identifier for a Data Link. */
+export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
+export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
@@ -250,6 +254,14 @@ export interface SecretInfo {
   readonly id: SecretId
 }
 
+/** A Data Link. */
+export type Connector = newtype.Newtype<unknown, 'Connector'>
+
+/** Metadata uniquely identifying a Data Link. */
+export interface ConnectorInfo {
+  readonly id: ConnectorId
+}
+
 /** A label. */
 export interface Label {
   readonly id: TagId
@@ -424,6 +436,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
+  dataLink = 'connector',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
@@ -436,6 +449,7 @@ export enum AssetType {
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
+  readonly [AssetType.dataLink]: ConnectorId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
@@ -447,6 +461,7 @@ export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
   [AssetType.directory]: 'folder',
   [AssetType.project]: 'project',
   [AssetType.file]: 'file',
+  [AssetType.dataLink]: 'Data Link',
   [AssetType.secret]: 'secret',
   [AssetType.specialLoading]: 'special loading asset',
   [AssetType.specialEmpty]: 'special empty asset',
@@ -461,7 +476,8 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
-  [AssetType.secret]: 3,
+  [AssetType.dataLink]: 3,
+  [AssetType.secret]: 4,
   [AssetType.specialLoading]: 999,
   [AssetType.specialEmpty]: 1000,
   /* eslint-enable @typescript-eslint/no-magic-numbers */
@@ -501,6 +517,9 @@ export interface ProjectAsset extends Asset<AssetType.project> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.dataLink}>. */
+export interface DataLinkAsset extends Asset<AssetType.dataLink> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
@@ -606,6 +625,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
+  | DataLinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
@@ -640,6 +660,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = FileId(id)
       break
     }
+    case AssetType.dataLink: {
+      result = ConnectorId(id)
+      break
+    }
     case AssetType.secret: {
       result = SecretId(id)
       break
@@ -653,7 +677,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
   }
-  // This is SAFE, just too complex for TypeScript to correctly typecheck.
+  // This is SAFE, just too dynamic for TypeScript to correctly typecheck.
   // eslint-disable-next-line no-restricted-syntax
   return result as IdType[Type]
 }
@@ -664,6 +688,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
 export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link DataLinkAsset}. */
+export const assetIsDataLink = assetIsType(AssetType.dataLink)
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
@@ -792,6 +818,14 @@ export interface CreateSecretRequestBody {
 /** HTTP request body for the "update secret" endpoint. */
 export interface UpdateSecretRequestBody {
   readonly value: string
+}
+
+/** HTTP request body for the "create connector" endpoint. */
+export interface CreateConnectorRequestBody {
+  name: string
+  value: unknown
+  parentDirectoryId: DirectoryId | null
+  connectorId: ConnectorId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -993,6 +1027,12 @@ export default abstract class Backend {
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
+  /** Create a Data Link. */
+  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
+  /** Return a Data Link. */
+  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
+  /** Delete a Data Link. */
+  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */

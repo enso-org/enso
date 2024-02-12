@@ -5,7 +5,9 @@ import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
+import org.enso.projectmanager.control.effect.{Exec, Sync}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectDelete
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -14,6 +16,8 @@ import org.enso.projectmanager.service.{
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
+import java.io.File
+
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `project/delete` commands.
@@ -21,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param service a project service
   * @param requestTimeout a request timeout
   */
-class ProjectDeleteHandler[F[+_, +_]: Exec](
+class ProjectDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
@@ -33,7 +37,12 @@ class ProjectDeleteHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectDelete, id, params: ProjectDelete.Params) =>
-      Exec[F].exec(service.deleteUserProject(params.projectId)).pipeTo(self)
+      val action = for {
+        projectsDirectory <-
+          Sync[F].effect(params.projectsDirectory.map(new File(_)))
+        _ <- service.deleteUserProject(params.projectId, projectsDirectory)
+      } yield ()
+      Exec[F].exec(action).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -78,7 +87,7 @@ object ProjectDeleteHandler {
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: Sync](
     service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
