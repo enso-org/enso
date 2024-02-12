@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -155,8 +155,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow to reduce elements if it is non-empty" <|
         alter [1,2,3] . reduce (+) . should_equal 6
-        alter [] . reduce (+) . should_fail_with Empty_Error
-        alter [] . reduce (+) 0 . should_equal 0
+        empty_vec = alter []
+        empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
+        empty_vec . reduce (+) 0 . should_equal 0
 
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]

@@ -15,6 +15,7 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
@@ -310,7 +311,7 @@ type Vector a
 
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Vector)) =
         len = self.length
         case len of
             0 -> if_empty
@@ -1434,14 +1435,6 @@ type No_Wrap
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
-
-## PRIVATE
-   An error that indicates that the vector is empty.
-type Empty_Error
-    ## PRIVATE
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The vector is empty."
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

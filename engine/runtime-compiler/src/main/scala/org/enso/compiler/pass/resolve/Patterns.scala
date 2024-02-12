@@ -114,10 +114,11 @@ object Patterns extends IRPass {
             val resolvedName = resolution
               .map {
                 case Left(err) =>
-                  errors.Resolution(
+                  val r = errors.Resolution(
                     consPat.constructor,
                     errors.Resolution.ResolverError(err)
                   )
+                  r.setLocation(consPat.location)
                 case Right(value: BindingsMap.ResolvedConstructor) =>
                   consName.updateMetadata(
                     new MetadataPair(this, BindingsMap.Resolution(value))
@@ -140,12 +141,13 @@ object Patterns extends IRPass {
                   )
 
                 case Right(_: BindingsMap.ResolvedMethod) =>
-                  errors.Resolution(
+                  val r = errors.Resolution(
                     consName,
                     errors.Resolution.UnexpectedMethod(
                       "a pattern match"
                     )
                   )
+                  r.setLocation(consName.location)
               }
               .getOrElse(consName)
 

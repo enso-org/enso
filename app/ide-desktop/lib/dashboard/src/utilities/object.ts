@@ -48,3 +48,21 @@ export function unsafeEntries<T extends object>(
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
+
+// ================
+// === asObject ===
+// ================
+
+/** Either return the object unchanged, if the input was an object, or `null`. */
+export function asObject(value: unknown): object | null {
+  return typeof value === 'object' && value != null ? value : null
+}
+
+// =============================
+// === singletonObjectOrNull ===
+// =============================
+
+/** Either return a singleton object, if the input was an object, or an empty array. */
+export function singletonObjectOrNull(value: unknown): [] | [object] {
+  return typeof value === 'object' && value != null ? [value] : []
+}
