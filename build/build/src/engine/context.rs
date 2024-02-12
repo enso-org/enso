@@ -475,7 +475,7 @@ impl RunContext {
                             .repo_root
                             .engine
                             .join("runtime-benchmarks")
-                            .join("bench_report_xml");
+                            .join("bench-report.xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
