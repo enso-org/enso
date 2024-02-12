@@ -2421,7 +2421,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
       )
     },
-    javaOptions ++= benchOnlyOptions,
+    javaOptions ++= benchOnlyOptions
   )
   .settings(
     bench := Def
