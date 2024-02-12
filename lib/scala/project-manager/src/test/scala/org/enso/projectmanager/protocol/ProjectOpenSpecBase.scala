@@ -17,6 +17,7 @@ abstract class ProjectOpenSpecBase
     with RetrySpec
     with ProjectManagementOps
     with MissingComponentBehavior {
+
   override val engineToInstall = Some(defaultVersion)
   var ordinaryProject: UUID    = _
   var brokenProject: UUID      = _
@@ -31,7 +32,8 @@ abstract class ProjectOpenSpecBase
       projectName            = "Proj_1",
       projectTemplate        = None,
       engineVersion          = defaultVersion,
-      missingComponentAction = MissingComponentAction.Fail
+      missingComponentAction = MissingComponentAction.Fail,
+      projectsDirectory      = None
     )
     ordinaryProject = zio.Unsafe.unsafe { implicit unsafe =>
       Runtime.default.unsafe
@@ -45,7 +47,8 @@ abstract class ProjectOpenSpecBase
       projectName            = brokenName,
       projectTemplate        = None,
       engineVersion          = defaultVersion,
-      missingComponentAction = MissingComponentAction.Fail
+      missingComponentAction = MissingComponentAction.Fail,
+      projectsDirectory      = None
     )
     brokenProject = zio.Unsafe.unsafe { implicit unsafe =>
       Runtime.default.unsafe
