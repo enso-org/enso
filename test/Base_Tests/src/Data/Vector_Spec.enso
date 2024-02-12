@@ -155,8 +155,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow to reduce elements if it is non-empty" <|
         alter [1,2,3] . reduce (+) . should_equal 6
-        alter [] . reduce (+) . should_fail_with (Empty_Error.Error Vector)
-        alter [] . reduce (+) 0 . should_equal 0
+        empty_vec = alter []
+        empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
+        empty_vec . reduce (+) 0 . should_equal 0
 
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]

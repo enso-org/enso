@@ -303,6 +303,19 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
+  const doCreateDataLink = React.useCallback(
+    (name: string, value: unknown) => {
+      dispatchAssetListEvent({
+        type: AssetListEventType.newDataLink,
+        parentKey: rootDirectoryId,
+        parentId: rootDirectoryId,
+        name,
+        value,
+      })
+    },
+    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+  )
+
   React.useEffect(() => {
     const onDragEnter = (event: DragEvent) => {
       if (
@@ -397,6 +410,7 @@ export default function Drive(props: DriveProps) {
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
+              doCreateDataLink={doCreateDataLink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>

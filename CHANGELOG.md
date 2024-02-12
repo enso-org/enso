@@ -1041,6 +1041,7 @@
 - [Derive --in-project from --run source location][8775]
 - [Binary operator resolution based on that value][8779]
 - [Check type of `self` when calling a method using the static syntax][8867]
+- [Execute and debug individual Enso files in VSCode extension][8923]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1197,6 +1198,7 @@
 [8775]: https://github.com/enso-org/enso/pull/8775
 [8779]: https://github.com/enso-org/enso/pull/8779
 [8867]: https://github.com/enso-org/enso/pull/8867
+[8923]: https://github.com/enso-org/enso/pull/8923
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
