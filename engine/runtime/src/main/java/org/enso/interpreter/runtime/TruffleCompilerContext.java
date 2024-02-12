@@ -191,8 +191,8 @@ final class TruffleCompilerContext implements CompilerContext {
     return cache.load(context);
   }
 
-  public <T> Optional<TruffleFile> saveCache(
-      Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
+  final <T> TruffleFile saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations)
+      throws IOException {
     return cache.save(entry, context, useGlobalCacheLocations);
   }
 
@@ -377,15 +377,15 @@ final class TruffleCompilerContext implements CompilerContext {
             stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)
                 ? CompilationStage.AFTER_STATIC_PASSES
                 : stage;
-        var optionallySaved =
+        var saved =
             saveCache(
                 cache,
                 new ModuleCache.CachedModule(ir, fixedStage, source),
                 useGlobalCacheLocations);
-        return optionallySaved.isPresent();
+        return saved != null;
       } catch (Throwable e) {
         logSerializationManager(
-            Level.SEVERE,
+            e instanceof IOException ? Level.WARNING : Level.SEVERE,
             "Serialization of module `" + name + "` failed: " + e.getMessage() + "`",
             e);
         throw e;
@@ -522,10 +522,10 @@ final class TruffleCompilerContext implements CompilerContext {
         try {
           var cache = ImportExportCache.create(libraryName);
           var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
-          result &= file.isPresent();
+          result &= file != null;
         } catch (Throwable e) {
           logSerializationManager(
-              Level.SEVERE,
+              e instanceof IOException ? Level.WARNING : Level.SEVERE,
               "Serialization of bindings `" + libraryName + "` failed: " + e.getMessage() + "`",
               e);
           throw e;
@@ -538,7 +538,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   private boolean doSerializeLibrarySuggestions(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations)
+      throws IOException {
     var exportsBuilder = new ExportsBuilder();
     var exportsMap = new ExportsMap();
     var suggestions = new java.util.ArrayList<Suggestion>();
@@ -574,10 +575,10 @@ final class TruffleCompilerContext implements CompilerContext {
                   .map(p -> p.listSourcesJava()));
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
-      return file.isPresent();
+      return file != null;
     } catch (Throwable e) {
       logSerializationManager(
-          Level.SEVERE,
+          e instanceof IOException ? Level.WARNING : Level.SEVERE,
           "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
           e);
       e.printStackTrace();
