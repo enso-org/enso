@@ -1721,10 +1721,13 @@ type Table
        GROUP Standard.Base.Calculations
        ICON sigma
 
-       Aggregates the rows in a table using any `Group_By` entries in columns.
-       The columns argument specifies which additional aggregations to perform and to return.
+       Aggregates the rows in a table using `group_by` columns.
+       The columns argument specifies which additional aggregations to perform
+       and to return.
 
        Arguments:
+       - group_by: Vector of column identifiers to group by. These will be
+         included at the start of the resulting column.
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
@@ -1775,7 +1778,7 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+              table.aggregate ["Key"] [Aggregate_Column.Count]
     @group_by Widget_Helpers.make_column_name_vector_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings

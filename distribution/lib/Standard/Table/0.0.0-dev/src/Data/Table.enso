@@ -659,10 +659,13 @@ type Table
        GROUP Standard.Base.Calculations
        ICON sigma
 
-       Aggregates the rows in a table using any `Group_By` entries in columns.
-       The columns argument specifies which additional aggregations to perform and to return.
+       Aggregates the rows in a table using `group_by` columns.
+       The columns argument specifies which additional aggregations to perform
+       and to return.
 
        Arguments:
+       - group_by: Vector of column identifiers to group by. These will be
+         included at the start of the resulting column.
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
