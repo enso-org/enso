@@ -149,7 +149,7 @@ put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=N
 ## PRIVATE
 upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     request_body = Request_Body.from_local_file local_file
-    put_object bucket prefix credentials request_body
+    put_object bucket key credentials request_body
 
 ## PRIVATE
 delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|

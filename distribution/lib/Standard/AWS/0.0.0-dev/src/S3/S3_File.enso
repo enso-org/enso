@@ -97,7 +97,7 @@ type S3_File
                             result = tmp_file.with_output_stream [File_Access.Write] action
                             # Only proceed if the write succeeded
                             result.if_not_error <|
-                                (translate_file_errors self <| S3.upload_file tmp_file self.bucket self.prefix self.credentials request_body) . if_not_error <|
+                                (translate_file_errors self <| S3.upload_file tmp_file self.bucket self.prefix self.credentials) . if_not_error <|
                                     result
 
 
