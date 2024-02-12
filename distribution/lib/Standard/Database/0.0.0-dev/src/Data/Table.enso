@@ -54,6 +54,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -1809,9 +1810,9 @@ type Table
                    able to store it in a vector and then we will partition the
                    created columns and failures.
                 result.catch Any error->
-                    Wrapped_Error.Value error
+                    DB_Wrapped_Error.Value error
 
-            partitioned = results.partition (_.is_a Wrapped_Error)
+            partitioned = results.partition (_.is_a DB_Wrapped_Error)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
@@ -2763,11 +2764,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
         table + missing
-
-## PRIVATE
-type Wrapped_Error
-    ## PRIVATE
-    Value value
 
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
