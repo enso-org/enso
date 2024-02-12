@@ -61,6 +61,10 @@ export const TagId = newtype.newtypeConstructor<TagId>()
 export type Address = newtype.Newtype<string, 'Address'>
 export const Address = newtype.newtypeConstructor<Address>()
 
+/** A HTTPS URL. */
+export type HttpsUrl = newtype.Newtype<string, 'HttpsUrl'>
+export const HttpsUrl = newtype.newtypeConstructor<HttpsUrl>()
+
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
@@ -330,11 +334,11 @@ export interface UserInfo {
 export interface OrganizationInfo {
   readonly pk: OrganizationId
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly organization_name: string
-  readonly email: EmailAddress
-  readonly website: string
-  readonly address: string
-  readonly picture: string | null
+  readonly organization_name: string | null
+  readonly email: EmailAddress | null
+  readonly website: HttpsUrl | null
+  readonly address: string | null
+  readonly picture: HttpsUrl | null
 }
 
 /** Metadata uniquely identifying a user inside an organization.
@@ -774,7 +778,7 @@ export interface UpdateUserRequestBody {
 export interface UpdateOrganizationRequestBody {
   name?: string
   email?: EmailAddress
-  website?: string
+  website?: HttpsUrl
   location?: string
 }
 
@@ -982,9 +986,9 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Get the details of the current organization. */
-  abstract getOrganization(): Promise<OrganizationInfo>
+  abstract getOrganization(): Promise<OrganizationInfo | null>
   /** Change the details of the current organization. */
-  abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<void>
+  abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<OrganizationInfo | null>
   /** Upload a new profile picture for the current organization. */
   abstract uploadOrganizationPicture(
     params: UploadPictureRequestParams,

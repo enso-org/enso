@@ -10,7 +10,7 @@ import OrganizationSettingsTab from '#/layouts/dashboard/Settings/OrganizationSe
 import SettingsTab from '#/layouts/dashboard/Settings/SettingsTab'
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 // ================
 // === Settings ===
@@ -19,18 +19,31 @@ import type * as backendModule from '#/services/Backend'
 /** Settings screen. */
 export default function Settings() {
   const [settingsTab, setSettingsTab] = React.useState(SettingsTab.account)
-  const { user } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo | null>(
-    null
-  )
+  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
+    pk: user?.id ?? backendModule.OrganizationId(''),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    organization_name: null,
+    email: null,
+    website: null,
+    address: null,
+    picture: null,
+  }))
 
   React.useEffect(() => {
     void (async () => {
-      const newOrganization = await backend.getOrganization()
-      setOrganization(newOrganization)
+      if (
+        sessionType === authProvider.UserSessionType.full &&
+        backend.type === backendModule.BackendType.remote
+      ) {
+        const newOrganization = await backend.getOrganization()
+        if (newOrganization != null) {
+          setOrganization(newOrganization)
+        }
+      }
     })()
-  }, [backend])
+  }, [sessionType, backend])
 
   let content: JSX.Element
   switch (settingsTab) {

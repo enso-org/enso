@@ -240,10 +240,13 @@ export default class RemoteBackend extends Backend {
 
   /** Return details for the current organization.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
-  override async getOrganization(): Promise<backendModule.OrganizationInfo> {
+  override async getOrganization(): Promise<backendModule.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backendModule.OrganizationInfo>(path)
-    if (!responseIsSuccessful(response)) {
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return null
+    } else if (!responseIsSuccessful(response)) {
       return this.throw('Could not get organization.')
     } else {
       return await response.json()
@@ -253,13 +256,17 @@ export default class RemoteBackend extends Backend {
   /** Update details for the current organization. */
   override async updateOrganization(
     body: backendModule.UpdateOrganizationRequestBody
-  ): Promise<void> {
+  ): Promise<backendModule.OrganizationInfo | null> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
-    const response = await this.patch(path, body)
-    if (!responseIsSuccessful(response) && response.status !== STATUS_NOT_FOUND) {
+    const response = await this.put<backendModule.OrganizationInfo>(path, body)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return null
+    } else if (!responseIsSuccessful(response)) {
       return this.throw('Could not update organization.')
     } else {
-      return
+      return await response.json()
     }
   }
 

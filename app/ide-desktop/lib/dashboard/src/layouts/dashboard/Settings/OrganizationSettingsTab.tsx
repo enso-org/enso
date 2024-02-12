@@ -9,6 +9,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import * as backendModule from '#/services/Backend'
 
+import * as object from '#/utilities/object'
+
 // =================
 // === InfoEntry ===
 // =================
@@ -55,8 +57,8 @@ function InfoEntry(props: InternalInfoEntryProps) {
 
 /** Props for a {@link OrganizationSettingsTab}. */
 export interface OrganizationSettingsTabProps {
-  readonly organization: backendModule.OrganizationInfo | null
-  readonly setOrganization: (organization: backendModule.OrganizationInfo) => void
+  readonly organization: backendModule.OrganizationInfo
+  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
 
 /** Settings tab for viewing and editing organization information. */
@@ -64,39 +66,90 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const inputRefs: Record<
-    Exclude<keyof backendModule.OrganizationInfo, 'picture' | 'pk'>,
-    React.RefObject<HTMLInputElement>
-  > = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    organization_name: React.useRef<HTMLInputElement>(null),
-    email: React.useRef<HTMLInputElement>(null),
-    website: React.useRef<HTMLInputElement>(null),
-    address: React.useRef<HTMLInputElement>(null),
+  const nameRef = React.useRef<HTMLInputElement>(null)
+  const emailRef = React.useRef<HTMLInputElement>(null)
+  const websiteRef = React.useRef<HTMLInputElement>(null)
+  const locationRef = React.useRef<HTMLInputElement>(null)
+
+  const doUpdateName = async () => {
+    const oldName = organization.organization_name ?? null
+    const name = nameRef.current?.value ?? ''
+    if (oldName !== name) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        setOrganization(object.merger({ organization_name: name }))
+        const newOrganization = await backend.updateOrganization({ name })
+        if (newOrganization != null) {
+          setOrganization(newOrganization)
+        }
+      } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        setOrganization(object.merger({ organization_name: oldName }))
+        toastAndLog(null, error)
+        const ref = nameRef.current
+        if (ref) {
+          ref.value = oldName ?? ''
+        }
+      }
+    }
   }
 
-  const doUpdateOrganization = async <
-    K extends Exclude<keyof backendModule.OrganizationInfo, 'picture' | 'pk'>,
-  >(
-    key: K,
-    value: backendModule.OrganizationInfo[K]
-  ) => {
-    if (organization != null) {
-      const oldValue = organization[key]
-      const newValue = inputRefs[key].current?.value ?? ''
-      if (newValue === oldValue) {
-        return
-      } else {
-        try {
-          await backend.updateOrganization({ [key]: value })
-        } catch (error) {
-          toastAndLog(null, error)
-          const ref = inputRefs[key].current
-          if (ref) {
-            ref.value = oldValue
-          }
+  const doUpdateEmail = async () => {
+    const oldEmail = organization.email ?? null
+    const email = backendModule.EmailAddress(emailRef.current?.value ?? '')
+    if (oldEmail !== email) {
+      try {
+        setOrganization(object.merger({ email }))
+        const newOrganization = await backend.updateOrganization({ email })
+        if (newOrganization != null) {
+          setOrganization(newOrganization)
         }
-        return
+      } catch (error) {
+        setOrganization(object.merger({ email: oldEmail }))
+        toastAndLog(null, error)
+        const ref = emailRef.current
+        if (ref) {
+          ref.value = oldEmail ?? ''
+        }
+      }
+    }
+  }
+
+  const doUpdateWebsite = async () => {
+    const oldWebsite = organization.website ?? null
+    const website = backendModule.HttpsUrl(emailRef.current?.value ?? '')
+    if (oldWebsite !== website) {
+      try {
+        setOrganization(object.merger({ website }))
+        await backend.updateOrganization({ website })
+      } catch (error) {
+        setOrganization(object.merger({ website: oldWebsite }))
+        toastAndLog(null, error)
+        const ref = websiteRef.current
+        if (ref) {
+          ref.value = oldWebsite ?? ''
+        }
+      }
+    }
+  }
+
+  const doUpdateLocation = async () => {
+    const oldLocation = organization.address ?? null
+    const location = locationRef.current?.value ?? ''
+    if (oldLocation !== location) {
+      try {
+        setOrganization(object.merger({ address: location }))
+        const newOrganization = await backend.updateOrganization({ location })
+        if (newOrganization != null) {
+          setOrganization(newOrganization)
+        }
+      } catch (error) {
+        setOrganization(object.merger({ address: oldLocation }))
+        toastAndLog(null, error)
+        const ref = locationRef.current
+        if (ref) {
+          ref.value = oldLocation ?? ''
+        }
       }
     }
   }
@@ -151,17 +204,15 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Organization display name</Name>
               <Value>
                 <input
-                  ref={inputRefs.organization_name}
+                  ref={nameRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.organization_name}
+                  key={organization.organization_name}
                   type="text"
                   size={1}
-                  defaultValue={organization?.organization_name ?? ''}
-                  onBlur={event => {
-                    void doUpdateOrganization('organization_name', event.currentTarget.value)
-                  }}
+                  defaultValue={organization.organization_name ?? ''}
+                  onBlur={doUpdateName}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.organization_name ?? '')
+                    onKeyDown(event, organization.organization_name ?? '')
                   }}
                 />
               </Value>
@@ -170,20 +221,15 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Email</Name>
               <Value>
                 <input
-                  ref={inputRefs.email}
+                  ref={emailRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.email}
+                  key={organization.email}
                   type="text"
                   size={1}
-                  defaultValue={organization?.email ?? ''}
-                  onBlur={event => {
-                    void doUpdateOrganization(
-                      'email',
-                      backendModule.EmailAddress(event.currentTarget.value)
-                    )
-                  }}
+                  defaultValue={organization.email ?? ''}
+                  onBlur={doUpdateEmail}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.email ?? '')
+                    onKeyDown(event, organization.email ?? '')
                   }}
                 />
               </Value>
@@ -192,17 +238,15 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Website</Name>
               <Value>
                 <input
-                  ref={inputRefs.website}
+                  ref={websiteRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.website}
+                  key={organization.website}
                   type="text"
                   size={1}
-                  defaultValue={organization?.website ?? ''}
-                  onBlur={event => {
-                    void doUpdateOrganization('website', event.currentTarget.value)
-                  }}
+                  defaultValue={organization.website ?? ''}
+                  onBlur={doUpdateWebsite}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.website ?? '')
+                    onKeyDown(event, organization.website ?? '')
                   }}
                 />
               </Value>
@@ -211,17 +255,15 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <Name>Location</Name>
               <Value>
                 <input
-                  ref={inputRefs.address}
+                  ref={locationRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization?.address}
+                  key={organization.address}
                   type="text"
                   size={1}
-                  defaultValue={organization?.address ?? ''}
-                  onBlur={event => {
-                    void doUpdateOrganization('address', event.currentTarget.value)
-                  }}
+                  defaultValue={organization.address ?? ''}
+                  onBlur={doUpdateLocation}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.address ?? '')
+                    onKeyDown(event, organization.address ?? '')
                   }}
                 />
               </Value>
@@ -238,7 +280,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             accept="image/*"
             onChange={doUploadOrganizationPicture}
           />
-          <img src={organization?.picture ?? DefaultUserIcon} width={128} height={128} />
+          <img src={organization.picture ?? DefaultUserIcon} width={128} height={128} />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
