@@ -89,7 +89,7 @@
         test/:
           resources/:
             Factorial.enso:
-    runtime/:
+    runtime-benchmarks/:
       target/:
       bench-report.xml:
   lib/:
