@@ -4,7 +4,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
-  functionCallConfiguration,
+  singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
@@ -84,6 +84,11 @@ const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expres
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
 const selectedIndex = ref<number>()
+// When the input changes, we need to reset the selected index.
+watch(
+  () => props.input.value,
+  () => (selectedIndex.value = undefined),
+)
 const selectedTag = computed(() => {
   if (selectedIndex.value != null) {
     return tags.value[selectedIndex.value]
@@ -100,21 +105,24 @@ const selectedTag = computed(() => {
   }
 })
 
-const selectedExpression = computed(() => {
-  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
-  return selectedTag.value.expression
+const selectedLabel = computed(() => {
+  return selectedTag.value?.label
 })
 const innerWidgetInput = computed(() => {
-  if (selectedTag.value == null) return props.input
-  const parameters = selectedTag.value.parameters
-  if (!parameters) return props.input
-  const config = functionCallConfiguration(parameters)
-  return { ...props.input, dynamicConfig: config }
+  if (props.input.dynamicConfig == null) return props.input
+  const config = props.input.dynamicConfig
+  if (config.kind !== 'Single_Choice') return props.input
+  return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
 
 function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
+}
+
+function onClick(index: number) {
+  selectedIndex.value = index
+  showDropdownWidget.value = false
 }
 
 // When the selected index changes, we update the expression content.
@@ -127,11 +135,10 @@ watch(selectedIndex, (_index) => {
   props.onUpdate({
     edit,
     portUpdate: {
-      value: selectedExpression.value,
+      value: selectedTag.value?.expression,
       origin: asNot<TokenId>(props.input.portId),
     },
   })
-  showDropdownWidget.value = false
 })
 </script>
 
@@ -155,9 +162,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
-      :selectedValue="selectedExpression"
+      :selectedValue="selectedLabel"
       @pointerdown.stop
-      @click="selectedIndex = $event"
+      @click="onClick($event)"
     />
   </div>
 </template>
