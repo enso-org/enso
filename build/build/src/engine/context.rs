@@ -470,8 +470,12 @@ impl RunContext {
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
-                        let runtime_bench_report =
-                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        let runtime_bench_report = &self
+                            .paths
+                            .repo_root
+                            .engine
+                            .join("runtime-benchmarks")
+                            .join("bench_report_xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
