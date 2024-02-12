@@ -9,4 +9,5 @@ type Deprecated
 
        Pretty prints the Deprecated warning.
     to_display_text : Text
-    to_display_text self = self.message.if_nothing ("Deprecated Warning: " + self.type_name + "." + self.method_name + " is deprecated.")
+    to_display_text self =
+        if self.message.is_empty then ("Deprecated: " + self.type_name + "." + self.method_name + " is deprecated.") else self.message
