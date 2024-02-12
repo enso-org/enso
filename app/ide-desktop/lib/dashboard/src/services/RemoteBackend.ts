@@ -230,7 +230,7 @@ export default class RemoteBackend extends Backend {
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.User>(path, file)
+    const response = await this.putBinary<backendModule.User>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not upload user profile picture.')
     } else {
@@ -281,7 +281,7 @@ export default class RemoteBackend extends Backend {
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.OrganizationInfo>(path, file)
+    const response = await this.putBinary<backendModule.OrganizationInfo>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not upload user profile picture.')
     } else {
@@ -894,6 +894,11 @@ export default class RemoteBackend extends Backend {
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
     return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send a binary HTTP PUT request to the given path. */
+  private putBinary<T = void>(path: string, payload: Blob) {
+    return this.client.putBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
