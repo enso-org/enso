@@ -115,8 +115,8 @@ export abstract class Ast {
     }
   }
 
-  visitRecursiveAst(visit: (ast: Ast) => void): void {
-    visit(this)
+  visitRecursiveAst(visit: (ast: Ast) => void | boolean): void {
+    if (visit(this) === false) return
     for (const child of this.children()) {
       if (!isToken(child)) child.visitRecursiveAst(visit)
     }
