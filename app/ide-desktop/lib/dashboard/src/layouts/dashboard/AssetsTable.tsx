@@ -1434,7 +1434,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,
