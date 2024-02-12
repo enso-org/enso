@@ -158,6 +158,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 />
               ))}
               <input
+                autoFocus
                 type="text"
                 placeholder="Type email to invite"
                 className="bg-transparent h-6 leading-5 py-px px-1"
@@ -175,7 +176,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                   const value = event.currentTarget.value
                   if (/ /.test(value)) {
                     const parts = value.split(' ')
-                    setNewEmails([...newEmails, ...parts.slice(0, -1)])
+                    setNewEmails([...newEmails, ...parts.slice(0, -1).filter(part => part !== '')])
                     setEmail(parts[parts.length - 1] ?? '')
                   } else {
                     setEmail(value)
