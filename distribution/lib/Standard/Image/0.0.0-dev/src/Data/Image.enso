@@ -106,7 +106,7 @@ type Image
             write_to_local_file file:File =
                 Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
                      Error.throw (File_Error.IO_Error location.file 'Failed to write to the file')
-            if location.is_local then write_to_local_file location else
+            if location.is_local then write_to_local_file location.file else
                 location.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
 
 
