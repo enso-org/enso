@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -73,6 +74,36 @@ public class ExecStrictCompilerTest {
           errors.indexOf("Redefining arguments is not supported"));
       assertNotEquals(
           "Identifier recognized in " + errors, -1, errors.indexOf("a is defined multiple times"));
+    }
+  }
+
+  @Test
+  public void testUnknownConstructorLocation() throws Exception {
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                foo x = case x of
+                    Index_Sub_Range.Sample _ _ -> 1
+                    _ -> 2
+                """,
+                "wrong_cons.enso")
+            .build();
+    var module = ctx.eval(code);
+    try {
+      var run = module.invokeMember("eval_expression", "foo 10");
+      fail("Expecting no returned value: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Compilation aborted due to errors.", ex.getMessage());
+      assertTrue("Syntax error", ex.isSyntaxError());
+      assertTrue("Guest exception", ex.isGuestException());
+
+      var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
+      assertNotEquals(
+          "Errors reported in " + errors,
+          -1,
+          errors.indexOf("The name `Index_Sub_Range.Sample` could not be found"));
+      assertNotEquals("Location defined " + errors, -1, errors.indexOf("wrong_cons:2:5"));
     }
   }
 }
