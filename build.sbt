@@ -1869,7 +1869,7 @@ lazy val `runtime-benchmarks` =
           (Compile / run).toTask("").tag(Exclusive).value
         }
         .dependsOn(
-          `runtime-fat-jar` / assembly
+          buildEngineDistribution
         )
         .value,
       benchOnly := Def.inputTaskDyn {
