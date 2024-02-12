@@ -38,7 +38,7 @@ polyglot java import org.enso.table.aggregations.Sum as SumAggregator
    - old_style: Boolean indicating if the input was in the old style.
 type Validated_Aggregate_Columns
     ## PRIVATE
-    Value (key_columns:(Vector Column)) (valid_columns:(Vector (Pair Text Aggregate_Column))) (problems:(Vector Any)) (old_style:Boolean=False)
+    Value (key_columns:(Vector Column)) (valid_columns:(Vector (Pair Text Aggregate_Column))) (problems:(Vector Any)) (old_style:Boolean)
 
 ## PRIVATE
    Prepares an aggregation input for further processing:

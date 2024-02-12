@@ -665,7 +665,8 @@ type Table
 
        Arguments:
        - group_by: Vector of column identifiers to group by. These will be
-         included at the start of the resulting column.
+         included at the start of the resulting table. If no columns are
+         specified a single row will be returned with the aggregate columns.
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
@@ -712,24 +713,30 @@ type Table
              an `Additional_Warnings`.
 
        > Example
+         Count all the rows
+
+              table.aggregate columns=[Aggregate_Column.Count]
+
+       > Example
          Group by the Key column, count the rows
 
               table.aggregate ["Key"] [Aggregate_Column.Count]
     @group_by Widget_Helpers.make_column_name_vector_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self group_by columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        normalized_group_by = if group_by.is_a Vector then group_by else [group_by]
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
+    aggregate self group_by=[] columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
+        normalized_group_by = Vector.unify_vector_or_element group_by
+        if normalized_group_by.is_empty && columns.is_empty then Error.throw (Illegal_Argument.Error "At least one column must be specified.") else
+            validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
-        on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
-            java_key_columns = validated.key_columns.map .java_column
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
-                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-                java_table = index.makeTable new_columns
-                if validated.old_style.not then Table.Value java_table else
-                    Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "aggregate" "Deprecated: The aggregate API has been altered to take the group_by as a separate vector.") (Table.Value java_table)
+            on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
+                java_key_columns = validated.key_columns.map .java_column
+                Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                    new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                    java_table = index.makeTable new_columns
+                    if validated.old_style.not then Table.Value java_table else
+                        Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "aggregate" "Deprecated: The aggregate API has been altered to take the group_by as a separate vector.") (Table.Value java_table)
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
