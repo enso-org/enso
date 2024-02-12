@@ -432,7 +432,7 @@ type Time_Of_Day
             self.format "HH:mm:ss.ffffff"
 
     ## GROUP Conversions
-       ICON text
+       ICON convert
        Format this time of day using the provided formatter pattern.
 
        Arguments:

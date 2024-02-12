@@ -65,7 +65,7 @@ ensure_duration object ~action =
 ## Represents the amount of time between two points in time.
 @Builtin_Type
 type Duration
-    ## ICON operators
+    ## ICON date_and_time
        Create an interval representing the duration between two points in time.
 
        Arguments:

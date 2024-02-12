@@ -837,7 +837,7 @@ type Date_Time
         JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
     ## GROUP Conversions
-       ICON text
+       ICON convert
        Format this time as text using the specified format specifier.
 
        Arguments:
