@@ -449,7 +449,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
 
   /** Resolve only when the project is ready to be opened. */
   waitUntilReady() {
-    return Promise.resolve()
+    return this.getDetails()
   }
 }
 

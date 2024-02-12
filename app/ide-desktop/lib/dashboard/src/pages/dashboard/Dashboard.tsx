@@ -119,7 +119,7 @@ export default function Dashboard(props: DashboardProps) {
   const logger = loggerProvider.useLogger()
   const { organization, accessToken } = authProvider.useNonPartialUserSession()
   const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
+  const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const [initialized, setInitialized] = React.useState(false)
@@ -177,7 +177,8 @@ export default function Dashboard(props: DashboardProps) {
         setPage(pageSwitcher.Page.drive)
       }
     } else if (lastOpenedProject != null) {
-      if (lastOpenedProject.backendType === backendModule.BackendType.remote) {
+      const { parentId, id, title, backendType } = lastOpenedProject
+      if (backendType === backendModule.BackendType.remote) {
         if (accessToken != null) {
           setPage(pageSwitcher.Page.drive)
           const httpClient = new HttpClient(
@@ -188,23 +189,11 @@ export default function Dashboard(props: DashboardProps) {
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
             try {
-              const project = await remoteBackend.getProject(
-                lastOpenedProject.parentId,
-                lastOpenedProject.id,
-                lastOpenedProject.title
-              )
-              if (
-                backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.value.projectState.type]
-              ) {
-                await project.waitUntilReady()
+              const projectAsset = await remoteBackend.getProject(parentId, id, title)
+              const projectState = projectAsset.value.projectState.type
+              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState]) {
+                const details = await projectAsset.waitUntilReady()
                 if (!abortController.signal.aborted) {
-                  const projectAsset = await remoteBackend.getProject(
-                    lastOpenedProject.parentId,
-                    lastOpenedProject.id,
-                    lastOpenedProject.title
-                  )
-                  const details = await projectAsset.getDetails()
-                  const backendType = remoteBackend.type
                   setProjectStartupInfo({ details, projectAsset, backendType, accessToken })
                   if (page === pageSwitcher.Page.editor) {
                     setPage(page)
@@ -217,17 +206,14 @@ export default function Dashboard(props: DashboardProps) {
           })()
         }
       } else {
-        const projectId = lastOpenedProject.id
-        const projectTitle = lastOpenedProject.title
         if (currentBackend.type === backendModule.BackendType.local) {
-          setInitialProjectName(projectId)
+          setInitialProjectName(id)
         } else {
           const localBackend = new LocalBackend(projectManagerUrl)
           void (async () => {
-            await localBackend.openProject(projectId, null, projectTitle)
-            const projectAsset = await localBackend.getProject(projectId, projectTitle)
-            const details = await projectAsset.getDetails()
-            const backendType = localBackend.type
+            await localBackend.openProject(id, null, title)
+            const projectAsset = await localBackend.getProject(id, title)
+            const details = await projectAsset.waitUntilReady()
             setProjectStartupInfo({ details, projectAsset, backendType, accessToken: null })
           })()
         }
@@ -288,25 +274,16 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     return shortcutManager.registerKeyboardHandlers({
       [shortcutManagerModule.KeyboardAction.closeModal]: () => {
-        updateModal(oldModal => {
-          if (oldModal == null) {
-            queueMicrotask(() => {
-              setPage(oldPage => {
-                if (oldPage !== pageSwitcher.Page.settings) {
-                  return oldPage
-                } else {
-                  return localStorage.get('page') ?? pageSwitcher.Page.drive
-                }
-              })
-            })
-            return oldModal
-          } else {
-            return null
-          }
-        })
         if (modalRef.current == null) {
-          // eslint-disable-next-line no-restricted-syntax
+          setPage(oldPage =>
+            oldPage !== pageSwitcher.Page.settings
+              ? oldPage
+              : localStorage.get('page') ?? pageSwitcher.Page.drive
+          )
           return false
+        } else {
+          unsetModal()
+          return
         }
       },
     })
@@ -314,7 +291,7 @@ export default function Dashboard(props: DashboardProps) {
     shortcutManager,
     /* should never change */ modalRef,
     /* should never change */ localStorage,
-    /* should never change */ updateModal,
+    /* should never change */ unsetModal,
   ])
 
   const setBackendType = React.useCallback(

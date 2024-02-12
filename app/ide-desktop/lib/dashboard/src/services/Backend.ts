@@ -857,7 +857,7 @@ export interface SmartProject extends SmartAsset<ProjectAsset> {
   /** Close a project. */
   readonly close: () => Promise<void>
   /** Resolve only when the project is ready to be opened. */
-  readonly waitUntilReady: (abortController?: AbortController) => Promise<void>
+  readonly waitUntilReady: (abortController?: AbortController) => Promise<Project>
 }
 
 /** A smart wrapper around a {@link FileAsset}. */

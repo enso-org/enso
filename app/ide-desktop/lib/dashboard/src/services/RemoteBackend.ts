@@ -941,6 +941,12 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
       nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
       project = await this.getDetails()
     }
+    if (project.state.type === backend.ProjectState.opened) {
+      return project
+    } else {
+      // The request was aborted.
+      throw new Error('Could not wait until the project was ready: the request was aborted.')
+    }
   }
 }
 
@@ -1242,16 +1248,6 @@ export default class RemoteBackend extends Backend {
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
     return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
-  }
-
-  /** Send a JSON HTTP PATCH request to the given path. */
-  private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
-  }
-
-  /** Send a JSON HTTP PUT request to the given path. */
-  private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
