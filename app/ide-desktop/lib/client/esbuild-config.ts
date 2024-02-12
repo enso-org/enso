@@ -4,7 +4,14 @@ import * as path from 'node:path'
 import type * as esbuild from 'esbuild'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
+import * as env from '../dashboard/env'
 import * as paths from './paths'
+
+// ====================
+// === Global setup ===
+// ====================
+
+await env.loadEnv()
 
 // ================
 // === Bundling ===

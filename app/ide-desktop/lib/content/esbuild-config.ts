@@ -22,6 +22,7 @@ import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as globals from '../dashboard/globals'
 
+import * as env from '../dashboard/env'
 import * as utils from '../../utils'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
@@ -30,6 +31,12 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 // =================
 
 const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
+
+// ====================
+// === Global setup ===
+// ====================
+
+await env.loadEnv()
 
 // =============================
 // === Environment variables ===
