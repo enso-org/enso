@@ -20,27 +20,6 @@ const emit = defineEmits<{
 
 <template>
   <div :class="`${props.isFullMenuVisible ? 'CircularMenu' : 'CircularMenuPartial'}`">
-    <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
-
-    <ToggleIcon v-if="isFullMenuVisible" icon="lock" class="icon-container button slot1 inactive" />
-    <ToggleIcon
-      v-if="isFullMenuVisible"
-      icon="make_node_def_local_copy"
-      class="icon-container button slot2 inactive"
-    />
-    <ToggleIcon
-      v-if="isFullMenuVisible"
-      icon="enter_node"
-      class="icon-container button slot3 inactive"
-    />
-    <ToggleIcon
-      v-if="isFullMenuVisible"
-      icon="docs"
-      class="icon-container button docs-button slot4"
-      :alt="`${props.isDocsVisible ? 'Hide' : 'Show'} documentation`"
-      :modelValue="props.isDocsVisible"
-      @update:modelValue="emit('update:isDocsVisible', $event)"
-    />
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -61,7 +40,6 @@ const emit = defineEmits<{
       :modelValue="props.isOutputContextOverridden"
       @update:modelValue="emit('update:isOutputContextOverridden', $event)"
     />
-    <ToggleIcon v-if="isFullMenuVisible" icon="skip" class="icon-container button slot8 inactive" />
   </div>
 </template>
 

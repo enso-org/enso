@@ -117,7 +117,6 @@ export function useSelection<T>(
   const elementsToSelect = computed(() => overrideElemsToSelect.value ?? intersectingElements.value)
 
   function handleSelectionOf(event: MouseEvent, elements: Set<T>) {
-    console.log('handleSelectionOf')
     readInitiallySelected()
     overrideElemsToSelect.value = elements
     selectionEventHandler(event)
