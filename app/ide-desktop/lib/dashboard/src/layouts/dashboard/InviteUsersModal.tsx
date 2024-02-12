@@ -16,6 +16,13 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
+// =================
+// === Constants ===
+// =================
+
+/** The minimum width of the input for adding a new email. */
+const MIN_EMAIL_INPUT_WIDTH = 120
+
 // =============
 // === Email ===
 // =============
@@ -161,7 +168,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 autoFocus
                 type="text"
                 placeholder="Type email to invite"
-                className="bg-transparent h-6 leading-5 py-px px-1"
+                className="bg-transparent h-6 leading-5 py-px px-1 w-30 max-w-full"
                 value={email}
                 onKeyDown={event => {
                   if (
@@ -173,13 +180,18 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                   }
                 }}
                 onInput={event => {
-                  const value = event.currentTarget.value
+                  const element = event.currentTarget
+                  const value = element.value
                   if (/ /.test(value)) {
                     const parts = value.split(' ')
                     setNewEmails([...newEmails, ...parts.slice(0, -1).filter(part => part !== '')])
                     setEmail(parts[parts.length - 1] ?? '')
+                    element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
                   } else {
                     setEmail(value)
+                    element.style.width = '0px'
+                    const contentWidth = element.scrollWidth
+                    element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
                   }
                 }}
               />
