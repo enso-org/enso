@@ -7,15 +7,18 @@ import * as vite from 'vite'
 
 import * as common from 'enso-common'
 
+import * as env from './env'
 import * as globals from './globals'
 
 // =====================
 // === Configuration ===
 // =====================
 
+await env.loadEnv()
+
 /* eslint-disable @typescript-eslint/naming-convention */
-export default vite.defineConfig(env => {
-  const { mode } = env
+export default vite.defineConfig(viteEnv => {
+  const { mode } = viteEnv
   const serverPort = 8080
   const devMode = mode === 'development'
   return {

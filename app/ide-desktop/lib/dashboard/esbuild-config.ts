@@ -20,6 +20,7 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
 import * as utils from '../../utils'
+import * as env from './env'
 import * as globals from './globals'
 import * as tailwindConfig from './tailwind.config'
 
@@ -28,6 +29,12 @@ import * as tailwindConfig from './tailwind.config'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+
+// ====================
+// === Global setup ===
+// ====================
+
+await env.loadEnv()
 
 // =============================
 // === Environment variables ===
