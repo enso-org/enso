@@ -12,7 +12,7 @@ main =
     operator5 = operator8 operator3 ["stargazers_count", "name", _, "forks_count", "language", "archived"]
     operator8 = operator5.filter "archived" Filter_Condition.Is_False
     operator9 = operator8.order_by [Sort_Column.Name 'stargazers_count' Sort_Direction.Descending]
-    operator10 = operator9.aggregate [Aggregate_Column.Group_By "language", Aggregate_Column.Average "stargazers_count"]
+    operator10 = operator9.aggregate ["language"] [Aggregate_Column.Average "stargazers_count"]
 
 
 

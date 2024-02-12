@@ -1749,7 +1749,7 @@ type Table
          - If a column index is out of range, a `Missing_Input_Columns` is
            reported according to the `on_problems` setting, unless
            `error_on_missing_columns` is set to `True`, in which case it is
-           raised as an error. Problems resolving `Group_By` columns are
+           raised as an error. Problems resolving `group_by` columns are
            reported as dataflow errors regardless of these settings, as a
            missing grouping will completely change semantics of the query.
          - If a column selector is given as a `Text` and it does not match any
@@ -1757,7 +1757,7 @@ type Table
            `Invalid_Aggregate_Column` error is raised according to the
            `on_problems` settings (unless `error_on_missing_columns` is set to
            `True` in which case it will always be an error). Problems resolving
-           `Group_By` columns are reported as dataflow errors regardless of
+           `group_by` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
