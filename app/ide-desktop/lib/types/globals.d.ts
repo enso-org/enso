@@ -94,6 +94,10 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
             // Cloud environment variables.
+            // This variable is a convenience feature, designed to be used ON DEV BUILS ONLY.
+            // When unset, the
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENV?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_REDIRECT: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.

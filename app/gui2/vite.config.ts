@@ -7,14 +7,17 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
+import { loadEnv } from '../ide-desktop/lib/dashboard/env'
 import { globals } from '../ide-desktop/lib/dashboard/globals'
 // @ts-expect-error
-import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
+import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
 const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
+
+await loadEnv()
 
 // https://vitejs.dev/config/
 export default defineConfig({
