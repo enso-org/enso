@@ -111,11 +111,11 @@ type Enso_File
     path self = Unimplemented.throw "Enso_File.path is not implemented"
 
     ## GROUP Metadata
-       Checks if `self` is a child path of `other`.
-    is_child_of : Enso_File -> Boolean
-    is_child_of self (other : Enso_File) =
+       Checks if `self` is a descendant of `other`.
+    is_descendant_of : Enso_File -> Boolean
+    is_descendant_of self (other : Enso_File) =
         _ = other
-        Unimplemented.throw "Enso_File.is_child_of is not implemented"
+        Unimplemented.throw "Enso_File.is_descendant_of is not implemented"
 
     ## PRIVATE
        ADVANCED
@@ -131,7 +131,7 @@ type Enso_File
        - action: A function that operates on the output stream and returns some
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_output_stream self open_options action =
+    with_output_stream self (open_options : Vector) action =
         _ = [open_options, action]
         Unimplemented.throw "Writing to Enso_Files is not currently implemented."
 
@@ -149,7 +149,7 @@ type Enso_File
        The created stream is automatically closed when `action` returns (even
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
-    with_input_stream self open_options action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
+    with_input_stream self (open_options : Vector) action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
         if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
             s3_url = get_s3_url_for_file self
             response = HTTP.fetch s3_url HTTP_Method.Get []
