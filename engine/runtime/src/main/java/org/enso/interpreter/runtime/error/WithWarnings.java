@@ -108,7 +108,7 @@ public final class WithWarnings implements EnsoObject {
 
   // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
   // This is only used for shouldWrap=true.
-  public Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary) {
+  private Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary) {
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         return warningsLibrary.getWarnings(value, null, true);
