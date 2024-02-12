@@ -5,6 +5,7 @@ enum AssetListEventType {
   newFolder = 'new-folder',
   newProject = 'new-project',
   uploadFiles = 'upload-files',
+  newDataLink = 'new-data-link',
   newSecret = 'new-secret',
   insertAssets = 'insert-assets',
   closeFolder = 'close-folder',
