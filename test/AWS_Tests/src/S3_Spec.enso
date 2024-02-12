@@ -28,8 +28,6 @@ add_specs suite_builder =
     sub_folder_name = "examples/folder 1/"
     api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
     cloud_setup = Cloud_Tests_Setup.prepare
-    can_list_buckets = S3.list_buckets.is_error.not
-    can_list_objects = S3.list_objects bucket_name . contains object_name
 
     suite_builder.group "S3.parse_uri" group_builder->
         group_builder.specify "parse bucket only uris" <|
@@ -68,15 +66,12 @@ add_specs suite_builder =
                     r2.should_succeed
                     r2.should_be_a Vector
 
-    ## Rest of tests need a functional S3 connection
-    pending = if bucket_name.is_nothing then "No S3 bucket set." else if can_list_buckets.not then "S3 Access Failed." else Nothing
-
-    suite_builder.group "S3.head (bucket)" pending=pending group_builder->
+    suite_builder.group "S3.head (bucket)" pending=api_pending group_builder->
         group_builder.specify "should be able to head a bucket" <|
             S3.head bucket_name . should_equal Map.empty
             S3.head not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
-    suite_builder.group "S3.read_bucket" pending=pending group_builder->
+    suite_builder.group "S3.read_bucket" pending=api_pending group_builder->
         group_builder.specify "should be able to read bucket" <|
             objects_and_folders = S3.read_bucket bucket_name
             folders = objects_and_folders.first
@@ -105,7 +100,7 @@ add_specs suite_builder =
         group_builder.specify "should handle auth issues" <|
             S3.read_bucket bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    suite_builder.group "S3.list_objects" pending=pending group_builder->
+    suite_builder.group "S3.list_objects" pending=api_pending group_builder->
         group_builder.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name
             objects . should_contain object_name
@@ -125,12 +120,7 @@ add_specs suite_builder =
         group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    ## These tests need a valid object, so check we found it within the bucket.
-    pending_object = if pending.is_nothing.not then pending else
-        if can_list_objects then Nothing else
-            "Unable to find test object in bucket."
-
-    suite_builder.group "S3.head (object)" pending=pending_object group_builder->
+    suite_builder.group "S3.head (object)" pending=api_pending group_builder->
         group_builder.specify "should be able to head an object" <|
             S3.head bucket_name object_name . should_succeed
             S3.head not_a_bucket_name object_name . should_fail_with S3_Key_Not_Found
@@ -139,7 +129,7 @@ add_specs suite_builder =
         group_builder.specify "should handle auth issues" <|
             S3.list_objects bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    suite_builder.group "S3.get_object" pending=pending_object group_builder->
+    suite_builder.group "S3.get_object" pending=api_pending group_builder->
         group_builder.specify "should be able to get an object" <|
             response = S3.get_object bucket_name object_name
             response.should_succeed
@@ -151,7 +141,7 @@ add_specs suite_builder =
         group_builder.specify "should handle auth issues" <|
             S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
-    suite_builder.group "S3_File reading" pending=pending group_builder->
+    suite_builder.group "S3_File reading" pending=api_pending group_builder->
         root = S3_File.new "s3://"+bucket_name+"/"
         hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
         group_builder.specify "should be able to list the bucket's root directory" <|
@@ -221,7 +211,7 @@ add_specs suite_builder =
             # AWS S3 does not record creation time, only last modified time.
             hello_txt.creation_time . should_fail_with S3_Error
 
-    suite_builder.group "S3_File writing" pending=pending group_builder->
+    suite_builder.group "S3_File writing" pending=api_pending group_builder->
         writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
         my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
         assert my_writable_dir.is_directory
