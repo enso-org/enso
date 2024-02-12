@@ -14,8 +14,17 @@ replace base_table:(Table | Database_Table) lookup_table:(Table | Database_Table
     case lookup_table of
         _ : Map ->
             if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
-                # An empty map is a no-op, but we attach a warning.
-                if lookup_table.is_empty then Warning.attach (Empty_Error.Error lookup_table) base_table else
+                handle_empty_lookup_table ~action =
+                    if lookup_table.is_empty.not then action else
+                        ## If the lookup table is empty but the base table is
+                           not, and allow_unmatched_rows=False, throw
+                           `Unmatched_Rows_In_Lookup` with the first row of the
+                           table. Otherwise, attach a warning.
+                        if base_table.row_count == 0 || allow_unmatched_rows then Warning.attach (Empty_Error.Error lookup_table) base_table else
+                            base_table.select_columns column . if_not_error <|
+                                a_key_value = base_table.at column . at 0
+                                Error.throw (Unmatched_Rows_In_Lookup.Error [a_key_value])
+                handle_empty_lookup_table <|
                     base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
         _ ->
             from_column_resolved = from_column.if_nothing 0

@@ -111,18 +111,45 @@ add_specs suite_builder setup =
             table.replace lookup_table 'x' . should_fail_with Illegal_Argument
 
         if setup.is_database.not then
-            group_builder.specify "should accept an empty (but well-formed) lookup table, but expect a warning" <|
+            group_builder.specify "should accept an empty (but well-formed) lookup table if allow_unmatched_rows=True, but expect a warning" <|
                 table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
                 lookup_table = table_builder [['x', []], ['z', []]]
                 t = table.replace lookup_table 'x'
                 t . should_equal table
                 Problems.expect_warning Empty_Error t
 
-        group_builder.specify "should accept an empty lookup map, but expect a warning" <|
+            group_builder.specify "should throw an error on an empty (but well-formed) lookup table and non-empty base table if allow_unmatched_rows=False" <|
+                table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
+                lookup_table = table_builder [['x', []], ['z', []]]
+                t = table.replace lookup_table 'x' allow_unmatched_rows=False
+                t . should_fail_with Unmatched_Rows_In_Lookup
+                t.catch.example_key_values . should_equal [1]
+
+            group_builder.specify "should accept an empty (but well-formed) lookup table if the base table is also empty, but expect a warning" <|
+                table = table_builder [['x', []], ['y', []]]
+                lookup_table = table_builder [['x', []], ['z', []]]
+                t = table.replace lookup_table 'x'
+                t . should_equal table
+                Problems.expect_warning Empty_Error t
+
+        group_builder.specify "should accept an empty lookup map, if allow_unmatched_rows=True, but expect a warning" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             t = table.replace Map.empty 'x'
             t . should_equal table
             Problems.expect_warning Empty_Error t
+
+        group_builder.specify "should throw an error on an empty lookup map and non-empty base table if allow_unmatched_rows=False" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
+            t = table.replace Map.empty 'x' allow_unmatched_rows=False
+            t . should_fail_with Unmatched_Rows_In_Lookup
+            t.catch.example_key_values . should_equal [1]
+
+        if setup.is_database.not then
+            group_builder.specify "should accept an empty lookup map if the base table is also empty, but expect a warning" <|
+                table = table_builder [['x', []], ['y', []]]
+                t = table.replace Map.empty 'x'
+                t . should_equal table
+                Problems.expect_warning Empty_Error t
 
         group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
