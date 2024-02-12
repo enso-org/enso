@@ -104,8 +104,16 @@ export const useGraphStore = defineStore('graph', () => {
   function handleModuleUpdate(module: Module, moduleChanged: boolean, update: ModuleUpdate) {
     const root = module.root()
     if (!root) return
-    moduleRoot.value = root
-    if (root instanceof Ast.BodyBlock) topLevel.value = root
+    if (moduleRoot.value != root) {
+      console.time('set moduleRoot')
+      moduleRoot.value = root
+      console.timeEnd('set moduleRoot')
+    }
+    if (root instanceof Ast.BodyBlock && topLevel.value != root) {
+      console.time('set topLevel')
+      topLevel.value = root
+      console.timeEnd('set topLevel')
+    }
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
     const nodeMetadataUpdates = update.metadataUpdated as any as {
       id: AstId
@@ -124,7 +132,9 @@ export const useGraphStore = defineStore('graph', () => {
         }
         return true
       })
+      console.time('updateState')
       updateState(dirtyNodeSet)
+      console.timeEnd('updateState')
     }
     if (nodeMetadataUpdates.length !== 0) {
       for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
@@ -137,7 +147,9 @@ export const useGraphStore = defineStore('graph', () => {
     const textContentLocal = moduleSource.text
     if (!textContentLocal) return
     if (!syncModule.value) return
+    console.time('set methodAst')
     methodAst.value = methodAstInModule(syncModule.value)
+    console.timeEnd('set methodAst')
     if (methodAst.value) {
       const methodSpan = moduleSource.getSpan(methodAst.value.id)
       assert(methodSpan != null)
@@ -155,6 +167,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function methodAstInModule(mod: Module) {
     const topLevel = mod.root()
+    console.log('topLevel', topLevel)
     if (!topLevel) return
     assert(topLevel instanceof Ast.BodyBlock)
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)

@@ -15,10 +15,8 @@ import {
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { asNot } from '@/util/data/types.ts'
 import {
   qnLastSegment,
   tryQualifiedName,
@@ -140,7 +138,7 @@ watch(selectedIndex, (_index) => {
     edit,
     portUpdate: {
       value: selectedTag.value?.expression,
-      origin: asNot<TokenId>(props.input.portId),
+      origin: props.input.portId,
     },
   })
 })

@@ -10,10 +10,8 @@ import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { asNot } from '@/util/data/types.ts'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
@@ -82,7 +80,7 @@ const randomUuid = uuidv4() as PortId
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
   assert(!isUuid(props.input.portId))
-  return asNot<TokenId>(props.input.portId)
+  return props.input.portId
 })
 
 const innerWidget = computed(() => {

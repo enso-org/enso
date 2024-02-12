@@ -4,8 +4,7 @@ import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
-import { asNot } from '@/util/data/types.ts'
+import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -35,7 +34,7 @@ const value = computed({
     // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
     props.onUpdate({
-      portUpdate: { value: newCode, origin: asNot<TokenId>(props.input.portId) },
+      portUpdate: { value: newCode, origin: props.input.portId },
     })
   },
 })

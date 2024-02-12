@@ -7,9 +7,7 @@ import { requiredImportsByFQN } from '@/stores/graph/imports'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { asNot } from '@/util/data/types.ts'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
@@ -51,7 +49,7 @@ const value = computed({
         edit,
         portUpdate: {
           value: value ? 'True' : 'False',
-          origin: asNot<TokenId>(props.input.portId),
+          origin: props.input.portId,
         },
       })
     }

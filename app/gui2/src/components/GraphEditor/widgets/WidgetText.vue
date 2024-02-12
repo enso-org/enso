@@ -2,8 +2,6 @@
 import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract'
-import { asNot } from '@/util/data/types'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -16,7 +14,7 @@ const value = computed({
   },
   set(value) {
     props.onUpdate({
-      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
+      portUpdate: { value: value.toString(), origin: props.input.portId },
     })
   },
 })
