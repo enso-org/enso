@@ -424,8 +424,9 @@ export function parseBlock(code: string, inModule?: MutableModule) {
 export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
   const ast = parseBlock(code, module_)
-  const [expr] = ast.statements()
-  if (!expr) return ast
+  const statements = Array.from(ast.statements())
+  const [expr] = statements
+  if (!expr || statements.length !== 1) return ast
   const parent = parentId(expr)
   if (parent) module_.delete(parent)
   expr.fields.set('parent', undefined)
