@@ -1,11 +1,24 @@
-import hash from 'hash-sum'
 import * as map from 'lib0/map'
 import type { AstId, NodeChild, Owned } from '.'
-import { Token, asOwned, isTokenId, parentId, subtreeRoots } from '.'
+import { Token, asOwned, isTokenId, parentId, rewriteRefs, subtreeRoots, syncFields } from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
-import type { SourceRange, SourceRangeKey } from '../yjsModel'
-import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
-import { parse_tree } from './ffi'
+import type { SpanTree, TextEdit } from '../util/data/text'
+import {
+  applyTextEdits,
+  applyTextEditsToSpans,
+  enclosingSpans,
+  textChangeToEdits,
+} from '../util/data/text'
+import {
+  IdMap,
+  isUuid,
+  rangeLength,
+  sourceRangeFromKey,
+  sourceRangeKey,
+  type SourceRange,
+  type SourceRangeKey,
+} from '../yjsModel'
+import { parse_tree, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
 import { MutableModule } from './mutableModule'
 import type { LazyObject } from './parserSupport'
@@ -605,22 +618,18 @@ function resync(
   )
 }
 
-function hashString(s: string) {
-  return hash(s)
-}
-
 function hashSubtree(ast: Ast, hashesOut: Map<string, Ast[]>) {
   let content = ''
   content += ast.typeName + ':'
   for (const child of ast.concreteChildren()) {
     content += child.whitespace ?? ' '
     if (isTokenId(child.node)) {
-      content += 'Token:' + hashString(ast.module.getToken(child.node).code())
+      content += 'Token:' + xxHash128(ast.module.getToken(child.node).code())
     } else {
       content += hashSubtree(ast.module.checkedGet(child.node), hashesOut)
     }
   }
-  const astHash = hashString(content)
+  const astHash = xxHash128(content)
   map.setIfUndefined(hashesOut, astHash, (): Ast[] => []).unshift(ast)
   return astHash
 }
@@ -654,70 +663,137 @@ function analyzeCode(code: string, asBlock: boolean, module: MutableModule) {
   return { parsedRoot: parsed.root, newSpans, newNodesBySpan, rawParsed }
 }
 
-function findIdenticalSubtrees(ast1: Ast, ast2: Ast) {
-  const ast1ByContent = hashTree(ast1)
-  const ast2ByContent = hashTree(ast2)
-  const ast1MatchedNodes = new Set<AstId>()
-  for (const [key, asts] of ast1ByContent.hashes) {
-    if (ast2ByContent.hashes.has(key)) {
-      for (const ast of asts) ast1MatchedNodes.add(ast.id)
-    }
-  }
-  const ast1MatchedSubtrees = new Set(subtreeRoots(ast1.module, ast1MatchedNodes))
-  const equivalences = new Array<readonly [AstId, AstId]>()
-  for (const [key, asts] of ast1ByContent.hashes) {
-    const ast1Roots = asts.filter((ast) => ast1MatchedSubtrees.has(ast.id))
-    const ast2Equivalents = ast2ByContent.hashes.get(key)
-    for (;;) {
-      const ast1Root = ast1Roots.shift()
-      if (!ast1Root) break
-      const ast2Root = ast2Equivalents!.shift()
-      if (!ast2Root) break
-      equivalences.push([ast1Root.id, ast2Root.id])
-    }
-  }
-  return equivalences
+/** Update `ast` to match the given source code, while modifying it as little as possible. */
+export function syncToCode(ast: MutableAst, code: string) {
+  const codeBefore = ast.code()
+  const textEdits = textChangeToEdits(codeBefore, code)
+  applyTextEditsToAst(ast, textEdits, ast.module)
 }
 
-// TODO(#8238): `Module.applyTextEdits`:
-//  - Locate the change-roots by spans in the original tree.
-//  - `syncToCode` only the changed subtrees.
-export function syncToCode(ast: MutableAst, code: string) {
-  // Content-hash `ast` and `parsedCode` to find unchanged-roots.
-  const { parsedRoot, newSpans, rawParsed } = analyzeCode(
-    code,
-    ast instanceof BodyBlock,
-    ast.module,
-  )
-  const equivalences = findIdenticalSubtrees(ast, parsedRoot)
-  const partAfterToAstBefore = new Map<SourceRangeKey, Ast>()
-  for (const [astBefore, astAfter] of equivalences)
-    partAfterToAstBefore.set(
-      sourceRangeKey(newSpans.get(astAfter)!),
-      ast.module.checkedGet(astBefore),
-    )
+function applyTextEditsToAst(ast: Ast, textEdits: TextEdit[], edit: MutableModule) {
+  const printed = print(ast)
+  const code = applyTextEdits(printed.code, textEdits)
 
-  const edit = ast.module
-  // `ast` itself may be in `subtreesToReuse`; if we `take` it when recycling subtrees, it would no longer have a place
-  // in the AST and we wouldn't be able to `replace` it later. Performing the whole edit in an `update` block ensures we
-  // can put the result in the right place.
-  ast.updateValue((_ast) => {
-    // Re-abstract from the root down to the unchanged-roots.
-    const recycledSubtrees = new Map(
-      Array.from(partAfterToAstBefore, ([span, ast]) => [
-        span as NodeKey,
-        edit.getVersion(ast).take(),
-      ]),
-    )
-    const recycleSubtree = (key: NodeKey) => {
-      const subtree = recycledSubtrees.get(key)
-      if (subtree) {
-        recycledSubtrees.delete(key)
-        return subtree
+  const { parsedRoot, newSpans } = analyzeCode(code, ast instanceof BodyBlock, edit)
+
+  // Retained-code matching: For each new tree, check for some old tree of the same type such that the new tree is the
+  // smallest node to contain all characters of the old tree's code that were not deleted in the edit.
+  //
+  // If the new node's span exactly matches the retained code, add the match to `toSync`. If the new node's span
+  // contains additional code, add the match to `candidates`.
+  const toSync = new Map<AstId, Ast>()
+  const candidates = new Map<AstId, Ast>()
+  const allSpansBefore = Array.from(printed.info.nodes.keys(), sourceRangeFromKey)
+  const spansBeforeAndAfter = applyTextEditsToSpans(textEdits, allSpansBefore)
+  const partAfterToAstBefore = new Map<SourceRangeKey, Ast>()
+  for (const [spanBefore, partAfter] of spansBeforeAndAfter) {
+    const astBefore = printed.info.nodes.get(sourceRangeKey(spanBefore) as NodeKey)?.[0]!
+    partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
+  }
+  const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)
+  const parsedSpanTree = new AstWithSpans(parsedRoot, (id) => newSpans.get(id)!)
+  const astsMatchingPartsAfter = enclosingSpans(parsedSpanTree, matchingPartsAfter)
+  for (const [astAfter, partsAfter] of astsMatchingPartsAfter) {
+    for (const partAfter of partsAfter) {
+      const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
+      if (astBefore.typeName() === astAfter.typeName()) {
+        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter)
+          ? toSync
+          : candidates
+        ).set(astBefore.id, astAfter)
+        break
       }
     }
-    const parsedReusingSubtrees = abstract(edit, rawParsed, code, recycleSubtree)
-    assertEqual(parsedReusingSubtrees.root.code(), code)
-    return parsedReusingSubtrees.root
+  }
+
+  // Index the matched nodes.
+  const oldIdsMatched = new Set<AstId>()
+  const newIdsMatched = new Set<AstId>()
+  for (const [oldId, newAst] of toSync) {
+    oldIdsMatched.add(oldId)
+    newIdsMatched.add(newAst.id)
+  }
+
+  // Movement matching: For each new tree that hasn't been matched, match it with any identical unmatched old tree.
+  const newHashes = hashTree(parsedRoot).hashes
+  const oldHashes = hashTree(ast).hashes
+  for (const [hash, newAsts] of newHashes) {
+    const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
+    const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
+    for (let i = 0; i < unmatchedNewAsts.length && i < unmatchedOldAsts.length; i++) {
+      const unmatchedNew = unmatchedNewAsts[i]!
+      const unmatchedOld = unmatchedOldAsts[i]!
+      toSync.set(unmatchedOld.id, unmatchedNew)
+      // Update the matched-IDs indices.
+      oldIdsMatched.add(unmatchedOld.id)
+      newIdsMatched.add(unmatchedNew.id)
+    }
+  }
+
+  // Apply any non-optimal span matches from `candidates`, if the nodes involved were not matched during
+  // movement-matching.
+  for (const [beforeId, after] of candidates) {
+    if (oldIdsMatched.has(beforeId) || newIdsMatched.has(after.id)) continue
+    toSync.set(beforeId, after)
+  }
+
+  syncTree(ast, parsedRoot, toSync, edit)
+}
+
+/** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */
+function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit: MutableModule) {
+  const newIdToEquivalent = new Map<AstId, AstId>()
+  for (const [beforeId, after] of toSync) newIdToEquivalent.set(after.id, beforeId)
+  const childReplacerFor = (parentId: AstId) => (id: AstId) => {
+    const original = newIdToEquivalent.get(id)
+    if (original) {
+      edit.checkedGet(original).fields.set('parent', parentId)
+      return original
+    } else {
+      const child = edit.checkedGet(id)
+      if (child.parentId !== parentId) child.fields.set('parent', parentId)
+    }
+  }
+  const parentId = target.fields.get('parent')
+  assertDefined(parentId)
+  const parent = edit.checkedGet(parentId)
+  newContent.visitRecursiveAst((ast) => {
+    const syncFieldsFrom = toSync.get(ast.id)
+    if (syncFieldsFrom) {
+      syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
+    } else {
+      rewriteRefs(edit.getVersion(ast), childReplacerFor(ast.id))
+    }
+    return true
   })
+  const syncRoot = toSync.get(target.id)
+  if (syncRoot && syncRoot.id === newContent.id) {
+    syncFields(edit.getVersion(target), syncRoot, childReplacerFor(target.id))
+  } else {
+    parent.replaceChild(target.id, newContent)
+  }
+}
+
+class AstWithSpans implements SpanTree<Ast> {
+  private readonly ast: Ast
+  private readonly getSpan: (astId: AstId) => SourceRange
+
+  constructor(ast: Ast, getSpan: (astId: AstId) => SourceRange) {
+    this.ast = ast
+    this.getSpan = getSpan
+  }
+
+  id(): Ast {
+    return this.ast
+  }
+
+  span(): SourceRange {
+    return this.getSpan(this.ast.id)
+  }
+
+  *children(): IterableIterator<SpanTree<Ast>> {
+    for (const child of this.ast.children()) {
+      if (child instanceof Ast) yield new AstWithSpans(child, this.getSpan)
+    }
+  }
 }

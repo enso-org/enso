@@ -570,8 +570,6 @@ test('Tree repair: Non-canonical block line attribution', () => {
   expect(afterRepair['func arg1 arg2'].id).toBe(before['    func arg1 arg2'].id)
   // The repair maintains identities of other functions.
   expect(afterRepair['main ='].id).toBe(before['main ='].id)
-  // TODO(#8238): The repaired function should maintain its sync identity.
-  //expect(afterRepair['func a b ='].id).toBe(before['func a b ='].id)
 })
 
 test('Code edit: Change argument type', () => {
@@ -599,9 +597,8 @@ test('Code edit: Change argument type', () => {
   })
   expect(after.func.id).toBe(before.func.id)
   expect(after.arg2.id).toBe(before.arg2.id)
-  // TODO(#8238): Both `App` nodes should maintain their sync identities.
-  //expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
-  //expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+  expect(after['func 123'].id).toBe(before['func arg1'].id)
+  expect(after['func 123 arg2'].id).toBe(before['func arg1 arg2'].id)
 })
 
 test('Code edit: Insert argument names', () => {
@@ -630,9 +627,8 @@ test('Code edit: Insert argument names', () => {
   expect(after.func.id).toBe(before.func.id)
   expect(after.arg1.id).toBe(before.arg1.id)
   expect(after.arg2.id).toBe(before.arg2.id)
-  // TODO(#8238): Both `App` nodes should maintain their sync identities.
-  //expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
-  //expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+  expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+  expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
 })
 
 test('Code edit: Remove argument names', () => {
@@ -661,9 +657,8 @@ test('Code edit: Remove argument names', () => {
   expect(after.func.id).toBe(before.func.id)
   expect(after.arg1.id).toBe(before.arg1.id)
   expect(after.arg2.id).toBe(before.arg2.id)
-  // TODO(#8238): Both `App` nodes should maintain their sync identities.
-  //expect(after['func arg1 arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
-  //expect(after['func arg1'].id).toBe(before['func name1=arg1'].id)
+  expect(after['func arg1'].id).toBe(before['func name1=arg1'].id)
+  expect(after['func arg1 arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
 })
 
 test('Code edit: Rearrange block', () => {
@@ -687,6 +682,7 @@ test('Code edit: Rearrange block', () => {
   expect(edit.root()?.code()).toBe(newCode)
   // Ensure the identities of all the original nodes were maintained.
   const after = tryFindExpressions(edit.root()!, {
+    'main =': Ast.Function,
     'call_result = func sum 12': Ast.Assignment,
     'sum = value + 23': Ast.Assignment,
     'value = 42': Ast.Assignment,
@@ -694,8 +690,6 @@ test('Code edit: Rearrange block', () => {
   expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
   expect(after['sum = value + 23']?.id).toBe(before['    sum = value + 23'].id)
   expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
-  // TODO(#8238): The function definition should maintain its identity.
-  //expect(after['main ='].id).toBe(before['main ='].id)
 })
 
 test('Code edit: Inline expression change', () => {
@@ -711,7 +705,6 @@ test('Code edit: Inline expression change', () => {
   const edit = beforeRoot.module.edit()
   const newArg1Code = 'arg1+1'
   edit.getVersion(before['arg1']).syncToCode(newArg1Code)
-  //edit.getVersion(before['arg1']).replaceValue(Ast.parse(newArg1Code, edit))
   // Ensure the change was made.
   expect(edit.root()?.code()).toBe('func name1=arg1+1 name2=arg2')
   // Ensure the identities of all the original nodes were maintained.
@@ -726,9 +719,8 @@ test('Code edit: Inline expression change', () => {
   expect(after.func.id).toBe(before.func.id)
   expect(after.arg1.id).toBe(before.arg1.id)
   expect(after.arg2.id).toBe(before.arg2.id)
-  // TODO(#8238): Both `App` nodes should maintain their sync identities.
-  //expect(after['func name1=arg1+1 name1=arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
-  //expect(after['func name1=arg1+1'].id).toBe(before['func name1=arg1'].id)
+  expect(after['func name1=arg1+1'].id).toBe(before['func name1=arg1'].id)
+  expect(after['func name1=arg1+1 name2=arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
 })
 
 test('Code edit: No-op inline expression change', () => {

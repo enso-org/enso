@@ -230,6 +230,14 @@ export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
 }
 
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a[0] <= b && a[1] >= b
+}
+
+export function rangeLength(a: SourceRange): number {
+  return a[1] - a[0]
+}
+
 export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
 }
