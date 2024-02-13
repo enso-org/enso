@@ -23,6 +23,17 @@ public abstract class BackgroundJob<A> extends Job<A> {
   }
 
   /**
+   * Create a background job with priority.
+   *
+   * @param priority the job priority. Lower number indicates higher priority.
+   * @param mayInterruptIfRunning the flag indicating if the running job may be interrupted.
+   */
+  public BackgroundJob(int priority, boolean mayInterruptIfRunning) {
+    super(List$.MODULE$.empty(), true, mayInterruptIfRunning);
+    this.priority = priority;
+  }
+
+  /**
    * @return the job priority.
    */
   public int getPriority() {
