@@ -230,7 +230,7 @@ type Table_Column_Helper
             Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
-        aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+        aggregate_result = just_indicators.aggregate columns=aggregates on_problems=Problem_Behavior.Report_Error
         materialized_result = self.materialize <| aggregate_result.catch Any error->
             msg = "Unexpected dataflow error has been thrown in an `select_blank_columns_helper`. This is a bug in the Table library. The unexpected error was: "+error.to_display_text
             Panic.throw (Illegal_State.Error message=msg cause=error)
@@ -430,14 +430,13 @@ resolve_order_by internal_columns column_selectors problem_builder =
         name : Text -> resolve_selector (Sort_Column.Name name)
         ix : Integer -> resolve_selector (Sort_Column.Index ix)
         Sort_Column.Name name direction ->
-            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive use_regex=False)
+            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive)
         Sort_Column.Index ix _ ->
             if is_index_valid internal_columns.length ix then [Column_Transform_Element.Value (internal_columns.at ix) selector] else
                 problem_builder.report_oob_indices [ix]
                 []
-        Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
-            regex_or_text = if use_regex then name.to_regex else name
-            matches = match_columns regex_or_text case_sensitivity internal_columns
+        Sort_Column.Select_By_Name name _ case_sensitivity ->
+            matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
     selectors_vec = case column_selectors of

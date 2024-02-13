@@ -39,7 +39,8 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
    daylight saving time. This means that a Period of 1 day does not necessarily
    have to be 24 hours of Duration.
 type Period
-    ## Create a Period representing the time interval between two dates.
+    ## ICON date_and_time
+       Create a Period representing the time interval between two dates.
 
        Arguments:
        - start_date_inclusive: The start date of the period, included.

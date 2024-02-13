@@ -8,6 +8,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -34,12 +35,12 @@ export interface GlobalContextMenuProps {
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, hasCopyData, directoryKey, directoryId, dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -131,7 +132,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newDataConnector}
+          action={shortcutManager.KeyboardAction.newSecret}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -140,6 +141,27 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newSecret,
+                    parentKey: directoryKey ?? rootDirectoryId,
+                    parentId: directoryId ?? rootDirectoryId,
+                    name,
+                    value,
+                  })
+                }}
+              />
+            )
+          }}
+        />
+      )}
+      {isCloud && (
+        <MenuEntry
+          hidden={hidden}
+          action={shortcutManager.KeyboardAction.newDataLink}
+          doAction={() => {
+            setModal(
+              <UpsertDataLinkModal
+                doCreate={(name, value) => {
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.newDataLink,
                     parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,
