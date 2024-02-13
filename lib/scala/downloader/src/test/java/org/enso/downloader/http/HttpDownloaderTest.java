@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertTrue;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -111,7 +112,10 @@ public class HttpDownloaderTest {
             assertThat(total.get(), instanceOf(Long.class));
             long reportedTotal = (Long) total.get();
             assertThat(reportedTotal, is(BigFileHandler.BIG_FILE_SIZE));
-            assertThat("Should send and report just chunk, not the whole file", done, lessThan(reportedTotal));
+            assertThat(
+                "Should send and report just chunk, not the whole file",
+                done,
+                lessThan(reportedTotal));
           }
 
           @Override
@@ -125,8 +129,39 @@ public class HttpDownloaderTest {
     var resp = task.force();
     assertThat(resp.toFile().exists(), is(true));
     assertThat("Done was called exactly once", doneCalls[0], is(1));
-    assertThat("Progress reported was called at least once", progressUpdateCalls[0], greaterThan(0));
+    assertThat(
+        "Progress reported was called at least once", progressUpdateCalls[0], greaterThan(0));
     Files.deleteIfExists(dest);
+  }
+
+  @Test
+  public void fetchStringWithProgress() throws URISyntaxException {
+    var uri = new URI(TEXTS_FOO_URI);
+    var task = HTTPDownload.fetchString(uri);
+    final int[] progressUpdateCalls = {0};
+    final int[] doneCalls = {0};
+    var progressListener =
+        new ProgressListener<APIResponse>() {
+          @Override
+          public void progressUpdate(long done, Option<Object> total) {
+            progressUpdateCalls[0]++;
+            assertThat(total.isDefined(), is(true));
+            assertThat(total.get(), instanceOf(Long.class));
+            long reportedTotal = (Long) total.get();
+            assertThat(reportedTotal, greaterThan(0L));
+          }
+
+          @Override
+          public void done(Try<APIResponse> result) {
+            doneCalls[0]++;
+            assertTrue(result.isSuccess());
+            assertThat(result.get(), notNullValue());
+            assertThat(result.get().content(), containsString("Hello"));
+          }
+        };
+    task.addProgressListener(progressListener);
+    var resp = task.force();
+    assertThat(resp.content(), containsString("Hello"));
   }
 
   private static class TextHandler extends SimpleHttpHandler {
@@ -153,8 +188,8 @@ public class HttpDownloaderTest {
   }
 
   private static class BigFileHandler extends SimpleHttpHandler {
-    private static final int BIG_FILE_SIZE = 10 * 1024;
-    private static final byte[] BIG_FILE_BYTES = new byte[BIG_FILE_SIZE];
+    private static final long BIG_FILE_SIZE = 10 * 1024;
+    private static final byte[] BIG_FILE_BYTES = new byte[Math.toIntExact(BIG_FILE_SIZE)];
     private static final int CHUNK_SIZE = 1024;
 
     static {
@@ -165,13 +200,14 @@ public class HttpDownloaderTest {
     @Override
     protected void doHandle(HttpExchange exchange) throws IOException {
       if (exchange.getRequestURI().toString().equals("/files/big.tgz")) {
-        int chunks = BIG_FILE_SIZE / CHUNK_SIZE;
-        exchange.getResponseHeaders().set("Content-Length", Integer.toString(BIG_FILE_SIZE));
+        long chunks = BIG_FILE_SIZE / CHUNK_SIZE;
+        exchange.getResponseHeaders().set("Content-Length", Long.toString(BIG_FILE_SIZE));
         exchange.getResponseHeaders().set("Content-Type", "application/x-gzip");
-        exchange.sendResponseHeaders(200, BIG_FILE_SIZE);
+        // Set responseLength to 0 to indicate that the response length is unknown
+        // and force chunking the response.
+        exchange.sendResponseHeaders(200, 0);
         try (var os = exchange.getResponseBody()) {
           for (int i = 0; i < chunks; i++) {
-            System.out.println("Writing " + i + "-th chunk");
             os.write(BIG_FILE_BYTES, i * CHUNK_SIZE, CHUNK_SIZE);
             os.flush();
           }

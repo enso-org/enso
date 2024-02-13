@@ -12,7 +12,6 @@ import java.net.http.{HttpClient, HttpHeaders, HttpResponse}
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{CompletableFuture, Executors}
-import scala.annotation.unused
 import scala.util.{Failure, Success}
 
 /** Contains utility functions for fetching data using the HTTP(S) protocol. */
@@ -42,14 +41,15 @@ object HTTPDownload {
     */
   def fetchString(
     request: HTTPRequest,
-    @unused
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
     logger.debug("Fetching [{}].", request.requestImpl.uri())
     val taskProgress =
       new TaskProgressImplementation[APIResponse](ProgressUnit.Bytes)
-    val bodyHandler = HttpResponse.BodyHandlers.ofString(encoding)
+    val total: java.lang.Long = if (sizeHint.isDefined) sizeHint.get else null
+    val bodyHandler =
+      StringProgressBodyHandler.of(taskProgress, total, encoding)
     asyncDownload(request, bodyHandler)
       .thenAccept(res => {
         if (res.statusCode() == 404) {
@@ -135,7 +135,6 @@ object HTTPDownload {
   def download(
     request: HTTPRequest,
     destination: Path,
-    @unused
     sizeHint: Option[Long] = None
   ): TaskProgress[Path] = {
     logger.debug(
@@ -143,8 +142,10 @@ object HTTPDownload {
       request.requestImpl.uri(),
       destination
     )
-    val taskProgress = new TaskProgressImplementation[Path](ProgressUnit.Bytes)
-    val bodyHandler  = HttpResponse.BodyHandlers.ofFile(destination)
+    val taskProgress          = new TaskProgressImplementation[Path](ProgressUnit.Bytes)
+    val total: java.lang.Long = if (sizeHint.isDefined) sizeHint.get else null
+    val bodyHandler =
+      PathProgressBodyHandler.of(destination, taskProgress, total)
     asyncDownload(request, bodyHandler)
       .thenAccept(res => {
         if (res.statusCode() == 404) {
