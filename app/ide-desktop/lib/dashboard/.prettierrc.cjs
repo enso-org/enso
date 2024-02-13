@@ -25,6 +25,8 @@ module.exports = {
           '^#[/]App',
           '^#[/]appUtils',
           '',
+          '^#[/]configurations[/]',
+          '',
           '^#[/]data[/]',
           '',
           '^#[/]hooks[/]',

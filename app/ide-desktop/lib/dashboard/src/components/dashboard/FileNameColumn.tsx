@@ -6,7 +6,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -39,7 +39,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax

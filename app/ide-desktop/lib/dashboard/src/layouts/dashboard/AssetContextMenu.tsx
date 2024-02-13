@@ -32,7 +32,6 @@ import RemoteBackend from '#/services/RemoteBackend'
 import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 
 // ========================
 // === AssetContextMenu ===
@@ -106,7 +105,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         <ContextMenu hidden={hidden}>
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.restoreFromTrash}
+            action="restoreFromTrash"
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({
@@ -127,7 +126,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           !isOtherUserUsingProject && (
             <MenuEntry
               hidden={hidden}
-              action={shortcutManager.KeyboardAction.open}
+              action="open"
               doAction={() => {
                 unsetModal()
                 dispatchAssetEvent({
@@ -142,7 +141,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {asset.type === backendModule.AssetType.project && isCloud && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.run}
+            action="run"
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({
@@ -160,7 +159,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           !isOtherUserUsingProject && (
             <MenuEntry
               hidden={hidden}
-              action={shortcutManager.KeyboardAction.close}
+              action="close"
               doAction={() => {
                 unsetModal()
                 dispatchAssetEvent({
@@ -173,7 +172,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {asset.type === backendModule.AssetType.project && !isCloud && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.uploadToCloud}
+            action="uploadToCloud"
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
@@ -213,7 +212,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               asset.type !== backendModule.AssetType.project &&
               asset.type !== backendModule.AssetType.directory
             }
-            action={shortcutManager.KeyboardAction.rename}
+            action="rename"
             doAction={() => {
               setRowState(object.merger({ isEditingName: true }))
               unsetModal()
@@ -223,7 +222,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.edit}
+            action="edit"
             doAction={() => {
               setModal(
                 <UpsertSecretModal
@@ -245,7 +244,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <MenuEntry
             hidden={hidden}
             disabled
-            action={shortcutManager.KeyboardAction.snapshot}
+            action="snapshot"
             doAction={() => {
               // No backend support yet.
             }}
@@ -254,11 +253,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
           <MenuEntry
             hidden={hidden}
-            action={
-              backend.type === backendModule.BackendType.local
-                ? shortcutManager.KeyboardAction.delete
-                : shortcutManager.KeyboardAction.moveToTrash
-            }
+            action={backend.type === backendModule.BackendType.local ? 'delete' : 'moveToTrash'}
             doAction={() => {
               if (backend.type === backendModule.BackendType.remote) {
                 unsetModal()
@@ -278,7 +273,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && managesThisAsset && self != null && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.share}
+            action="share"
             doAction={() => {
               setModal(
                 <ManagePermissionsModal
@@ -300,7 +295,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.label}
+            action="label"
             doAction={() => {
               setModal(
                 <ManageLabelsModal
@@ -318,7 +313,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         <MenuEntry
           hidden={hidden}
           disabled={!isCloud}
-          action={shortcutManager.KeyboardAction.duplicate}
+          action="duplicate"
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -329,20 +324,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             })
           }}
         />
-        {isCloud && (
-          <MenuEntry
-            hidden={hidden}
-            action={shortcutManager.KeyboardAction.copy}
-            doAction={doCopy}
-          />
-        )}
+        {isCloud && <MenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
         {isCloud && !isOtherUserUsingProject && (
-          <MenuEntry hidden={hidden} action={shortcutManager.KeyboardAction.cut} doAction={doCut} />
+          <MenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
         <MenuEntry
           hidden={hidden}
           disabled={isCloud && asset.type !== backendModule.AssetType.file}
-          action={shortcutManager.KeyboardAction.download}
+          action="download"
           doAction={() => {
             unsetModal()
             dispatchAssetEvent({
@@ -354,7 +343,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {hasPasteData && (
           <MenuEntry
             hidden={hidden}
-            action={shortcutManager.KeyboardAction.paste}
+            action="paste"
             doAction={() => {
               const [directoryKey, directoryId] =
                 item.item.type === backendModule.AssetType.directory

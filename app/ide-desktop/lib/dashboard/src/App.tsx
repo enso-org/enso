@@ -42,16 +42,18 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
+import * as inputBindingsModule from '#/configurations/inputBindings'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
+import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import SessionProvider from '#/providers/SessionProvider'
-import ShortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -64,8 +66,6 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-
-import ShortcutManager, * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 import * as authServiceModule from '#/authentication/service'
 
@@ -149,27 +149,8 @@ function AppRouter(props: AppProps) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const [shortcutManager] = React.useState(() => ShortcutManager.createWithDefaults())
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const isTargetEditable =
-        event.target instanceof HTMLInputElement ||
-        (event.target instanceof HTMLElement && event.target.isContentEditable)
-      const shouldHandleEvent = isTargetEditable
-        ? !shortcutManagerModule.isTextInputEvent(event)
-        : true
-      if (shouldHandleEvent && shortcutManager.handleKeyboardEvent(event)) {
-        event.preventDefault()
-        // This is required to prevent the event from propagating to the event handler
-        // that focuses the search input.
-        event.stopImmediatePropagation()
-      }
-    }
-    document.body.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.body.removeEventListener('keydown', onKeyDown)
-    }
-  }, [shortcutManager])
+  // FIXME: load bindings from and save bindings to localStorage
+  const [inputBindings] = React.useState(() => inputBindingsModule.createBindings())
   const mainPageUrl = getMainPageUrl()
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
@@ -239,9 +220,7 @@ function AppRouter(props: AppProps) {
     </router.Routes>
   )
   let result = routes
-  result = (
-    <ShortcutManagerProvider shortcutManager={shortcutManager}>{result}</ShortcutManagerProvider>
-  )
+  result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = <ModalProvider>{result}</ModalProvider>
   result = (
     <AuthProvider

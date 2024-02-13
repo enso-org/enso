@@ -8,8 +8,8 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -43,7 +43,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax

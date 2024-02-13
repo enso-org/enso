@@ -6,10 +6,10 @@ import * as eventHooks from '#/hooks/eventHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -41,7 +41,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ============================
 // === Global configuration ===
@@ -119,7 +119,7 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const [page, setPage] = React.useState(() => localStorage.get('page') ?? pageSwitcher.Page.drive)
@@ -302,37 +302,39 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [/* should never change */ unsetModal])
 
-  React.useEffect(() => {
-    return shortcutManager.registerKeyboardHandlers({
-      [shortcutManagerModule.KeyboardAction.closeModal]: () => {
-        updateModal(oldModal => {
-          if (oldModal == null) {
-            queueMicrotask(() => {
-              setPage(oldPage => {
-                if (oldPage !== pageSwitcher.Page.settings) {
-                  return oldPage
-                } else {
-                  return localStorage.get('page') ?? pageSwitcher.Page.drive
-                }
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+        closeModal: () => {
+          updateModal(oldModal => {
+            if (oldModal == null) {
+              queueMicrotask(() => {
+                setPage(oldPage => {
+                  if (oldPage !== pageSwitcher.Page.settings) {
+                    return oldPage
+                  } else {
+                    return localStorage.get('page') ?? pageSwitcher.Page.drive
+                  }
+                })
               })
-            })
-            return oldModal
-          } else {
-            return null
+              return oldModal
+            } else {
+              return null
+            }
+          })
+          if (modalRef.current == null) {
+            // eslint-disable-next-line no-restricted-syntax
+            return false
           }
-        })
-        if (modalRef.current == null) {
-          // eslint-disable-next-line no-restricted-syntax
-          return false
-        }
-      },
-    })
-  }, [
-    shortcutManager,
-    /* should never change */ modalRef,
-    /* should never change */ localStorage,
-    /* should never change */ updateModal,
-  ])
+        },
+      }),
+    [
+      inputBindings,
+      /* should never change */ modalRef,
+      /* should never change */ localStorage,
+      /* should never change */ updateModal,
+    ]
+  )
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {

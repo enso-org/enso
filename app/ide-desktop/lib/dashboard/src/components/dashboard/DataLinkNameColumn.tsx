@@ -8,7 +8,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -39,7 +39,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
@@ -111,6 +111,15 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       }
     }
   })
+
+  const handler = React.useMemo(
+    inputBindings.handler({
+      editName: () => {
+        //
+      },
+    }),
+    []
+  )
 
   return (
     <div

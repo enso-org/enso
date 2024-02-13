@@ -9,8 +9,8 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -48,7 +48,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const isHomeCategory = category === Category.home || !isCloud

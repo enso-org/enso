@@ -4,7 +4,7 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
 
@@ -78,7 +78,7 @@ function InfoEntry(props: InternalInfoEntryProps) {
 
 /** Settings tab for viewing and editing account information. */
 export default function KeyboardShortcutsSettingsTab() {
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
 
   return (
     <div className="flex flex-col gap-2.5">

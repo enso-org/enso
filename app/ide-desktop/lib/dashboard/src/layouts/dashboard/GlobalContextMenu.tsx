@@ -16,8 +16,6 @@ import MenuEntry from '#/components/MenuEntry'
 
 import * as backendModule from '#/services/Backend'
 
-import * as shortcutManager from '#/utilities/ShortcutManager'
-
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
@@ -69,11 +67,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       )}
       <MenuEntry
         hidden={hidden}
-        action={
-          backend.type === backendModule.BackendType.local
-            ? shortcutManager.KeyboardAction.uploadProjects
-            : shortcutManager.KeyboardAction.uploadFiles
-        }
+        action={backend.type === backendModule.BackendType.local ? 'uploadProjects' : 'uploadFiles'}
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
             filesInputRef.current.click()
@@ -101,7 +95,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newProject}
+          action="newProject"
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -118,7 +112,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newFolder}
+          action="newFolder"
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -132,7 +126,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newSecret}
+          action="newSecret"
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -155,7 +149,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newDataLink}
+          action="newDataLink"
           doAction={() => {
             setModal(
               <UpsertDataLinkModal
@@ -176,7 +170,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && directoryKey == null && hasCopyData && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.paste}
+          action="paste"
           doAction={() => {
             unsetModal()
             doPaste(rootDirectoryId, rootDirectoryId)

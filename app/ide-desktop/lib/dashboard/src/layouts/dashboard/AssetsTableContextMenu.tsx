@@ -23,7 +23,6 @@ import * as backendModule from '#/services/Backend'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -125,20 +124,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
-            hidden={hidden}
-            action={shortcutManager.KeyboardAction.restoreAllFromTrash}
-            doAction={doRestoreAll}
-          />
+          <MenuEntry hidden={hidden} action="restoreAllFromTrash" doAction={doRestoreAll} />
         </ContextMenu>
       </ContextMenus>
     )
   } else if (category !== Category.home) {
     return null
   } else {
-    const deleteAction = isCloud
-      ? shortcutManager.KeyboardAction.moveAllToTrash
-      : shortcutManager.KeyboardAction.deleteAll
+    const deleteAction = isCloud ? 'moveAllToTrash' : 'deleteAll'
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
@@ -146,24 +139,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             {ownsAllSelectedAssets && (
               <MenuEntry hidden={hidden} action={deleteAction} doAction={doDeleteAll} />
             )}
-            {isCloud && (
-              <MenuEntry
-                hidden={hidden}
-                action={shortcutManager.KeyboardAction.copyAll}
-                doAction={doCopy}
-              />
-            )}
+            {isCloud && <MenuEntry hidden={hidden} action="copyAll" doAction={doCopy} />}
             {isCloud && ownsAllSelectedAssets && (
-              <MenuEntry
-                hidden={hidden}
-                action={shortcutManager.KeyboardAction.cutAll}
-                doAction={doCut}
-              />
+              <MenuEntry hidden={hidden} action="cutAll" doAction={doCut} />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcutManager.KeyboardAction.pasteAll}
+                action="pasteAll"
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =

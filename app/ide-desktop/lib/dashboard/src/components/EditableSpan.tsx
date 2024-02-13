@@ -4,9 +4,9 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ====================
 // === EditableSpan ===
@@ -31,7 +31,7 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { 'data-testid': dataTestId, className, editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const cancelled = React.useRef(false)
@@ -44,8 +44,8 @@ export default function EditableSpan(props: EditableSpanProps) {
 
   React.useEffect(() => {
     if (editable) {
-      return shortcutManager.registerKeyboardHandlers({
-        [shortcutManagerModule.KeyboardAction.cancelEditName]: () => {
+      return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+        cancelEditName: () => {
           onCancel()
           cancelled.current = true
           inputRef.current?.blur()
@@ -54,7 +54,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, shortcutManager, onCancel])
+  }, [editable, onCancel, /* should never change */ inputBindings])
 
   React.useEffect(() => {
     cancelled.current = false
