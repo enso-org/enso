@@ -178,10 +178,9 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     authToken: auth.Token,
     files: Seq[Path]
   ): TaskProgress[Unit] = {
-    val data: Map[Object, Object] = files.map { path => ("file" -> path) }.toMap
     val request = authToken
       .alterRequest(HTTPRequestBuilder.fromURI(uri))
-      .postMultipartData(data)
+      .postFiles(files)
       .build()
     // TODO [RW] upload progress
     val responseFut = HTTPDownload.fetchString(request)

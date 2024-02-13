@@ -2,6 +2,8 @@ package org.enso.downloader.http
 
 import java.net.URI
 import java.net.http.HttpRequest
+import java.nio.file.Path
+import java.util.{UUID}
 import scala.jdk.CollectionConverters._
 
 /** A simple immutable builder for HTTP requests.
@@ -32,8 +34,10 @@ case class HTTPRequestBuilder private (
     * @param data
     * @return
     */
-  def postMultipartData(data: Map[Object, Object]): HTTPRequestBuilder = {
-    val bodyPublisher = MultipartBodyPublisher.ofMimeMultipartData(data.asJava)
+  def postFiles(files: Seq[Path]): HTTPRequestBuilder = {
+    val boundary = UUID.randomUUID().toString.replace("-", "")
+    val bodyPublisher = FilesMultipartBodyPublisher.ofMimeMultipartData(files.asJava, boundary)
+    internalBuilder.setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
     copy(
       internalBuilder = internalBuilder.POST(bodyPublisher)
     )
