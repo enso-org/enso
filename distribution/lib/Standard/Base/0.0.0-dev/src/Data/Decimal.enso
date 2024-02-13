@@ -6,6 +6,7 @@ import project.IO
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Integer, Float, Number_Parse_Error
 
 polyglot java import java.lang.NumberFormatException
@@ -42,11 +43,14 @@ type Decimal
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing =
         handle_number_format_exception <|
             case mc of
-                _ : Math_Context -> Decimal.Value (BigDecimal.new s mc)
+                _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
                 _ : Nothing -> Decimal.Value (BigDecimal.new s)
 
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
+
+    == self that =
+        (self.big_decimal.compareTo that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing =

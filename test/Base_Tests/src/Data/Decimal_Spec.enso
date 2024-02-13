@@ -8,16 +8,31 @@ from Standard.Base.Data.Numbers import Number_Parse_Error
 
 from Standard.Test import all
 
-Decimal.should_rep self rep = self.get_internal_representation . should_equal rep
+Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
 
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
-            Decimal.new "123.45" . should_rep [12345, 5, 2]
+            Decimal.new "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
             Decimal.new "ee" . should_fail_with Number_Parse_Error
             Decimal.new "--123.3.3" . should_fail_with Number_Parse_Error
+
+        group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision" <|
+            mc = Math_Context.new 2
+            Decimal.new "123.45" mc . should_have_rep [12, 2, -1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "120")
+
+        group_builder.specify "should be able to construct a Decimal from a string, using the default rounding" <|
+            mc = Math_Context.new 4
+            Decimal.new "123.45" mc . should_have_rep [1235, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.5")
+
+        group_builder.specify "should be able to construct a Decimal from a string, using a different rounding" <|
+            mc = Math_Context.new 4 Rounding_Mode.half_down
+            Decimal.new "123.45" mc . should_have_rep [1234, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.4")
 
 main =
     suite = Test.build suite_builder->
