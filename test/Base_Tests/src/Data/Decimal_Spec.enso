@@ -43,6 +43,19 @@ add_specs suite_builder =
             Decimal.new 1234500 mc . should_have_rep [1234, 4, -3]
             Decimal.new 1234500 mc . should_equal (Decimal.new 1234000)
 
+        group_builder.specify "should be able to construct a Decimal from a large integer" <|
+            Decimal.new 495782984723948723947239938732974241234500 . should_have_rep [495782984723948723947239938732974241234500 , 42, 0]
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 39
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241235 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241235000 )
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the non-default rounding" <|
+            mc = Math_Context.new 39 Rounding_Mode.half_down
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241234 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241234000 )
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
