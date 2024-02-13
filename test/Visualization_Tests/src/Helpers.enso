@@ -2,8 +2,8 @@ from Standard.Base import all
 
 from Standard.Table import Column
 
-from Standard.Test_New import all
-import Standard.Test_New.Spec_Result.Spec_Result
+from Standard.Test import all
+import Standard.Test.Spec_Result.Spec_Result
 
 
 

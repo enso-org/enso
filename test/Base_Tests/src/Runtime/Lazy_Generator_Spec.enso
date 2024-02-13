@@ -1,4 +1,4 @@
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 type Generator

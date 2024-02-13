@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Metadata.Choice import Option
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.util.Locale as JavaLocale

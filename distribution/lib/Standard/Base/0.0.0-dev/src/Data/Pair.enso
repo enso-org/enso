@@ -85,6 +85,7 @@ type Pair
             _ -> if_missing
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of this pair.
 
        Arguments:
@@ -100,6 +101,7 @@ type Pair
     any self predicate = predicate self.first || predicate self.second
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for all elements in this pair.
 
        Arguments:
@@ -115,6 +117,7 @@ type Pair
     all self predicate = predicate self.first && predicate self.second
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this pair contains a given value as an element.
 
        Arguments:

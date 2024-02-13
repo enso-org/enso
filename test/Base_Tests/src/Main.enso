@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec

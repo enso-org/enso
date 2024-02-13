@@ -428,17 +428,20 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
 function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger) {
   return (asset: backend.AnyAsset): backend.AnySmartAsset => {
     switch (asset.type) {
+      case backend.AssetType.directory: {
+        return new SmartDirectory(client, logger, asset)
+      }
       case backend.AssetType.project: {
         return new SmartProject(client, logger, asset)
       }
       case backend.AssetType.file: {
         return new SmartFile(client, logger, asset)
       }
+      case backend.AssetType.dataLink: {
+        return new SmartDataLink(client, logger, asset)
+      }
       case backend.AssetType.secret: {
         return new SmartSecret(client, logger, asset)
-      }
-      case backend.AssetType.directory: {
-        return new SmartDirectory(client, logger, asset)
       }
       case backend.AssetType.specialLoading:
       case backend.AssetType.specialEmpty: {
@@ -765,6 +768,43 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     return result
   }
 
+  /** Create a {@link SmartDataLink} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderDataLink(
+    title: string,
+    value: unknown,
+    permissions: backend.UserPermission[]
+  ): backend.SmartDataLink {
+    const result = new SmartDataLink(this.client, this.logger, {
+      type: backend.AssetType.dataLink,
+      id: backend.ConnectorId(`${backend.AssetType.dataLink}-${uniqueString.uniqueString()}`),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = overwriteMaterialize(result, async () => {
+      /** HTTP request body for this endpoint. */
+      interface Body {
+        readonly name: string
+        readonly value: unknown
+        readonly parentDirectoryId: backend.DirectoryId | null
+      }
+      const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
+      const body: Body = { parentDirectoryId: this.value.id, name: title, value }
+      const response = await this.httpPost<backend.ConnectorInfo>(path, body)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(`Could not create Data Link with name '${body.name}'.`)
+      } else {
+        const info = await response.json()
+        return result.withValue(object.merge(result.value, { id: info.id }))
+      }
+    })
+    return result
+  }
+
   /** Create a {@link SmartSecret} that is to be uploaded on the backend via `.materialize()` */
   createPlaceholderSecret(
     title: string,
@@ -1002,8 +1042,73 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
 }
 
 /** A smart wrapper around a {@link backend.SecretAsset}. */
+class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend.SmartDataLink {
+  /** Return the value of this Data Link. */
+  async getValue(): Promise<backend.Connector> {
+    const path = remoteBackendPaths.getConnectorPath(this.value.id)
+    const response = await this.httpGet<backend.Connector>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get Data Link '${this.value.title}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Change the value or description of a secret environment variable. */
+  override async update(body: backend.UpdateAssetOrDataLinkRequestBody): Promise<this> {
+    const updateAssetRequest =
+      body.description == null && body.parentDirectoryId == null
+        ? null
+        : super.update({
+            description: body.description ?? null,
+            parentDirectoryId: body.parentDirectoryId ?? null,
+          })
+    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
+    const updateDataLinkRequest =
+      body.value == null
+        ? null
+        : this.httpPost(path, {
+            name: this.value.title,
+            value: body.value,
+            connectorId: this.value.id,
+          })
+    const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
+      updateAssetRequest,
+      updateDataLinkRequest,
+    ])
+    if (
+      updateAssetResponse.status === 'rejected' ||
+      updateSecretResponse.status === 'rejected' ||
+      (updateSecretResponse.value != null && !responseIsSuccessful(updateSecretResponse.value))
+    ) {
+      return this.throw(`Could not update secret '${this.value.title}'.`)
+    } else {
+      return body.description == null && body.parentDirectoryId == null
+        ? this
+        : this.withValue(
+            object.merge(this.value, {
+              ...(body.description == null ? {} : { description: body.description }),
+              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+            })
+          )
+    }
+  }
+
+  /** Delete this Data Link. */
+  async deleteDataLink(): Promise<void> {
+    const path = remoteBackendPaths.deleteConnectorPath(this.value.id)
+    const response = await this.httpDelete(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not delete Data Link '${this.value.title}'.`)
+    } else {
+      return
+    }
+  }
+}
+
+/** A smart wrapper around a {@link backend.SecretAsset}. */
 class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.SmartSecret {
-  /** Return a secret environment variable. */
+  /** Return the value of this secret environment variable. */
   async getValue(): Promise<backend.Secret> {
     const path = remoteBackendPaths.getSecretPath(this.value.id)
     const response = await this.httpGet<backend.Secret>(path)
@@ -1151,6 +1256,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Return the secret environment variables accessible by the user.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listSecrets(): Promise<backend.SecretInfo[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      readonly secrets: backend.SecretInfo[]
+    }
+    const path = remoteBackendPaths.LIST_SECRETS_PATH
+    const response = await this.get<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not list secrets.')
+    } else {
+      return (await response.json()).secrets
+    }
+  }
+
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   async getProject(
@@ -1223,8 +1344,6 @@ export default class RemoteBackend extends Backend {
       } else {
         return this.throw(`Could not upload file${suffix}`)
       }
-    } else {
-      return
     }
   }
 

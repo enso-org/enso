@@ -84,7 +84,8 @@ new_builtin year month day hour minute second nanosecond zone = @Builtin_Method 
    the Europe/Paris timezone" can be stored as `Time`.
 @Builtin_Type
 type Date_Time
-    ## Obtains the start of the epoch for Enso.
+    ## ICON date_and_time
+       Obtains the start of the epoch for Enso.
 
         ? Start of the epoch
         For Enso, start of the epoch is equal to the start of the Gregorian calendar,
@@ -101,6 +102,7 @@ type Date_Time
 
     ## ALIAS current time
        GROUP DateTime
+       ICON date_and_time
 
        Obtains the current date-time from the system clock in the system timezone.
 
@@ -114,6 +116,7 @@ type Date_Time
     now = @Builtin_Method "Date_Time.now"
 
     ## GROUP DateTime
+       ICON date_and_time
        Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
        second, nanosecond and timezone.
 
@@ -153,6 +156,7 @@ type Date_Time
 
     ## ALIAS time from text
        GROUP Conversions
+       ICON convert
 
        Obtains an instance of `Time` from a text such as
        "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -281,7 +285,8 @@ type Date_Time
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
         format.parse_date_time text
 
-    ## Creates a new `Date_Time` from a Unix epoch timestamp in seconds (and optional nanoseconds).
+    ## ICON convert
+       Creates a new `Date_Time` from a Unix epoch timestamp in seconds (and optional nanoseconds).
 
        Arguments:
        - seconds: The number of seconds since the Unix epoch.
@@ -297,7 +302,8 @@ type Date_Time
     from_unix_epoch_seconds seconds:Integer nanoseconds:Integer=0 =
         unix_epoch_start + Duration.new seconds=seconds nanoseconds=nanoseconds
 
-    ## Creates a new `Date_Time` from a Unix epoch timestamp in milliseconds.
+    ## ICON convert
+       Creates a new `Date_Time` from a Unix epoch timestamp in milliseconds.
 
        Arguments:
        - milliseconds: The number of milliseconds since the Unix epoch.
@@ -313,6 +319,7 @@ type Date_Time
         unix_epoch_start + Duration.new milliseconds=milliseconds
 
     ## GROUP Metadata
+       ICON metadata
        Get the year portion of the time.
 
        > Example
@@ -325,6 +332,7 @@ type Date_Time
     year self = @Builtin_Method "Date_Time.year"
 
     ## GROUP Metadata
+       ICON metadata
        Get the month portion of the time as a number from 1 to 12.
 
        > Example
@@ -337,6 +345,7 @@ type Date_Time
     month self = @Builtin_Method "Date_Time.month"
 
     ## GROUP Metadata
+       ICON metadata
        Get the day portion of the time.
 
        > Example
@@ -349,6 +358,7 @@ type Date_Time
     day self = @Builtin_Method "Date_Time.day"
 
     ## GROUP Metadata
+       ICON metadata
        Get the hour portion of the time.
 
        > Example
@@ -361,6 +371,7 @@ type Date_Time
     hour self = @Builtin_Method "Date_Time.hour"
 
     ## GROUP Metadata
+       ICON metadata
        Get the minute portion of the time.
 
        > Example
@@ -373,6 +384,7 @@ type Date_Time
     minute self = @Builtin_Method "Date_Time.minute"
 
     ## GROUP Metadata
+       ICON metadata
        Get the second portion of the time.
 
        > Example
@@ -385,6 +397,7 @@ type Date_Time
     second self = @Builtin_Method "Date_Time.second"
 
     ## GROUP Metadata
+       ICON metadata
        Get the millisecond portion of the time.
 
        > Example
@@ -397,6 +410,7 @@ type Date_Time
     millisecond self = @Builtin_Method "Date_Time.millisecond"
 
     ## GROUP Metadata
+       ICON metadata
        Get the microsecond portion of the time.
 
        > Example
@@ -409,6 +423,7 @@ type Date_Time
     microsecond self = @Builtin_Method "Date_Time.microsecond"
 
     ## GROUP Metadata
+       ICON metadata
        Get the nanosecond portion of the time.
 
        Arguments:
@@ -427,6 +442,7 @@ type Date_Time
         self.nanosecond_builtin include_milliseconds
 
     ## GROUP DateTime
+       ICON metadata
        Get the timezone for the time.
 
        > Example
@@ -438,7 +454,8 @@ type Date_Time
     zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
-    ## Return the number of seconds from the Unix epoch start (1.1.1970)
+    ## ICON convert
+       Return the number of seconds from the Unix epoch start (1.1.1970)
 
        If this Date_Time is before the epoch start, returns a negative number.
 
@@ -452,7 +469,8 @@ type Date_Time
     to_unix_epoch_seconds self =
         (Duration.between unix_epoch_start self).total_seconds.floor
 
-    ## Return the number of milliseconds from the Unix epoch start.
+    ## ICON convert
+       Return the number of milliseconds from the Unix epoch start.
 
        If this Date_Time is before an epoch start, returns a negative number.
 
@@ -466,14 +484,16 @@ type Date_Time
     to_unix_epoch_milliseconds self =
         (Duration.between unix_epoch_start self).total_milliseconds.floor
 
-    ## Return the number of seconds from the Enso epoch start.
+    ## ICON convert
+       Return the number of seconds from the Enso epoch start.
 
        See `Date_Time.enso_epoch_start`.
     to_enso_epoch_seconds : Integer
     to_enso_epoch_seconds self =
         (Duration.between Date_Time.enso_epoch_start self).total_seconds.floor
 
-    ## Return the number of milliseconds from the Enso epoch start.
+    ## ICON convert
+       Return the number of milliseconds from the Enso epoch start.
 
        See `Date_Time.enso_epoch_start`.
     to_enso_epoch_milliseconds : Integer
@@ -481,6 +501,7 @@ type Date_Time
         (Duration.between Date_Time.enso_epoch_start self).total_milliseconds.floor
 
     ## GROUP DateTime
+       ICON metadata
        Convert this point in time to time of day, discarding the time zone
        information.
 
@@ -493,7 +514,8 @@ type Date_Time
     time_of_day : Time_Of_Day
     time_of_day self = @Builtin_Method "Date_Time.time_of_day"
 
-    ## Returns the number of week of year this date falls into.
+    ## ICON metadata
+       Returns the number of week of year this date falls into.
 
        Produces a warning for a Date that is before epoch start.
 
@@ -516,6 +538,7 @@ type Date_Time
                 Time_Utils.week_of_year_zoneddatetime self locale.java_locale
 
     ## GROUP DateTime
+       ICON metadata
        Returns if the date is in a leap year.
 
        Produces a warning for a Date that is before epoch start.
@@ -523,33 +546,39 @@ type Date_Time
     is_leap_year self = self.date.is_leap_year
 
     ## GROUP DateTime
+       ICON metadata
        Returns the number of days in the year represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_year : Integer
     length_of_year self = ensure_in_epoch self <| self.date.length_of_year
 
-    ## Returns the century of the date.
+    ## ICON metadata
+       Returns the century of the date.
     century : Integer
     century self = self.date.century
 
     ## GROUP Metadata
+       ICON metadata
        Returns the quarter of the year the date falls into.
     quarter : Integer
     quarter self = Time_Utils.get_field_as_zoneddatetime self IsoFields.QUARTER_OF_YEAR
 
     ## GROUP DateTime
+       ICON metadata
        Returns the number of days in the month represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
     length_of_month self = ensure_in_epoch self <| self.date.length_of_month
 
-    ## Returns the day of the year.
+    ## ICON metadata
+       Returns the day of the year.
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_YEAR
 
     ## GROUP Metadata
+       ICON metadata
        Returns the day of the week.
     day_of_week : Day_Of_Week
     day_of_week self =
@@ -557,6 +586,7 @@ type Date_Time
             Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns the first date within the `Time_Period` or `Date_Period`
        containing self.
     start_of : (Date_Period|Time_Period) -> Date_Time
@@ -567,6 +597,7 @@ type Date_Time
             _ : Time_Period -> adjusted
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
     end_of : (Date_Period|Time_Period) -> Date_Time
@@ -578,6 +609,7 @@ type Date_Time
 
     ## ALIAS time to date
        GROUP DateTime
+       ICON metadata
 
        Convert this point in time to date, discarding the time of day
        information.
@@ -593,6 +625,7 @@ type Date_Time
 
     ## ALIAS change time zone
        GROUP DateTime
+       ICON date_and_time
 
        Convert the time instant to the same instant in the provided time zone.
 
@@ -610,6 +643,7 @@ type Date_Time
         Time_Utils.with_zone_same_instant self zone
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns a requested date-time part as integer.
 
        Produces a warning for a Date_Time that is before epoch start.
@@ -631,6 +665,7 @@ type Date_Time
             Time_Period.Nanosecond  -> self.nanosecond
 
     ## GROUP DateTime
+       ICON date_and_time
        Computes a time difference between the two date-times.
 
        It returns an integer expressing how many periods fit between the two
@@ -649,6 +684,7 @@ type Date_Time
         Time_Utils.unit_datetime_difference period.to_java_unit self end
 
     ## GROUP DateTime
+       ICON date_and_time
        Shifts the date-time by a specified period.
 
        Produces a warning for a Date_Time that is before epoch start.
@@ -664,6 +700,7 @@ type Date_Time
 
     ## ALIAS add duration, add period
        GROUP Operators
+       ICON date_and_time
        Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
@@ -697,6 +734,7 @@ type Date_Time
                 self + date_period.to_period
 
     ## GROUP DateTime
+       ICON date_and_time
        Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
@@ -740,6 +778,7 @@ type Date_Time
 
     ## ALIAS subtract duration, subtract period
        GROUP Operators
+       ICON date_and_time
        Subtract the specified amount of time from this instant to get a new
        instant.
 
@@ -798,6 +837,7 @@ type Date_Time
         JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
     ## GROUP Conversions
+       ICON convert
        Format this time as text using the specified format specifier.
 
        Arguments:

@@ -558,6 +558,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
+    case backendModule.AssetType.dataLink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         key,
@@ -737,7 +738,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 ${indent.indentClass(
+              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
                 item.depth
               )}`}
             >

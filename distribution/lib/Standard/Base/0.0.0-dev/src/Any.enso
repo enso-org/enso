@@ -98,6 +98,7 @@ type Any
 
     ## ALIAS equals
        GROUP Operators
+       ICON operators
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -146,6 +147,7 @@ type Any
 
     ## ALIAS not equals
        GROUP Operators
+       ICON operators
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -169,6 +171,7 @@ type Any
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -197,6 +200,7 @@ type Any
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -227,6 +231,7 @@ type Any
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -255,6 +260,7 @@ type Any
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if `self` is less than or equal to `that`.
 
        Arguments:
@@ -286,6 +292,7 @@ type Any
                 _ -> False
 
     ## GROUP Logical
+       ICON metadata
        Checks if the type is an instance of `Nothing`.
 
        Nothing in Enso is used as a universal value to indicate the lack of presence

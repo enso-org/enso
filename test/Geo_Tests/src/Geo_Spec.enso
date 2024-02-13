@@ -3,7 +3,7 @@ import Standard.Table.Data.Table.Table
 
 import Standard.Geo
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =

@@ -62,7 +62,7 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
       <div className="flex text-sm font-semibold mx-4 mt-2">
         <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
           <img
-            className={`transition-transform duration-300 ${
+            className={`transition-transform duration-300 shrink-0 ${
               isThreadListVisible ? '-rotate-180' : ''
             }`}
             src={TriangleDownIcon}
@@ -115,7 +115,7 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-ide-bg backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
@@ -125,8 +125,8 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
                 key={thread.id}
                 className={`flex p-1 ${
                   thread.id === threadId
-                    ? 'cursor-default bg-gray-350'
-                    : 'cursor-pointer hover:bg-gray-300'
+                    ? 'cursor-default bg-frame-selected'
+                    : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
                   event.stopPropagation()

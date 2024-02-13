@@ -4,7 +4,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type_Helpers
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 add_specs suite_builder =
     suite_builder.group "Value_Type" group_builder->

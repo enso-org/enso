@@ -132,7 +132,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         let i = 1
         while (true) {
           i += 1
-          const candidateTitle = `${basename} (${i}).${extension}`
+          const candidateTitle = `${basename} ${i}.${extension}`
           if (!siblingFileNames.current.has(candidateTitle)) {
             if (commit) {
               siblingFileNames.current.add(candidateTitle)
@@ -149,7 +149,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         let i = 1
         while (true) {
           i += 1
-          const candidateTitle = `${title} (${i})`
+          const candidateTitle = `${title} ${i}`
           if (!siblingProjectNames.current.has(candidateTitle)) {
             if (commit) {
               siblingProjectNames.current.add(candidateTitle)

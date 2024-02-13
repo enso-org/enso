@@ -307,6 +307,11 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   }
 
   /** Invalid operation. */
+  createPlaceholderDataLink() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   createPlaceholderSecret() {
     return this.invalidOperation()
   }
@@ -557,13 +562,18 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Invalid operation. */
   override listTags() {
-    return Promise.resolve([])
+    return this.invalidOperation()
   }
 
-  /** Do nothing. This function should never need to be called. */
+  /** Invalid operation. */
   override deleteTag() {
-    return Promise.resolve()
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listSecrets() {
+    return this.invalidOperation()
   }
 }

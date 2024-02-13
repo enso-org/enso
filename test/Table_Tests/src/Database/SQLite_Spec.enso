@@ -14,7 +14,7 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec

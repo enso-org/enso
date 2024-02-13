@@ -1,5 +1,5 @@
 import { parseEnso } from '@/util/ast'
-import { swapKeysAndValues, unsafeEntries } from '@/util/record'
+import { swapKeysAndValues } from '@/util/record'
 import type { AstId, MutableAst, NodeKey, Owned, TokenId, TokenKey } from 'shared/ast'
 import {
   Ast,
@@ -41,11 +41,11 @@ export function unescape(string: string) {
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
-  const nodes = new Map(unsafeEntries(parsed.info.nodes))
-  const tokens = new Map(unsafeEntries(parsed.info.tokens))
   const module = MutableModule.Transient()
   const tree = parseEnso(parsed.code)
   const ast = abstract(module, tree, parsed.code)
+  // const nodes = new Map(unsafeEntries(parsed.info.nodes))
+  // const tokens = new Map(unsafeEntries(parsed.info.tokens))
   // TODO: ast <- nodes,tokens
   return ast.root
 }

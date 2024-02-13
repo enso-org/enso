@@ -11,8 +11,8 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
-from Standard.Test_New import all
-import Standard.Test_New.Spec_Result.Spec_Result
+from Standard.Test import all
+import Standard.Test.Spec_Result.Spec_Result
 
 
 

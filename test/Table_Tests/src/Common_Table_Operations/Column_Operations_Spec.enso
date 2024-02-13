@@ -14,7 +14,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import all
 import Standard.Database.Data.Table.Table as Database_Table
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import enso_dev.Base_Tests.Data.Round_Spec
@@ -1364,10 +1364,10 @@ add_specs suite_builder setup =
                 supported_replace_params . should_be_a Set
                 are_params_supported = supported_replace_params.contains params
                 case are_params_supported of
-                    True -> column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
-                    False -> column.replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
+                    True -> column.text_replace term new_text case_sensitivity only_first . to_vector . should_equal expected
+                    False -> column.text_replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
             False ->
-                result = column.replace term new_text case_sensitivity only_first
+                result = column.text_replace term new_text case_sensitivity only_first
                 result.value_type . should_equal Value_Type.Char
                 result . to_vector . should_equal expected
 
@@ -1470,7 +1470,7 @@ add_specs suite_builder setup =
         group_builder.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
             col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
             locale = Locale.new "en" "GB" "UTF-8"
-            col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+            col.text_replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
         group_builder.specify "column name" <|
             table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
@@ -1480,11 +1480,11 @@ add_specs suite_builder setup =
 
             supported_replace_params = setup.test_selection.supported_replace_params
             if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
-                col.replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
+                col.text_replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
             if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
-                col.replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
+                col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
             if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
-                col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
+                col.text_replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
 
     suite_builder.group prefix+"Column Operations - Text Replace (in-memory only)" group_builder->
 
@@ -1498,18 +1498,18 @@ add_specs suite_builder setup =
                 setup.table_builder cols connection=data.connection
 
             group_builder.specify "should allow simple replacing" <|
-                data.a.replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
-                data.a.replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
-                data.a.replace data.b "#" . to_vector . should_equal ["#lpha", "Bravo", "Ch#rlie", "Delta", "Ech#", "Foxtrot"]
-                data.a.replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtrot"]
-                data.a.replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
-                data.a.replace data.b "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtr#t"]
-                data.a.replace data.b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
+                data.a.text_replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                data.a.text_replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
+                data.a.text_replace data.b "#" . to_vector . should_equal ["#lpha", "Bravo", "Ch#rlie", "Delta", "Ech#", "Foxtrot"]
+                data.a.text_replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtrot"]
+                data.a.text_replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                data.a.text_replace data.b "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtr#t"]
+                data.a.text_replace data.b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
 
             group_builder.specify "should allow regex based replacing" <|
-                data.a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                data.a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                data.a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+                data.a.text_replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                data.a.text_replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                data.a.text_replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
             group_builder.specify "should handle unicode" <|
                 table = table_builder [["x", ["śćxx", "ąąasdfąą", "aﬃb"]], ["patterns", ["ć", "ąą", "ﬃ"]], ["replacements", ["abc", "def", "ghi"]]]
@@ -1517,7 +1517,7 @@ add_specs suite_builder setup =
                 patterns = table.at "patterns"
                 replacements = table.at "replacements"
 
-                col.replace patterns replacements . to_vector . should_equal ["śabcxx", "defasdfdef", "aghib"]
+                col.text_replace patterns replacements . to_vector . should_equal ["śabcxx", "defasdfdef", "aghib"]
 
             group_builder.specify "should take pattern and replacement string columns" <|
                 t = table_builder [["x", ["hello", "what", "yes"]], ["patterns", ["ell", "wh", "es"]], ["replacements", ["xyz", "qwer", "asdf"]]]
@@ -1525,23 +1525,23 @@ add_specs suite_builder setup =
                 patterns = t.at "patterns"
                 replacements = t.at "replacements"
 
-                col.replace patterns replacements . to_vector . should_equal ["hxyzo", "qwerat", "yasdf"]
+                col.text_replace patterns replacements . to_vector . should_equal ["hxyzo", "qwerat", "yasdf"]
 
             group_builder.specify "should only allow replace on Text columns" <|
-                data.c.replace "a" "#" . should_fail_with Invalid_Value_Type
-                data.a.replace 1 "#" . should_fail_with Invalid_Value_Type
-                data.a.replace data.c "#" . should_fail_with Invalid_Value_Type
-                data.a.replace "a" 1 . should_fail_with Invalid_Value_Type
-                data.a.replace "a" data.c . should_fail_with Invalid_Value_Type
+                data.c.text_replace "a" "#" . should_fail_with Invalid_Value_Type
+                data.a.text_replace 1 "#" . should_fail_with Invalid_Value_Type
+                data.a.text_replace data.c "#" . should_fail_with Invalid_Value_Type
+                data.a.text_replace "a" 1 . should_fail_with Invalid_Value_Type
+                data.a.text_replace "a" data.c . should_fail_with Invalid_Value_Type
 
             group_builder.specify "should not replace if Empty term" <|
-                data.a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                data.a.replace data.d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                data.a.text_replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                data.a.text_replace data.d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 
             group_builder.specify "should infer correct return type" <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
 
-                c1 = c.replace "a" "---"
+                c1 = c.text_replace "a" "---"
                 c1.to_vector . should_equal ["foo", "b---r"]
                 vt1 = c1.value_type
                 Test.with_clue "c1.value_type="+vt1.to_display_text+": " <|
@@ -1551,7 +1551,7 @@ add_specs suite_builder setup =
             group_builder.specify "should infer correct return type (2)" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
                 c2 = c.cast (Value_Type.Char size=2 variable_length=False)
-                c3 = c2.replace "a" "---"
+                c3 = c2.text_replace "a" "---"
 
                 c3.to_vector . should_equal ["fo", "b---"]
                 vt3 = c3.value_type

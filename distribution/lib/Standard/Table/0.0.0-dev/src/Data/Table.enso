@@ -14,6 +14,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -302,6 +303,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
@@ -724,6 +726,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -784,7 +787,7 @@ type Table
        > Example
          Sort the table by columns whose names start with letter `a`.
 
-              table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+              table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     order_by self (columns = [self.columns.first.name]) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
@@ -1137,6 +1140,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -1695,6 +1699,7 @@ type Table
             Column.Value (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1823,7 +1828,7 @@ type Table
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
-    ## ALIAS cartesian join, append
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1961,8 +1966,8 @@ type Table
                 Table.Value java_table
 
     ## ALIAS find replace
-       GROUP Standard.Base.Calculations
-       ICON join
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
@@ -2518,6 +2523,7 @@ type Table
         Table.Value (self.java_table.slice offset limit)
 
     ## GROUP Standard.Base.Selections
+       ICON order
        Returns a table containing the rows of `self` table with their order
        reversed.
 
@@ -2594,12 +2600,12 @@ type Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     @format Widget_Helpers.write_table_selector
-    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_writing_format path
-                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path Table) else
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path.file Table) else
                     self.write path format=base_format on_existing_file match_columns on_problems
             _ ->
                 handle_no_write_method caught_panic =
@@ -2613,7 +2619,7 @@ type Table
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
-    
+
     ## GROUP Standard.Base.Conversions
        Returns a string containing an XML representation of the table.
        Arguments:
@@ -2669,7 +2675,7 @@ type Table
         resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
         java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
 
-        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Not_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column]) . map .name
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] Filter_Action.Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
@@ -2702,7 +2708,7 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=False)
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
     fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2730,7 +2736,7 @@ type Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=True)
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
     fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2758,26 +2764,26 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.text_replace "-" "_"
+             table.text_replace ["Input"] "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             table.text_replace ["Input"] "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    @term Widget_Helpers.make_column_ref_or_text_value_selector
-    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
+    @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
     text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
-        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
+        transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE

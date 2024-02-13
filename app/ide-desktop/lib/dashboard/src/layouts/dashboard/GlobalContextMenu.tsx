@@ -7,6 +7,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -125,7 +126,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcutManager.KeyboardAction.newDataConnector}
+          action={shortcutManager.KeyboardAction.newSecret}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -134,6 +135,27 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newSecret,
+                    parentKey: directoryKey ?? rootDirectory.value.id,
+                    parent: directory ?? rootDirectory,
+                    name,
+                    value,
+                  })
+                }}
+              />
+            )
+          }}
+        />
+      )}
+      {isCloud && (
+        <MenuEntry
+          hidden={hidden}
+          action={shortcutManager.KeyboardAction.newDataLink}
+          doAction={() => {
+            setModal(
+              <UpsertDataLinkModal
+                doCreate={(name, value) => {
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.newDataLink,
                     parentKey: directoryKey ?? rootDirectory.value.id,
                     parent: directory ?? rootDirectory,
                     name,

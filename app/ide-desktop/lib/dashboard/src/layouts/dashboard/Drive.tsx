@@ -284,6 +284,21 @@ export default function Drive(props: DriveProps) {
     [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
+  const doCreateDataLink = React.useCallback(
+    (name: string, value: unknown) => {
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newDataLink,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          name,
+          value,
+        })
+      }
+    },
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
+  )
+
   switch (status) {
     case DriveStatus.offline: {
       return (
@@ -362,6 +377,7 @@ export default function Drive(props: DriveProps) {
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
+              doCreateDataLink={doCreateDataLink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>

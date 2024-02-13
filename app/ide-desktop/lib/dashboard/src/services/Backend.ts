@@ -43,6 +43,10 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
+/** Unique identifier for a Data Link. */
+export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
+export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
@@ -214,6 +218,14 @@ export interface SecretInfo {
   readonly id: SecretId
 }
 
+/** A Data Link. */
+export type Connector = newtype.Newtype<unknown, 'Connector'>
+
+/** Metadata uniquely identifying a Data Link. */
+export interface ConnectorInfo {
+  readonly id: ConnectorId
+}
+
 /** A label. */
 export interface Label {
   readonly id: TagId
@@ -335,6 +347,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
+  dataLink = 'connector',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
@@ -347,6 +360,7 @@ export enum AssetType {
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
+  readonly [AssetType.dataLink]: ConnectorId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
@@ -358,6 +372,7 @@ export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
   [AssetType.directory]: 'folder',
   [AssetType.project]: 'project',
   [AssetType.file]: 'file',
+  [AssetType.dataLink]: 'Data Link',
   [AssetType.secret]: 'secret',
   [AssetType.specialLoading]: 'special loading asset',
   [AssetType.specialEmpty]: 'special empty asset',
@@ -372,7 +387,8 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
-  [AssetType.secret]: 3,
+  [AssetType.dataLink]: 3,
+  [AssetType.secret]: 4,
   [AssetType.specialLoading]: 999,
   [AssetType.specialEmpty]: 1000,
   /* eslint-enable @typescript-eslint/no-magic-numbers */
@@ -413,6 +429,9 @@ export interface ProjectAsset extends Asset<AssetType.project> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
 
+/** A convenience alias for {@link Asset}<{@link AssetType.dataLink}>. */
+export interface DataLinkAsset extends Asset<AssetType.dataLink> {}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
 
@@ -440,6 +459,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
+  | DataLinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
@@ -485,6 +505,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = FileId(id)
       break
     }
+    case AssetType.dataLink: {
+      result = ConnectorId(id)
+      break
+    }
     case AssetType.secret: {
       result = SecretId(id)
       break
@@ -498,7 +522,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
   }
-  // This is SAFE, just too complex for TypeScript to correctly typecheck.
+  // This is SAFE, just too dynamic for TypeScript to correctly typecheck.
   // eslint-disable-next-line no-restricted-syntax
   return result as IdType[Type]
 }
@@ -509,6 +533,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
 export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link DataLinkAsset}. */
+export const assetIsDataLink = assetIsType(AssetType.dataLink)
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
@@ -596,28 +622,10 @@ export interface CreatePermissionRequestBody {
   readonly action: permissions.PermissionAction | null
 }
 
-/** HTTP request body for the "update directory" endpoint. */
-export interface UpdateDirectoryRequestBody {
-  readonly title: string
-}
-
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId?: DirectoryId | null
   readonly description?: string | null
-}
-
-/** HTTP request body for the "update project" endpoint.
- * Only updates of the `projectName` or `ami` are allowed. */
-export interface UpdateProjectRequestBody {
-  readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-}
-
-/** HTTP request body for the "upload file" endpoint. */
-export interface UploadFileRequestBody {
-  file: globalThis.File
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -626,31 +634,44 @@ export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
 }
 
-/** HTTP request body for the "update secret" endpoint. */
-export interface UpdateSecretRequestBody {
-  readonly value: string
+/** Body for the "update directory" API function. */
+export interface UpdateAssetOrDirectoryRequestBody extends UpdateAssetRequestBody {
+  readonly title?: string
 }
 
-/** Body for the "update directory" API function. */
-export interface UpdateAssetOrDirectoryRequestBody
-  extends UpdateAssetRequestBody,
-    Partial<{ [K in keyof UpdateDirectoryRequestBody]: UpdateDirectoryRequestBody[K] | null }> {}
-
 /** Body for the "update project" API function. */
-export interface UpdateAssetOrProjectRequestBody
-  extends UpdateAssetRequestBody,
-    Partial<{ [K in keyof UpdateProjectRequestBody]: UpdateProjectRequestBody[K] | null }>,
-    Partial<{ [K in keyof UploadFileRequestBody]: UploadFileRequestBody[K] | null }> {}
+export interface UpdateAssetOrProjectRequestBody extends UpdateAssetRequestBody {
+  // Project update parameters
+  readonly projectName?: string | null
+  readonly ami?: Ami | null
+  /** Updating this field is not allowed. */
+  readonly ideVersion?: VersionNumber | null
+  // File update parameters
+  readonly file?: globalThis.File
+}
 
 /** Body for the "update file" API function. */
-export interface UpdateAssetOrFileRequestBody
-  extends UpdateAssetRequestBody,
-    Partial<{ [K in keyof UploadFileRequestBody]: UploadFileRequestBody[K] | null }> {}
+export interface UpdateAssetOrFileRequestBody extends UpdateAssetRequestBody {
+  readonly file?: globalThis.File
+}
+
+/** Body for the "update Data Link" API function. */
+export interface UpdateAssetOrDataLinkRequestBody extends UpdateAssetRequestBody {
+  readonly value?: unknown
+}
 
 /** Body for the "update secret" API function. */
-export interface UpdateAssetOrSecretRequestBody
-  extends UpdateAssetRequestBody,
-    Partial<{ [K in keyof UpdateSecretRequestBody]: UpdateSecretRequestBody[K] | null }> {}
+export interface UpdateAssetOrSecretRequestBody extends UpdateAssetRequestBody {
+  readonly value?: string
+}
+
+/** HTTP request body for the "create connector" endpoint. */
+export interface CreateConnectorRequestBody {
+  name: string
+  value: unknown
+  parentDirectoryId: DirectoryId | null
+  connectorId: ConnectorId | null
+}
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
@@ -837,6 +858,12 @@ export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
     file: globalThis.File,
     permissions: UserPermission[]
   ) => SmartFile
+  /** Create a {@link SmartDataLink} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderDataLink: (
+    title: string,
+    value: unknown,
+    permissions: UserPermission[]
+  ) => SmartDataLink
   /** Create a {@link SmartSecret} that is to be uploaded on the backend via `.materialize()` */
   readonly createPlaceholderSecret: (
     title: string,
@@ -867,6 +894,15 @@ export interface SmartFile extends SmartAsset<FileAsset> {
   readonly getDetails: () => Promise<FileDetails>
 }
 
+/** A smart wrapper around a {@link DataLinkAsset}. */
+export interface SmartDataLink extends SmartAsset<DataLinkAsset> {
+  /** Return the JSON value of this Data Link. */
+  readonly getValue: () => Promise<Connector>
+  readonly update: (body: UpdateAssetOrDataLinkRequestBody) => Promise<this>
+  /** Delete this Data Link. */
+  readonly deleteDataLink: () => Promise<void>
+}
+
 /** A smart wrapper around a {@link SecretAsset}. */
 export interface SmartSecret extends SmartAsset<SecretAsset> {
   /** Return a secret environment variable. */
@@ -883,6 +919,7 @@ export interface SmartSpecialEmptyAsset extends SmartAsset<SpecialEmptyAsset> {}
 
 /** All possible types of smart asset. */
 export type AnySmartAsset =
+  | SmartDataLink
   | SmartDirectory
   | SmartFile
   | SmartProject
@@ -908,4 +945,6 @@ export default abstract class Backend {
   abstract listTags(): Promise<Label[]>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
+  /** List all secrets in all directories. */
+  abstract listSecrets(): Promise<SecretInfo[]>
 }

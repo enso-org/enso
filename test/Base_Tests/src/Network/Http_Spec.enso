@@ -12,8 +12,8 @@ import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
 
-from Standard.Test_New import all
-from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test import all
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 type Test_Type
     Aaa (s:Text)

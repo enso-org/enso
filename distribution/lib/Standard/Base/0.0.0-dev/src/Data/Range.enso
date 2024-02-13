@@ -7,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
@@ -132,6 +133,7 @@ type Range
             if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -144,6 +146,7 @@ type Range
             throw_zero_step_error
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -331,6 +334,7 @@ type Range
         built.to_vector
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
@@ -353,6 +357,7 @@ type Range
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
@@ -401,6 +406,7 @@ type Range
             if result.is_nothing then if_missing else result.first
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example
@@ -519,7 +525,7 @@ type Range
 
              0.up_to 10 . reduce (+)
     reduce : (Integer -> Integer -> Integer) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Range)) =
         len = self.length
         case len of
             0 -> if_empty
@@ -571,14 +577,6 @@ get_index range min max value =
         index = (diff / range.step).floor
         if index < min || index > max then Nothing else
             index
-
-## An error representing that the list is empty.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The Range is empty."
 
 ## PRIVATE
 range_default_filter_condition_widget =

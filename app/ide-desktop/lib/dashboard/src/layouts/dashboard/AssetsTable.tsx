@@ -1055,6 +1055,17 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         break
       }
+      case AssetListEventType.newDataLink: {
+        doToggleDirectoryExpansion(event.parent, event.parentKey, true)
+        const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const placeholderItem = event.parent.createPlaceholderDataLink(
+          event.name,
+          event.value,
+          permission
+        )
+        insertAssets([placeholderItem], event.parentKey, event.parent)
+        break
+      }
       case AssetListEventType.newSecret: {
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
         const permission = permissions.tryGetSingletonOwnerPermission(organization, user)
@@ -1452,7 +1463,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const itemRows = isLoading ? (
     <tr className="h-8">
       <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid justify-around w-full">
+        <div className="grid justify-around w-container">
           <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
         </div>
       </td>
@@ -1708,7 +1719,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
           <div className="sticky top-0 h-0 flex flex-col">

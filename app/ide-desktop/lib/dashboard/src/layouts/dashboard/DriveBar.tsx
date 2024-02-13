@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
@@ -14,6 +15,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
@@ -32,6 +34,7 @@ export interface DriveBarProps {
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
+  readonly doCreateDataLink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -40,7 +43,7 @@ export interface DriveBarProps {
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
   const { category, isCloud, canDownloadFiles, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
@@ -70,11 +73,7 @@ export default function DriveBar(props: DriveBarProps) {
         <button
           disabled={!isHomeCategory}
           className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          {...(!isHomeCategory
-            ? {
-                title: 'You can only create a new project in Home.',
-              }
-            : {})}
+          {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
           onClick={() => {
             unsetModal()
             doCreateProject()
@@ -107,13 +106,27 @@ export default function DriveBar(props: DriveBarProps) {
             <Button
               active={isHomeCategory}
               disabled={!isHomeCategory}
-              error="You can only create a secret in Home."
-              image={AddConnectorIcon}
+              error="You can only create a new secret in Home."
+              image={AddKeyIcon}
               alt="New Secret"
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+              }}
+            />
+          )}
+          {isCloud && (
+            <Button
+              active={isHomeCategory}
+              disabled={!isHomeCategory}
+              error="You can only create a new Data Link in Home."
+              image={AddConnectorIcon}
+              alt="New Data Link"
+              disabledOpacityClassName="opacity-20"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
               }}
             />
           )}
@@ -160,9 +173,7 @@ export default function DriveBar(props: DriveBarProps) {
             onClick={event => {
               event.stopPropagation()
               unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.downloadSelected,
-              })
+              dispatchAssetEvent({ type: AssetEventType.downloadSelected })
             }}
           />
         </div>

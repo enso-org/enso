@@ -10,6 +10,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector
@@ -54,6 +55,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -160,6 +162,7 @@ type Table
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
@@ -970,6 +973,7 @@ type Table
             self.make_column (self.internal_columns.at i)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
@@ -1019,6 +1023,7 @@ type Table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -1079,7 +1084,7 @@ type Table
        > Example
          Sort the table by columns whose names start with letter `a`.
 
-              table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+              table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
@@ -1306,7 +1311,7 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS cartesian join, append
+    ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
        ICON join
        Joins tables by pairing every row of the left table with every row of the
@@ -1421,8 +1426,8 @@ type Table
             Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS find replace
-       GROUP Standard.Base.Calculations
-       ICON join
+       GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces values in `column` using `lookup_table` to specify a
        mapping from old to new values.
 
@@ -1806,9 +1811,9 @@ type Table
                    able to store it in a vector and then we will partition the
                    created columns and failures.
                 result.catch Any error->
-                    Wrapped_Error.Value error
+                    DB_Wrapped_Error.Value error
 
-            partitioned = results.partition (_.is_a Wrapped_Error)
+            partitioned = results.partition (_.is_a DB_Wrapped_Error)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
@@ -2319,6 +2324,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of table columns to a more specific one, based on
        their contents.
 
@@ -2416,7 +2422,7 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata 
+    ## ALIAS metadata
        GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
 
@@ -2595,8 +2601,8 @@ type Table
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     @format Widget_Helpers.write_table_selector
-    write : File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path:File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
 
@@ -2622,7 +2628,7 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=False)
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
     fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2650,7 +2656,7 @@ type Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=True)
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
     fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2678,26 +2684,26 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.text_replace ["col0", "col1"] "-" "_"
+             table.text_replace ["Input"] "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_replace ["col.*".to_regex] "^\s*(.*?)\s*$".to_regex "$1"
+             table.text_replace ["Input"] "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace ["col0"] '"(.*?)"'.to_regex '($1)'
+             table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    @term Widget_Helpers.make_column_ref_or_text_value_selector
-    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
+    @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
     text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
-        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
+        transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE
@@ -2759,11 +2765,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
         table + missing
-
-## PRIVATE
-type Wrapped_Error
-    ## PRIVATE
-    Value value
 
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
