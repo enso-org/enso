@@ -28,13 +28,9 @@ case class URIBuilder private (uri: URI) {
     val scheme    = uri.getScheme
     val authority = uri.getAuthority
     val path      = uri.getPath
-    val query     = uri.getQuery
+    val query     = if (uri.getQuery == null) "" else uri.getQuery + "&"
     val fragment  = uri.getFragment
-    val newQuery =
-      if (query == null) null
-      else {
-        query + "&" + key + "=" + value
-      }
+    val newQuery = query + key + "=" + value
     val newUri = new URI(scheme, authority, path, newQuery, fragment)
     copy(newUri)
   }
