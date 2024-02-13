@@ -11,6 +11,7 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 from Standard.Base.System.File import find_extension_from_name
+from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
@@ -196,13 +197,7 @@ type S3_File
                     s3_destination : S3_File ->
                         if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
                             translate_file_errors self <| S3.copy_object self.bucket self.prefix s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
-
-                    # Generic implementation using streams
-                    _ ->
-                        self.with_input_stream [File_Access.Read] input_stream->
-                            open_settings = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
-                            destination.with_output_stream open_settings output_stream->
-                                output_stream.write_stream input_stream
+                    _ -> generic_copy self destination.file replace_existing
 
     ## Moves the file to the specified destination.
 

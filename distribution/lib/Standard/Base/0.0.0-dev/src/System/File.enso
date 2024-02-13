@@ -36,7 +36,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata.Choice import Option
 from project.System.File_Format import Auto_Detect, File_Format
-from project.System.File.Generic.File_Write_Strategy import generic_copy, generic_move
+from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
@@ -655,7 +655,9 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             case destination.file of
                 _ : File -> local_file_move self destination.file replace_existing
-                _ -> generic_move self destination.file replace_existing
+                _ ->
+                    generic_copy self destination.file replace_existing . if_not_error <|
+                        self.delete . if_not_error <| destination.file
 
     ## Deletes the file if it exists on disk.
 
