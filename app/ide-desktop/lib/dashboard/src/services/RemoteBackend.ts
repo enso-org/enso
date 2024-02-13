@@ -503,9 +503,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
             permissions: [...(asset.permissions ?? [])].sort(backend.compareUserPermissions),
           })
         )
-      // FIXME [sb]: This is TEMPORARY, until support for connectors is merged in.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      return assets.map(intoSmartAsset(this.client, this.logger)).filter(value => value != null)
+      return assets.map(intoSmartAsset(this.client, this.logger))
     }
   }
 
