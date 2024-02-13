@@ -489,7 +489,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             db_table_1 = t1.select_into_database_table data.connection (Name_Generator.random_name "source-table-1") temporary=True primary_key=Nothing
 
             db_table_2 = db_table_1.set "[Y] + 100 * [X]" "C1" . set '"constant_text"' "C2"
-            db_table_3 = db_table_1.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Sum "[Y]*[Y]" "C3"] . set "[X] + 1" "X"
+            db_table_3 = db_table_1.aggregate ["X"] [Aggregate_Column.Sum "[Y]*[Y]" "C3"] . set "[X] + 1" "X"
 
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
             db_table_4.is_trivial_query . should_fail_with Table_Not_Found

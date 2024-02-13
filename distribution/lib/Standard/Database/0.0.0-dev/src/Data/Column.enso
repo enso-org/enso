@@ -1107,7 +1107,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector add_number=(self.value_type.is_numeric || self.value_type==Value_Type.Mixed) add_boolean=(self.value_type.is_boolean || self.value_type==Value_Type.Mixed) add_text=(self.value_type.is_text || self.value_type==Value_Type.Mixed))
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
@@ -1136,7 +1136,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=True)
+    @default (Widget_Helpers.make_fill_default_value_selector add_text=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
@@ -1423,20 +1423,20 @@ type Column
        > Example
          Replace dashes with underscores.
 
-             column.replace "-" "_"
+             column.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             column.text_replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
-    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+    text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
+    text_replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first

@@ -32,34 +32,34 @@ type SQL_Fragment
     Interpolation object:Any
 
 ## PRIVATE
-type Builder
+type SQL_Builder
     ## PRIVATE
        ADVANCED
-       Creates a Builder representing and empty code fragment.
-    empty : Builder
-    empty = Builder.Value (Vector_Builder.empty)
+       Creates a SQL_Builder representing and empty code fragment.
+    empty : SQL_Builder
+    empty = SQL_Builder.Value (Vector_Builder.empty)
 
     ## PRIVATE
        ADVANCED
-       Creates a Builder representing a code fragment containing the specified raw
+       Creates a SQL_Builder representing a code fragment containing the specified raw
        code.
 
        Arguments:
        - text: The raw SQL code.
-    code : Text -> Builder
+    code : Text -> SQL_Builder
     code text =
         vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
-        Builder.Value (Vector_Builder.from_vector vec)
+        SQL_Builder.Value (Vector_Builder.from_vector vec)
 
     ## PRIVATE
        ADVANCED
-       Creates a Builder representing an interpolation of the given object.
+       Creates a SQL_Builder representing an interpolation of the given object.
 
        Arguments:
        - object: The object to be interpolated into the query as if it has the type
          given by `sql_type`.
-    interpolation : Any -> Builder
-    interpolation object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
+    interpolation : Any -> SQL_Builder
+    interpolation object = SQL_Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
 
     ## PRIVATE
        ADVANCED
@@ -68,18 +68,18 @@ type Builder
        Arguments:
        - separator: The separator to use when joining the code fragments.
        - statements: The SQL statements to join using `separator`.
-    join : Builder | Text -> Vector Builder -> Builder
+    join : SQL_Builder | Text -> Vector SQL_Builder -> SQL_Builder
     join separator statements =
         sep = case separator of
-            Builder.Value _ -> separator
-            _ : Text -> Builder.code separator
+            SQL_Builder.Value _ -> separator
+            _ : Text -> SQL_Builder.code separator
 
-        if statements.length == 0 then Builder.empty else
+        if statements.length == 0 then SQL_Builder.empty else
             (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
     ## PRIVATE
 
-       A Builder for SQL queries.
+       A SQL_Builder for SQL queries.
 
        Arguments:
        - fragments: A builder that contains fragments of SQL code.
@@ -94,14 +94,14 @@ type Builder
 
        Arguments:
        - other: The code fragment to append to `self`.
-    ++ : Builder -> Builder
+    ++ : SQL_Builder -> SQL_Builder
     ++ self other = case other of
-        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (Builder.code text).fragments)
-        _ -> Builder.Value (self.fragments ++ other.fragments)
+        text : Text -> if text == "" then self else SQL_Builder.Value (self.fragments ++ (SQL_Builder.code text).fragments)
+        _ -> SQL_Builder.Value (self.fragments ++ other.fragments)
 
     ## PRIVATE
        ADVANCED
-       Checks if the builder represents an empty code fragment.
+       Checks if the SQL_Builder represents an empty code fragment.
     is_empty : Boolean
     is_empty self = self.fragments.is_empty
 
@@ -129,8 +129,8 @@ type Builder
     ## PRIVATE
        ADVANCED
        Wraps the code fragment in parentheses.
-    paren : Builder
-    paren self = Builder.code "(" ++ self ++ ")"
+    paren : SQL_Builder
+    paren self = SQL_Builder.code "(" ++ self ++ ")"
 
     ## PRIVATE
        ADVANCED
@@ -140,11 +140,11 @@ type Builder
        - prefix: The prefix to append if the fragment is present.
 
        Empty fragments are unaffected.
-    prefix_if_present : Text | Builder -> Builder
+    prefix_if_present : Text | SQL_Builder -> SQL_Builder
     prefix_if_present self prefix =
         pref = case prefix of
-            _ : Builder -> prefix
-            _ -> Builder.code prefix
+            _ : SQL_Builder -> prefix
+            _ -> SQL_Builder.code prefix
         if self.is_empty then self else pref++self
 
 ## PRIVATE

@@ -52,6 +52,14 @@ type File_Format_Metadata
             guessed = find_extension_from_name self.name
             if guessed == "" then Nothing else guessed
 
+    ## PRIVATE
+    to_display_text self -> Text =
+        self.path.if_nothing <|
+            self.name.if_nothing <|
+                self.content_type.if_nothing <|
+                    (self.extension.if_not_nothing ("*"+self.extension)) . if_nothing <|
+                        "<Unknown file>"
+
 ## PRIVATE
 File_Format_Metadata.from (that:File) = File_Format_Metadata.Value that.path that.name that.extension that.read_first_bytes
 
