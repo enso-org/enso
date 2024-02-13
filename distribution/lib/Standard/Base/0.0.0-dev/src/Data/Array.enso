@@ -710,7 +710,7 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Vector)) = (Vector.from_polyglot_array self).reduce function if_empty
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Array)) = (Vector.from_polyglot_array self).reduce function if_empty
 
     ## GROUP Logical
        ICON preparation
