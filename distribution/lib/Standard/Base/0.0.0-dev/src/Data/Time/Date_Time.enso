@@ -285,7 +285,8 @@ type Date_Time
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
         format.parse_date_time text
 
-    ## Creates a new `Date_Time` from a Unix epoch timestamp in seconds (and optional nanoseconds).
+    ## ICON convert
+       Creates a new `Date_Time` from a Unix epoch timestamp in seconds (and optional nanoseconds).
 
        Arguments:
        - seconds: The number of seconds since the Unix epoch.
@@ -301,7 +302,8 @@ type Date_Time
     from_unix_epoch_seconds seconds:Integer nanoseconds:Integer=0 =
         unix_epoch_start + Duration.new seconds=seconds nanoseconds=nanoseconds
 
-    ## Creates a new `Date_Time` from a Unix epoch timestamp in milliseconds.
+    ## ICON convert
+       Creates a new `Date_Time` from a Unix epoch timestamp in milliseconds.
 
        Arguments:
        - milliseconds: The number of milliseconds since the Unix epoch.
@@ -835,7 +837,7 @@ type Date_Time
         JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
     ## GROUP Conversions
-       ICON text
+       ICON convert
        Format this time as text using the specified format specifier.
 
        Arguments:

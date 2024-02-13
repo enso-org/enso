@@ -108,10 +108,8 @@ type Input_Stream
        Reads the contents of this stream into a given file.
     write_to_file : File -> File
     write_to_file self file =
-        result = self.with_java_stream java_input_stream->
-            file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
-                output_stream.with_java_stream java_output_stream->
-                    java_input_stream.transferTo java_output_stream
+        result = file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
+            output_stream.write_stream self
         result.if_not_error file
 
 ## PRIVATE

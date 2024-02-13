@@ -6,7 +6,6 @@ from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.Column.Column
-import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table

@@ -89,7 +89,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "case insensitive name collisions - aggregate" <|
             t1 = table_builder [["X", [2, 1, 3, 2]]]
-            t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
+            t2 = t1.aggregate columns=[Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
 
             case is_case_sensitive of
                 True ->

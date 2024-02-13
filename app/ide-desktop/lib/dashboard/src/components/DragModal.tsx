@@ -55,10 +55,14 @@ export default function DragModal(props: DragModalProps) {
       doCleanup()
       unsetModal()
     }
+    // Update position (non-FF)
     document.addEventListener('drag', onDrag)
+    // Update position (FF)
+    document.addEventListener('dragover', onDrag)
     document.addEventListener('dragend', onDragEnd)
     return () => {
       document.removeEventListener('drag', onDrag)
+      document.removeEventListener('dragover', onDrag)
       document.removeEventListener('dragend', onDragEnd)
     }
     // `doCleanup` is a callback, not a dependency.

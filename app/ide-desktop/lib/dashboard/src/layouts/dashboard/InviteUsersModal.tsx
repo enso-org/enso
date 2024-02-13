@@ -27,7 +27,7 @@ export interface InviteUsersModalProps {
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -65,12 +65,12 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
 
   const doSubmit = () => {
     unsetModal()
-    if (organization != null) {
+    if (user != null) {
       for (const newEmail of newEmails) {
         void (async () => {
           try {
             await backend.inviteUser({
-              organizationId: organization.id,
+              organizationId: user.id,
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {
