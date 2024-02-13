@@ -36,6 +36,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata.Choice import Option
 from project.System.File_Format import Auto_Detect, File_Format
+from project.System.File.Generic.File_Write_Strategy import generic_copy, generic_move
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
@@ -636,14 +637,12 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : File -> Boolean -> Nothing ! File_Error
-    copy_to self destination replace_existing=False =
+    copy_to : Writable_File -> Boolean -> Nothing ! File_Error
+    copy_to self (destination : Writable_File) replace_existing=False =
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled.") else
-            File_Error.handle_java_exceptions self <| case replace_existing of
-                True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.copy_builtin destination copy_options
-                False -> self.copy_builtin destination []
+            case destination.file of
+                _ : File -> local_file_copy self destination.file replace_existing
+                _ -> generic_copy self destination.file replace_existing
 
     ## Moves the file to the specified destination.
 
@@ -651,14 +650,12 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File -> Boolean -> Nothing ! File_Error
-    move_to self destination replace_existing=False =
+    move_to : Writable_File -> Boolean -> Nothing ! File_Error
+    move_to self (destination : Writable_File) replace_existing=False =
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
-            File_Error.handle_java_exceptions self <| case replace_existing of
-                True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.move_builtin destination copy_options
-                False -> self.move_builtin destination []
+            case destination.file of
+                _ : File -> local_file_move self destination.file replace_existing
+                _ -> generic_move self destination.file replace_existing
 
     ## Deletes the file if it exists on disk.
 
@@ -843,3 +840,17 @@ File_Like.from (that : File) = File_Like.Value that
 ## PRIVATE
 Writable_File.from (that : File) =
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
+
+## PRIVATE
+local_file_copy : File -> File -> Boolean -> Nothing ! File_Error
+local_file_copy source destination replace_existing =
+    File_Error.handle_java_exceptions source <|
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        source.copy_builtin destination copy_options
+
+## PRIVATE
+local_file_move : File -> File -> Boolean -> Nothing ! File_Error
+local_file_move source destination replace_existing =
+    File_Error.handle_java_exceptions source <|
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        source.move_builtin destination copy_options

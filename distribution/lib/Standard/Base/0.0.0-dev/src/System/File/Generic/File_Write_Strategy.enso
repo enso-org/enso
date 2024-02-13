@@ -128,3 +128,19 @@ dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings =
         Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
     Existing_File_Behavior.Append ->
         Dry_Run_File_Settings.Value Existing_File_Behavior.Append copy_original=True
+
+## PRIVATE
+   Generic `copy` implementation between two backends.
+   The files only need to support `with_input_stream` and `with_output_stream`.
+generic_copy source destination replace_existing =
+    source.with_input_stream [File_Access.Read] input_stream->
+        options = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
+        destination.with_output_stream options output_stream->
+            output_stream.write_stream input_stream . if_not_error destination
+
+## PRIVATE
+    Generic `move` implementation between two backends.
+    The files only need to support `with_input_stream` and `with_output_stream`.
+generic_move source destination replace_existing =
+    r = generic_copy source destination replace_existing
+    r.if_not_error <| source.delete.if_not_error <| r

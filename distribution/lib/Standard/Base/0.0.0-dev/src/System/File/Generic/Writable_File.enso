@@ -69,10 +69,7 @@ type Writable_File
     to_display_text self -> Text = self.file.to_display_text
 
 ## PRIVATE
-Writable_File.from (that : Text) =
-    ## Currently this only works for local filesystem paths
-       TODO We should extend it to also support custom paths like S3, through a ServiceProvider solution
-    Writable_File.from (File.new that)
+Writable_File.from (that : Text) = Writable_File.from (File.new that)
 
 ## PRIVATE
    If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.
