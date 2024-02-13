@@ -1,13 +1,49 @@
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
+import project.Error.Error
+import project.IO
+import project.Meta
 import project.Nothing.Nothing
-from project.Data.Numbers import Integer, Float
+import project.Panic.Panic
+from project.Data.Numbers import Integer, Float, Number_Parse_Error
 
+polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 
+## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
+   `Decimal` is a wrapper around a Java `BigDecimal`.
 type Decimal
     Value (big_decimal:BigDecimal)
+
+    ## Construct `Decimal` from a string or integer.
+
+       We do not provide a constructor from `Float`, but instead require the use
+       of `Decimal.from_float`, since it is inexact.
+
+       Arguments:
+       - x: The `Integer` or `Text` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+
+       ? Number Format
+         The textual format for a Decimal is defined at
+         https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+
+       ! Error Conditions
+         - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+           is thrown.
+    new : Text | Integer -> Math_Context -> Decimal | Number_Parse_Error
+    new (x : Text | Integer) (mc : Math_Context | Nothing)=Nothing =
+        case x of
+            _ : Text -> Decimal.from_text x mc
+            _ : Integer -> Decimal.from_integer x mc
+
+    from_text : Text -> Decimal | Number_Parse_Error
+    from_text (s : Text) (mc : Math_Context | Nothing)=Nothing =
+        handle_number_format_exception <|
+            case mc of
+                _ : Math_Context -> Decimal.Value (BigDecimal.new s mc)
+                _ : Nothing -> Decimal.Value (BigDecimal.new s)
 
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
@@ -27,6 +63,18 @@ type Decimal
     get_unscaled_value : Integer
     get_unscaled_value  self = self.big_decimal.unscaledValue
 
-Decimal.from (that:Text) = Decimal.Value (BigDecimal.new that)
-Decimal.from (that:Integer) = Decimal.Value (BigDecimal.new that)
-Decimal.from (that:Float) = Decimal.Value (BigDecimal.new that)
+    get_internal_representation : [Integer]
+    get_internal_representation self = [self.get_unscaled_value, self.get_precision, self.get_scale]
+
+    to_text : Text
+    to_text self = self.big_decimal.toString
+
+## PRIVATE
+handle_number_format_exception ~action =
+    Panic.catch NumberFormatException action caught_panic->
+        Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
+
+## We do not provide a `from` instance for `Float`, but instead require the use
+   of `Decimal.from_float`, since it is inexact.
+Decimal.from (that:Text) = Decimal.from_text that
+Decimal.from (that:Integer) = Decimal.from_integer that

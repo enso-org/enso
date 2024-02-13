@@ -1,0 +1,25 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Base.Data.Numbers import Number_Parse_Error
+
+from Standard.Test import all
+
+Decimal.should_rep self rep = self.get_internal_representation . should_equal rep
+
+add_specs suite_builder =
+    suite_builder.group "construction" group_builder->
+        group_builder.specify "should be able to construct a Decimal from a string" <|
+            Decimal.new "123.45" . should_rep [12345, 5, 2]
+
+        group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
+            Decimal.new "ee" . should_fail_with Number_Parse_Error
+            Decimal.new "--123.3.3" . should_fail_with Number_Parse_Error
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
