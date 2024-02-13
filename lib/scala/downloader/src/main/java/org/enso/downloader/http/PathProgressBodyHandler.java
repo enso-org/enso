@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -49,7 +50,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
     }
     WritableByteChannel destChannel;
     try {
-      destChannel = Files.newByteChannel(destination);
+      destChannel = Files.newByteChannel(destination, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -59,6 +60,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
   private class ProgressSubscriber implements BodySubscriber<Path> {
     private Flow.Subscription subscription;
     private final WritableByteChannel destChannel;
+    private final CompletableFuture<Path> result = new CompletableFuture<>();
 
     ProgressSubscriber(WritableByteChannel destChannel) {
       this.destChannel = destChannel;
@@ -92,6 +94,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
       } catch (IOException e) {
         throwable.addSuppressed(e);
       }
+      result.completeExceptionally(throwable);
     }
 
     @Override
@@ -101,6 +104,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
       } catch (IOException e) {
         throw new IllegalStateException(e);
       }
+      result.complete(destination);
     }
 
     @Override
