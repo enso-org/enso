@@ -403,9 +403,15 @@ add_specs suite_builder =
                 new_file = my_writable_dir / "new_file-ctx.txt"
                 new_file.delete . should_fail_with Forbidden_Operation
 
-        group_builder.specify "does not raise an exception if the file being deleted did not exist in the first place" <|
+        group_builder.specify "does not raise an exception if the file being `delete_if_exists` did not exist in the first place" <|
             new_file = my_writable_dir / "nonexistent-file.txt"
-            new_file.delete . should_succeed
+            new_file.delete_if_exists . should_succeed
+
+        group_builder.specify "fails if the file being `delete_if_exists` did not exist" <|
+            new_file = my_writable_dir / "nonexistent-file2.txt"
+            r = new_file.delete
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
 
     sources = [my_writable_dir / "source1.txt", File.create_temporary_file "source2" ".txt"]
     destinations = [my_writable_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt"]
