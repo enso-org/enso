@@ -7,6 +7,7 @@
 /** A sub-page of the settings page. */
 enum SettingsTab {
   account = 'account',
+  organization = 'organization',
   features = 'features',
   notifications = 'notifications',
   billingAndPlans = 'billing-and-plans',
