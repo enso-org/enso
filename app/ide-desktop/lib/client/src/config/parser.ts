@@ -47,9 +47,9 @@ class Section<T> {
 
 /** Configuration options controlling how the help information is displayed. */
 interface PrintHelpConfig {
-    args: config.Args
-    groupsOrdering: string[]
-    helpExtended: boolean
+    readonly args: config.Args
+    readonly groupsOrdering: string[]
+    readonly helpExtended: boolean
 }
 
 /** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
@@ -234,8 +234,8 @@ function fixArgvNoPrefix(argv: string[]): string[] {
 
 /** Command line options, split into regular arguments and Chrome options. */
 interface ArgvAndChromeOptions {
-    argv: string[]
-    chromeOptions: ChromeOption[]
+    readonly argv: string[]
+    readonly chromeOptions: ChromeOption[]
 }
 
 /** Parse the given list of arguments into two distinct sets: regular arguments and those specific
@@ -317,11 +317,11 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
     interface YargsArgs {
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
-        [key: string]: string[] | string
-        _: string[]
+        readonly [key: string]: string[] | string
+        readonly _: string[]
         // Exists only when the `populate--` option is enabled.
-        '--'?: string[]
-        $0: string
+        readonly '--'?: string[]
+        readonly $0: string
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 

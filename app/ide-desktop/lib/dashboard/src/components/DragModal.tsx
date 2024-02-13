@@ -17,12 +17,14 @@ const DEFAULT_OFFSET_PX = 16
 // =================
 
 /** Props for a {@link DragModal}. */
-export interface DragModalProps extends React.PropsWithChildren<JSX.IntrinsicElements['div']> {
-  event: React.DragEvent
-  doCleanup: () => void
-  offsetPx?: number
-  offsetXPx?: number
-  offsetYPx?: number
+export interface DragModalProps
+  extends Readonly<React.PropsWithChildren>,
+    Readonly<JSX.IntrinsicElements['div']> {
+  readonly event: React.DragEvent
+  readonly doCleanup: () => void
+  readonly offsetPx?: number
+  readonly offsetXPx?: number
+  readonly offsetYPx?: number
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -53,10 +55,14 @@ export default function DragModal(props: DragModalProps) {
       doCleanup()
       unsetModal()
     }
+    // Update position (non-FF)
     document.addEventListener('drag', onDrag)
+    // Update position (FF)
+    document.addEventListener('dragover', onDrag)
     document.addEventListener('dragend', onDragEnd)
     return () => {
       document.removeEventListener('drag', onDrag)
+      document.removeEventListener('dragover', onDrag)
       document.removeEventListener('dragend', onDragEnd)
     }
     // `doCleanup` is a callback, not a dependency.

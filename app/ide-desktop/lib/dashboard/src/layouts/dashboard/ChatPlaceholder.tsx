@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as reactDom from 'react-dom'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
+import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
@@ -16,10 +17,10 @@ import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
-  page: pageSwitcher.Page
+  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
-  isOpen: boolean
-  doClose: () => void
+  readonly isOpen: boolean
+  readonly doClose: () => void
 }
 
 /** A placeholder component replacing `Chat` when a user is not logged in. */
@@ -36,8 +37,8 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 transition-transform ${
-          page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <div className="flex text-sm font-semibold mx-4 mt-2">

@@ -22,28 +22,28 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  supportsLocalBackend: boolean
-  page: pageSwitcher.Page
-  setPage: (page: pageSwitcher.Page) => void
-  isHelpChatOpen: boolean
-  setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  projectAsset: backendModule.ProjectAsset | null
-  setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  doRemoveSelf: () => void
-  onSignOut: () => void
+  readonly supportsLocalBackend: boolean
+  readonly page: pageSwitcher.Page
+  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly isHelpChatOpen: boolean
+  readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
+  readonly projectAsset: backendModule.ProjectAsset | null
+  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+  readonly doRemoveSelf: () => void
+  readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
   const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const self =
-    organization != null
+    user != null
       ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === organization.email
+          permissions => permissions.user.user_email === user.email
         ) ?? null
       : null
   const shouldShowShareButton =
@@ -96,7 +96,7 @@ export default function UserBar(props: UserBarProps) {
         }}
       >
         <img
-          src={organization?.profilePicture ?? DefaultUserIcon}
+          src={user?.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}

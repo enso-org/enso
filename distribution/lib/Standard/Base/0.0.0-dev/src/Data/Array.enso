@@ -7,13 +7,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
-import project.Data.Vector.Empty_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
@@ -287,6 +287,7 @@ type Array
     last_index_of self condition start=-1 = Vector.last_index_of self condition start
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is empty.
 
        > Example
@@ -510,7 +511,7 @@ type Array
     pad self n elem = Vector.pad self n elem
 
     ## GROUP Selections
-       ICON preparation
+       ICON split_text
        Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -644,6 +645,7 @@ type Array
     get self index ~if_missing=Nothing = Vector.get self index if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is not empty.
 
        > Example
@@ -670,6 +672,7 @@ type Array
     filter_with_index self predicate = Vector.filter_with_index self predicate
 
     ## GROUP Calculations
+       ICON join
        When `self` is an array of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -707,9 +710,10 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Array)) = Vector.reduce self function if_empty
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
@@ -729,6 +733,7 @@ type Array
     any self condition = Vector.any self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this array.
 
        Arguments:
@@ -748,6 +753,7 @@ type Array
     all self condition = Vector.all self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this array contains a given value as an element.
 
        Arguments:
@@ -866,6 +872,7 @@ type Array
 
     ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 

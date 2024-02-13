@@ -29,7 +29,7 @@ import scala.concurrent.duration._
   *
   * @param runtimeFailureMapper mapper for runtime failures
   * @param rpcSession reference to the client
-  * @param contextId exectuion context identifier
+  * @param contextId execution context identifier
   * @param sessionRouter the session router
   * @param updatesSendRate how often send the updates to the user
   */
@@ -313,7 +313,7 @@ object ContextEventsListener {
     *
     * @param runtimeFailureMapper mapper for runtime failures
     * @param rpcSession reference to the client
-    * @param contextId exectuion context identifier
+    * @param contextId execution context identifier
     * @param sessionRouter the session router
     * @param updatesSendRate how often send the updates to the user
     */

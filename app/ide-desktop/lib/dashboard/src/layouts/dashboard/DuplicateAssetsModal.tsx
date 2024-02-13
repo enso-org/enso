@@ -14,6 +14,7 @@ import Modal from '#/components/Modal'
 import * as backendModule from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
+import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 // =================
@@ -131,7 +132,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         let i = 1
         while (true) {
           i += 1
-          const candidateTitle = `${basename} (${i}).${extension}`
+          const candidateTitle = `${basename} ${i}.${extension}`
           if (!siblingFileNames.current.has(candidateTitle)) {
             if (commit) {
               siblingFileNames.current.add(candidateTitle)
@@ -148,7 +149,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         let i = 1
         while (true) {
           i += 1
-          const candidateTitle = `${title} (${i})`
+          const candidateTitle = `${title} ${i}`
           if (!siblingProjectNames.current.has(candidateTitle)) {
             if (commit) {
               siblingProjectNames.current.add(candidateTitle)
@@ -173,7 +174,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const doRename = (toRename: ConflictingAsset[]) => {
     const clonedConflicts = structuredClone(toRename)
     for (const conflict of clonedConflicts) {
-      conflict.new.title = findNewName(conflict)
+      // This is SAFE, as it is a shallow mutation of a freshly cloned object.
+      object.unsafeMutable(conflict.new).title = findNewName(conflict)
     }
     dispatchAssetListEvent({
       type: AssetListEventType.insertAssets,

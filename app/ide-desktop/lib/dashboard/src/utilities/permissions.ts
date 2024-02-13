@@ -19,7 +19,7 @@ export enum PermissionAction {
 }
 
 /** Whether each {@link PermissionAction} can execute a project. */
-export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+export const PERMISSION_ACTION_CAN_EXECUTE: Readonly<Record<PermissionAction, boolean>> = {
   [PermissionAction.own]: true,
   [PermissionAction.admin]: true,
   [PermissionAction.edit]: true,
@@ -53,7 +53,7 @@ export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
   [Permission.read]: 'text-tag-text bg-permission-read',
   [Permission.view]: 'text-tag-text-2 bg-permission-view',
   [Permission.delete]: 'text-tag-text bg-delete',
-} as const
+}
 
 /** Precedences for each permission. A lower number means a higher priority. */
 export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
@@ -179,7 +179,7 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
 
 /** Properties common to all permissions. */
 interface BasePermissions<T extends Permission> {
-  type: T
+  readonly type: T
 }
 
 /** Owner permissions for an asset. */
@@ -193,14 +193,14 @@ interface EditPermissions extends BasePermissions<Permission.edit> {}
 
 /** Reader permissions for an asset. */
 interface ReadPermissions extends BasePermissions<Permission.read> {
-  docs: boolean
-  execute: boolean
+  readonly docs: boolean
+  readonly execute: boolean
 }
 
 /** Viewer permissions for an asset. */
 interface ViewPermissions extends BasePermissions<Permission.view> {
-  docs: boolean
-  execute: boolean
+  readonly docs: boolean
+  readonly execute: boolean
 }
 
 /** Detailed permission information. This is used to draw the border. */
@@ -211,11 +211,11 @@ export type Permissions =
   | ReadPermissions
   | ViewPermissions
 
-export const DEFAULT_PERMISSIONS: Readonly<Permissions> = {
+export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
   type: Permission.view,
   docs: false,
   execute: false,
-}
+})
 
 // ======================================
 // === tryGetSingletonOwnerPermission ===
@@ -224,7 +224,7 @@ export const DEFAULT_PERMISSIONS: Readonly<Permissions> = {
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
-  owner: backend.UserOrOrganization | null,
+  owner: backend.User | null,
   user: backend.SimpleUser | null
 ): backend.UserPermission[] {
   return owner != null

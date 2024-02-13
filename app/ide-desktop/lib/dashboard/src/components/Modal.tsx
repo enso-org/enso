@@ -8,16 +8,16 @@ import * as modalProvider from '#/providers/ModalProvider'
 // =================
 
 /** Props for a {@link Modal}. */
-export interface ModalProps extends React.PropsWithChildren {
+export interface ModalProps extends Readonly<React.PropsWithChildren> {
   /** If `true`, disables `data-testid` because it will not be visible. */
-  hidden?: boolean
+  readonly hidden?: boolean
   // This can intentionally be `undefined`, in order to simplify consumers of this component.
   // eslint-disable-next-line no-restricted-syntax
-  centered?: boolean | undefined
-  style?: React.CSSProperties
-  className?: string
-  onClick?: React.MouseEventHandler<HTMLDivElement>
-  onContextMenu?: React.MouseEventHandler<HTMLDivElement>
+  readonly centered?: boolean | undefined
+  readonly style?: React.CSSProperties
+  readonly className?: string
+  readonly onClick?: React.MouseEventHandler<HTMLDivElement>
+  readonly onContextMenu?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** A fullscreen modal with content at the center. The background is fully opaque by default;

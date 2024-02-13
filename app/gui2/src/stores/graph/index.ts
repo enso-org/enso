@@ -12,8 +12,14 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast, RawAst, visitRecursive } from '@/util/ast'
-import type { AstId, Module, NodeMetadata, NodeMetadataFields } from '@/util/ast/abstract'
-import { MutableModule, ReactiveModule, isIdentifier } from '@/util/ast/abstract'
+import type {
+  AstId,
+  Module,
+  ModuleUpdate,
+  NodeMetadata,
+  NodeMetadataFields,
+} from '@/util/ast/abstract'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -21,11 +27,11 @@ import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
+import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import {
   sourceRangeKey,
   visMetadataEquals,
-  type SourceRange,
   type SourceRangeKey,
   type VisualizationIdentifier,
   type VisualizationMetadata,
@@ -75,57 +81,50 @@ export const useGraphStore = defineStore('graph', () => {
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  const moduleCode = ref<string>()
-  const moduleData = ref<{
-    getSpan: (id: Ast.AstId) => SourceRange | undefined
-    toRaw: (id: Ast.AstId) => RawAst.Tree.Tree | undefined
-  }>()
-  const astModule = ref<Module>(new Ast.EmptyModule())
+  const moduleSource = reactive(SourceDocument.Empty())
   const moduleRoot = ref<Ast.Ast>()
   const topLevel = ref<Ast.BodyBlock>()
 
+  let disconnectSyncModule: undefined | (() => void)
   watch(syncModule, (syncModule) => {
     if (!syncModule) return
-    const _astModule = new ReactiveModule(syncModule, [handleModuleUpdate])
+    let moduleChanged = true
+    disconnectSyncModule?.()
+    const handle = syncModule.observe((update) => {
+      moduleSource.applyUpdate(syncModule, update)
+      handleModuleUpdate(syncModule, moduleChanged, update)
+      moduleChanged = false
+    })
+    disconnectSyncModule = () => {
+      syncModule.unobserve(handle)
+      moduleSource.clear()
+    }
   })
 
-  function handleModuleUpdate(
-    module: Module,
-    dirtyNodes: Iterable<AstId>,
-    metadataUpdates: { id: AstId; changes: Map<string, unknown> }[],
-  ) {
-    const moduleChanged = astModule.value !== reactive(module)
-    if (moduleChanged) {
-      if (astModule.value instanceof ReactiveModule) astModule.value.disconnect()
-      astModule.value = module
-    }
+  let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
+  function handleModuleUpdate(module: Module, moduleChanged: boolean, update: ModuleUpdate) {
     const root = module.root()
     if (!root) return
     moduleRoot.value = root
     if (root instanceof Ast.BodyBlock) topLevel.value = root
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-    const nodeMetadataUpdates = metadataUpdates as any as { id: AstId; changes: NodeMetadata }[]
-    const dirtyNodeSet = new Set(dirtyNodes)
+    const nodeMetadataUpdates = update.metadataUpdated as any as {
+      id: AstId
+      changes: NodeMetadata
+    }[]
+    const dirtyNodeSet = new Set(update.fieldsUpdated.map(({ id }) => id))
     if (moduleChanged || dirtyNodeSet.size !== 0) {
-      const { code, info } = Ast.print(root)
-      moduleCode.value = code
       db.updateExternalIds(root)
-      const getSpan = Ast.spanMapToSpanGetter(info)
-      const toRawMap = new Map<SourceRangeKey, RawAst.Tree>()
-      visitRecursive(Ast.parseEnso(code), (node) => {
+      toRaw = new Map()
+      visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
         if (node.type === RawAst.Tree.Type.Function) {
           const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
           const end = start + node.childrenLengthInCodeParsed
-          toRawMap.set(sourceRangeKey([start, end]), node)
+          toRaw.set(sourceRangeKey([start, end]), node)
+          return false
         }
         return true
       })
-      const toRaw = (id: Ast.AstId) => {
-        const span = getSpan(id)
-        if (!span) return
-        return toRawMap.get(sourceRangeKey(span))
-      }
-      moduleData.value = { toRaw, getSpan }
       updateState(dirtyNodeSet)
     }
     if (nodeMetadataUpdates.length !== 0) {
@@ -134,20 +133,22 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateState(dirtyNodes?: Set<AstId>) {
-    if (!moduleData.value) return
     const module = proj.module
     if (!module) return
-    const textContentLocal = moduleCode.value
+    const textContentLocal = moduleSource.text
     if (!textContentLocal) return
-    methodAst.value = methodAstInModule(astModule.value)
+    if (!syncModule.value) return
+    methodAst.value = methodAstInModule(syncModule.value)
     if (methodAst.value) {
-      const rawFunc = moduleData.value.toRaw(methodAst.value.id)
-      assert(rawFunc?.type === RawAst.Tree.Type.Function)
+      const methodSpan = moduleSource.getSpan(methodAst.value.id)
+      assert(methodSpan != null)
+      const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
+      assert(rawFunc != null)
       db.readFunctionAst(
         methodAst.value,
         rawFunc,
         textContentLocal,
-        moduleData.value.getSpan,
+        (id) => moduleSource.getSpan(id),
         dirtyNodes ?? new Set(),
       )
     }
@@ -275,7 +276,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    const nodeAst = astModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     const oldPos = nodeAst.nodeMetadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -295,7 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
-    const nodeAst = astModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -306,7 +307,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const nodeAst = astModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -317,7 +318,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const nodeAst = astModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {
@@ -401,7 +402,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function startEdit(): MutableModule {
-    return astModule.value.edit()
+    return syncModule.value!.edit()
   }
 
   /** Apply the given `edit` to the state.
@@ -544,13 +545,12 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
-    moduleCode,
+    moduleSource,
     nodeRects,
     vizRects,
     visibleNodeAreas,
     unregisterNodeRect,
     methodAst,
-    astModule,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,

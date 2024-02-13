@@ -62,7 +62,7 @@ import Visibility from '#/utilities/visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    extraColumns: columnUtils.ExtraColumn[]
+    readonly extraColumns: columnUtils.ExtraColumn[]
   }
 }
 
@@ -204,10 +204,11 @@ function insertArbitraryAssetTreeNodeChildren(
   const nodes = (item.children ?? []).filter(
     node => node.item.type !== backendModule.AssetType.specialEmpty
   )
-  const byType: Record<backendModule.AssetType, backendModule.AnyAsset[]> = {
+  const byType: Readonly<Record<backendModule.AssetType, backendModule.AnyAsset[]>> = {
     [backendModule.AssetType.directory]: [],
     [backendModule.AssetType.project]: [],
     [backendModule.AssetType.file]: [],
+    [backendModule.AssetType.dataLink]: [],
     [backendModule.AssetType.secret]: [],
     [backendModule.AssetType.specialLoading]: [],
     [backendModule.AssetType.specialEmpty]: [],
@@ -237,7 +238,7 @@ function insertArbitraryAssetTreeNodeChildren(
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
+const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
   [Category.recent]: null,
   [Category.home]: backendModule.FilterBy.active,
   [Category.trash]: backendModule.FilterBy.trashed,
@@ -249,82 +250,87 @@ const CATEGORY_TO_FILTER_BY: Record<Category, backendModule.FilterBy | null> = {
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-  numberOfSelectedItems: number
-  visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
-  category: Category
-  labels: Map<backendModule.LabelName, backendModule.Label>
-  deletedLabelNames: Set<backendModule.LabelName>
-  hasPasteData: boolean
-  setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
-  sortColumn: columnUtils.SortableColumn | null
-  setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  sortDirection: SortDirection | null
-  setSortDirection: (sortDirection: SortDirection | null) => void
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetPanelProps: React.Dispatch<
+  readonly numberOfSelectedItems: number
+  readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
+  readonly category: Category
+  readonly labels: Map<backendModule.LabelName, backendModule.Label>
+  readonly deletedLabelNames: Set<backendModule.LabelName>
+  readonly hasPasteData: boolean
+  readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
+  readonly sortColumn: columnUtils.SortableColumn | null
+  readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
+  readonly sortDirection: SortDirection | null
+  readonly setSortDirection: (sortDirection: SortDirection | null) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  nodeMap: Readonly<React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>>
-  doToggleDirectoryExpansion: (
+  readonly nodeMap: Readonly<
+    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  >
+  readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
     key: backendModule.AssetId,
     title?: string | null,
     override?: boolean
   ) => void
   /** Called when the project is opened via the `ProjectActionButton`. */
-  doOpenManually: (projectId: backendModule.ProjectId) => void
-  doOpenIde: (
+  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+  readonly doOpenIde: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseIde: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (
+    newParentKey: backendModule.AssetId,
+    newParentId: backendModule.DirectoryId
+  ) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-  setVisibility: (visibility: Visibility) => void
-  isEditingName: boolean
-  temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
-  temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
+  readonly setVisibility: (visibility: Visibility) => void
+  readonly isEditingName: boolean
+  readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
+  readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  setCanDownloadFiles: (canDownloadFiles: boolean) => void
-  category: Category
-  allLabels: Map<backendModule.LabelName, backendModule.Label>
-  setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-  initialProjectName: string | null
-  projectStartupInfo: backendModule.ProjectStartupInfo | null
-  deletedLabelNames: Set<backendModule.LabelName>
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
+  readonly category: Category
+  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
+  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+  readonly initialProjectName: string | null
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly deletedLabelNames: Set<backendModule.LabelName>
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
-  queuedAssetEvents: assetEvent.AssetEvent[]
-  assetListEvents: assetListEvent.AssetListEvent[]
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  setAssetPanelProps: React.Dispatch<
+  readonly queuedAssetEvents: assetEvent.AssetEvent[]
+  readonly assetListEvents: assetListEvent.AssetListEvent[]
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  doOpenIde: (
+  readonly doOpenIde: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseIde: (project: backendModule.ProjectAsset) => void
-  doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
@@ -335,7 +341,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
 
-  const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -353,8 +359,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -387,6 +393,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       return null
     } else {
       return (node: AssetTreeNode) => {
+        if (
+          node.item.type === backendModule.AssetType.specialEmpty ||
+          node.item.type === backendModule.AssetType.specialLoading
+        ) {
+          // This is FINE, as these assets have no meaning info to match with.
+          // eslint-disable-next-line no-restricted-syntax
+          return false
+        }
         const assetType =
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
@@ -990,7 +1004,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, organization, backend]
+    [category, accessToken, user, backend]
   )
 
   React.useEffect(() => {
@@ -1184,13 +1198,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     ) => {
       const actualParentKey = parentKey ?? rootDirectoryId
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree(oldAssetTree => {
-        return oldAssetTree.map(item =>
+      setAssetTree(oldAssetTree =>
+        oldAssetTree.map(item =>
           item.key !== actualParentKey
             ? item
             : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
         )
-      })
+      )
     },
     [rootDirectoryId]
   )
@@ -1238,7 +1252,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,
@@ -1260,13 +1274,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: projectName,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(organization != null ? { opened_by: organization.email } : {}),
+            ...(user != null ? { opened_by: user.email } : {}),
           },
           labels: [],
           description: null,
@@ -1295,7 +1309,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter(project =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
           const placeholderFiles = files.map(file =>
             backendModule.createPlaceholderFileAsset(file.name, event.parentId, ownerPermission)
@@ -1305,7 +1319,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               project.name,
               event.parentId,
               ownerPermission,
-              organization
+              user
             )
           )
           doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
@@ -1351,7 +1365,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 basename,
                 event.parentId,
                 ownerPermission,
-                organization
+                user
               ),
               file: project,
             }
@@ -1396,7 +1410,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       backendModule.stripProjectExtension(project.name),
                       event.parentId,
                       ownerPermission,
-                      organization
+                      user
                     )
                     fileMap.set(asset.id, project)
                     return asset
@@ -1413,6 +1427,27 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         break
       }
+      case AssetListEventType.newDataLink: {
+        const placeholderItem: backendModule.DataLinkAsset = {
+          type: backendModule.AssetType.dataLink,
+          id: backendModule.ConnectorId(uniqueString.uniqueString()),
+          title: event.name,
+          modifiedAt: dateTime.toRfc3339(new Date()),
+          parentId: event.parentId,
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
+          projectState: null,
+          labels: [],
+          description: null,
+        }
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
+        insertAssets([placeholderItem], event.parentKey, event.parentId)
+        dispatchAssetEvent({
+          type: AssetEventType.newDataLink,
+          placeholderId: placeholderItem.id,
+          value: event.value,
+        })
+        break
+      }
       case AssetListEventType.newSecret: {
         const placeholderItem: backendModule.SecretAsset = {
           type: backendModule.AssetType.secret,
@@ -1420,7 +1455,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,
@@ -1616,7 +1651,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-    if (filtered != null && filtered.length > 0) {
+    if ((filtered != null && filtered.length > 0) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
     }
   }
@@ -1828,7 +1863,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const itemRows = isLoading ? (
     <tr className="h-8">
       <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid justify-around w-full">
+        <div className="grid justify-around w-container">
           <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
         </div>
       </td>
@@ -2080,6 +2115,15 @@ export default function AssetsTable(props: AssetsTableProps) {
               newParentId: rootDirectoryId,
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
+          } else if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault()
+            event.stopPropagation()
+            dispatchAssetListEvent({
+              type: AssetListEventType.uploadFiles,
+              parentKey: rootDirectoryId,
+              parentId: rootDirectoryId,
+              files: Array.from(event.dataTransfer.files),
+            })
           }
         }}
       />
@@ -2087,11 +2131,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
       <div className="flex flex-col w-min min-w-full h-full">
-        {backend.type !== backendModule.BackendType.local && (
-          <div className="sticky top-0 h-0">
-            <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
+        {isCloud && (
+          <div className="sticky top-0 h-0 flex flex-col">
+            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
               <div className="inline-flex gap-3">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button

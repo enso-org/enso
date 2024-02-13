@@ -30,9 +30,9 @@ enum QuerySource {
 
 /** A suggested query. */
 export interface Suggestion {
-  render: () => React.ReactNode
-  addToQuery: (query: AssetQuery) => AssetQuery
-  deleteFromQuery: (query: AssetQuery) => AssetQuery
+  readonly render: () => React.ReactNode
+  readonly addToQuery: (query: AssetQuery) => AssetQuery
+  readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
 // ======================
@@ -41,10 +41,10 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  labels: backend.Label[]
-  suggestions: Suggestion[]
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backend.Label[]
+  readonly suggestions: Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
@@ -135,7 +135,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               return oldIndex == null ? 0 : (oldIndex + 1) % length
             }
           })
-          // FIXME: `setQuery`?
         }
         if (event.key === 'Enter' || event.key === ' ') {
           querySource.current = QuerySource.external
@@ -155,6 +154,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
         !(event.target instanceof HTMLInputElement) &&
+        !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         shortcutManager.isTextInputEvent(event)

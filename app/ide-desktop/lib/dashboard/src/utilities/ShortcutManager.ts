@@ -3,6 +3,7 @@ import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
@@ -82,7 +83,8 @@ export enum KeyboardAction {
   uploadProjects = 'upload-projects',
   newProject = 'new-project',
   newFolder = 'new-folder',
-  newDataConnector = 'new-data-connector',
+  newSecret = 'new-secret',
+  newDataLink = 'new-data-link',
   closeModal = 'close-modal',
   cancelEditName = 'cancel-edit-name',
   changeYourPassword = 'change-your-password',
@@ -105,25 +107,25 @@ export enum MouseButton {
  *
  * If a key is omitted, the shortcut will be triggered regardless of its value in the event. */
 interface Modifiers {
-  ctrl?: boolean
-  alt?: boolean
-  shift?: boolean
-  meta?: boolean
+  readonly ctrl?: boolean
+  readonly alt?: boolean
+  readonly shift?: boolean
+  readonly meta?: boolean
 }
 
 /** A keyboard shortcut. */
 export interface KeyboardShortcut extends Modifiers {
   // Every printable character is a valid value for `key`, so unions and enums are both
   // not an option here.
-  key: string
-  action: KeyboardAction
+  readonly key: string
+  readonly action: KeyboardAction
 }
 
 /** A mouse shortcut. If a key is omitted, that means its value does not matter. */
 export interface MouseShortcut extends Modifiers {
-  button: MouseButton
-  action: MouseAction
-  clicks: number
+  readonly button: MouseButton
+  readonly action: MouseAction
+  readonly clicks: number
 }
 
 /** All possible modifier keys. */
@@ -132,11 +134,9 @@ export type ModifierKey = (typeof MODIFIERS)[number]
 /** A list of all possible modifier keys, in order. */
 export const MODIFIERS =
   detect.platform() === detect.Platform.macOS
-    ? // This is required to derive the `ModifierKey` type above.
-      // eslint-disable-next-line no-restricted-syntax
+    ? // These MUST be `as const` to derive the `ModifierKey` type above.
       (['Meta', 'Shift', 'Alt', 'Ctrl'] as const)
-    : // eslint-disable-next-line no-restricted-syntax
-      (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
+    : (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
 
 // ========================
 // === isTextInputEvent ===
@@ -172,7 +172,9 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 // =============================
 
 /** Create a mapping from {@link KeyboardAction} to `T`. */
-function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<KeyboardAction, T> {
+function makeKeyboardActionMap<T>(
+  make: (action: KeyboardAction) => T
+): Readonly<Record<KeyboardAction, T>> {
   // This is SAFE, as the types of the keys are statically known.
   // eslint-disable-next-line no-restricted-syntax
   return Object.fromEntries(
@@ -186,12 +188,12 @@ function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<K
 
 /** Data needed to render a keyboard shortcut in a context menu. */
 export interface ShortcutInfo {
-  name: string
+  readonly name: string
   /** A URL to the image representing this shortcut. */
-  icon: string
+  readonly icon: string
   /** A Tailwind class for the desired color of the icon. It should be in the form `text-<color>`,
    * where `<color>` is replaced with the actual color. */
-  colorClass?: string
+  readonly colorClass?: string
 }
 
 // ===============================
@@ -242,14 +244,16 @@ function modifiersMatchEvent(
 /** Holds all keyboard and mouse shortcutManager, and provides functions to detect them. */
 export default class ShortcutManager {
   keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
-  allKeyboardHandlers: Record<
-    KeyboardAction,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-    ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+  allKeyboardHandlers: Readonly<
+    Record<
+      KeyboardAction,
+      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+      ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
+    >
   > = makeKeyboardActionMap(() => [])
   /** The last handler (if any) for each action in
    * {@link ShortcutManager.allKeyboardHandlers}. */
-  activeKeyboardHandlers: Record<
+  readonly activeKeyboardHandlers: Record<
     KeyboardAction,
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
     ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
@@ -257,9 +261,9 @@ export default class ShortcutManager {
 
   /** Create a {@link ShortcutManager}. */
   constructor(
-    public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
-    public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
-    public keyboardShortcutInfo: Record<KeyboardAction, ShortcutInfo>
+    public readonly keyboardShortcuts: Readonly<Record<KeyboardAction, KeyboardShortcut[]>>,
+    public readonly mouseShortcuts: Readonly<Record<MouseAction, MouseShortcut[]>>,
+    public readonly keyboardShortcutInfo: Readonly<Record<KeyboardAction, ShortcutInfo>>
   ) {
     this.updateKeyboardShortcutsByKey()
   }
@@ -424,8 +428,8 @@ const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 /** The key known as the `Delete` key for the current platform. */
 const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
-/** The default keyboard shortcutManager. */
-const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
+/** The default keyboard shortcuts. */
+const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortcut[]>> = {
   [KeyboardAction.settings]: [keybind(KeyboardAction.settings, [CTRL], ',')],
   [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
   [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
@@ -455,7 +459,16 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
   [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
   [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
   [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
-  [KeyboardAction.newDataConnector]: [keybind(KeyboardAction.newDataConnector, [CTRL, 'Alt'], 'N')],
+  [KeyboardAction.newSecret]: [
+    keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], 'N'),
+    ...(!detect.isOnMacOS() ? [] : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], '~')]),
+  ],
+  [KeyboardAction.newDataLink]: [
+    keybind(KeyboardAction.newDataLink, [CTRL, 'Alt', 'Shift'], 'N'),
+    ...(!detect.isOnMacOS()
+      ? []
+      : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt', 'Shift'], '~')]),
+  ],
   [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
   [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
   [KeyboardAction.changeYourPassword]: [],
@@ -465,15 +478,12 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 }
 
 /** The default UI data for every keyboard shortcut. */
-const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
+const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutInfo>> = {
   [KeyboardAction.settings]: { name: 'Settings', icon: SettingsIcon },
   [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
   [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
   [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
-  [KeyboardAction.uploadToCloud]: {
-    name: 'Upload To Cloud',
-    icon: CloudToIcon,
-  },
+  [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
   [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
   [KeyboardAction.edit]: { name: 'Edit', icon: PenIcon },
   [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
@@ -487,24 +497,10 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     icon: TrashIcon,
     colorClass: 'text-delete',
   },
-  [KeyboardAction.delete]: {
-    name: 'Delete',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.deleteAll]: {
-    name: 'Delete All',
-    icon: TrashIcon,
-    colorClass: 'text-delete',
-  },
-  [KeyboardAction.restoreFromTrash]: {
-    name: 'Restore From Trash',
-    icon: UntrashIcon,
-  },
-  [KeyboardAction.restoreAllFromTrash]: {
-    name: 'Restore All From Trash',
-    icon: UntrashIcon,
-  },
+  [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.restoreFromTrash]: { name: 'Restore From Trash', icon: UntrashIcon },
+  [KeyboardAction.restoreAllFromTrash]: { name: 'Restore All From Trash', icon: UntrashIcon },
   [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
   [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
   [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
@@ -516,32 +512,23 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
   [KeyboardAction.pasteAll]: { name: 'Paste All', icon: PasteIcon },
   [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
   [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
-  [KeyboardAction.uploadProjects]: {
-    name: 'Upload Projects',
-    icon: DataUploadIcon,
-  },
+  [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
   [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
   [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
-  [KeyboardAction.newDataConnector]: { name: 'New Secret', icon: AddConnectorIcon },
+  [KeyboardAction.newSecret]: { name: 'New Secret', icon: AddKeyIcon },
+  [KeyboardAction.newDataLink]: { name: 'New Data Link', icon: AddConnectorIcon },
   // These should not appear in any context menus.
   [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
   [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
-  [KeyboardAction.changeYourPassword]: {
-    name: 'Change Your Password',
-    icon: ChangePasswordIcon,
-  },
+  [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
   [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
-  [KeyboardAction.signOut]: {
-    name: 'Logout',
-    icon: SignOutIcon,
-    colorClass: 'text-delete',
-  },
+  [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
   [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
   [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }
 
-/** The default mouse shortcutManager. */
-const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
+/** The default mouse shortcuts. */
+const DEFAULT_MOUSE_SHORTCUTS: Readonly<Record<MouseAction, MouseShortcut[]>> = {
   [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
   [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
   [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],

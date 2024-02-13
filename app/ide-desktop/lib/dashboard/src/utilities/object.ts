@@ -18,6 +18,24 @@ export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: 
   return object => Object.assign({ ...object }, update)
 }
 
+// ================
+// === readonly ===
+// ================
+
+/** Makes all properties readonly at the type level. They are still mutable at the runtime level. */
+export function readonly<T extends object>(object: T): Readonly<T> {
+  return object
+}
+
+// =====================
+// === unsafeMutable ===
+// =====================
+
+/** Removes the readonly modifier from all properties on the object. UNSAFE. */
+export function unsafeMutable<T extends object>(object: T): { -readonly [K in keyof T]: T[K] } {
+  return object
+}
+
 // =====================
 // === unsafeEntries ===
 // =====================
@@ -29,4 +47,22 @@ export function unsafeEntries<T extends object>(
 ): { [K in keyof T]: [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
+}
+
+// ================
+// === asObject ===
+// ================
+
+/** Either return the object unchanged, if the input was an object, or `null`. */
+export function asObject(value: unknown): object | null {
+  return typeof value === 'object' && value != null ? value : null
+}
+
+// =============================
+// === singletonObjectOrNull ===
+// =============================
+
+/** Either return a singleton object, if the input was an object, or an empty array. */
+export function singletonObjectOrNull(value: unknown): [] | [object] {
+  return typeof value === 'object' && value != null ? [value] : []
 }
