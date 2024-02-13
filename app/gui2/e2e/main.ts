@@ -1,5 +1,6 @@
 import 'enso-dashboard/src/tailwind.css'
 import { createPinia } from 'pinia'
+import { initializeFFI } from 'shared/ast/ffi'
 import { createApp, ref } from 'vue'
 import { mockDataHandler, mockLSHandler } from '../mock/engine'
 import '../src/assets/base.css'
@@ -8,6 +9,8 @@ import { provideVisualizationConfig } from '../src/providers/visualizationConfig
 import { Vec2 } from '../src/util/data/vec2'
 import { MockTransport, MockWebSocket } from '../src/util/net'
 import MockApp from './MockApp.vue'
+
+await initializeFFI()
 
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)

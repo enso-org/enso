@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
@@ -38,9 +38,7 @@ const prefixes = Prefixes.FromLines({
   skip: 'SKIP __',
   freeze: 'FREEZE __',
 })
-</script>
 
-<script setup lang="ts">
 const props = defineProps<{
   node: Node
   edited: boolean
