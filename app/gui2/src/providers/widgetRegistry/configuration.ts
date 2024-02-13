@@ -175,10 +175,17 @@ export type ArgumentWidgetConfiguration = z.infer<typeof argumentSchema>
 export const argsWidgetConfigurationSchema = z.array(argumentSchema)
 export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSchema>
 
-export function functionCallConfiguration(parameters: ArgumentWidgetConfiguration[]): FunctionCall {
+export function functionCallConfiguration(
+  parameters: ArgumentWidgetConfiguration[],
+  parent?: FunctionCall,
+): FunctionCall {
+  const parametersMap = new Map(parent?.parameters)
+  for (const [name, param] of parameters) {
+    parametersMap.set(name, param)
+  }
   return {
     kind: 'FunctionCall',
-    parameters: new Map(parameters),
+    parameters: parametersMap,
   }
 }
 
