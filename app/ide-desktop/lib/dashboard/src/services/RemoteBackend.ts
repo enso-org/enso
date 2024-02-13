@@ -304,6 +304,21 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
       return assets.map(intoSmartAsset(this.client, this.logger))
     }
   }
+
+  /** Return the secret environment variables accessible by the user. */
+  async listSecrets(): Promise<backend.SecretInfo[]> {
+    /** HTTP response body for this endpoint. */
+    interface ResponseBody {
+      readonly secrets: backend.SecretInfo[]
+    }
+    const path = remoteBackendPaths.LIST_SECRETS_PATH
+    const response = await this.httpGet<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not list secrets.')
+    } else {
+      return (await response.json()).secrets
+    }
+  }
 }
 
 /** A smart wrapper around a {@link backend.AnyAsset}. */
@@ -1253,22 +1268,6 @@ export default class RemoteBackend extends Backend {
       return this.throw(`Could not delete label '${value}'.`)
     } else {
       return
-    }
-  }
-
-  /** Return the secret environment variables accessible by the user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listSecrets(): Promise<backend.SecretInfo[]> {
-    /** HTTP response body for this endpoint. */
-    interface ResponseBody {
-      readonly secrets: backend.SecretInfo[]
-    }
-    const path = remoteBackendPaths.LIST_SECRETS_PATH
-    const response = await this.get<ResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list secrets.')
-    } else {
-      return (await response.json()).secrets
     }
   }
 

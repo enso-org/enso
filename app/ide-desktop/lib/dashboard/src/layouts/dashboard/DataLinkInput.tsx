@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
-import * as backendProvider from '#/providers/BackendProvider'
+import * as authProvider from '#/providers/AuthProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
@@ -84,7 +84,7 @@ export interface DataLinkInputProps {
 export default function DataLinkInput(props: DataLinkInputProps) {
   const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
   const { setValue: setValueRaw } = props
-  const { backend } = backendProvider.useBackend()
+  const { organization } = authProvider.useNonPartialUserSession()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
@@ -116,7 +116,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           if (autocompleteItems == null) {
             setAutocompleteItems([])
             void (async () => {
-              const secrets = await backend.listSecrets()
+              const secrets = (await organization?.listSecrets()) ?? []
               // FIXME: Extract secret path instead of ID.
               setAutocompleteItems(secrets.map(secret => secret.id))
             })()

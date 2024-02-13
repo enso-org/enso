@@ -799,6 +799,8 @@ export interface SmartUser extends SmartObject<UserOrOrganization> {
   readonly listUsers: () => Promise<SimpleUser[]>
   /** List recently modified assets. */
   readonly listRecentFiles: () => Promise<AnySmartAsset[]>
+  /** List all secrets in all directories. */
+  readonly listSecrets: () => Promise<SecretInfo[]>
 }
 
 /** A smart wrapper around an {@link AnyAsset}. */
@@ -945,6 +947,4 @@ export default abstract class Backend {
   abstract listTags(): Promise<Label[]>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
-  /** List all secrets in all directories. */
-  abstract listSecrets(): Promise<SecretInfo[]>
 }

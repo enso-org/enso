@@ -111,6 +111,11 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
   listRecentFiles() {
     return this.invalidOperation()
   }
+
+  /** Invalid operation. */
+  listSecrets() {
+    return this.invalidOperation()
+  }
 }
 
 /** A smart wrapper around a {@link backend.AnyAsset}. */
@@ -569,11 +574,6 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override deleteTag() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override listSecrets() {
     return this.invalidOperation()
   }
 }
