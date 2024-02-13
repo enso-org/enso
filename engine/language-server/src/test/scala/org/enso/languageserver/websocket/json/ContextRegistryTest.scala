@@ -957,7 +957,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
       client.expectJson(json.ok(2))
     }
 
-    "successfully modify visualization method111" in {
+    "successfully modify visualization method pointer" in {
       val client = getInitialisedWsClient()
 
       // create context
