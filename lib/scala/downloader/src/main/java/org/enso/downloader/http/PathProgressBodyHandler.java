@@ -50,7 +50,8 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
     }
     WritableByteChannel destChannel;
     try {
-      destChannel = Files.newByteChannel(destination, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      destChannel =
+          Files.newByteChannel(destination, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }

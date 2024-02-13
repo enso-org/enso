@@ -36,8 +36,12 @@ case class HTTPRequestBuilder private (
     */
   def postFiles(files: Seq[Path]): HTTPRequestBuilder = {
     val boundary = UUID.randomUUID().toString.replace("-", "")
-    val bodyPublisher = FilesMultipartBodyPublisher.ofMimeMultipartData(files.asJava, boundary)
-    internalBuilder.setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
+    val bodyPublisher =
+      FilesMultipartBodyPublisher.ofMimeMultipartData(files.asJava, boundary)
+    internalBuilder.setHeader(
+      "Content-Type",
+      "multipart/form-data; boundary=" + boundary
+    )
     copy(
       internalBuilder = internalBuilder.POST(bodyPublisher)
     )

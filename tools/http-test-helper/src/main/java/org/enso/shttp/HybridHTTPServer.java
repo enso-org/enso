@@ -19,8 +19,13 @@ public class HybridHTTPServer {
   private final Path keyStorePath;
   private volatile boolean isStarted = false;
 
-  HybridHTTPServer(String hostname, int port, int sslPort, Path keyStorePath,
-      Executor executor, boolean withSSLServer)
+  HybridHTTPServer(
+      String hostname,
+      int port,
+      int sslPort,
+      Path keyStorePath,
+      Executor executor,
+      boolean withSSLServer)
       throws IOException {
     this.keyStorePath = keyStorePath;
     InetSocketAddress address = new InetSocketAddress(hostname, port);

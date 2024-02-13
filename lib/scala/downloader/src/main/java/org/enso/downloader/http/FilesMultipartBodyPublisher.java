@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This utility class adds support for {@code multipart/form-data} content-type as there is no such
@@ -17,8 +16,8 @@ import java.util.Map;
  * <p>Inspired by <a href="https://stackoverflow.com/a/56482187/4816269">SO</a>.
  */
 public class FilesMultipartBodyPublisher {
-  public static HttpRequest.BodyPublisher ofMimeMultipartData(Collection<Path> files, String boundary)
-      throws IOException {
+  public static HttpRequest.BodyPublisher ofMimeMultipartData(
+      Collection<Path> files, String boundary) throws IOException {
     // Result request body
     List<byte[]> byteArrays = new ArrayList<>();
 
@@ -35,12 +34,8 @@ public class FilesMultipartBodyPublisher {
       // otherwise simply append key=value
       String mimeType = Files.probeContentType(path);
       byteArrays.add(
-            (" filename=\""
-                    + path.getFileName()
-                    + "\"\r\nContent-Type: "
-                    + mimeType
-                    + "\r\n\r\n")
-                .getBytes(StandardCharsets.UTF_8));
+          (" filename=\"" + path.getFileName() + "\"\r\nContent-Type: " + mimeType + "\r\n\r\n")
+              .getBytes(StandardCharsets.UTF_8));
       byteArrays.add(Files.readAllBytes(path));
       byteArrays.add("\r\n".getBytes(StandardCharsets.UTF_8));
     }
