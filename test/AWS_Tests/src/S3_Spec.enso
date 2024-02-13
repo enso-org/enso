@@ -156,6 +156,10 @@ add_specs suite_builder =
             r.should_be_a Vector
             r.at 0 . get "name" . should_equal "Green St Green"
 
+        group_builder.specify "should work with Data.read" <|
+            r = Data.read "s3://"+bucket_name+"/examples/folder 2/hello.txt"
+            r.should_equal "Hello WORLD!"
+
         group_builder.specify "should be able to read a file as bytes or stream" <|
             bytes = hello_txt.read_bytes
             bytes.should_equal "Hello WORLD!".utf_8
