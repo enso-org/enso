@@ -246,7 +246,6 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  console.log('startEditingNode')
   let sourceOffset = 0
   if (position != null) {
     let domNode, domOffset
@@ -346,7 +345,6 @@ function portGroupStyle(port: PortData) {
 }
 
 function openFullMenu() {
-  console.log('openFullMenu')
   if (!nodeSelection?.isSelected(nodeId.value)) {
     nodeSelection?.setSelection(new Set([nodeId.value]))
   }
