@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import BellIcon from 'enso-assets/bell.svg'
+import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
@@ -43,6 +44,17 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Members',
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
+        visible: true,
+      },
+    ],
+  },
+  {
+    name: 'Look and feel',
+    tabs: [
+      {
+        name: 'Keyboard shortcuts',
+        settingsTab: SettingsTab.keyboardShortcuts,
+        icon: KeyboardShortcutsIcon,
         visible: true,
       },
     ],

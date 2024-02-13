@@ -57,16 +57,24 @@ const MODIFIER_MAPPINGS: Readonly<
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-/** Props for a {@link KeyboardShortcut} */
-export interface KeyboardShortcutProps {
+/** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
+export interface KeyboardShortcutActionProps {
   readonly action: shortcutManagerModule.KeyboardAction
 }
 
+/** Props for a {@link KeyboardShortcut}, specifying the shortcut info. */
+export interface KeyboardShortcutShortcutProps {
+  readonly shortcut: shortcutManagerModule.KeyboardShortcut
+}
+
+/** Props for a {@link KeyboardShortcut}. */
+export type KeyboardShortcutProps = KeyboardShortcutActionProps | KeyboardShortcutShortcutProps
+
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
-  const { action } = props
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
-  const shortcut = shortcutManager.keyboardShortcuts[action][0]
+  const shortcut =
+    'shortcut' in props ? props.shortcut : shortcutManager.keyboardShortcuts[props.action][0]
   if (shortcut == null) {
     return null
   } else {

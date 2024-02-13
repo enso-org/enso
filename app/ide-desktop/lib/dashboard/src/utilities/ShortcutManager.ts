@@ -273,7 +273,7 @@ export default class ShortcutManager {
     return new this(
       { ...DEFAULT_KEYBOARD_SHORTCUTS },
       { ...DEFAULT_MOUSE_SHORTCUTS },
-      { ...DEFAULT_KEYBOARD_SHORTCUT_INFO }
+      { ...KEYBOARD_SHORTCUT_INFO }
     )
   }
 
@@ -384,6 +384,13 @@ export default class ShortcutManager {
       this.updateActiveKeyboardHandlers()
     }
   }
+
+  /** Remove an action for a shortcut.
+   * The shortcut to be removed MUST be identical by reference to an existing shortcut for this
+   * action. */
+  removeKeyboardShortcut(action: KeyboardAction, shortcut: KeyboardShortcut) {
+    //
+  }
 }
 
 /** A shorthand for creating a {@link KeyboardShortcut}. Should only be used in
@@ -477,8 +484,8 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortc
   [KeyboardAction.downloadApp]: [],
 }
 
-/** The default UI data for every keyboard shortcut. */
-const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutInfo>> = {
+/** The UI data for every keyboard shortcut. */
+export const KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutInfo>> = {
   [KeyboardAction.settings]: { name: 'Settings', icon: SettingsIcon },
   [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
   [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },

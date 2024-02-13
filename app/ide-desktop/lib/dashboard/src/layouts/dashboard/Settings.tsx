@@ -5,6 +5,7 @@ import * as authProvider from '#/providers/AuthProvider'
 
 import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
 import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsTab'
+import KeyboardShortcutsSettingsTab from '#/layouts/dashboard/settingsTab/KeyboardShortcutsSettingsTab'
 import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
 import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
 
@@ -25,6 +26,10 @@ export default function Settings() {
     }
     case SettingsTab.members: {
       content = <MembersSettingsTab />
+      break
+    }
+    case SettingsTab.keyboardShortcuts: {
+      content = <KeyboardShortcutsSettingsTab />
       break
     }
     default: {
