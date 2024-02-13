@@ -734,8 +734,7 @@ lazy val `logging-service` = project
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
       "com.typesafe"   % "config"    % typesafeConfigVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      akkaHttp
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
   .dependsOn(`logging-utils`)
