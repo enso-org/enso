@@ -7,8 +7,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.enso.common.HostEnsoUtils;
 import org.enso.interpreter.instrument.job.VisualizationResult;
-import org.enso.polyglot.HostEnsoUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;

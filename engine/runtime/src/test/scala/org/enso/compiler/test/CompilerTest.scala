@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.compiler.context.LocalScope
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 import java.util.UUID
 

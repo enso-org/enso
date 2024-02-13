@@ -1,4 +1,4 @@
-package org.enso.polyglot;
+package org.enso.common;
 
 import org.graalvm.polyglot.HostAccess;
 

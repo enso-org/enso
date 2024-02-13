@@ -7,7 +7,8 @@ import org.enso.logger.Converter
 import org.enso.logger.JulHandler
 import org.enso.pkg.Package
 import org.enso.pkg.SourceFile
-import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.enso.common.HostAccessFactory
+import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
 

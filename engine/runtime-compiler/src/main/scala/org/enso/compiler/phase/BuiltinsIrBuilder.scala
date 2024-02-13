@@ -8,7 +8,7 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.data.CompilerConfig
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 import scala.util.Using
 
 /** A phase responsible for initializing the builtins' IR from the provided

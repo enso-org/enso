@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime;
 
-import org.enso.polyglot.CompilationStage;
+import org.enso.common.CompilationStage;
 
 public final class ModuleTestUtils {
   private ModuleTestUtils() {}

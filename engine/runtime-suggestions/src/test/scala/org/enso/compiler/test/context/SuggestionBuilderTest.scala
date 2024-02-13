@@ -1,12 +1,11 @@
-package org.enso.compiler.test.context
-
 import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
+import org.enso.common.{LanguageInfo, MethodNames}
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

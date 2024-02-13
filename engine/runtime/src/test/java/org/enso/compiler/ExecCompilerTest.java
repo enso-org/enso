@@ -9,7 +9,7 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.logging.Level;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;

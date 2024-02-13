@@ -1,7 +1,8 @@
 package org.enso.interpreter.test
 
 import org.enso.pkg.PackageManager
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
+import org.enso.common.LanguageInfo
+import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

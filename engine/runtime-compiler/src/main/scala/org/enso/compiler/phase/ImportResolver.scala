@@ -18,7 +18,7 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 import scala.collection.mutable
 import java.io.IOException
 

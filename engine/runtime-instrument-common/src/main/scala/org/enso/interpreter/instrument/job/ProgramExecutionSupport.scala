@@ -28,7 +28,7 @@ import org.enso.interpreter.service.ExecutionService.{
   FunctionPointer
 }
 import org.enso.interpreter.service.error._
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
