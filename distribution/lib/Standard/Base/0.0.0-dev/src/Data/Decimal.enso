@@ -18,7 +18,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 type Decimal
     Value (big_decimal:BigDecimal)
 
-    ## Construct `Decimal` from a string or integer.
+    ## Construct a `Decimal` from a string or integer.
 
        We do not provide a constructor from `Float`, but instead require the use
        of `Decimal.from_float`, since it is inexact.
@@ -28,10 +28,12 @@ type Decimal
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
 
        ? Number Format
+
          The textual format for a Decimal is defined at
          https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
 
        ! Error Conditions
+
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
     new : Text | Integer -> Math_Context -> Decimal | Number_Parse_Error
@@ -40,6 +42,20 @@ type Decimal
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
 
+    ## Construct a `Decimal` from a string.
+
+       Arguments:
+       - s: The `Text` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+
+       ? Number Format
+
+         The textual format for a Decimal is defined at
+         https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+
+       ! Error Conditions
+
+         - If `s` is incorrectly formatted, a `Number_Parse_Error` is thrown.
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_number_format_exception <|
@@ -47,6 +63,11 @@ type Decimal
                 _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
                 _ : Nothing -> Decimal.Value (BigDecimal.new s)
 
+    ## Construct a `Decimal` from an integer.
+
+       Arguments:
+       - i: The `Text` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
     from_integer : Integer -> Math_Context -> Decimal
     from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal =
             case mc of
