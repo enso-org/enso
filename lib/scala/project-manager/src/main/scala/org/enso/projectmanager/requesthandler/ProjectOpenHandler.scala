@@ -1,18 +1,18 @@
 package org.enso.projectmanager.requesthandler
 
-import java.util.UUID
-
 import akka.actor.Props
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.control.effect.{Exec, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
+
+import java.io.File
+import java.util.UUID
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -23,7 +23,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param requestTimeout a request timeout
   * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
-class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
+class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
   requestTimeout: FiniteDuration,
@@ -48,11 +48,14 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
       params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
 
     for {
+      projectsDirectory <-
+        Sync[F].effect(params.projectsDirectory.map(new File(_)))
       server <- projectService.openProject(
         progressTracker        = self,
         clientId               = clientId,
         projectId              = params.projectId,
-        missingComponentAction = missingComponentAction
+        missingComponentAction = missingComponentAction,
+        projectsDirectory      = projectsDirectory
       )
     } yield ProjectOpen.Result(
       engineVersion                     = server.engineVersion,
@@ -78,7 +81,7 @@ object ProjectOpenHandler {
     * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec: CovariantFlatMap](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: Sync](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
     requestTimeout: FiniteDuration,
