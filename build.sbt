@@ -2493,11 +2493,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       "junit"                       % "junit"            % junitVersion     % Test,
       "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
-      "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test,
-      akkaActor,
-      akkaStream,
-      akkaHttp,
-      akkaSLF4J
+      "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     )
   )
   .dependsOn(cli)
