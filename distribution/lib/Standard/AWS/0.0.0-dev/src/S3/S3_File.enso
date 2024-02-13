@@ -180,7 +180,11 @@ type S3_File
 
     ## Deletes the file if it had existed.
     delete_if_exists : Nothing
-    delete_if_exists self = if self.exists then self.delete else Nothing
+    delete_if_exists self =
+        r = self.delete
+        r.catch File_Error err-> case err of
+            File_Error.Not_Found _ -> Nothing
+            _ -> r
 
     ## Copies the file to the specified destination.
 
@@ -188,8 +192,8 @@ type S3_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : S3_File -> Boolean -> Any ! File_Error
-    copy_to self (destination : Writable_File) replace_existing=False =
+    copy_to : Writable_File -> Boolean -> Any ! File_Error
+    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri) else
             if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Copying an S3_File is forbidden as the Output context is disabled.") else
                 case destination.file of
@@ -212,8 +216,8 @@ type S3_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File -> Boolean -> Nothing ! File_Error
-    move_to self destination replace_existing=False =
+    move_to : Writable_File -> Boolean -> Nothing ! File_Error
+    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             r = self.copy_to destination replace_existing=replace_existing
             r.if_not_error <|
