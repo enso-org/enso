@@ -1116,7 +1116,7 @@ type Table
                 primary_key_column_names : Vector -> case self.context.from_spec of
                     From_Spec.Table _ alias _ ->
                         primary_key_column_names.map column_name->
-                            column_expression = SQL_Expression.DB_Column alias column_name
+                            column_expression = SQL_Expression.Column alias column_name
                             Order_Descriptor.Value column_expression Sort_Direction.Ascending
                     _ -> Nothing
 
@@ -1711,7 +1711,7 @@ type Table
                         column_set = description.first
                         result_type = description.at 2
                         name = column_set.name
-                        expression = SQL_Expression.DB_Column union_alias name
+                        expression = SQL_Expression.Column union_alias name
                         input_column = Internal_Column.Value name (infer_return_type expression) expression
                         dialect.adapt_unified_column input_column result_type infer_return_type
 
@@ -2743,7 +2743,7 @@ make_table connection table_name columns ctx on_problems =
             # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
             enso_name = column_names_validator.make_unique raw_name
             # The expression keeps the original 'raw' name coming from the database.
-            expression = SQL_Expression.DB_Column table_name raw_name
+            expression = SQL_Expression.Column table_name raw_name
             Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
         problem_builder.report_unique_name_strategy column_names_validator
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
