@@ -353,16 +353,6 @@ final class SuggestionsHandler(
       }
 
     case GetSuggestionsDatabase =>
-      val responseAction = for {
-        version <- suggestionsRepo.currentVersion
-      } yield GetSuggestionsDatabaseResult(version, Seq())
-
-      responseAction.pipeTo(sender())
-
-      val handlerAction = for {
-        _ <- responseAction
-      } yield SearchProtocol.InvalidateModulesIndex
-
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           RuntimeFailureMapper(contentRootManager),
@@ -372,7 +362,9 @@ final class SuggestionsHandler(
         )
       )
 
-      handlerAction.pipeTo(handler)
+      handler ! SearchProtocol.InvalidateModulesIndex
+
+      sender() ! GetSuggestionsDatabaseResult(0, Seq())
 
       context.become(
         initialized(
