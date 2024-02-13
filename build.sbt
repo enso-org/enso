@@ -309,6 +309,7 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
+    `connected-lock-manager-server`,
     syntax,
     testkit,
     `common-polyglot-core-utils`,
@@ -1382,7 +1383,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
-  .dependsOn(`connected-lock-manager`)
+  .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
@@ -1799,6 +1800,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
+    .dependsOn(`connected-lock-manager-server`)
 
 /** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
@@ -2560,6 +2562,22 @@ lazy val `library-manager-test` = project
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`distribution-manager`)
+  .dependsOn(`polyglot-api`)
+
+/**
+ * Unlike `connected-lock-manager` project, has a dependency on akka.
+ */
+lazy val `connected-lock-manager-server` = project
+  .in(file("lib/scala/connected-lock-manager-server"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
