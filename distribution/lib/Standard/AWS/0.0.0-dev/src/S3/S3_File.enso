@@ -204,6 +204,26 @@ type S3_File
                             destination.with_output_stream open_settings output_stream->
                                 output_stream.write_stream input_stream
 
+    ## Moves the file to the specified destination.
+
+       ! S3 Move is a Copy and Delete
+
+         Since S3 does not support moving files, this operation is implemented
+         as a copy followed by delete. Keep in mind that the space usage of the
+         file will briefly be doubled and that the operation may not be as fast
+         as a local move often is.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `False`.
+    move_to : File -> Boolean -> Nothing ! File_Error
+    move_to self destination replace_existing=False =
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
+            r = self.copy_to destination replace_existing=replace_existing
+            r.if_not_error <|
+                self.delete.if_not_error <| r
+
     ## GROUP Standard.Base.Operators
        Join two path segments together.
 
