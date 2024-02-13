@@ -7,13 +7,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
-import project.Data.Vector.Empty_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
@@ -729,7 +729,7 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Array)) =
         Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Logical
