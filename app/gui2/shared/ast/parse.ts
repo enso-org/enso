@@ -53,9 +53,9 @@ export function abstract(
   module: MutableModule,
   tree: RawAst.Tree,
   code: string,
-  substitutes?: Map<NodeKey, Owned>,
+  substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap; toRaw: Map<AstId, RawAst.Tree> } {
-  const abstractor = new Abstractor(module, code, substitutes)
+  const abstractor = new Abstractor(module, code, substitutor)
   const root = abstractor.abstractTree(tree).node
   const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
   return { root: root as Owned<MutableBodyBlock>, spans, toRaw: abstractor.toRaw }
@@ -64,15 +64,19 @@ export function abstract(
 class Abstractor {
   private readonly module: MutableModule
   private readonly code: string
-  private readonly substitutes: Map<NodeKey, Owned> | undefined
+  private readonly substitutor: ((key: NodeKey) => Owned | undefined) | undefined
   readonly nodes: NodeSpanMap
   readonly tokens: TokenSpanMap
   readonly toRaw: Map<AstId, RawAst.Tree>
 
-  constructor(module: MutableModule, code: string, substitutes?: Map<NodeKey, Owned>) {
+  constructor(
+    module: MutableModule,
+    code: string,
+    substitutor?: (key: NodeKey) => Owned | undefined,
+  ) {
     this.module = module
     this.code = code
-    this.substitutes = substitutes
+    this.substitutor = substitutor
     this.nodes = new Map()
     this.tokens = new Map()
     this.toRaw = new Map()
@@ -85,12 +89,8 @@ class Abstractor {
     const codeStart = whitespaceEnd
     const codeEnd = codeStart + tree.childrenLengthInCodeParsed
     const spanKey = nodeKey(codeStart, codeEnd - codeStart)
-    if (this.substitutes?.has(spanKey)) {
-      // NOTE: Nodes in subtrees obtained from `substitutes` are not added to `nodes` / `tokens / `toRaw`.
-      const node = this.substitutes.get(spanKey)!
-      this.substitutes.delete(spanKey)
-      return { node, whitespace }
-    }
+    const substitute = this.substitutor?.(spanKey)
+    if (substitute) return { node: substitute, whitespace }
     let node: Owned
     switch (tree.type) {
       case RawAst.Tree.Type.BodyBlock: {
@@ -709,7 +709,14 @@ export function syncToCode(ast: MutableAst, code: string) {
         edit.getVersion(ast).take(),
       ]),
     )
-    const parsedReusingSubtrees = abstract(edit, rawParsed, code, recycledSubtrees)
+    const recycleSubtree = (key: NodeKey) => {
+      const subtree = recycledSubtrees.get(key)
+      if (subtree) {
+        recycledSubtrees.delete(key)
+        return subtree
+      }
+    }
+    const parsedReusingSubtrees = abstract(edit, rawParsed, code, recycleSubtree)
     assertEqual(parsedReusingSubtrees.root.code(), code)
     return parsedReusingSubtrees.root
   })
