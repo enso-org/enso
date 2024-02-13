@@ -517,20 +517,6 @@ impl RunContext {
 
         // === Build Distribution ===
         debug!("Building distribution");
-        if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
-            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
-            // Compile the Standard Libraries (Unix)
-            debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(std_libs)? {
-                let entry = entry?;
-                let target = entry.path().join(self.paths.version().to_string());
-                enso.compile_lib(target)?.run_ok().await?;
-            }
-        }
-
-
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
