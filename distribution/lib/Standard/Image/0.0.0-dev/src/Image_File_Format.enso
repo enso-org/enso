@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 
 import project.Data.Image.Image
@@ -22,7 +23,7 @@ type Image_File_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> Image_File_Format | Nothing
+    for_file_write : Writable_File -> Image_File_Format | Nothing
     for_file_write file = Image_File_Format.for_read file
 
     ## PRIVATE

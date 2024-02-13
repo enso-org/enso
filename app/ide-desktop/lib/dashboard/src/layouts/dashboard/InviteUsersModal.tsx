@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import isEmail from 'validator/es/lib/isEmail'
 
+import CrossIcon from 'enso-assets/cross.svg'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,9 +16,46 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
-// ==============================
-// === ManagePermissionsModal ===
-// ==============================
+// =================
+// === Constants ===
+// =================
+
+/** The minimum width of the input for adding a new email. */
+const MIN_EMAIL_INPUT_WIDTH = 120
+
+// =============
+// === Email ===
+// =============
+
+/** Props for an {@link Email}. */
+interface InternalEmailProps {
+  readonly email: string
+  readonly isValid: boolean
+  readonly doDelete: () => void
+}
+
+/** A self-validating email display. */
+function Email(props: InternalEmailProps) {
+  const { email, isValid, doDelete } = props
+  return (
+    <div
+      className={`inline-flex gap-0.5 items-center rounded-full py-0.5 px-1 m-0.5 ${
+        isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
+      }`}
+    >
+      {email}{' '}
+      <img
+        className="rounded-full cursor-pointer hover:brightness-50"
+        src={CrossIcon}
+        onClick={doDelete}
+      />
+    </div>
+  )
+}
+
+// ========================
+// === InviteUsersModal ===
+// ========================
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
@@ -27,11 +66,11 @@ export interface InviteUsersModalProps {
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [newEmails, setNewEmails] = React.useState(new Set<string>())
+  const [newEmails, setNewEmails] = React.useState<string[]>([])
   const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
@@ -39,38 +78,24 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
     () => new Set(members.map<string>(member => member.email)),
     [members]
   )
-  const invalidEmailError = React.useMemo(
+  const canSubmit = React.useMemo(
     () =>
-      email === ''
-        ? 'Email is blank'
-        : !isEmail(email)
-        ? `'${email}' is not a valid email`
-        : existingEmails.has(email)
-        ? `'${email}' is already in the organization`
-        : newEmails.has(email)
-        ? `You are already adding '${email}'`
-        : null,
-    [email, existingEmails, newEmails]
+      newEmails.length > 0 &&
+      newEmails.every(
+        (newEmail, i) =>
+          isEmail(newEmail) && !existingEmails.has(newEmail) && newEmails.indexOf(newEmail) === i
+      ),
+    [existingEmails, newEmails]
   )
-  const isEmailValid = invalidEmailError == null
-
-  const doAddEmail = () => {
-    if (!isEmailValid) {
-      toastAndLog(invalidEmailError)
-    } else {
-      setNewEmails(oldNewEmails => new Set([...oldNewEmails, email]))
-      setEmail('')
-    }
-  }
 
   const doSubmit = () => {
     unsetModal()
-    if (organization != null) {
+    if (user != null) {
       for (const newEmail of newEmails) {
         void (async () => {
           try {
             await backend.inviteUser({
-              organizationId: organization.id,
+              organizationId: user.id,
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {
@@ -90,10 +115,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         tabIndex={-1}
         style={
           position != null
-            ? {
-                left: position.left + window.scrollX,
-                top: position.top + window.scrollY,
-              }
+            ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
         className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
@@ -116,50 +138,75 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             {/* Space reserved for other tabs. */}
           </div>
           <form
-            className="flex gap-1"
+            className="grow"
             onSubmit={event => {
               event.preventDefault()
-              doAddEmail()
+              if (email !== '') {
+                setNewEmails([...newEmails, email])
+                setEmail('')
+              } else if (canSubmit) {
+                doSubmit()
+              }
             }}
           >
-            <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-2">
+            <label className="block min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1">
+              {Array.from(newEmails, (newEmail, i) => (
+                <Email
+                  key={i}
+                  email={newEmail}
+                  isValid={
+                    isEmail(newEmail) &&
+                    !existingEmails.has(newEmail) &&
+                    newEmails.indexOf(newEmail) === i
+                  }
+                  doDelete={() => {
+                    setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
+                  }}
+                />
+              ))}
               <input
+                autoFocus
                 type="text"
                 placeholder="Type email to invite"
-                className="w-full bg-transparent"
+                className="bg-transparent h-6 leading-5 py-px px-1 w-30 max-w-full"
                 value={email}
+                onKeyDown={event => {
+                  if (
+                    event.key === 'Backspace' &&
+                    event.currentTarget.selectionStart === 0 &&
+                    event.currentTarget.selectionEnd === 0
+                  ) {
+                    setNewEmails(newEmails.slice(0, -1))
+                  }
+                }}
                 onInput={event => {
-                  setEmail(event.currentTarget.value)
+                  const element = event.currentTarget
+                  const value = element.value
+                  if (/ /.test(value)) {
+                    const parts = value.split(' ')
+                    setNewEmails([...newEmails, ...parts.slice(0, -1).filter(part => part !== '')])
+                    setEmail(parts[parts.length - 1] ?? '')
+                    element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
+                  } else {
+                    setEmail(value)
+                    element.style.width = '0px'
+                    const contentWidth = element.scrollWidth
+                    element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
+                  }
                 }}
               />
-            </div>
-            <button
-              type="submit"
-              disabled={!isEmailValid}
-              {...(!isEmailValid ? { title: invalidEmailError } : {})}
-              className="text-tag-text bg-invite rounded-full whitespace-nowrap px-4 py-1 disabled:opacity-30"
-            >
-              <div className="h-6 py-0.5">Add User</div>
-            </button>
+            </label>
           </form>
-          <ul className="flex flex-col px-1">
-            {[...newEmails].map(newEmail => (
-              <li key={newEmail} className="h-6 leading-5 py-px">
-                {newEmail}
-              </li>
-            ))}
-          </ul>
           <div className="self-start">
             <button
               type="submit"
-              disabled={!isEmailValid && email !== ''}
-              {...(!isEmailValid && email !== '' ? { title: invalidEmailError } : {})}
+              disabled={!canSubmit}
               className="text-tag-text bg-invite rounded-full px-4 py-1 disabled:opacity-30"
               onClick={() => {
                 doSubmit()
               }}
             >
-              <div className="h-6 py-0.5">Invite All</div>
+              <div className="h-6 py-0.5">Invite</div>
             </button>
           </div>
         </div>

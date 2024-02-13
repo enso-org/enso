@@ -13,7 +13,7 @@ export default test.defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   workers: 1,
-  retries: 2,
+  repeatEach: process.env.CI ? 3 : 1,
   expect: {
     toHaveScreenshot: { threshold: 0 },
     timeout: 30_000,

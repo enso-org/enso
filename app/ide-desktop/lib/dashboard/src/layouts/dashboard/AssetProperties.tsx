@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
+import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -11,13 +13,24 @@ import * as backendProvider from '#/providers/BackendProvider'
 import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
+import * as backendModule from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
+
+// =================
+// === Constants ===
+// =================
+
+const DEFS: Record<string, object> = SCHEMA.$defs
 
 // =======================
 // === AssetProperties ===
@@ -39,7 +52,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
-  const { organization } = authProvider.useNonPartialUserSession()
+  const [dataLinkValue, setDataLinkValue] = React.useState<NonNullable<unknown> | null>(null)
+  const [editedDataLinkValue, setEditedDataLinkValue] = React.useState<NonNullable<unknown> | null>(
+    null
+  )
+  const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
+  const isDataLinkSubmittable = React.useMemo(
+    () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, dataLinkValue),
+    [dataLinkValue]
+  )
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
@@ -49,14 +71,28 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ rawSetItem]
   )
-  const self = item.item.permissions?.find(
-    permission => permission.user.user_email === organization?.email
-  )
+  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
+  const canEditThisAsset =
+    ownsThisAsset ||
+    self?.permission === permissions.PermissionAction.admin ||
+    self?.permission === permissions.PermissionAction.edit
+  const isDataLink = item.item.type === backendModule.AssetType.dataLink
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
   }, [item.item.description])
+
+  React.useEffect(() => {
+    void (async () => {
+      if (item.item.type === backendModule.AssetType.dataLink) {
+        const value = await backend.getConnector(item.item.id, item.item.title)
+        setDataLinkValue(value)
+        setEditedDataLinkValue(structuredClone(value))
+        setIsDataLinkFetched(true)
+      }
+    })()
+  }, [backend, item.item])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -155,6 +191,65 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </tbody>
         </table>
       </div>
+      {isDataLink && (
+        <div className="flex flex-col items-start gap-1">
+          <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">Data Link</span>
+          {!isDataLinkFetched ? (
+            <div className="grid self-stretch place-items-center">
+              <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
+            </div>
+          ) : (
+            <>
+              <DataLinkInput
+                readOnly={!canEditThisAsset}
+                dropdownTitle="Type"
+                value={editedDataLinkValue}
+                setValue={setEditedDataLinkValue}
+              />
+              {canEditThisAsset && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
+                    className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                    onClick={() => {
+                      void (async () => {
+                        if (item.item.type === backendModule.AssetType.dataLink) {
+                          const oldDataLinkValue = dataLinkValue
+                          try {
+                            setDataLinkValue(editedDataLinkValue)
+                            await backend.createConnector({
+                              connectorId: item.item.id,
+                              name: item.item.title,
+                              parentDirectoryId: null,
+                              value: editedDataLinkValue,
+                            })
+                          } catch (error) {
+                            toastAndLog(null, error)
+                            setDataLinkValue(oldDataLinkValue)
+                            setEditedDataLinkValue(oldDataLinkValue)
+                          }
+                        }
+                      })()
+                    }}
+                  >
+                    Update
+                  </button>
+                  <button
+                    type="button"
+                    className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                    onClick={() => {
+                      setEditedDataLinkValue(structuredClone(dataLinkValue))
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </>
   )
 }
