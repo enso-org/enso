@@ -6,6 +6,7 @@ import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -1720,10 +1721,14 @@ type Table
        GROUP Standard.Base.Calculations
        ICON sigma
 
-       Aggregates the rows in a table using any `Group_By` entries in columns.
-       The columns argument specifies which additional aggregations to perform and to return.
+       Aggregates the rows in a table using `group_by` columns.
+       The columns argument specifies which additional aggregations to perform
+       and to return.
 
        Arguments:
+       - group_by: Vector of column identifiers to group by. These will be
+         included at the start of the resulting table. If no columns are
+         specified a single row will be returned with the aggregate columns.
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
@@ -1745,7 +1750,7 @@ type Table
          - If a column index is out of range, a `Missing_Input_Columns` is
            reported according to the `on_problems` setting, unless
            `error_on_missing_columns` is set to `True`, in which case it is
-           raised as an error. Problems resolving `Group_By` columns are
+           raised as an error. Problems resolving `group_by` columns are
            reported as dataflow errors regardless of these settings, as a
            missing grouping will completely change semantics of the query.
          - If a column selector is given as a `Text` and it does not match any
@@ -1753,7 +1758,7 @@ type Table
            `Invalid_Aggregate_Column` error is raised according to the
            `on_problems` settings (unless `error_on_missing_columns` is set to
            `True` in which case it will always be an error). Problems resolving
-           `Group_By` columns are reported as dataflow errors regardless of
+           `group_by` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
@@ -1772,62 +1777,72 @@ type Table
              an `Additional_Warnings`.
 
        > Example
+         Count all the rows
+
+              table.aggregate columns=[Aggregate_Column.Count]
+
+       > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+              table.aggregate ["Key"] [Aggregate_Column.Count]
+    @group_by Widget_Helpers.make_column_name_vector_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
-        key_columns = validated.key_columns
-        key_problems = key_columns.flat_map internal_column->
-            column = self.make_column internal_column
-            case column.value_type.is_floating_point of
-                True -> [Floating_Point_Equality.Error column.name]
-                False -> []
-        on_problems.attach_problems_before validated.problems+key_problems <|
-            resolved_aggregates = validated.valid_columns
-            key_expressions = key_columns.map .expression
-            new_ctx = self.context.set_groups key_expressions
-            problem_builder = Problem_Builder.new
-            ## TODO [RW] here we will perform as many fetches as there are
-               aggregate columns, but technically we could perform just one
-               fetch fetching all column types - TODO we should do that. We can
-               do it here by creating a builder that will gather all requests
-               from the executed callbacks and create Lazy references that all
-               point to a single query.
-               See #6118.
-            infer_from_database_callback expression =
-                SQL_Type_Reference.new self.connection self.context expression
-            dialect = self.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            infer_return_type op_kind columns expression =
-                type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
-            results = resolved_aggregates.map p->
-                agg = p.second
-                new_name = p.first
-                result = Aggregate_Helper.make_aggregate_column self agg new_name dialect infer_return_type problem_builder
-                ## If the `result` did contain an error, we catch it to be
-                   able to store it in a vector and then we will partition the
-                   created columns and failures.
-                result.catch Any error->
-                    DB_Wrapped_Error.Value error
+    aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate self group_by=[] columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
+        normalized_group_by = Vector.unify_vector_or_element group_by
+        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
+            validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
-            partitioned = results.partition (_.is_a DB_Wrapped_Error)
+            key_columns = validated.key_columns
+            key_problems = key_columns.flat_map internal_column->
+                column = self.make_column internal_column
+                case column.value_type.is_floating_point of
+                    True -> [Floating_Point_Equality.Error column.name]
+                    False -> []
+            on_problems.attach_problems_before validated.problems+key_problems <|
+                resolved_aggregates = validated.valid_columns
+                key_expressions = key_columns.map .expression
+                new_ctx = self.context.set_groups key_expressions
+                problem_builder = Problem_Builder.new
+                ## TODO [RW] here we will perform as many fetches as there are
+                   aggregate columns, but technically we could perform just one
+                   fetch fetching all column types - TODO we should do that. We can
+                   do it here by creating a builder that will gather all requests
+                   from the executed callbacks and create Lazy references that all
+                   point to a single query.
+                   See #6118.
+                infer_from_database_callback expression =
+                    SQL_Type_Reference.new self.connection self.context expression
+                dialect = self.connection.dialect
+                type_mapping = dialect.get_type_mapping
+                infer_return_type op_kind columns expression =
+                    type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+                results = resolved_aggregates.map p->
+                    agg = p.second
+                    new_name = p.first
+                    result = Aggregate_Helper.make_aggregate_column self agg new_name dialect infer_return_type problem_builder
+                    ## If the `result` did contain an error, we catch it to be
+                       able to store it in a vector and then we will partition the
+                       created columns and failures.
+                    result.catch Any error->(DB_Wrapped_Error.Value error)
 
-            ## When working on join we may encounter further issues with having
-               aggregate columns exposed directly, it may be useful to re-use
-               the `lift_aggregate` method to push the aggregates into a
-               subquery.
-            new_columns = partitioned.second
-            problem_builder.attach_problems_before on_problems <|
-                problems = partitioned.first.map .value
-                on_problems.attach_problems_before problems <|
-                    handle_no_output_columns =
-                        first_problem = if problems.is_empty then Nothing else problems.first
-                        Error.throw (No_Output_Columns.Error first_problem)
-                    if new_columns.is_empty then handle_no_output_columns else
-                        self.updated_context_and_columns new_ctx new_columns subquery=True
+                partitioned = results.partition (_.is_a DB_Wrapped_Error)
+
+                ## When working on join we may encounter further issues with having
+                   aggregate columns exposed directly, it may be useful to re-use
+                   the `lift_aggregate` method to push the aggregates into a
+                   subquery.
+                new_columns = partitioned.second
+                problem_builder.attach_problems_before on_problems <|
+                    problems = partitioned.first.map .value
+                    on_problems.attach_problems_before problems <|
+                        handle_no_output_columns =
+                            first_problem = if problems.is_empty then Nothing else problems.first
+                            Error.throw (No_Output_Columns.Error first_problem)
+                        if new_columns.is_empty then handle_no_output_columns else
+                            result = self.updated_context_and_columns new_ctx new_columns subquery=True
+                            if validated.old_style.not then result else
+                                Warning.attach (Deprecated.Warning "Standard.Database.Data.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
     ## GROUP Standard.Base.Calculations
        ICON dataframe_map_row
@@ -1939,7 +1954,7 @@ type Table
             A  | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
-    @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
+    @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,

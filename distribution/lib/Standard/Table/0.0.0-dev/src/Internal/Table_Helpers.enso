@@ -230,7 +230,7 @@ type Table_Column_Helper
             Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
-        aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+        aggregate_result = just_indicators.aggregate columns=aggregates on_problems=Problem_Behavior.Report_Error
         materialized_result = self.materialize <| aggregate_result.catch Any error->
             msg = "Unexpected dataflow error has been thrown in an `select_blank_columns_helper`. This is a bug in the Table library. The unexpected error was: "+error.to_display_text
             Panic.throw (Illegal_State.Error message=msg cause=error)
