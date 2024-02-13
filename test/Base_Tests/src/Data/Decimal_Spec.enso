@@ -30,6 +30,10 @@ add_specs suite_builder =
             Decimal.new "123.45" mc . should_have_rep [1234, 4, 1]
             Decimal.new "123.45" mc . should_equal (Decimal.new "123.4")
 
+        group_builder.specify "should be able to construct a Decimal from a long string" <|
+            Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.from_text "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+
         group_builder.specify "should be able to construct a Decimal from a small integer" <|
             Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
 
