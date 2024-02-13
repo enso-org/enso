@@ -47,7 +47,10 @@ public final class EnsoActionProvider implements ActionProvider {
 
     @Override
     public String[] getSupportedActions() {
-        return new String[]{ActionProvider.COMMAND_RUN_SINGLE, ActionProvider.COMMAND_DEBUG_SINGLE};
+        return new String[]{
+            COMMAND_RUN, COMMAND_DEBUG,
+            COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE
+        };
     }
 
     @Override
@@ -106,7 +109,7 @@ public final class EnsoActionProvider implements ActionProvider {
                 .postExecution((exitCode) -> {
                     cf.complete(exitCode);
                 });
-            var launch = ActionProvider.COMMAND_DEBUG_SINGLE.equals(action) ?
+            var launch = COMMAND_DEBUG_SINGLE.equals(action) || COMMAND_DEBUG.equals(action) ?
                 new DebugAndLaunch(fo, builder, params) : builder;
             var service = ExecutionService.newService(launch, descriptor, script.getName());
             service.run();
@@ -142,13 +145,12 @@ public final class EnsoActionProvider implements ActionProvider {
     }
 
     @Override
-    public boolean isActionEnabled(String string, Lookup lkp) throws IllegalArgumentException {
-        if (lkp.lookup(EnsoDataObject.class) != null) {
-            return true;
-        } else {
-            var fo = lkp.lookup(FileObject.class);
-            return fo != null && fo.getLookup().lookup(EnsoDataObject.class) != null;
-        }
+    public boolean isActionEnabled(String action, Lookup lkp) throws IllegalArgumentException {
+        return switch (action) {
+            case COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE, COMMAND_RUN, COMMAND_DEBUG ->
+                lkp.lookup(EnsoDataObject.class) != null;
+            default -> false;
+        };
     }
 
     static final class DebugAndLaunch implements Callable<Process> {
