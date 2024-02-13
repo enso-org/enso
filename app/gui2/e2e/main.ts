@@ -10,8 +10,6 @@ import { Vec2 } from '../src/util/data/vec2'
 import { MockTransport, MockWebSocket } from '../src/util/net'
 import MockApp from './MockApp.vue'
 
-await initializeFFI()
-
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
 
@@ -58,4 +56,4 @@ provideVisualizationConfig._mock(
   },
   app,
 )
-app.mount('#app')
+initializeFFI().then(() => app.mount('#app'))
