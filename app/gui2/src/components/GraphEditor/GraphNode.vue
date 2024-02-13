@@ -629,7 +629,7 @@ function openFullMenu() {
 }
 
 .CircularMenu {
-  z-index: 15;
+  z-index: 25;
 }
 
 .CircularMenuPartial {
