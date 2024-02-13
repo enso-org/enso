@@ -19,7 +19,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div :class="`${props.isFullMenuVisible ? 'CircularMenu' : 'CircularMenuPartial'}`">
+  <div
+    :class="`${
+      props.isFullMenuVisible ? 'CircularMenu CircularMenuFull' : 'CircularMenu CircularMenuPartial'
+    }`"
+  >
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -44,14 +48,16 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.CircularMenuPartial {
+.CircularMenu {
   user-select: none;
   position: absolute;
   left: -36px;
   top: -36px;
   width: 114px;
   height: 114px;
+}
 
+.CircularMenuPartial {
   &:before {
     content: '';
     position: absolute;
@@ -64,14 +70,7 @@ const emit = defineEmits<{
   }
 }
 
-.CircularMenu {
-  user-select: none;
-  position: absolute;
-  left: -36px;
-  top: -36px;
-  width: 114px;
-  height: 114px;
-
+.CircularMenuFull {
   &:before {
     content: '';
     position: absolute;
