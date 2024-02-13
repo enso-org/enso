@@ -35,20 +35,20 @@ type Decimal
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
     new : Text | Integer -> Math_Context -> Decimal | Number_Parse_Error
-    new (x : Text | Integer) (mc : Math_Context | Nothing)=Nothing =
+    new (x : Text | Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
 
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
-    from_text (s : Text) (mc : Math_Context | Nothing)=Nothing =
+    from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
                 _ : Nothing -> Decimal.Value (BigDecimal.new s)
 
     from_integer : Integer -> Math_Context -> Decimal
-    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing =
+    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal =
             case mc of
                 _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
@@ -60,7 +60,7 @@ type Decimal
         (self.big_decimal.compareTo that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
-    add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing =
+    add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
             Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
             _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
