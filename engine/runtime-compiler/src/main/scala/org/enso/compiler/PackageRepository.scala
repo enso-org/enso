@@ -3,7 +3,7 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleFile
 import org.enso.editions.LibraryName
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.pkg.{ComponentGroups, Package, QualifiedName}
 
 import scala.collection.immutable.ListSet
@@ -113,7 +113,7 @@ trait PackageRepository {
     libraryName: LibraryName,
     moduleName: QualifiedName,
     context: CompilerContext
-  ): Option[BindingsMap]
+  ): Option[IRModule]
 
 }
 

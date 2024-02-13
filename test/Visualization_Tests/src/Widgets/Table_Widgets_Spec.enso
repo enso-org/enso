@@ -8,7 +8,7 @@ from Standard.Table import Table
 
 import Standard.Visualization.Widgets
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =

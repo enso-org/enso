@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Image_Read_Write_Spec
 import project.Data.Image_Spec

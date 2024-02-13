@@ -613,6 +613,9 @@
   JSON parser based off Jackson.][8719]
 - [Implemented `Table.replace` for the in-memory backend.][8935]
 - [Allow removing rows using a Filter_Condition.][8861]
+- [Added `Table.to_xml`.][8979]
+- [Implemented Write support for `S3_File`.][8921]
+- [Separate `Group_By` from `columns` into new argument on `aggregate`.][9027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -882,6 +885,9 @@
 [8865]: https://github.com/enso-org/enso/pull/8865
 [8935]: https://github.com/enso-org/enso/pull/8935
 [8861]: https://github.com/enso-org/enso/pull/8861
+[8979]: https://github.com/enso-org/enso/pull/8979
+[8921]: https://github.com/enso-org/enso/pull/8921
+[9027]: https://github.com/enso-org/enso/pull/9027
 
 #### Enso Compiler
 
@@ -1038,6 +1044,7 @@
 - [DataflowError.withoutTrace doesn't store stacktrace][8608]
 - [Derive --in-project from --run source location][8775]
 - [Binary operator resolution based on that value][8779]
+- [Execute and debug individual Enso files in VSCode extension][8923]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1193,6 +1200,7 @@
 [8608]: https://github.com/enso-org/enso/pull/8608
 [8775]: https://github.com/enso-org/enso/pull/8775
 [8779]: https://github.com/enso-org/enso/pull/8779
+[8923]: https://github.com/enso-org/enso/pull/8923
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -38,13 +38,13 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const self =
-    organization != null
+    user != null
       ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === organization.email
+          permissions => permissions.user.user_email === user.email
         ) ?? null
       : null
   const shouldShowShareButton =
@@ -110,7 +110,7 @@ export default function UserBar(props: UserBarProps) {
         }}
       >
         <img
-          src={organization?.profilePicture ?? DefaultUserIcon}
+          src={user?.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}

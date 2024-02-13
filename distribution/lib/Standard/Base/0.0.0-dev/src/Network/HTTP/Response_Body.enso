@@ -6,6 +6,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Metadata.Display
@@ -19,6 +20,7 @@ import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
@@ -116,11 +118,12 @@ type Response_Body
        - if_unsupported: Specifies how to proceed if the format is not supported.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+    decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
         case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
-                if detected_format.is_nothing then if_unsupported else self.decode detected_format
+                if detected_format.is_nothing then Throw_Unsupported_Error.handle_default_or_overridden_value if_unsupported self else
+                    self.decode detected_format
             _ ->
                 type_obj = Meta.type_of format
                 if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
@@ -135,6 +138,7 @@ type Response_Body
 
     ## ALIAS parse as text
        GROUP Conversions
+       ICON data_input
        Decodes the body to a Text value.
 
        Arguments:
@@ -147,6 +151,7 @@ type Response_Body
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
+       ICON data_input
        Decodes the body as JSON.
 
        Arguments:
@@ -191,28 +196,12 @@ type Response_Body
 
              example_to_file =
                 Examples.get_geo_data.to_file Examples.scratch_file
-    to_file : File -> Existing_File_Behavior -> File
-    to_file self file:File on_existing_file=Existing_File_Behavior.Backup =
+    to_file : Writable_File -> Existing_File_Behavior -> File
+    to_file self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
-            r = on_existing_file.write file output_stream->
-                output_stream.write_stream body_stream
-            r.if_not_error file
-
-## PRIVATE
-type Unsupported_Content_Type
-    ## PRIVATE
-       A type representing an unsupported content type.
-
-       Arguments:
-       - content_type: The content type that is unsupported.
-    Error (content_type : Text | Nothing)
-
-    ## PRIVATE
-       Convert the error to a human readable string.
-    to_display_text : Text
-    to_display_text self = case self.content_type of
-        Nothing -> "The response did not contain a content type."
-        _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."
+            file.write on_existing_file output_stream->
+                r = output_stream.write_stream body_stream
+                r.if_not_error file
 
 ## PRIVATE
 can_decode : File_Format -> Boolean
@@ -233,3 +222,21 @@ delete_file : Any -> Nothing
 delete_file file =
     Context.Output.with_enabled <| file.delete
     Nothing
+
+## PRIVATE
+   This is a workaround for bug: https://github.com/enso-org/enso/issues/8937
+   Originally we wanted `~if_unsupported=(Error.throw (File_Error.Unsupported_Type self.metadata))`,
+   however due to the bug `self` is inaccessible in _suspended defaults_.
+   So, instead, we return this constant and then we check if that constant was
+   kept and generate the proper error inside of the method body where `self`
+    _is_ already accessible; or we pass the user argument as-is if it was
+    overridden with something else.
+type Throw_Unsupported_Error
+    ## PRIVATE
+    throw ~metadata = Error.throw (File_Error.Unsupported_Type metadata)
+
+    ## PRIVATE
+    handle_default_or_overridden_value if_unsupported self_reference =
+        case if_unsupported of
+            Throw_Unsupported_Error -> if_unsupported.throw self_reference.metadata
+            overridden_value -> overridden_value
