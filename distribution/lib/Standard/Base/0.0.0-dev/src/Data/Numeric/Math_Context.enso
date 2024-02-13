@@ -7,5 +7,5 @@ type Math_Context
     Value (math_context:MathContext)
 
     new : Integer -> Rounding_Mode -> Math_Context
-    new (scale:Integer) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
-        Math_Context.Value (MathContext.new scale rounding_mode.rounding_mode)
+    new (precision:Integer) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
+        Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)
