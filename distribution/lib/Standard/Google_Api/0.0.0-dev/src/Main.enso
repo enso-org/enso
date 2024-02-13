@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 from Standard.Table import Table
 
@@ -8,6 +9,14 @@ polyglot java import com.google.api.client.json.gson.GsonFactory
 polyglot java import com.google.api.services.sheets.v4.Sheets
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.util.Collections
+polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataClient
+polyglot java import com.google.analytics.data.v1beta.DateRange
+polyglot java import com.google.analytics.data.v1beta.Dimension
+polyglot java import com.google.analytics.data.v1beta.Metric
+polyglot java import com.google.analytics.data.v1beta.Row
+polyglot java import com.google.analytics.data.v1beta.RunReportRequest
+polyglot java import com.google.analytics.data.v1beta.RunReportResponse
+
 
 ## PRIVATE
 type Google_Api_Client
@@ -58,3 +67,36 @@ initialize secret_file =
     http_transport = GoogleNetHttpTransport.newTrustedTransport
     json_factory = GsonFactory.getDefaultInstance
     Google_Api_Client.Value credential json_factory http_transport
+
+
+## PLACEHOLDER, performs google analytics call
+   This method calls the google reporting v4 api. Presently it specifically returns activeUsers by City
+   Arguments:
+   - property_id: The Google Analytics property_id that is being queried
+   - start_date: The beginning date of the query. Default is 2020-03-31
+   - end_date: The end date being queried. Defaults to today.
+run_analytics_report : Text -> Date -> Date -> Table
+run_analytics_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today -> Table =
+    analytics_data = BetaAnalyticsDataClient.create
+    request = RunReportRequest.newBuilder
+        . setProperty ("properties/"+property_id)
+        . addDimensions (Dimension.newBuilder.setName "city")
+        . addMetrics (Metric.newBuilder.setName "activeUsers")
+        . addDateRanges (DateRange.newBuilder.setStartDate start_date.to_text . setEndDate end_date.to_text)
+        . build
+    response = analytics_data.runReport request
+
+    dimension_count = response.getDimensionHeadersCount
+    dimensions = 0.up_to dimension_count . map i-> response.getDimensionHeaders i . getName
+    metric_count = response.getMetricHeadersCount
+    metrics = 0.up_to metric_count . map i-> response.getMetricHeaders i . getName
+    headers = dimensions + metrics
+
+    row_count = response.getRowCount
+    row_proxy = Array_Proxy.new row_count i->
+        row = response.getRows i
+        dimension_values = 0.up_to dimension_count . map i-> row.getDimensionValues i . getValue
+        metric_values = 0.up_to metric_count . map i-> row.getMetricValues i . getValue
+        dimension_values + metric_values
+
+    Table.from_rows headers (Vector.from_polyglot_array row_proxy)
