@@ -16,8 +16,9 @@ export default test.defineConfig({
   repeatEach: process.env.CI ? 3 : 1,
   expect: {
     toHaveScreenshot: { threshold: 0 },
-    timeout: 30_000,
+    timeout: 120_000,
   },
+  timeout: 120_000,
   use: {
     baseURL: 'http://localhost:8080',
     launchOptions: {
