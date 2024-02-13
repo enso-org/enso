@@ -31,7 +31,12 @@ type File_Write_Strategy
        A remote file is downloaded to a temporary file and the provided action
        is called with that local temporary file. Then that file is uploaded to
        replace the remote file.
-    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file
+
+       The `copy_from_local` action creates the file on a given backend from a
+       local file. It can be used to implement more efficient upload strategies
+       than ones based on just writing to an output stream.
+       The default `generic_copy` implementation can always be used here.
+    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file copy_from_local
 
     ## PRIVATE
        Writes to a file according to the provided existing file behaviour.
