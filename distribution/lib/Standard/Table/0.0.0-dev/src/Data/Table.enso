@@ -10,6 +10,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Out_Of_Memory
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -659,10 +660,14 @@ type Table
        GROUP Standard.Base.Calculations
        ICON sigma
 
-       Aggregates the rows in a table using any `Group_By` entries in columns.
-       The columns argument specifies which additional aggregations to perform and to return.
+       Aggregates the rows in a table using `group_by` columns.
+       The columns argument specifies which additional aggregations to perform
+       and to return.
 
        Arguments:
+       - group_by: Vector of column identifiers to group by. These will be
+         included at the start of the resulting table. If no columns are
+         specified a single row will be returned with the aggregate columns.
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
@@ -682,7 +687,7 @@ type Table
          - If a column index is out of range, a `Missing_Input_Columns` is
            reported according to the `on_problems` setting, unless
            `error_on_missing_columns` is set to `True`, in which case it is
-           raised as an error. Problems resolving `Group_By` columns are
+           raised as an error. Problems resolving `group_by` columns are
            reported as dataflow errors regardless of these settings, as a
            missing grouping will completely change semantics of the query.
          - If a column selector is given as a `Text` and it does not match any
@@ -690,7 +695,7 @@ type Table
            `Invalid_Aggregate_Column` problem is raised according to the
            `on_problems` settings (unless `error_on_missing_columns` is set to
            `True` in which case it will always be an error). Problems resolving
-           `Group_By` columns are reported as dataflow errors regardless of
+           `group_by` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
@@ -709,21 +714,30 @@ type Table
              an `Additional_Warnings`.
 
        > Example
+         Count all the rows
+
+              table.aggregate columns=[Aggregate_Column.Count]
+
+       > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+              table.aggregate ["Key"] [Aggregate_Column.Count]
+    @group_by Widget_Helpers.make_column_name_vector_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
+    aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate self group_by=[] columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
+        normalized_group_by = Vector.unify_vector_or_element group_by
+        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
+            validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
-        on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
-            java_key_columns = validated.key_columns.map .java_column
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
-                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-                java_table = index.makeTable new_columns
-                Table.Value java_table
+            on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
+                java_key_columns = validated.key_columns.map .java_column
+                Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                    new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                    java_table = index.makeTable new_columns
+                    if validated.old_style.not then Table.Value java_table else
+                        Warning.attach (Deprecated.Warning "Standard.Database.Data.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (Table.Value java_table)
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
@@ -2460,7 +2474,7 @@ type Table
             A  | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
-    @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
+    @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
         columns_helper = self.columns_helper

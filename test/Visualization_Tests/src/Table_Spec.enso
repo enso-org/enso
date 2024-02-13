@@ -69,7 +69,7 @@ add_specs suite_builder =
             json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[]
             vis . should_equal json
 
-            g = data.t.aggregate [Aggregate_Column.Group_By "A", Aggregate_Column.Group_By "B", Aggregate_Column.Average "C"] . at "Average C"
+            g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
             json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[]
             vis2 . should_equal json2

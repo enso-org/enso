@@ -16,13 +16,12 @@ from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
    Make an aggregate column selector.
-make_aggregate_column_selector : Table -> Display -> Boolean -> Widget
-make_aggregate_column_selector table display=Display.Always include_group_by=True =
+make_aggregate_column_selector : Table -> Display -> Widget
+make_aggregate_column_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always
     column_widget = ["column", col_names_selector]
 
     fqn = Meta.get_qualified_type_name Aggregate_Column
-    group_by = if include_group_by then [Option "Group By" fqn+".Group_By" [column_widget]] else []
     count = Option "Count" fqn+".Count"
 
     ## Currently can't support nested vector editors so using single picker
@@ -56,7 +55,7 @@ make_aggregate_column_selector table display=Display.Always include_group_by=Tru
     maximum = Option "Maximum" fqn+".Maximum" [column_widget]
     minimum = Option "Minimum" fqn+".Minimum" [column_widget]
 
-    Single_Choice display=display values=(group_by+[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum])
+    Single_Choice display=display values=[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum]
 
 ## PRIVATE
    Make an Aggregate_Column list editor
@@ -64,7 +63,7 @@ make_aggregate_column_vector_selector : Table -> Display -> Widget
 make_aggregate_column_vector_selector table display=Display.Always =
     item_editor = make_aggregate_column_selector table display=Display.Always
     # TODO this is a workaround for a dropdown issue
-    Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Group_By)" display=display
+    Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Count)" display=display
 
 ## PRIVATE
    Make a column name selector.
