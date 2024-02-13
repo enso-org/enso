@@ -2567,15 +2567,14 @@ lazy val `connected-lock-manager` = project
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
   .dependsOn(`distribution-manager`)
   .dependsOn(`polyglot-api`)
 
-/**
- * Unlike `connected-lock-manager` project, has a dependency on akka.
- */
+/** Unlike `connected-lock-manager` project, has a dependency on akka.
+  */
 lazy val `connected-lock-manager-server` = project
   .in(file("lib/scala/connected-lock-manager-server"))
   .configs(Test)
