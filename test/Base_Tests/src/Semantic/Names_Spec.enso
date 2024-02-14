@@ -5,7 +5,9 @@ import project.Semantic.Definitions.Names
 
 from Standard.Test import all
 
-
+## This test is important as it also ensures that we can define extension
+   methods on modules that are not directly imported, but accessed through
+   a (not-fully) qualified name.
 Names.Foo.my_method self = case self of
     Names.Foo.Value x y z -> x * y * z
 
