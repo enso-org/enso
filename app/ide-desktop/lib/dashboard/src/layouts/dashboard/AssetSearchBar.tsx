@@ -9,7 +9,7 @@ import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
-import * as shortcutManager from '#/utilities/ShortcutManager'
+import * as eventModule from '#/utilities/event'
 
 // =============
 // === Types ===
@@ -157,14 +157,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
-        shortcutManager.isTextInputEvent(event)
+        eventModule.isTextInputEvent(event)
       ) {
         searchRef.current?.focus()
       }
       if (
         event.target instanceof Node &&
         rootRef.current?.contains(event.target) === true &&
-        shortcutManager.isPotentiallyShortcut(event)
+        eventModule.isPotentiallyShortcut(event)
       ) {
         searchRef.current?.focus()
       }

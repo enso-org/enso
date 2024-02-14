@@ -9,7 +9,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -44,12 +44,13 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
+import * as inputBindingsModule from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import SortDirection from '#/utilities/SortDirection'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -345,7 +346,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -787,8 +788,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return shortcutManager.registerKeyboardHandlers({
-      [shortcutManagerModule.KeyboardAction.cancelCut]: () => {
+    return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+      cancelCut: () => {
         if (pasteDataRef.current == null) {
           return false
         } else {
@@ -801,7 +802,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       },
     })
-  }, [/* should never change */ shortcutManager, /* should never change */ dispatchAssetEvent])
+  }, [/* should never change */ inputBindings, /* should never change */ dispatchAssetEvent])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1744,27 +1745,23 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [/* should never change */ scrollContainerRef])
 
-  React.useEffect(() => {
-    const onDocumentClick = (event: MouseEvent) => {
-      if (
-        !shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditional,
-          event
-        ) &&
-        !shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditionalRange,
-          event
-        ) &&
-        selectedKeys.size !== 0
-      ) {
-        setSelectedKeys(new Set())
-      }
-    }
-    document.addEventListener('click', onDocumentClick)
-    return () => {
-      document.removeEventListener('click', onDocumentClick)
-    }
-  }, [selectedKeys, /* should never change */ setSelectedKeys, shortcutManager])
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document, 'click', {
+        selectAdditional: () => {},
+        selectAdditionalRange: () => {},
+        [inputBindingsModule.DEFAULT_HANDLER]: () => {
+          if (selectedKeys.size !== 0) {
+            setSelectedKeys(new Set())
+          }
+        },
+      }),
+    [
+      selectedKeys,
+      /* should never change */ setSelectedKeys,
+      /* should never change */ inputBindings,
+    ]
+  )
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1799,45 +1796,27 @@ export default function AssetsTable(props: AssetsTableProps) {
           return selectedItems.map(AssetTreeNode.getKey)
         }
       }
-      if (
-        shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
-      ) {
-        setSelectedKeys(new Set(getNewlySelectedKeys()))
-      } else if (
-        shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditionalRange,
-          event
-        )
-      ) {
-        setSelectedKeys(
-          oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
-        )
-      } else if (
-        shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditional,
-          event
-        )
-      ) {
-        setSelectedKeys(oldSelectedItems => {
-          const newItems = new Set(oldSelectedItems)
-          if (oldSelectedItems.has(key)) {
-            newItems.delete(key)
-          } else {
-            newItems.add(key)
-          }
-          return newItems
-        })
-      } else {
-        setSelectedKeys(new Set([key]))
-      }
+      inputBindings.handler({
+        selectRange: () => {
+          setSelectedKeys(new Set(getNewlySelectedKeys()))
+        },
+        selectAdditionalRange: () => {
+          setSelectedKeys(
+            oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
+          )
+        },
+        selectAdditional: () => {
+          setSelectedKeys(oldSelectedItems =>
+            set.withPresence(oldSelectedItems, key, !oldSelectedItems.has(key))
+          )
+        },
+        [inputBindingsModule.DEFAULT_HANDLER]: () => {
+          setSelectedKeys(new Set([key]))
+        },
+      })(event.nativeEvent)
       setPreviouslySelectedKey(key)
     },
-    [
-      displayItems,
-      previouslySelectedKey,
-      shortcutManager,
-      /* should never change */ setSelectedKeys,
-    ]
+    [displayItems, previouslySelectedKey, inputBindings, /* should never change */ setSelectedKeys]
   )
 
   const columns = columnUtils.getColumnList(backend.type, extraColumns)

@@ -9,7 +9,7 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -23,7 +23,7 @@ import Button from '#/components/Button'
 
 import * as backendModule from '#/services/Backend'
 
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
 // === DriveBar ===
@@ -48,28 +48,28 @@ export default function DriveBar(props: DriveBarProps) {
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const isHomeCategory = category === Category.home || !isCloud
 
   React.useEffect(() => {
-    return shortcutManager.registerKeyboardHandlers({
+    return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
       ...(backend.type !== backendModule.BackendType.local
         ? {
-            [shortcutManagerModule.KeyboardAction.newFolder]: () => {
+            newFolder: () => {
               doCreateDirectory()
             },
           }
         : {}),
-      [shortcutManagerModule.KeyboardAction.newProject]: () => {
+      newProject: () => {
         doCreateProject()
       },
-      [shortcutManagerModule.KeyboardAction.uploadFiles]: () => {
+      uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
-  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcutManager])
+  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
   return (
     <div className="flex h-8 py-0.5">

@@ -3,6 +3,8 @@
 import * as detect from 'enso-common/src/detect'
 
 import * as newtype from '#/utilities/newtype'
+import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // ================
 // === Newtypes ===
@@ -64,17 +66,24 @@ export interface Mousebind {
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const RAW_MODIFIER_FLAG = {
-  Ctrl: 1 << 0,
-  Alt: 1 << 1,
-  Shift: 1 << 2,
-  Meta: 1 << 3,
+  Ctrl: ModifierFlags(1 << 0),
+  Alt: ModifierFlags(1 << 1),
+  Shift: ModifierFlags(1 << 2),
+  Meta: ModifierFlags(1 << 3),
+} as const
+
+const MODIFIER_FLAG_NAME: Readonly<Record<Modifier, ModifierKey>> = {
+  Mod: detect.isOnMacOS() ? 'Meta' : 'Ctrl',
+  Alt: 'Alt',
+  Shift: 'Shift',
+  Meta: 'Meta',
 }
 
-const MODIFIER_FLAG: Record<Modifier, number> = {
-  Mod: detect.isOnMacOS() ? RAW_MODIFIER_FLAG.Meta : RAW_MODIFIER_FLAG.Ctrl,
-  Alt: RAW_MODIFIER_FLAG.Alt,
-  Shift: RAW_MODIFIER_FLAG.Shift,
-  Meta: RAW_MODIFIER_FLAG.Meta,
+const MODIFIER_FLAG: Readonly<Record<Modifier, ModifierFlags>> = {
+  Mod: RAW_MODIFIER_FLAG[MODIFIER_FLAG_NAME.Mod],
+  Alt: RAW_MODIFIER_FLAG[MODIFIER_FLAG_NAME.Alt],
+  Shift: RAW_MODIFIER_FLAG[MODIFIER_FLAG_NAME.Shift],
+  Meta: RAW_MODIFIER_FLAG[MODIFIER_FLAG_NAME.Meta],
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -85,6 +94,16 @@ function modifierFlagsForModifiers(modifiers: Modifier[]): ModifierFlags {
     result |= MODIFIER_FLAG[modifier]
   }
   return ModifierFlags(result)
+}
+
+/** Returns the raw modifier key equivalent of a modifier. */
+export function toModifierKey(modifier: Modifier): ModifierKey {
+  return MODIFIER_FLAG_NAME[modifier]
+}
+
+/** A comparison function that can be passed to {@link Array.sort}. */
+export function compareModifiers(a: Modifier, b: Modifier): number {
+  return ALL_MODIFIERS.indexOf(a) - ALL_MODIFIERS.indexOf(b)
 }
 
 /** Any event that contains modifier keys. {@link KeyboardEvent}s and {@link MouseEvent}s fall into
@@ -123,7 +142,9 @@ const POINTER_BUTTON_FLAG: Readonly<Record<Pointer, PointerButtonFlags>> = {
 // === Autocomplete types ===
 // ==========================
 
-const ALL_MODIFIERS = ['Mod', 'Alt', 'Shift', 'Meta'] as const
+const ALL_MODIFIERS = detect.isOnMacOS()
+  ? (['Meta', 'Shift', 'Alt', 'Mod'] as const)
+  : (['Mod', 'Shift', 'Alt', 'Meta'] as const)
 /** All valid keyboard modifier keys. */
 type Modifier = (typeof ALL_MODIFIERS)[number]
 /** All valid keyboard modifier keys, normalized to lowercase for autocomplete purposes. */
@@ -281,17 +302,43 @@ type AutocompleteKeybind<T extends string, FoundKeyName extends string = never> 
 
 /** A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
  */
-type AutocompleteKeybinds<T extends string[]> = {
+type AutocompleteKeybinds<T extends readonly string[]> = {
   [K in keyof T]: AutocompleteKeybind<T[K]>
 }
+
+/** A list of keybinds, with metadata describing its purpose. */
+export interface KeybindsWithMetadata {
+  readonly name: string
+  readonly bindings: readonly [] | readonly string[]
+  readonly description?: string
+  readonly icon?: string
+  readonly color?: string
+}
+
+/** A helper type used to autocomplete and validate an array of keyboard shortcuts (and its
+ * associated metadata) in the editor. */
+interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
+  readonly name: string
+  readonly bindings: AutocompleteKeybinds<T['bindings']>
+  readonly description?: string
+  readonly icon?: string
+  readonly color?: string
+}
+
+/** All the corresponding value for an arbitrary key of a {@link Keybinds}. */
+type KeybindValue = KeybindsWithMetadata | readonly [] | readonly string[]
 
 /** A helper type used to autocomplete and validate an object containing actions and their
  * corresponding keyboard shortcuts. */
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<keyof T, string[]>> = never extends T
+type Keybinds<T extends Record<keyof T, KeybindValue>> = never extends T
   ? {
-      [K in keyof T]: AutocompleteKeybinds<T[K]>
+      [K in keyof T]: T[K] extends readonly string[]
+        ? AutocompleteKeybinds<T[K]>
+        : T[K] extends KeybindsWithMetadata
+        ? AutocompleteKeybindsWithMetadata<T[K]>
+        : ['error...', T]
     }
   : T
 
@@ -355,52 +402,77 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  * useEvent(window, 'keydown', graphBindingsHandler)
  * ```
  */
-export function defineBindingNamespace<T extends Record<keyof T, string[] | []>>(
+export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   namespace: string,
   bindings: Keybinds<T>
 ) {
   /** The name of a binding in this set of keybinds. */
-  type BindingKey = keyof T
+  type BindingKey = string & keyof T
   if (DEFINED_NAMESPACES.has(namespace)) {
     // eslint-disable-next-line no-restricted-properties
     console.warn(`The keybind namespace '${namespace}' has already been defined.`)
   } else {
     DEFINED_NAMESPACES.add(namespace)
   }
-  const keyboardShortcuts: Partial<
-    Record<KeyName, Partial<Record<ModifierFlags, Set<BindingKey>>>>
-  > = {}
-  const mouseShortcuts: Partial<
+  let keyboardShortcuts: Partial<Record<KeyName, Partial<Record<ModifierFlags, Set<BindingKey>>>>> =
+    {}
+  let mouseShortcuts: Partial<
     Record<PointerButtonFlags, Partial<Record<ModifierFlags, Set<BindingKey>>>>
   > = []
 
-  // This is SAFE, as it is a `readonly` upcast.
-  for (const [nameRaw, keybindStrings] of Object.entries(
+  let metadata!: Record<BindingKey, KeybindsWithMetadata>
+  const rebuildMetadata = () => {
+    // This is SAFE, as this type is a direct mapping from `bindingsAsRecord`, which has `BindingKey`
+    // as its keys.
     // eslint-disable-next-line no-restricted-syntax
-    bindings as Readonly<Record<string, string[]>>
-  )) {
-    // This is SAFE, as `Keybinds<T>` is a type derived from `T`.
-    // eslint-disable-next-line no-restricted-syntax
-    const name = nameRaw as BindingKey
-    for (const keybindString of keybindStrings) {
-      const keybind = parseKeybindString(keybindString)
-      switch (keybind.type) {
-        case 'keybind': {
-          const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
-          shortcutsByModifier.add(name)
-          break
+    metadata = Object.fromEntries(
+      Object.entries(bindingsAsRecord).map(kv => {
+        const [name, info] = kv
+        if (Array.isArray(info)) {
+          return [name, { name: string.camelCaseToTitleCase(name), bindings: info }]
+        } else {
+          return [name, info]
         }
-        case 'mousebind': {
-          const shortcutsByKey = (mouseShortcuts[keybind.key] ??= [])
-          const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
-          shortcutsByModifier.add(name)
-          break
+      })
+    ) as Record<BindingKey, KeybindsWithMetadata>
+  }
+
+  const originalBindings = { ...bindings }
+  // This is SAFE, as it is a `readonly` upcast.
+  const bindingsAsRecord =
+    // eslint-disable-next-line no-restricted-syntax
+    bindings as Readonly<Record<string, KeybindValue>>
+
+  const rebuildLookups = () => {
+    keyboardShortcuts = {}
+    mouseShortcuts = []
+    for (const [nameRaw, value] of Object.entries(bindingsAsRecord)) {
+      const keybindStrings = 'bindings' in value ? value.bindings : value
+      // This is SAFE, as `Keybinds<T>` is a type derived from `T`.
+      // eslint-disable-next-line no-restricted-syntax
+      const name = nameRaw as BindingKey
+      for (const keybindString of keybindStrings) {
+        const keybind = parseKeybindString(keybindString)
+        switch (keybind.type) {
+          case 'keybind': {
+            const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
+            shortcutsByModifier.add(name)
+            break
+          }
+          case 'mousebind': {
+            const shortcutsByKey = (mouseShortcuts[keybind.key] ??= [])
+            const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
+            shortcutsByModifier.add(name)
+            break
+          }
         }
       }
     }
+    rebuildMetadata()
   }
+  rebuildLookups()
 
   const handler = <Event extends KeyboardEvent | MouseEvent | PointerEvent>(
     handlers: Partial<
@@ -462,17 +534,32 @@ export function defineBindingNamespace<T extends Record<keyof T, string[] | []>>
   }
 
   const reset = (bindingName: BindingKey) => {
-    // TODO: reset to its original definition in `bindings`.
+    bindings[bindingName] = originalBindings[bindingName]
+    rebuildLookups()
   }
 
-  const deleteFunction = (bindingName: BindingKey, binding: Keybind | Mousebind) => {
-    //
+  const deleteFunction = (bindingName: BindingKey, binding: string) => {
+    const bindingsOrInfo = bindingsAsRecord[bindingName]
+    const bindingsList =
+      bindingsOrInfo != null && 'bindings' in bindingsOrInfo
+        ? bindingsOrInfo.bindings
+        : bindingsOrInfo
+    if (bindingsList != null) {
+      object.unsafeMutable(bindingsList).splice(bindingsList.indexOf(binding), 1)
+      rebuildLookups()
+    }
   }
 
-  // It is an option to accept a string instead, but that only really works for keybinds that are
-  // already known at compile time.
-  const add = (bindingName: BindingKey, binding: Keybind | Mousebind) => {
-    //
+  const add = (bindingName: BindingKey, binding: string) => {
+    const bindingsOrInfo = bindingsAsRecord[bindingName]
+    const bindingsList =
+      bindingsOrInfo != null && 'bindings' in bindingsOrInfo
+        ? bindingsOrInfo.bindings
+        : bindingsOrInfo
+    if (bindingsList != null) {
+      object.unsafeMutable(bindingsList).push(binding)
+      rebuildLookups()
+    }
   }
 
   return {
@@ -483,15 +570,17 @@ export function defineBindingNamespace<T extends Record<keyof T, string[] | []>>
     attach,
     /** Reset the entire list of bindings for a specific action to its default value. */
     reset,
-    /** Delete one specific binding from the bindings for a specific action.
-     * The binding MUST compare reference equal to be deleted. */
+    /** Delete one specific binding from the bindings for a specific action. */
     delete: deleteFunction,
+    /** Add a new binding to the bindings for a specific action. */
+    add,
+    metadata,
   } as const
 }
 
 /** A function to define a bindings object that can be passed to {@link defineBindingNamespace}.
  * Useful when wanting to create reusable keybind definitions, or non-global keybind definitions. */
-export function defineBindings<T extends Record<keyof T, string[] | []>>(bindings: Keybinds<T>) {
+export function defineBindings<T extends Record<keyof T, KeybindValue>>(bindings: Keybinds<T>) {
   return bindings
 }
 
@@ -513,8 +602,8 @@ const isPointer = includesPredicate(ALL_POINTERS)
  *
  * Although this is exported, it should ONLY be used for testing, as it is an implementation
  * detail. */
-export function decomposeKeybindString(string: string): ModifierStringDecomposition {
-  const parts = string
+export function decomposeKeybindString(keybindString: string): ModifierStringDecomposition {
+  const parts = keybindString
     .trim()
     .split(/[\s+]+/)
     .map(part => normalizedKeyboardSegmentLookup[part.toLowerCase()] ?? part)
@@ -525,8 +614,8 @@ export function decomposeKeybindString(string: string): ModifierStringDecomposit
 
 /** Parse a keybind string into a {@link Mousebind} if the key name describes a mouse button,
  * otherwise parse it into a {@link Keybind}. */
-export function parseKeybindString(string: string): Keybind | Mousebind {
-  const decomposed = decomposeKeybindString(string)
+export function parseKeybindString(keybindS: string): Keybind | Mousebind {
+  const decomposed = decomposeKeybindString(keybindS)
   if (isPointer(decomposed.key)) {
     return {
       type: 'mousebind',

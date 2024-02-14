@@ -1,6 +1,8 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
+import BlankIcon from 'enso-assets/blank.svg'
+
 import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -29,15 +31,16 @@ export interface MenuEntryProps {
 export default function MenuEntry(props: MenuEntryProps) {
   const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const info = shortcutManager.keyboardShortcutInfo[action]
+  const info = inputBindings.metadata[action]
   React.useEffect(() => {
-    // This is slower than registering every shortcut in the context menu at once.
-    if (!disabled) {
+    // This is slower (but more convenient) than registering every shortcut in the context menu
+    // at once.
+    if (disabled) {
+      return
+    } else {
       return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
         [action]: doAction,
       })
-    } else {
-      return
     }
   }, [disabled, inputBindings, action, doAction])
 
@@ -54,7 +57,7 @@ export default function MenuEntry(props: MenuEntryProps) {
       }}
     >
       <div className="flex items-center gap-3">
-        <SvgMask src={info.icon} className={`w-4 h-4 ${info.colorClass}`} />
+        <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="w-4 h-4" />
         {info.name}
       </div>
       <KeyboardShortcut action={action} />

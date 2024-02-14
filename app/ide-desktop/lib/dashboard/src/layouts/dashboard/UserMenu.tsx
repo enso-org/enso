@@ -18,7 +18,6 @@ import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 
 import * as github from '#/utilities/github'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 
 // ================
 // === UserMenu ===
@@ -71,7 +70,7 @@ export default function UserMenu(props: UserMenuProps) {
             <div className="flex flex-col">
               {canChangePassword && (
                 <MenuEntry
-                  action={shortcutManager.KeyboardAction.changeYourPassword}
+                  action="changeYourPassword"
                   paddingClassName="p-1"
                   doAction={() => {
                     setModal(<ChangePasswordModal />)
@@ -80,7 +79,7 @@ export default function UserMenu(props: UserMenuProps) {
               )}
               {!supportsLocalBackend && (
                 <MenuEntry
-                  action={shortcutManager.KeyboardAction.downloadApp}
+                  action="downloadApp"
                   paddingClassName="p-1"
                   doAction={async () => {
                     unsetModal()
@@ -94,7 +93,7 @@ export default function UserMenu(props: UserMenuProps) {
                 />
               )}
               <MenuEntry
-                action={shortcutManager.KeyboardAction.settings}
+                action="settings"
                 paddingClassName="p-1"
                 doAction={() => {
                   unsetModal()
@@ -102,7 +101,7 @@ export default function UserMenu(props: UserMenuProps) {
                 }}
               />
               <MenuEntry
-                action={shortcutManager.KeyboardAction.signOut}
+                action="signOut"
                 paddingClassName="p-1"
                 doAction={() => {
                   onSignOut()
@@ -121,7 +120,7 @@ export default function UserMenu(props: UserMenuProps) {
             </div>
             <div className="flex flex-col">
               <MenuEntry
-                action={shortcutManager.KeyboardAction.signIn}
+                action="signIn"
                 paddingClassName="p-1"
                 doAction={() => {
                   navigate(appUtils.LOGIN_PATH)

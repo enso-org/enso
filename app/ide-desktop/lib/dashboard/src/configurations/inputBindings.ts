@@ -4,6 +4,8 @@ import * as detect from 'enso-common/src/detect'
 
 import * as inputBindings from '#/utilities/inputBindings'
 
+export type * from '#/utilities/inputBindings'
+
 // ======================
 // === Input bindings ===
 // ======================

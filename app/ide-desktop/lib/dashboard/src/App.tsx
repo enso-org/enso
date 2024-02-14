@@ -49,7 +49,7 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
@@ -68,6 +68,19 @@ import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as authServiceModule from '#/authentication/service'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly keyboardShortcuts: Partial<
+      Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
+    >
+  }
+}
 
 // ======================
 // === getMainPageUrl ===
@@ -112,8 +125,9 @@ export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
-  /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
-   * will redirect the user between the login/register pages and the dashboard. */
+  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
+  // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
       <toastify.ToastContainer
@@ -126,7 +140,9 @@ export default function App(props: AppProps) {
         limit={3}
       />
       <Router basename={getMainPageUrl().pathname}>
-        <AppRouter {...props} />
+        <LocalStorageProvider>
+          <AppRouter {...props} />
+        </LocalStorageProvider>
       </Router>
     </>
   )
@@ -144,13 +160,52 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
+  const { localStorage } = localStorageProvider.useLocalStorage()
   const navigate = navigateHooks.useNavigate()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  // FIXME: load bindings from and save bindings to localStorage
-  const [inputBindings] = React.useState(() => inputBindingsModule.createBindings())
+  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  const inputBindings = React.useMemo(() => {
+    const updateLocalStorage = () => {
+      localStorage.set(
+        'keyboardShortcuts',
+        Object.fromEntries(
+          Object.entries(inputBindingsRaw.metadata).map(kv => {
+            const [k, v] = kv
+            return [k, v.bindings]
+          })
+        )
+      )
+    }
+    return {
+      /** Transparently pass through `handler()`. */
+      get handler() {
+        return inputBindingsRaw.handler
+      },
+      /** Transparently pass through `attach()`. */
+      get attach() {
+        return inputBindingsRaw.attach
+      },
+      reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
+        inputBindingsRaw.reset(bindingKey)
+        updateLocalStorage()
+      },
+      add: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
+        inputBindingsRaw.add(bindingKey, binding)
+        updateLocalStorage()
+      },
+      delete: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
+        inputBindingsRaw.delete(bindingKey, binding)
+        updateLocalStorage()
+      },
+      /** Transparently pass through `metadata`. */
+      get metadata() {
+        return inputBindingsRaw.metadata
+      },
+    }
+  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
   const mainPageUrl = getMainPageUrl()
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
@@ -234,8 +289,6 @@ function AppRouter(props: AppProps) {
     </AuthProvider>
   )
   result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
-  /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
-  result = <LocalStorageProvider>{result}</LocalStorageProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

@@ -4,27 +4,11 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
+import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
 
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly keyboardShortcuts: Partial<
-      Readonly<
-        Record<shortcutManagerModule.KeyboardAction, shortcutManagerModule.KeyboardShortcut[]>
-      >
-    >
-  }
-}
 
 // ============
 // === save ===
@@ -78,27 +62,25 @@ function InfoEntry(props: InternalInfoEntryProps) {
 
 /** Settings tab for viewing and editing account information. */
 export default function KeyboardShortcutsSettingsTab() {
-  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
+  const inputBindings = inputBindingsManager.useInputBindings()
 
   return (
     <div className="flex flex-col gap-2.5">
       <h3 className="font-bold text-xl h-9.5 py-0.5">Keyboard shortcuts</h3>
       <div className="flex flex-col">
-        {object.unsafeEntries(shortcutManager.keyboardShortcuts).map(kv => {
-          const [action, shortcuts] = kv
-          const info = shortcutManagerModule.KEYBOARD_SHORTCUT_INFO[action]
+        {object.unsafeEntries(inputBindings.metadata).map(kv => {
+          const [action, info] = kv
           return (
             <InfoEntry key={action}>
               <Name>{info.name}</Name>
               <Value>
-                {shortcuts.map((shortcut, i) => (
+                {info.bindings.map((binding, i) => (
                   <div key={i} className="flex items-center gap-1">
-                    <KeyboardShortcut shortcut={shortcut} />
+                    <KeyboardShortcut shortcut={binding} />
                     <button
                       className="inline-flex invisible group-hover:visible"
                       onClick={() => {
-                        shortcutManager.removeKeyboardShortcut(action, shortcut)
-                        // TODO: remove from shortcut manager
+                        inputBindings.delete(action, binding)
                       }}
                     >
                       <img src={CrossIcon} />
@@ -108,7 +90,8 @@ export default function KeyboardShortcutsSettingsTab() {
                 <button
                   className="inline-flex invisible group-hover:visible"
                   onClick={() => {
-                    // TODO: add new shortcut to action - after capturing it
+                    // FIXME: capture keyboard shortcut
+                    inputBindings.add(action, '')
                   }}
                 >
                   <img className="w-4.5 h-4.5" src={Plus2Icon} />

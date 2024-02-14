@@ -24,7 +24,6 @@ import type * as backendModule from '#/services/Backend'
 import * as assetQuery from '#/utilities/AssetQuery'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ====================
@@ -100,7 +99,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
                   <ContextMenu>
-                    <MenuEntry action={shortcutManager.KeyboardAction.delete} doAction={doDelete} />
+                    <MenuEntry action="delete" doAction={doDelete} />
                   </ContextMenu>
                 </ContextMenus>
               )

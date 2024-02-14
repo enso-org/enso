@@ -21,7 +21,6 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
 
 // =====================
@@ -112,14 +111,11 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
     }
   })
 
-  const handler = React.useMemo(
-    inputBindings.handler({
-      editName: () => {
-        //
-      },
-    }),
-    []
-  )
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
 
   return (
     <div
@@ -132,11 +128,9 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event.nativeEvent)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

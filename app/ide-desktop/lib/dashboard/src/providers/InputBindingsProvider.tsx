@@ -1,4 +1,4 @@
-/** @file The React provider for keyboard and mouse shortcutManager, along with hooks to use the provider
+/** @file The React provider for keyboard and mouse shortcuts, along with hooks to use the provider
  * via the shared React context. */
 import * as React from 'react'
 

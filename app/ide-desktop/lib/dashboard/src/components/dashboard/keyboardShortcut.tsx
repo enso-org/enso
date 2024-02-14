@@ -8,11 +8,13 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
-import * as shortcutManagerProvider from '#/providers/InputBindingsProvider'
+import type * as dashboardInputBindings from '#/configurations/inputBindings'
+
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import SvgMask from '#/components/SvgMask'
 
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as inputBindingsModule from '#/utilities/inputBindings'
 
 // ========================
 // === KeyboardShortcut ===
@@ -25,7 +27,7 @@ const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
 /** Icons for modifier keys (if they exist). */
 const MODIFIER_MAPPINGS: Readonly<
-  Record<detect.Platform, Partial<Record<shortcutManagerModule.ModifierKey, React.ReactNode>>>
+  Record<detect.Platform, Partial<Record<inputBindingsModule.ModifierKey, React.ReactNode>>>
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -33,7 +35,7 @@ const MODIFIER_MAPPINGS: Readonly<
     Meta: <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
     Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
     Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
-    Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
+    Ctrl: <SvgMask style={ICON_STYLE} key="Mod" src={CtrlKeyIcon} />,
   },
   [detect.Platform.windows]: {
     Meta: <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
@@ -59,12 +61,12 @@ const MODIFIER_MAPPINGS: Readonly<
 
 /** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
 export interface KeyboardShortcutActionProps {
-  readonly action: shortcutManagerModule.KeyboardAction
+  readonly action: dashboardInputBindings.DashboardBindingKey
 }
 
 /** Props for a {@link KeyboardShortcut}, specifying the shortcut info. */
 export interface KeyboardShortcutShortcutProps {
-  readonly shortcut: shortcutManagerModule.KeyboardShortcut
+  readonly shortcut: string
 }
 
 /** Props for a {@link KeyboardShortcut}. */
@@ -72,17 +74,19 @@ export type KeyboardShortcutProps = KeyboardShortcutActionProps | KeyboardShortc
 
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
-  const { namespace: shortcutManager } = shortcutManagerProvider.useInputBindings()
-  const shortcut =
-    'shortcut' in props ? props.shortcut : shortcutManager.keyboardShortcuts[props.action][0]
-  if (shortcut == null) {
+  const inputBindings = inputBindingsProvider.useInputBindings()
+  const shortcutString =
+    'shortcut' in props ? props.shortcut : inputBindings.metadata[props.action].bindings[0]
+  if (shortcutString == null) {
     return null
   } else {
+    const shortcut = inputBindingsModule.decomposeKeybindString(shortcutString)
+    const modifiers = [...shortcut.modifiers].sort(inputBindingsModule.compareModifiers)
     return (
       <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
-        {shortcutManagerModule.getModifierKeysOfShortcut(shortcut).map(
+        {modifiers.map(
           modifier =>
-            MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
+            MODIFIER_MAPPINGS[detect.platform()][inputBindingsModule.toModifierKey(modifier)] ?? (
               <span key={modifier} className="leading-170 h-6 py-px">
                 {modifier}
               </span>
