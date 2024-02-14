@@ -10,6 +10,7 @@ import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -20,6 +21,7 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Nothing.Nothing
+import project.Runtime.Context
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -283,6 +285,7 @@ type Enso_File
          destination file already exists. Defaults to `False`.
     move_to : Writable_File -> Boolean -> Nothing ! File_Error
     move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+        _ = [destination, replace_existing]
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             Unimplemented.throw "Enso_File.move_to is not implemented"
 
