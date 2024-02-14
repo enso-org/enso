@@ -26,6 +26,8 @@ import * as object from '#/utilities/object'
 const STATUS_SUCCESS_FIRST = 200
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_LAST = 299
+/** HTTP status indicating that the resource does not exist. */
+const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
 
@@ -191,9 +193,9 @@ export default class RemoteBackend extends Backend {
   /** Set the username and parent organization of the current user. */
   override async createUser(
     body: backendModule.CreateUserRequestBody
-  ): Promise<backendModule.UserOrOrganization> {
+  ): Promise<backendModule.User> {
     const path = remoteBackendPaths.CREATE_USER_PATH
-    const response = await this.post<backendModule.UserOrOrganization>(path, body)
+    const response = await this.post<backendModule.User>(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw('createUserBackendError')
     } else {
@@ -237,16 +239,67 @@ export default class RemoteBackend extends Backend {
 
   /** Upload a new profile picture for the current user. */
   override async uploadUserPicture(
-    params: backendModule.UploadUserPictureRequestParams,
+    params: backendModule.UploadPictureRequestParams,
     file: Blob
-  ): Promise<backendModule.UserOrOrganization> {
+  ): Promise<backendModule.User> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.UserOrOrganization>(path, file)
+    const response = await this.putBinary<backendModule.User>(path, file)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not upload user profile picture.')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Return details for the current organization.
+   * @returns `null` if a non-successful status code (not 200-299) was received. */
+  override async getOrganization(): Promise<backendModule.OrganizationInfo | null> {
+    const path = remoteBackendPaths.GET_ORGANIZATION_PATH
+    const response = await this.get<backendModule.OrganizationInfo>(path)
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return null
+    } else if (!responseIsSuccessful(response)) {
+      return this.throw('Could not get organization.')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Update details for the current organization. */
+  override async updateOrganization(
+    body: backendModule.UpdateOrganizationRequestBody
+  ): Promise<backendModule.OrganizationInfo | null> {
+    const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
+    const response = await this.patch<backendModule.OrganizationInfo>(path, body)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return null
+    } else if (!responseIsSuccessful(response)) {
+      return this.throw('Could not update organization.')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Upload a new profile picture for the current organization. */
+  override async uploadOrganizationPicture(
+    params: backendModule.UploadPictureRequestParams,
+    file: Blob
+  ): Promise<backendModule.OrganizationInfo> {
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
+    const response = await this.putBinary<backendModule.OrganizationInfo>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('uploadUserPictureBackendError')
     } else {
@@ -257,7 +310,7 @@ export default class RemoteBackend extends Backend {
   /** Adds a permission for a specific user on a specific asset. */
   override async createPermission(body: backendModule.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.post<backendModule.UserOrOrganization>(path, body)
+    const response = await this.post<backendModule.User>(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw('createPermissionBackendError')
     } else {
@@ -265,11 +318,11 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return organization info for the current user.
+  /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
-  override async usersMe(): Promise<backendModule.UserOrOrganization | null> {
+  override async usersMe(): Promise<backendModule.User | null> {
     const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backendModule.UserOrOrganization>(path)
+    const response = await this.get<backendModule.User>(path)
     if (!responseIsSuccessful(response)) {
       return null
     } else {
@@ -287,12 +340,15 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<ListDirectoryResponseBody>(
       path +
         '?' +
-        new URLSearchParams([
-          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-          ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
-          ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
-        ]).toString()
+        new URLSearchParams(
+          query.recentProjects
+            ? [['recent_projects', String(true)]]
+            : [
+                ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+                ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+                ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+              ]
+        ).toString()
     )
     if (!responseIsSuccessful(response)) {
       if (response.status === STATUS_SERVER_ERROR) {
@@ -607,6 +663,52 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Return a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async createConnector(
+    body: backendModule.CreateConnectorRequestBody
+  ): Promise<backendModule.ConnectorInfo> {
+    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
+    const response = await this.post<backendModule.ConnectorInfo>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not create Data Link with name '${body.name}'.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Return a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getConnector(
+    connectorId: backendModule.ConnectorId,
+    title: string | null
+  ): Promise<backendModule.Connector> {
+    const path = remoteBackendPaths.getConnectorPath(connectorId)
+    const response = await this.get<backendModule.Connector>(path)
+    if (!responseIsSuccessful(response)) {
+      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
+      return this.throw(`Could not get Data Link ${name}.`)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Delete a Data Link.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async deleteConnector(
+    connectorId: backendModule.ConnectorId,
+    title: string | null
+  ): Promise<void> {
+    const path = remoteBackendPaths.getConnectorPath(connectorId)
+    const response = await this.delete(path)
+    if (!responseIsSuccessful(response)) {
+      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
+      return this.throw(`Could not delete Data Link ${name}.`)
+    } else {
+      return
+    }
+  }
+
   /** Create a secret environment variable.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createSecret(
@@ -779,6 +881,11 @@ export default class RemoteBackend extends Backend {
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
     return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
+  /** Send a binary HTTP PUT request to the given path. */
+  private putBinary<T = void>(path: string, payload: Blob) {
+    return this.client.putBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */

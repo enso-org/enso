@@ -9,7 +9,7 @@ import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Util import all

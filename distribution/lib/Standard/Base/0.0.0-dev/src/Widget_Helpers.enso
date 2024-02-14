@@ -11,7 +11,7 @@ from project.Metadata import make_single_choice
    Creates a Regex / Text Widget for search and replace.
 make_regex_text_widget : Widget
 make_regex_text_widget =
-    make_single_choice [["Text", '""'], ["Regular Expression", '(Regex.compile "^$")']]
+    make_single_choice [["Text", '""'], ["Regular Expression", '"^$".to_regex']]
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
@@ -19,8 +19,8 @@ make_delimiter_selector : Widget
 make_delimiter_selector =
     make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], '_', ['Custom', "'?'"]]
 
- ## PRIVATE
-      Creates a Single_Choice Widget for file read delimiters.
+## PRIVATE
+   Creates a Single_Choice Widget for file read delimiters.
 make_file_read_delimiter_selector : Widget
 make_file_read_delimiter_selector =
         make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{none}', "''"], '_', ['Custom', "'?'"]]

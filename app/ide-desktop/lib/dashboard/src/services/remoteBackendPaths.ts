@@ -9,18 +9,26 @@ import type * as backend from '#/services/Backend'
 export const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "create user" endpoint of the Cloud backend API. */
 export const CREATE_USER_PATH = 'users'
+/** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
+export const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "update current user" endpoint of the Cloud backend API. */
 export const UPDATE_CURRENT_USER_PATH = 'users/me'
 /** Relative HTTP path to the "delete user" endpoint of the Cloud backend API. */
 export const DELETE_USER_PATH = 'users/me'
 /** Relative HTTP path to the "upload user picture" endpoint of the Cloud backend API. */
 export const UPLOAD_USER_PICTURE_PATH = 'users/me/picture'
+/** Relative HTTP path to the "get organization" endpoint of the Cloud backend API. */
+export const GET_ORGANIZATION_PATH = 'organizations/me'
+/** Relative HTTP path to the "update organization" endpoint of the Cloud backend API. */
+export const UPDATE_ORGANIZATION_PATH = 'organizations/me'
+/** Relative HTTP path to the "delete organization" endpoint of the Cloud backend API. */
+export const DELETE_ORGANIZATION_PATH = 'organizations/me'
+/** Relative HTTP path to the "upload organization picture" endpoint of the Cloud backend API. */
+export const UPLOAD_ORGANIZATION_PICTURE_PATH = 'organizations/me/picture'
 /** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
 export const INVITE_USER_PATH = 'users/invite'
 /** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
 export const CREATE_PERMISSION_PATH = 'permissions'
-/** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
-export const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
 export const LIST_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
@@ -39,6 +47,8 @@ export const UPLOAD_FILE_PATH = 'files'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "create connector" endpoint of the Cloud backend API. */
+export const CREATE_CONNECTOR_PATH = 'connectors'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
@@ -96,6 +106,10 @@ export function updateSecretPath(secretId: backend.SecretId) {
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
   return `secrets/${secretId}`
+}
+/** Relative HTTP path to the "get connector" endpoint of the Cloud backend API. */
+export function getConnectorPath(connectorId: backend.ConnectorId) {
+  return `connectors/${connectorId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 export function associateTagPath(assetId: backend.AssetId) {

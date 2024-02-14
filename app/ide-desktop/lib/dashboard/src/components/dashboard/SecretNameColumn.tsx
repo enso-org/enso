@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import ConnectorIcon from 'enso-assets/connector.svg'
+import KeyIcon from 'enso-assets/key.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -17,6 +17,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import type * as column from '#/components/dashboard/column'
+import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
@@ -55,6 +56,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.openProject:
       case AssetEventType.updateFiles:
       case AssetEventType.closeProject:
@@ -141,7 +143,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <img src={ConnectorIcon} className="m-1" />
+      <SvgMask src={KeyIcon} className="h-4 w-4 m-1" />
       {/* Secrets cannot be renamed. */}
       <span data-testid="asset-row-name" className="bg-transparent grow leading-170 h-6 py-px">
         {asset.title}

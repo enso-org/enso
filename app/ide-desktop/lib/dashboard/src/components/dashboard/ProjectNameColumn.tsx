@@ -47,7 +47,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
@@ -57,8 +57,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
-    null
+    asset.permissions?.find(permission => permission.user.user_email === user?.email) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -72,7 +71,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     projectState.opened_by != null &&
-    projectState.opened_by !== organization?.email
+    projectState.opened_by !== user?.email
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
@@ -97,6 +96,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       case AssetEventType.newFolder:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:

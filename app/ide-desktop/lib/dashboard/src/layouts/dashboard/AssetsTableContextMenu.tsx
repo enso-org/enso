@@ -57,12 +57,12 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -71,11 +71,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    (organization != null &&
+    (user != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.email
+          permission => permission.user.user_email === user.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))

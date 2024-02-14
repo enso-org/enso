@@ -4,11 +4,11 @@ import project.Data.Sort_Column.Sort_Column
 
 ## Defines an Aggregate Column
 type Aggregate_Column
-    ## Specifies a column to group the rows by.
+    ## PRIVATE
+       Specifies a column to group the rows by. Deprecated but used internally.
 
        Arguments:
-       - column: the column (specified by name, expression or index) to group
-         by.
+       - column: the column (either name, expression or index) to group by.
        - new_name: name of new column.
     Group_By (column:Text|Integer|Any) (new_name:Text="") # Any needed because of 6866
 

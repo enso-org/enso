@@ -138,7 +138,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               return oldIndex == null ? 0 : (oldIndex + 1) % length
             }
           })
-          // FIXME: `setQuery`?
         }
         if (event.key === 'Enter' || event.key === ' ') {
           querySource.current = QuerySource.external
@@ -158,6 +157,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
         !(event.target instanceof HTMLInputElement) &&
+        !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         shortcutManager.isTextInputEvent(event)

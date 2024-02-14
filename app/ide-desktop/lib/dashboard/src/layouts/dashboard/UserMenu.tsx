@@ -39,7 +39,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
-  const { accessToken, organization } = authProvider.useNonPartialUserSession()
+  const { accessToken, user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -62,13 +62,13 @@ export default function UserMenu(props: UserMenuProps) {
           event.stopPropagation()
         }}
       >
-        {organization != null ? (
+        {user != null ? (
           <>
             <div className="flex items-center gap-3 px-1">
               <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
-                <img src={organization.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+                <img src={user.profilePicture ?? DefaultUserIcon} height={28} width={28} />
               </div>
-              <span className="leading-170 h-6 py-px">{organization.name}</span>
+              <span className="leading-170 h-6 py-px">{user.name}</span>
             </div>
             <div className="flex flex-col">
               {canChangePassword && (

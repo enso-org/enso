@@ -18,3 +18,8 @@ export function regexEscape(string: string) {
 export function isWhitespaceOnly(string: string) {
   return /^\s*$/.test(string)
 }
+
+/** Whether a string consists only of printable ASCII. */
+export function isPrintableASCIIOnly(string: string) {
+  return /^[ -~]*$/.test(string)
+}

@@ -83,7 +83,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
-  const { organization, user } = authProvider.useNonPartialUserSession()
+  const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -128,11 +128,11 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
-        newParentId ??= organization?.rootDirectoryId ?? backendModule.DirectoryId('')
+        newParentId ??= user?.rootDirectoryId ?? backendModule.DirectoryId('')
         const copiedAsset = await backend.copyAsset(
           asset.id,
           newParentId,
@@ -156,8 +156,8 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend,
-      organization,
       user,
+      userInfo,
       asset,
       item.key,
       toastAndLog,
@@ -172,7 +172,7 @@ export default function AssetRow(props: AssetRowProps) {
       newParentKey: backendModule.AssetId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
-      const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
+      const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
@@ -189,6 +189,7 @@ export default function AssetRow(props: AssetRowProps) {
             directoryId: nonNullNewParentId,
           })
         )
+        setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -196,6 +197,7 @@ export default function AssetRow(props: AssetRowProps) {
         )
       } catch (error) {
         toastAndLog('moveAssetError', error, asset.title)
+        setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -211,12 +213,13 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend,
-      organization,
+      user,
       asset,
       item.directoryId,
       item.directoryKey,
       item.key,
       toastAndLog,
+      /* should never change */ setAsset,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -291,6 +294,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
@@ -383,13 +387,13 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user != null) {
+        if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              userSubjects: [user.id],
+              userSubjects: [userInfo.id],
             })
             dispatchAssetListEvent({
               type: AssetListEventType.delete,
@@ -509,7 +513,10 @@ export default function AssetRow(props: AssetRowProps) {
     const directoryKey =
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+    if (
+      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
+      event.dataTransfer.types.includes('Files')
+    ) {
       event.preventDefault()
       if (item.item.type === backendModule.AssetType.directory) {
         setIsDraggedOver(true)
@@ -521,6 +528,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
+    case backendModule.AssetType.dataLink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         key,
@@ -613,7 +621,10 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (event.currentTarget === event.target) {
+                if (
+                  event.relatedTarget instanceof Node &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
                   clearDragState()
                 }
                 props.onDragLeave?.(event)
@@ -636,6 +647,19 @@ export default function AssetRow(props: AssetRowProps) {
                     newParentKey: directoryKey,
                     newParentId: directoryId,
                     ids: new Set(payload.map(dragItem => dragItem.key)),
+                  })
+                } else if (event.dataTransfer.types.includes('Files')) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.uploadFiles,
+                    // This is SAFE, as it is guarded by the condition above:
+                    // `item.item.type === backendModule.AssetType.directory`
+                    // eslint-disable-next-line no-restricted-syntax
+                    parentKey: directoryKey as backendModule.DirectoryId,
+                    parentId: directoryId,
+                    files: Array.from(event.dataTransfer.files),
                   })
                 }
               }}
@@ -692,7 +716,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 ${indent.indentClass(
+              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
                 item.depth
               )}`}
             >

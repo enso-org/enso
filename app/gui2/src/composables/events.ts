@@ -2,12 +2,14 @@
 
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
+import type { VueInstance } from '@vueuse/core'
 import {
   computed,
   onScopeDispose,
   proxyRefs,
   ref,
   shallowRef,
+  toValue,
   watch,
   watchEffect,
   type Ref,
@@ -129,6 +131,14 @@ export function modKey(e: KeyboardEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
+/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components. */
+function unrefElement(
+  element: Ref<Element | undefined | null | VueInstance>,
+): Element | undefined | null {
+  const plain = toValue(element)
+  return (plain as VueInstance)?.$el ?? plain
+}
+
 /**
  * Get DOM node size and keep it up to date.
  *
@@ -140,7 +150,7 @@ export function modKey(e: KeyboardEvent): boolean {
  * @returns Reactive value with the DOM node size.
  */
 export function useResizeObserver(
-  elementRef: Ref<Element | undefined | null>,
+  elementRef: Ref<Element | undefined | null | VueInstance>,
   useContentRect = true,
 ): Ref<Vec2> {
   const sizeRef = shallowRef<Vec2>(Vec2.Zero)
@@ -148,7 +158,7 @@ export function useResizeObserver(
     // Fallback implementation for browsers/test environment that do not support ResizeObserver:
     // Grab the size of the element every time the ref is assigned, or when the page is resized.
     function refreshSize() {
-      const element = elementRef.value
+      const element = unrefElement(elementRef)
       if (element != null) {
         const rect = element.getBoundingClientRect()
         sizeRef.value = new Vec2(rect.width, rect.height)
@@ -160,8 +170,9 @@ export function useResizeObserver(
   }
   const observer = new ResizeObserver((entries) => {
     let rect: { width: number; height: number } | null = null
+    const target = unrefElement(elementRef)
     for (const entry of entries) {
-      if (entry.target === elementRef.value) {
+      if (entry.target === target) {
         if (useContentRect) {
           rect = entry.contentRect
         } else {
@@ -175,7 +186,7 @@ export function useResizeObserver(
   })
 
   watchEffect((onCleanup) => {
-    const element = elementRef.value
+    const element = unrefElement(elementRef)
     if (element != null) {
       observer.observe(element)
       onCleanup(() => {

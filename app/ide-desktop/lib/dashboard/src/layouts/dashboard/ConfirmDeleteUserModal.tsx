@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -14,19 +12,22 @@ import Modal from '#/components/Modal'
 // === ConfirmDeleteUserModal ===
 // ==============================
 
+/** Props for a {@link ConfirmDeleteUserModal}. */
+export interface ConfirmDeleteUserModalProps {
+  readonly doDelete: () => Promise<void>
+}
+
 /** A modal for confirming the deletion of a user. */
-export default function ConfirmDeleteUserModal() {
-  const { backend } = backendProvider.useBackend()
+export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
+  const { doDelete } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { signOut } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const onSubmit = async () => {
     unsetModal()
     try {
-      await backend.deleteUser()
-      await signOut()
+      await doDelete()
     } catch (error) {
       toastAndLog(null, error)
     }

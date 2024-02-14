@@ -3,6 +3,7 @@ import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
@@ -82,7 +83,8 @@ export enum KeyboardAction {
   uploadProjects = 'uploadProjects',
   newProject = 'newProject',
   newFolder = 'newFolder',
-  newDataConnector = 'newDataConnector',
+  newSecret = 'newSecret',
+  newDataLink = 'newDataLink',
   closeModal = 'closeModal',
   cancelEditName = 'cancelEditName',
   changeYourPassword = 'changeYourPassword',
@@ -456,7 +458,16 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortc
   [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
   [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
   [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
-  [KeyboardAction.newDataConnector]: [keybind(KeyboardAction.newDataConnector, [CTRL, 'Alt'], 'N')],
+  [KeyboardAction.newSecret]: [
+    keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], 'N'),
+    ...(!detect.isOnMacOS() ? [] : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt'], '~')]),
+  ],
+  [KeyboardAction.newDataLink]: [
+    keybind(KeyboardAction.newDataLink, [CTRL, 'Alt', 'Shift'], 'N'),
+    ...(!detect.isOnMacOS()
+      ? []
+      : [keybind(KeyboardAction.newSecret, [CTRL, 'Alt', 'Shift'], '~')]),
+  ],
   [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
   [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
   [KeyboardAction.changeYourPassword]: [],
@@ -495,7 +506,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
   [KeyboardAction.uploadProjects]: { icon: DataUploadIcon },
   [KeyboardAction.newProject]: { icon: AddNetworkIcon },
   [KeyboardAction.newFolder]: { icon: AddFolderIcon },
-  [KeyboardAction.newDataConnector]: { icon: AddConnectorIcon },
+  [KeyboardAction.newSecret]: { icon: AddKeyIcon },
+  [KeyboardAction.newDataLink]: { icon: AddConnectorIcon },
   // These should not appear in any context menus.
   [KeyboardAction.closeModal]: { icon: BlankIcon },
   [KeyboardAction.cancelEditName]: { icon: BlankIcon },

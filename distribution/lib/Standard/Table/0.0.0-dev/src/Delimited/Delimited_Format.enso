@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
@@ -77,7 +78,7 @@ type Delimited_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> Delimited_Format | Nothing
+    for_file_write : Writable_File -> Delimited_Format | Nothing
     for_file_write file = Delimited_Format.for_read file
 
     ## PRIVATE
@@ -140,8 +141,8 @@ type Delimited_Format
         self.clone value_formatter=Nothing
 
     ## Creates a clone of this with a changed line ending style.
-    with_line_endings : Line_Ending_Style|Infer -> Delimited_Format
-    with_line_endings self (line_endings : Line_Ending_Style | Infer)=Infer =
+    with_line_endings : Line_Ending_Style | Infer -> Delimited_Format
+    with_line_endings self (line_endings : Line_Ending_Style | Infer = Infer) =
         self.clone line_endings=line_endings
 
     ## Creates a clone of this with comment parsing enabled.

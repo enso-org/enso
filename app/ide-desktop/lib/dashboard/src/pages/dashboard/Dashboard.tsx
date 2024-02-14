@@ -143,8 +143,8 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const rootDirectoryId = React.useMemo(
-    () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [session.organization]
+    () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [session.user]
   )
 
   React.useEffect(() => {
@@ -183,7 +183,7 @@ export default function Dashboard(props: DashboardProps) {
         if (session.accessToken != null) {
           if (
             currentBackend.type === backendModule.BackendType.remote &&
-            savedProjectStartupInfo.projectAsset.parentId === session.organization.rootDirectoryId
+            savedProjectStartupInfo.projectAsset.parentId === session.user.rootDirectoryId
           ) {
             // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
             setPage(pageSwitcher.Page.drive)
@@ -469,7 +469,6 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
-            page={page}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}

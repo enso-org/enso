@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
+import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
@@ -16,6 +17,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
@@ -35,6 +37,7 @@ export interface DriveBarProps {
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
+  readonly doCreateDataLink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -43,7 +46,7 @@ export interface DriveBarProps {
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
   const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -110,12 +113,26 @@ export default function DriveBar(props: DriveBarProps) {
               active={isHomeCategory}
               disabled={!isHomeCategory}
               error={getText('newSecretInHomeOnly')}
-              image={AddConnectorIcon}
+              image={AddKeyIcon}
               alt={getText('newSecret')}
               disabledOpacityClassName="opacity-20"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+              }}
+            />
+          )}
+          {isCloud && (
+            <Button
+              active={isHomeCategory}
+              disabled={!isHomeCategory}
+              error={getText('newDataLinkInHomeOnly')}
+              image={AddConnectorIcon}
+              alt={getText('newDataLink')}
+              disabledOpacityClassName="opacity-20"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
               }}
             />
           )}
@@ -125,9 +142,7 @@ export default function DriveBar(props: DriveBarProps) {
             multiple
             id="upload_files_input"
             name="upload_files_input"
-            {...(backend.type !== backendModule.BackendType.local
-              ? {}
-              : { accept: '.enso-project' })}
+            {...(isCloud ? {} : { accept: '.enso-project' })}
             className="hidden"
             onInput={event => {
               if (event.currentTarget.files != null) {

@@ -50,7 +50,8 @@ parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
    "Europe/Paris".
 @Builtin_Type
 type Time_Zone
-    ## The system default timezone.
+    ## ICON date_and_time
+       The system default timezone.
 
        > Example
          Get the system default timezone.
@@ -62,6 +63,7 @@ type Time_Zone
     system = @Builtin_Method "Time_Zone.system"
 
     ## ALIAS current time zone
+       ICON date_and_time
 
        The system's local timezone.
 
@@ -75,6 +77,7 @@ type Time_Zone
     local = Time_Zone.system
 
     ## ALIAS utc time zone
+       ICON date_and_time
 
        The UTC timezone.
 
@@ -87,7 +90,8 @@ type Time_Zone
     utc : Time_Zone
     utc = Time_Zone.parse "UTC"
 
-    ## Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
+    ## ICON date_and_time
+       Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
        from the UTC zone.
 
        Arguments:
@@ -109,6 +113,7 @@ type Time_Zone
 
     ## ALIAS time zone from text
        GROUP Conversions
+       ICON convert
 
        This method parses the ID producing a `Time_Zone`.
 
@@ -148,6 +153,7 @@ type Time_Zone
             parse_builtin id
 
     ## GROUP DateTime
+       ICON metadata
        Get the unique timezone ID.
 
        > Example
@@ -160,6 +166,7 @@ type Time_Zone
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
     ## GROUP DateTime
+       ICON metadata
        Get the offset in seconds at given date time.
        Arguments:
        - at: The date to compute offset at.
