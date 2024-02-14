@@ -1819,17 +1819,15 @@ type Column
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
     format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default =
-        new_column = case format of
-            format_column : Column -> Value_Type.expect_text format_column <|
-                formatter = make_value_formatter_for_value_type self.value_type locale
-                formatter.if_not_error <|
-                    formatter_flipped value format = formatter format value
-                    Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
-            _ ->
-                formatter = make_value_formatter_for_value_type self.value_type locale format
-                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
-        new_column
+    format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default = case format of
+        format_column : Column -> Value_Type.expect_text format_column <|
+            formatter = make_value_formatter_for_value_type self.value_type locale
+            formatter.if_not_error <|
+                formatter_flipped value format = formatter format value
+                Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
+        _ ->
+            formatter = make_value_formatter_for_value_type self.value_type locale format
+            Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
 
     ## GROUP Standard.Base.Conversions
        ICON convert
