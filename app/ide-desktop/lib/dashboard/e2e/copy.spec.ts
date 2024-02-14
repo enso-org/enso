@@ -137,9 +137,14 @@ test.test('cut (keyboard)', async ({ page }) => {
   await actions.locateNewFolderIcon(page).click()
   await assetRows.nth(0).click()
   await actions.press(page, 'Mod+X')
-  test
-    .expect(await assetRows.nth(0).evaluate(el => Number(getComputedStyle(el).opacity)))
-    .toBeLessThan(1)
+  // This action is not a builtin `expect` action, so it needs to be manually retried.
+  await test
+    .expect(async () => {
+      test
+        .expect(await assetRows.nth(0).evaluate(el => Number(getComputedStyle(el).opacity)))
+        .toBeLessThan(1)
+    })
+    .toPass()
 })
 
 test.test('duplicate', async ({ page }) => {
