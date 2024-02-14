@@ -386,7 +386,6 @@ function openFullMenu() {
       :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
-      @openFullMenu="openFullMenu"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
