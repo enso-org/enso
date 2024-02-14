@@ -120,9 +120,9 @@ add_specs suite_builder setup =
             lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
             t = table.replace lookup_table 'x' . order_by ['y']
             t . should_equal table
-            Problems.expect_warning Empty_Error t
+            Problems.expect_warning (Empty_Error.Error "lookup_table_renamed") t
 
-        group_builder.specify "asdfasdfshould throw an error on an empty (but well-formed) lookup table and non-empty base table if allow_unmatched_rows=False" <|
+        group_builder.specify "should throw an error on an empty (but well-formed) lookup table and non-empty base table if allow_unmatched_rows=False" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
             lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
             t = table.replace lookup_table 'x' allow_unmatched_rows=False . order_by ['y']
@@ -133,13 +133,13 @@ add_specs suite_builder setup =
             lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
             t = table.replace lookup_table 'x'
             t . should_equal table
-            Problems.expect_warning Empty_Error t
+            Problems.expect_warning (Empty_Error.Error "lookup_table_renamed") t
 
         group_builder.specify "should accept an empty lookup map, if allow_unmatched_rows=True, but expect a warning" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
             t = table.replace Map.empty 'x'
             t . should_equal table
-            Problems.expect_warning Empty_Error t
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
 
         group_builder.specify "should throw an error on an empty lookup map and non-empty base table if allow_unmatched_rows=False" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
@@ -151,7 +151,7 @@ add_specs suite_builder setup =
             table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
             t = table.replace Map.empty 'x'
             t . should_equal table
-            Problems.expect_warning Empty_Error t
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
 
         group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
             table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
