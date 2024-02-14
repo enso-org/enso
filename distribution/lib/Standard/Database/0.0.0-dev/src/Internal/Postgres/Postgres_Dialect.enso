@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
-import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Column.Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Value_Type
@@ -267,7 +267,7 @@ type Postgres_Dialect
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
         _ : DB_Column -> column.value_type
-        _ : Materialized_Column ->
+        _ : Column ->
             base_type = column.value_type
             case base_type of
                 Value_Type.Decimal precision scale ->

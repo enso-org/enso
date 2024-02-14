@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Widget_Helpers import make_regex_text_widget
 
-import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Constants.Previous_Value
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
@@ -103,7 +103,7 @@ type DB_Column
          If `Nothing`, all available rows are returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Nothing | Integer) -> Boolean -> Materialized_Column
+    read : (Nothing | Integer) -> Boolean -> Column
     read self (max_rows : Nothing | Integer = 1000) (warn_if_more_rows:Boolean = True) =
         self.to_table.read max_rows warn_if_more_rows . at 0
 
@@ -1920,7 +1920,7 @@ adapt_unified_column column expected_type =
 simple_unary_op column op_kind = column.make_unary_op op_kind
 
 ## PRIVATE
-Materialized_Column.from (that:DB_Column) =
+Column.from (that:DB_Column) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")
 
