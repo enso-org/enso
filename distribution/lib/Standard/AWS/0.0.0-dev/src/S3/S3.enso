@@ -215,6 +215,6 @@ time_it name ~action key=Nothing =
     r = action
     end = System.nano_time
     duration = Duration.new nanoseconds=(end - start)
-    line = name + '\t' + duration.to_display_text + '\t' + key.to_text
+    line = name + '\t' + duration.to_display_text + '\t' + key.to_text + '\n'
     line.write (File.new "s3.log") on_existing_file=Existing_File_Behavior.Append
     r
