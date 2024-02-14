@@ -120,5 +120,5 @@ type Suite
 ## PRIVATE
 name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
     case filter of
-        text : Text -> name.contains text
+        text : Text -> name == text
         Nothing -> True
