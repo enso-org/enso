@@ -9,11 +9,12 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Integer, Float, Number_Parse_Error
-from project.Errors.Common import Loss_Of_Floating_Point_Precision
+from project.Errors.Common import Loss_Of_Numeric_Precision
 
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 polyglot java import org.enso.base.numeric.Decimal_Utils
+polyglot java import org.enso.base.numeric.Decimal_Utils.Conversion_Result
 
 ## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
    `Decimal` is a wrapper around a Java `BigDecimal`.
@@ -70,10 +71,18 @@ type Decimal
        Arguments:
        - i: The `Integer` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
-    from_integer : Integer -> Math_Context -> Decimal
-    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal =
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
+
+       ! Error Conditions
+
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
+    from_integer : Integer -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
+    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
-            _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
+            _ : Math_Context -> handle_precision_loss i <| Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
 
     ## Construct a `Decimal` from a `Float`.
@@ -81,16 +90,18 @@ type Decimal
        Arguments:
        - f: The `Float` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
 
        ! Error Conditions
 
-         - Since a `Float` cannot, in general, be represented exactly by a
-         `Decimal`, this method always attaches a
-         `Loss_Of_Floating_Point_Precision` error.
-    from_float : Float -> Math_Context -> Decimal ! Loss_Of_Floating_Point_Precision
-    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Floating_Point_Precision =
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
+    from_float : Float -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
+    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
-            _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoFloat f mc.math_context)
+            _ : Math_Context -> handle_precision_loss f <| Decimal.Value (Decimal_Utils.fromEnsoFloat f mc.math_context)
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
     + : Decimal -> Decimal -> Decimal
@@ -124,6 +135,13 @@ type Decimal
 handle_number_format_exception ~action =
     Panic.catch NumberFormatException action caught_panic->
         Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
+
+## PRIVATE
+handle_precision_loss : Any -> Conversion_Result -> Any ! Loss_Of_Numeric_Precision
+handle_precision_loss original_value conversion_result:Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
+    if conversion_result.hasPrecisionloss.not then conversion_result.newValue else
+        new_value = conversion_result.newValue
+        Warning.Attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
 ## We do not provide a `from` instance for `Float`, but instead require the use
    of `Decimal.from_float`, since it is inexact.

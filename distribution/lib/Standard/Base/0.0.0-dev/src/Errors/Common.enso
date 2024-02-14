@@ -470,11 +470,10 @@ type Additional_Warnings
     to_display_text self =
         "There were "+self.count.to_text+" additional issues."
 
-type Loss_Of_Floating_Point_Precision
+type Loss_Of_Numeric_Precision
     ## PRIVATE
-       Indicates that a numeric conversion of a floating point has lost
-       precision.
-    Warning (original_value : Float) (new_value : Any)
+       Indicates that a numeric conversion of a value has lost precision.
+    Warning (original_value : Any) (new_value : Any)
 
     ## PRIVATE
        Create a human-readable version of the error.
@@ -485,4 +484,4 @@ type Loss_Of_Floating_Point_Precision
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Loss_Of_Floating_Point_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
