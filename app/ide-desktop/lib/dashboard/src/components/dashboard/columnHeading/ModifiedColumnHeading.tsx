@@ -23,10 +23,10 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
     <button
       title={
         !isSortActive
-          ? 'Sort by modification date'
+          ? getText('sortByModificationDate')
           : sortDirection === SortDirection.ascending
-          ? 'Sort by modification date descending'
-          : 'Stop sorting by modification date'
+          ? getText('sortByModificationDateDescending')
+          : getText('stopSortingByModificationDate')
       }
       className="flex items-center cursor-pointer gap-2"
       onMouseEnter={() => {

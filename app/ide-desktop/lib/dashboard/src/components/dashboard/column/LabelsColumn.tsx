@@ -8,6 +8,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
@@ -40,6 +41,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const session = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const self = asset.permissions?.find(
     permission => permission.user.user_email === session.user?.email
@@ -67,7 +69,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             key={label}
             data-testid="asset-label"
-            title="Right click to remove label."
+            title={getText('rightClickToRemoveLabel')}
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
             disabled={temporarilyRemovedLabels.has(label)}

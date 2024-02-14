@@ -21,10 +21,10 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
     <button
       title={
         !isSortActive
-          ? 'Sort by name'
+          ? getText('sortByName')
           : sortDirection === SortDirection.ascending
-          ? 'Sort by name descending'
-          : 'Stop sorting by name'
+          ? getText('sortByNameDescending')
+          : getText('stopSortingByName')
       }
       className="flex items-center gap-2 pt-1 pb-1.5"
       onMouseEnter={() => {

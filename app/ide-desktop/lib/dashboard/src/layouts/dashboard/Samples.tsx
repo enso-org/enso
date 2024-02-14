@@ -201,11 +201,11 @@ function ProjectTile(props: InternalProjectTileProps) {
         </div>
         {/* Normally `flex` */}
         <div className="gap-3 hidden">
-          <div title="Views" className="flex gap-1.5">
+          <div title={getText('views')} className="flex gap-1.5">
             <SvgMask alt={getText('views')} src={OpenCountIcon} />
             <span className="font-bold leading-144.5 pb-px">{opens}</span>
           </div>
-          <div title="Likes" className="flex gap-1.5">
+          <div title={getText('likes')} className="flex gap-1.5">
             <SvgMask alt={getText('likes')} src={HeartIcon} />
             <span className="font-bold leading-144.5 pb-px">{likes}</span>
           </div>
