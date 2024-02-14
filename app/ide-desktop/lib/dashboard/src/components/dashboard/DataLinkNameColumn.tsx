@@ -86,7 +86,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       case AssetEventType.newDataLink: {
         if (item.key === event.placeholderId) {
           if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Data connectors cannot be created on the local backend')
+            toastAndLog('localBackendDataLinkError')
           } else {
             rowState.setVisibility(Visibility.faded)
             try {
@@ -99,11 +99,8 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merger({ id }))
             } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
-              toastAndLog('Error creating new data connector', error)
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+              toastAndLog('createDataLinkError', error)
             }
           }
         }

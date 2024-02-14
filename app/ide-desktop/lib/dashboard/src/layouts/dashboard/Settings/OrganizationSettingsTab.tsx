@@ -8,6 +8,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as backendModule from '#/services/Backend'
 
@@ -66,8 +67,9 @@ export interface OrganizationSettingsTabProps {
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsTab(props: OrganizationSettingsTabProps) {
   const { organization, setOrganization } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const nameRef = React.useRef<HTMLInputElement>(null)
   const emailRef = React.useRef<HTMLInputElement>(null)
   const websiteRef = React.useRef<HTMLInputElement>(null)
@@ -159,7 +161,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newOrganization = await backend.uploadOrganizationPicture(
@@ -200,10 +202,10 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
     <div className="flex flex-col lg:flex-row gap-8 h-0 lg:h-auto">
       <div className="flex flex-col gap-8 w-120">
         <div className="flex flex-col gap-2.5">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
+          <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('organization')}</h3>
           <div className="flex flex-col">
             <InfoEntry>
-              <Name>Organization display name</Name>
+              <Name>{getText('organizationDisplayName')}</Name>
               <Value>
                 <input
                   ref={nameRef}
@@ -220,7 +222,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </Value>
             </InfoEntry>
             <InfoEntry>
-              <Name>Email</Name>
+              <Name>{getText('email')}</Name>
               <Value>
                 <input
                   ref={emailRef}
@@ -248,7 +250,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </Value>
             </InfoEntry>
             <InfoEntry>
-              <Name>Website</Name>
+              <Name>{getText('website')}</Name>
               <Value>
                 <input
                   ref={websiteRef}
@@ -265,7 +267,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </Value>
             </InfoEntry>
             <InfoEntry>
-              <Name>Location</Name>
+              <Name>{getText('location')}</Name>
               <Value>
                 <input
                   ref={locationRef}
@@ -285,7 +287,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
         </div>
       </div>
       <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
+        <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('profilePicture')}</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input
             type="file"
@@ -295,10 +297,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
           />
           <img src={organization.picture ?? DefaultUserIcon} width={128} height={128} />
         </label>
-        <span className="py-1 w-64">
-          Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
-          should not be a default image provided by Enso.
-        </span>
+        <span className="py-1 w-64">{getText('organizationProfilePictureWarning')}</span>
       </div>
     </div>
   )

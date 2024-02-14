@@ -250,7 +250,7 @@ export default class RemoteBackend extends Backend {
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backendModule.User>(path, file)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not upload user profile picture.')
+      return this.throw('uploadUserPictureBackendError')
     } else {
       return await response.json()
     }
@@ -265,7 +265,7 @@ export default class RemoteBackend extends Backend {
       // Organization info has not yet been created.
       return null
     } else if (!responseIsSuccessful(response)) {
-      return this.throw('Could not get organization.')
+      return this.throw('getOrganizationBackendError')
     } else {
       return await response.json()
     }
@@ -282,7 +282,7 @@ export default class RemoteBackend extends Backend {
       // Organization info has not yet been created.
       return null
     } else if (!responseIsSuccessful(response)) {
-      return this.throw('Could not update organization.')
+      return this.throw('updateOrganizationBackendError')
     } else {
       return await response.json()
     }
@@ -301,7 +301,7 @@ export default class RemoteBackend extends Backend {
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backendModule.OrganizationInfo>(path, file)
     if (!responseIsSuccessful(response)) {
-      return this.throw('uploadUserPictureBackendError')
+      return this.throw('uploadOrganizationPictureBackendError')
     } else {
       return await response.json()
     }
@@ -671,7 +671,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
     const response = await this.post<backendModule.ConnectorInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create Data Link with name '${body.name}'.`)
+      return this.throw('createConnectorBackendError', body.name)
     } else {
       return await response.json()
     }
@@ -681,13 +681,12 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getConnector(
     connectorId: backendModule.ConnectorId,
-    title: string | null
+    title: string
   ): Promise<backendModule.Connector> {
     const path = remoteBackendPaths.getConnectorPath(connectorId)
     const response = await this.get<backendModule.Connector>(path)
     if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
-      return this.throw(`Could not get Data Link ${name}.`)
+      return this.throw('getConnectorBackendError', title)
     } else {
       return await response.json()
     }
@@ -697,13 +696,12 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async deleteConnector(
     connectorId: backendModule.ConnectorId,
-    title: string | null
+    title: string
   ): Promise<void> {
     const path = remoteBackendPaths.getConnectorPath(connectorId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      const name = title != null ? `'${title}'` : `with ID '${connectorId}'`
-      return this.throw(`Could not delete Data Link ${name}.`)
+      return this.throw('deleteConnectorBackendError', title)
     } else {
       return
     }
