@@ -152,6 +152,7 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Cr
 
 ## PRIVATE
    Deletes the object.
+   It will not raise any errors if the object does not exist.
 delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = time_it "delete_object" key=key <| handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build

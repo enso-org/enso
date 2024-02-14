@@ -171,20 +171,17 @@ type S3_File
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text encoding) on_problems
 
-    ## UNSTABLE
-       Deletes the object.
+    ## Deletes the object.
     delete : Nothing
     delete self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
-            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error <| Nothing
+        if self.exists.not then Error.throw (File_Error.Not_Found self) else
+            self.delete_if_exists
 
     ## Deletes the file if it had existed.
     delete_if_exists : Nothing
-    delete_if_exists self =
-        r = self.delete
-        r.catch File_Error err-> case err of
-            File_Error.Not_Found _ -> Nothing
-            _ -> r
+    delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
+            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error <| Nothing
 
     ## Copies the file to the specified destination.
 
