@@ -2571,6 +2571,7 @@ lazy val `connected-lock-manager` = project
     )
   )
   .dependsOn(`distribution-manager`)
+  .dependsOn(`connected-lock-manager-server` % "test->test")
   .dependsOn(`polyglot-api`)
 
 /** Unlike `connected-lock-manager` project, has a dependency on akka.
