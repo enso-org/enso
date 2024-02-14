@@ -407,7 +407,7 @@ add_specs suite_builder =
             new_file = my_writable_dir / "nonexistent-file.txt"
             new_file.delete_if_exists . should_succeed
 
-        group_builder.specify "fails if the file being `delete_if_exists` did not exist" <|
+        group_builder.specify "fails if the file being deleted did not exist" <|
             new_file = my_writable_dir / "nonexistent-file2.txt"
             r = new_file.delete
             r.should_fail_with File_Error
