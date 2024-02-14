@@ -6,8 +6,10 @@ import project.IO
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Integer, Float, Number_Parse_Error
+from project.Errors.Common import Loss_Of_Floating_Point_Precision
 
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
@@ -42,7 +44,7 @@ type Decimal
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
 
-    ## Construct a `Decimal` from a string.
+    ## Construct a `Decimal` from a `Text`.
 
        Arguments:
        - s: The `Text` to construct a `Decimal` from.
@@ -63,16 +65,36 @@ type Decimal
                 _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
                 _ : Nothing -> Decimal.Value (BigDecimal.new s)
 
-    ## Construct a `Decimal` from an integer.
+    ## Construct a `Decimal` from an `Integer`.
 
        Arguments:
-       - i: The `Text` to construct a `Decimal` from.
+       - i: The `Integer` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
     from_integer : Integer -> Math_Context -> Decimal
     from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal =
-            case mc of
-                _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
-                _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
+        case mc of
+            _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
+            _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
+
+    ## Construct a `Decimal` from a `Float`.
+
+       Arguments:
+       - f: The `Float` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+
+       ! Error Conditions
+
+         - Since a `Float` cannot, in general, be represented exactly by a
+         `Decimal`, this method always attaches a
+         `Loss_Of_Floating_Point_Precision` error.
+    from_float : Float -> Math_Context -> Decimal ! Loss_Of_Floating_Point_Precision
+    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Floating_Point_Precision =
+        new_value = case mc of
+            _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoFloat f mc.math_context)
+            _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+        is_precision_loss = True
+        if is_precision_loss.not then new_value else
+            Warning.attach (Loss_Of_Floating_Point_Precision.Warning f new_value) new_value
 
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that

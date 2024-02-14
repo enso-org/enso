@@ -27,4 +27,17 @@ public class Decimal_Utils {
       throw new IllegalArgumentException("Input must be Long or BigInteger");
     }
   }
+
+  public static BigDecimal fromEnsoFloat(Double d) {
+    System.out.println("AAA " + d + " " + d.getClass());
+    // According to the BigInteger Javadocs, valueOf is preferred because "the
+    // value returned is equal to that resulting from constructing a BigDecimal
+    // from the result of using Double.toString(double)."
+    return BigDecimal.valueOf(d);
+  }
+
+  public static BigDecimal fromEnsoFloat(Double d, MathContext mc) {
+    System.out.println("AAAmc " + d + " " + d.getClass() + " " + mc);
+    return new BigDecimal(d, mc);
+  }
 }

@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
 import project.Data.Text.Text
@@ -10,6 +11,7 @@ import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Numbers import Float
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
@@ -467,3 +469,20 @@ type Additional_Warnings
     to_display_text : Text
     to_display_text self =
         "There were "+self.count.to_text+" additional issues."
+
+type Loss_Of_Floating_Point_Precision
+    ## PRIVATE
+       Indicates that a numeric conversion of a floating point has lost
+       precision.
+    Warning (original_value : Float) (new_value : Any)
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "Loss of precision in converting "+self.original_value.to_text+" to "+self.new_value.to_text
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Floating_Point_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
