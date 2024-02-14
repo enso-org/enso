@@ -1,5 +1,14 @@
 use crate::prelude::*;
 
+use crate::define_env_var;
+
+
+
+define_env_var! {
+    /// Force the SBT server to start, avoiding `ServerAlreadyBootingException`.
+    /// See: https://github.com/sbt/sbt/issues/6777#issuecomment-1613316167
+    SBT_SERVER_FORCESTART, bool;
+}
 
 
 macro_rules! strong_string {
