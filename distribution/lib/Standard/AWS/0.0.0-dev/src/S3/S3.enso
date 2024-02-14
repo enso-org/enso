@@ -34,7 +34,7 @@ polyglot java import software.amazon.awssdk.services.s3.S3Client
      be used.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
-list_buckets credentials:(AWS_Credential | Nothing)=Nothing = time_it "list_buckets" <| handle_s3_errors <|
+list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
     client = make_client credentials
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
@@ -50,7 +50,7 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = time_it "list_buck
      be used.
 @credentials AWS_Credential.default_widget
 list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Text ! S3_Error
-list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 = time_it "list_objects" key=prefix <|
+list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
     read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
 
 ## PRIVATE
@@ -58,7 +58,7 @@ list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max
    one with object keys.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = time_it "read_bucket" key=prefix <| handle_s3_errors bucket=bucket <|
+read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
     client = make_client credentials
 
     per_request = Math.min max_count 1000
@@ -103,7 +103,7 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
    - key: the key of the object.
    - credentials: AWS credentials.
 raw_head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
-raw_head bucket key credentials = time_it "raw_head" key=key <|
+raw_head bucket key credentials =
     client = make_client credentials
     case key == "" of
         True ->
@@ -123,7 +123,7 @@ raw_head bucket key credentials = time_it "raw_head" key=key <|
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
 get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
-get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = time_it "get_object" key=key <| handle_s3_errors bucket=bucket key=key <|
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
     client = make_client credentials
@@ -140,7 +140,7 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = time_it "
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
-put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = time_it "put_object" key=key <| handle_s3_errors bucket=bucket key=key <|
+put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = PutObjectRequest.builder.bucket bucket . key key . build
     client.putObject request request_body . if_not_error <| Nothing
@@ -153,13 +153,13 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Cr
 ## PRIVATE
    Deletes the object.
    It will not raise any errors if the object does not exist.
-delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = time_it "delete_object" key=key <| handle_s3_errors bucket=bucket key=key <|
+delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build
     client.deleteObject request . if_not_error <| Nothing
 
 ## PRIVATE
-copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = time_it "copy_object" key=(source_key+" -> "+target_key) <| handle_s3_errors bucket=source_bucket key=source_key <|
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=source_bucket key=source_key <|
     client = make_client credentials
     request = CopyObjectRequest.builder
         . destinationBucket target_bucket
@@ -209,12 +209,3 @@ scheme = "s3"
 
 ## PRIVATE
 uri_prefix = scheme + "://"
-
-time_it name ~action key=Nothing =
-    start = System.nano_time
-    r = action
-    end = System.nano_time
-    duration = Duration.new nanoseconds=(end - start)
-    line = name + '\t' + duration.to_display_text + '\t' + key.to_text
-    line.write (File.new "s3.log") on_existing_file=Existing_File_Behavior.Append
-    r
