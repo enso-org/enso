@@ -186,18 +186,30 @@ export const useGraphStore = defineStore('graph', () => {
     return edges
   })
 
+  const connectedEdges = computed(() => {
+    return edges.value.filter<ConnectedEdge>(isConnected)
+  })
+
   function createEdgeFromOutput(source: Ast.AstId) {
-    unconnectedEdge.value = { source }
+    unconnectedEdge.value = { source, target: undefined }
   }
 
   function disconnectSource(edge: Edge) {
     if (!edge.target) return
-    unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+    unconnectedEdge.value = {
+      source: undefined,
+      target: edge.target,
+      disconnectedEdgeTarget: edge.target,
+    }
   }
 
   function disconnectTarget(edge: Edge) {
     if (!edge.source || !edge.target) return
-    unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+    unconnectedEdge.value = {
+      source: edge.source,
+      target: undefined,
+      disconnectedEdgeTarget: edge.target,
+    }
   }
 
   function clearUnconnected() {
@@ -545,6 +557,7 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
+    connectedEdges,
     moduleSource,
     nodeRects,
     vizRects,
@@ -588,14 +601,21 @@ function randomIdent() {
 }
 
 /** An edge, which may be connected or unconnected. */
-export type Edge = {
+export interface Edge {
   source: AstId | undefined
   target: PortId | undefined
 }
 
-export type UnconnectedEdge = {
-  source?: AstId
-  target?: PortId
+export interface ConnectedEdge extends Edge {
+  source: AstId
+  target: PortId
+}
+
+export function isConnected(edge: Edge): edge is ConnectedEdge {
+  return edge.source != null && edge.target != null
+}
+
+interface UnconnectedEdge extends Edge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
 }
