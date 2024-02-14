@@ -226,9 +226,9 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `:matches(\
-            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text)$/][value.raw=/^'|^"|^\`/], \
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title)$/][value.raw=/^'|^"|^\`/], \
             JSXText[value=/\\S/], \
-            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text)$/] ConditionalExpression:matches(\
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title)$/] ConditionalExpression:matches(\
                 [consequent.raw=/^'|^"|^\`/], \
                 [alternate.raw=/^'|^"|^\`/]\
             )\

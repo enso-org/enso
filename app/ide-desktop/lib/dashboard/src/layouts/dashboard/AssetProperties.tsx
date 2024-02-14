@@ -48,7 +48,10 @@ export interface AssetPropertiesProps {
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
   const { item: rawItem, setItem: rawSetItem, category, dispatchAssetEvent } = props
-
+  const { user } = authProvider.useNonPartialUserSession()
+  const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, innerSetItem] = React.useState(rawItem)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
@@ -62,10 +65,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, dataLinkValue),
     [dataLinkValue]
   )
-  const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
       innerSetItem(valueOrUpdater)
@@ -195,7 +194,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       </div>
       {isDataLink && (
         <div className="flex flex-col items-start gap-1">
-          <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">Data Link</span>
+          <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
+            {getText('dataLink')}
+          </span>
           {!isDataLinkFetched ? (
             <div className="grid self-stretch place-items-center">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
@@ -235,7 +236,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                       })()
                     }}
                   >
-                    Update
+                    {getText('update')}
                   </button>
                   <button
                     type="button"
@@ -244,7 +245,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                       setEditedDataLinkValue(structuredClone(dataLinkValue))
                     }}
                   >
-                    Cancel
+                    {getText('cancel')}
                   </button>
                 </div>
               )}

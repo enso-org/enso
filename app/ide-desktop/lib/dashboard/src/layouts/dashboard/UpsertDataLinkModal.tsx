@@ -4,6 +4,7 @@ import * as React from 'react'
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 
@@ -32,6 +33,7 @@ export interface UpsertDataLinkModalProps {
 export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
   const isValueSubmittable = React.useMemo(
@@ -58,12 +60,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           doCreate(name, value)
         }}
       >
-        <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex" title="Must not be blank.">
-          <div className="w-12 h-6 py-1">Name</div>
+        <h1 className="relative text-sm font-semibold">{getText('createDataLink')}</h1>
+        <div className="relative flex" title={getText('mustNotBeBlank')}>
+          <div className="w-12 h-6 py-1">{getText('name')}</div>
           <input
             autoFocus
-            placeholder="Enter the name of the Data Link"
+            placeholder={getText('dataLinkNamePlaceholder')}
             className={`grow bg-transparent border rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50 ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
@@ -82,14 +84,14 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
             disabled={!isSubmittable}
             className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
           >
-            Create
+            {getText('create')}
           </button>
           <button
             type="button"
             className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
             onClick={unsetModal}
           >
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>
