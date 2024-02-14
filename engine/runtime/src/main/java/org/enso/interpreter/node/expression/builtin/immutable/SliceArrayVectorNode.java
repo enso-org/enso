@@ -5,7 +5,10 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
-@BuiltinMethod(type = "Array_Like_Helpers", name = "slice", description = "Returns a slice of this Vector.")
+@BuiltinMethod(
+    type = "Array_Like_Helpers",
+    name = "slice",
+    description = "Returns a slice of this Vector.")
 public final class SliceArrayVectorNode extends Node {
   private @Child ArrayLikeLengthNode lengthNode = ArrayLikeLengthNode.create();
 
