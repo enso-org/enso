@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Widget_Helpers import make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Constants.Previous_Value
@@ -1665,6 +1665,7 @@ type DB_Column
            does not support customization, an `Unsupported_Database_Operation`
            error is reported.
     @type (Widget_Helpers.parse_type_selector include_auto=False)
+    @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> DB_Column
     parse self type format:(Text|Data_Formatter)="" on_problems=Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
@@ -1679,6 +1680,7 @@ type DB_Column
        ICON convert
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
+    @format (make_format_chooser include_number=(self.value_type.is_numeric || self.value_type==Value_Type.Mixed) include_date=(self.value_type==Value_Type.Date || self.value_type==Value_Type.Mixed) include_date_time=(self.value_type.is_date_time || self.value_type==Value_Type.Mixed) include_time=(self.value_type==Value_Type.Time_Of_Day || self.value_type==Value_Type.Mixed) include_boolean=(self.value_type.is_boolean || self.value_type==Value_Type.Mixed))
     format : Text | Date_Time_Formatter | DB_Column | Nothing -> Locale -> DB_Column ! Illegal_Argument
     format self format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default =
         _ = [format, locale]

@@ -10,7 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Widget_Helpers import make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import project.Data.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
@@ -1725,6 +1725,7 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
+    @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format:(Text|Data_Formatter)="" on_problems=Report_Warning =
         Value_Type.expect_text self <|
@@ -1818,6 +1819,7 @@ type Column
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
+    @format (make_format_chooser include_number=(self.value_type.is_numeric || self.value_type==Value_Type.Mixed) include_date=(self.value_type==Value_Type.Date || self.value_type==Value_Type.Mixed) include_date_time=(self.value_type.is_date_time || self.value_type==Value_Type.Mixed) include_time=(self.value_type==Value_Type.Time_Of_Day || self.value_type==Value_Type.Mixed) include_boolean=(self.value_type.is_boolean || self.value_type==Value_Type.Mixed))
     format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
     format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
