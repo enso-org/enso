@@ -91,6 +91,7 @@
             Factorial.enso:
     runtime/:
       target/:
+    runtime-benchmarks/:
       bench-report.xml:
   lib/:
     rust/:

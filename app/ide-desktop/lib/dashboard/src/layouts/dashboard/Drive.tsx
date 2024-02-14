@@ -113,7 +113,7 @@ export default function Drive(props: DriveProps) {
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
@@ -130,8 +130,8 @@ export default function Drive(props: DriveProps) {
     [labels]
   )
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const status =
@@ -139,7 +139,7 @@ export default function Drive(props: DriveProps) {
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
-      : isCloud && organization?.isEnabled !== true
+      : isCloud && user?.isEnabled !== true
       ? DriveStatus.notEnabled
       : DriveStatus.ok
 
@@ -161,15 +161,15 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (backend.type !== backendModule.BackendType.local && organization?.isEnabled === true) {
+      if (backend.type !== backendModule.BackendType.local && user?.isEnabled === true) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, organization?.isEnabled, /* should never change */ setLabels])
+  }, [backend, user?.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (backend.type !== backendModule.BackendType.local && organization == null) {
+      if (backend.type !== backendModule.BackendType.local && user == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('Files cannot be uploaded while offline')
       } else {
@@ -181,13 +181,7 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      backend,
-      organization,
-      rootDirectoryId,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [backend, user, rootDirectoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateProject = React.useCallback(

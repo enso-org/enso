@@ -448,7 +448,7 @@ impl RunContext {
         } else {
             if self.config.build_benchmarks {
                 // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime/Benchmark/compile").await?;
+                sbt.call_arg("runtime-benchmarks/compile").await?;
 
                 // Check Language Server Benchmark Compilation
                 sbt.call_arg("language-server/Benchmark/compile").await?;
@@ -478,8 +478,12 @@ impl RunContext {
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
-                        let runtime_bench_report =
-                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        let runtime_bench_report = &self
+                            .paths
+                            .repo_root
+                            .engine
+                            .join("runtime-benchmarks")
+                            .join("bench-report.xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
@@ -517,20 +521,6 @@ impl RunContext {
 
         // === Build Distribution ===
         debug!("Building distribution");
-        if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
-            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
-            // Compile the Standard Libraries (Unix)
-            debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(std_libs)? {
-                let entry = entry?;
-                let target = entry.path().join(self.paths.version().to_string());
-                enso.compile_lib(target)?.run_ok().await?;
-            }
-        }
-
-
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
