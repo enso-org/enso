@@ -89,12 +89,9 @@ type Decimal
          `Loss_Of_Floating_Point_Precision` error.
     from_float : Float -> Math_Context -> Decimal ! Loss_Of_Floating_Point_Precision
     from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Floating_Point_Precision =
-        new_value = case mc of
+        case mc of
             _ : Math_Context -> Decimal.Value (Decimal_Utils.fromEnsoFloat f mc.math_context)
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
-        is_precision_loss = True
-        if is_precision_loss.not then new_value else
-            Warning.attach (Loss_Of_Floating_Point_Precision.Warning f new_value) new_value
 
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
