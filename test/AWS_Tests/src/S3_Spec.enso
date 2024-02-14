@@ -316,7 +316,7 @@ add_specs suite_builder =
             bak_file.exists.should_be_false
 
             "version1".write my_file . should_succeed
-            delete_afterwards my_file <|
+            delete_on_panic my_file <|
                 my_file.read . should_equal "version1"
                 bak_file.exists . should_be_false
 
@@ -338,6 +338,14 @@ add_specs suite_builder =
                     # No new file was created
                     parent_dir = my_file.parent
                     parent_dir.list . should_contain_the_same_elements_as [my_file, bak_file]
+
+                    # If the original file is deleted and the backup file remains, the original file should _not_ count as existing (this used to fail).
+                    my_file.delete
+                    bak_file.exists . should_be_true
+                    my_file.exists . should_be_false
+                    files = (my_writable_dir / "bak-test") . list
+                    files . should_contain bak_file
+                    files . should_not_contain my_file
 
         group_builder.specify "should fail cleanly if Auto_Detect fails to detect a format" <|
             weird_ext = my_writable_dir / "weird-ext.unknown"
@@ -400,8 +408,15 @@ add_specs suite_builder =
 
         group_builder.specify "should fail to delete a file if the Output context is not enabled" <|
             Context.Output.with_disabled <|
-                new_file = my_writable_dir / "new_file-ctx.txt"
-                new_file.delete . should_fail_with Forbidden_Operation
+                hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
+                hello_txt.delete . should_fail_with Forbidden_Operation
+
+        group_builder.specify "may fail with Not_Found if the file to delete does not exist, even if the Output Context is disabled" <|
+            Context.Output.with_disabled <|
+                new_file = my_writable_dir / "nonexistent-file.txt"
+                r = new_file.delete
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Not_Found
 
         group_builder.specify "does not raise an exception if the file being `delete_if_exists` did not exist in the first place" <|
             new_file = my_writable_dir / "nonexistent-file.txt"
