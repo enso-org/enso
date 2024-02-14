@@ -175,11 +175,15 @@ export type ArgumentWidgetConfiguration = z.infer<typeof argumentSchema>
 export const argsWidgetConfigurationSchema = z.array(argumentSchema)
 export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSchema>
 
+/**
+ * Create {@link WidgetConfiguration} object from parameters received from the engine, possibly
+ * applying those to an inherited config received from parent widget.
+ */
 export function functionCallConfiguration(
   parameters: ArgumentWidgetConfiguration[],
-  parent?: FunctionCall,
+  inherited?: FunctionCall,
 ): FunctionCall {
-  const parametersMap = new Map(parent?.parameters)
+  const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
     parametersMap.set(name, param)
   }
