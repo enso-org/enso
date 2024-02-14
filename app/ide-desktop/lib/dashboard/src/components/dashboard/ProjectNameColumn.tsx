@@ -277,7 +277,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={event => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (handleClick(event.nativeEvent)) {
+        } else if (handleClick(event)) {
           // Already handled.
         } else if (
           !isRunning &&

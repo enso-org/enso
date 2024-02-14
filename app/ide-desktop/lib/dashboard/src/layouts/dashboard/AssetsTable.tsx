@@ -1813,7 +1813,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [inputBindingsModule.DEFAULT_HANDLER]: () => {
           setSelectedKeys(new Set([key]))
         },
-      })(event.nativeEvent)
+      })(event)
       setPreviouslySelectedKey(key)
     },
     [displayItems, previouslySelectedKey, inputBindings, /* should never change */ setSelectedKeys]

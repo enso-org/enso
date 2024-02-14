@@ -140,7 +140,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (handleClick(event.nativeEvent)) {
+        if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected && numberOfSelectedItems === 1) {
           event.stopPropagation()

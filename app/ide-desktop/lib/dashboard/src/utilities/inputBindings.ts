@@ -33,7 +33,13 @@ export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
 /** The target of a {@link KeyboardEvent}, {@link MouseEvent}, or {@link PointerEvent}. */
 export interface InputEventTarget<
   EventName extends string,
-  Event extends KeyboardEvent | MouseEvent | PointerEvent,
+  Event extends
+    | KeyboardEvent
+    | MouseEvent
+    | PointerEvent
+    | React.KeyboardEvent
+    | React.MouseEvent
+    | React.PointerEvent,
 > {
   readonly addEventListener: (eventName: EventName, handler: (event: Event) => void) => void
   readonly removeEventListener: (eventName: EventName, handler: (event: Event) => void) => void
@@ -137,6 +143,30 @@ const POINTER_BUTTON_FLAG: Readonly<Record<Pointer, PointerButtonFlags>> = {
   PointerForward: PointerButtonFlags(1 << 4),
 }
 /* eslint-enable @typescript-eslint/naming-convention */
+
+/** Return the equivalent {@link PointerButtonFlags} for the given mouse `button`. */
+function buttonToPointerButtonFlags(button: number) {
+  switch (button) {
+    case 0: {
+      return POINTER_BUTTON_FLAG.PointerMain
+    }
+    case 1: {
+      return POINTER_BUTTON_FLAG.PointerAux
+    }
+    case 2: {
+      return POINTER_BUTTON_FLAG.PointerSecondary
+    }
+    case 3: {
+      return POINTER_BUTTON_FLAG.PointerBack
+    }
+    case 4: {
+      return POINTER_BUTTON_FLAG.PointerForward
+    }
+    default: {
+      return PointerButtonFlags(0)
+    }
+  }
+}
 
 // ==========================
 // === Autocomplete types ===
@@ -477,7 +507,15 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   }
   rebuildLookups()
 
-  const handler = <Event extends KeyboardEvent | MouseEvent | PointerEvent>(
+  const handler = <
+    Event extends
+      | KeyboardEvent
+      | MouseEvent
+      | PointerEvent
+      | React.KeyboardEvent
+      | React.MouseEvent
+      | React.PointerEvent,
+  >(
     handlers: Partial<
       // This MUST be `void` to allow implicit returns.
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
@@ -486,18 +524,22 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   ): ((event: Event, stopAndPrevent?: boolean) => boolean) => {
     return (event, stopAndPrevent = true) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
-      const keybinds =
-        event instanceof KeyboardEvent
+      const matchingBindings =
+        'key' in event
           ? keyboardShortcuts[KeyName(event.key.toLowerCase())]?.[eventModifierFlags]
-          : mouseShortcuts[PointerButtonFlags(event.buttons)]?.[eventModifierFlags]
+          : mouseShortcuts[
+              event.buttons !== 0
+                ? PointerButtonFlags(event.buttons)
+                : buttonToPointerButtonFlags(event.button)
+            ]?.[eventModifierFlags]
       let handle = handlers[DEFAULT_HANDLER]
-      if (keybinds != null) {
+      if (matchingBindings != null) {
         for (const bindingNameRaw in handlers) {
           // This is SAFE, because `handlers` is an object with identical keys to `T`,
           // which `BindingName` is also derived from.
           // eslint-disable-next-line no-restricted-syntax
           const bindingName = bindingNameRaw as BindingKey
-          if (keybinds.has(bindingName)) {
+          if (matchingBindings.has(bindingName)) {
             handle = handlers[bindingName]
             break
           }
@@ -509,7 +551,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
         return false
       } else {
         if (stopAndPrevent) {
-          event.stopImmediatePropagation()
+          if ('stopImmediatePropagation' in event) {
+            event.stopImmediatePropagation()
+          } else {
+            event.stopPropagation()
+          }
           event.preventDefault()
         }
         return true
@@ -519,7 +565,13 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
 
   const attach = <
     EventName extends string,
-    Event extends KeyboardEvent | MouseEvent | PointerEvent,
+    Event extends
+      | KeyboardEvent
+      | MouseEvent
+      | PointerEvent
+      | React.KeyboardEvent
+      | React.MouseEvent
+      | React.PointerEvent,
   >(
     target: InputEventTarget<EventName, Event>,
     eventName: EventName,

@@ -124,7 +124,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (handleClick(event.nativeEvent)) {
+        if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
