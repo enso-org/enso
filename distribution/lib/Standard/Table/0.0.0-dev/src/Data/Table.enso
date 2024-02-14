@@ -1070,8 +1070,9 @@ type Table
              table.format
     @columns Widget_Helpers.make_column_name_vector_selector
     @locale Locale.default_widget
-    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
-    format self columns format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+    @format (make_format_chooser include_number=False)
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True select_problem_builder
         select_problem_builder.attach_problems_before on_problems <|
