@@ -63,8 +63,7 @@ const emit = defineEmits<{
     position: absolute;
     top: 36px;
     clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
-    backdrop-filter: var(--blur-app-bg);
-    background: var(--color-app-bg);
+
     width: 100%;
     height: 100%;
   }
@@ -133,6 +132,18 @@ const emit = defineEmits<{
   color: red;
 }
 
+/**
+  * The following styles are used to position the icons in a circular pattern. The slots are named slot1 to slot8 and
+  * are positioned using absolute positioning. The slots are positioned in a circle with slot1 at the top and the rest
+  * of the slots are positioned in a clockwise direction.
+  * ```
+  *           slot1
+  *      slot8     slot2
+  * slot7               slot3
+  *      slot6     slot4
+  *           slot5
+  * ```
+ */
 .slot1 {
   position: absolute;
   left: 44px;
