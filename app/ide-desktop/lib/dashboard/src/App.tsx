@@ -192,7 +192,7 @@ function AppRouter(props: AppProps) {
         isClick &&
         !(event.target instanceof HTMLInputElement) &&
         !(event.target instanceof HTMLTextAreaElement) &&
-        (!(event.target instanceof HTMLElement && event.target.isContentEditable))
+        !(event.target instanceof HTMLElement && event.target.isContentEditable)
       ) {
         document.getSelection()?.removeAllRanges()
       }
