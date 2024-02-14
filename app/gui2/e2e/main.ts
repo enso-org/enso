@@ -1,5 +1,6 @@
 import 'enso-dashboard/src/tailwind.css'
 import { createPinia } from 'pinia'
+import { initializeFFI } from 'shared/ast/ffi'
 import { createApp, ref } from 'vue'
 import { mockDataHandler, mockLSHandler } from '../mock/engine'
 import '../src/assets/base.css'
@@ -55,4 +56,4 @@ provideVisualizationConfig._mock(
   },
   app,
 )
-app.mount('#app')
+initializeFFI().then(() => app.mount('#app'))
