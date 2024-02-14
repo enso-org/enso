@@ -153,6 +153,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     :data-h="randSlice"
   >
     <NodeWidget :input="innerWidget" />
+    <div v-if="connected" class="edgeAttachment" />
   </div>
 </template>
 
@@ -212,5 +213,16 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     left: 0px;
     right: 0px;
   }
+}
+
+.edgeAttachment {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 4px;
+  height: 5px;
+  transform: translate(-50%, 0);
+  background-color: var(--node-color-port);
+  z-index: -1;
 }
 </style>

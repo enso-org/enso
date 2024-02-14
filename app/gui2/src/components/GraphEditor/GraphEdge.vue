@@ -95,7 +95,6 @@ interface Inputs {
 interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
-  targetAttachment: { target: Vec2; length: number } | undefined
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
@@ -140,8 +139,8 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  */
 
 /** Calculate the start and end positions of each 1-corner section composing an edge to the
- *  given offset. Return the points, the maximum radius that should be used to draw the corners
- *  connecting them, and the length of the target attachment bit.
+ *  given offset. Return the points and the maximum radius that should be used to draw the corners
+ *  connecting them.
  */
 function junctionPoints(inputs: Inputs): JunctionPoints | null {
   let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
@@ -210,7 +209,6 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, targetAttachment],
       maxRadius,
-      targetAttachment: attachment,
     }
   } else {
     const radiusMax = theme.edge.three_corner.radius_max
@@ -262,7 +260,6 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, j0, j1, attachmentTarget],
       maxRadius: radiusMax,
-      targetAttachment: attachment,
     }
   }
 }
