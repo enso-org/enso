@@ -35,7 +35,7 @@ const MODIFIER_MAPPINGS: Readonly<
     Meta: <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
     Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
     Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
-    Ctrl: <SvgMask style={ICON_STYLE} key="Mod" src={CtrlKeyIcon} />,
+    Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
   },
   [detect.Platform.windows]: {
     Meta: <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
@@ -81,12 +81,14 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
     return null
   } else {
     const shortcut = inputBindingsModule.decomposeKeybindString(shortcutString)
-    const modifiers = [...shortcut.modifiers].sort(inputBindingsModule.compareModifiers)
+    const modifiers = [...shortcut.modifiers]
+      .sort(inputBindingsModule.compareModifiers)
+      .map(inputBindingsModule.toModifierKey)
     return (
       <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
         {modifiers.map(
           modifier =>
-            MODIFIER_MAPPINGS[detect.platform()][inputBindingsModule.toModifierKey(modifier)] ?? (
+            MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
               <span key={modifier} className="leading-170 h-6 py-px">
                 {modifier}
               </span>

@@ -316,8 +316,11 @@ export interface KeybindsWithMetadata {
 }
 
 /** A helper type used to autocomplete and validate an array of keyboard shortcuts (and its
- * associated metadata) in the editor. */
-interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
+ * associated metadata) in the editor.
+ *
+ * This type SHOULD NOT be explicitly written - it is only exported to suppress TypeScript
+ * errors. */
+export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
   readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
   readonly description?: string

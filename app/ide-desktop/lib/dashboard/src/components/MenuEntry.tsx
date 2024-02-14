@@ -7,7 +7,7 @@ import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
-import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
+import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'

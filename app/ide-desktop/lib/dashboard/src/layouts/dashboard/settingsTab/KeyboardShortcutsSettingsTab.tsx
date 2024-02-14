@@ -6,7 +6,7 @@ import Plus2Icon from 'enso-assets/plus2.svg'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 
-import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
+import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 
 import * as object from '#/utilities/object'
 
