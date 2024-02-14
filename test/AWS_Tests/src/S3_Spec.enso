@@ -343,7 +343,7 @@ add_specs suite_builder =
                     my_file.delete
                     bak_file.exists . should_be_true
                     my_file.exists . should_be_false
-                    files = (my_writable_dir / "bak-test") . list
+                    files = my_file.parent.list
                     files . should_contain bak_file
                     files . should_not_contain my_file
 
