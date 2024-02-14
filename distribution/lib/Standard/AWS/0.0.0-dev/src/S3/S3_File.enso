@@ -49,7 +49,7 @@ type S3_File
     exists self = if self.bucket == "" then True else
         if self.prefix == "" then translate_file_errors self <| S3.head self.bucket "" self.credentials . is_error . not else
             pair = translate_file_errors self <| S3.read_bucket self.bucket self.prefix self.credentials max_count=1
-            pair.second.length > 0
+            pair.second.contains self.prefix
 
     ## GROUP Standard.Base.Metadata
        Checks if this is a folder.
