@@ -1048,6 +1048,7 @@
 - [Binary operator resolution based on that value][8779]
 - [Add run_google_report method][8907]
 - [Execute and debug individual Enso files in VSCode extension][8923]
+- [Check type of `self` when calling a method using the static syntax][8867]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1205,6 +1206,7 @@
 [8779]: https://github.com/enso-org/enso/pull/8779
 [8907]: https://github.com/enso-org/enso/pull/8907
 [8923]: https://github.com/enso-org/enso/pull/8923
+[8867]: https://github.com/enso-org/enso/pull/8867
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

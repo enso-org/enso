@@ -1390,7 +1390,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
+Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivity.Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start
