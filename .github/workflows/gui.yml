@@ -5,7 +5,7 @@ name: GUI CI
 on:
   push:
     branches:
-      - "*"
+      - develop
   pull_request: {}
   workflow_dispatch: {}
 jobs:
@@ -17,6 +17,17 @@ jobs:
     runs-on:
       - macos-latest
     steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.2.1
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
       - name: Checking out the repository
         uses: actions/checkout@v4
         with:
