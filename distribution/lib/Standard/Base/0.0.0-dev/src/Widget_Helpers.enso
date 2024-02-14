@@ -33,7 +33,7 @@ make_file_read_delimiter_selector =
 make_number_format_selector : Widget
 make_number_format_selector (value:Number=1234.564321) =
     formats = ['0', '#,##0', '#,##0.00', '#,##0.00##', '#,##0.00;(#,##0.00)', '0.####', '0.######E0']
-    mapped_formats = formats.map f-> [f + " (" + (value.format f) + ")", f.pretty]
+    mapped_formats = formats.map f-> [f + " (e.g. " + (value.format f) + ")", f.pretty]
     make_single_choice mapped_formats
 
 ## PRIVATE
@@ -98,16 +98,16 @@ make_time_format_selector (time:Time_Of_Day=(Time_Of_Day.new 13 30 55 123)) =
 make_format_chooser : Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_format_chooser include_number:Boolean=True include_date:Boolean=True include_date_time:Boolean=True include_time:Boolean=True include_boolean:Boolean=True =
     numeric = if include_number.not then [] else
-        ['0', '#,##0', '#,##0.00', '#,##0.00;(#,##0.00)'].map f-> [f + " (" + (1234.5678.format f) + ")", f.pretty]
+        ['0', '#,##0', '#,##0.00', '#,##0.00;(#,##0.00)'].map f-> [f + " (e.g. " + (1234.5678.format f) + ")", f.pretty]
     date = if include_date.not then [] else
         ['d/M/yyyy', 'dd/MM/yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'd-MMM-yy', 'd MMMM yyyy'].map f-> [f + " (e.g. " + (Date.new 2012 3 14).format f + ")", f.pretty]
     date_time = if include_date_time.not then [] else
         ['yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'MM/dd/yyyy HH:mm:ss'].map f-> [f + " (e.g. " + (Date_Time.new 2012 3 14 15 9 26 123).format f + ")", f.pretty]
     custom_locale_format =
         format = Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france
-        label = 'd MMMM yyyy HH:mm - with custom Locale (e.g. ' + date_time.format format + ')'
+        label = 'd MMMM yyyy HH:mm - with custom Locale (e.g. ' + Date_Time.now.format format + ')'
         code = "(Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france)"
-        Option label code [["pattern", make_single_choice (date+date_time)], ["locale", Locale.default_widget]]
+        [Option label code [["pattern", make_single_choice (date+date_time)], ["locale", Locale.default_widget]]]
     time = if include_time.not then [] else
         ['HH:mm[:ss]', 'h:mm[:ss] a'].map f-> [f + " (e.g. " + (Time_Of_Day.new 13 30 55 123).format f + ")", f.pretty]
     boolean = if include_boolean.not then [] else ['Yes|No', '1|0'].map f-> [f + " (Boolean)", f.pretty]

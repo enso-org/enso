@@ -1680,7 +1680,7 @@ type DB_Column
        ICON convert
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
-    @format (make_format_chooser include_number=(self.value_type.is_numeric || self.value_type==Value_Type.Mixed) include_date=(self.value_type==Value_Type.Date || self.value_type==Value_Type.Mixed) include_date_time=(self.value_type.is_date_time || self.value_type==Value_Type.Mixed) include_time=(self.value_type==Value_Type.Time_Of_Day || self.value_type==Value_Type.Mixed) include_boolean=(self.value_type.is_boolean || self.value_type==Value_Type.Mixed))
+    @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
     format : Text | Date_Time_Formatter | DB_Column | Nothing -> Locale -> DB_Column ! Illegal_Argument
     format self format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default =
         _ = [format, locale]
