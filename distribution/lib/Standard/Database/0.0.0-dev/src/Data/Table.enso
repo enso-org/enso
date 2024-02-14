@@ -47,7 +47,7 @@ from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.Connection.Connection.Connection
-import project.Data.Column.Column
+import project.Data.DB_Column.DB_Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -124,7 +124,7 @@ type Table
        Arguments:
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
-    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
+    at : Text | Integer -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -136,7 +136,7 @@ type Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    get : Text | Integer -> Any -> Column | Any
+    get : Text | Integer -> Any -> DB_Column | Any
     get self selector=0 ~if_missing=Nothing =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
@@ -147,19 +147,19 @@ type Table
     ## GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
-    first_column : Column ! Index_Out_Of_Bounds
+    first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
     ## GROUP Standard.Base.Selections
        ICON select_column
        Gets the second column
-    second_column : Column ! Index_Out_Of_Bounds
+    second_column : DB_Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
     ## GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
-    last_column : Column ! Index_Out_Of_Bounds
+    last_column : DB_Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
     ## GROUP Standard.Base.Metadata
@@ -516,12 +516,12 @@ type Table
 
        If instead of a name, a column is provided, it is returned as-is as long
        as it comes from the same context.
-    resolve : Text | Column -> Column
+    resolve : Text | DB_Column -> DB_Column
     resolve self column = case column of
         _ : Text -> Panic.rethrow (self.at column)
         _ ->
             if Helpers.check_integrity self column then column else
-                Panic.throw (Integrity_Error.Error "Column "+column.name)
+                Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
     ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
@@ -574,12 +574,12 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Widget_Helpers.make_filter_condition_selector
-    filter : (Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
-       _ : Column ->
+       _ : DB_Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
-                   Error.throw (Integrity_Error.Error "Column "+filter_column.name)
+                   Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
                True ->
                    new_filters = self.context.where_filters + [filter_column.expression]
                    new_ctx = self.context.set_where_filters new_filters
@@ -858,7 +858,7 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : DB_Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -866,7 +866,7 @@ type Table
 
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
-            _ : Column ->
+            _ : DB_Column ->
                 if Helpers.check_integrity self column then column else
                     Error.throw (Integrity_Error.Error "Column "+column.name)
             _ : Constant_Column -> self.make_constant_column column
@@ -878,11 +878,11 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
-           `Column`, use its name. In these two cases, do not make it unique.
+           `DB_Column`, use its name. In these two cases, do not make it unique.
            Otherwise, make it unique. If set_mode is Update, however, do not
            make it unique.
         new_column_name = if new_name != "" then new_name else
-            if column.is_a Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
+            if column.is_a DB_Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
         renamed = resolved.rename new_column_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
@@ -921,10 +921,10 @@ type Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression : Text -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
@@ -933,9 +933,9 @@ type Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Column ! Illegal_Argument
+    make_constant_column : Any -> DB_Column ! Illegal_Argument
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = self.connection.dialect.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
@@ -943,7 +943,7 @@ type Table
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
-            Column.Value value.pretty self.connection new_type_ref expr self.context
+            DB_Column.Value value.pretty self.connection new_type_ref expr self.context
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -952,8 +952,8 @@ type Table
 
     ## PRIVATE
        Run a table transformer with a temporary column added.
-    with_temporary_column :  Column -> (Text -> Table -> Table) -> Table
-    with_temporary_column self new_column:Column f:(Text -> Table -> Table) =
+    with_temporary_column :  DB_Column -> (Text -> Table -> Table) -> Table
+    with_temporary_column self new_column:DB_Column f:(Text -> Table -> Table) =
         new_column_name = self.make_temp_column_name
         with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
@@ -962,13 +962,13 @@ type Table
     ## PRIVATE
        Filter a table on a boolean column. The column does not have to be part
        of the table, but it must be derived from it and share a context.
-    filter_on_predicate_column : Column -> Table
+    filter_on_predicate_column : DB_Column -> Table
     filter_on_predicate_column self predicate_column =
         self.with_temporary_column predicate_column name-> table->
             table.filter name Filter_Condition.Is_True
 
     ## Returns the vector of columns contained in this table.
-    columns : Vector Column
+    columns : Vector DB_Column
     columns self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
             self.make_column (self.internal_columns.at i)
@@ -2026,8 +2026,8 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Formats `Column`s within a `Table` using a format string,
-       `Date_Time_Formatter`, or `Column` of format strings.
+       Formats `DB_Column`s within a `Table` using a format string,
+       `Date_Time_Formatter`, or `DB_Column` of format strings.
 
        Arguments:
        - columns: The columns to format. The columns can have different types,
@@ -2035,7 +2035,7 @@ type Table
        - format: The type-dependent format string to use to format the values.
          If `format` is `""` or `Nothing`, .to_text is used to format the value.
          In case of date/time columns, the format can also be a
-         `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
+         `Date_Time_Formatter`. If `format` is a `DB_Column`, it must be a text
          column.
        - locale: The locale in which the format should be interpreted.
          If a `Date_Time_Formatter` is provided for `format` and the `locale` is
@@ -2099,8 +2099,8 @@ type Table
              table.format
     @columns Widget_Helpers.make_column_name_vector_selector
     @locale Locale.default_widget
-    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
-    format self columns format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns format:(Text | Date_Time_Formatter | DB_Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.format is not implemented yet for the Database backends.")
 
@@ -2470,9 +2470,9 @@ type Table
 
        Arguments:
        - internal: The internal column to use for creating a column.
-    make_column : Internal_Column -> Column
+    make_column : Internal_Column -> DB_Column
     make_column self internal =
-        Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
+        DB_Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -2644,7 +2644,7 @@ type Table
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
@@ -2672,7 +2672,7 @@ type Table
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_empty resolved_default
@@ -2713,8 +2713,8 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
-    text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | DB_Column | Column_Ref | Regex -> Text | DB_Column | Column_Ref -> Case_Sensitivity -> Boolean -> DB_Column
+    text_replace self columns (term : Text | DB_Column | Column_Ref | Regex = "") (new_text : Text | DB_Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
